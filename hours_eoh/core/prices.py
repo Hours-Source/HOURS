@@ -1,0 +1,596 @@
+"""
+Price Dynamics
+
+In the EOH framework, price is not set by supply and demand — it is set by
+the human labor content of the good or service. A good costs as many TEH as
+it took human labor to produce. As automation rises, the human labor content
+of produced goods falls, so prices fall automatically.
+
+This creates Principle 5 (floor purchasing power rises with automation) as a
+mathematical consequence: if the sufficiency floor is constant in nominal TEH
+and prices fall, the floor purchases more. No policy intervention required.
+
+The price basket contains goods AND services. Goods prices fall steeply with
+automation (production is the first thing automated). Service prices fall more
+slowly (care, knowledge, judgment resist full automation longer). This shift
+in basket composition ensures services remain meaningful as goods become nearly
+free — consistent with the care economy becoming dominant at high ε.
+
+Mission Statement: §"Principle 5 — The floor rises with automation; it never
+falls"; §"TEH-denominated prices fall as automation handles more EOH, so the
+same nominal TEH buys more"; §"teh_price" in Phase 3.2 requirements.
+"""
+
+from __future__ import annotations
+import math
+
+from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT
+
+
+# ---------------------------------------------------------------------------
+# Basket composition: what the sufficiency basket contains
+# ---------------------------------------------------------------------------
+
+# Fraction of the sufficiency basket that is goods vs. services
+# Goods: food, clothing, shelter materials, manufactured items
+# Services: healthcare, care, education, local skilled services
+BASKET_GOODS_WEIGHT:    float = 0.60
+BASKET_SERVICES_WEIGHT: float = 0.40
+
+# Goods price floor (fraction of baseline): even with full automation,
+# some goods require energy, logistics, quality control — not zero
+GOODS_PRICE_FLOOR:    float = 0.05
+
+# Services price floor: relational/emotional services can't be automated
+SERVICES_PRICE_FLOOR: float = 0.20
+
+# Services price decline shape: exponent < 1 → concave (slower decline than goods)
+# At ε=0: ratio=1. At ε=0.99: ratio→SERVICES_PRICE_FLOOR. Exponent 0.35 chosen to
+# keep services meaningful in the care economy while prices still fall substantially.
+_SERVICES_PRICE_DECLINE_EXPONENT: float = 0.35
+
+
+# ---------------------------------------------------------------------------
+# Good Price (single item)
+# ---------------------------------------------------------------------------
+
+def domain_scarcity_multiplier(
+    eoh_demand: float,
+    fulfillment_capacity: float,
+    max_scarcity: float = 2.0,
+) -> float:
+    """
+    Price scarcity multiplier when EOH demand outpaces fulfillment capacity.
+
+    In the EOH framework, prices normally reflect labor content only. When a
+    domain's EOH demand chronically exceeds the workforce's ability to fulfill
+    it, a scarcity signal is appropriate — prices rise to ration consumption
+    and redirect labor toward the shortfall.
+
+    At balance (demand ≤ capacity): multiplier = 1.0 (no scarcity signal).
+    At 2× overdemand (demand = 2× capacity): multiplier = max_scarcity.
+    Scales linearly between these extremes.
+
+    Args:
+        eoh_demand: Total EOH demanded in this domain (hours/year).
+        fulfillment_capacity: Total fulfillment capacity available (hours/year).
+        max_scarcity: Maximum multiplier at 2× overdemand. Default: 2.0.
+
+    Returns:
+        Scarcity multiplier ≥ 1.0. Pass as scarcity_factor to teh_price().
+
+    Reference: Mission Statement §"Prices tell you how much human life went
+    into making something" — under scarcity, the signal must be amplified to
+    direct labor toward unfulfilled obligations.
+    """
+    if fulfillment_capacity <= 0.0 or eoh_demand <= 0.0:
+        return 1.0
+    ratio = eoh_demand / fulfillment_capacity
+    if ratio <= 1.0:
+        return 1.0
+    # Linear from 1.0 at ratio=1 to max_scarcity at ratio=2; capped above 2
+    return 1.0 + (max_scarcity - 1.0) * min(ratio - 1.0, 1.0)
+
+
+def teh_price(
+    human_labor_hours_at_eps0: float,
+    epsilon: float = 0.40,
+    mean_multiplier: float = 2.10,
+    goods_price_floor: float = GOODS_PRICE_FLOOR,
+    scarcity_factor: float = 1.0,
+) -> float:
+    """
+    Price of a good in TEH at a given automation level.
+
+    Price = human_labor_content × mean_multiplier
+
+    Where human_labor_content = labor hours needed to produce the good,
+    which falls with automation. At ε=0: all labor is human. At ε=0.90:
+    90% is automated, so 10% of original hours remain human-labor.
+
+    The price floor prevents prices from reaching exactly zero even at full
+    automation — some irreducible human contribution (logistics, quality
+    assurance, final-mile delivery) persists.
+
+    Args:
+        human_labor_hours_at_eps0: Human labor hours needed to produce this
+                                   good at ε=0 (no automation).
+        epsilon: Automation level. Scales down human labor content.
+        mean_multiplier: Mean multiplier for the workers who produce this good.
+        goods_price_floor: Minimum fraction of base price (irreducible labor).
+        scarcity_factor: Optional multiplier from domain_scarcity_multiplier().
+                         Default 1.0 (no scarcity signal). Values > 1.0 indicate
+                         EOH demand exceeds fulfillment capacity in this domain.
+
+    Returns:
+        TEH price of the good at this automation level.
+
+    Example: A loaf of bread requires 0.1 hours of human labor at ε=0 with
+    mean_multiplier=2.0 → base price = 0.2 TEH. At ε=0.80: price = 0.2 × 0.20
+    = 0.04 TEH (clipped to floor if needed).
+
+    Reference: Mission Statement §"Prices tell you how much human life went
+    into making something"; §"Phase 3.2 — teh_price(good, human_labor_content, ε)"
+    """
+    # Human labor content at this ε
+    human_fraction = max(1.0 - epsilon, goods_price_floor)
+    human_hours    = human_labor_hours_at_eps0 * human_fraction
+    return human_hours * mean_multiplier * scarcity_factor
+
+
+def teh_price_trajectory(
+    human_labor_hours_at_eps0: float,
+    mean_multiplier: float = 2.10,
+    n_points: int = 20,
+) -> list[dict]:
+    """
+    Price trajectory for a good across the full automation range.
+
+    Args:
+        human_labor_hours_at_eps0: Base labor content.
+        mean_multiplier: Mean worker multiplier.
+        n_points: Number of ε points (0.0 to 0.99).
+
+    Returns:
+        List of {"epsilon": float, "price_teh": float, "relative_to_eps0": float}.
+    """
+    base_price = teh_price(human_labor_hours_at_eps0, 0.0, mean_multiplier)
+    result = []
+    for i in range(n_points + 1):
+        eps = i * 0.99 / n_points
+        price = teh_price(human_labor_hours_at_eps0, eps, mean_multiplier)
+        result.append({
+            "epsilon":         eps,
+            "price_teh":       price,
+            "relative_to_eps0": price / max(base_price, 1e-10),
+        })
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Basket Price
+# ---------------------------------------------------------------------------
+
+def basket_price(
+    epsilon: float,
+    baseline_cost_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    goods_weight: float = BASKET_GOODS_WEIGHT,
+    services_weight: float = BASKET_SERVICES_WEIGHT,
+    goods_price_floor: float = GOODS_PRICE_FLOOR,
+    services_price_floor: float = SERVICES_PRICE_FLOOR,
+) -> float:
+    """
+    TEH cost of the sufficiency basket at automation level ε.
+
+    The basket contains both goods and services. Goods prices fall
+    steeply with automation (production is automated first). Services
+    prices fall more slowly because care, knowledge, and judgment
+    resist full automation. This shift in relative prices means the
+    basket cost declines, but not as fast as pure-goods prices.
+
+    The basket_price is always positive and monotonically decreasing
+    with ε, which is the mathematical basis for Principle 5.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        baseline_cost_teh: Basket cost at ε=0 (TEH/year). Default: 1020.
+        goods_weight: Fraction of basket that is goods. Default: 0.60.
+        services_weight: Fraction of basket that is services. Default: 0.40.
+        goods_price_floor: Minimum goods price ratio (can't reach zero).
+        services_price_floor: Minimum services price ratio.
+
+    Returns:
+        TEH cost of the sufficiency basket at ε. Always in
+        (baseline_cost_teh × min_floor, baseline_cost_teh].
+
+    Reference: Mission Statement §"As automation reduces the human labor
+    content of the Sufficiency basket, the Guarantee's purchasing power
+    increases automatically."
+    """
+    if abs(goods_weight + services_weight - 1.0) > 0.001:
+        raise ValueError(
+            f"goods_weight + services_weight must equal 1.0, "
+            f"got {goods_weight + services_weight:.4f}"
+        )
+
+    # Goods: price declines nearly linearly, floored at goods_price_floor
+    goods_price_ratio = max(1.0 - epsilon * (1.0 - goods_price_floor), goods_price_floor)
+
+    # Services: price declines slower (power < 1 → concave decline)
+    # At ε=0: 1.0. At ε=0.99: services_price_floor.
+    services_price_ratio = services_price_floor + (1.0 - services_price_floor) * ((1.0 - epsilon) ** _SERVICES_PRICE_DECLINE_EXPONENT)
+
+    basket_ratio = goods_weight * goods_price_ratio + services_weight * services_price_ratio
+    return baseline_cost_teh * basket_ratio
+
+
+# ---------------------------------------------------------------------------
+# Purchasing Power
+# ---------------------------------------------------------------------------
+
+def purchasing_power(
+    teh_amount: float,
+    epsilon: float = 0.40,
+    baseline_basket_cost: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    goods_weight: float = BASKET_GOODS_WEIGHT,
+    services_weight: float = BASKET_SERVICES_WEIGHT,
+) -> dict:
+    """
+    What a given amount of TEH can buy at automation level ε.
+
+    Purchasing power is measured in "basket equivalents" — how many
+    sufficiency baskets the given TEH amount can purchase. As ε rises,
+    basket prices fall, so the same nominal TEH buys more baskets.
+
+    Args:
+        teh_amount: Amount of TEH to evaluate.
+        epsilon: Automation level.
+        baseline_basket_cost: Cost of one basket at ε=0.
+        goods_weight: Fraction of basket that is goods.
+        services_weight: Fraction of basket that is services.
+
+    Returns:
+        dict: {
+          "teh_amount":      float,
+          "basket_price":    float,   (cost of one basket at this ε)
+          "baskets_afforded": float,  (purchasing power in basket units)
+          "pp_index":        float,   (relative to ε=0; 1.0 at ε=0, >1 thereafter)
+          "epsilon":         float,
+        }
+
+    Reference: Mission Statement §"TEH-denominated prices fall as automation
+    handles more EOH, so the same nominal TEH buys more."
+    """
+    bp_at_eps  = basket_price(epsilon, baseline_basket_cost, goods_weight, services_weight)
+    bp_at_eps0 = basket_price(0.0,    baseline_basket_cost, goods_weight, services_weight)
+
+    baskets_afforded = teh_amount / max(bp_at_eps, 1e-10)
+    pp_index         = bp_at_eps0 / max(bp_at_eps, 1e-10)  # >1 means more purchasing power
+
+    return {
+        "teh_amount":       teh_amount,
+        "basket_price":     bp_at_eps,
+        "baskets_afforded": baskets_afforded,
+        "pp_index":         pp_index,
+        "epsilon":          epsilon,
+    }
+
+
+def floor_purchasing_power(
+    floor_teh: float,
+    epsilon: float = 0.40,
+    baseline_basket_cost: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    goods_weight: float = BASKET_GOODS_WEIGHT,
+    services_weight: float = BASKET_SERVICES_WEIGHT,
+) -> dict:
+    """
+    Purchasing power of the sufficiency floor at automation level ε.
+
+    The floor's purchasing power must never decline with automation (Principle 5).
+    If the basket_price is monotonically decreasing and floor_teh is constant,
+    then floor purchasing power is monotonically increasing — proven by construction.
+
+    This function quantifies the rise: at ε=0.40, the floor should buy
+    materially more than at ε=0. At ε=0.90, it should buy substantially more.
+
+    Args:
+        floor_teh: Nominal sufficiency floor in TEH/year (constant in nominal terms).
+        epsilon: Automation level.
+        baseline_basket_cost: Basket cost at ε=0.
+        goods_weight: Fraction of basket that is goods.
+        services_weight: Fraction of basket that is services.
+
+    Returns:
+        dict: {
+          "floor_teh":         float,   (nominal, unchanged)
+          "basket_price":      float,   (falling with ε)
+          "baskets_afforded":  float,   (rising with ε — Principle 5)
+          "pp_index":          float,   (relative to ε=0; must be ≥ 1.0)
+          "pp_gain_pct":       float,   (percentage gain over ε=0 baseline)
+          "epsilon":           float,
+        }
+
+    Reference: Mission Statement §"Principle 5 — The floor rises with
+    automation; it never falls ... Any proposed modification that would allow
+    the floor to decline in real terms ... violates the system's core commitment.
+    Model it, flag it, reject it."
+    """
+    pp = purchasing_power(floor_teh, epsilon, baseline_basket_cost,
+                          goods_weight, services_weight)
+    pp_gain = (pp["pp_index"] - 1.0) * 100.0
+
+    return {
+        "floor_teh":        floor_teh,
+        "basket_price":     pp["basket_price"],
+        "baskets_afforded": pp["baskets_afforded"],
+        "pp_index":         pp["pp_index"],
+        "pp_gain_pct":      pp_gain,
+        "epsilon":          epsilon,
+    }
+
+
+def floor_monotonicity_guard(
+    floor_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    baseline_basket_cost: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    n_points: int = 100,
+    tolerance: float = 1e-6,
+) -> dict:
+    """
+    Verify that floor purchasing power is non-decreasing across the full ε range.
+
+    This is the Principle 5 structural integrity check. Any modification to the
+    pricing model that causes the floor PP to decline at any ε level must be
+    flagged as a violation. This function sweeps ε from 0 to 0.99 and checks
+    monotonicity at every step.
+
+    Args:
+        floor_teh: Nominal sufficiency floor.
+        baseline_basket_cost: Basket cost at ε=0.
+        n_points: Number of ε points to check.
+        tolerance: Allowed backward step in pp_index (floating-point tolerance).
+
+    Returns:
+        dict: {
+          "passes": bool,
+          "violations": list[dict],  (empty if passes)
+          "pp_at_eps0": float,
+          "pp_at_eps90": float,
+          "pp_at_eps99": float,
+          "status": "OK" or "PRINCIPLE_5_VIOLATION",
+        }
+
+    Reference: Mission Statement §"Principle 5 — Model it, flag it, reject it."
+    """
+    violations = []
+    prev_pp = None
+
+    pp_at = {}
+    for i in range(n_points + 1):
+        eps = i * 0.99 / n_points
+        result = floor_purchasing_power(floor_teh, eps, baseline_basket_cost)
+        pp = result["pp_index"]
+
+        if prev_pp is not None and pp < prev_pp - tolerance:
+            violations.append({
+                "epsilon":        eps,
+                "pp_index":       pp,
+                "prev_pp_index":  prev_pp,
+                "decline":        prev_pp - pp,
+            })
+
+        for target in (0.0, 0.40, 0.90, 0.99):
+            if abs(eps - target) < 0.99 / (2 * n_points):
+                pp_at[target] = pp
+
+        prev_pp = pp
+
+    passes = len(violations) == 0
+    return {
+        "passes":      passes,
+        "violations":  violations,
+        "pp_at_eps0":  pp_at.get(0.0,  1.0),
+        "pp_at_eps40": pp_at.get(0.40, None),
+        "pp_at_eps90": pp_at.get(0.90, None),
+        "pp_at_eps99": pp_at.get(0.99, None),
+        "status":      "OK" if passes else "PRINCIPLE_5_VIOLATION",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Purchasing power sweep (for analysis and dashboard)
+# ---------------------------------------------------------------------------
+
+def purchasing_power_sweep(
+    teh_amount: float,
+    baseline_basket_cost: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    n_points: int = 20,
+) -> list[dict]:
+    """
+    Compute purchasing power at each ε level across the automation arc.
+
+    Args:
+        teh_amount: TEH amount to evaluate (e.g., sufficiency floor).
+        baseline_basket_cost: Basket cost at ε=0.
+        n_points: Number of ε points.
+
+    Returns:
+        List of purchasing_power() results at each ε level.
+    """
+    result = []
+    for i in range(n_points + 1):
+        eps = i * 0.99 / n_points
+        result.append(purchasing_power(teh_amount, eps, baseline_basket_cost))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Comprehensive price monotonicity audit (all components, not just floor)
+# ---------------------------------------------------------------------------
+
+def full_price_monotonicity_audit(
+    baseline_cost_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    human_labor_hours_at_eps0: float = 1.0,
+    floor_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    n_points: int = 100,
+    tolerance: float = 1e-6,
+) -> dict:
+    """
+    Verify Principle 5 for all price components simultaneously.
+
+    basket_price() and teh_price() must be monotonically non-increasing with ε.
+    floor purchasing power must be monotonically non-decreasing. Scarcity
+    multipliers can legally break monotonicity (they're demand-dependent) and
+    are not checked here.
+
+    This extends floor_monotonicity_guard() to cover basket price and goods
+    price in addition to the floor PP. Any component violation means a
+    modification to the pricing model has broken the fundamental Principle 5
+    guarantee.
+
+    Args:
+        baseline_cost_teh: Basket cost at ε=0.
+        human_labor_hours_at_eps0: Labor content of a reference good at ε=0.
+        floor_teh: Nominal sufficiency floor.
+        n_points: Number of ε points to check.
+        tolerance: Allowed backward step (floating-point noise).
+
+    Returns:
+        dict: {
+          "passes":              bool,   (True iff all components pass)
+          "basket_price":        {"passes": bool, "violations": list, "range": [min, max]},
+          "goods_price":         {"passes": bool, "violations": list, "range": [min, max]},
+          "floor_pp":            {"passes": bool, "violations": list, "range": [min, max]},
+          "status":              "OK" | "PRINCIPLE_5_VIOLATION",
+          "violation_summary":   list[str],   (one-line descriptions of failing components)
+        }
+
+    Reference: Mission Statement §"Principle 5 — The floor rises with automation;
+    it never falls"; §"Phase 3.2 — Model it, flag it, reject it."
+    """
+    basket_violations: list[dict] = []
+    goods_violations:  list[dict] = []
+    fp_violations:     list[dict] = []
+
+    prev_basket = prev_goods = prev_fp = None
+    basket_vals, goods_vals, fp_vals = [], [], []
+
+    for i in range(n_points + 1):
+        eps = i * 0.99 / n_points
+
+        b_price = basket_price(eps, baseline_cost_teh)
+        g_price = teh_price(human_labor_hours_at_eps0, eps)
+        fp      = floor_purchasing_power(floor_teh, eps, baseline_cost_teh)["pp_index"]
+
+        basket_vals.append(b_price)
+        goods_vals.append(g_price)
+        fp_vals.append(fp)
+
+        if prev_basket is not None:
+            if b_price > prev_basket + tolerance:
+                basket_violations.append({
+                    "epsilon": eps, "value": b_price,
+                    "prev_value": prev_basket, "increase": b_price - prev_basket,
+                })
+            if g_price > prev_goods + tolerance:
+                goods_violations.append({
+                    "epsilon": eps, "value": g_price,
+                    "prev_value": prev_goods, "increase": g_price - prev_goods,
+                })
+            if fp < prev_fp - tolerance:
+                fp_violations.append({
+                    "epsilon": eps, "value": fp,
+                    "prev_value": prev_fp, "decline": prev_fp - fp,
+                })
+
+        prev_basket, prev_goods, prev_fp = b_price, g_price, fp
+
+    components = {
+        "basket_price": {
+            "passes":     len(basket_violations) == 0,
+            "violations": basket_violations,
+            "range":      [min(basket_vals), max(basket_vals)],
+        },
+        "goods_price": {
+            "passes":     len(goods_violations) == 0,
+            "violations": goods_violations,
+            "range":      [min(goods_vals), max(goods_vals)],
+        },
+        "floor_pp": {
+            "passes":     len(fp_violations) == 0,
+            "violations": fp_violations,
+            "range":      [min(fp_vals), max(fp_vals)],
+        },
+    }
+
+    all_pass = all(c["passes"] for c in components.values())
+    violation_summary = [
+        name for name, c in components.items() if not c["passes"]
+    ]
+
+    return {
+        "passes":           all_pass,
+        **components,
+        "status":           "OK" if all_pass else "PRINCIPLE_5_VIOLATION",
+        "violation_summary": violation_summary,
+    }
+
+
+# ---------------------------------------------------------------------------
+# D4: CPI transaction-level destruction
+# ---------------------------------------------------------------------------
+
+def cpi_goods_destruction(
+    capital_personal_eoh_fulfilled_total: float,
+    epsilon: float,
+    basket_eoh_content: float = BASKET_EOH_CONTENT,
+) -> dict:
+    """
+    TEH destroyed when capital infrastructure delivers personal-EOH services.
+
+    D4: the CPI transaction-level destruction mechanism. When capital assets
+    (water treatment, hospitals, energy grids) fulfill personal EOH obligations,
+    those services are consumed at their embedded labor price. TEH is destroyed
+    at the point of delivery — the exchange of service for TEH is the destruction
+    event, not deferred to a later behavioral consumption decision.
+
+    Destruction = (capital_personal_eoh_fulfilled / basket_eoh_content) × basket_price(ε)
+
+    As ε rises, basket_price falls, so D4 destruction per unit of fulfilled EOH
+    also falls — consistent with automation making those services cheaper to provide.
+    At ε=0, infrastructure services are expensive (high labor content); at ε→1,
+    they approach free.
+
+    Distinct from D2/D3 (income-driven individual consumption): D4 captures
+    destruction at the infrastructure-to-recipient boundary, independent of
+    whether individuals spend personal income. It closes the circuit for services
+    that are never paid for directly by individuals (guarantee-funded or
+    collectively provisioned goods).
+
+    Args:
+        capital_personal_eoh_fulfilled_total: Total personal EOH fulfilled by
+            capital infrastructure across the entire population (EOH/year).
+            Equals capital_personal_eoh_fulfilled_per_capita × population.
+        epsilon: Automation level ε ∈ [0, 0.99].
+        basket_eoh_content: Personal EOH hours per sufficiency basket. Default: 1500.
+
+    Returns:
+        dict: {
+            "teh_destroyed":                    float,
+            "baskets_delivered":                float,
+            "basket_price":                     float,
+            "capital_personal_eoh_fulfilled":   float,
+            "mechanism":                        "D4_cpi",
+        }
+
+    Reference: Comprehensive Price Identity — goods are priced at embedded labor
+    content; consumption at that price is the destruction event.
+    """
+    baskets = capital_personal_eoh_fulfilled_total / max(basket_eoh_content, 1.0)
+    bp      = basket_price(epsilon)
+    return {
+        "teh_destroyed":                  baskets * bp,
+        "baskets_delivered":              baskets,
+        "basket_price":                   bp,
+        "capital_personal_eoh_fulfilled": capital_personal_eoh_fulfilled_total,
+        "mechanism":                      "D4_cpi",
+    }

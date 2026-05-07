@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hours-eoh"
+version = "0.1.0"
+description = "HOURS EOH — Entropy Obligation Hours → Time-Equivalent Hour currency framework"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "AWol"},
+]
+keywords = [
+    "economics",
+    "entropy",
+    "post-scarcity",
+    "currency",
+    "labor",
+    "automation",
+    "eoh",
+    "teh",
+    "time-currency",
+    "time",
+    "hour",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+eoh = "utils.eoh_cli:main"
+
+[project.urls]
+Homepage = "https://hoursframework.org"
+Repository = "https://github.com/Hours-Source/HOURS"
+"Bug Tracker" = "https://github.com/Hours-Source/HOURS/issues"
+Changelog = "https://github.com/Hours-Source/HOURS/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
