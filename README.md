@@ -158,11 +158,11 @@ $ python3 utils/eoh_cli.py params set suff_levy_rate 0.03 --dry-run
 [DRY RUN] params set suff_levy_rate
   suff_levy_rate: 0.0125  →  0.03
 
-  Downstream impact (TEH created / solvency):
-       ε    before teh     after teh             Δ  solvent
-    0.00       70.210M       70.210M           +0  Y
-    0.40      494.120M      494.120M           +0  Y
-    0.99       44.987M       44.987M           +0  Y
+  Downstream impact (TEH created / Trust solvency):
+       ε        teh Δ  surplus (after)       surp Δ  solvent
+    0.00         +0.0             2.3B        +1.3B  Y
+    0.40         +0.0            15.7B        +9.1B  Y
+    0.99         +0.0             1.8B      +824.8M  Y
 ```
 
 Run a scenario and export to CSV for analysis:
