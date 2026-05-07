@@ -42,12 +42,6 @@ Physical state → total_eoh()          # entropy obligation from physics
 ## Installation
 
 ```bash
-pip install hours-eoh
-```
-
-From source:
-
-```bash
 git clone https://github.com/Hours-Source/HOURS
 cd HOURS
 pip install -e ".[dev]"
@@ -245,10 +239,10 @@ hours_eoh/
 python3 -m pytest tests/ -q
 
 # Single test file
-python3 -m pytest tests/test_eoh_phase5.py
+python3 -m pytest tests/test_conditions.py
 
 # Single test
-python3 -m pytest tests/test_eoh_phase5.py::TestConditionDashboard::test_green_at_midpoint
+python3 -m pytest tests/test_conditions.py::TestDashboardSnapshot::test_green_at_all_key_epsilons
 
 # Type checking
 python3 -m mypy hours_eoh/
