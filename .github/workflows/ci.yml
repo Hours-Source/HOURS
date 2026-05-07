@@ -47,4 +47,4 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run mypy
-        run: python -m mypy code/hours_eoh/
+        run: python -m mypy hours_eoh/

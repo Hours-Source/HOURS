@@ -102,6 +102,7 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
     )
     teh_created  = float(pipeline.get("teh_created", 0.0))
     labor_income = float(pipeline.get("registered_eoh", 0.0)) * 2200.0
+    levy_rates = {"sufficiency": float(data.get("suff_levy_rate", 0.0125))}
     snap = fiscal_snapshot(
         epsilon=eps,
         population=float(data["population"]),
@@ -109,26 +110,42 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
         labor_income=labor_income,
         capital_stock_teh=float(data["capital_stock_teh"]),
         capital_age_ratio=float(data["capital_age_ratio"]),
+        levy_rates=levy_rates,
+        dep_rate=float(data.get("dep_rate", 0.02)),
+        div_rate=float(data.get("div_rate", 0.05)),
     )
     return {
-        "epsilon": eps,
-        "teh_created": teh_created,
-        "solvent": snap.get("solvent", False),
+        "epsilon":        eps,
+        "teh_created":    teh_created,
+        "surplus_deficit": snap["trust"]["surplus_deficit"],
+        "solvent":        snap.get("solvent", False),
     }
+
+
+def _cfmt(val: float, width: int = 11) -> str:
+    """Format a signed delta with fixed visible width, then colorize."""
+    raw = ("+" if val >= 0 else "") + fmt_float(val, decimals=1)
+    return (green if val >= 0 else red)(raw.rjust(width))
 
 
 def _print_impact(p_before: EohParams, p_after: EohParams) -> None:
     checkpoints = [0.0, 0.40, 0.99]
-    print(bold("  Downstream impact (TEH created / solvency):"))
-    print(f"  {'ε':>6}  {'before teh':>12}  {'after teh':>12}  {'Δ':>12}  solvent")
+    print(bold("  Downstream impact (TEH created / Trust solvency):"))
+    print(f"  {'ε':>6}  {'teh Δ':>11}  {'surplus (after)':>15}  {'surp Δ':>11}  solvent")
     for eps in checkpoints:
         before = _impact_row(p_before, eps)
         after  = _impact_row(p_after,  eps)
-        delta  = after["teh_created"] - before["teh_created"]
-        delta_s = (green if delta >= 0 else red)(f"{delta:+.0f}")
-        sol = "Y" if after["solvent"] else red("N")
-        print(f"  {eps:>6.2f}  {fmt_float(before['teh_created']):>12}  "
-              f"{fmt_float(after['teh_created']):>12}  {delta_s:>12}  {sol}")
+        teh_delta  = after["teh_created"]    - before["teh_created"]
+        surp_delta = after["surplus_deficit"] - before["surplus_deficit"]
+        teh_s   = _cfmt(teh_delta)
+        surp_s  = _cfmt(surp_delta)
+        after_s = fmt_float(after["surplus_deficit"], decimals=1).rjust(15)
+        sol_b = "Y" if before["solvent"] else "N"
+        sol_a = "Y" if after["solvent"]  else "N"
+        sol_s = sol_a if sol_a == sol_b else f"{sol_b}→{sol_a}"
+        if sol_a == "N":
+            sol_s = red(sol_s)
+        print(f"  {eps:>6.2f}  {teh_s}  {after_s}  {surp_s}  {sol_s}")
 
 
 # ---------------------------------------------------------------------------
