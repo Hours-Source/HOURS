@@ -47,6 +47,8 @@ from physical inputs rather than assuming it.
 
 from __future__ import annotations
 
+from typing import Any
+
 from hours_eoh.data import (
     CAPITAL_MACHINE_PROFILES,
     CANONICAL_MONITORING_CAPABILITY_BASE,
@@ -75,7 +77,7 @@ def _condition_from_age(age: float, design_life: float) -> float:
 
 def _resolve_capital_entry(
     type_name: str,
-    spec,
+    spec: Any,
     population: float,
 ) -> dict:
     """

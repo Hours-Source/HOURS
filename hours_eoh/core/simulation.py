@@ -26,6 +26,7 @@ the reserve must cover critical infrastructure EOH."
 
 from __future__ import annotations
 import math
+from typing import Any
 
 from hours_eoh.data import (
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
@@ -549,7 +550,7 @@ def simulate_period(
 def run_simulation(
     initial_state: dict,
     n_periods: int = 20,
-    **simulate_kwargs,
+    **simulate_kwargs: Any,
 ) -> dict:
     """
     Run simulate_period() for n_periods and return the full trajectory.

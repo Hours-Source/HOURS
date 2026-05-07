@@ -11,6 +11,7 @@ division-by-zero)"; §"The system must remain coherent across the full automatio
 
 from __future__ import annotations
 import math
+from typing import Any
 
 from hours_eoh.data import (
     AGE_GROUPS,
@@ -80,7 +81,7 @@ def epsilon_sweep(
     }
 
     results         = []
-    prev            = {}
+    prev: dict[str, Any] = {}
     infinities      = []
     discontinuities = []
     basket_prices   = []

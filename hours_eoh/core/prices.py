@@ -485,7 +485,7 @@ def full_price_monotonicity_audit(
         goods_vals.append(g_price)
         fp_vals.append(fp)
 
-        if prev_basket is not None:
+        if prev_basket is not None and prev_goods is not None and prev_fp is not None:
             if b_price > prev_basket + tolerance:
                 basket_violations.append({
                     "epsilon": eps, "value": b_price,

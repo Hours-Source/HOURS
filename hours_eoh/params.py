@@ -14,6 +14,7 @@ Mission Statement: §"Entropy Obligation Hours — Accounting Framework"
 from __future__ import annotations
 import contextlib
 from copy import deepcopy
+from collections.abc import Iterator
 from typing import Any
 
 from hours_eoh.data import (
@@ -147,7 +148,7 @@ class EohParams:
             self.set(k, v, phase=phase, reason=reason)
 
     @contextlib.contextmanager
-    def temporary(self, **overrides: Any):
+    def temporary(self, **overrides: Any) -> Iterator[EohParams]:
         """
         Context manager: apply overrides, restore on exit. No history entries.
         Safe for use in sweep and simulation code.
