@@ -1,0 +1,2008 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Mathematical framework for an Entropy Obligation Hours → Time-Equivalent Hour currency system. Coherent across the full civilizational arc from ε=0 to ε=0.99.">
+      
+      
+        <meta name="author" content="AWol">
+      
+      
+        <link rel="canonical" href="https://hours-source.github.io/HOURS/theory/guf_framework/">
+      
+      
+        <link rel="prev" href="../diagrams/">
+      
+      
+        <link rel="next" href="../../api/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Ground Use Fee Framework - HOURS EOH Framework</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="cyan">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ground-use-fee-framework" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="HOURS EOH Framework" class="md-header__button md-logo" aria-label="HOURS EOH Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            HOURS EOH Framework
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ground Use Fee Framework
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="cyan"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="cyan"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Hours-Source/HOURS" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hours-Source/HOURS
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  Theory
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  Developer Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/quickstart/" class="md-tabs__link">
+          
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="HOURS EOH Framework" class="md-nav__button md-logo" aria-label="HOURS EOH Framework" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    HOURS EOH Framework
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Hours-Source/HOURS" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Hours-Source/HOURS
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Theory
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Theory
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epsilon_arc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    The ε Arc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../four_domains/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Four Entropy Domains
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../three_economies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Three Economies
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../structural_conditions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Structural Conditions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../eoh_accounting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EOH Accounting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../regenerative_labor/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Regenerative Labor
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design_principles/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Design Principles
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagrams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Diagrams
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Ground Use Fee Framework
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Ground Use Fee Framework
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preamble" class="md-nav__link">
+    <span class="md-ellipsis">
+      Preamble
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Developer Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Module Map
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/params/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Parameters & Constants
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Core — Physics Layer
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            Core — Physics Layer
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/trajectory/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Canonical Trajectory
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/eoh_generation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EOH Generation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/eoh_fulfillment/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EOH Fulfillment & Registration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/fiscal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Fiscal Mechanics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/prices/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Price Dynamics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/multipliers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multipliers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/capital/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Capital & Population
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/dynamics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EOH Dynamics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/workforce/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Workforce & ε Derivation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/conditions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Conditions & Dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/simulation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Simulation Engine
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/land/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Land — GUF Module
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/scenarios/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Scenarios
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/research/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Research (Experimental)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Guides
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/extending/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extending the Library
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/scenarios_howto/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running Scenarios
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preamble" class="md-nav__link">
+    <span class="md-ellipsis">
+      Preamble
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="ground-use-fee-framework">Ground Use Fee Framework<a class="headerlink" href="#ground-use-fee-framework" title="Permanent link">&para;</a></h1>
+<p><em>Based on NLSA TM-0042, extended with ε-parameterization, Trust integration, and collective extension points.</em></p>
+<p>This document specifies the complete mathematical framework for calculating Ground Use Fees (GUF) across all stewardship lease categories. The GUF is the annual temporal cost to the collective of granting exclusive use of a parcel to an individual or entity.</p>
+<p><strong>Code implementation:</strong> All GUF functions are in <a href="../../api/land/"><code>hours_eoh/land/guf.py</code></a>. The CLI is <code>eoh guf</code> — see <a href="../../guides/cli/#guf-land-use-fee-commands">CLI Reference</a>.</p>
+<p><strong>Framework connections:</strong> The GUF upholds <a href="../structural_conditions/">Condition III</a> (zero interest — all fee flows are circulatory TEH). The Ecological Write-Down provisions (§9) resolve the <code>eco-collapse-1</code> gap identified in the <a href="../eoh_accounting/">EOH Accounting</a> framework.</p>
+<hr />
+<h2 id="preamble">Preamble<a class="headerlink" href="#preamble" title="Permanent link">&para;</a></h2>
+<p>This manual sets forth the complete mathematical framework for calculating Ground Use Fees (GUF) across all stewardship lease categories. The framework codifies the principle that land, as a finite common resource not created by human labor, cannot be priced under the standard Price-Labor Identity. Instead, the GUF represents the annual temporal cost to the collective of granting exclusive use of a parcel to an individual or entity.</p>
+<p>This cost is derived from three physically grounded components: the opportunity value of the land to the community, the ecosystem-service displacement caused by its development, and the infrastructure burden of supporting its use.</p>
+<p>All fees described herein are denominated in Time-Equivalent Hours (TEH) and are subject to the standard constitutional provisions governing temporal currency, including the zero-interest identity (Condition III) and the public auditability mandate.</p>
+<p><strong>Epsilon parameterization.</strong> Every mechanism in this framework is a function of ε, the observed automation level of the civilization. The GUF exhibits a characteristic arc across the ε range: at ε = 0 (subsistence), land use is directly linked to personal EOH fulfillment and the formal fee approaches a minimal flat base. At moderate ε, urbanization, institutional complexity, and demand pressure drive the fee to its peak. At ε = 0.99 (post-scarcity), labor-content costs have collapsed and the fee contracts to a stewardship-only floor. This arc shape — low at the extremes, highest in the middle — is the signature of a mechanism that correctly expresses the transition.</p>
+<hr />
+<h1 id="1-the-master-ground-use-fee-equation">1. The Master Ground Use Fee Equation<a class="headerlink" href="#1-the-master-ground-use-fee-equation" title="Permanent link">&para;</a></h1>
+<h2 id="11-general-form">1.1 General Form<a class="headerlink" href="#11-general-form" title="Permanent link">&para;</a></h2>
+<p>The annual Ground Use Fee for any parcel p is calculated as:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>GUF(p) = Ψ(ε) × [A(p) × L(p) × U(p,ε) × D(p) × Z(p) + E(p,ε) + I(p,ε)] × Ω(p)    (Eq. 1)
+</span></code></pre></div>
+<p>where:</p>
+<p><strong>A(p)</strong> = the area of parcel p, measured in standard land units (SLU), where 1 SLU = 100 square meters</p>
+<p><strong>L(p)</strong> = the Location Value Index for the parcel's position, a dimensionless coefficient reflecting relative spatial desirability</p>
+<p><strong>U(p,ε)</strong> = the Use Category Coefficient, reflecting the type and intensity of permitted use, parameterized by automation level</p>
+<p><strong>D(p)</strong> = the Demand Pressure Modifier, reflecting current population and economic pressure on land in the parcel's jurisdiction</p>
+<p><strong>Z(p)</strong> = the Zone Adjustment Factor, a dimensionless modifier (default 1.0) that captures jurisdictional zone-specific regulatory conditions not reflected in other components. Regional Land Boards may set Z within a range of 0.80 to 1.25 with published justification</p>
+<p><strong>E(p,ε)</strong> = the Ecosystem Displacement Surcharge, representing the TEH-equivalent value of natural services lost or diminished by the parcel's development, with labor-replacement costs parameterized by automation level</p>
+<p><strong>I(p,ε)</strong> = the Infrastructure Proximity Premium, representing the parcel's draw on collectively funded infrastructure, with construction costs reflecting the automation level at time of build</p>
+<p><strong>Ψ(ε)</strong> = the Epsilon Scaling Function, a global multiplier that shapes the GUF across the automation arc (see Section 4)</p>
+<p><strong>Ω(p)</strong> = the Occupancy Fraction, the share of the year the parcel is under active exclusive use (default 1.0; see Section 2.7)</p>
+<p>The product <code>A(p) × L(p) × U(p,ε) × D(p) × Z(p)</code> constitutes the Base Fee, denominated in TEH per year. The terms E(p,ε) and I(p,ε) are additive surcharges, also in TEH per year.</p>
+<h2 id="12-dimensional-analysis">1.2 Dimensional Analysis<a class="headerlink" href="#12-dimensional-analysis" title="Permanent link">&para;</a></h2>
+<p>A(p): SLU. L(p): dimensionless. U(p,ε): TEH/(SLU×year). D(p), Z(p): dimensionless (baseline 1.0). E(p,ε), I(p,ε): TEH/year. Ψ(ε): dimensionless. Ω(p): dimensionless (0 to 1).</p>
+<p>Dimensional product: SLU × 1 × (TEH/SLU×year) × 1 × 1 = TEH/year. Full GUF: dimensionless × (TEH/year) × dimensionless = TEH/year. ✓</p>
+<h2 id="13-the-guf-floor">1.3 The GUF Floor<a class="headerlink" href="#13-the-guf-floor" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>GUF(p) = max[GUF_floor(collective), GUF_formula(p)]    (Eq. 2)
+</span></code></pre></div>
+<p>Each collective defines its own GUF floor. Recommended default: 0.0 TEH/year. Conservation credits that would reduce the fee below the floor are handled separately through Trust disbursements — the GUF is always a non-negative transfer from steward to collective, and rewards for exceptional stewardship are a separate positive transfer from collective to steward.</p>
+<hr />
+<h1 id="2-component-definitions-and-calculation-methods">2. Component Definitions and Calculation Methods<a class="headerlink" href="#2-component-definitions-and-calculation-methods" title="Permanent link">&para;</a></h1>
+<h2 id="21-parcel-area-ap">2.1 Parcel Area — A(p)<a class="headerlink" href="#21-parcel-area-ap" title="Permanent link">&para;</a></h2>
+<p>Parcel area is measured using standardized cadastral methods. One Standard Land Unit (SLU) equals 100 square meters. All parcels are measured to a precision of 0.01 SLU. For multi-story structures, A(p) refers to the ground footprint only — vertical development does not increase the GUF, incentivizing vertical density over horizontal sprawl.</p>
+<div class="admonition note">
+<p class="admonition-title">Extension point — Density Bonus</p>
+<p>Collectives may implement a density bonus modifier that reduces effective A(p) for parcels exceeding a defined floor-area ratio (FAR) threshold. The default template applies no density bonus.</p>
+</div>
+<h2 id="22-location-value-index-lp">2.2 Location Value Index — L(p)<a class="headerlink" href="#22-location-value-index-lp" title="Permanent link">&para;</a></h2>
+<p>The Location Value Index captures the relative desirability of a parcel's geographic position, independent of structures or improvements.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>L(p) = ω₁C(p) + ω₂T(p) + ω₃S(p) + ω₄N(p)    (Eq. 3)
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Sub-Index</th>
+<th>Default Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ω₁ — Centrality</td>
+<td>0.35</td>
+</tr>
+<tr>
+<td>ω₂ — Transit Accessibility</td>
+<td>0.30</td>
+</tr>
+<tr>
+<td>ω₃ — Services Density</td>
+<td>0.20</td>
+</tr>
+<tr>
+<td>ω₄ — Natural Amenity</td>
+<td>0.15</td>
+</tr>
+</tbody>
+</table>
+<p>Regional boards may adjust weights within ±0.10 of the default provided the total remains 1.0.</p>
+<p><strong>Centrality (C(p)):</strong> Gravity model for multi-center jurisdictions.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>C(p) = Σ_k Z_k / d(p,k)^γ    (Eq. 4)
+</span></code></pre></div>
+Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional.</p>
+<p><strong>Transit Accessibility (T(p)):</strong> Destinations reachable within travel-time thresholds. Standard thresholds: 30 min employment, 20 min education, 15 min healthcare, 20 min commerce.</p>
+<p><strong>Services Density (S(p)):</strong> Essential service points within radius r_s, weighted by category. Healthcare λ=1.5, educational λ=1.3, food retail λ=1.0, general commerce λ=0.8, community facilities λ=0.7.</p>
+<p><strong>Natural Amenity (N(p)):</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>N(p) = Σ_f Q_f × e^(−δ · d(p,f))    (Eq. 8)
+</span></code></pre></div>
+δ = 0.3 km⁻¹ recommended; max influence radius 10 km.</p>
+<div class="admonition warning">
+<p class="admonition-title">Removed: Residential Stability Index</p>
+<p>Previous editions included a stability sub-index with a public safety component (Φ). Analysis identified a self-reinforcing feedback loop — higher incident rates → lower location value → lower investment → higher incidents. The index has been removed from the default template. Collectives wishing to include community maturity metrics must exclude incident-rate components and apply dampening to prevent self-reinforcing decline.</p>
+</div>
+<h2 id="23-use-category-coefficient-up">2.3 Use Category Coefficient — U(p,ε)<a class="headerlink" href="#23-use-category-coefficient-up" title="Permanent link">&para;</a></h2>
+<p>Reference values calibrated at ε = 0.40, scaled by the labor-content function:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>U(p,ε) = U_ref(p) × α(ε)    (Eq. 9)
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Use Category</th>
+<th>U_ref (TEH/SLU/yr)</th>
+<th>Policy Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Residential — Primary</td>
+<td>0.08–0.12</td>
+<td>Low rate to ensure housing accessibility</td>
+</tr>
+<tr>
+<td>Residential — Secondary</td>
+<td>0.18–0.25</td>
+<td>Surcharge discourages speculative holding</td>
+</tr>
+<tr>
+<td>Agricultural — Active</td>
+<td>0.01–0.03</td>
+<td>Near-nominal to support food production</td>
+</tr>
+<tr>
+<td>Agricultural — Fallow/Transition</td>
+<td>0.04–0.06</td>
+<td>Modest increase incentivizes active use</td>
+</tr>
+<tr>
+<td>Commercial — Retail</td>
+<td>0.20–0.40</td>
+<td>Reflects infrastructure intensity of trade</td>
+</tr>
+<tr>
+<td>Commercial — Office/Services</td>
+<td>0.15–0.30</td>
+<td>Moderate rate for service-sector activity</td>
+</tr>
+<tr>
+<td>Industrial — Light</td>
+<td>0.12–0.22</td>
+<td>Balances production needs with impact</td>
+</tr>
+<tr>
+<td>Industrial — Heavy</td>
+<td>0.25–0.50</td>
+<td>Higher rate reflects environmental burden</td>
+</tr>
+<tr>
+<td>Institutional — Public Service</td>
+<td>0.00–0.02</td>
+<td>Near-zero for hospitals, schools, etc.</td>
+</tr>
+<tr>
+<td>Mixed Use</td>
+<td>Weighted blend</td>
+<td>Proportional to floor area per use type</td>
+</tr>
+<tr>
+<td>Conservation Overlay</td>
+<td>−0.02 to −0.10</td>
+<td>Credit for maintained ecological function</td>
+</tr>
+</tbody>
+</table>
+<p>The Conservation Overlay carries a negative coefficient. If the credit drives the total below the GUF floor, the fee is clamped at the floor; rewards beyond the floor are disbursed separately from the Trust.</p>
+<h2 id="24-demand-pressure-modifier-dp">2.4 Demand Pressure Modifier — D(p)<a class="headerlink" href="#24-demand-pressure-modifier-dp" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>D(p) = 1 + η × ln(1 + Δ(p))    (Eq. 11)
+</span></code></pre></div>
+<p>where Δ(p) = (W_demand − W_supply) / W_supply. η = 0.15 residential, 0.25 commercial.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>D(p) ≤ D_max = 1.8    (Eq. 13)
+</span></code></pre></div>
+<p>Logarithmic form ensures diminishing sensitivity. Never drops below 1.0.</p>
+<p><strong>Zone Adjustment Factor Z(p):</strong> Set by Regional Land Board. Default 1.0; permitted range 0.80–1.25. Values outside this range require national oversight approval.</p>
+<h2 id="25-ecosystem-displacement-surcharge-ep">2.5 Ecosystem Displacement Surcharge — E(p,ε)<a class="headerlink" href="#25-ecosystem-displacement-surcharge-ep" title="Permanent link">&para;</a></h2>
+<p>The most philosophically novel component. Derived from the estimated labor-time required to replace natural services:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>E(p,ε) = Σ_s V_s(p) × κ_s(ε) × (1 − ρ_s(p))    (Eq. 14)
+</span></code></pre></div>
+<p>where V_s(p) is annual natural service volume, κ_s(ε) is labor-time replacement cost, and ρ_s(p) is the retained service fraction.</p>
+<p><strong>κ_s(ε) functional form:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>κ_s(ε) = κ_s_max × (1 − ε)^(β_s) + κ_s_floor    (Eq. 15)
+</span></code></pre></div></p>
+<table>
+<thead>
+<tr>
+<th>Service Category</th>
+<th>Physical Unit</th>
+<th>κ at ε=0.40 (TEH/unit/yr)</th>
+<th>β_s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Water filtration</td>
+<td>Megalitres filtered/year</td>
+<td>0.8–2.5</td>
+<td>0.8</td>
+</tr>
+<tr>
+<td>Flood attenuation</td>
+<td>Cubic metres retained/event</td>
+<td>0.002–0.01</td>
+<td>0.7</td>
+</tr>
+<tr>
+<td>Carbon sequestration</td>
+<td>Tonnes CO₂eq/year</td>
+<td>1.5–4.0</td>
+<td>0.9</td>
+</tr>
+<tr>
+<td>Air quality regulation</td>
+<td>Tonnes particulate removed/yr</td>
+<td>3.0–8.0</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>Pollination support</td>
+<td>Hectare-equivalents served</td>
+<td>0.5–1.5</td>
+<td>0.6</td>
+</tr>
+<tr>
+<td>Biodiversity habitat</td>
+<td>Habitat quality units (HQU)</td>
+<td>0.1–0.6</td>
+<td>0.7</td>
+</tr>
+<tr>
+<td>Thermal regulation</td>
+<td>Cooling degree-days mitigated</td>
+<td>0.01–0.05</td>
+<td>0.8</td>
+</tr>
+</tbody>
+</table>
+<p>Retained service fractions (ρ_s) are assessed by certified Ecosystem Auditors at each 5-year review cycle. Leaseholders who improve ρ values between cycles see their surcharge decrease at the next review.</p>
+<h2 id="26-infrastructure-proximity-premium-ip">2.6 Infrastructure Proximity Premium — I(p,ε)<a class="headerlink" href="#26-infrastructure-proximity-premium-ip" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>I(p,ε) = Σ_k [H_k(ε_k) / (Y_k × B_k)] × e^(−μ_k · d(p,k)) × χ(p,k)    (Eq. 16)
+</span></code></pre></div>
+<p>H_k: total TEH invested in asset k at automation level ε_k. Y_k: design life in years. B_k: beneficiary parcel count. μ_k: distance-decay rate (0.5 km⁻¹ transit, 0.2 km⁻¹ utilities, 0.8 km⁻¹ public spaces).</p>
+<p>Legacy assets built at lower ε retain their original H_k values — the labor was real. Over time, as legacy assets are replaced with lower-TEH-cost infrastructure, aggregate I(p) contracts.</p>
+<h2 id="27-occupancy-fraction-p">2.7 Occupancy Fraction — Ω(p)<a class="headerlink" href="#27-occupancy-fraction-p" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Ω(p) ∈ (0.0, 1.0],  default = 1.0    (Eq. 17)
+</span></code></pre></div>
+<p>For nearly all parcels Ω = 1.0. Exclusive use is exclusive regardless of physical presence — the collective is excluded year-round. Extension point for time-shared or seasonal parcels.</p>
+<hr />
+<h1 id="3-the-guf-floor-constraint">3. The GUF Floor Constraint<a class="headerlink" href="#3-the-guf-floor-constraint" title="Permanent link">&para;</a></h1>
+<p>Conservation credits may reduce the base fee but cannot drive the total GUF below the collective's defined floor. Where stewardship produces outcomes beyond zero-fee status, the mechanism is a Trust disbursement (stewardship reward), not a negative GUF. This preserves the ledger identity: a negative GUF would constitute TEH flowing to the steward without a corresponding labor record.</p>
+<hr />
+<h1 id="4-epsilon-parameterization">4. Epsilon Parameterization<a class="headerlink" href="#4-epsilon-parameterization" title="Permanent link">&para;</a></h1>
+<h2 id="41-the-arc-shape">4.1 The Arc Shape<a class="headerlink" href="#41-the-arc-shape" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>ε = 0:</strong> Land possession linked to personal EOH fulfillment. Minimal institutional infrastructure. GUF approaches a flat base.</li>
+<li><strong>ε = 0.30–0.60:</strong> Urbanization intensive. Institutional capacity high. Demand peaks. Infrastructure substantial. GUF at maximum.</li>
+<li><strong>ε = 0.99:</strong> Labor costs collapsed. Infrastructure maintenance automated. Fee falls to stewardship-only floor.</li>
+</ul>
+<h2 id="42-the-epsilon-scaling-function">4.2 The Epsilon Scaling Function — Ψ(ε)<a class="headerlink" href="#42-the-epsilon-scaling-function" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Ψ(ε) = 4ε^a × (1 − ε)^b + Ψ_floor    (Eq. 18)
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Recommended Value</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>0.8</td>
+<td>Controls rise speed from ε = 0</td>
+</tr>
+<tr>
+<td>b</td>
+<td>1.2</td>
+<td>Controls fall speed toward ε = 1</td>
+</tr>
+<tr>
+<td>Ψ_floor</td>
+<td>0.02</td>
+<td>Minimum scaling at extremes</td>
+</tr>
+</tbody>
+</table>
+<p>This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.40) ≈ 1.06, Ψ(ε=0.99) ≈ 0.03.</p>
+<h2 id="43-the-labor-content-scaling-function">4.3 The Labor-Content Scaling Function — α(ε)<a class="headerlink" href="#43-the-labor-content-scaling-function" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>α(ε) = (1 − ε)^ζ + α_floor    (Eq. 19)
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>α_normalized(ε) = α(ε) / α(0.40)    (Eq. 20)
+</span></code></pre></div>
+<p>ζ = 0.8 recommended; α_floor = 0.05. Normalized so α(0.40) = 1.0.</p>
+<h2 id="44-boundary-verification">4.4 Boundary Verification<a class="headerlink" href="#44-boundary-verification" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>ε</th>
+<th>Expected GUF Behavior</th>
+<th>Verification Check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.00</td>
+<td>Near-zero; flat base fee only</td>
+<td>GUF &lt; 0.05 × GUF(ε=0.40)</td>
+</tr>
+<tr>
+<td>0.40</td>
+<td>Reference calibration point</td>
+<td>GUF matches published reference rates</td>
+</tr>
+<tr>
+<td>0.90</td>
+<td>Substantially reduced</td>
+<td>GUF &lt; 0.25 × GUF(ε=0.40)</td>
+</tr>
+<tr>
+<td>0.99</td>
+<td>Near-zero stewardship floor</td>
+<td>GUF &lt; 0.05 × GUF(ε=0.40)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>boundary_verification()</code></p>
+<hr />
+<h1 id="5-rate-change-constraints-and-transition-protections">5. Rate Change Constraints and Transition Protections<a class="headerlink" href="#5-rate-change-constraints-and-transition-protections" title="Permanent link">&para;</a></h1>
+<h2 id="51-the-review-cycle-cap">5.1 The Review Cycle Cap<a class="headerlink" href="#51-the-review-cycle-cap" title="Permanent link">&para;</a></h2>
+<p>GUF rates are recalculated every 5 years. To prevent displacement through sudden fee increases:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>GUF_applied(t) = min[GUF_formula(t), GUF_applied(t−1) × (1 + φ)]    (Eq. 22)
+</span></code></pre></div>
+<p>φ = 0.10 (10% per cycle). A 40% true increase takes ~4 cycles (20 years) to fully apply.</p>
+<div class="admonition note">
+<p class="admonition-title">Extension point — Long-Tenure Dampening</p>
+<p>Collectives may reduce φ for long-established households (e.g., φ_tenure = 0.05 for tenure &gt; 25 years) to slow (but not prevent) fee increases near surrounding development. This is a policy choice with fiscal cost — model the aggregate revenue impact.</p>
+</div>
+<h2 id="52-the-income-linked-subsidy">5.2 The Income-Linked Subsidy<a class="headerlink" href="#52-the-income-linked-subsidy" title="Permanent link">&para;</a></h2>
+<p>For residential primary parcels, effective GUF is modified by income:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>σ(Y) = 0.25                                    if Y &lt; 0.4Ŷ    (Eq. 24a)
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>σ(Y) = 0.25 + 0.75 × [(Y − 0.4Ŷ) / (0.6Ŷ)]  if 0.4Ŷ ≤ Y &lt; Ŷ  (Eq. 24b)
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>σ(Y) = 1.0                                     if Y ≥ Ŷ         (Eq. 24c)
+</span></code></pre></div>
+<p>Y = annual post-levy income; Ŷ = national median. Leaseholders below 40% of median pay 25% of GUF. Subsidy cost is funded from the Trust's land fund.</p>
+<hr />
+<h1 id="6-lease-structure">6. Lease Structure<a class="headerlink" href="#6-lease-structure" title="Permanent link">&para;</a></h1>
+<p>Stewardship leases are indefinite, subject to 5-year review cycles. Conditions for continued lease: GUF payment, permitted use compliance, maintenance preventing net degradation, conservation overlay adherence.</p>
+<p><strong>Transfer:</strong> Voluntary transfer is a zero-cost ledger event — no TEH created or destroyed. The land carries no price; only structures may be separately valued.</p>
+<p><strong>Reassignment queue (priority):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — Dependents</td>
+<td>Household members of previous steward</td>
+</tr>
+<tr>
+<td>2 — Community members</td>
+<td>Registered members of the local community</td>
+</tr>
+<tr>
+<td>3 — Collective members</td>
+<td>Any member of the broader collective</td>
+</tr>
+<tr>
+<td>4 — Public hold</td>
+<td>Collective public land</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="7-revenue-flow-and-trust-integration">7. Revenue Flow and Trust Integration<a class="headerlink" href="#7-revenue-flow-and-trust-integration" title="Permanent link">&para;</a></h1>
+<p>All GUF revenue is circulatory TEH — it moves TEH from stewards to the collective without creating or destroying currency. All revenue flows into the Trust.</p>
+<p>At moderate to high ε, GUF may become the Trust's largest revenue source as the levy base contracts with automation. This makes the land fund structurally important to long-run Trust solvency.</p>
+<div class="admonition note">
+<p class="admonition-title">Extension point — Split Allocation</p>
+<p>Collectives may elect to split GUF revenue between the general Trust fund and a dedicated ecology fund. The ecology fund may be used exclusively for ecological EOH fulfillment, ecological capital write-down events, and regenerative offset investments.</p>
+</div>
+<p><strong>Stewardship Rewards:</strong> Where conservation practices exceed what the GUF credit mechanism covers, the Trust may disburse TEH as a stewardship reward — a separate positive transfer backed by verified ecological EOH fulfillment. Never netted against the GUF in the ledger.</p>
+<hr />
+<h1 id="8-cross-collective-infrastructure">8. Cross-Collective Infrastructure<a class="headerlink" href="#8-cross-collective-infrastructure" title="Permanent link">&para;</a></h1>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>χ(p,k) = 1.0     if asset k is owned by parcel p&#39;s collective    (Eq. 25a)
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>χ(p,k) = χ_ext   if asset k is owned by a different collective   (Eq. 25b)
+</span></code></pre></div>
+<p>χ_ext = 0.3 recommended. The benefiting collective does not bear the maintenance EOH, so the reduced weighting reflects benefit without corresponding obligation.</p>
+<hr />
+<h1 id="9-ecological-write-down-events-and-the-guf">9. Ecological Write-Down Events and the GUF<a class="headerlink" href="#9-ecological-write-down-events-and-the-guf" title="Permanent link">&para;</a></h1>
+<p>Ecological systems do not degrade linearly — they absorb stress and then collapse abruptly when a threshold is crossed. The Newfoundland cod collapse (1992) illustrates this: the fishery functioned until it did not, displacing 35,000 workers and triggering a moratorium that lasted thirty-two years.</p>
+<h2 id="91-the-guf-paradox-under-collapse">9.1 The GUF Paradox Under Collapse<a class="headerlink" href="#91-the-guf-paradox-under-collapse" title="Permanent link">&para;</a></h2>
+<p>When an ecosystem collapses, V_s(p) drops → E(p,ε) falls → GUF revenue from the affected zone <em>decreases at precisely the moment when ecological obligations have spiked</em>. Left unaddressed, this paradox rewards degradation. Section 9 defines the mechanisms that prevent it.</p>
+<h2 id="92-write-down-declaration">9.2 Write-Down Declaration<a class="headerlink" href="#92-write-down-declaration" title="Permanent link">&para;</a></h2>
+<p>An ecological write-down is triggered when the collective's ecological assessment body determines that a defined ecosystem has crossed an irreversibility threshold. Declaration must be supported by physical evidence (Guardrail I): sensor data, ecological monitoring, biological surveys, engineering assessments.</p>
+<p>The declaration specifies: affected zone (by parcel registry), services lost, restoration assessment (recoverable vs. permanently altered), and causal analysis (attributing contribution drivers).</p>
+<h2 id="93-the-v_s-baseline-reset">9.3 The V_s Baseline Reset<a class="headerlink" href="#93-the-v_s-baseline-reset" title="Permanent link">&para;</a></h2>
+<p><strong>Restoration pathway:</strong> V_s(p) is reset to the <em>restoration target state</em> — service levels the ecosystem is expected to provide once restoration labor is complete. E(p,ε) is calculated against where the ecosystem is going, preventing the paradox of reduced fees in degraded zones.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>V_s_reset(p) = V_s_target(p),  if restoration committed    (Eq. 27)
+</span></code></pre></div>
+<p><strong>Abandonment pathway:</strong> V_s(p) is reset to the degraded baseline (E(p,ε) falls). A <strong>Rebuilding Surcharge</strong> R_b(p,ε) is added for all parcels in the affected zone:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>R_b(p,ε) = Σ_s [V_s_lost(p) × κ_s(ε)] / Y_r    (Eq. 28)
+</span></code></pre></div>
+<p>V_s_lost(p) = pre-collapse minus post-collapse service volumes. Y_r = amortization period (recommended: 50 years). The surcharge is distributed across all affected parcels, weighted by area.</p>
+<p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>rebuilding_surcharge()</code></p>
+<h2 id="94-modified-guf-under-write-down">9.4 Modified GUF Under Write-Down<a class="headerlink" href="#94-modified-guf-under-write-down" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>GUF_wd(p) = Ψ(ε) × [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E_reset(p,ε) + I(p,ε) + R_b(p,ε)] × Ω(p)    (Eq. 29)
+</span></code></pre></div>
+<p>E_reset uses the reset V_s baseline; R_b = 0 under restoration, positive under abandonment. The 10% per-cycle rate cap still applies.</p>
+<p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>ground_use_fee_writedown()</code></p>
+<h2 id="95-historical-contribution-assessment">9.5 Historical Contribution Assessment<a class="headerlink" href="#95-historical-contribution-assessment" title="Permanent link">&para;</a></h2>
+<p>The default template distributes the rebuilding surcharge by area across all parcels in the affected zone, regardless of individual culpability. An extension point allows contribution-weighted distribution using historical ρ_s scores.</p>
+<h2 id="96-fiscal-flow-under-write-down">9.6 Fiscal Flow Under Write-Down<a class="headerlink" href="#96-fiscal-flow-under-write-down" title="Permanent link">&para;</a></h2>
+<p>Write-down events are funded from the Trust's ecological allocation with priority access ahead of routine stewardship. The rebuilding surcharge revenue from affected parcels flows back into the Trust, partially offsetting the increased draw.</p>
+<h2 id="97-recovery-monitoring">9.7 Recovery Monitoring<a class="headerlink" href="#97-recovery-monitoring" title="Permanent link">&para;</a></h2>
+<p>At each 5-year review cycle, the ecological assessment body reassesses service levels. Under the restoration pathway, write-down status is formally closed when the ecosystem reaches the target state. Under abandonment, unexpected natural recovery may allow reclassification.</p>
+<p>Full recovery is rare and typically measured in decades. The framework does not assume recovery — it funds the response, monitors the trajectory, and adjusts the GUF when physical reality warrants.</p>
+<h2 id="98-preventive-signal-the-eoh-accumulation-warning">9.8 Preventive Signal: The EOH Accumulation Warning<a class="headerlink" href="#98-preventive-signal-the-eoh-accumulation-warning" title="Permanent link">&para;</a></h2>
+<p>When unfulfilled ecological EOH exceeds a warning threshold (recommended: 0.30, meaning 30% of obligations are unfulfilled), the assessment body issues a formal accumulation warning, triggering:</p>
+<ol>
+<li><strong>Accelerated ρ_s review</strong> — extraordinary review of retained service fractions for all parcels in the warned zone</li>
+<li><strong>Trust ecology fund priority</strong> — warned zone receives priority allocation for directed stewardship labor</li>
+</ol>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>ratio = unfulfilled_eoh / total_eoh
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>warning = ratio &gt; threshold
+</span></code></pre></div>
+<p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>eoh_accumulation_warning()</code></p>
+<hr />
+<h1 id="10-special-provisions">10. Special Provisions<a class="headerlink" href="#10-special-provisions" title="Permanent link">&para;</a></h1>
+<h2 id="101-zero-income-and-sufficiency-guarantee-parcels">10.1 Zero-Income and Sufficiency Guarantee Parcels<a class="headerlink" href="#101-zero-income-and-sufficiency-guarantee-parcels" title="Permanent link">&para;</a></h2>
+<p>For Sufficiency Guarantee recipients: σ = 0.0, effective GUF = zero. Full formula-derived GUF absorbed by the Trust's sufficiency allocation.</p>
+<h2 id="102-agricultural-soil-health-credit">10.2 Agricultural Soil-Health Credit<a class="headerlink" href="#102-agricultural-soil-health-credit" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>ΔGUF_soil = −c_soil × A(p) × ΔSHI(p)    (Eq. 26)
+</span></code></pre></div>
+<p>ΔSHI(p) = change in Soil Health Index (organic matter, microbial activity, water retention, nutrient cycling; scaled 0–1). c_soil = 0.05 TEH/SLU per SHI point recommended. Applied before the GUF floor.</p>
+<h2 id="103-transition-era-legacy-parcels">10.3 Transition-Era Legacy Parcels<a class="headerlink" href="#103-transition-era-legacy-parcels" title="Permanent link">&para;</a></h2>
+<p>Parcels converted from pre-TEH ownership carry a historical baseline GUF. These converge toward the standard formula as review cycles accumulate, governed by the same rate-change cap.</p>
+<hr />
+<h1 id="11-worked-example-residential-parcel-at-040">11. Worked Example: Residential Parcel at ε = 0.40<a class="headerlink" href="#11-worked-example-residential-parcel-at-040" title="Permanent link">&para;</a></h1>
+<p><strong>Parcel:</strong> Mid-density residential, 4.2 km from city center. Area: 3.5 SLU. Use: Residential Primary. Green cover: 35% native landscaping. Nearest transit: 800 m (45,000 TEH cost, 50-yr life, 1,800 parcels). Nearest park: 400 m (8,000 TEH, 75-yr life, 500 parcels). Leaseholder income: 3,200 TEH/yr. National median: 3,500 TEH/yr. Z(p) = 1.0. Ω(p) = 1.0.</p>
+<p><strong>Step 1: Epsilon Scaling Function</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Ψ(0.40) = 4 × 0.40^0.8 × (1 − 0.40)^1.2 + 0.02
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>         = 4 × 0.481 × 0.542 + 0.02
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>         = 1.041 + 0.02 ≈ 1.06
+</span></code></pre></div>
+<p><strong>Step 2: Base Fee</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>A(p)          = 3.5 SLU
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>L(p)          = 0.35×0.55 + 0.30×0.71 + 0.20×0.68 + 0.15×0.58 = 0.629
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>U(p, 0.40)    = 0.10 × α(0.40) = 0.10 × 1.0 = 0.10 TEH/SLU/yr
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>D(p)          = 1 + 0.15 × ln(1 + 0.15) = 1.021
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>Z(p)          = 1.0
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>Base Fee = 3.5 × 0.629 × 0.10 × 1.021 × 1.0 = 0.225 TEH/yr
+</span></code></pre></div>
+<p><strong>Step 3: Ecosystem Displacement Surcharge</strong></p>
+<p>Services: water filtration 0.4 ML/yr (κ=1.2, ρ=0.30), carbon 0.15 t/yr (κ=2.5, ρ=0.25), thermal 12 CDD (κ=0.03, ρ=0.20).</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>E(p) = [0.4×1.2×(1−0.30)] + [0.15×2.5×(1−0.25)] + [12×0.03×(1−0.20)]
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>     = 0.336 + 0.281 + 0.288 = 0.905 TEH/yr
+</span></code></pre></div>
+<p><strong>Step 4: Infrastructure Proximity Premium</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>Transit: [45,000 / (50 × 1,800)] × e^(−0.5×0.8) × 1.0 = 0.500 × 0.670 = 0.335
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>Park:    [8,000 / (75 × 500)] × e^(−0.8×0.4) × 1.0  = 0.213 × 0.726 = 0.155
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>I(p) = 0.335 + 0.155 = 0.490 TEH/yr
+</span></code></pre></div>
+<p><strong>Step 5: Total GUF Before Adjustments</strong></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>GUF_formula = 1.06 × [0.225 + 0.905 + 0.490] × 1.0
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>            = 1.06 × 1.620 = 1.718 TEH/yr
+</span></code></pre></div>
+<p><strong>Step 6: Review Cycle Cap</strong></p>
+<p>Previous cycle: 1.52 TEH/yr. Cap: 1.52 × 1.10 = 1.672 TEH/yr. Since 1.718 &gt; 1.672, the cap binds.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>GUF_applied = 1.672 TEH/yr  (excess of 0.046 deferred to next cycle)
+</span></code></pre></div>
+<p><strong>Step 7: Income-Linked Subsidy</strong></p>
+<p>Y = 3,200 TEH. Ŷ = 3,500 TEH. 0.4Ŷ = 1,400. 0.6Ŷ = 2,100.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>σ(3200) = 0.25 + 0.75 × [(3,200 − 1,400) / 2,100] = 0.25 + 0.643 = 0.893
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>GUF_effective = 1.672 × 0.893 = 1.493 TEH/yr
+</span></code></pre></div>
+<p><strong>Result:</strong> The leaseholder pays 1.493 TEH per year (~0.124 TEH/month), approximately 0.5% of annual post-levy income.</p>
+<hr />
+<h1 id="12-governance-audit-and-appeals">12. Governance, Audit, and Appeals<a class="headerlink" href="#12-governance-audit-and-appeals" title="Permanent link">&para;</a></h1>
+<p>All GUF calculations are performed using standardized data inputs from geodetic survey, spatial economics, ecosystem services, and the infrastructure registry. All inputs, intermediate calculations, and final determinations are published on the public GUF Ledger.</p>
+<p>Leaseholders may appeal within 180 days of each review cycle publication. Common grounds: disputed Location Value Index sub-scores (~45% of appeals), disputed Ecosystem Displacement assessments (~25%), disputed Retained Service Fractions (~20%), zone adjustment challenges (~10%).</p>
+<p>The land stewardship authority is subject to annual audit by the temporal ledger authority.</p>
+<hr />
+<h1 id="13-template-extension-points-summary">13. Template Extension Points Summary<a class="headerlink" href="#13-template-extension-points-summary" title="Permanent link">&para;</a></h1>
+<table>
+<thead>
+<tr>
+<th>Extension Point</th>
+<th>Section</th>
+<th>Default</th>
+<th>Collective Defines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Density Bonus</td>
+<td>2.1</td>
+<td>None</td>
+<td>FAR threshold, reduction formula, minimum floor</td>
+</tr>
+<tr>
+<td>Community Maturity Metrics</td>
+<td>2.2.6</td>
+<td>Not included</td>
+<td>Sub-index, dampening, feedback monitoring</td>
+</tr>
+<tr>
+<td>Epsilon Shape Parameters</td>
+<td>4.2</td>
+<td>a=0.8, b=1.2, floor=0.02</td>
+<td>Calibrated to local arc trajectory</td>
+</tr>
+<tr>
+<td>GUF Floor</td>
+<td>1.3</td>
+<td>0.0 TEH/yr</td>
+<td>Any non-negative value</td>
+</tr>
+<tr>
+<td>Zone Adjustment Range</td>
+<td>2.4.1</td>
+<td>Z=1.0 (range 0.80–1.25)</td>
+<td>Zone designations and justifications</td>
+</tr>
+<tr>
+<td>Occupancy Fraction</td>
+<td>2.7</td>
+<td>Ω=1.0</td>
+<td>Qualifying categories, verification rules</td>
+</tr>
+<tr>
+<td>Long-Tenure Dampening</td>
+<td>5.1</td>
+<td>No dampening</td>
+<td>Tenure threshold, reduced φ, fiscal impact model</td>
+</tr>
+<tr>
+<td>Trust Revenue Split</td>
+<td>7.1</td>
+<td>100% general fund</td>
+<td>Split ratio, ecology fund rules</td>
+</tr>
+<tr>
+<td>Cross-Collective χ</td>
+<td>8.1</td>
+<td>χ_ext=0.3</td>
+<td>Bilateral agreements, symmetry requirement</td>
+</tr>
+<tr>
+<td>Reassignment Mechanism</td>
+<td>6.2</td>
+<td>Priority queue</td>
+<td>Queue rules or custom method</td>
+</tr>
+<tr>
+<td>Additional Ecosystem Services</td>
+<td>2.5.1</td>
+<td>7 categories</td>
+<td>New service definitions, κ values, β parameters</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
