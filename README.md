@@ -235,7 +235,7 @@ hours_eoh/
 ## Running Tests
 
 ```bash
-# Full suite (974 tests)
+# Full suite (998 tests)
 python3 -m pytest tests/ -q
 
 # Single test file
@@ -250,8 +250,12 @@ python3 -m mypy hours_eoh/
 
 ## Documentation
 
-- [Mission Statement](docs/mission_statement.md) — Theoretical foundation and design principles
-- [Architecture Reference](CLAUDE.md) — Module layout, design invariants, layer rules
+Full documentation: **[hours-source.github.io/HOURS](https://hours-source.github.io/HOURS/)**
+
+- [Theory](https://hours-source.github.io/HOURS/theory/overview/) — Mathematical foundations, ε arc, structural conditions, design principles
+- [Developer Reference](https://hours-source.github.io/HOURS/api/) — Complete API for all modules with worked examples
+- [Guides](https://hours-source.github.io/HOURS/guides/quickstart/) — Quick start, CLI reference, extending the library
+- [Architecture Reference](CLAUDE.md) — Module layout, design invariants, layer rules (local)
 - [Contributing](CONTRIBUTING.md) — Development guide and function requirements
 - [Changelog](CHANGELOG.md) — Version history
 

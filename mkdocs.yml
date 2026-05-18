@@ -1,0 +1,112 @@
+site_name: HOURS EOH Framework
+site_url: https://hours-source.github.io/HOURS/
+site_description: >-
+  Mathematical framework for an Entropy Obligation Hours → Time-Equivalent Hour
+  currency system. Coherent across the full civilizational arc from ε=0 to ε=0.99.
+site_author: AWol
+repo_url: https://github.com/Hours-Source/HOURS
+repo_name: Hours-Source/HOURS
+edit_uri: edit/main/docs/
+strict: true
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: cyan
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.snippets:
+      base_path: ["."]
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+
+  - Theory:
+    - Overview: theory/overview.md
+    - The ε Arc: theory/epsilon_arc.md
+    - Four Entropy Domains: theory/four_domains.md
+    - Three Economies: theory/three_economies.md
+    - Structural Conditions: theory/structural_conditions.md
+    - EOH Accounting: theory/eoh_accounting.md
+    - Regenerative Labor: theory/regenerative_labor.md
+    - Design Principles: theory/design_principles.md
+    - Diagrams: theory/diagrams.md
+    - Ground Use Fee Framework: theory/guf_framework.md
+
+  - Developer Reference:
+    - Module Map: api/index.md
+    - Parameters & Constants: api/params.md
+    - Core — Physics Layer:
+      - Overview: api/core/index.md
+      - Canonical Trajectory: api/core/trajectory.md
+      - EOH Generation: api/core/eoh_generation.md
+      - EOH Fulfillment & Registration: api/core/eoh_fulfillment.md
+      - Fiscal Mechanics: api/core/fiscal.md
+      - Price Dynamics: api/core/prices.md
+      - Multipliers: api/core/multipliers.md
+      - Capital & Population: api/core/capital.md
+      - EOH Dynamics: api/core/dynamics.md
+      - Workforce & ε Derivation: api/core/workforce.md
+      - Conditions & Dashboard: api/core/conditions.md
+      - Simulation Engine: api/core/simulation.md
+    - Land — GUF Module: api/land.md
+    - Scenarios: api/scenarios.md
+    - Research (Experimental): api/research.md
+
+  - Guides:
+    - Quick Start: guides/quickstart.md
+    - CLI Reference: guides/cli.md
+    - Extending the Library: guides/extending.md
+    - Running Scenarios: guides/scenarios_howto.md
+
+  - Changelog: changelog.md
+  - Contributing: contributing.md

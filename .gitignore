@@ -40,5 +40,8 @@ Thumbs.db
 # Dev Notes
 notes/
 
+# MkDocs build output (deployed via GitHub Actions, not committed)
+site/
+
 # Diagram source files (render locally with mmdc, commit SVGs in docs/images/ only)
 diagrams/

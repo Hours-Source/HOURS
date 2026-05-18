@@ -44,6 +44,10 @@ dev = [
     "pytest>=8.0",
     "mypy>=1.10",
 ]
+docs = [
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.5.49",
+]
 
 [project.scripts]
 eoh = "utils.eoh_cli:main"
