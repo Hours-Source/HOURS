@@ -1,6 +1,6 @@
 # Diagrams
 
-Ten diagrams rendered from Mermaid source. Source `.mmd` files are in `diagrams/` (gitignored); rendered SVGs are committed to `docs/images/`.
+Fifteen diagrams rendered from Mermaid source. Source `.mmd` files are in `diagrams/` (gitignored); rendered SVGs are committed to `docs/images/`.
 
 To re-render a single diagram:
 ```bash
@@ -87,3 +87,43 @@ TEH is created when registered human labor enters the ledger. Six destruction me
 ## 10. Automation Arc — What Changes with ε
 
 ![Automation Arc](../images/automation_arc.svg)
+
+---
+
+## 11. GUF Master Equation — Component Assembly
+
+How the 8 components of the master equation combine into GUF(p), followed by the review-cycle cap and income-linked subsidy adjustments.
+
+![GUF master equation assembly](../images/guf_master_equation.svg)
+
+---
+
+## 12. GUF Location Value Index — L(p) Weights
+
+The four sub-indices and their default weights (35 / 30 / 20 / 15) flowing into L(p).
+
+![L(p) sub-index composition and weights](../images/guf_lvi_weights.svg)
+
+---
+
+## 13. GUF Epsilon Arc — Ψ(ε)
+
+Bell-curve shape of the global GUF multiplier: near-floor at ε=0 and ε=0.99, peak ≈1.06 at ε=0.40.
+
+![Ψ(ε) GUF epsilon scaling arc](../images/guf_epsilon_arc.svg)
+
+---
+
+## 14. GUF Trust Flow — Revenue to Allocation
+
+How parcel GUF payments aggregate into `guf_trust_inflow()`, feed into `trust_management()` alongside levy revenue, and distribute to ecological, stewardship, sufficiency, and capital channels.
+
+![GUF revenue flow to Trust allocations](../images/guf_trust_flow.svg)
+
+---
+
+## 15. GUF Ecological Write-Down Pathways
+
+EOH accumulation warning (30% threshold) → write-down declaration → restoration pathway vs. abandonment pathway with 50-year rebuilding surcharge.
+
+![Ecological write-down warning and pathways](../images/guf_writedown_pathways.svg)

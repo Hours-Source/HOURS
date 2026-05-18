@@ -6,6 +6,8 @@
 
 For the full mathematical specification, see [Ground Use Fee Framework](../theory/guf_framework.md).
 
+**Diagrams:** [Master equation assembly](../images/guf_master_equation.svg) · [L(p) weights](../images/guf_lvi_weights.svg) · [Ψ(ε) arc](../images/guf_epsilon_arc.svg) · [Trust flow](../images/guf_trust_flow.svg) · [Write-down pathways](../images/guf_writedown_pathways.svg)
+
 ---
 
 ## Core GUF Components

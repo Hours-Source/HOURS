@@ -60,6 +60,8 @@ A(p): SLU. L(p): dimensionless. U(p,ε): TEH/(SLU×year). D(p), Z(p): dimensionl
 
 Dimensional product: SLU × 1 × (TEH/SLU×year) × 1 × 1 = TEH/year. Full GUF: dimensionless × (TEH/year) × dimensionless = TEH/year. ✓
 
+![GUF master equation assembly flow](../images/guf_master_equation.svg)
+
 ## 1.3 The GUF Floor
 
 ```
@@ -95,6 +97,8 @@ L(p) = ω₁C(p) + ω₂T(p) + ω₃S(p) + ω₄N(p)    (Eq. 3)
 | ω₄ — Natural Amenity | 0.15 |
 
 Regional boards may adjust weights within ±0.10 of the default provided the total remains 1.0.
+
+![L(p) sub-index weights and composition](../images/guf_lvi_weights.svg)
 
 **Centrality (C(p)):** Gravity model for multi-center jurisdictions.
 ```
@@ -216,6 +220,8 @@ Conservation credits may reduce the base fee but cannot drive the total GUF belo
 - **ε = 0.30–0.60:** Urbanization intensive. Institutional capacity high. Demand peaks. Infrastructure substantial. GUF at maximum.
 - **ε = 0.99:** Labor costs collapsed. Infrastructure maintenance automated. Fee falls to stewardship-only floor.
 
+![Ψ(ε) bell curve across the automation arc](../images/guf_epsilon_arc.svg)
+
 ## 4.2 The Epsilon Scaling Function — Ψ(ε)
 
 ```
@@ -304,6 +310,8 @@ All GUF revenue is circulatory TEH — it moves TEH from stewards to the collect
 
 At moderate to high ε, GUF may become the Trust's largest revenue source as the levy base contracts with automation. This makes the land fund structurally important to long-run Trust solvency.
 
+![GUF revenue flow to Trust and allocation channels](../images/guf_trust_flow.svg)
+
 !!! note "Extension point — Split Allocation"
     Collectives may elect to split GUF revenue between the general Trust fund and a dedicated ecology fund. The ecology fund may be used exclusively for ecological EOH fulfillment, ecological capital write-down events, and regenerative offset investments.
 
@@ -391,6 +399,8 @@ warning = ratio > threshold
 ```
 
 **Code:** `hours_eoh/land/guf.py` → `eoh_accumulation_warning()`
+
+![Ecological write-down warning and pathways](../images/guf_writedown_pathways.svg)
 
 ---
 
