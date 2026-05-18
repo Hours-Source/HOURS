@@ -23,9 +23,15 @@ from hours_eoh.land.guf import (
     income_linked_subsidy,
     soil_health_credit,
     guf_trust_inflow,
+    rebuilding_surcharge,
+    ground_use_fee_writedown,
+    eoh_accumulation_warning,
     USE_CATEGORIES,
 )
-from hours_eoh.data import GUF_PSI_FLOOR, GUF_DEMAND_D_MAX
+from hours_eoh.data import (
+    GUF_PSI_FLOOR, GUF_DEMAND_D_MAX,
+    GUF_WRITEDOWN_AMORTIZATION_YEARS, GUF_EOH_ACCUMULATION_THRESHOLD,
+)
 
 
 # ===========================================================================
@@ -574,3 +580,224 @@ class TestGufTrustInflow:
     def test_always_circulatory(self):
         result = guf_trust_inflow([1.0, 2.0])
         assert result["circulatory"] is True
+
+
+# ===========================================================================
+# rebuilding_surcharge (Eq. 28)
+# ===========================================================================
+
+class TestRebuildingSurcharge:
+    def _lost_services(self):
+        return [
+            {"label": "biodiversity", "volume_lost": 5.0,  "kappa_ref": 0.350, "beta": 0.7},
+            {"label": "water",        "volume_lost": 0.2,  "kappa_ref": 1.650, "beta": 0.8},
+        ]
+
+    def test_basic_calculation(self):
+        # R_b = Σ[V_lost × κ(ε)] / Y_r
+        result = rebuilding_surcharge(self._lost_services(), epsilon=0.40)
+        expected_bio   = 5.0  * 0.350 / GUF_WRITEDOWN_AMORTIZATION_YEARS
+        expected_water = 0.2  * 1.650 / GUF_WRITEDOWN_AMORTIZATION_YEARS
+        assert result["surcharge_total"] == pytest.approx(expected_bio + expected_water, rel=1e-6)
+
+    def test_kappa_at_calibration_equals_kappa_ref(self):
+        # At ε=0.40, κ = kappa_ref → surcharge uses reference values directly
+        services = [{"label": "water", "volume_lost": 1.0, "kappa_ref": 2.0, "beta": 0.8}]
+        result   = rebuilding_surcharge(services, epsilon=0.40)
+        assert result["surcharge_total"] == pytest.approx(2.0 / GUF_WRITEDOWN_AMORTIZATION_YEARS, rel=1e-9)
+
+    def test_decreasing_with_epsilon(self):
+        # Higher automation → cheaper replacement → lower surcharge
+        svcs = self._lost_services()
+        r_lo = rebuilding_surcharge(svcs, epsilon=0.0)["surcharge_total"]
+        r_md = rebuilding_surcharge(svcs, epsilon=0.40)["surcharge_total"]
+        r_hi = rebuilding_surcharge(svcs, epsilon=0.90)["surcharge_total"]
+        assert r_lo > r_md > r_hi
+
+    def test_longer_amortization_lowers_annual_cost(self):
+        svcs  = self._lost_services()
+        r_50  = rebuilding_surcharge(svcs, epsilon=0.40, amortization_years=50)["surcharge_total"]
+        r_100 = rebuilding_surcharge(svcs, epsilon=0.40, amortization_years=100)["surcharge_total"]
+        assert r_100 == pytest.approx(r_50 / 2.0, rel=1e-6)
+
+    def test_zero_volume_lost_zero_surcharge(self):
+        services = [{"label": "water", "volume_lost": 0.0, "kappa_ref": 2.0, "beta": 0.8}]
+        result   = rebuilding_surcharge(services, epsilon=0.40)
+        assert result["surcharge_total"] == pytest.approx(0.0)
+
+    def test_empty_services_zero(self):
+        result = rebuilding_surcharge([], epsilon=0.40)
+        assert result["surcharge_total"] == pytest.approx(0.0)
+
+    def test_by_service_breakdown_sums_to_total(self):
+        result    = rebuilding_surcharge(self._lost_services(), epsilon=0.40)
+        check_sum = sum(s["contribution_teh"] for s in result["by_service"])
+        assert check_sum == pytest.approx(result["surcharge_total"])
+
+    def test_result_fields_present(self):
+        result = rebuilding_surcharge(self._lost_services(), epsilon=0.40)
+        assert "surcharge_total" in result
+        assert "by_service"      in result
+        assert "epsilon"         in result
+        assert "amortization_years" in result
+
+
+# ===========================================================================
+# ground_use_fee_writedown (Eq. 29)
+# ===========================================================================
+
+class TestGroundUseFeeWritedown:
+    def _base_kwargs(self):
+        return dict(
+            area_slu=3.5, location_value=0.629,
+            use_category="residential_primary", epsilon=0.40,
+        )
+
+    def _reset_services(self):
+        # Reset to restoration-target V_s baselines
+        return [
+            {"label": "water",   "volume": 0.4,  "kappa_ref": 1.2,  "beta": 0.8, "retained": 0.30},
+            {"label": "carbon",  "volume": 0.15, "kappa_ref": 2.5,  "beta": 0.9, "retained": 0.25},
+        ]
+
+    def _lost_services(self):
+        return [
+            {"label": "biodiversity", "volume_lost": 5.0, "kappa_ref": 0.350, "beta": 0.7},
+        ]
+
+    def test_restoration_pathway_rb_is_zero(self):
+        # services_lost=None → restoration pathway, R_b = 0
+        result = ground_use_fee_writedown(
+            **self._base_kwargs(),
+            services_reset=self._reset_services(),
+            services_lost=None,
+        )
+        assert result["rebuilding_surcharge"] == pytest.approx(0.0)
+        assert result["writedown_pathway"] == "restoration"
+        assert result["rb_breakdown"] is None
+
+    def test_abandonment_pathway_rb_positive(self):
+        result = ground_use_fee_writedown(
+            **self._base_kwargs(),
+            services_reset=self._reset_services(),
+            services_lost=self._lost_services(),
+        )
+        assert result["rebuilding_surcharge"] > 0.0
+        assert result["writedown_pathway"] == "abandonment"
+        assert result["rb_breakdown"] is not None
+
+    def test_master_equation_assembly(self):
+        # GUF_wd = Ψ × [base + E_reset + I + R_b] × Ω
+        result = ground_use_fee_writedown(
+            **self._base_kwargs(),
+            services_reset=self._reset_services(),
+            services_lost=self._lost_services(),
+        )
+        psi  = result["psi"]
+        expected = psi * (
+            result["base_fee"] + result["eco_surcharge"] +
+            result["infra_premium"] + result["rebuilding_surcharge"]
+        )
+        assert result["guf_formula"] == pytest.approx(expected, rel=1e-9)
+
+    def test_abandonment_higher_than_restoration(self):
+        # Abandonment adds R_b, so GUF_wd > pure restoration GUF_wd
+        restoration = ground_use_fee_writedown(
+            **self._base_kwargs(), services_reset=self._reset_services(), services_lost=None,
+        )["guf_formula"]
+        abandonment = ground_use_fee_writedown(
+            **self._base_kwargs(), services_reset=self._reset_services(),
+            services_lost=self._lost_services(),
+        )["guf_formula"]
+        assert abandonment > restoration
+
+    def test_no_services_equals_base_only(self):
+        # No E_reset, no R_b, no infra → GUF_wd = Ψ × base × Ω
+        result = ground_use_fee_writedown(**self._base_kwargs())
+        expected = result["psi"] * result["base_fee"]
+        assert result["guf_formula"] == pytest.approx(expected, rel=1e-9)
+
+    def test_floor_applied(self):
+        # Conservation parcel: base fee negative, floor clamps to 0
+        result = ground_use_fee_writedown(
+            area_slu=10.0, location_value=0.1,
+            use_category="conservation", epsilon=0.40, guf_floor=0.0,
+        )
+        assert result["guf_applied"] >= 0.0
+
+    def test_output_keys_present(self):
+        result = ground_use_fee_writedown(**self._base_kwargs())
+        for key in ("guf_formula", "guf_applied", "base_fee", "eco_surcharge",
+                    "infra_premium", "rebuilding_surcharge", "psi",
+                    "writedown_pathway", "rb_breakdown", "floor_applied", "epsilon"):
+            assert key in result
+
+    def test_arc_boundaries(self):
+        # GUF_wd obeys same arc shape: low at extremes
+        r000 = ground_use_fee_writedown(
+            **{**self._base_kwargs(), "epsilon": 0.00},
+            services_reset=self._reset_services(), services_lost=self._lost_services(),
+        )["guf_formula"]
+        r040 = ground_use_fee_writedown(
+            **{**self._base_kwargs(), "epsilon": 0.40},
+            services_reset=self._reset_services(), services_lost=self._lost_services(),
+        )["guf_formula"]
+        r099 = ground_use_fee_writedown(
+            **{**self._base_kwargs(), "epsilon": 0.99},
+            services_reset=self._reset_services(), services_lost=self._lost_services(),
+        )["guf_formula"]
+        assert r000 < r040
+        assert r099 < r040
+
+
+# ===========================================================================
+# eoh_accumulation_warning (§9.8)
+# ===========================================================================
+
+class TestEohAccumulationWarning:
+    def test_no_warning_below_threshold(self):
+        result = eoh_accumulation_warning(unfulfilled_eoh=20.0, total_eoh=100.0)
+        assert result["ratio"] == pytest.approx(0.20)
+        assert result["warning"] is False
+        assert result["accelerated_rho_review"] is False
+        assert result["ecology_fund_priority"]  is False
+
+    def test_warning_above_threshold(self):
+        result = eoh_accumulation_warning(unfulfilled_eoh=35.0, total_eoh=100.0)
+        assert result["ratio"] == pytest.approx(0.35)
+        assert result["warning"] is True
+        assert result["accelerated_rho_review"] is True
+        assert result["ecology_fund_priority"]  is True
+
+    def test_exactly_at_threshold_no_warning(self):
+        # Strictly greater than threshold triggers warning
+        result = eoh_accumulation_warning(
+            unfulfilled_eoh=GUF_EOH_ACCUMULATION_THRESHOLD * 100.0,
+            total_eoh=100.0,
+        )
+        assert result["warning"] is False
+
+    def test_default_threshold(self):
+        result = eoh_accumulation_warning(unfulfilled_eoh=30.0, total_eoh=100.0)
+        assert result["threshold"] == pytest.approx(GUF_EOH_ACCUMULATION_THRESHOLD)
+
+    def test_custom_threshold(self):
+        result = eoh_accumulation_warning(20.0, 100.0, threshold=0.15)
+        assert result["warning"] is True
+
+    def test_zero_total_eoh_no_warning(self):
+        # Degenerate zone: ratio defined as 0 to avoid division
+        result = eoh_accumulation_warning(unfulfilled_eoh=10.0, total_eoh=0.0)
+        assert result["ratio"] == pytest.approx(0.0)
+        assert result["warning"] is False
+
+    def test_fully_fulfilled_no_warning(self):
+        result = eoh_accumulation_warning(unfulfilled_eoh=0.0, total_eoh=100.0)
+        assert result["ratio"] == pytest.approx(0.0)
+        assert result["warning"] is False
+
+    def test_result_fields_present(self):
+        result = eoh_accumulation_warning(25.0, 100.0)
+        for key in ("ratio", "threshold", "warning", "unfulfilled_eoh",
+                    "total_eoh", "accelerated_rho_review", "ecology_fund_priority"):
+            assert key in result

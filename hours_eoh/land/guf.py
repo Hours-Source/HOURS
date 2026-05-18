@@ -51,6 +51,8 @@ from hours_eoh.data import (
     GUF_REVIEW_CYCLE_CAP,
     GUF_SUBSIDY_LOWER_THRESHOLD, GUF_SUBSIDY_FLOOR_RATE,
     GUF_SOIL_CREDIT_RATE,
+    GUF_WRITEDOWN_AMORTIZATION_YEARS,
+    GUF_EOH_ACCUMULATION_THRESHOLD,
 )
 
 
@@ -736,4 +738,234 @@ def guf_trust_inflow(
         "net_inflow":         net_inflow,
         "parcel_count":       len(guf_revenues),
         "circulatory":        True,
+    }
+
+
+# ===========================================================================
+# Section 9 — Ecological Write-Down Events
+# ===========================================================================
+
+def rebuilding_surcharge(
+    services_lost: list[dict],
+    epsilon: float,
+    amortization_years: float = GUF_WRITEDOWN_AMORTIZATION_YEARS,
+) -> dict:
+    """
+    Rebuilding Surcharge R_b(p,ε) — annualized replacement cost of lost ecosystem services.
+    (NLSA Eq. 28)
+
+    Used under the abandonment pathway after an ecological write-down declaration.
+    Distributes the labor cost of engineered replacement systems across affected parcels
+    via their per-parcel lost service volumes. Like the Infrastructure Proximity Premium,
+    this is an annualized share of collectively funded capital — the difference is that
+    the capital replaces destroyed natural function rather than built infrastructure.
+
+    The surcharge is ε-parameterized through κ_s(ε): at high ε automated replacement
+    is cheaper, so R_b contracts along the arc. Amortized over Y_r years (default 50,
+    matching standard infrastructure design life).
+
+    Service dict fields:
+      "volume_lost": float — annual service volume lost per parcel (pre-collapse minus
+                              post-collapse), in the same physical units as kappa_ref
+      "kappa_ref":   float — TEH per physical unit per year at ε=0.40 (same table as
+                              ecosystem_displacement_surcharge)
+      "beta":        float — automation sensitivity β_s ∈ [0.6, 1.2]
+      "label":       str   — optional, for reporting
+
+    Args:
+        services_lost: Per-parcel lost service volumes (see above).
+        epsilon: Current automation level [0.0, 0.99].
+        amortization_years: Y_r — design life of replacement infrastructure in years.
+
+    Returns:
+        dict: {
+          "surcharge_total":  float,       (TEH/year per parcel)
+          "by_service":       list[dict],  (per-service breakdown)
+          "epsilon":          float,
+          "amortization_years": float,
+        }
+    """
+    amortization_years = max(1.0, amortization_years)
+    by_service = []
+    total      = 0.0
+
+    for svc in services_lost:
+        volume_lost  = max(0.0, svc["volume_lost"])
+        kappa        = ecosystem_service_kappa(svc["kappa_ref"], svc["beta"], epsilon)
+        contribution = volume_lost * kappa / amortization_years
+
+        by_service.append({
+            "label":            svc.get("label", "unknown"),
+            "volume_lost":      volume_lost,
+            "kappa_epsilon":    kappa,
+            "amortization_years": amortization_years,
+            "contribution_teh": contribution,
+        })
+        total += contribution
+
+    return {
+        "surcharge_total":    total,
+        "by_service":         by_service,
+        "epsilon":            epsilon,
+        "amortization_years": amortization_years,
+    }
+
+
+def ground_use_fee_writedown(
+    area_slu: float,
+    location_value: float,
+    use_category: str,
+    epsilon: float,
+    services_reset: list[dict] | None = None,
+    services_lost: list[dict] | None = None,
+    infrastructure_assets: list[dict] | None = None,
+    demand_supply_ratio: float = 0.0,
+    zone_adj: float = 1.0,
+    occupancy_fraction: float = 1.0,
+    guf_floor: float = 0.0,
+    amortization_years: float = GUF_WRITEDOWN_AMORTIZATION_YEARS,
+    custom_u_ref: float | None = None,
+    residential: bool = True,
+) -> dict:
+    """
+    Modified Ground Use Fee during an active ecological write-down event. (NLSA Eq. 29)
+
+    GUF_wd(p) = Ψ(ε) × [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E_reset(p,ε) + I(p,ε) + R_b(p,ε)] × Ω(p)
+
+    Differs from ground_use_fee() in two ways:
+      1. E_reset uses reset V_s baselines (services_reset), not the current degraded state.
+         Under the restoration pathway, baselines are set to the restoration target so the
+         surcharge is maintained at the target level despite collapse. Pass the reset service
+         list here instead of the pre-collapse originals.
+      2. R_b is added under the abandonment pathway (services_lost is not None).
+         Under the restoration pathway, pass services_lost=None → R_b = 0.
+
+    The rate-change cap (review_cycle_cap) still applies to the result; call it separately
+    after this function, as with standard ground_use_fee().
+
+    Args:
+        area_slu: Parcel ground footprint in SLU.
+        location_value: L(p) ∈ [0, 1].
+        use_category: Key from USE_CATEGORIES.
+        epsilon: Current automation level [0.0, 0.99].
+        services_reset: Service dicts with reset V_s baselines for E_reset(p,ε).
+                        None → E_reset = 0.
+        services_lost: Per-parcel lost service dicts for R_b(p,ε) (abandonment pathway).
+                       None → restoration pathway, R_b = 0.
+        infrastructure_assets: Asset dicts for I(p,ε). None → I = 0.
+        demand_supply_ratio: Δ(p) for demand modifier. ≤ 0 → D = 1.0.
+        zone_adj: Z(p) ∈ [0.80, 1.25].
+        occupancy_fraction: Ω(p) ∈ (0, 1].
+        guf_floor: Non-negative floor in TEH/year.
+        amortization_years: Y_r for R_b calculation.
+        custom_u_ref: Override U_ref for mixed-use blends.
+        residential: True → residential demand sensitivity for D(p).
+
+    Returns:
+        dict extending ground_use_fee() output with:
+          "rebuilding_surcharge": float,       (R_b(p,ε), TEH/year; 0 under restoration)
+          "writedown_pathway":    str,          ("restoration" or "abandonment")
+          "rb_breakdown":         dict | None,  (from rebuilding_surcharge())
+    """
+    psi        = epsilon_scaling(epsilon)
+    u_coeff    = use_category_coefficient(use_category, epsilon, custom_u_ref)
+    d_modifier = demand_pressure_modifier(demand_supply_ratio, residential)
+    bf         = base_fee(area_slu, location_value, u_coeff, d_modifier, zone_adj)
+
+    eco_result = None
+    eco_amount = 0.0
+    if services_reset:
+        eco_result = ecosystem_displacement_surcharge(services_reset, epsilon)
+        eco_amount = eco_result["surcharge_total"]
+
+    infra_result = None
+    infra_amount = 0.0
+    if infrastructure_assets:
+        infra_result = infrastructure_proximity_premium(infrastructure_assets, epsilon)
+        infra_amount = infra_result["premium_total"]
+
+    rb_result  = None
+    rb_amount  = 0.0
+    pathway    = "restoration"
+    if services_lost is not None:
+        rb_result = rebuilding_surcharge(services_lost, epsilon, amortization_years)
+        rb_amount = rb_result["surcharge_total"]
+        pathway   = "abandonment"
+
+    occupancy_fraction = max(0.0, min(1.0, occupancy_fraction))
+    guf_formula        = psi * (bf + eco_amount + infra_amount + rb_amount) * occupancy_fraction
+    guf_applied        = max(guf_floor, guf_formula)
+
+    return {
+        "guf_formula":          guf_formula,
+        "guf_applied":          guf_applied,
+        "base_fee":             bf,
+        "eco_surcharge":        eco_amount,
+        "infra_premium":        infra_amount,
+        "rebuilding_surcharge": rb_amount,
+        "psi":                  psi,
+        "occupancy":            occupancy_fraction,
+        "demand_modifier":      d_modifier,
+        "eco_breakdown":        eco_result,
+        "infra_breakdown":      infra_result,
+        "rb_breakdown":         rb_result,
+        "writedown_pathway":    pathway,
+        "floor_applied":        guf_applied > guf_formula + 1e-9,
+        "epsilon":              epsilon,
+    }
+
+
+def eoh_accumulation_warning(
+    unfulfilled_eoh: float,
+    total_eoh: float,
+    threshold: float = GUF_EOH_ACCUMULATION_THRESHOLD,
+) -> dict:
+    """
+    EOH Accumulation Warning — preventive signal before ecological collapse. (NLSA §9.8)
+
+    Monitors the ratio of unfulfilled ecological EOH to total assessed ecological EOH
+    for a defined zone. When the ratio exceeds the threshold (default 0.30), a formal
+    warning is issued, triggering two responses:
+
+      1. Accelerated ρ_s review: all parcels in the zone undergo extraordinary review of
+         retained service fractions outside the normal 5-year cycle.
+      2. Ecology fund priority: the zone receives priority allocation from the Trust's
+         ecological fund for directed stewardship labor.
+
+    This warning is not a write-down declaration. It signals that the system is
+    approaching a threshold and that preventive labor is less costly than post-collapse
+    restoration. The GUF's role is to ensure the warning translates into fiscal action.
+
+    Args:
+        unfulfilled_eoh: Unmet ecological EOH in the monitored zone (EOH/period).
+        total_eoh: Total assessed ecological EOH for the zone (EOH/period).
+        threshold: Accumulation ratio above which the warning triggers.
+                   Default: GUF_EOH_ACCUMULATION_THRESHOLD = 0.30.
+
+    Returns:
+        dict: {
+          "ratio":                  float,  (unfulfilled / total; 0.0 if total ≤ 0)
+          "threshold":              float,
+          "warning":                bool,   (True when ratio > threshold)
+          "unfulfilled_eoh":        float,
+          "total_eoh":              float,
+          "accelerated_rho_review": bool,   (triggered alongside warning)
+          "ecology_fund_priority":  bool,   (triggered alongside warning)
+        }
+    """
+    if total_eoh <= 0.0:
+        ratio = 0.0
+    else:
+        ratio = max(0.0, unfulfilled_eoh) / total_eoh
+
+    warning = ratio > threshold
+
+    return {
+        "ratio":                  ratio,
+        "threshold":              threshold,
+        "warning":                warning,
+        "unfulfilled_eoh":        unfulfilled_eoh,
+        "total_eoh":              total_eoh,
+        "accelerated_rho_review": warning,
+        "ecology_fund_priority":  warning,
     }

@@ -455,8 +455,12 @@ GUF_REVIEW_CYCLE_CAP: float = 0.10
 GUF_SUBSIDY_LOWER_THRESHOLD: float = 0.40  # below 40% of median → maximum subsidy
 GUF_SUBSIDY_FLOOR_RATE:      float = 0.25  # subsidized leaseholders pay 25% of GUF
 
-# Agricultural soil-health credit rate (NLSA Eq. 26)
+# Agricultural soil-health credit rate (NLSA Eq. 26); symbol c_soil in equations
 GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Health Index
+
+# Ecological write-down parameters (NLSA §9)
+GUF_WRITEDOWN_AMORTIZATION_YEARS: float = 50.0  # Y_r: replacement infra design life (Eq. 28)
+GUF_EOH_ACCUMULATION_THRESHOLD:   float = 0.30  # 30% unfulfilled ecological EOH triggers warning (§9.8)
 
 # ---------------------------------------------------------------------------
 # Dashboard health indicator thresholds
