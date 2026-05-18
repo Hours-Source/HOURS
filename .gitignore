@@ -36,3 +36,9 @@ results/
 # OS
 .DS_Store
 Thumbs.db
+
+# Dev Notes
+notes/
+
+# Diagram source files (render locally with mmdc, commit SVGs in docs/images/ only)
+diagrams/

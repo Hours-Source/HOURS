@@ -7,6 +7,8 @@ python3 -m pytest tests/ -q                          # full suite
 python3 -m pytest tests/test_eoh_generation.py       # single file
 python3 -m mypy hours_eoh/                           # type-check
 python3 utils/eoh_cli.py <command>                   # research CLI (see README)
+mmdc -i diagrams/<name>.mmd -o docs/images/<name>.svg -p ~/.config/mermaid/puppeteer.json   # render one
+for f in diagrams/*.mmd; do mmdc -i "$f" -o "docs/images/$(basename $f .mmd).svg" -p ~/.config/mermaid/puppeteer.json --quiet; done  # render all
 ```
 
 The package is importable directly from the repo root. `tests/conftest.py` adds the repo root to sys.path automatically for all tests.
@@ -59,7 +61,7 @@ hours_eoh/
 
   research/            Experimental — NOT stable API, not imported by core or scenarios
     investment.py      rank_investment_candidates, optimal_investment
-    writedown.py       Placeholder: ecological write-down (eco-collapse-1 future work)
+    writedown.py       Redirect: eco-collapse-1 resolved via land/guf.py §9 functions
 
 utils/                 Presentation layer — CLI and research helpers (see README)
 ```
@@ -121,9 +123,32 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
 
 ---
 
+## Visuals and Diagrams
+
+**Use Mermaid for all diagrams.** Source `.mmd` files stay local (`diagrams/`, gitignored). Rendered SVGs go in `docs/images/` (committed) and are referenced in markdown as `![Label](images/name.svg)`. The CLI tool `mmdc` (v11, installed globally via npm) does the rendering.
+
+- **Flowcharts** (`flowchart TD/LR/TB`) — pipelines, relationships, layered structures
+- **XY charts** (`xychart-beta`) — numeric arcs (price vs. ε, purchasing power vs. ε)
+- **Source files** live in `diagrams/` (gitignored) as `.mmd` files — never committed
+- **Rendered SVGs** live in `docs/images/` (committed) — what GitHub and the docs see
+- Re-render a diagram: `mmdc -i diagrams/<name>.mmd -o docs/images/<name>.svg -p ~/.config/mermaid/puppeteer.json`
+- Re-render all: `for f in diagrams/*.mmd; do mmdc -i "$f" -o "docs/images/$(basename $f .mmd).svg" -p ~/.config/mermaid/puppeteer.json --quiet; done`
+
+Puppeteer config for WSL (no-sandbox): `~/.config/mermaid/puppeteer.json`
+
+**System deps** (Ubuntu 24.04, required for mmdc): `libnss3 libnspr4 libasound2t64`
+
+Existing diagrams: `diagrams/*.mmd` → `docs/images/*.svg`, referenced in `docs/eoh_visuals.md`.
+10 diagrams: EOH→TEH pipeline, four domains, pricing arc, demand layers, scarcity signal,
+TEH lifecycle, automation arc.
+
+---
+
 ## Current status
 
-**974 tests passing** (2026-05-07). One open gap: **eco-collapse-1** — ecological write-down missing for collapse scenarios (placeholder in `research/writedown.py`).
+**998 tests passing** (2026-05-18). No open gaps.
+
+**eco-collapse-1 closed** (2026-05-18): ecological collapse is handled via the GUF layer (`land/guf.py` §9), not TEH destruction. Two pathways: restoration (V_s baselines reset to recovery target, revenue maintained) and abandonment (rebuilding surcharge R_b(p,ε) added, Eq. 28–29). Preventive monitoring via `eoh_accumulation_warning()` (§9.8). `research/writedown.py` re-exports these functions with rationale.
 
 ---
 
