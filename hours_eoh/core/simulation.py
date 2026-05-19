@@ -191,6 +191,10 @@ def simulate_period(
     # D6 — Accumulation ceiling (Option 3, disabled by default)
     use_accumulation_ceiling: bool = False,
     accumulation_ceiling_multiplier: float = ACCUMULATION_CEILING_MULTIPLIER,
+    # Workforce decay with automation (disabled by default — backward compat)
+    workforce_epsilon_decay: bool = False,
+    # GUF revenue injection into Trust (disabled by default)
+    guf_net_inflow: float | None = None,
 ) -> tuple[dict, dict]:
     """
     Advance the economy by one period and return (new_state, period_result).
@@ -231,6 +235,12 @@ def simulate_period(
         meaningful_activity_scale: Quadratic ε-growth factor for bonus.
         labor_income_scale: If provided, override auto-computed labor income.
         epsilon_delta: Automation advancement this period. Apply before EOH.
+        workforce_epsilon_decay: When True, workforce_fraction declines each
+                                 period proportionally to (1-ε) progression.
+                                 Default False preserves existing behaviour.
+        guf_net_inflow: Net GUF revenue from ground-use fees to inject into
+                        Trust this period (TEH). When None (default) GUF is
+                        not included — matches existing fiscal behaviour.
 
     Returns:
         (new_state, period_result) where:
@@ -271,8 +281,18 @@ def simulate_period(
     knowledge_complexity_per_unit = _canon["knowledge_complexity_per_unit"]
 
     # ---- 2. Population update ----------------------------------------------
-    new_population      = population * (1.0 + population_growth_rate)
-    new_workforce_size  = new_population * workforce_frac
+    new_population = population * (1.0 + population_growth_rate)
+
+    # Optional workforce decay: as ε rises, fewer human workers are needed.
+    # Shrinks workforce_fraction proportionally to (1−ε) / (1−prev_ε).
+    if workforce_epsilon_decay and epsilon_delta > 0.0:
+        prev_eps = state["epsilon"]
+        decay_ratio = (1.0 - eps) / max(1.0 - prev_eps, 1e-6)
+        new_workforce_frac = max(0.05, min(1.0, workforce_frac * decay_ratio))
+    else:
+        new_workforce_frac = workforce_frac
+
+    new_workforce_size  = new_population * new_workforce_frac
 
     # Auto-compute care stipend from demographics when caller does not supply one.
     if care_stipend_aggregate is None:
@@ -376,6 +396,12 @@ def simulate_period(
     )
     new_trust_bal = fiscal["trust"]["trust_end"]
 
+    # GUF revenue injection: circulatory TEH from ground-use fees added directly
+    # to Trust balance after the fiscal period closes. Mirrors guf_trust_inflow()
+    # wiring into trust_management() for callers that pre-compute GUF externally.
+    if guf_net_inflow is not None and guf_net_inflow > 0.0:
+        new_trust_bal = new_trust_bal + guf_net_inflow
+
     # ---- 7. TEH destruction — D1 capital accounting + D2/D3 consumption
     #         + D4 CPI delivery + D5 estate dissolution + D6 ceiling (opt-in)
     from hours_eoh.core.prices import basket_price as _basket_price, cpi_goods_destruction as _cpi_dest
@@ -460,7 +486,7 @@ def simulate_period(
     new_state = make_economy_state(
         epsilon=eps,
         population=new_population,
-        workforce_fraction=workforce_frac,
+        workforce_fraction=new_workforce_frac,
         trust_balance=new_trust_bal,
         labor_income_teh=labor_income,
         capital_stock_teh=new_cap_stock,
@@ -528,10 +554,13 @@ def simulate_period(
         "solvent":           fiscal["solvent"],
         # Population / capital
         "population":        new_population,
+        "workforce_fraction": new_workforce_frac,
         "capital_stock_teh": new_cap_stock,
         "capital_age_ratio": new_cap_age,
         "ecosystem_health":  new_eco_health,
         "deferred_ecological": new_deferred,
+        # GUF revenue injection
+        "guf_net_inflow":    guf_net_inflow,
         # new-2/new-5: physical state tracking
         "monitoring_capability":         new_monitoring_cap,
         "knowledge_complexity_per_unit": knowledge_complexity_per_unit,

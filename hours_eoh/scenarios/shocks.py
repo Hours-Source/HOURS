@@ -444,3 +444,301 @@ def ecological_eoh_spike(
         "outcome":               outcome,
         "recommendation":        rec,
     }
+
+
+# ---------------------------------------------------------------------------
+# Labor Income Shock
+# ---------------------------------------------------------------------------
+
+def labor_income_shock(
+    epsilon: float,
+    income_fraction: float,
+    trust_balance: float = TRUST_BASE_TEH,
+    population: float = 1_000_000.0,
+    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_age_ratio: float = 0.30,
+    meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    suff_levy_rate: float = SUFF_LEVY_RATE,
+    dep_rate: float = DEP_RATE,
+    div_rate: float = DIV_RATE,
+) -> dict:
+    """
+    Simulate a sudden collapse in labor income (TEH creation).
+
+    income_fraction controls how much of baseline labor income remains after
+    the shock (e.g., 0.50 = 50% of normal income). Baseline income is derived
+    from the EOH pipeline at the given ε. Runs fiscal_snapshot() at both
+    baseline and shocked income levels to measure the fiscal impact.
+
+    Args:
+        epsilon:         Automation level [0.0, 0.99].
+        income_fraction: Fraction of baseline income remaining [0.0, 1.0].
+                         1.0 = no shock; 0.0 = total income collapse.
+        trust_balance:   Trust fund balance at time of shock.
+        population:      Population.
+        capital_stock_teh: Capital stock.
+        capital_age_ratio: Capital age ratio.
+        meaningful_activity_teh: Sufficiency floor TEH.
+        suff_levy_rate:  Levy rate.
+        dep_rate:        Trust depreciation rate.
+        div_rate:        Trust dividend fraction.
+
+    Returns:
+        dict: {
+          "scenario":               str,
+          "epsilon":                float,
+          "income_fraction":        float,
+          "baseline_income":        float,
+          "shocked_income":         float,
+          "trust_solvent_before":   bool,
+          "trust_solvent_after":    bool,
+          "surplus_deficit_before": float,
+          "surplus_deficit_after":  float,
+          "surplus_deficit_delta":  float,
+          "outcome":                str,   STABLE / DEGRADED / CRISIS
+          "recommendation":         str,
+        }
+    """
+    if not 0.0 <= income_fraction <= 1.0:
+        raise ValueError(f"income_fraction must be in [0, 1], got {income_fraction}")
+
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.fiscal import fiscal_snapshot
+
+    pipeline = eoh_to_teh_pipeline(epsilon=epsilon, population=population)
+    baseline_income = max(pipeline["teh_created"], _LABOR_INCOME_MIN)
+    shocked_income  = max(baseline_income * income_fraction, _LABOR_INCOME_MIN)
+
+    snap_before = fiscal_snapshot(
+        trust_balance=trust_balance,
+        labor_income=baseline_income,
+        capital_stock_teh=capital_stock_teh,
+        capital_age_ratio=capital_age_ratio,
+        population=population,
+        epsilon=epsilon,
+        meaningful_activity_teh=meaningful_activity_teh,
+        levy_rates={"sufficiency": suff_levy_rate},
+        dep_rate=dep_rate,
+        div_rate=div_rate,
+    )
+    snap_after = fiscal_snapshot(
+        trust_balance=trust_balance,
+        labor_income=shocked_income,
+        capital_stock_teh=capital_stock_teh,
+        capital_age_ratio=capital_age_ratio,
+        population=population,
+        epsilon=epsilon,
+        meaningful_activity_teh=meaningful_activity_teh,
+        levy_rates={"sufficiency": suff_levy_rate},
+        dep_rate=dep_rate,
+        div_rate=div_rate,
+    )
+
+    surplus_before = snap_before["trust"]["surplus_deficit"]
+    surplus_after  = snap_after["trust"]["surplus_deficit"]
+    delta          = surplus_after - surplus_before
+
+    if snap_after["solvent"]:
+        outcome = "STABLE"
+    elif abs(surplus_after) < trust_balance * 0.10:
+        outcome = "DEGRADED"
+    else:
+        outcome = "CRISIS"
+
+    rec = (
+        f"Labor income shock at ε={epsilon:.2f}: income reduced to "
+        f"{income_fraction:.0%} of baseline "
+        f"({baseline_income:,.0f} → {shocked_income:,.0f} TEH/yr). "
+        f"Trust {'SOLVENT' if snap_after['solvent'] else 'INSOLVENT'} after shock. "
+        f"Surplus/deficit delta: {delta:+,.0f} TEH. Outcome: {outcome}."
+    )
+
+    return {
+        "scenario":               "labor_income_shock",
+        "epsilon":                epsilon,
+        "income_fraction":        income_fraction,
+        "baseline_income":        baseline_income,
+        "shocked_income":         shocked_income,
+        "trust_solvent_before":   snap_before["solvent"],
+        "trust_solvent_after":    snap_after["solvent"],
+        "surplus_deficit_before": surplus_before,
+        "surplus_deficit_after":  surplus_after,
+        "surplus_deficit_delta":  delta,
+        "outcome":                outcome,
+        "recommendation":         rec,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Compound Shock
+# ---------------------------------------------------------------------------
+
+def compound_shock(
+    epsilon: float,
+    ecology_collapse: bool = False,
+    ecosystem_health_before: float = 0.70,
+    ecosystem_health_after: float = 0.30,
+    demographic_shock_spec: dict | None = None,
+    automation_fraction_lost: float = 0.0,
+    trust_balance: float = TRUST_BASE_TEH,
+    population: float = 1_000_000.0,
+    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_age_ratio: float = 0.30,
+    meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    suff_levy_rate: float = SUFF_LEVY_RATE,
+    dep_rate: float = DEP_RATE,
+    div_rate: float = DIV_RATE,
+) -> dict:
+    """
+    Simulate multiple simultaneous shocks and assess combined Trust absorption.
+
+    Runs each enabled shock component independently, then combines their EOH
+    deltas and checks whether the Trust can absorb the aggregate obligation.
+    The combined outcome is always at least as severe as the worst individual
+    outcome.
+
+    Shock components (each optional):
+      ecology_collapse:        Ecological EOH spike (uses ecological_eoh_spike()).
+      demographic_shock_spec:  Dict with "shock_type" and "magnitude" keys,
+                               passed to demographic_shock(). None = disabled.
+      automation_fraction_lost: Fraction of automation capacity that fails [0,1],
+                                passed to automation_failure_shock(). 0 = disabled.
+
+    Args:
+        epsilon:                 Automation level [0.0, 0.99].
+        ecology_collapse:        Enable ecological shock component.
+        ecosystem_health_before: Ecosystem health before ecological collapse.
+        ecosystem_health_after:  Ecosystem health after ecological collapse.
+        demographic_shock_spec:  Dict with keys "shock_type" str and "magnitude" float.
+        automation_fraction_lost: Fraction of automation that fails [0.0, 1.0].
+        trust_balance:           Trust fund balance.
+        population:              Population.
+        capital_stock_teh:       Capital stock.
+        capital_age_ratio:       Capital age ratio.
+        meaningful_activity_teh: Sufficiency floor TEH.
+        suff_levy_rate:          Levy rate.
+        dep_rate:                Trust depreciation rate.
+        div_rate:                Trust dividend fraction.
+
+    Returns:
+        dict: {
+          "scenario":             str,
+          "epsilon":              float,
+          "individual_outcomes":  dict,   keyed by shock name
+          "combined_eoh_delta":   float,  sum of all EOH deltas
+          "trust_absorbs_combined": bool,
+          "combined_outcome":     str,    STABLE / DEGRADED / CRISIS
+          "recommendation":       str,
+        }
+    """
+    _SEVERITY = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
+    _INV_SEVERITY = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
+
+    individual_outcomes: dict = {}
+    combined_eoh_delta: float = 0.0
+
+    labor_income = max(
+        _LABOR_INCOME_MIN,
+        _LABOR_INCOME_BASE * (1.0 - epsilon * _LABOR_INCOME_AUTO_SLOPE),
+    )
+
+    # --- Ecological shock -----------------------------------------------
+    if ecology_collapse:
+        eco_result = ecological_eoh_spike(
+            epsilon=epsilon,
+            ecosystem_health_before=ecosystem_health_before,
+            ecosystem_health_after=ecosystem_health_after,
+            trust_balance=trust_balance,
+            labor_income=labor_income,
+            suff_levy_rate=suff_levy_rate,
+            dep_rate=dep_rate,
+            div_rate=div_rate,
+            population=population,
+            meaningful_activity_teh=meaningful_activity_teh,
+            capital_stock_teh=capital_stock_teh,
+            capital_age_ratio=capital_age_ratio,
+        )
+        individual_outcomes["ecological_eoh_spike"] = eco_result["outcome"]
+        combined_eoh_delta += eco_result["eoh_spike"]
+
+    # --- Demographic shock -----------------------------------------------
+    if demographic_shock_spec is not None:
+        dem_result = demographic_shock(
+            epsilon=epsilon,
+            shock_type=demographic_shock_spec["shock_type"],
+            magnitude=demographic_shock_spec["magnitude"],
+            trust_balance=trust_balance,
+            labor_income_base=labor_income,
+            meaningful_activity_teh=meaningful_activity_teh,
+            suff_levy_rate=suff_levy_rate,
+            dep_rate=dep_rate,
+            div_rate=div_rate,
+            capital_stock_teh=capital_stock_teh,
+            capital_age_ratio=capital_age_ratio,
+        )
+        individual_outcomes["demographic_shock"] = dem_result["outcome"]
+        combined_eoh_delta += max(0.0, dem_result["eoh_delta"])
+
+    # --- Automation failure shock ----------------------------------------
+    if automation_fraction_lost > 0.0:
+        auto_result = automation_failure_shock(
+            epsilon=epsilon,
+            population=population,
+            capital_stock_teh=capital_stock_teh,
+            capital_age_ratio=capital_age_ratio,
+        )
+        individual_outcomes["automation_failure_shock"] = auto_result["outcome"]
+        # automation_eoh scaled by fraction_lost
+        combined_eoh_delta += auto_result["automation_eoh"] * automation_fraction_lost
+
+    # --- Combined fiscal check -------------------------------------------
+    levies = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
+    stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
+                                    epsilon, trust_balance)
+    guar   = sufficiency_guarantee(population, epsilon,
+                                   meaningful_activity_teh=meaningful_activity_teh)
+    trust  = trust_management(
+        trust_balance, levies["total_levied"],
+        stew["teh_allocated"],
+        guar["total_cost_teh"] + combined_eoh_delta,
+        dep_rate, div_rate, epsilon,
+    )
+    trust_absorbs = trust["solvent"]
+
+    # Combined outcome >= worst individual outcome
+    worst_individual = max(
+        (_SEVERITY.get(v, 0) for v in individual_outcomes.values()),
+        default=0,
+    )
+    if trust_absorbs:
+        combined_severity = max(worst_individual, _SEVERITY["STABLE"])
+    else:
+        combined_deficit = abs(trust["surplus_deficit"])
+        if combined_deficit < trust_balance * 0.10:
+            combined_severity = max(worst_individual, _SEVERITY["DEGRADED"])
+        else:
+            combined_severity = max(worst_individual, _SEVERITY["CRISIS"])
+
+    combined_outcome = _INV_SEVERITY[combined_severity]
+
+    if not individual_outcomes:
+        combined_outcome = "STABLE"
+
+    rec = (
+        f"Compound shock at ε={epsilon:.2f}: "
+        f"combined EOH delta {combined_eoh_delta:,.0f} h/yr across "
+        f"{len(individual_outcomes)} component(s). "
+        f"Trust {'absorbs' if trust_absorbs else 'CANNOT absorb'} combined obligation. "
+        f"Individual outcomes: {individual_outcomes}. "
+        f"Combined outcome: {combined_outcome}."
+    )
+
+    return {
+        "scenario":               "compound_shock",
+        "epsilon":                epsilon,
+        "individual_outcomes":    individual_outcomes,
+        "combined_eoh_delta":     combined_eoh_delta,
+        "trust_absorbs_combined": trust_absorbs,
+        "combined_outcome":       combined_outcome,
+        "recommendation":         rec,
+    }

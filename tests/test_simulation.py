@@ -833,3 +833,103 @@ class TestSimulatePeriodCareStipend:
         state = make_economy_state(epsilon=0.40)
         _, result = simulate_period(state, care_stipend_aggregate=0.0)
         assert result["fiscal"]["care_stipend"] == 0.0
+
+
+# ===========================================================================
+# workforce_epsilon_decay (Phase 1A)
+# ===========================================================================
+
+class TestWorkforceEpsilonDecay:
+
+    def test_decay_false_leaves_fraction_unchanged(self):
+        """Default: workforce_fraction does not change across periods."""
+        state = make_economy_state(epsilon=0.40, workforce_fraction=0.60)
+        new_state, _ = simulate_period(state, epsilon_delta=0.10,
+                                       workforce_epsilon_decay=False)
+        assert new_state["workforce_fraction"] == pytest.approx(0.60)
+
+    def test_decay_true_reduces_fraction_with_positive_delta(self):
+        """With decay enabled and epsilon advancing, fraction must decrease."""
+        state = make_economy_state(epsilon=0.40, workforce_fraction=0.60)
+        new_state, _ = simulate_period(state, epsilon_delta=0.10,
+                                       workforce_epsilon_decay=True)
+        assert new_state["workforce_fraction"] < 0.60
+
+    def test_decay_true_no_change_without_epsilon_delta(self):
+        """Decay has no effect when epsilon_delta=0 (ε not advancing)."""
+        state = make_economy_state(epsilon=0.40, workforce_fraction=0.60)
+        new_state, _ = simulate_period(state, epsilon_delta=0.0,
+                                       workforce_epsilon_decay=True)
+        assert new_state["workforce_fraction"] == pytest.approx(0.60)
+
+    def test_decay_monotonic_over_arc(self):
+        """Over a multi-period arc, workforce_fraction decreases monotonically."""
+        state = make_economy_state(epsilon=0.10, workforce_fraction=0.70)
+        fracs = [state["workforce_fraction"]]
+        for _ in range(8):
+            state, _ = simulate_period(state, epsilon_delta=0.08,
+                                       workforce_epsilon_decay=True)
+            fracs.append(state["workforce_fraction"])
+        for i in range(len(fracs) - 1):
+            assert fracs[i] >= fracs[i + 1], f"Non-monotonic at step {i}"
+
+    def test_decay_floor_at_005(self):
+        """workforce_fraction never drops below 0.05 even at near-full automation."""
+        state = make_economy_state(epsilon=0.80, workforce_fraction=0.10)
+        for _ in range(10):
+            state, _ = simulate_period(state, epsilon_delta=0.02,
+                                       workforce_epsilon_decay=True)
+        assert state["workforce_fraction"] >= 0.05
+
+    def test_period_result_has_workforce_fraction(self):
+        """workforce_fraction is present in period_result."""
+        state = make_economy_state(epsilon=0.40)
+        _, result = simulate_period(state)
+        assert "workforce_fraction" in result
+        assert 0.0 < result["workforce_fraction"] <= 1.0
+
+
+# ===========================================================================
+# guf_net_inflow injection (Phase 1B)
+# ===========================================================================
+
+class TestGufNetInflowInjection:
+
+    def test_none_inflow_no_change(self):
+        """Default None: trust balance identical to baseline with no GUF."""
+        state = make_economy_state(epsilon=0.40)
+        new_none, _ = simulate_period(state, guf_net_inflow=None)
+        new_zero, _ = simulate_period(state, guf_net_inflow=0.0)
+        # None and 0.0 should not differ meaningfully
+        assert new_none["trust_balance"] == pytest.approx(new_zero["trust_balance"],
+                                                          rel=1e-9)
+
+    def test_positive_inflow_increases_trust(self):
+        """Positive GUF inflow raises the Trust balance vs. no-GUF baseline."""
+        state = make_economy_state(epsilon=0.40)
+        new_base, _ = simulate_period(state, guf_net_inflow=None)
+        new_guf,  _ = simulate_period(state, guf_net_inflow=1_000_000.0)
+        assert new_guf["trust_balance"] > new_base["trust_balance"]
+
+    def test_inflow_amount_added_exactly(self):
+        """The trust balance delta equals the injected GUF inflow exactly."""
+        state = make_economy_state(epsilon=0.40)
+        inflow = 5_000_000.0
+        new_base, _ = simulate_period(state, guf_net_inflow=None)
+        new_guf,  _ = simulate_period(state, guf_net_inflow=inflow)
+        delta = new_guf["trust_balance"] - new_base["trust_balance"]
+        assert delta == pytest.approx(inflow, rel=1e-9)
+
+    def test_guf_inflow_in_period_result(self):
+        """guf_net_inflow value is present in period_result."""
+        state = make_economy_state(epsilon=0.40)
+        _, result = simulate_period(state, guf_net_inflow=2_500_000.0)
+        assert result["guf_net_inflow"] == pytest.approx(2_500_000.0)
+
+    def test_zero_inflow_no_effect(self):
+        """Zero inflow adds nothing to trust balance."""
+        state = make_economy_state(epsilon=0.40)
+        new_base, _ = simulate_period(state, guf_net_inflow=None)
+        new_zero, _ = simulate_period(state, guf_net_inflow=0.0)
+        assert new_zero["trust_balance"] == pytest.approx(new_base["trust_balance"],
+                                                          rel=1e-9)
