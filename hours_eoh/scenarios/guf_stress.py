@@ -21,6 +21,7 @@ from hours_eoh.data import (
     SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     GUF_EOH_ACCUMULATION_THRESHOLD,
+    GUF_WRITEDOWN_AMORTIZATION_YEARS,
 )
 from hours_eoh.core.fiscal import (
     levy_collection,
@@ -40,6 +41,9 @@ _DEFAULT_PARCEL = {
     "location_value": 0.629,
     "use_category":   "residential_primary",
 }
+
+# Positional kwargs consumed by ground_use_fee(); remaining keys are passed as extras.
+_GUF_POSITIONAL_KEYS = frozenset({"area_slu", "location_value", "use_category"})
 
 
 # ---------------------------------------------------------------------------
@@ -105,8 +109,7 @@ def guf_fiscal_integration(
             location_value=c["location_value"],
             use_category=c["use_category"],
             epsilon=epsilon,
-            **{k: v for k, v in c.items()
-               if k not in ("area_slu", "location_value", "use_category")},
+            **{k: v for k, v in c.items() if k not in _GUF_POSITIONAL_KEYS},
         )
         for c in configs
     ]
@@ -183,7 +186,7 @@ def guf_writedown_scenario(
     unfulfilled_eoh: float = 400_000.0,
     total_eoh: float = 1_200_000.0,
     pathway: str = "restoration",
-    amortization_years: float = 50.0,
+    amortization_years: float = GUF_WRITEDOWN_AMORTIZATION_YEARS,
 ) -> dict:
     """
     Simulate an ecological write-down event from warning through GUF impact.

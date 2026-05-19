@@ -302,6 +302,7 @@ H_REF: int = 2000  # reference work-year hours per worker
 CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing beyond repair/year
 CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction at ε=1 from better monitoring
 LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # hard floor on period labor income (100M TEH)
+WORKFORCE_FRACTION_MIN:            float = 0.05           # minimum workforce fraction retained at any automation level
 
 # ---------------------------------------------------------------------------
 # D4 — CPI transaction-level destruction (Option 2)

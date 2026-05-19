@@ -32,7 +32,7 @@ from hours_eoh.data import (
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
-    LABOR_INCOME_MIN_TEH,
+    LABOR_INCOME_MIN_TEH, WORKFORCE_FRACTION_MIN,
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
@@ -288,7 +288,7 @@ def simulate_period(
     if workforce_epsilon_decay and epsilon_delta > 0.0:
         prev_eps = state["epsilon"]
         decay_ratio = (1.0 - eps) / max(1.0 - prev_eps, 1e-6)
-        new_workforce_frac = max(0.05, min(1.0, workforce_frac * decay_ratio))
+        new_workforce_frac = max(WORKFORCE_FRACTION_MIN, min(1.0, workforce_frac * decay_ratio))
     else:
         new_workforce_frac = workforce_frac
 
@@ -399,7 +399,7 @@ def simulate_period(
     # GUF revenue injection: circulatory TEH from ground-use fees added directly
     # to Trust balance after the fiscal period closes. Mirrors guf_trust_inflow()
     # wiring into trust_management() for callers that pre-compute GUF externally.
-    if guf_net_inflow is not None and guf_net_inflow > 0.0:
+    if guf_net_inflow is not None:
         new_trust_bal = new_trust_bal + guf_net_inflow
 
     # ---- 7. TEH destruction — D1 capital accounting + D2/D3 consumption

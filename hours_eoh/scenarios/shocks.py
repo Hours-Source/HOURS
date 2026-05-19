@@ -43,12 +43,17 @@ from hours_eoh.core.fiscal import (
     stewardship_allocation,
     sufficiency_guarantee,
     trust_management,
+    fiscal_snapshot,
 )
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.workforce import automation_failure_scenario, minimum_hours_allocation
 
 _LABOR_INCOME_BASE:       float = 2_200_000_000.0
 _LABOR_INCOME_MIN:        float = 300_000_000.0
 _LABOR_INCOME_AUTO_SLOPE: float = 0.80
+
+_SEVERITY:     dict[str, int] = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
+_INV_SEVERITY: dict[int, str] = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
 
 
 # ---------------------------------------------------------------------------
@@ -502,9 +507,6 @@ def labor_income_shock(
     if not 0.0 <= income_fraction <= 1.0:
         raise ValueError(f"income_fraction must be in [0, 1], got {income_fraction}")
 
-    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-    from hours_eoh.core.fiscal import fiscal_snapshot
-
     pipeline = eoh_to_teh_pipeline(epsilon=epsilon, population=population)
     baseline_income = max(pipeline["teh_created"], _LABOR_INCOME_MIN)
     shocked_income  = max(baseline_income * income_fraction, _LABOR_INCOME_MIN)
@@ -631,9 +633,6 @@ def compound_shock(
           "recommendation":       str,
         }
     """
-    _SEVERITY = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
-    _INV_SEVERITY = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
-
     individual_outcomes: dict = {}
     combined_eoh_delta: float = 0.0
 
@@ -711,7 +710,7 @@ def compound_shock(
         default=0,
     )
     if trust_absorbs:
-        combined_severity = max(worst_individual, _SEVERITY["STABLE"])
+        combined_severity = worst_individual
     else:
         combined_deficit = abs(trust["surplus_deficit"])
         if combined_deficit < trust_balance * 0.10:

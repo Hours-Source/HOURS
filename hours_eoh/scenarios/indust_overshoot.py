@@ -23,11 +23,15 @@ from __future__ import annotations
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
     TRUST_BASE_TEH,
+    ECOLOGICAL_THRESHOLD,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import total_eoh as _total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.trajectory import canonical_physical_state as _canonical_state
+
+_POP_REFERENCE: float = 1_000_000.0  # reference population for per-capita scaling of TEH constants
 from hours_eoh.indust_no_eco_params import (
     make_indust_no_eco_params,
     INDUST_NO_ECO_PIPELINE_KWARGS,
@@ -84,7 +88,7 @@ def indust_overshoot_baseline(
 
     labor_income = max(pipeline["teh_created"], 1.0)
     fiscal = fiscal_snapshot(
-        trust_balance=TRUST_BASE_TEH * (population / 1_000_000),
+        trust_balance=TRUST_BASE_TEH * (population / _POP_REFERENCE),
         labor_income=labor_income,
         capital_stock_teh=p["capital_stock_teh"],
         capital_age_ratio=p["capital_age_ratio"],
@@ -96,12 +100,11 @@ def indust_overshoot_baseline(
 
     # Canonical baseline for comparison
     canon_state = _canonical_state(epsilon)
-    from hours_eoh.core.eoh_generation import total_eoh as _total_eoh
     canon_eoh = _total_eoh(
         epsilon=epsilon,
         population=population,
         age_distribution=canon_state["age_distribution"],
-        capital_stock=CAPITAL_STOCK_DEFAULT * (population / 1_000_000),
+        capital_stock=CAPITAL_STOCK_DEFAULT * (population / _POP_REFERENCE),
         capital_age_ratio=canon_state["capital_age_ratio"],
         ecosystem_health=canon_state["ecosystem_health"],
         monitoring_capability=canon_state["monitoring_capability"],
@@ -184,7 +187,7 @@ def indust_recovery_trajectory(
         }
     """
     p = make_indust_no_eco_params(population=population, epsilon=epsilon)
-    scaled_trust = TRUST_BASE_TEH * (population / 1_000_000)
+    scaled_trust = TRUST_BASE_TEH * (population / _POP_REFERENCE)
 
     initial_state = make_economy_state(
         epsilon=epsilon,
@@ -209,7 +212,7 @@ def indust_recovery_trajectory(
 
     for result in raw["period_results"]:
         eco = result["ecosystem_health"]
-        if eco > 0.40 and not ecosystem_recovered:
+        if eco > ECOLOGICAL_THRESHOLD and not ecosystem_recovered:
             ecosystem_recovered = True
             years_to_recovery = result["period"] + 1  # 1-indexed
 

@@ -27,7 +27,8 @@ from hours_eoh.data import (
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
 
-_VALID_OUTCOMES = {"STABLE", "DEGRADED", "CRISIS"}
+_DEGRADED_THRESHOLD:    float = 2 / 3   # first insolvency after this fraction of periods → DEGRADED, not CRISIS
+_CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fiscal trajectory is declared converged
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +222,7 @@ def trust_depletion_stress(
 
     if first_ins is None:
         outcome = "STABLE"
-    elif first_ins > n_periods * 2 // 3:
+    elif first_ins > n_periods * _DEGRADED_THRESHOLD:
         outcome = "DEGRADED"
     else:
         outcome = "CRISIS"
@@ -234,7 +235,7 @@ def trust_depletion_stress(
         )
     elif outcome == "DEGRADED":
         rec = (
-            f"First insolvency at period {first_ins} (> {n_periods*2//3} periods). "
+            f"First insolvency at period {first_ins} (> {n_periods * _DEGRADED_THRESHOLD:.0f} periods). "
             f"System degrades under sustained stress but holds for majority of arc. "
             f"Monitor ecological and capital health."
         )
@@ -335,7 +336,7 @@ def automation_transition_trajectory(
         })
 
         if (prev_surplus is not None and abs(prev_surplus) > 1e-6
-                and abs(surplus - prev_surplus) / abs(prev_surplus) < 0.05
+                and abs(surplus - prev_surplus) / abs(prev_surplus) < _CONVERGENCE_TOLERANCE
                 and convergence_period is None):
             convergence_period = result["period"]
 
