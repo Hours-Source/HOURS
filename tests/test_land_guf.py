@@ -375,15 +375,16 @@ class TestGroundUseFee:
         )
 
     def test_worked_example_formula(self):
-        # NLSA §10 components: base=0.225, eco=0.905, infra=0.490 → sum=1.620.
-        # Template uses Ψ(0.40)≈1.04 (rounded); exact formula gives Ψ≈1.062,
-        # so GUF ≈ 1.062 × 1.620 ≈ 1.72. Test verifies components + assembly.
+        # NLSA §10 components: base_fee scales with GUF_USE_RESIDENTIAL_PRIMARY (10.0 TEH/SLU/yr);
+        # base = 3.5 × 0.629 × 10.0 × D ≈ 22.5. Eco and infra use caller-supplied kappa_ref
+        # values so are unchanged: eco=0.905, infra=0.490.
+        # Ψ(0.40) ≈ 1.062 → GUF ≈ 1.062 × (22.5 + 0.905 + 0.490) ≈ 25.4.
         result = self._nlsa_example(0.40)
-        assert result["base_fee"]      == pytest.approx(0.225, abs=0.005)
+        assert result["base_fee"]      == pytest.approx(22.5, abs=0.05)
         assert result["eco_surcharge"] == pytest.approx(0.905, abs=0.005)
         assert result["infra_premium"] == pytest.approx(0.490, abs=0.005)
         # Verify master equation assembly
-        expected = result["psi"] * (0.225 + 0.905 + 0.490)
+        expected = result["psi"] * (result["base_fee"] + 0.905 + 0.490)
         assert result["guf_formula"] == pytest.approx(expected, rel=1e-4)
 
     def test_components_sum_correctly(self):

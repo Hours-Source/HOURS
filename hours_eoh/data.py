@@ -398,16 +398,20 @@ GUF_LVI_W_SERVICES:        float = 0.20
 GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 
 # Use category reference rates at ε=0.40 (TEH/SLU/year) — midpoints of NLSA Eq. 9 ranges
-GUF_USE_RESIDENTIAL_PRIMARY:    float =  0.100
-GUF_USE_RESIDENTIAL_SECONDARY:  float =  0.215
-GUF_USE_AGRICULTURAL_ACTIVE:    float =  0.020
-GUF_USE_AGRICULTURAL_FALLOW:    float =  0.050
-GUF_USE_COMMERCIAL_RETAIL:      float =  0.300
-GUF_USE_COMMERCIAL_OFFICE:      float =  0.225
-GUF_USE_INDUSTRIAL_LIGHT:       float =  0.170
-GUF_USE_INDUSTRIAL_HEAVY:       float =  0.375
-GUF_USE_INSTITUTIONAL:          float =  0.010
-GUF_USE_CONSERVATION_CREDIT:    float = -0.060  # negative: credit reduces base fee
+# Calibrated so aggregate GUF across a 1M-population land inventory (~400k residential
+# + 20k commercial parcels) is co-equal with levy revenue at mid-arc (ε≈0.40).
+# At ×100 vs. the original abstract unit values: residential GUF ≈ 9.3M TEH/yr,
+# commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×).
+GUF_USE_RESIDENTIAL_PRIMARY:    float =  10.0
+GUF_USE_RESIDENTIAL_SECONDARY:  float =  21.5
+GUF_USE_AGRICULTURAL_ACTIVE:    float =   2.0
+GUF_USE_AGRICULTURAL_FALLOW:    float =   5.0
+GUF_USE_COMMERCIAL_RETAIL:      float =  30.0
+GUF_USE_COMMERCIAL_OFFICE:      float =  22.5
+GUF_USE_INDUSTRIAL_LIGHT:       float =  17.0
+GUF_USE_INDUSTRIAL_HEAVY:       float =  37.5
+GUF_USE_INSTITUTIONAL:          float =   1.0
+GUF_USE_CONSERVATION_CREDIT:    float =  -6.0  # negative: credit reduces base fee
 
 # Demand Pressure Modifier parameters (NLSA Eq. 11-13)
 GUF_DEMAND_ETA_RESIDENTIAL: float = 0.15   # sensitivity for residential land

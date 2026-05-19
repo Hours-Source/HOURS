@@ -23,6 +23,7 @@ from hours_eoh.data import (
     GUF_EOH_ACCUMULATION_THRESHOLD,
     GUF_WRITEDOWN_AMORTIZATION_YEARS,
 )
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import (
     levy_collection,
     stewardship_allocation,
@@ -117,8 +118,8 @@ def guf_fiscal_integration(
     guf_revenues = [r["guf_applied"] for r in parcel_results]
     inflow = guf_trust_inflow(guf_revenues, subsidies_absorbed=subsidies_absorbed)
 
-    labor_income_proxy = max(1.0, trust_balance * 0.5)  # conservative labor estimate
-    levies = levy_collection(labor_income_proxy, levy_rates or {"sufficiency": SUFF_LEVY_RATE})
+    labor_income = eoh_to_teh_pipeline(epsilon=epsilon, population=population)["teh_created"]
+    levies = levy_collection(labor_income, levy_rates or {"sufficiency": SUFF_LEVY_RATE})
     stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
                                     epsilon, trust_balance)
     guar   = sufficiency_guarantee(population, epsilon,
