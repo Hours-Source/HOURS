@@ -38,6 +38,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument("--population", type=float, default=1_000_000.0)
     p.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH)
     p.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT)
+    p.add_argument("--workforce-decay", action="store_true", dest="workforce_decay",
+                   help="Shrink workforce_fraction proportionally to (1-ε) each period")
+    p.add_argument("--guf-inflow", type=float, default=None, dest="guf_inflow",
+                   metavar="TEH",
+                   help="Net GUF land-fee revenue to inject into Trust each period (TEH)")
     p.add_argument("--format", choices=["table", "csv", "json"],
                    default="table", dest="fmt")
     p.set_defaults(func=run)
@@ -51,10 +56,16 @@ def run(args: argparse.Namespace) -> None:
         capital_stock_teh=args.capital_stock,
     )
 
+    sim_kwargs: dict = {"epsilon_delta": args.epsilon_delta}
+    if args.workforce_decay:
+        sim_kwargs["workforce_epsilon_decay"] = True
+    if args.guf_inflow is not None:
+        sim_kwargs["guf_net_inflow"] = args.guf_inflow
+
     result = run_simulation(
         initial_state=state,
         n_periods=args.periods,
-        epsilon_delta=args.epsilon_delta,
+        **sim_kwargs,
     )
 
     period_results = result.get("period_results", [])
