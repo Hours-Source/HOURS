@@ -6,6 +6,16 @@ guf — Ground Use Fee calculations (NLSA TM-0042).
   eoh guf writedown            --epsilon ε [--pathway restoration|abandonment] [options]
   eoh guf rebuilding-surcharge --epsilon ε --services-json '[...]'
   eoh guf accumulation-warning --unfulfilled F --total F
+  eoh guf inventory calculate  --parcels FILE [--epsilon ε] [--median-income TEH]
+  eoh guf inventory sweep      --parcels FILE [--epsilon-start ε] [--epsilon-end ε] [--steps N]
+  eoh guf inventory stress     --parcels FILE [--epsilon-start ε] [--epsilon-end ε] [--periods N]
+
+Inventory JSON parcel file format (list of parcel dicts):
+  [
+    {"area_slu": 3.5, "location_value": 0.72, "use_category": "residential_primary"},
+    {"area_slu": 5.0, "location_value": 0.85, "use_category": "commercial_retail",
+     "ecosystem_services": [{"label":"water","volume":0.4,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]}
+  ]
 
 Services JSON format (for writedown and rebuilding-surcharge):
   Reset services  (--services-reset-json / --services-json for rebuilding-surcharge):
@@ -26,7 +36,14 @@ from hours_eoh.land.guf import (
     ground_use_fee_writedown,
     eoh_accumulation_warning,
 )
-from hours_eoh.data import GUF_WRITEDOWN_AMORTIZATION_YEARS, GUF_EOH_ACCUMULATION_THRESHOLD
+from hours_eoh.land.collective import compute_collective_guf
+from hours_eoh.scenarios.guf_stress import automation_levy_guf_stress
+from hours_eoh.data import (
+    GUF_WRITEDOWN_AMORTIZATION_YEARS,
+    GUF_EOH_ACCUMULATION_THRESHOLD,
+    TRUST_BASE_TEH,
+    CAPITAL_STOCK_DEFAULT,
+)
 
 from utils.formatters import bold, green, yellow, red, fmt_float, fmt_eps, fmt_pct, table as fmt_table
 
@@ -144,6 +161,65 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     help=f"Warning trigger ratio (default: {GUF_EOH_ACCUMULATION_THRESHOLD})")
     aw.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     aw.set_defaults(func=_accumulation_warning)
+
+    # ------------------------------------------------------------------ inventory
+    inv = sub2.add_parser(
+        "inventory",
+        help="Batch GUF analysis for a collective land inventory (JSON parcel file)",
+    )
+    inv_sub = inv.add_subparsers(dest="inv_cmd", required=True)
+
+    # inventory calculate
+    inv_calc = inv_sub.add_parser(
+        "calculate",
+        help="Compute aggregate GUF for all parcels in the inventory at a given ε",
+    )
+    inv_calc.add_argument("--parcels", required=True, metavar="FILE",
+                          help="Path to JSON file (list of parcel dicts)")
+    inv_calc.add_argument("--epsilon", type=float, default=0.40, metavar="ε")
+    inv_calc.add_argument("--median-income", type=float, default=0.0,
+                          dest="median_income",
+                          help="Collective median income for subsidy calculation (TEH/yr)")
+    inv_calc.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    inv_calc.set_defaults(func=_inv_calculate)
+
+    # inventory sweep
+    inv_sweep = inv_sub.add_parser(
+        "sweep",
+        help="Compute aggregate GUF across a range of ε values",
+    )
+    inv_sweep.add_argument("--parcels", required=True, metavar="FILE",
+                           help="Path to JSON file (list of parcel dicts)")
+    inv_sweep.add_argument("--epsilon-start", type=float, default=0.0,
+                           dest="epsilon_start", metavar="ε")
+    inv_sweep.add_argument("--epsilon-end", type=float, default=0.99,
+                           dest="epsilon_end", metavar="ε")
+    inv_sweep.add_argument("--steps", type=int, default=11,
+                           help="Number of ε points (default: 11)")
+    inv_sweep.add_argument("--median-income", type=float, default=0.0,
+                           dest="median_income")
+    inv_sweep.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    inv_sweep.set_defaults(func=_inv_sweep)
+
+    # inventory stress
+    inv_stress = inv_sub.add_parser(
+        "stress",
+        help="Multi-period stress: automation rises, levy falls — does GUF compensate?",
+    )
+    inv_stress.add_argument("--parcels", default=None, metavar="FILE",
+                            help="JSON parcel file (omit to use 1 000-parcel urban default)")
+    inv_stress.add_argument("--epsilon-start", type=float, default=0.20,
+                            dest="epsilon_start", metavar="ε")
+    inv_stress.add_argument("--epsilon-end", type=float, default=0.80,
+                            dest="epsilon_end", metavar="ε")
+    inv_stress.add_argument("--periods", type=int, default=20)
+    inv_stress.add_argument("--population", type=float, default=1_000_000.0)
+    inv_stress.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+                            dest="trust_balance")
+    inv_stress.add_argument("--median-income", type=float, default=0.0,
+                            dest="median_income")
+    inv_stress.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    inv_stress.set_defaults(func=_inv_stress)
 
 
 # ---------------------------------------------------------------------------
@@ -304,3 +380,112 @@ def _accumulation_warning(args: argparse.Namespace) -> None:
         ["accelerated_rho_review", str(result["accelerated_rho_review"])],
         ["ecology_fund_priority",  str(result["ecology_fund_priority"])],
     ]))
+
+
+def _load_parcels(path: str) -> list[dict]:
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        print(f"error: cannot read parcel file {path!r}: {exc}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(data, list):
+        print("error: parcel file must be a JSON array of parcel objects", file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def _inv_calculate(args: argparse.Namespace) -> None:
+    parcels = _load_parcels(args.parcels)
+    result  = compute_collective_guf(parcels, args.epsilon, args.median_income)
+
+    if args.fmt == "json":
+        out = {k: v for k, v in result.items() if k != "guf_by_parcel"}
+        print(json.dumps(out, indent=2))
+        return
+
+    print(bold(f"Inventory GUF — {result['parcel_count']} parcels  ε={fmt_eps(args.epsilon)}"))
+    print(fmt_table(["metric", "TEH/yr"], [
+        ["guf_gross_revenue",  fmt_float(result["guf_gross_revenue"])],
+        ["subsidies_absorbed", fmt_float(result["subsidies_absorbed"])],
+        ["guf_net_inflow",     fmt_float(result["guf_net_inflow"])],
+        ["psi (Ψ)",            f"{result['psi']:.4f}"],
+    ]))
+
+
+def _inv_sweep(args: argparse.Namespace) -> None:
+    parcels    = _load_parcels(args.parcels)
+    eps_values = [
+        args.epsilon_start + i * (args.epsilon_end - args.epsilon_start) / max(args.steps - 1, 1)
+        for i in range(args.steps)
+    ]
+
+    rows_data = []
+    for eps in eps_values:
+        r = compute_collective_guf(parcels, eps, args.median_income)
+        rows_data.append({
+            "epsilon":          eps,
+            "psi":              r["psi"],
+            "guf_gross_revenue": r["guf_gross_revenue"],
+            "guf_net_inflow":   r["guf_net_inflow"],
+        })
+
+    if args.fmt == "json":
+        print(json.dumps(rows_data, indent=2))
+        return
+
+    print(bold(f"Inventory GUF sweep — {len(parcels)} parcels  "
+               f"ε={fmt_eps(args.epsilon_start)}→{fmt_eps(args.epsilon_end)}"))
+    rows = [
+        [fmt_eps(r["epsilon"]), f"{r['psi']:.3f}",
+         fmt_float(r["guf_gross_revenue"]), fmt_float(r["guf_net_inflow"])]
+        for r in rows_data
+    ]
+    print(fmt_table(["epsilon", "psi", "gross_revenue", "net_inflow"], rows))
+
+
+def _inv_stress(args: argparse.Namespace) -> None:
+    parcels = _load_parcels(args.parcels) if args.parcels else None
+    result  = automation_levy_guf_stress(
+        parcel_inventory=parcels,
+        epsilon_start=args.epsilon_start,
+        epsilon_end=args.epsilon_end,
+        n_periods=args.periods,
+        population=args.population,
+        trust_balance=args.trust_balance,
+        median_income=args.median_income,
+    )
+
+    if args.fmt == "json":
+        out = {k: v for k, v in result.items() if k != "trajectory"}
+        out["trajectory"] = result["trajectory"]
+        print(json.dumps(out, indent=2))
+        return
+
+    traj = result["trajectory"]
+    outcome_fn = green if result["outcome"] == "ADEQUATE" else (
+        yellow if result["outcome"] == "PARTIAL" else red
+    )
+    print(bold(
+        f"Automation→Levy→GUF stress — {result['parcel_count']} parcels  "
+        f"ε={fmt_eps(args.epsilon_start)}→{fmt_eps(args.epsilon_end)}  "
+        f"{args.periods} periods  outcome={outcome_fn(result['outcome'])}"
+    ))
+    print(f"  GUF peak: period {result['guf_peak_period']}  "
+          f"levy peak: period {result['levy_peak_period']}  "
+          f"crossover: {result['crossover_period']}  "
+          f"first insolvency: {result['first_insolvency']}")
+    print(f"  compensation adequacy: {result['compensation_adequacy']:.1%}")
+    print()
+    rows = [
+        [str(r["period"]), fmt_eps(r["epsilon"]),
+         fmt_float(r["levy_revenue"]), fmt_float(r["guf_net_inflow"]),
+         f"{r['guf_levy_ratio']:.2f}",
+         fmt_float(r["trust_end"]),
+         green("Y") if r["solvent"] else red("N")]
+        for r in traj
+    ]
+    print(fmt_table(
+        ["period", "epsilon", "levy_rev", "guf_net", "guf/levy", "trust_end", "solv"],
+        rows,
+    ))

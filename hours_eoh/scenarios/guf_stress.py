@@ -1,11 +1,12 @@
 """
 scenarios/guf_stress — Ground Use Fee fiscal integration and ecological write-down.
 
-Three scenarios that exercise the GUF layer against the Trust and fiscal system:
+Four scenarios that exercise the GUF layer against the Trust and fiscal system:
 
-  guf_fiscal_integration  — Does GUF revenue close a levy deficit? How material is it?
-  guf_writedown_scenario  — Full ecological collapse → warning → write-down pathways
-  guf_revenue_sweep       — How does GUF track the Ψ(ε) bell curve across the arc?
+  guf_fiscal_integration      — Does GUF revenue close a levy deficit? How material is it?
+  guf_writedown_scenario      — Full ecological collapse → warning → write-down pathways
+  guf_revenue_sweep           — How does GUF track the Ψ(ε) bell curve across the arc?
+  automation_levy_guf_stress  — Multi-period: automation rises → levy falls → does GUF compensate?
 
 Mission Statement: §"Ground Use Fee — land rents fund the ecological and
 stewardship obligations co-equally with levy revenue."
@@ -36,6 +37,7 @@ from hours_eoh.land.guf import (
     ground_use_fee_writedown,
     eoh_accumulation_warning,
 )
+from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
 
 _DEFAULT_PARCEL = {
     "area_slu":       3.5,
@@ -352,3 +354,196 @@ def guf_revenue_sweep(
         })
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# Automation → Levy → GUF Compensation Stress
+# ---------------------------------------------------------------------------
+
+def automation_levy_guf_stress(
+    parcel_inventory: list[dict] | None = None,
+    epsilon_start: float = 0.20,
+    epsilon_end: float = 0.80,
+    n_periods: int = 20,
+    population: float = 1_000_000.0,
+    trust_balance: float = TRUST_BASE_TEH,
+    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_age_ratio: float = 0.30,
+    levy_rates: dict | None = None,
+    median_income: float = 0.0,
+    dep_rate: float = DEP_RATE,
+    div_rate: float = DIV_RATE,
+) -> dict:
+    """
+    Multi-period stress: automation rises → levy falls → does GUF compensate?
+
+    Models the core fiscal loop as ε increases over n_periods:
+      - Labor income (EOH pipeline) falls → levy revenue falls
+      - GUF revenue tracks the Ψ(ε) bell curve: peaks near ε=0.40, then declines
+      - Sufficiency guarantee cost changes with ε (rising per-person, fewer recipients)
+      - Trust balance evolves period-by-period
+
+    Per period:
+      1. ε = epsilon_start + i × (epsilon_end − epsilon_start) / n_periods
+      2. levy_revenue  = eoh_to_teh_pipeline(ε)["teh_created"] × levy_rate
+      3. guf_net_inflow = compute_collective_guf(parcel_inventory, ε)["guf_net_inflow"]
+      4. stew_cost     = stewardship_allocation(capital_stock_teh, ..., ε, trust_balance)
+      5. guar_cost     = sufficiency_guarantee(population, ε)["total_cost_teh"]
+      6. trust_result  = trust_management(trust_balance, levy + guf, stew, guar, ...)
+      7. trust_balance = trust_result["trust_end"]   (carries forward to next period)
+
+    Args:
+        parcel_inventory:  Standard parcel dicts (see land/collective.py schema).
+                           None → 1 000-parcel synthetic urban inventory.
+        epsilon_start:     Starting ε [0.0, 0.99].
+        epsilon_end:       Ending ε [epsilon_start, 0.99].
+        n_periods:         Number of periods to simulate.
+        population:        Total population.
+        trust_balance:     Initial Trust balance.
+        capital_stock_teh: Capital stock (TEH).
+        capital_age_ratio: Mean asset age ratio.
+        levy_rates:        Override default levy rates.
+        median_income:     Collective median income for GUF subsidy calculation.
+        dep_rate:          Trust depreciation rate.
+        div_rate:          Trust dividend fraction.
+
+    Returns:
+        dict: {
+          "scenario":             "automation_levy_guf_stress",
+          "trajectory":           list[dict],  one row per period
+          "parcel_count":         int,
+          "epsilon_range":        [float, float],
+          "levy_peak_period":     int,   period with highest levy_revenue
+          "guf_peak_period":      int,   period with highest guf_net_inflow
+          "crossover_period":     int|None,  first period where guf > levy
+          "first_insolvency":     int|None,  first period solvent=False
+          "compensation_adequacy": float,  mean(guf / levy_shortfall) when levy < baseline
+          "outcome":              str,   ADEQUATE / PARTIAL / CRISIS
+          "recommendation":       str,
+        }
+
+    Each trajectory row:
+        {period, epsilon, levy_revenue, guf_net_inflow, guf_levy_ratio,
+         sufficiency_cost, trust_end, solvent}
+    """
+    inventory = parcel_inventory if parcel_inventory is not None else make_urban_collective(1_000)
+    rates      = levy_rates or {"sufficiency": SUFF_LEVY_RATE}
+    eps_delta  = (epsilon_end - epsilon_start) / max(n_periods, 1)
+
+    trajectory: list[dict] = []
+    bal = trust_balance
+
+    for i in range(n_periods):
+        eps = epsilon_start + i * eps_delta
+
+        labor_income = eoh_to_teh_pipeline(epsilon=eps, population=population)["teh_created"]
+        levy_rev     = levy_collection(labor_income, rates)["total_levied"]
+
+        guf_result   = compute_collective_guf(inventory, eps, median_income=median_income)
+        guf_net      = guf_result["guf_net_inflow"]
+
+        stew_cost    = stewardship_allocation(
+            capital_stock_teh, capital_age_ratio, eps, bal
+        )["teh_allocated"]
+        guar_cost    = sufficiency_guarantee(
+            population, eps,
+            meaningful_activity_teh=MEANINGFUL_ACTIVITY_TEH_BASE,
+        )["total_cost_teh"]
+
+        trust_result = trust_management(
+            bal,
+            levy_rev + guf_net,
+            stew_cost,
+            guar_cost,
+            dep_rate, div_rate, eps,
+        )
+        bal = trust_result["trust_end"]
+
+        trajectory.append({
+            "period":          i,
+            "epsilon":         eps,
+            "levy_revenue":    levy_rev,
+            "guf_net_inflow":  guf_net,
+            "guf_levy_ratio":  guf_net / max(levy_rev, 1.0),
+            "sufficiency_cost": guar_cost,
+            "trust_end":       bal,
+            "solvent":         trust_result["solvent"],
+        })
+
+    if not trajectory:
+        return {
+            "scenario": "automation_levy_guf_stress",
+            "trajectory": [],
+            "parcel_count": len(inventory),
+            "epsilon_range": [epsilon_start, epsilon_end],
+            "levy_peak_period": 0,
+            "guf_peak_period": 0,
+            "crossover_period": None,
+            "first_insolvency": None,
+            "compensation_adequacy": 0.0,
+            "outcome": "ADEQUATE",
+            "recommendation": "No periods simulated.",
+        }
+
+    levy_peak = max(range(n_periods), key=lambda j: trajectory[j]["levy_revenue"])
+    guf_peak  = max(range(n_periods), key=lambda j: trajectory[j]["guf_net_inflow"])
+
+    baseline_levy   = trajectory[0]["levy_revenue"]
+    crossover_period: int | None = None
+    first_insolvency: int | None = None
+
+    shortfall_periods: list[float] = []
+    adequacy_ratios:   list[float] = []
+
+    for j, row in enumerate(trajectory):
+        if first_insolvency is None and not row["solvent"]:
+            first_insolvency = j
+        if crossover_period is None and row["guf_net_inflow"] > row["levy_revenue"]:
+            crossover_period = j
+        if row["levy_revenue"] < baseline_levy:
+            shortfall = baseline_levy - row["levy_revenue"]
+            shortfall_periods.append(shortfall)
+            adequacy_ratios.append(row["guf_net_inflow"] / max(shortfall, 1.0))
+
+    compensation_adequacy = (
+        sum(adequacy_ratios) / len(adequacy_ratios) if adequacy_ratios else 0.0
+    )
+
+    insolvent_count = sum(1 for r in trajectory if not r["solvent"])
+    first_third     = n_periods // 3
+
+    if first_insolvency is None:
+        outcome = "ADEQUATE"
+    elif first_insolvency <= first_third:
+        outcome = "CRISIS"
+    elif insolvent_count >= n_periods // 2:
+        outcome = "PARTIAL"
+    else:
+        outcome = "ADEQUATE"
+
+    guf_peak_eps = trajectory[guf_peak]["epsilon"]
+    rec = (
+        f"Automation stress ε={epsilon_start:.2f}→{epsilon_end:.2f} over {n_periods} periods "
+        f"({len(inventory)} parcels): levy peaks at period {levy_peak} "
+        f"(ε={trajectory[levy_peak]['epsilon']:.2f}), GUF peaks at period {guf_peak} "
+        f"(ε={guf_peak_eps:.2f}, Ψ-driven). "
+        f"Crossover (GUF>levy) at period "
+        f"{'none' if crossover_period is None else crossover_period}. "
+        f"Compensation adequacy: {compensation_adequacy:.1%}. "
+        f"First insolvency: {'none' if first_insolvency is None else f'period {first_insolvency}'}. "
+        f"Outcome: {outcome}."
+    )
+
+    return {
+        "scenario":              "automation_levy_guf_stress",
+        "trajectory":            trajectory,
+        "parcel_count":          len(inventory),
+        "epsilon_range":         [epsilon_start, epsilon_end],
+        "levy_peak_period":      levy_peak,
+        "guf_peak_period":       guf_peak,
+        "crossover_period":      crossover_period,
+        "first_insolvency":      first_insolvency,
+        "compensation_adequacy": compensation_adequacy,
+        "outcome":               outcome,
+        "recommendation":        rec,
+    }

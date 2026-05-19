@@ -20,6 +20,7 @@ Canonical imports::
     )
     from hours_eoh.scenarios.guf_stress import (
         guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep,
+        automation_levy_guf_stress,
     )
 
 None of these modules are imported by core/ — the dependency is one-way.

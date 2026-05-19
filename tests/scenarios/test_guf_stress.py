@@ -1,7 +1,8 @@
 """
 Tests for hours_eoh.scenarios.guf_stress.
 
-Covers: guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep.
+Covers: guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep,
+        automation_levy_guf_stress.
 """
 
 import math
@@ -10,6 +11,7 @@ from hours_eoh.scenarios.guf_stress import (
     guf_fiscal_integration,
     guf_writedown_scenario,
     guf_revenue_sweep,
+    automation_levy_guf_stress,
 )
 
 VALID_GUF_OUTCOMES = {"GUF_MATERIAL", "GUF_SUPPLEMENTAL", "GUF_INSUFFICIENT"}
@@ -222,3 +224,102 @@ class TestGufRevenueSweep:
         guf_default = sum(r["guf_applied"] for r in r_default)
         guf_custom  = sum(r["guf_applied"] for r in r_custom)
         assert guf_custom != guf_default
+
+
+# ===========================================================================
+# automation_levy_guf_stress
+# ===========================================================================
+
+class TestAutomationLevyGufStress:
+
+    def test_returns_expected_keys(self):
+        result = automation_levy_guf_stress(n_periods=5)
+        for key in (
+            "scenario", "trajectory", "parcel_count", "epsilon_range",
+            "levy_peak_period", "guf_peak_period", "crossover_period",
+            "first_insolvency", "compensation_adequacy", "outcome", "recommendation",
+        ):
+            assert key in result
+
+    def test_scenario_name(self):
+        result = automation_levy_guf_stress(n_periods=3)
+        assert result["scenario"] == "automation_levy_guf_stress"
+
+    def test_trajectory_length(self):
+        n = 8
+        result = automation_levy_guf_stress(n_periods=n)
+        assert len(result["trajectory"]) == n
+
+    def test_trajectory_row_keys(self):
+        result = automation_levy_guf_stress(n_periods=3)
+        row = result["trajectory"][0]
+        for key in ("period", "epsilon", "levy_revenue", "guf_net_inflow",
+                    "guf_levy_ratio", "sufficiency_cost", "trust_end", "solvent"):
+            assert key in row
+
+    def test_epsilon_monotone_increasing(self):
+        result = automation_levy_guf_stress(
+            epsilon_start=0.20, epsilon_end=0.70, n_periods=10
+        )
+        eps = [r["epsilon"] for r in result["trajectory"]]
+        for i in range(1, len(eps)):
+            assert eps[i] > eps[i - 1]
+
+    def test_all_levy_revenues_finite(self):
+        result = automation_levy_guf_stress(n_periods=5)
+        for row in result["trajectory"]:
+            assert math.isfinite(row["levy_revenue"])
+            assert row["levy_revenue"] >= 0.0
+
+    def test_all_guf_net_inflows_finite(self):
+        result = automation_levy_guf_stress(n_periods=5)
+        for row in result["trajectory"]:
+            assert math.isfinite(row["guf_net_inflow"])
+            assert row["guf_net_inflow"] >= 0.0
+
+    def test_all_trust_ends_finite(self):
+        result = automation_levy_guf_stress(n_periods=5)
+        for row in result["trajectory"]:
+            assert math.isfinite(row["trust_end"])
+
+    def test_outcome_valid_values(self):
+        result = automation_levy_guf_stress(n_periods=5)
+        assert result["outcome"] in {"ADEQUATE", "PARTIAL", "CRISIS"}
+
+    def test_guf_peak_period_before_high_epsilon(self):
+        # Ψ(ε) bell peaks near ε=0.40; stress from 0.10→0.99 should see GUF peak early
+        result = automation_levy_guf_stress(
+            epsilon_start=0.10, epsilon_end=0.99, n_periods=20
+        )
+        guf_peak_row = result["trajectory"][result["guf_peak_period"]]
+        # GUF peak must occur at ε < 0.70 (well before the high-ε tail)
+        assert guf_peak_row["epsilon"] < 0.70
+
+    def test_first_insolvency_none_when_large_trust(self):
+        from hours_eoh.data import TRUST_BASE_TEH
+        result = automation_levy_guf_stress(
+            trust_balance=TRUST_BASE_TEH * 10,  # very large trust buffer
+            n_periods=5,
+        )
+        assert result["first_insolvency"] is None
+
+    def test_parcel_count_matches_default_inventory(self):
+        result = automation_levy_guf_stress(n_periods=3)
+        assert result["parcel_count"] == 1_000  # default make_urban_collective(1_000)
+
+    def test_custom_parcel_inventory_respected(self):
+        custom = [
+            {"area_slu": 5.0, "location_value": 0.80, "use_category": "commercial_retail"},
+        ]
+        result = automation_levy_guf_stress(parcel_inventory=custom, n_periods=3)
+        assert result["parcel_count"] == 1
+
+    def test_compensation_adequacy_positive_with_parcels(self):
+        result = automation_levy_guf_stress(n_periods=10)
+        assert result["compensation_adequacy"] >= 0.0
+
+    def test_epsilon_range_stored(self):
+        result = automation_levy_guf_stress(
+            epsilon_start=0.30, epsilon_end=0.75, n_periods=5
+        )
+        assert result["epsilon_range"] == [0.30, 0.75]
