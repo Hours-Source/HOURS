@@ -129,6 +129,6 @@ See [CLI Reference — GUF commands](cli.md#guf-land-use-fee-commands) and [GUF 
 ## Running Tests
 
 ```bash
-python3 -m pytest tests/ -q          # full suite (998 tests)
+python3 -m pytest tests/ -q          # full suite (1169 tests)
 python3 -m mypy hours_eoh/           # type check
 ```

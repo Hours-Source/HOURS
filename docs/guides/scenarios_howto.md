@@ -4,7 +4,7 @@
 
 Scenarios are applied research tools in `hours_eoh/scenarios/`. They use `core/` physics and mechanics to test specific stress conditions, shocks, and parameter trajectories. They model system behavior under realistic conditions rather than verifying individual function outputs.
 
-Scenarios import from `core/` but never the reverse.
+Scenarios import from `core/` and `land/` but never the reverse.
 
 ---
 
@@ -89,12 +89,99 @@ results = eoh_arc_sensitivity()
 results = epsilon_delta_sensitivity(epsilon=0.40, delta=0.05)
 ```
 
+### Income and compound shocks
+
+```python
+from hours_eoh.scenarios.shocks import labor_income_shock, compound_shock
+
+# Compress labor income to 60% of baseline
+result = labor_income_shock(epsilon=0.40, income_fraction=0.60)
+print(result["outcome"])  # STABLE / DEGRADED / CRISIS
+
+# Combined ecological + demographic + automation shock
+result = compound_shock(
+    epsilon=0.40,
+    ecology_collapse={"spike_multiplier": 2.5},
+    demographic_shock_spec={"aging_factor": 1.3},
+    automation_fraction_lost=0.20,
+)
+print(result["combined_outcome"])
+```
+
+### Multi-period long-run trajectories
+
+```python
+from hours_eoh.scenarios.long_run import (
+    canonical_arc_trajectory,
+    trust_depletion_stress,
+    automation_transition_trajectory,
+)
+
+# Full arc 0 → 0.99 over 20 periods
+result = canonical_arc_trajectory(n_periods=20)
+print(result["outcome"], result["inflection_points"])
+
+# Multi-stressor trust depletion run
+result = trust_depletion_stress(n_periods=30)
+print(result["first_insolvency_period"])
+
+# Fixed-step automation transition
+result = automation_transition_trajectory(epsilon_start=0.20, epsilon_delta=0.03)
+print(result["converged"], result["convergence_period"])
+```
+
+### Industrial overshoot archetype
+
+```python
+from hours_eoh.scenarios.indust_overshoot import (
+    indust_overshoot_baseline,
+    indust_recovery_trajectory,
+)
+
+# Single-period overshoot snapshot vs. canonical
+result = indust_overshoot_baseline(population=65_000_000, epsilon=0.40)
+print(result["overshoot_eoh_delta"])
+
+# Recovery trajectory — can restoration escape the overshoot regime?
+result = indust_recovery_trajectory(epsilon_start=0.40, n_periods=20, restoration_rate=0.05)
+print(result["escaped_overshoot"], result["escape_period"])
+```
+
+### GUF fiscal stress scenarios
+
+```python
+from hours_eoh.scenarios.guf_stress import (
+    guf_fiscal_integration,
+    guf_writedown_scenario,
+    guf_revenue_sweep,
+    automation_levy_guf_stress,
+)
+from hours_eoh.land.collective import make_urban_collective
+
+# Does GUF revenue close a levy deficit at ε=0.60?
+result = guf_fiscal_integration(epsilon=0.60)
+print(result["deficit_closed"], result["guf_contribution_fraction"])
+
+# GUF across the ε arc (tracks the Ψ bell curve)
+trajectory = guf_revenue_sweep(parcel_configs=None)
+
+# Multi-period automation→levy→GUF stress
+result = automation_levy_guf_stress(
+    parcel_inventory=make_urban_collective(1_000),
+    epsilon_start=0.20,
+    epsilon_end=0.80,
+    n_periods=20,
+)
+print(result["outcome"])           # ADEQUATE / PARTIAL / CRISIS
+print(result["crossover_period"])  # first period GUF > levy
+```
+
 ---
 
 ## Writing a New Scenario
 
 1. Create the file in `hours_eoh/scenarios/`.
-2. Import only from `core/` — never from `land/`, `research/`, or `utils/`.
+2. Import from `core/` and `land/` as needed — never from `research/` or `utils/`.
 3. Use `EohParams.temporary(**overrides)` for sweep code:
 
     ```python

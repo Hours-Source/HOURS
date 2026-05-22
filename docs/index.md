@@ -172,6 +172,6 @@ print(snapshot["overall"])  # GREEN / YELLOW / RED
 ## Running Tests
 
 ```bash
-python3 -m pytest tests/ -q           # 998 tests
+python3 -m pytest tests/ -q           # 1169 tests
 python3 -m mypy hours_eoh/            # type checking
 ```

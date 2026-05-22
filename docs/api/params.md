@@ -65,8 +65,12 @@ Single source of truth for all named constants. No anonymous numeric literals an
 | `GUF_SOIL_CREDIT_RATE` | c_soil credit rate = 0.05 |
 | `GUF_WRITEDOWN_AMORTIZATION_YEARS` | Y_r = 50 years |
 | `GUF_EOH_ACCUMULATION_THRESHOLD` | Warning threshold = 0.30 |
+| `GUF_USE_RESIDENTIAL_PRIMARY` | 10.0 TEH/SLU/yr (recalibrated ×100 from 0.10) |
+| `GUF_USE_COMMERCIAL_RETAIL` | 30.0 TEH/SLU/yr (recalibrated ×100 from 0.30) |
 
-**Conditions**
+All `GUF_USE_*` constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) is co-equal with levy revenue at ε = 0.40 — the design target.
+
+**Conditions and Simulation**
 
 | Constant | Description |
 |----------|-------------|
@@ -75,5 +79,6 @@ Single source of truth for all named constants. No anonymous numeric literals an
 | `MULTIPLIER_BAND_MAX` | Upper band (design) = 2.1 |
 | `MULTIPLIER_MAX` | Individual cap = 6.0 |
 | `COMPETENCY_RESERVE_THRESHOLD` | Condition IV minimum = 0.155 (15.5%) |
+| `WORKFORCE_FRACTION_MIN` | Minimum workforce fraction = 0.05 (used by `simulate_period` workforce decay) |
 
 Add new constants to `data.py` before using them anywhere in the codebase. Use the `CANONICAL_` prefix for canonical trajectory constants.

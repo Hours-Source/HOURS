@@ -1,5 +1,11 @@
 # Land — GUF Module
 
+The `land/` package contains three modules: `guf.py` (single-parcel physics), `collective.py` (batch inventory calculator), and `calibration.py` (rate and weight calibration tools). All follow the layer rule: `land/` imports from `core/` only.
+
+---
+
+## guf.py — Single-Parcel GUF
+
 **Module:** `hours_eoh/land/guf.py`
 
 14 functions implementing the Ground Use Fee framework (NLSA TM-0042). All functions follow the layer rules: `land/` imports from `core/` but is never imported by `core/`.
@@ -138,3 +144,105 @@ from hours_eoh.land.guf import eoh_accumulation_warning
 result = eoh_accumulation_warning(unfulfilled_eoh=450_000, total_eoh=1_200_000)
 # Returns: {ratio, threshold, warning, accelerated_rho_review, ecology_fund_priority}
 ```
+
+---
+
+## collective.py — Collective Land Inventory {#collective-land-inventory}
+
+**Module:** `hours_eoh/land/collective.py`
+
+Batch GUF calculator for a collective's full land inventory. Handles income-linked subsidies, soil-health credits, and review-cycle caps per parcel, then aggregates via `guf_trust_inflow()`.
+
+### Standard parcel schema
+
+```python
+{
+    # Required
+    "area_slu":       float,   # parcel area (1 SLU = 100 m²)
+    "location_value": float,   # L(p) ∈ [0,1]
+    "use_category":   str,     # see USE_CATEGORIES in guf.py
+
+    # Optional — forwarded to ground_use_fee()
+    "ecosystem_services":     list[dict],
+    "infrastructure_assets":  list[dict],
+    "demand_supply_ratio":    float,
+    "zone_adj":               float,
+    "occupancy_fraction":     float,
+    "custom_u_ref":           float,
+    "residential":            bool,
+
+    # Optional — handled by this module
+    "parcel_id":       str,    # label for reporting
+    "occupant_income": float,  # enables income-linked subsidy σ-curve
+    "guf_previous":    float,  # enables 10% review-cycle cap
+    "delta_shi":       float,  # soil-health credit for agricultural parcels
+}
+```
+
+The schema maps directly to geo-data pipeline column names; a GeoJSON or CSV loader needs only to rename columns to these keys.
+
+### `compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac)` → `dict`
+
+Loops all parcels through `ground_use_fee()`, applies credits and caps, then aggregates.
+
+```python
+from hours_eoh.land.collective import compute_collective_guf
+
+parcels = [
+    {"area_slu": 2.5, "location_value": 0.75, "use_category": "residential_primary"},
+    {"area_slu": 4.0, "location_value": 0.85, "use_category": "commercial_retail",
+     "residential": False},
+]
+result = compute_collective_guf(parcels, epsilon=0.40, median_income=350.0)
+# Returns: {epsilon, parcel_count, guf_gross_revenue, subsidies_absorbed,
+#           guf_net_inflow, guf_by_parcel, psi, pop_coverage_frac}
+```
+
+`guf_net_inflow` is the value to pass into `trust_management()` or `simulate_period(guf_net_inflow=...)`.
+
+### `make_urban_collective(parcel_count)` → `list[dict]`
+
+Synthetic dense-urban archetype: 75% `residential_primary` · 15% `commercial_retail` · 5% `commercial_office` · 5% `institutional`.
+
+### `make_rural_collective(parcel_count)` → `list[dict]`
+
+Synthetic rural archetype: 50% `agricultural_active` · 20% `agricultural_fallow` · 20% `residential_primary` · 10% `conservation`.
+
+---
+
+## calibration.py — Rate and Weight Calibration
+
+**Module:** `hours_eoh/land/calibration.py`
+
+Two tools for fitting GUF revenue to a fiscal target or understanding sensitivity to location-value weighting.
+
+### `guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, ...)` → `dict`
+
+Finds the use-coefficient multiplier `k` such that aggregate GUF ≈ `target × levy_revenue`. Uses a closed-form linear solve on the base-fee component (scalable) vs. ecosystem/infrastructure surcharges (fixed).
+
+```python
+from hours_eoh.land.calibration import guf_rate_calibration
+from hours_eoh.land.collective import make_urban_collective
+
+result = guf_rate_calibration(
+    parcel_inventory=make_urban_collective(500),
+    target_guf_levy_ratio=1.0,   # GUF co-equal with levy
+    population=500.0,            # match population to inventory scale
+    epsilon=0.40,
+)
+# Returns: {calibrated_multiplier, achieved_ratio, levy_revenue,
+#           guf_at_calibrated_k, target_guf_levy_ratio, converged}
+```
+
+### `guf_lvi_weight_sensitivity(parcel_inventory, epsilon, weight_variants)` → `dict`
+
+Sweeps Location Value Index weight configurations to show how sensitive aggregate GUF is to sub-index weighting (centrality vs. transit vs. services vs. natural amenity). Requires parcels to have `centrality`, `transit`, `services`, `natural_amenity` sub-index fields; parcels with only a pre-computed `location_value` produce zero sensitivity (all variants identical).
+
+```python
+from hours_eoh.land.calibration import guf_lvi_weight_sensitivity
+
+result = guf_lvi_weight_sensitivity(parcels_with_lvi_fields, epsilon=0.40)
+# Returns: {epsilon, parcel_count, variants (list), sensitivity_range, relative_sensitivity}
+```
+
+Ships five canonical weight variants by default; pass `weight_variants=[...]` to supply your own.

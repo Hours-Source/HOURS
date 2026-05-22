@@ -80,6 +80,16 @@ python3 utils/eoh_cli.py scenario run NAME [--format table|csv|json]
 | `maintenance_crisis` | Compounding deferred infrastructure backlog |
 | `care_delay` | Lag in care EOH admission to the collective ledger |
 | `recovery` | Maintenance backlog paydown arc |
+| `labor-shock` | Compressed labor income — tests fiscal solvency delta |
+| `compound-shock` | Combined ecological + demographic + automation shocks |
+| `canonical-arc` | Multi-period full ε arc via `run_simulation()` |
+| `trust-depletion` | Multi-stressor run — when does the Trust break? |
+| `automation-transition` | Fixed ε-step transition: purchasing power and fiscal convergence |
+| `indust-baseline` | Industrial-overshoot snapshot vs. canonical |
+| `indust-recovery` | Can ecosystem restoration escape the overshoot regime? |
+| `guf-integration` | Does GUF revenue close a levy deficit at a given ε? |
+| `guf-writedown` | Ecological collapse → warning → write-down pathways |
+| `guf-sweep` | Aggregate GUF across the ε arc vs. the Ψ(ε) bell curve |
 
 ```bash
 python3 utils/eoh_cli.py scenario run automation_failure --format csv > results/shock.csv
@@ -94,12 +104,21 @@ See [Running Scenarios](scenarios_howto.md) for Python API usage.
 Multi-period simulation with period-by-period state table.
 
 ```bash
-python3 utils/eoh_cli.py simulate [--periods N] [--epsilon ε] [--epsilon-delta Δε]
+python3 utils/eoh_cli.py simulate [--periods N] [--epsilon ε] [--epsilon-delta Δε] \
+    [--workforce-decay] [--guf-inflow TEH]
 ```
 
 ```bash
 python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 0.02
+
+# With workforce decay and GUF land-fee injection:
+python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 0.02 \
+    --workforce-decay --guf-inflow 50000.0
 ```
+
+`--workforce-decay` — when set, `workforce_fraction` shrinks proportionally as ε rises each period (models labor displacement).
+
+`--guf-inflow TEH` — inject a fixed GUF land-fee revenue (TEH) into the Trust each period.
 
 ---
 
@@ -193,3 +212,62 @@ python3 utils/eoh_cli.py guf accumulation-warning \
 ```
 
 Warns when `unfulfilled / total > threshold` (default 0.30). Triggers accelerated ρ_s review and ecology fund priority.
+
+---
+
+### guf inventory — Collective Land Inventory
+
+Batch GUF operations over a collective's full parcel inventory. Parcel data is provided as a JSON file — a list of objects following the [standard parcel schema](../api/land.md#collective-land-inventory).
+
+#### guf inventory calculate
+
+Compute aggregate GUF for a parcel inventory at a given ε.
+
+```bash
+python3 utils/eoh_cli.py guf inventory calculate \
+    --parcels parcels.json \
+    [--epsilon 0.40] \
+    [--median-income 350.0] \
+    [--format table|json]
+```
+
+#### guf inventory sweep
+
+Sweep aggregate GUF across the ε arc.
+
+```bash
+python3 utils/eoh_cli.py guf inventory sweep \
+    --parcels parcels.json \
+    [--epsilon-start 0.0] \
+    [--epsilon-end 0.99] \
+    [--steps 20] \
+    [--format table|json]
+```
+
+#### guf inventory stress
+
+Multi-period automation→levy→GUF stress test.
+
+```bash
+python3 utils/eoh_cli.py guf inventory stress \
+    --parcels parcels.json \
+    [--epsilon-start 0.20] \
+    [--epsilon-end 0.80] \
+    [--periods 20] \
+    [--population 1000000] \
+    [--format table|json]
+```
+
+Omit `--parcels` to use the default 1 000-parcel synthetic urban inventory.
+
+**Parcel JSON format** (list of parcel dicts; only the three required fields needed for a minimal inventory):
+
+```json
+[
+  {"area_slu": 3.5, "location_value": 0.72, "use_category": "residential_primary"},
+  {"area_slu": 5.0, "location_value": 0.85, "use_category": "commercial_retail",
+   "ecosystem_services": [{"label": "water", "volume": 0.4, "kappa_ref": 1.65, "beta": 0.8, "retained": 0.3}]}
+]
+```
+
+See [Land — Collective Inventory](../api/land.md#collective-land-inventory) for the full parcel schema.

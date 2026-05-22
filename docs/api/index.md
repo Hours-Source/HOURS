@@ -31,14 +31,23 @@ hours_eoh/
     simulation.py          Period simulation engine
 
   land/                Ground Use Fee + stewardship lease mechanics
-    guf.py                 GUF framework (NLSA TM-0042)
+    guf.py                 GUF framework (NLSA TM-0042) — 14 functions
+    collective.py          Collective land-inventory: compute_collective_guf(), make_urban_collective(),
+                           make_rural_collective()
+    calibration.py         Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
   scenarios/           Applied research: stress tests and scenario runners
     sweep.py               epsilon_sweep — arc coherence check
-    shocks.py              automation_failure_shock, demographic_shock, ecological_eoh_spike
+    shocks.py              automation_failure_shock, demographic_shock, ecological_eoh_spike,
+                           labor_income_shock, compound_shock
     maintenance.py         deferred_maintenance_crisis, care_registration_delay
     recovery.py            maintenance_recovery_schedule, minimum_fulfillment_for_recovery
     sensitivity.py         fiscal_parameter_sweep, eoh_arc_sensitivity
+    long_run.py            canonical_arc_trajectory, trust_depletion_stress,
+                           automation_transition_trajectory
+    indust_overshoot.py    indust_overshoot_baseline, indust_recovery_trajectory
+    guf_stress.py          guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep,
+                           automation_levy_guf_stress
 
   research/            Experimental — NOT stable API
     investment.py          rank_investment_candidates, optimal_investment
@@ -51,7 +60,7 @@ hours_eoh/
 |---|---|---|
 | `core/` | `data.py`, `params.py`, other `core/` | `land/`, `scenarios/`, `research/`, `utils/` |
 | `land/` | `core/` | `scenarios/`, `research/`, `utils/` |
-| `scenarios/` | `core/` | `land/`, `research/`, `utils/` |
+| `scenarios/` | `core/`, `land/` | `research/`, `utils/` |
 | `research/` | `core/` (re-exports only) | all others |
 | `utils/` | All layers freely | Never imported by any layer |
 
@@ -68,6 +77,7 @@ hours_eoh/
 | Levies, Trust, Guarantee | [Fiscal Mechanics](core/fiscal.md) |
 | Capital write-down, birth/death | [Capital & Population](core/capital.md) |
 | Structural conditions I–IV | [Conditions & Dashboard](core/conditions.md) |
-| Ground Use Fee | [Land — GUF Module](land.md) |
+| Ground Use Fee (single parcel) | [Land — GUF Module](land.md) |
+| Collective land inventory & calibration | [Land — GUF Module](land.md#collective-land-inventory) |
 | Scenario runners | [Scenarios](scenarios.md) |
 | Simulation engine | [Simulation Engine](core/simulation.md) |

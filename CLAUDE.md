@@ -50,14 +50,19 @@ hours_eoh/
     simulation.py      Period simulation engine
 
   land/                Ground Use Fee + stewardship lease mechanics
-    guf.py             GUF framework (NLSA)
+    guf.py             GUF framework (NLSA) — 14 functions
+    collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective()
+    calibration.py     Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
   scenarios/           Applied research: stress tests and scenario runners
     sweep.py           epsilon_sweep — arc coherence check with fiscal solvency
-    shocks.py          automation_failure_shock, demographic_shock, ecological_eoh_spike
+    shocks.py          automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock
     maintenance.py     deferred_maintenance_crisis, care_registration_delay
     recovery.py        maintenance_recovery_schedule, minimum_fulfillment_for_recovery
     sensitivity.py     fiscal_parameter_sweep, eoh_arc_sensitivity, epsilon_delta_sensitivity
+    long_run.py        canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory
+    indust_overshoot.py indust_overshoot_baseline, indust_recovery_trajectory
+    guf_stress.py      guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress
 
   research/            Experimental — NOT stable API, not imported by core or scenarios
     investment.py      rank_investment_candidates, optimal_investment
@@ -68,7 +73,8 @@ utils/                 Presentation layer — CLI and research helpers (see READ
 
 **Layer rules:**
 - `core/` imports only from `data.py`, `params.py`, and other `core/` modules
-- `land/` and `scenarios/` import from `core/` but never the reverse
+- `land/` imports from `core/` only
+- `scenarios/` imports from `core/` and `land/` — never the reverse
 - `research/` re-exports from `core/`; callers are in experimental territory
 - `utils/` imports freely from all layers; never imported by any of them
 - New scenario code goes in `scenarios/` — do not add to `core/stress.py`
@@ -146,7 +152,7 @@ TEH lifecycle, automation arc.
 
 ## Current status
 
-**998 tests passing** (2026-05-18). No open gaps.
+**1169 tests passing** (2026-05-19). No open gaps.
 
 **eco-collapse-1 closed** (2026-05-18): ecological collapse is handled via the GUF layer (`land/guf.py` §9), not TEH destruction. Two pathways: restoration (V_s baselines reset to recovery target, revenue maintained) and abandonment (rebuilding surcharge R_b(p,ε) added, Eq. 28–29). Preventive monitoring via `eoh_accumulation_warning()` (§9.8). `research/writedown.py` re-exports these functions with rationale.
 
@@ -173,8 +179,13 @@ TEH lifecycle, automation arc.
 | `test_civilization_epsilon.py` | `core/civilization.py` | civilization_epsilon, machine_eoh_from_capital, CAPITAL_MACHINE_PROFILES |
 | `test_params.py` | `params.py` | EohParams defaults, temporary() context manager, params-driven pipeline |
 | `test_land_guf.py` | `land/guf.py` | GUF framework: all 14 functions, boundary verification, worked example |
+| `land/test_collective.py` | `land/collective.py` | compute_collective_guf, parcel schema validation, archetype factories, subsidy/cap logic |
+| `land/test_calibration.py` | `land/calibration.py` | guf_rate_calibration convergence and direction, guf_lvi_weight_sensitivity variants |
 | `scenarios/test_sweep.py` | `scenarios/sweep.py` | epsilon_sweep |
-| `scenarios/test_shocks.py` | `scenarios/shocks.py` | automation_failure_shock, demographic_shock, ecological_eoh_spike |
+| `scenarios/test_shocks.py` | `scenarios/shocks.py` | automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock |
 | `scenarios/test_maintenance.py` | `scenarios/maintenance.py` | deferred_maintenance_crisis, care_registration_delay |
 | `scenarios/test_recovery.py` | `scenarios/recovery.py` | maintenance_recovery_schedule, minimum_fulfillment_for_recovery |
 | `scenarios/test_sensitivity.py` | `scenarios/sensitivity.py` | fiscal_parameter_sweep, eoh_arc_sensitivity, epsilon_delta_sensitivity re-export |
+| `scenarios/test_long_run.py` | `scenarios/long_run.py` | canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory |
+| `scenarios/test_indust_overshoot.py` | `scenarios/indust_overshoot.py` | indust_overshoot_baseline, indust_recovery_trajectory |
+| `scenarios/test_guf_stress.py` | `scenarios/guf_stress.py` | guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress |
