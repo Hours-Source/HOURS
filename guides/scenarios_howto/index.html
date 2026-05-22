@@ -1341,6 +1341,42 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#income-and-compound-shocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Income and compound shocks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-period-long-run-trajectories" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-period long-run trajectories
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#industrial-overshoot-archetype" class="md-nav__link">
+    <span class="md-ellipsis">
+      Industrial overshoot archetype
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-fiscal-stress-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      GUF fiscal stress scenarios
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1519,6 +1555,42 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#income-and-compound-shocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Income and compound shocks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-period-long-run-trajectories" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-period long-run trajectories
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#industrial-overshoot-archetype" class="md-nav__link">
+    <span class="md-ellipsis">
+      Industrial overshoot archetype
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-fiscal-stress-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      GUF fiscal stress scenarios
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1563,7 +1635,7 @@
 <h1 id="running-scenarios">Running Scenarios<a class="headerlink" href="#running-scenarios" title="Permanent link">&para;</a></h1>
 <h2 id="what-scenarios-are">What Scenarios Are<a class="headerlink" href="#what-scenarios-are" title="Permanent link">&para;</a></h2>
 <p>Scenarios are applied research tools in <code>hours_eoh/scenarios/</code>. They use <code>core/</code> physics and mechanics to test specific stress conditions, shocks, and parameter trajectories. They model system behavior under realistic conditions rather than verifying individual function outputs.</p>
-<p>Scenarios import from <code>core/</code> but never the reverse.</p>
+<p>Scenarios import from <code>core/</code> and <code>land/</code> but never the reverse.</p>
 <hr />
 <h2 id="running-via-cli">Running via CLI<a class="headerlink" href="#running-via-cli" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>scenario<span class="w"> </span>list
@@ -1622,21 +1694,96 @@
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">results</span> <span class="o">=</span> <span class="n">eoh_arc_sensitivity</span><span class="p">()</span>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">results</span> <span class="o">=</span> <span class="n">epsilon_delta_sensitivity</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
 </span></code></pre></div>
+<h3 id="income-and-compound-shocks">Income and compound shocks<a class="headerlink" href="#income-and-compound-shocks" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.shocks</span><span class="w"> </span><span class="kn">import</span> <span class="n">labor_income_shock</span><span class="p">,</span> <span class="n">compound_shock</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># Compress labor income to 60% of baseline</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">labor_income_shock</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">income_fraction</span><span class="o">=</span><span class="mf">0.60</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;outcome&quot;</span><span class="p">])</span>  <span class="c1"># STABLE / DEGRADED / CRISIS</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Combined ecological + demographic + automation shock</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">compound_shock</span><span class="p">(</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">ecology_collapse</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;spike_multiplier&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">},</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">demographic_shock_spec</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;aging_factor&quot;</span><span class="p">:</span> <span class="mf">1.3</span><span class="p">},</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">automation_fraction_lost</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;combined_outcome&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<h3 id="multi-period-long-run-trajectories">Multi-period long-run trajectories<a class="headerlink" href="#multi-period-long-run-trajectories" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.long_run</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">canonical_arc_trajectory</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">trust_depletion_stress</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">automation_transition_trajectory</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Full arc 0 → 0.99 over 20 periods</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">canonical_arc_trajectory</span><span class="p">(</span><span class="n">n_periods</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;outcome&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;inflection_points&quot;</span><span class="p">])</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="c1"># Multi-stressor trust depletion run</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">trust_depletion_stress</span><span class="p">(</span><span class="n">n_periods</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;first_insolvency_period&quot;</span><span class="p">])</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="c1"># Fixed-step automation transition</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">result</span> <span class="o">=</span> <span class="n">automation_transition_trajectory</span><span class="p">(</span><span class="n">epsilon_start</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span> <span class="n">epsilon_delta</span><span class="o">=</span><span class="mf">0.03</span><span class="p">)</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;convergence_period&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<h3 id="industrial-overshoot-archetype">Industrial overshoot archetype<a class="headerlink" href="#industrial-overshoot-archetype" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.indust_overshoot</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">indust_overshoot_baseline</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">indust_recovery_trajectory</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">)</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Single-period overshoot snapshot vs. canonical</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">result</span> <span class="o">=</span> <span class="n">indust_overshoot_baseline</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">65_000_000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;overshoot_eoh_delta&quot;</span><span class="p">])</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># Recovery trajectory — can restoration escape the overshoot regime?</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">result</span> <span class="o">=</span> <span class="n">indust_recovery_trajectory</span><span class="p">(</span><span class="n">epsilon_start</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">n_periods</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">restoration_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;escaped_overshoot&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;escape_period&quot;</span><span class="p">])</span>
+</span></code></pre></div>
+<h3 id="guf-fiscal-stress-scenarios">GUF fiscal stress scenarios<a class="headerlink" href="#guf-fiscal-stress-scenarios" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.guf_stress</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">guf_fiscal_integration</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">guf_writedown_scenario</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">guf_revenue_sweep</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">automation_levy_guf_stress</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_urban_collective</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="c1"># Does GUF revenue close a levy deficit at ε=0.60?</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">guf_fiscal_integration</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.60</span><span class="p">)</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;deficit_closed&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;guf_contribution_fraction&quot;</span><span class="p">])</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="c1"># GUF across the ε arc (tracks the Ψ bell curve)</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="n">trajectory</span> <span class="o">=</span> <span class="n">guf_revenue_sweep</span><span class="p">(</span><span class="n">parcel_configs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="c1"># Multi-period automation→levy→GUF stress</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">automation_levy_guf_stress</span><span class="p">(</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>    <span class="n">parcel_inventory</span><span class="o">=</span><span class="n">make_urban_collective</span><span class="p">(</span><span class="mi">1_000</span><span class="p">),</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>    <span class="n">epsilon_start</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>    <span class="n">epsilon_end</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>    <span class="n">n_periods</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="p">)</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;outcome&quot;</span><span class="p">])</span>           <span class="c1"># ADEQUATE / PARTIAL / CRISIS</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;crossover_period&quot;</span><span class="p">])</span>  <span class="c1"># first period GUF &gt; levy</span>
+</span></code></pre></div>
 <hr />
 <h2 id="writing-a-new-scenario">Writing a New Scenario<a class="headerlink" href="#writing-a-new-scenario" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Create the file in <code>hours_eoh/scenarios/</code>.</li>
-<li>Import only from <code>core/</code> — never from <code>land/</code>, <code>research/</code>, or <code>utils/</code>.</li>
+<li>Import from <code>core/</code> and <code>land/</code> as needed — never from <code>research/</code> or <code>utils/</code>.</li>
 <li>
 <p>Use <code>EohParams.temporary(**overrides)</code> for sweep code:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_scenario</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">modified_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">levy_rate</span><span class="o">=</span><span class="n">modified_rate</span><span class="p">):</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">return</span> <span class="n">result</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_scenario</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">modified_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">levy_rate</span><span class="o">=</span><span class="n">modified_rate</span><span class="p">):</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="k">return</span> <span class="n">result</span>
 </span></code></pre></div>
 <p><code>temporary()</code> restores state on exit and adds no history entries — always prefer it over <code>p.set()</code> in sweep code.</p>
 </li>
@@ -1653,8 +1800,8 @@
 <li><strong>Arc coherence</strong> — does the scenario resolve gracefully as ε approaches 0.99?</li>
 </ul>
 <p>Spot-check with the dashboard after running with modified params:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>params<span class="w"> </span><span class="nb">set</span><span class="w"> </span>capital_stock_teh<span class="w"> </span><span class="m">2000000000</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>params<span class="w"> </span><span class="nb">set</span><span class="w"> </span>capital_stock_teh<span class="w"> </span><span class="m">2000000000</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
 </span></code></pre></div>
 
 

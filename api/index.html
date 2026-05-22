@@ -1452,18 +1452,27 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    simulation.py          Period simulation engine
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>  land/                Ground Use Fee + stewardship lease mechanics
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    guf.py                 GUF framework (NLSA TM-0042)
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  scenarios/           Applied research: stress tests and scenario runners
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    sweep.py               epsilon_sweep — arc coherence check
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    shocks.py              automation_failure_shock, demographic_shock, ecological_eoh_spike
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    maintenance.py         deferred_maintenance_crisis, care_registration_delay
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    recovery.py            maintenance_recovery_schedule, minimum_fulfillment_for_recovery
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    sensitivity.py         fiscal_parameter_sweep, eoh_arc_sensitivity
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>  research/            Experimental — NOT stable API
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    investment.py          rank_investment_candidates, optimal_investment
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    writedown.py           Redirect: eco-collapse resolved via land/guf.py §9
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    guf.py                 GUF framework (NLSA TM-0042) — 14 functions
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    collective.py          Collective land-inventory: compute_collective_guf(), make_urban_collective(),
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>                           make_rural_collective()
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    calibration.py         Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>  scenarios/           Applied research: stress tests and scenario runners
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    sweep.py               epsilon_sweep — arc coherence check
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    shocks.py              automation_failure_shock, demographic_shock, ecological_eoh_spike,
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>                           labor_income_shock, compound_shock
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    maintenance.py         deferred_maintenance_crisis, care_registration_delay
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    recovery.py            maintenance_recovery_schedule, minimum_fulfillment_for_recovery
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    sensitivity.py         fiscal_parameter_sweep, eoh_arc_sensitivity
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    long_run.py            canonical_arc_trajectory, trust_depletion_stress,
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>                           automation_transition_trajectory
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    indust_overshoot.py    indust_overshoot_baseline, indust_recovery_trajectory
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>    guf_stress.py          guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep,
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>                           automation_levy_guf_stress
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>  research/            Experimental — NOT stable API
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    investment.py          rank_investment_candidates, optimal_investment
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>    writedown.py           Redirect: eco-collapse resolved via land/guf.py §9
 </span></code></pre></div>
 <h2 id="import-rules">Import Rules<a class="headerlink" href="#import-rules" title="Permanent link">&para;</a></h2>
 <table>
@@ -1487,8 +1496,8 @@
 </tr>
 <tr>
 <td><code>scenarios/</code></td>
-<td><code>core/</code></td>
-<td><code>land/</code>, <code>research/</code>, <code>utils/</code></td>
+<td><code>core/</code>, <code>land/</code></td>
+<td><code>research/</code>, <code>utils/</code></td>
 </tr>
 <tr>
 <td><code>research/</code></td>
@@ -1541,8 +1550,12 @@
 <td><a href="core/conditions/">Conditions &amp; Dashboard</a></td>
 </tr>
 <tr>
-<td>Ground Use Fee</td>
+<td>Ground Use Fee (single parcel)</td>
 <td><a href="land/">Land — GUF Module</a></td>
+</tr>
+<tr>
+<td>Collective land inventory &amp; calibration</td>
+<td><a href="land/#collective-land-inventory">Land — GUF Module</a></td>
 </tr>
 <tr>
 <td>Scenario runners</td>

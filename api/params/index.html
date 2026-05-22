@@ -1604,9 +1604,18 @@
 <td><code>GUF_EOH_ACCUMULATION_THRESHOLD</code></td>
 <td>Warning threshold = 0.30</td>
 </tr>
+<tr>
+<td><code>GUF_USE_RESIDENTIAL_PRIMARY</code></td>
+<td>10.0 TEH/SLU/yr (recalibrated ×100 from 0.10)</td>
+</tr>
+<tr>
+<td><code>GUF_USE_COMMERCIAL_RETAIL</code></td>
+<td>30.0 TEH/SLU/yr (recalibrated ×100 from 0.30)</td>
+</tr>
 </tbody>
 </table>
-<p><strong>Conditions</strong></p>
+<p>All <code>GUF_USE_*</code> constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) is co-equal with levy revenue at ε = 0.40 — the design target.</p>
+<p><strong>Conditions and Simulation</strong></p>
 <table>
 <thead>
 <tr>
@@ -1634,6 +1643,10 @@
 <tr>
 <td><code>COMPETENCY_RESERVE_THRESHOLD</code></td>
 <td>Condition IV minimum = 0.155 (15.5%)</td>
+</tr>
+<tr>
+<td><code>WORKFORCE_FRACTION_MIN</code></td>
+<td>Minimum workforce fraction = 0.05 (used by <code>simulate_period</code> workforce decay)</td>
 </tr>
 </tbody>
 </table>

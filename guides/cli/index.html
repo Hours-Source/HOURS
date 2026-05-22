@@ -1335,6 +1335,48 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#guf-inventory-collective-land-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory — Collective Land Inventory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="guf inventory — Collective Land Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-calculate" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory calculate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory sweep
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-stress" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory stress
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1573,6 +1615,48 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#guf-inventory-collective-land-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory — Collective Land Inventory
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="guf inventory — Collective Land Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-calculate" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory calculate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-sweep" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory sweep
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guf-inventory-stress" class="md-nav__link">
+    <span class="md-ellipsis">
+      guf inventory stress
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1672,6 +1756,46 @@
 <td><code>recovery</code></td>
 <td>Maintenance backlog paydown arc</td>
 </tr>
+<tr>
+<td><code>labor-shock</code></td>
+<td>Compressed labor income — tests fiscal solvency delta</td>
+</tr>
+<tr>
+<td><code>compound-shock</code></td>
+<td>Combined ecological + demographic + automation shocks</td>
+</tr>
+<tr>
+<td><code>canonical-arc</code></td>
+<td>Multi-period full ε arc via <code>run_simulation()</code></td>
+</tr>
+<tr>
+<td><code>trust-depletion</code></td>
+<td>Multi-stressor run — when does the Trust break?</td>
+</tr>
+<tr>
+<td><code>automation-transition</code></td>
+<td>Fixed ε-step transition: purchasing power and fiscal convergence</td>
+</tr>
+<tr>
+<td><code>indust-baseline</code></td>
+<td>Industrial-overshoot snapshot vs. canonical</td>
+</tr>
+<tr>
+<td><code>indust-recovery</code></td>
+<td>Can ecosystem restoration escape the overshoot regime?</td>
+</tr>
+<tr>
+<td><code>guf-integration</code></td>
+<td>Does GUF revenue close a levy deficit at a given ε?</td>
+</tr>
+<tr>
+<td><code>guf-writedown</code></td>
+<td>Ecological collapse → warning → write-down pathways</td>
+</tr>
+<tr>
+<td><code>guf-sweep</code></td>
+<td>Aggregate GUF across the ε arc vs. the Ψ(ε) bell curve</td>
+</tr>
 </tbody>
 </table>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>scenario<span class="w"> </span>run<span class="w"> </span>automation_failure<span class="w"> </span>--format<span class="w"> </span>csv<span class="w"> </span>&gt;<span class="w"> </span>results/shock.csv
@@ -1680,10 +1804,17 @@
 <hr />
 <h2 id="simulate">simulate<a class="headerlink" href="#simulate" title="Permanent link">&para;</a></h2>
 <p>Multi-period simulation with period-by-period state table.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>simulate<span class="w"> </span><span class="o">[</span>--periods<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--epsilon<span class="w"> </span>ε<span class="o">]</span><span class="w"> </span><span class="o">[</span>--epsilon-delta<span class="w"> </span>Δε<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>simulate<span class="w"> </span><span class="o">[</span>--periods<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--epsilon<span class="w"> </span>ε<span class="o">]</span><span class="w"> </span><span class="o">[</span>--epsilon-delta<span class="w"> </span>Δε<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="o">[</span>--workforce-decay<span class="o">]</span><span class="w"> </span><span class="o">[</span>--guf-inflow<span class="w"> </span>TEH<span class="o">]</span>
 </span></code></pre></div>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">20</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.30<span class="w"> </span>--epsilon-delta<span class="w"> </span><span class="m">0</span>.02
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># With workforce decay and GUF land-fee injection:</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">20</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.30<span class="w"> </span>--epsilon-delta<span class="w"> </span><span class="m">0</span>.02<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span>--workforce-decay<span class="w"> </span>--guf-inflow<span class="w"> </span><span class="m">50000</span>.0
 </span></code></pre></div>
+<p><code>--workforce-decay</code> — when set, <code>workforce_fraction</code> shrinks proportionally as ε rises each period (models labor displacement).</p>
+<p><code>--guf-inflow TEH</code> — inject a fixed GUF land-fee revenue (TEH) into the Trust each period.</p>
 <hr />
 <h2 id="sensitivity">sensitivity<a class="headerlink" href="#sensitivity" title="Permanent link">&para;</a></h2>
 <p>Parameter and arc sensitivity sweeps.</p>
@@ -1745,6 +1876,45 @@
 </span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <p>Warns when <code>unfulfilled / total &gt; threshold</code> (default 0.30). Triggers accelerated ρ_s review and ecology fund priority.</p>
+<hr />
+<h3 id="guf-inventory-collective-land-inventory">guf inventory — Collective Land Inventory<a class="headerlink" href="#guf-inventory-collective-land-inventory" title="Permanent link">&para;</a></h3>
+<p>Batch GUF operations over a collective's full parcel inventory. Parcel data is provided as a JSON file — a list of objects following the <a href="../../api/land/#collective-land-inventory">standard parcel schema</a>.</p>
+<h4 id="guf-inventory-calculate">guf inventory calculate<a class="headerlink" href="#guf-inventory-calculate" title="Permanent link">&para;</a></h4>
+<p>Compute aggregate GUF for a parcel inventory at a given ε.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>calculate<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="o">[</span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="o">[</span>--median-income<span class="w"> </span><span class="m">350</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+</span></code></pre></div>
+<h4 id="guf-inventory-sweep">guf inventory sweep<a class="headerlink" href="#guf-inventory-sweep" title="Permanent link">&para;</a></h4>
+<p>Sweep aggregate GUF across the ε arc.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>sweep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.99<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="o">[</span>--steps<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+</span></code></pre></div>
+<h4 id="guf-inventory-stress">guf inventory stress<a class="headerlink" href="#guf-inventory-stress" title="Permanent link">&para;</a></h4>
+<p>Multi-period automation→levy→GUF stress test.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>stress<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.20<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.80<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">    </span><span class="o">[</span>--periods<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">    </span><span class="o">[</span>--population<span class="w"> </span><span class="m">1000000</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+</span></code></pre></div>
+<p>Omit <code>--parcels</code> to use the default 1 000-parcel synthetic urban inventory.</p>
+<p><strong>Parcel JSON format</strong> (list of parcel dicts; only the three required fields needed for a minimal inventory):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="p">[</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">&quot;area_slu&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">3.5</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;location_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.72</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;use_category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;residential_primary&quot;</span><span class="p">},</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="p">{</span><span class="nt">&quot;area_slu&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;location_value&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;use_category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;commercial_retail&quot;</span><span class="p">,</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">   </span><span class="nt">&quot;ecosystem_services&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;water&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;volume&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;kappa_ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.65</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;beta&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;retained&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">}]}</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="p">]</span>
+</span></code></pre></div>
+<p>See <a href="../../api/land/#collective-land-inventory">Land — Collective Inventory</a> for the full parcel schema.</p>
 
 
 

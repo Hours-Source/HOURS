@@ -1300,6 +1300,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1313,7 +1346,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -1405,6 +1438,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="[Unreleased]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1418,7 +1484,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#added_1" class="md-nav__link">
     <span class="md-ellipsis">
       Added
     </span>
@@ -1473,10 +1539,93 @@
 Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<p><strong>Collective land-inventory system (<code>hours_eoh/land/</code>)</strong>
+- <code>collective.py</code> — Standard parcel schema and batch GUF calculator for a collective land
+  inventory. <code>compute_collective_guf(parcels, epsilon, median_income)</code> loops all parcels through
+  <code>ground_use_fee()</code>, applies soil-health credits, review-cycle caps, and income-linked subsidies
+  per parcel, then aggregates via <code>guf_trust_inflow()</code>. Schema maps directly to geo-data pipeline
+  column names for zero-friction integration with GeoJSON/CSV sources.
+- <code>collective.make_urban_collective(parcel_count)</code> — Synthetic dense-urban archetype (75 %
+  residential_primary · 15 % commercial_retail · 5 % commercial_office · 5 % institutional).
+- <code>collective.make_rural_collective(parcel_count)</code> — Synthetic rural archetype (50 %
+  agricultural_active · 20 % agricultural_fallow · 20 % residential_primary · 10 %
+  conservation).
+- <code>calibration.py</code> — Rate and weight calibration tools.
+  - <code>guf_rate_calibration(inventory, target_guf_levy_ratio, population, epsilon)</code> — Closed-form
+    linear solve to find the use-coefficient multiplier <code>k</code> such that aggregate GUF ≈
+    <code>target × levy_revenue</code>. Binary-verifies with a sample run; reports <code>converged</code> flag.
+  - <code>guf_lvi_weight_sensitivity(inventory, epsilon, weight_variants)</code> — Sweeps Location Value
+    Index weight configurations to quantify how sensitive aggregate GUF is to sub-index weighting
+    choices (centrality vs. transit vs. services vs. natural amenity). Ships five canonical
+    variants; callers may supply their own.
+- <code>land/__init__.py</code> re-exports all four new public functions.</p>
+<p><strong>Multi-period automation→levy→GUF stress scenario</strong>
+- <code>scenarios/guf_stress.automation_levy_guf_stress(parcel_inventory, epsilon_start,
+  epsilon_end, n_periods, ...)</code> — Period-by-period fiscal stress loop: as ε rises, levy revenue
+  (derived from the EOH pipeline) falls, GUF tracks the Ψ(ε) bell curve, and the sufficiency
+  guarantee cost evolves. Reports <code>levy_peak_period</code>, <code>guf_peak_period</code>, <code>crossover_period</code>
+  (first period where GUF exceeds levy), <code>first_insolvency</code>, <code>compensation_adequacy</code>, and
+  outcome <code>ADEQUATE / PARTIAL / CRISIS</code>.</p>
+<p><strong>Multi-period simulation scenarios (<code>hours_eoh/scenarios/</code>)</strong>
+- <code>long_run.py</code> — <code>canonical_arc_trajectory</code>, <code>trust_depletion_stress</code>,
+  <code>automation_transition_trajectory</code>: three functions that call <code>run_simulation()</code> and return
+  multi-period trajectories with inflection-point detection and stressor profiles.
+- <code>indust_overshoot.py</code> — <code>indust_overshoot_baseline</code>, <code>indust_recovery_trajectory</code>:
+  models the industrial-overshoot archetype (high capital age, degraded ecosystem, large
+  deferred-ecological backlog) and recovery pathways.
+- <code>shocks.py</code> additions — <code>labor_income_shock</code> (income-fraction shock with solvency delta) and
+  <code>compound_shock</code> (combines ecological, demographic, and automation shocks; combined outcome
+  is always ≥ worst individual outcome).</p>
+<p><strong>Simulation engine extensions (<code>hours_eoh/core/simulation.py</code>)</strong>
+- <code>simulate_period(..., workforce_epsilon_decay: bool = False)</code> — Optional parameter; when
+  <code>True</code>, <code>workforce_fraction</code> shrinks proportionally with rising ε. Default <code>False</code> preserves
+  backward compatibility.
+- <code>simulate_period(..., guf_net_inflow: float | None = None)</code> — Optional GUF land-fee revenue
+  injected into the Trust each period.
+- <code>run_simulation()</code> and the <code>eoh simulate</code> CLI forward both new parameters.</p>
+<p><strong>GUF calibration fix</strong>
+- <code>GUF_USE_*</code> constants in <code>data.py</code> multiplied by 100 (e.g. <code>residential_primary</code> 0.10 →
+  10.0 TEH/SLU/yr, <code>commercial_retail</code> 0.30 → 30.0). At ε = 0.40 with a 1 M-population
+  territory (~420 k parcels), aggregate GUF is now co-equal with levy revenue — the design
+  target in the mission statement.
+- <code>guf_fiscal_integration()</code> labor-income proxy replaced: was <code>trust_balance × 0.5</code>
+  (35× inflated); now uses <code>eoh_to_teh_pipeline(epsilon, population)["teh_created"]</code>.</p>
+<p><strong>CLI (<code>utils/</code>)</strong>
+- <code>guf inventory calculate --parcels FILE [--epsilon ε] [--median-income TEH]</code> — Batch GUF
+  from a JSON parcel file; prints aggregate summary table or JSON.
+- <code>guf inventory sweep --parcels FILE [--epsilon-start ε] [--epsilon-end ε] [--steps N]</code> —
+  Sweeps aggregate GUF across the ε arc.
+- <code>guf inventory stress --parcels FILE [--epsilon-start ε] [--epsilon-end ε] [--periods N]</code> —
+  Multi-period automation→GUF stress with per-period trajectory table.
+- <code>scenario</code> command: 10 new scenarios wired — <code>canonical-arc</code>, <code>trust-depletion</code>,
+  <code>automation-transition</code>, <code>indust-baseline</code>, <code>indust-recovery</code>, <code>labor-shock</code>,
+  <code>compound-shock</code>, <code>guf-integration</code>, <code>guf-writedown</code>, <code>guf-sweep</code>.
+- <code>simulate</code> command: <code>--workforce-decay</code> and <code>--guf-inflow TEH</code> flags.</p>
+<p><strong>Documentation and diagrams</strong>
+- MkDocs GitHub Pages site deployed at <code>https://hours-source.github.io/HOURS/</code>.
+- Five GUF Mermaid diagrams: calculation flow, LVI component weights, Ψ(ε) epsilon arc,
+  Trust fund flow, and ecological write-down pathways. Rendered SVGs in <code>docs/images/</code>.</p>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>eco-collapse-1 (closed)</strong> — Ecological collapse is now handled via the GUF layer
+  (<code>land/guf.py</code> §9) rather than direct TEH destruction. Two pathways: restoration
+  (V_s baselines reset to recovery target, revenue maintained) and abandonment
+  (rebuilding surcharge R_b amortised over 50 years). Preventive monitoring via
+  <code>eoh_accumulation_warning()</code> (§9.8). <code>research/writedown.py</code> re-exports with rationale.</li>
+<li><code>guf_net_inflow</code> guard in <code>simulate_period()</code> corrected from <code>&gt; 0.0</code> to <code>is not None</code>
+  so negative inflows (subsidy-heavy periods) are no longer silently dropped.</li>
+<li><code>WORKFORCE_FRACTION_MIN</code> named constant added to <code>data.py</code>; replaces anonymous <code>0.05</code>
+  literal in simulation.</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Test count: 1040 → 1169 (129 new tests across <code>tests/land/</code>, <code>tests/scenarios/</code>).</li>
+</ul>
 <hr />
 <h2 id="010-2026-05-06"><a href="https://github.com/Hours-Source/HOURS/releases/tag/v0.1.0">0.1.0</a> — 2026-05-06<a class="headerlink" href="#010-2026-05-06" title="Permanent link">&para;</a></h2>
 <p>Initial public release of the HOURS EOH framework.</p>
-<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <p><strong>Core package (<code>hours_eoh/core/</code>)</strong>
 - <code>trajectory.py</code> — Canonical arc, ε derivation, <code>canonical_physical_state()</code>, <code>compute_epsilon()</code>
 - <code>eoh_generation.py</code> — Four EOH domain functions: <code>personal_eoh</code>, <code>infrastructure_eoh</code>, <code>ecological_eoh</code>, <code>knowledge_eoh</code>, <code>total_eoh</code>
