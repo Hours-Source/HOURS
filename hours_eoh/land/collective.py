@@ -127,7 +127,7 @@ def compute_collective_guf(
         _validate_parcel(parcel, i)
 
         pid         = parcel.get("parcel_id", f"p{i}")
-        guf_floor_p = max(0.0, parcel.get("guf_floor", 0.0))  # type: ignore[arg-type]
+        guf_floor_p = max(0.0, float(parcel.get("guf_floor", 0.0)))
         guf_kwargs  = {k: v for k, v in parcel.items() if k in _GUF_SPREAD_KEYS}
 
         fee_result = ground_use_fee(

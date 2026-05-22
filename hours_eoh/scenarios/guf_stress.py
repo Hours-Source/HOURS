@@ -14,6 +14,8 @@ stewardship obligations co-equally with levy revenue."
 
 from __future__ import annotations
 
+from typing import Any
+
 from hours_eoh.data import (
     TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
@@ -39,7 +41,7 @@ from hours_eoh.land.guf import (
 )
 from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
 
-_DEFAULT_PARCEL = {
+_DEFAULT_PARCEL: dict[str, Any] = {
     "area_slu":       3.5,
     "location_value": 0.629,
     "use_category":   "residential_primary",
@@ -55,7 +57,7 @@ _GUF_POSITIONAL_KEYS = frozenset({"area_slu", "location_value", "use_category"})
 
 def guf_fiscal_integration(
     epsilon: float,
-    parcel_configs: list[dict] | None = None,
+    parcel_configs: list[dict[str, Any]] | None = None,
     trust_balance: float = TRUST_BASE_TEH,
     population: float = 1_000_000.0,
     capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
@@ -185,7 +187,7 @@ def guf_fiscal_integration(
 
 def guf_writedown_scenario(
     epsilon: float,
-    parcels_at_risk: list[dict] | None = None,
+    parcels_at_risk: list[dict[str, Any]] | None = None,
     unfulfilled_eoh: float = 400_000.0,
     total_eoh: float = 1_200_000.0,
     pathway: str = "restoration",
@@ -233,7 +235,7 @@ def guf_writedown_scenario(
         raise ValueError(f"pathway must be 'restoration' or 'abandonment', got '{pathway}'")
 
     # Default parcel: simple residential with one ecosystem service
-    default_parcels = [{
+    default_parcels: list[dict[str, Any]] = [{
         "area_slu":         3.5,
         "location_value":   0.629,
         "use_category":     "residential_primary",
@@ -312,8 +314,8 @@ def guf_writedown_scenario(
 
 def guf_revenue_sweep(
     epsilon_values: list[float] | None = None,
-    parcel_config: dict | None = None,
-) -> list[dict]:
+    parcel_config: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """
     Compute GUF at each ε in epsilon_values for a single parcel configuration.
 
@@ -361,7 +363,7 @@ def guf_revenue_sweep(
 # ---------------------------------------------------------------------------
 
 def automation_levy_guf_stress(
-    parcel_inventory: list[dict] | None = None,
+    parcel_inventory: list[dict[str, Any]] | None = None,
     epsilon_start: float = 0.20,
     epsilon_end: float = 0.80,
     n_periods: int = 20,
