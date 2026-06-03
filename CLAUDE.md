@@ -54,6 +54,10 @@ hours_eoh/
     collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective()
     calibration.py     Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
+  reference/           Calibrated example data — pure data, no domain imports
+    practitioners.py   Practitioner/demand histories for scarcity_score() (6 occupations, 5 periods each)
+    workforce.py       Workforce composition snapshots for population_weighted_mean_multiplier() (5 snapshots)
+
   scenarios/           Applied research: stress tests and scenario runners
     sweep.py           epsilon_sweep — arc coherence check with fiscal solvency
     shocks.py          automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock
@@ -63,6 +67,7 @@ hours_eoh/
     long_run.py        canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory
     indust_overshoot.py indust_overshoot_baseline, indust_recovery_trajectory
     guf_stress.py      guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress
+    multiplier.py      m_below_band_drift, m_above_band_drift, m_band_sweep
 
   research/            Experimental — NOT stable API, not imported by core or scenarios
     investment.py      rank_investment_candidates, optimal_investment
@@ -75,6 +80,7 @@ utils/                 Presentation layer — CLI and research helpers (see READ
 - `core/` imports only from `data.py`, `params.py`, and other `core/` modules
 - `land/` imports from `core/` only
 - `scenarios/` imports from `core/` and `land/` — never the reverse
+- `reference/` imports nothing from the package — pure data; any layer may import from it
 - `research/` re-exports from `core/`; callers are in experimental territory
 - `utils/` imports freely from all layers; never imported by any of them
 - New scenario code goes in `scenarios/` — do not add to `core/stress.py`
@@ -152,7 +158,7 @@ TEH lifecycle, automation arc.
 
 ## Current status
 
-**1169 tests passing** (2026-05-19). No open gaps.
+**1254 tests passing** (2026-06-02). No open gaps.
 
 **eco-collapse-1 closed** (2026-05-18): ecological collapse is handled via the GUF layer (`land/guf.py` §9), not TEH destruction. Two pathways: restoration (V_s baselines reset to recovery target, revenue maintained) and abandonment (rebuilding surcharge R_b(p,ε) added, Eq. 28–29). Preventive monitoring via `eoh_accumulation_warning()` (§9.8). `research/writedown.py` re-exports these functions with rationale.
 
@@ -166,7 +172,7 @@ TEH lifecycle, automation arc.
 | `test_eoh_fulfillment.py` | `core/eoh_fulfillment.py` | human_eoh_share, registered_eoh, teh_created, teh_supply, capital_writedown, human_eoh_per_domain, eoh_to_teh_pipeline |
 | `test_eoh_dynamics.py` | `core/eoh_dynamics.py` | eoh_compounding, regenerative_offset, eoh_reduction_ratio, rank_investment_candidates, optimal_investment, maintenance_strategy_compare, deferred_eoh_paydown, regenerative_investment_required |
 | `test_registration.py` | `core/registration.py` | care/production/stewardship/personal/knowledge registration shares, total_registration_share, validate_registration_trajectory |
-| `test_multipliers.py` | `core/multipliers.py` | population_weighted_mean_multiplier, multiplier_band_check, tier_multiplier, epoch_alpha_weights |
+| `test_multipliers.py` | `core/multipliers.py` | population_weighted_mean_multiplier, multiplier_band_check, tier_multiplier, epoch_alpha_weights, scarcity_score, validate_training_duration, detect_artificial_scarcity, tier_expiry_check |
 | `test_conditions.py` | `core/conditions.py` | condition_i_check, condition_ii_check, balance_check, condition_iii_balance_growth_check, condition_iv_check, dashboard_snapshot, domain_eoh_coverage |
 | `test_dashboard.py` | `core/dashboard.py` | eoh_health_indicators, fiscal_health_check, system_dashboard |
 | `test_fiscal.py` | `core/fiscal.py` | levy_collection, stewardship_allocation, ecological_allocation, sufficiency_guarantee, trust_management, fiscal_snapshot, care_stipend, min_levy_for_solvency, accumulation_ceiling_commitment |
@@ -189,3 +195,5 @@ TEH lifecycle, automation arc.
 | `scenarios/test_long_run.py` | `scenarios/long_run.py` | canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory |
 | `scenarios/test_indust_overshoot.py` | `scenarios/indust_overshoot.py` | indust_overshoot_baseline, indust_recovery_trajectory |
 | `scenarios/test_guf_stress.py` | `scenarios/guf_stress.py` | guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress |
+| `scenarios/test_multiplier.py` | `scenarios/multiplier.py`, `core/simulation.py` | m_below_band_drift, m_above_band_drift, m_band_sweep, mean_multiplier_schedule in run_simulation |
+| `test_reference_data.py` | `reference/practitioners.py`, `reference/workforce.py` | practitioner history well-formedness, scarcity_score compat, workforce snapshot compat, layer isolation |

@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     DEFAULT_SEGMENTS, M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX,
+    SCARCITY_ROLLING_WINDOW, SCARCITY_SUPPLY_LAG_YEARS, SCARCITY_SEVERE_THRESHOLD,
+    TRAINING_VALIDATION_TOLERANCE,
+    ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR, ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD,
+    TIER_ASSESSMENT_INTERVAL_YEARS,
 )
 
 
@@ -244,3 +248,268 @@ def epoch_alpha_weights(
     total = sum(alphas)
     normalized = tuple(a / total for a in alphas)
     return normalized  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# Scarcity Score (B3) — rolling average with supply-response discount
+# ---------------------------------------------------------------------------
+
+def scarcity_score(
+    history: list[tuple[float, float]],
+    supply_elasticity: float = 0.0,
+    supply_lag_years: float = SCARCITY_SUPPLY_LAG_YEARS,
+    window: int = SCARCITY_ROLLING_WINDOW,
+) -> dict:
+    """
+    Compute a dampened scarcity factor from practitioner/demand history.
+
+    Produces the `scarcity` argument for `tier_multiplier()`. Using a rolling
+    average over multiple periods prevents annual oscillation; the supply-response
+    discount prevents over-rewarding roles where raising the multiplier will itself
+    resolve the scarcity within a few years.
+
+    Args:
+        history: List of (practitioner_count, demand_eoh) pairs, most-recent last.
+                 At least one entry required. demand_eoh must be > 0.
+        supply_elasticity: Expected fractional annual growth in practitioners if
+                 the multiplier is raised (e.g. 0.10 = 10%/year). Default 0 = no
+                 discount applied.
+        supply_lag_years: Years before the supply response materializes. Controls
+                 the discount horizon.
+        window: Number of recent periods to include in the rolling average.
+
+    Returns:
+        dict with keys:
+          "scarcity"                float  final score ∈ [0,1] — use as tier_multiplier() scarcity arg
+          "raw_current"             float  point-in-time scarcity from the latest entry
+          "rolling_mean"            float  rolling window average before supply discount
+          "supply_adjusted"         float  after supply-response discount (= rolling_mean if no elasticity)
+          "window_size"             int    periods actually used
+          "supply_discount_applied" bool
+          "status"                  str    "OK" | "SEVERE_SCARCITY"
+
+    Raises:
+        ValueError: If history is empty or any demand_eoh ≤ 0.
+
+    Reference: Mission Statement §"Scarcity — rolling average and supply-response
+    discount"; Roadmap Track B3.
+    """
+    if not history:
+        raise ValueError("history must contain at least one (practitioners, demand_eoh) entry")
+    for i, (p, d) in enumerate(history):
+        if d <= 0.0:
+            raise ValueError(f"demand_eoh must be > 0; entry {i} has demand_eoh={d}")
+        if p < 0.0:
+            raise ValueError(f"practitioner_count must be >= 0; entry {i} has {p}")
+
+    window_entries = history[-window:]
+    window_size = len(window_entries)
+
+    raw_values = [max(0.0, min(1.0, 1.0 - p / d)) for p, d in window_entries]
+    rolling_mean = sum(raw_values) / window_size
+
+    # Latest entry for supply-response calculation
+    practitioners_now, demand_now = history[-1]
+    raw_current = raw_values[-1]
+
+    discount_applied = False
+    if supply_elasticity > 0.0 and raw_current > 0.0:
+        future_practitioners = practitioners_now * (1.0 + supply_elasticity * supply_lag_years)
+        future_raw = max(0.0, min(1.0, 1.0 - future_practitioners / demand_now))
+        supply_adjusted = min(1.0, rolling_mean * (future_raw / raw_current))
+        discount_applied = True
+    else:
+        supply_adjusted = rolling_mean
+
+    scarcity = supply_adjusted
+    status = "SEVERE_SCARCITY" if scarcity > SCARCITY_SEVERE_THRESHOLD else "OK"
+
+    return {
+        "scarcity":                scarcity,
+        "raw_current":             raw_current,
+        "rolling_mean":            rolling_mean,
+        "supply_adjusted":         supply_adjusted,
+        "window_size":             window_size,
+        "supply_discount_applied": discount_applied,
+        "status":                  status,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Anti-Gaming Safeguards (B5)
+# ---------------------------------------------------------------------------
+
+def validate_training_duration(
+    mandated_years: float,
+    median_competency_years: float,
+    tolerance_factor: float = TRAINING_VALIDATION_TOLERANCE,
+) -> dict:
+    """
+    Check whether mandated training duration is empirically justified.
+
+    Flags roles where the officially required training time substantially
+    exceeds the median time for practitioners to demonstrate competency.
+    Excess mandated duration without competency justification is a signal of
+    credential inflation or manufactured barriers to entry.
+
+    Args:
+        mandated_years: Officially required training duration in years.
+        median_competency_years: Observed median time-to-competency from
+                 practitioner cohort data.
+        tolerance_factor: Ratio ceiling above which the gap is flagged.
+                 Default 1.5 (mandated may be up to 50% longer than median).
+
+    Returns:
+        dict with keys:
+          "mandated_years"          float
+          "median_competency_years" float
+          "ratio"                   float  mandated / median
+          "tolerance_factor"        float
+          "passes"                  bool
+          "status"                  str    "OK" | "TRAINING_INFLATION"
+
+    Raises:
+        ValueError: If either duration is not positive.
+
+    Reference: Mission Statement §"Anti-gaming safeguard 1 — empirical training
+    validation"; Roadmap Track B5.
+    """
+    if mandated_years <= 0.0:
+        raise ValueError(f"mandated_years must be > 0, got {mandated_years}")
+    if median_competency_years <= 0.0:
+        raise ValueError(f"median_competency_years must be > 0, got {median_competency_years}")
+
+    ratio = mandated_years / median_competency_years
+    passes = ratio <= tolerance_factor
+    status = "OK" if passes else "TRAINING_INFLATION"
+
+    return {
+        "mandated_years":          mandated_years,
+        "median_competency_years": median_competency_years,
+        "ratio":                   ratio,
+        "tolerance_factor":        tolerance_factor,
+        "passes":                  passes,
+        "status":                  status,
+    }
+
+
+def detect_artificial_scarcity(
+    pass_rate: float,
+    floor: float = ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR,
+    quality_differential: float | None = None,
+    quality_threshold: float = ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD,
+) -> dict:
+    """
+    Detect manufactured scarcity through entry barrier analysis.
+
+    Two independent triggers:
+    1. Pass rate below floor — no legitimately demanding field sustains this
+       without manufactured barriers.
+    2. Low quality differential — if measured outcome quality between passers
+       and near-misses is negligible, the barrier is not sorting on competency.
+
+    Trigger 1 takes precedence; trigger 2 applies only when trigger 1 is absent.
+
+    Args:
+        pass_rate: Fraction of candidates passing certification/entry ∈ [0, 1].
+        floor: Pass rate below which artificial scarcity is declared regardless
+               of other evidence. Default: 0.30.
+        quality_differential: Measured outcome quality difference between passers
+               and near-misses, normalized ∈ [0, 1]. None = not available.
+        quality_threshold: Minimum quality_differential to justify a low (but
+               above-floor) pass rate. Default: 0.20.
+
+    Returns:
+        dict with keys:
+          "pass_rate"             float
+          "floor"                 float
+          "quality_differential"  float | None
+          "quality_threshold"     float
+          "passes"                bool   True = no artificial scarcity detected
+          "status"                str    "OK" | "ARTIFICIAL_SCARCITY" | "ARTIFICIAL_SCARCITY_RISK"
+          "trigger"               str | None  which check fired; None if OK
+
+    Raises:
+        ValueError: If pass_rate or quality_differential is outside [0, 1].
+
+    Reference: Mission Statement §"Anti-gaming safeguard 2 — artificial scarcity
+    detection"; Roadmap Track B5.
+    """
+    if not 0.0 <= pass_rate <= 1.0:
+        raise ValueError(f"pass_rate must be in [0, 1], got {pass_rate}")
+    if quality_differential is not None and not 0.0 <= quality_differential <= 1.0:
+        raise ValueError(f"quality_differential must be in [0, 1], got {quality_differential}")
+
+    if pass_rate < floor:
+        status = "ARTIFICIAL_SCARCITY"
+        trigger = "pass_rate_below_floor"
+    elif quality_differential is not None and quality_differential < quality_threshold:
+        status = "ARTIFICIAL_SCARCITY_RISK"
+        trigger = "low_quality_differential"
+    else:
+        status = "OK"
+        trigger = None
+
+    return {
+        "pass_rate":            pass_rate,
+        "floor":                floor,
+        "quality_differential": quality_differential,
+        "quality_threshold":    quality_threshold,
+        "passes":               status == "OK",
+        "status":               status,
+        "trigger":              trigger,
+    }
+
+
+def tier_expiry_check(
+    assigned_epoch: int,
+    current_epoch: int,
+    interval_years: int = TIER_ASSESSMENT_INTERVAL_YEARS,
+) -> dict:
+    """
+    Enforce sunset reassessment scheduling for tier assignments.
+
+    Every tier assignment has a finite validity window. This function checks
+    whether a role's assessment is current or overdue, and returns the
+    remaining time or overdue amount.
+
+    Args:
+        assigned_epoch: Year (or period) the tier was last assessed.
+        current_epoch: Current year (or period).
+        interval_years: Maximum years between reassessments. Default: 5.
+
+    Returns:
+        dict with keys:
+          "assigned_epoch"  int
+          "current_epoch"   int
+          "interval_years"  int
+          "elapsed"         int   years since last assessment
+          "remaining"       int   years until due (negative if overdue)
+          "expired"         bool
+          "status"          str   "CURRENT" | "OVERDUE"
+
+    Raises:
+        ValueError: If current_epoch < assigned_epoch.
+
+    Reference: Mission Statement §"Anti-gaming safeguard 3 — sunset mechanism";
+    Roadmap Track B5.
+    """
+    if current_epoch < assigned_epoch:
+        raise ValueError(
+            f"current_epoch ({current_epoch}) must be >= assigned_epoch ({assigned_epoch})"
+        )
+
+    elapsed = current_epoch - assigned_epoch
+    remaining = interval_years - elapsed
+    expired = elapsed >= interval_years
+    status = "OVERDUE" if expired else "CURRENT"
+
+    return {
+        "assigned_epoch": assigned_epoch,
+        "current_epoch":  current_epoch,
+        "interval_years": interval_years,
+        "elapsed":        elapsed,
+        "remaining":      remaining,
+        "expired":        expired,
+        "status":         status,
+    }

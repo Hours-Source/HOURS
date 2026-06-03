@@ -579,6 +579,7 @@ def simulate_period(
 def run_simulation(
     initial_state: dict,
     n_periods: int = 20,
+    mean_multiplier_schedule: list[float] | None = None,
     **simulate_kwargs: Any,
 ) -> dict:
     """
@@ -587,6 +588,12 @@ def run_simulation(
     Args:
         initial_state: Starting state from make_economy_state().
         n_periods: Number of periods to simulate.
+        mean_multiplier_schedule: Optional per-period M values. When provided,
+            period i uses schedule[i] as mean_multiplier, overriding any
+            mean_multiplier= in simulate_kwargs. If the schedule is shorter
+            than n_periods, the static value from simulate_kwargs (or the
+            default 2.10) is used for the remaining periods. Pass None
+            (default) for fixed-M runs — existing behaviour is unchanged.
         **simulate_kwargs: Keyword arguments forwarded to simulate_period()
                            (e.g., population_growth_rate, epsilon_delta, etc.)
 
@@ -598,20 +605,31 @@ def run_simulation(
           "solvent_all":     bool,         (True if solvent every period)
           "first_insolvency": int | None,  (first period number with insolvency)
           "summary": {
-            "epsilon_range":       [float, float],
-            "trust_balance_range": [float, float],
-            "total_teh_created":   float,
-            "total_teh_destroyed": float,
+            "epsilon_range":            [float, float],
+            "trust_balance_range":      [float, float],
+            "total_teh_created":        float,
+            "total_teh_destroyed":      float,
+            "mean_multiplier_trajectory": list[float],  (M used each period)
           },
         }
     """
     state    = initial_state
     states: list[dict]         = []
     results: list[dict]        = []
+    m_used:  list[float]       = []
     first_insolvency: int | None = None
+    _m_default = float(simulate_kwargs.get("mean_multiplier", 2.10))
 
-    for _ in range(n_periods):
-        new_state, period_result = simulate_period(state, **simulate_kwargs)
+    for i in range(n_periods):
+        if mean_multiplier_schedule is not None and i < len(mean_multiplier_schedule):
+            m_this = float(mean_multiplier_schedule[i])
+            period_kwargs: dict = {**simulate_kwargs, "mean_multiplier": m_this}
+        else:
+            m_this = _m_default
+            period_kwargs = simulate_kwargs
+        m_used.append(m_this)
+
+        new_state, period_result = simulate_period(state, **period_kwargs)
         states.append(new_state)
         results.append(period_result)
 
@@ -631,9 +649,10 @@ def run_simulation(
         "solvent_all":      first_insolvency is None,
         "first_insolvency": first_insolvency,
         "summary": {
-            "epsilon_range":       [min(eps_values), max(eps_values)],
-            "trust_balance_range": [min(trust_values), max(trust_values)],
-            "total_teh_created":   final["teh_created_cumulative"],
-            "total_teh_destroyed": final["teh_destroyed_cumulative"],
+            "epsilon_range":              [min(eps_values), max(eps_values)],
+            "trust_balance_range":        [min(trust_values), max(trust_values)],
+            "total_teh_created":          final["teh_created_cumulative"],
+            "total_teh_destroyed":        final["teh_destroyed_cumulative"],
+            "mean_multiplier_trajectory": m_used,
         },
     }

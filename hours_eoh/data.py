@@ -256,6 +256,26 @@ M_BAND_HIGH: float = 2.1
 M_BAND_TARGET: float = 2.1
 M_MAX: float = 6.0
 
+# ---------------------------------------------------------------------------
+# Multiplier governance: scarcity dampening (B3)
+# Mission Statement: §"Scarcity — the three-year rolling average prevents
+# oscillation; supply-response discount prevents over-rewarding roles where
+# raising the multiplier will itself resolve the scarcity."
+# ---------------------------------------------------------------------------
+SCARCITY_ROLLING_WINDOW: int = 3        # periods in rolling average
+SCARCITY_SUPPLY_LAG_YEARS: int = 3      # years for supply to respond to raised multiplier
+SCARCITY_SEVERE_THRESHOLD: float = 0.80 # above this, flag as SEVERE_SCARCITY
+
+# ---------------------------------------------------------------------------
+# Multiplier governance: anti-gaming safeguards (B5)
+# Mission Statement: §"Anti-gaming safeguards" — empirical training validation,
+# artificial scarcity detection, sunset reassessment enforcement.
+# ---------------------------------------------------------------------------
+TRAINING_VALIDATION_TOLERANCE: float = 1.5        # mandated/median ratio ceiling
+ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR: float = 0.30 # below this always flagged
+ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD: float = 0.20 # min quality differential to justify low pass rate
+TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be reassessed
+
 # Default workforce tier segments: (name, fraction, mean_multiplier)
 # Calibrated so weighted mean = 2.10 at ε=0.
 # 0.20×1.20 + 0.50×1.87 + 0.25×2.80 + 0.05×4.50 = 2.100
