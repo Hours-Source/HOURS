@@ -479,6 +479,7 @@ GUF_REVIEW_CYCLE_CAP: float = 0.10
 # Income-linked subsidy thresholds for primary residential parcels (NLSA Eq. 24)
 GUF_SUBSIDY_LOWER_THRESHOLD: float = 0.40  # below 40% of median → maximum subsidy
 GUF_SUBSIDY_FLOOR_RATE:      float = 0.25  # subsidized leaseholders pay 25% of GUF
+GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible primary housing
 
 # Agricultural soil-health credit rate (NLSA Eq. 26); symbol c_soil in equations
 GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Health Index

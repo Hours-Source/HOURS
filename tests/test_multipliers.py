@@ -16,6 +16,7 @@ from hours_eoh.core.multipliers import (
     validate_training_duration,
     detect_artificial_scarcity,
     tier_expiry_check,
+    reclassification_impact,
 )
 from hours_eoh.data import (
     DEFAULT_SEGMENTS, M_BAND_LOW, M_BAND_HIGH,
@@ -315,3 +316,115 @@ class TestAntiGamingSafeguards:
     def test_tier_expiry_invalid_epoch_raises(self):
         with pytest.raises(ValueError, match="current_epoch"):
             tier_expiry_check(assigned_epoch=2025, current_epoch=2020)
+
+
+class TestReclassificationImpact:
+
+    # Reference segments: DEFAULT_SEGMENTS-like distribution with M ≈ 2.10
+    _SEGMENTS = [
+        {"name": "base",     "fraction": 0.20, "mean_mu": 1.20},
+        {"name": "standard", "fraction": 0.50, "mean_mu": 1.87},
+        {"name": "advanced", "fraction": 0.25, "mean_mu": 2.80},
+        {"name": "elite",    "fraction": 0.05, "mean_mu": 4.50},
+    ]
+
+    def test_no_change_delta_zero(self):
+        result = reclassification_impact(self._SEGMENTS, [])
+        assert result["m_delta"] == pytest.approx(0.0)
+        assert result["m_after"] == pytest.approx(result["m_before"])
+
+    def test_upward_reclassification_raises_m(self):
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "advanced", "new_mean_mu": 3.20}],
+        )
+        assert result["m_after"] > result["m_before"]
+        assert result["m_delta"] > 0.0
+
+    def test_downward_reclassification_lowers_m(self):
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "standard", "new_mean_mu": 1.50}],
+        )
+        assert result["m_after"] < result["m_before"]
+        assert result["m_delta"] < 0.0
+
+    def test_passes_when_m_stays_in_band(self):
+        # Starting M ≈ 2.10; reduce advanced 2.80 → 2.70 → new M ≈ 2.075 (in band)
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "advanced", "new_mean_mu": 2.70}],
+        )
+        assert result["passes"] is True
+        assert result["band_after"]["in_band"] is True
+
+    def test_fails_when_m_leaves_band(self):
+        # Large upward shift: elite 4.50 → 6.00 + advanced bump → M > 2.1
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "elite", "new_mean_mu": 6.00},
+             {"name": "advanced", "new_mean_mu": 4.00}],
+        )
+        assert result["passes"] is False
+        assert result["band_after"]["status"] == "ABOVE_BAND"
+
+    def test_absorption_to_ceiling_positive_in_band(self):
+        result = reclassification_impact(self._SEGMENTS, [])
+        assert result["absorption_remaining"]["to_ceiling"] >= 0.0
+
+    def test_absorption_to_floor_positive_in_band(self):
+        result = reclassification_impact(self._SEGMENTS, [])
+        assert result["absorption_remaining"]["to_floor"] >= 0.0
+
+    def test_further_drift_budget_upward(self):
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "advanced", "new_mean_mu": 2.90}],
+        )
+        # upward change → budget = to_ceiling
+        assert result["absorption_remaining"]["further_drift_budget"] == pytest.approx(
+            result["absorption_remaining"]["to_ceiling"]
+        )
+
+    def test_further_drift_budget_downward(self):
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "standard", "new_mean_mu": 1.70}],
+        )
+        # downward change → budget = to_floor
+        assert result["absorption_remaining"]["further_drift_budget"] == pytest.approx(
+            result["absorption_remaining"]["to_floor"]
+        )
+
+    def test_result_keys_present(self):
+        result = reclassification_impact(self._SEGMENTS, [])
+        assert {"segments_before", "segments_after", "m_before", "m_after", "m_delta",
+                "band_before", "band_after", "passes", "changes_applied",
+                "absorption_remaining"} == set(result.keys())
+        assert {"to_ceiling", "to_floor", "further_drift_budget"} == set(
+            result["absorption_remaining"].keys()
+        )
+
+    def test_invalid_segment_name_raises(self):
+        with pytest.raises(ValueError):
+            reclassification_impact(
+                self._SEGMENTS,
+                [{"name": "nonexistent", "new_mean_mu": 2.0}],
+            )
+
+    def test_segments_not_mutated(self):
+        import copy
+        original = copy.deepcopy(self._SEGMENTS)
+        reclassification_impact(self._SEGMENTS, [{"name": "advanced", "new_mean_mu": 3.50}])
+        assert self._SEGMENTS == original
+
+    def test_multiple_changes(self):
+        result = reclassification_impact(
+            self._SEGMENTS,
+            [{"name": "base", "new_mean_mu": 1.30},
+             {"name": "standard", "new_mean_mu": 2.00}],
+        )
+        # Both changes are applied
+        after_names = {s["name"]: s["mean_mu"] for s in result["segments_after"]}
+        assert after_names["base"] == pytest.approx(1.30)
+        assert after_names["standard"] == pytest.approx(2.00)

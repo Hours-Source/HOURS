@@ -21,6 +21,7 @@ from hours_eoh.land.guf import (
     ground_use_fee,
     review_cycle_cap,
     income_linked_subsidy,
+    min_income_for_access,
     soil_health_credit,
     guf_trust_inflow,
     rebuilding_surcharge,
@@ -31,6 +32,7 @@ from hours_eoh.land.guf import (
 from hours_eoh.data import (
     GUF_PSI_FLOOR, GUF_DEMAND_D_MAX,
     GUF_WRITEDOWN_AMORTIZATION_YEARS, GUF_EOH_ACCUMULATION_THRESHOLD,
+    GUF_AFFORDABILITY_THRESHOLD, GUF_SUBSIDY_FLOOR_RATE,
 )
 
 
@@ -514,6 +516,99 @@ class TestIncomeLinkedSubsidy:
         assert result["guf_applied"] == pytest.approx(
             result["guf_effective"] + result["subsidy_amount"], rel=1e-9
         )
+
+
+# ===========================================================================
+# min_income_for_access
+# ===========================================================================
+
+class TestGufAccessibility:
+
+    EXPECTED_KEYS = {
+        "guf_applied", "median_income", "affordability_threshold",
+        "min_income_no_subsidy", "min_income_full_subsidy",
+        "affordability_ratio_at_median", "accessible_at_median",
+        "accessible_at_guarantee", "status", "subsidy_absorption",
+    }
+
+    def test_result_keys_present(self):
+        result = min_income_for_access(200.0, 1000.0)
+        assert self.EXPECTED_KEYS == set(result.keys())
+
+    def test_status_accessible(self):
+        # guf=200, median=1000, threshold=0.25 → ratio=0.20 ≤ 0.25 → ACCESSIBLE
+        result = min_income_for_access(200.0, 1000.0)
+        assert result["status"] == "ACCESSIBLE"
+        assert result["accessible_at_median"] is True
+
+    def test_status_subsidised_accessible(self):
+        # guf=400, median=1000, threshold=0.25 → ratio=0.40 > 0.25, but 400 ≤ 1000 → SUBSIDISED
+        result = min_income_for_access(400.0, 1000.0)
+        assert result["status"] == "SUBSIDISED_ACCESSIBLE"
+        assert result["accessible_at_median"] is False
+
+    def test_status_inaccessible(self):
+        # guf=1200, median=1000 → 1200 > median → INACCESSIBLE
+        result = min_income_for_access(1200.0, 1000.0)
+        assert result["status"] == "INACCESSIBLE"
+
+    def test_min_income_no_subsidy_formula(self):
+        guf, t = 300.0, 0.25
+        result = min_income_for_access(guf, 1000.0, affordability_threshold=t)
+        assert result["min_income_no_subsidy"] == pytest.approx(guf / t)
+
+    def test_min_income_full_subsidy_formula(self):
+        guf, t = 300.0, 0.25
+        result = min_income_for_access(guf, 1000.0, affordability_threshold=t)
+        assert result["min_income_full_subsidy"] == pytest.approx(
+            GUF_SUBSIDY_FLOOR_RATE * guf / t
+        )
+
+    def test_affordability_ratio_at_median(self):
+        result = min_income_for_access(250.0, 1000.0)
+        assert result["affordability_ratio_at_median"] == pytest.approx(250.0 / 1000.0)
+
+    def test_accessible_at_guarantee_true(self):
+        # guf=200, full subsidy = 50 TEH, guarantee=400 → ratio=50/400=0.125 ≤ 0.25
+        result = min_income_for_access(200.0, 1000.0, guarantee_income=400.0)
+        assert result["accessible_at_guarantee"] is True
+
+    def test_accessible_at_guarantee_false(self):
+        # guf=1000, full subsidy=250, guarantee=400 → ratio=250/400=0.625 > 0.25
+        result = min_income_for_access(1000.0, 2000.0, guarantee_income=400.0)
+        assert result["accessible_at_guarantee"] is False
+
+    def test_accessible_at_guarantee_none_when_not_provided(self):
+        result = min_income_for_access(200.0, 1000.0)
+        assert result["accessible_at_guarantee"] is None
+
+    def test_subsidy_absorption_constant(self):
+        # Trust always absorbs (1 − FLOOR_RATE) of GUF at minimum income
+        result = min_income_for_access(200.0, 1000.0)
+        assert result["subsidy_absorption"] == pytest.approx(1.0 - GUF_SUBSIDY_FLOOR_RATE)
+
+    def test_boundary_exactly_at_threshold(self):
+        # guf=250, median=1000, threshold=0.25 → ratio exactly 0.25 → ACCESSIBLE
+        result = min_income_for_access(250.0, 1000.0)
+        assert result["status"] == "ACCESSIBLE"
+        assert result["accessible_at_median"] is True
+
+    def test_zero_guf_always_accessible(self):
+        result = min_income_for_access(0.0, 1000.0)
+        assert result["status"] == "ACCESSIBLE"
+        assert result["min_income_no_subsidy"] == pytest.approx(0.0)
+
+    def test_invalid_guf_raises(self):
+        with pytest.raises(ValueError):
+            min_income_for_access(-10.0, 1000.0)
+
+    def test_invalid_median_raises(self):
+        with pytest.raises(ValueError):
+            min_income_for_access(200.0, 0.0)
+
+    def test_invalid_threshold_raises(self):
+        with pytest.raises(ValueError):
+            min_income_for_access(200.0, 1000.0, affordability_threshold=0.0)
 
 
 # ===========================================================================

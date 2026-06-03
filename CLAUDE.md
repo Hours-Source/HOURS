@@ -158,7 +158,7 @@ TEH lifecycle, automation arc.
 
 ## Current status
 
-**1254 tests passing** (2026-06-02). No open gaps.
+**1283 tests passing** (2026-06-03). Phase 2 complete. No open gaps.
 
 **eco-collapse-1 closed** (2026-05-18): ecological collapse is handled via the GUF layer (`land/guf.py` §9), not TEH destruction. Two pathways: restoration (V_s baselines reset to recovery target, revenue maintained) and abandonment (rebuilding surcharge R_b(p,ε) added, Eq. 28–29). Preventive monitoring via `eoh_accumulation_warning()` (§9.8). `research/writedown.py` re-exports these functions with rationale.
 
@@ -172,7 +172,7 @@ TEH lifecycle, automation arc.
 | `test_eoh_fulfillment.py` | `core/eoh_fulfillment.py` | human_eoh_share, registered_eoh, teh_created, teh_supply, capital_writedown, human_eoh_per_domain, eoh_to_teh_pipeline |
 | `test_eoh_dynamics.py` | `core/eoh_dynamics.py` | eoh_compounding, regenerative_offset, eoh_reduction_ratio, rank_investment_candidates, optimal_investment, maintenance_strategy_compare, deferred_eoh_paydown, regenerative_investment_required |
 | `test_registration.py` | `core/registration.py` | care/production/stewardship/personal/knowledge registration shares, total_registration_share, validate_registration_trajectory |
-| `test_multipliers.py` | `core/multipliers.py` | population_weighted_mean_multiplier, multiplier_band_check, tier_multiplier, epoch_alpha_weights, scarcity_score, validate_training_duration, detect_artificial_scarcity, tier_expiry_check |
+| `test_multipliers.py` | `core/multipliers.py` | population_weighted_mean_multiplier, multiplier_band_check, tier_multiplier, epoch_alpha_weights, scarcity_score, validate_training_duration, detect_artificial_scarcity, tier_expiry_check, reclassification_impact |
 | `test_conditions.py` | `core/conditions.py` | condition_i_check, condition_ii_check, balance_check, condition_iii_balance_growth_check, condition_iv_check, dashboard_snapshot, domain_eoh_coverage |
 | `test_dashboard.py` | `core/dashboard.py` | eoh_health_indicators, fiscal_health_check, system_dashboard |
 | `test_fiscal.py` | `core/fiscal.py` | levy_collection, stewardship_allocation, ecological_allocation, sufficiency_guarantee, trust_management, fiscal_snapshot, care_stipend, min_levy_for_solvency, accumulation_ceiling_commitment |
@@ -184,7 +184,7 @@ TEH lifecycle, automation arc.
 | `test_trajectory.py` | `core/trajectory.py` | canonical_age_distribution, canonical_physical_state, compute_epsilon, effective_capital_from_epsilon |
 | `test_civilization_epsilon.py` | `core/civilization.py` | civilization_epsilon, machine_eoh_from_capital, CAPITAL_MACHINE_PROFILES |
 | `test_params.py` | `params.py` | EohParams defaults, temporary() context manager, params-driven pipeline |
-| `test_land_guf.py` | `land/guf.py` | GUF framework: all 14 functions, boundary verification, worked example |
+| `test_land_guf.py` | `land/guf.py` | GUF framework: all 14 functions, boundary verification, worked example, min_income_for_access |
 | `land/test_collective.py` | `land/collective.py` | compute_collective_guf, parcel schema validation, archetype factories, subsidy/cap logic |
 | `land/test_calibration.py` | `land/calibration.py` | guf_rate_calibration convergence and direction, guf_lvi_weight_sensitivity variants |
 | `scenarios/test_sweep.py` | `scenarios/sweep.py` | epsilon_sweep |

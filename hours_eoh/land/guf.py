@@ -49,7 +49,7 @@ from hours_eoh.data import (
     GUF_INFRA_MU_TRANSIT, GUF_INFRA_MU_UTILITIES, GUF_INFRA_MU_PUBLIC_SPACE,
     GUF_CHI_EXTERNAL,
     GUF_REVIEW_CYCLE_CAP,
-    GUF_SUBSIDY_LOWER_THRESHOLD, GUF_SUBSIDY_FLOOR_RATE,
+    GUF_SUBSIDY_LOWER_THRESHOLD, GUF_SUBSIDY_FLOOR_RATE, GUF_AFFORDABILITY_THRESHOLD,
     GUF_SOIL_CREDIT_RATE,
     GUF_WRITEDOWN_AMORTIZATION_YEARS,
     GUF_EOH_ACCUMULATION_THRESHOLD,
@@ -650,6 +650,104 @@ def income_linked_subsidy(
         "steward_income": steward_income,
         "median_income":  median_income,
         "subsidized":     sigma < 1.0 - 1e-9,
+    }
+
+
+def min_income_for_access(
+    guf_applied: float,
+    median_income: float,
+    affordability_threshold: float = GUF_AFFORDABILITY_THRESHOLD,
+    guarantee_income: float | None = None,
+) -> dict:
+    """
+    Minimum income at which a primary residential parcel is affordable.
+
+    Inverse query of ground_use_fee() + income_linked_subsidy(): given a parcel's
+    annual GUF and a collective's median income, find the income floor at which
+    housing is accessible — with and without the income-linked subsidy.
+
+    The subsidy tiers (NLSA Eq. 23-24) mean the effective GUF is income-dependent:
+    at the lowest incomes the subsidy reduces GUF to GUF_SUBSIDY_FLOOR_RATE of
+    the assessed amount. Two analytical minima follow directly:
+
+      min_income_no_subsidy   = guf_applied / affordability_threshold
+      min_income_full_subsidy = GUF_SUBSIDY_FLOOR_RATE × guf_applied / affordability_threshold
+
+    Status classification (all boundaries scale with affordability_threshold):
+      ACCESSIBLE            guf_applied ≤ threshold × median_income
+                            (affordable at median without subsidy)
+      SUBSIDISED_ACCESSIBLE threshold × median < guf_applied ≤ median_income
+                            (subsidy makes it accessible below median)
+      INACCESSIBLE          guf_applied > median_income
+                            (min_income_full_subsidy > median; only above-median
+                            earners could afford it, who don't receive the subsidy)
+
+    Args:
+        guf_applied: Annual GUF in TEH/year — use ground_use_fee()["guf_applied"]
+                     (or after review_cycle_cap() if applicable).
+        median_income: Collective median post-levy income (TEH/year).
+        affordability_threshold: GUF as fraction of income that defines accessible
+                     housing. Default: GUF_AFFORDABILITY_THRESHOLD (0.25).
+        guarantee_income: Annual TEH from the sufficiency guarantee (from
+                     sufficiency_guarantee()["total_per_person"]). When provided,
+                     accessible_at_guarantee is computed. None → field is None.
+
+    Returns:
+        dict with keys:
+          "guf_applied"                  float
+          "median_income"                float
+          "affordability_threshold"      float
+          "min_income_no_subsidy"        float  guf_applied / threshold
+          "min_income_full_subsidy"      float  GUF_SUBSIDY_FLOOR_RATE × guf_applied / threshold
+          "affordability_ratio_at_median" float  guf_applied / median_income
+          "accessible_at_median"         bool   ratio_at_median ≤ threshold
+          "accessible_at_guarantee"      bool | None  None if guarantee_income not provided
+          "status"                       str    "ACCESSIBLE" | "SUBSIDISED_ACCESSIBLE" | "INACCESSIBLE"
+          "subsidy_absorption"           float  Trust-absorbed fraction at full subsidy (= 1 − FLOOR_RATE)
+
+    Raises:
+        ValueError: If guf_applied < 0, median_income ≤ 0, or threshold ≤ 0.
+
+    Reference: Mission Statement §"Land stewardship and housing access";
+    NLSA §6 (income-linked subsidy); Roadmap §2.3 (inverse query system).
+    """
+    if guf_applied < 0.0:
+        raise ValueError(f"guf_applied must be ≥ 0, got {guf_applied}")
+    if median_income <= 0.0:
+        raise ValueError(f"median_income must be > 0, got {median_income}")
+    if affordability_threshold <= 0.0:
+        raise ValueError(f"affordability_threshold must be > 0, got {affordability_threshold}")
+
+    min_income_no_subsidy   = guf_applied / affordability_threshold
+    min_income_full_subsidy = GUF_SUBSIDY_FLOOR_RATE * guf_applied / affordability_threshold
+    ratio_at_median         = guf_applied / median_income
+    accessible_at_median    = ratio_at_median <= affordability_threshold
+
+    # Status: boundaries scale cleanly with threshold
+    if guf_applied <= affordability_threshold * median_income:
+        status = "ACCESSIBLE"
+    elif guf_applied <= median_income:
+        status = "SUBSIDISED_ACCESSIBLE"
+    else:
+        status = "INACCESSIBLE"
+
+    accessible_at_guarantee: bool | None = None
+    if guarantee_income is not None:
+        # At guarantee income, maximum subsidy applies (income << median)
+        guf_at_guarantee = GUF_SUBSIDY_FLOOR_RATE * guf_applied
+        accessible_at_guarantee = (guf_at_guarantee / guarantee_income) <= affordability_threshold if guarantee_income > 0 else False
+
+    return {
+        "guf_applied":                  guf_applied,
+        "median_income":                median_income,
+        "affordability_threshold":      affordability_threshold,
+        "min_income_no_subsidy":        min_income_no_subsidy,
+        "min_income_full_subsidy":      min_income_full_subsidy,
+        "affordability_ratio_at_median": ratio_at_median,
+        "accessible_at_median":         accessible_at_median,
+        "accessible_at_guarantee":      accessible_at_guarantee,
+        "status":                       status,
+        "subsidy_absorption":           1.0 - GUF_SUBSIDY_FLOOR_RATE,
     }
 
 

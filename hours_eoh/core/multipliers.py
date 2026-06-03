@@ -135,6 +135,105 @@ def multiplier_band_check(
 
 
 # ---------------------------------------------------------------------------
+# Reclassification Impact (Condition II governance query)
+# ---------------------------------------------------------------------------
+
+def reclassification_impact(
+    segments: list[dict],
+    changes: list[dict],
+) -> dict:
+    """
+    Compute the M band impact of proposed tier reclassifications.
+
+    Answers the governance question: "if we reclassify occupation X from
+    mean multiplier A to mean multiplier B (affecting fraction F of the
+    workforce), does M stay within the [1.8, 2.1] band?"
+
+    Does not change tier fractions — only mean_mu per segment. Structural
+    changes to workforce composition (fraction rebalancing) are outside
+    the scope of a reclassification query.
+
+    Args:
+        segments: Current workforce distribution. Each dict must have keys
+                  "name" (str), "fraction" (float), and "mean_mu" (float).
+                  Same format as population_weighted_mean_multiplier().
+        changes: Proposed reclassifications. Each dict must have keys
+                 "name" (str, must match a segment) and "new_mean_mu" (float).
+                 Multiple segments may be updated in a single call.
+
+    Returns:
+        dict with keys:
+          "segments_before"     list[dict]   original segments (not mutated)
+          "segments_after"      list[dict]   modified copy with changes applied
+          "m_before"            float        population_weighted_mean_multiplier(segments)
+          "m_after"             float        population_weighted_mean_multiplier(segments_after)
+          "m_delta"             float        m_after − m_before
+          "band_before"         dict         full multiplier_band_check(m_before) result
+          "band_after"          dict         full multiplier_band_check(m_after) result
+          "passes"              bool         band_after["in_band"]
+          "changes_applied"     list[dict]   the changes list as provided
+          "absorption_remaining" dict:
+              "to_ceiling"           float   M_BAND_HIGH − m_after  (>0 = room to rise)
+              "to_floor"             float   m_after − M_BAND_LOW   (>0 = room to fall)
+              "further_drift_budget" float   budget in direction of this change
+
+    Raises:
+        ValueError: If any change names a segment not present in segments.
+
+    Reference: Mission Statement §"Condition II — Multiplier Band"; §"Anti-gaming
+    safeguard 3 — sunset mechanism"; Roadmap §2.3 (inverse query system).
+    """
+    segment_names = {s["name"] for s in segments}
+    for change in changes:
+        if change["name"] not in segment_names:
+            raise ValueError(
+                f"Change targets segment '{change['name']}' which is not in segments. "
+                f"Available: {sorted(segment_names)}"
+            )
+
+    # Build updated segments without mutating the original
+    change_map = {c["name"]: c["new_mean_mu"] for c in changes}
+    segments_after = [
+        {**s, "mean_mu": change_map[s["name"]]} if s["name"] in change_map else {**s}
+        for s in segments
+    ]
+
+    m_before = population_weighted_mean_multiplier(segments)
+    m_after  = population_weighted_mean_multiplier(segments_after)
+    m_delta  = m_after - m_before
+
+    band_before = multiplier_band_check(m_before)
+    band_after  = multiplier_band_check(m_after)
+
+    to_ceiling = M_BAND_HIGH - m_after
+    to_floor   = m_after - M_BAND_LOW
+
+    if m_delta > 0.0:
+        further_drift_budget = to_ceiling
+    elif m_delta < 0.0:
+        further_drift_budget = to_floor
+    else:
+        further_drift_budget = min(to_ceiling, to_floor)
+
+    return {
+        "segments_before":  [dict(s) for s in segments],
+        "segments_after":   segments_after,
+        "m_before":         m_before,
+        "m_after":          m_after,
+        "m_delta":          m_delta,
+        "band_before":      band_before,
+        "band_after":       band_after,
+        "passes":           band_after["in_band"],
+        "changes_applied":  list(changes),
+        "absorption_remaining": {
+            "to_ceiling":           to_ceiling,
+            "to_floor":             to_floor,
+            "further_drift_budget": further_drift_budget,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Tier Multiplier (four-factor assessment)
 # ---------------------------------------------------------------------------
 
