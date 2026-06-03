@@ -21,7 +21,6 @@ safeguards"; §"The population-weighted average must remain within [1.8, 2.1]."
 """
 
 from __future__ import annotations
-import math
 from typing import Any
 
 from hours_eoh.data import (
@@ -51,39 +50,37 @@ def _build_drift_schedule(
 
     Returns (schedule, breach_period, correction_period).
     breach_period and correction_period are None if no breach occurs.
+
+    When correction_magnitude is not None, the correction advances incrementally
+    from the M value at correction onset — not from the continuing drift baseline.
+    This ensures the governance response is anchored to the actual state when the
+    council acts, not to an extrapolated drift position.
     """
     schedule: list[float] = []
     breach_period: int | None = None
     correction_period: int | None = None
+    m_onset: float | None = None   # M value frozen at first correction period
 
     for t in range(n_periods):
         raw_m = m_start + t * m_drift_rate
 
-        # Apply correction if we are in the correction window
         if correction_period is not None and t >= correction_period:
+            if t == correction_period:
+                m_onset = raw_m   # freeze drift value at correction onset
             if correction_magnitude is None:
-                # Full snap to target
                 raw_m = M_BAND_TARGET
             else:
-                # Incremental correction from the schedule value at correction onset
-                periods_since_correction = t - correction_period
-                direction = 1.0 if M_BAND_TARGET > raw_m else -1.0
-                raw_m = raw_m + direction * correction_magnitude * periods_since_correction
-                # Stop at target
-                if direction > 0:
-                    raw_m = min(raw_m, M_BAND_TARGET)
-                else:
-                    raw_m = max(raw_m, M_BAND_TARGET)
+                assert m_onset is not None
+                gap = M_BAND_TARGET - m_onset
+                sign = 1.0 if gap >= 0.0 else -1.0
+                move = sign * min(abs(gap), correction_magnitude * (t - correction_period))
+                raw_m = m_onset + move
 
         m_t = min(max(raw_m, 1.0), M_MAX)
         schedule.append(m_t)
 
-        # Detect first breach and schedule governance response
         if breach_period is None:
-            if breach_above and m_t > band_limit:
-                breach_period = t
-                correction_period = t + governance_lag
-            elif not breach_above and m_t < band_limit:
+            if (breach_above and m_t > band_limit) or (not breach_above and m_t < band_limit):
                 breach_period = t
                 correction_period = t + governance_lag
 
@@ -113,13 +110,112 @@ def _outcome_from_run(
 
 
 def _fiscal_impact(raw: dict, baseline_teh: float) -> dict:
-    results = raw["period_results"]
-    trust_values = [r["trust_end"] for r in results]
-    total_teh = raw["final_state"]["teh_created_cumulative"]
+    trust_values = [r["trust_end"] for r in raw["period_results"]]
     return {
-        "teh_creation_delta": total_teh - baseline_teh,
+        "teh_creation_delta": raw["final_state"]["teh_created_cumulative"] - baseline_teh,
         "min_trust_balance":  min(trust_values),
         "solvent_throughout": raw["solvent_all"],
+    }
+
+
+_BELOW_BAND_RECOMMENDATIONS: dict[str, str] = {
+    "CRISIS": (
+        "Trust insolvency during drift period. Governance lag exceeds the "
+        "system's fiscal resilience. Reduce governance_lag or strengthen "
+        "the Trust accumulation target."
+    ),
+    "DEGRADED": (
+        "M was below band for {periods_out} periods before correction. "
+        "Trust balance dipped but recovered. Consider a faster governance "
+        "response cycle or a pre-emptive M floor trigger."
+    ),
+    "STABLE": "System absorbed the drift within the governance correction window.",
+}
+
+_ABOVE_BAND_RECOMMENDATIONS: dict[str, str] = {
+    "CRISIS": (
+        "Trust insolvency despite above-band M. Investigate whether the "
+        "guarantee cost escalation from high-M TEH pricing is outpacing levy revenue."
+    ),
+    "DEGRADED": (
+        "M was above band for {periods_out} periods. Trust remained solvent "
+        "but purchasing-power equity was compromised during the drift window. "
+        "Enforce anti-gaming safeguards to prevent reclassification drift."
+    ),
+    "STABLE": (
+        "Above-band drift was brief and corrected within the governance window. "
+        "Trust solvency was not threatened."
+    ),
+}
+
+
+def _run_drift_scenario(
+    band_limit: float,
+    breach_above: bool,
+    status_label: str,
+    recommendations: dict[str, str],
+    epsilon: float,
+    n_periods: int,
+    m_start: float,
+    m_drift_rate: float,
+    governance_lag: int,
+    correction_magnitude: float | None,
+    population: float,
+    trust_balance: float,
+    capital_stock_teh: float,
+    **sim_kwargs: Any,
+) -> dict:
+    schedule, breach_period, correction_period = _build_drift_schedule(
+        n_periods=n_periods,
+        m_start=m_start,
+        m_drift_rate=m_drift_rate,
+        band_limit=band_limit,
+        breach_above=breach_above,
+        governance_lag=governance_lag,
+        correction_magnitude=correction_magnitude,
+    )
+
+    state = make_economy_state(
+        epsilon=epsilon,
+        population=population,
+        trust_balance=trust_balance,
+        capital_stock_teh=capital_stock_teh,
+    )
+
+    baseline = run_simulation(
+        make_economy_state(epsilon=epsilon, population=population,
+                           trust_balance=trust_balance, capital_stock_teh=capital_stock_teh),
+        n_periods=n_periods,
+        mean_multiplier=m_start,
+        **sim_kwargs,
+    )
+    baseline_teh = baseline["final_state"]["teh_created_cumulative"]
+
+    raw = run_simulation(
+        state,
+        n_periods=n_periods,
+        mean_multiplier_schedule=schedule,
+        **sim_kwargs,
+    )
+
+    m_traj = raw["summary"]["mean_multiplier_trajectory"]
+    band_status = [multiplier_band_check(m)["status"] for m in m_traj]
+    periods_out = sum(1 for s in band_status if s == status_label)
+    outcome = _outcome_from_run(raw, breach_period, governance_lag, m_traj)
+
+    rec_template = recommendations.get(outcome, "")
+    rec = rec_template.format(periods_out=periods_out)
+
+    return {
+        "outcome":             outcome,
+        "breach_period":       breach_period,
+        "correction_period":   correction_period,
+        "periods_out_of_band": periods_out,
+        "m_trajectory":        m_traj,
+        "band_status":         band_status,
+        "fiscal_impact":       _fiscal_impact(raw, baseline_teh),
+        "recommendation":      rec,
+        "raw":                 raw,
     }
 
 
@@ -149,7 +245,8 @@ def m_below_band_drift(
     The schedule drifts M at m_drift_rate per period. When M first crosses
     below M_BAND_LOW, a breach is recorded and a correction is scheduled
     after governance_lag periods. Correction either snaps M fully to
-    M_BAND_TARGET (correction_magnitude=None) or advances incrementally.
+    M_BAND_TARGET (correction_magnitude=None) or advances incrementally
+    from the M value frozen at correction onset.
 
     Args:
         epsilon: Starting automation level [0.0, 0.99].
@@ -160,7 +257,7 @@ def m_below_band_drift(
                         Default: TIER_ASSESSMENT_INTERVAL_YEARS (5).
         correction_magnitude: If None, corrects fully to M_BAND_TARGET at
                         correction_period. If a float, corrects by that
-                        amount per period until M_BAND_TARGET is reached.
+                        amount per period from the onset value.
         population: Initial population.
         trust_balance: Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock (TEH).
@@ -180,71 +277,22 @@ def m_below_band_drift(
 
     Reference: Mission Statement §"Condition II — Multiplier Band"; Roadmap §2.3.
     """
-    schedule, breach_period, correction_period = _build_drift_schedule(
+    return _run_drift_scenario(
+        band_limit=M_BAND_LOW,
+        breach_above=False,
+        status_label="BELOW_BAND",
+        recommendations=_BELOW_BAND_RECOMMENDATIONS,
+        epsilon=epsilon,
         n_periods=n_periods,
         m_start=m_start,
         m_drift_rate=m_drift_rate,
-        band_limit=M_BAND_LOW,
-        breach_above=False,
         governance_lag=governance_lag,
         correction_magnitude=correction_magnitude,
-    )
-
-    state = make_economy_state(
-        epsilon=epsilon,
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
-    )
-
-    # Baseline: same run at fixed m_start (no drift) for fiscal impact comparison
-    baseline = run_simulation(
-        make_economy_state(epsilon=epsilon, population=population,
-                           trust_balance=trust_balance, capital_stock_teh=capital_stock_teh),
-        n_periods=n_periods,
-        mean_multiplier=m_start,
         **sim_kwargs,
     )
-    baseline_teh = baseline["final_state"]["teh_created_cumulative"]
-
-    raw = run_simulation(
-        state,
-        n_periods=n_periods,
-        mean_multiplier_schedule=schedule,
-        **sim_kwargs,
-    )
-
-    m_traj = raw["summary"]["mean_multiplier_trajectory"]
-    band_status = [multiplier_band_check(m)["status"] for m in m_traj]
-    periods_out = sum(1 for s in band_status if s == "BELOW_BAND")
-    outcome = _outcome_from_run(raw, breach_period, governance_lag, m_traj)
-
-    if outcome == "CRISIS":
-        rec = (
-            "Trust insolvency during drift period. Governance lag exceeds the "
-            "system's fiscal resilience. Reduce governance_lag or strengthen "
-            "the Trust accumulation target."
-        )
-    elif outcome == "DEGRADED":
-        rec = (
-            f"M was below band for {periods_out} periods before correction. "
-            "Trust balance dipped but recovered. Consider a faster governance "
-            "response cycle or a pre-emptive M floor trigger."
-        )
-    else:
-        rec = "System absorbed the drift within the governance correction window."
-
-    return {
-        "outcome":             outcome,
-        "breach_period":       breach_period,
-        "correction_period":   correction_period,
-        "periods_out_of_band": periods_out,
-        "m_trajectory":        m_traj,
-        "band_status":         band_status,
-        "fiscal_impact":       _fiscal_impact(raw, baseline_teh),
-        "recommendation":      rec,
-        "raw":                 raw,
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -282,7 +330,7 @@ def m_above_band_drift(
         m_start: Initial M value. Default: M_BAND_TARGET (2.10).
         m_drift_rate: M change per period (positive = rising). Default: +0.04.
         governance_lag: Periods from breach detection to correction.
-        correction_magnitude: Correction per period; None = full snap to target.
+        correction_magnitude: Correction per period from onset; None = full snap.
         population: Initial population.
         trust_balance: Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock (TEH).
@@ -295,72 +343,22 @@ def m_above_band_drift(
     Reference: Mission Statement §"Condition II"; §"Anti-gaming safeguard 2 —
     artificial scarcity detection"; Roadmap §2.3.
     """
-    schedule, breach_period, correction_period = _build_drift_schedule(
+    return _run_drift_scenario(
+        band_limit=M_BAND_HIGH,
+        breach_above=True,
+        status_label="ABOVE_BAND",
+        recommendations=_ABOVE_BAND_RECOMMENDATIONS,
+        epsilon=epsilon,
         n_periods=n_periods,
         m_start=m_start,
         m_drift_rate=m_drift_rate,
-        band_limit=M_BAND_HIGH,
-        breach_above=True,
         governance_lag=governance_lag,
         correction_magnitude=correction_magnitude,
-    )
-
-    state = make_economy_state(
-        epsilon=epsilon,
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
-    )
-
-    baseline = run_simulation(
-        make_economy_state(epsilon=epsilon, population=population,
-                           trust_balance=trust_balance, capital_stock_teh=capital_stock_teh),
-        n_periods=n_periods,
-        mean_multiplier=m_start,
         **sim_kwargs,
     )
-    baseline_teh = baseline["final_state"]["teh_created_cumulative"]
-
-    raw = run_simulation(
-        state,
-        n_periods=n_periods,
-        mean_multiplier_schedule=schedule,
-        **sim_kwargs,
-    )
-
-    m_traj = raw["summary"]["mean_multiplier_trajectory"]
-    band_status = [multiplier_band_check(m)["status"] for m in m_traj]
-    periods_out = sum(1 for s in band_status if s == "ABOVE_BAND")
-    outcome = _outcome_from_run(raw, breach_period, governance_lag, m_traj)
-
-    if outcome == "CRISIS":
-        rec = (
-            "Trust insolvency despite above-band M. Investigate whether the "
-            "guarantee cost escalation from high-M TEH pricing is outpacing levy revenue."
-        )
-    elif outcome == "DEGRADED":
-        rec = (
-            f"M was above band for {periods_out} periods. Trust remained solvent "
-            "but purchasing-power equity was compromised during the drift window. "
-            "Enforce anti-gaming safeguards to prevent reclassification drift."
-        )
-    else:
-        rec = (
-            "Above-band drift was brief and corrected within the governance window. "
-            "Trust solvency was not threatened."
-        )
-
-    return {
-        "outcome":             outcome,
-        "breach_period":       breach_period,
-        "correction_period":   correction_period,
-        "periods_out_of_band": periods_out,
-        "m_trajectory":        m_traj,
-        "band_status":         band_status,
-        "fiscal_impact":       _fiscal_impact(raw, baseline_teh),
-        "recommendation":      rec,
-        "raw":                 raw,
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -451,15 +449,9 @@ def m_band_sweep(
         solvent_all_list.append(solvent)
         band_status_list.append(band)
 
-    # Summary: floor and ceiling
-    m_floor: float | None = None
-    m_ceiling: float | None = None
-    for m, solvent in zip(m_values, solvent_all_list):
-        if solvent:
-            if m_floor is None or m < m_floor:
-                m_floor = m
-            if m_ceiling is None or m > m_ceiling:
-                m_ceiling = m
+    solvent_m = [m for m, s in zip(m_values, solvent_all_list) if s]
+    m_floor   = min(solvent_m) if solvent_m else None
+    m_ceiling = max(solvent_m) if solvent_m else None
 
     return {
         "m_values":            m_values,

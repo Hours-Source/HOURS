@@ -184,19 +184,16 @@ def reclassification_impact(
     safeguard 3 — sunset mechanism"; Roadmap §2.3 (inverse query system).
     """
     segment_names = {s["name"] for s in segments}
+    change_map: dict[str, float] = {}
     for change in changes:
         if change["name"] not in segment_names:
             raise ValueError(
                 f"Change targets segment '{change['name']}' which is not in segments. "
                 f"Available: {sorted(segment_names)}"
             )
+        change_map[change["name"]] = change["new_mean_mu"]
 
-    # Build updated segments without mutating the original
-    change_map = {c["name"]: c["new_mean_mu"] for c in changes}
-    segments_after = [
-        {**s, "mean_mu": change_map[s["name"]]} if s["name"] in change_map else {**s}
-        for s in segments
-    ]
+    segments_after = [{**s, "mean_mu": change_map.get(s["name"], s["mean_mu"])} for s in segments]
 
     m_before = population_weighted_mean_multiplier(segments)
     m_after  = population_weighted_mean_multiplier(segments_after)
@@ -208,15 +205,12 @@ def reclassification_impact(
     to_ceiling = M_BAND_HIGH - m_after
     to_floor   = m_after - M_BAND_LOW
 
-    if m_delta > 0.0:
-        further_drift_budget = to_ceiling
-    elif m_delta < 0.0:
-        further_drift_budget = to_floor
-    else:
-        further_drift_budget = min(to_ceiling, to_floor)
+    further_drift_budget = (
+        to_ceiling if m_delta > 0.0 else (to_floor if m_delta < 0.0 else min(to_ceiling, to_floor))
+    )
 
     return {
-        "segments_before":  [dict(s) for s in segments],
+        "segments_before":  [{**s} for s in segments],
         "segments_after":   segments_after,
         "m_before":         m_before,
         "m_after":          m_after,
@@ -473,8 +467,8 @@ def validate_training_duration(
     Reference: Mission Statement §"Anti-gaming safeguard 1 — empirical training
     validation"; Roadmap Track B5.
     """
-    if mandated_years <= 0.0:
-        raise ValueError(f"mandated_years must be > 0, got {mandated_years}")
+    if mandated_years < 0.0:
+        raise ValueError(f"mandated_years must be >= 0, got {mandated_years}")
     if median_competency_years <= 0.0:
         raise ValueError(f"median_competency_years must be > 0, got {median_competency_years}")
 

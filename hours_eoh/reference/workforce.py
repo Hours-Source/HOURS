@@ -71,10 +71,12 @@ WORKFORCE_SNAPSHOTS: dict[str, list[dict]] = {
     ],
 }
 
-# Verify all snapshots at module load — fractions must sum to 1.0.
-for _name, _segs in WORKFORCE_SNAPSHOTS.items():
-    _total = sum(s["fraction"] for s in _segs)
-    assert abs(_total - 1.0) < 1e-6, (
-        f"WORKFORCE_SNAPSHOTS['{_name}'] fractions sum to {_total:.6f}, expected 1.0"
-    )
-del _name, _segs, _total
+def _validate() -> None:
+    for name, segs in WORKFORCE_SNAPSHOTS.items():
+        total = sum(s["fraction"] for s in segs)
+        if abs(total - 1.0) >= 1e-6:
+            raise ValueError(
+                f"WORKFORCE_SNAPSHOTS['{name}'] fractions sum to {total:.6f}, expected 1.0"
+            )
+
+_validate()

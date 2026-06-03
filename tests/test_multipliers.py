@@ -207,9 +207,15 @@ class TestAntiGamingSafeguards:
         }
         assert result["tolerance_factor"] == pytest.approx(2.0)
 
-    def test_training_zero_mandated_raises(self):
+    def test_training_zero_mandated_passes(self):
+        # A role with no training requirement is valid; ratio = 0 always passes.
+        result = validate_training_duration(0.0, 4.0)
+        assert result["passes"] is True
+        assert result["ratio"] == pytest.approx(0.0)
+
+    def test_training_negative_mandated_raises(self):
         with pytest.raises(ValueError):
-            validate_training_duration(0.0, 4.0)
+            validate_training_duration(-1.0, 4.0)
 
     def test_training_zero_median_raises(self):
         with pytest.raises(ValueError):

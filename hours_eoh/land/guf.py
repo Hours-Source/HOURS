@@ -724,7 +724,7 @@ def min_income_for_access(
     accessible_at_median    = ratio_at_median <= affordability_threshold
 
     # Status: boundaries scale cleanly with threshold
-    if guf_applied <= affordability_threshold * median_income:
+    if accessible_at_median:
         status = "ACCESSIBLE"
     elif guf_applied <= median_income:
         status = "SUBSIDISED_ACCESSIBLE"
@@ -732,10 +732,13 @@ def min_income_for_access(
         status = "INACCESSIBLE"
 
     accessible_at_guarantee: bool | None = None
-    if guarantee_income is not None:
-        # At guarantee income, maximum subsidy applies (income << median)
-        guf_at_guarantee = GUF_SUBSIDY_FLOOR_RATE * guf_applied
-        accessible_at_guarantee = (guf_at_guarantee / guarantee_income) <= affordability_threshold if guarantee_income > 0 else False
+    if guarantee_income is not None and guarantee_income > 0.0:
+        guf_at_guarantee = income_linked_subsidy(
+            guf_applied, steward_income=guarantee_income, median_income=median_income
+        )["guf_effective"]
+        accessible_at_guarantee = (guf_at_guarantee / guarantee_income) <= affordability_threshold
+    elif guarantee_income is not None:
+        accessible_at_guarantee = False
 
     return {
         "guf_applied":                  guf_applied,
