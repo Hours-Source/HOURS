@@ -1,143 +1,143 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://hours-source.github.io/HOURS/</loc>
+         <loc>https://wiki.hoursframework.org/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/changelog/</loc>
+         <loc>https://wiki.hoursframework.org/changelog/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/contributing/</loc>
+         <loc>https://wiki.hoursframework.org/contributing/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/mission_statement/</loc>
+         <loc>https://wiki.hoursframework.org/mission_statement/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/</loc>
+         <loc>https://wiki.hoursframework.org/api/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/land/</loc>
+         <loc>https://wiki.hoursframework.org/api/land/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/params/</loc>
+         <loc>https://wiki.hoursframework.org/api/params/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/research/</loc>
+         <loc>https://wiki.hoursframework.org/api/research/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/scenarios/</loc>
+         <loc>https://wiki.hoursframework.org/api/scenarios/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/capital/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/capital/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/conditions/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/conditions/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/dynamics/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/dynamics/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/eoh_fulfillment/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/eoh_fulfillment/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/eoh_generation/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/eoh_generation/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/fiscal/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/fiscal/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/multipliers/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/multipliers/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/prices/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/prices/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/simulation/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/simulation/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/trajectory/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/trajectory/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/api/core/workforce/</loc>
+         <loc>https://wiki.hoursframework.org/api/core/workforce/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/guides/cli/</loc>
+         <loc>https://wiki.hoursframework.org/guides/cli/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/guides/extending/</loc>
+         <loc>https://wiki.hoursframework.org/guides/extending/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/guides/quickstart/</loc>
+         <loc>https://wiki.hoursframework.org/guides/quickstart/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/guides/scenarios_howto/</loc>
+         <loc>https://wiki.hoursframework.org/guides/scenarios_howto/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/design_principles/</loc>
+         <loc>https://wiki.hoursframework.org/theory/design_principles/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/diagrams/</loc>
+         <loc>https://wiki.hoursframework.org/theory/diagrams/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/eoh_accounting/</loc>
+         <loc>https://wiki.hoursframework.org/theory/eoh_accounting/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/epsilon_arc/</loc>
+         <loc>https://wiki.hoursframework.org/theory/epsilon_arc/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/four_domains/</loc>
+         <loc>https://wiki.hoursframework.org/theory/four_domains/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/guf_framework/</loc>
+         <loc>https://wiki.hoursframework.org/theory/guf_framework/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/overview/</loc>
+         <loc>https://wiki.hoursframework.org/theory/overview/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/regenerative_labor/</loc>
+         <loc>https://wiki.hoursframework.org/theory/regenerative_labor/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/structural_conditions/</loc>
+         <loc>https://wiki.hoursframework.org/theory/structural_conditions/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
     <url>
-         <loc>https://hours-source.github.io/HOURS/theory/three_economies/</loc>
+         <loc>https://wiki.hoursframework.org/theory/three_economies/</loc>
          <lastmod>2026-06-03</lastmod>
     </url>
 </urlset>
