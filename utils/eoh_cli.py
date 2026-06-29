@@ -10,6 +10,7 @@ Commands:
   simulate     Multi-period simulation
   sensitivity  Parameter sensitivity analysis
   guf          Ground Use Fee calculations
+  multiplier   Tier multiplier four-factor breakdown and arc sweep
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ import utils.scenario_cmd as scenario_cmd
 import utils.simulate_cmd as simulate_cmd
 import utils.sensitivity_cmd as sensitivity_cmd
 import utils.guf_cmd as guf_cmd
+import utils.multiplier_cmd as multiplier_cmd
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -51,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     simulate_cmd.build_parser(sub)
     sensitivity_cmd.build_parser(sub)
     guf_cmd.build_parser(sub)
+    multiplier_cmd.build_parser(sub)
 
     return parser
 
