@@ -1,5 +1,150 @@
 # CLAUDE.md
 
+## Current Task
+
+0. One-line mission
+
+Take the HOURS model from "high-level functions that run simulations" to "in-depth, documented, reproducible mechanics that a researcher or a foundation can read, trust, and instantiate" — and fold in the reconciliation decisions made in the attached design documents, starting with a full multiplier and a contestability layer.
+
+1. Files to attach to this session
+
+Design documents produced in the prior session all found in notes/ :
+
+
+hours-reconciliation.md — the controlling spec. Its §§6–9 define the price-as-floor reframing, the polycentric/Coasean architecture, the contestability invariant and its math, and the prioritized open-work list. Treat this as the source of truth for what to build.
+coasean-collectives.md — the conceptual basis for the multi-collective workstream (D).
+historical-autopsy.md — the failure-mode taxonomy and the revised scorecard. Use it as an acceptance checklist: each change should move a named failure mode, not just add code.
+HOURS_-_Time_Currency_Framework_For_Automation.docx — the working paper. Source of the full multiplier assessment function, the Comprehensive Price Identity, the fiscal mechanisms, and the module list. When the README and the paper disagree on detail, surface it rather than guessing.
+
+
+Repo files to read first, before writing anything (in this order):
+
+
+CLAUDE.md — architecture reference, module layout, design invariants, layer rules. Authoritative for repo conventions.
+CONTRIBUTING.md — function requirements (note the ε-coherence rule).
+README.md — package structure, CLI, structural conditions.
+docs/ — especially theory/overview and design principles.
+hours_eoh/params.py and hours_eoh/data.py — the parameter container and constants.
+hours_eoh/core/ — especially eoh_fulfillment.py (the EOH→TEH pipeline and where the multiplier is applied), fiscal.py (levies, guarantee, Trust), registration.py, eoh_generation.py, trajectory.py, simulation.py.
+utils/eoh_cli.py — the research CLI (commands: arc, dashboard, params, scenario, simulate, sensitivity, guf).
+tests/ — the 998-test suite; learn its patterns before adding to it.
+
+
+First action: read the above, then produce a short written map of (a) where each paper "module" currently lives in code, and (b) which modules are only high-level stubs. That gap map drives everything else.
+
+2. Context — what was decided in the design session
+
+The reconciliation resolved a tension between two "engines" in the framework: objectivity (measured prices, inflation impossible by definition) vs transparency + discovery (a measured floor, market discovery above it, polycentric collectives). The decision was to make transparency-plus-discovery load-bearing and demote measured-pricing to a floor. Three consequences drive this codebase work:
+
+
+The computed price is the floor price, not the price. Discovery happens above it and between collectives.
+The system is a federation of Coasean collectives; the number of collectives is emergent from the automation level ε, not fixed. The current single-ledger model is the ε→1 limit case.
+The invariant held constant across the whole ε arc is contestability — substantive right of exit — guaranteed by a portable, commonly-held, ε-growing capital dividend. Its math is in hours-reconciliation.md §8 and is summarized in Workstream B below.
+
+
+3. Standing guardrails (apply to every workstream)
+
+
+Honor the layer rules. core/ stays pure and imports nothing outside itself. Experimental work (contestability, multi-collective) goes in research/ until it has a stable API and tests. scenarios/ and land/ may import core/ but never the reverse.
+ε-coherence is mandatory. Every new function must return physically meaningful output across the full arc ε ∈ [0, 0.99], not just at the 0.40 reference. Add an arc test for each.
+Keep the suite green and typed. All 998 existing tests must still pass; add tests for new code; python3 -m mypy hours_eoh/ must stay clean.
+Additive, not destructive. Prefer new modules and new functions; deprecate rather than delete public API; don't break the CLI.
+License. Repo is AGPL-3.0; preserve headers and license obligations.
+Author sign-off for theory changes. Some items below are substantive intellectual commitments, not refactors (the price-as-floor reframing, demoting system-wide inflation-impossibility to a floor/limit property, and any objectivity→transparency language change). Implement these behind clearly-labeled PRs/issues that link the reconciliation doc, for the author (AWol) to approve. Do not silently rewrite the theory in docstrings or docs.
+
+
+4. Workstreams
+
+A. The multiplier — full breakdown (highest-priority deepening)
+
+Why: the README models Condition II as a "Multiplier Band" check; the paper specifies a full assessment function. This is the single biggest "high-level stub → in-depth mechanic" gap, and it is the skill-differential wound from the autopsy.
+Build: a dedicated module (suggest hours_eoh/core/multiplier.py, or extend wherever the multiplier is currently applied — confirm first) implementing the paper's assessment function in full:
+
+
+m(c) = 1 + α₁·T(c) + α₂·D(c) + α₃·S(c) + α₄·I(c) over the four factors (training/skill-acquisition cost, demand, scarcity, impact), with epoch-adaptive weights αᵢ(ε).
+Enforce the constitutional band (mean ≈ the paper's [1.8, 2.1], hard cap ≈ 6.0) as a checked invariant, not a hard-coded constant.
+Implement the paper's scarcity-feedback handling (scarcity is endogenous → use the lagged/decayed measure the paper specifies) and the decomposed "impact" sub-questions.
+Encode the governance safeguards as parameters/hooks: sortition-based assessor selection, adversarial-review flag, inter-rater-reliability inputs, and a sunset/revalidation clock. These can be data structures and validators now; they document the mechanism even before they're fully simulated.
+Reframe per §3 above: the multiplier sets the floor wage rate, not the universal price. Document this; it eases the measurement burden (the multiplier need only be fair-enough at the floor).
+Acceptance: multiplier reproducible and band-compliant across the arc; a CLI/notebook breakdown that shows the four-factor contributions at chosen ε; tests at ε ∈ {0, 0.4, 0.99}; docstring states the governing equation.
+
+
+B. Contestability instrumentation (legitimacy-critical, new)
+
+Why: hours-reconciliation.md §8 makes contestability the invariant the whole arc must preserve. Nothing in the repo measures it yet.
+Build: hours_eoh/research/contestability.py implementing:
+
+
+P(epsilon) — portable per-capita endowment (Sufficiency floor + vested per-capita share of the commonly-held Trust). Hook into fiscal.py's Trust/guarantee.
+k_entry(epsilon, regime) — sunk cost of founding a viable alternative collective, with a regime switch: increasing_returns (K_entry rises with ε) vs replicable (K_entry falls). Default to the adversarial increasing_returns case.
+chi(epsilon, regime) = P / k_entry — the contestability margin; invariant requires χ ≥ 1 across the arc.
+phi(epsilon) — commonized fraction of automation value; in the adversarial regime it must be able to → 1 as ε → 1.
+tau(epsilon) = T/K (Trust share of total automated capital) and a check that dτ/dε ≥ 0 ⇔ g_Trust ≥ g_priv — the Piketty-inverted condition. Derive the common-fund levy schedule that satisfies it and expose it as a function of ε.
+Wire in: add a CLI command contestability (arc table of ε, P, k_entry, χ, φ, τ, pass/fail) and a line in dashboard that goes RED when χ < 1. Add a scenario contestability_stress (increasing-returns regime, rising K_entry) to the scenario list.
+Acceptance: a reproducible χ(ε) chart across the arc under both regimes; a derived levy schedule that holds χ ≥ 1 in the adversarial regime; tests; honest docstring noting the regime uncertainty (reconciliation §8.5).
+
+
+C. Price-as-floor refactor (theory-flagged — open PR for sign-off)
+
+Why: reconciliation §3 demotes the Comprehensive Price Identity to the floor price.
+Build: locate the price computation feeding the CLI arc "price" column (likely eoh_fulfillment.py/fiscal.py). Expose it explicitly as floor_price(...) and add a market_premium hook (default 0.0) so discovered premiums can layer above the floor without changing the floor's guarantee. Update docstrings to say "floor price, not the price."
+Acceptance: behavior unchanged at default (premium 0); the seam is now explicit and documented; PR links reconciliation §3 and §9-item-3 and asks the author to confirm the reframing before merge.
+
+D. Polycentric / Coasean scaffolding (research-tier, larger)
+
+Why: reconciliation §§6–7 and coasean-collectives.md. The current single ledger is the mono limit; the general case is N collectives trading at floating rates.
+Build (in research/): a Collective wrapper around the existing single-ledger pipeline; an N-collective simulation with pairwise exchange rates and reserve holdings; and the three-regime inflation metric (within-collective floor-impossibility at all ε; inter-collective relative inflation as FX in transition; system-wide impossibility as the ε→1 limit) from reconciliation §7. Let the Coasean boundary (collective size) be an emergent function of ε rather than a fixed input.
+Acceptance: an N-collective scenario that reproduces, at N=1, the existing single-ledger results exactly (a regression anchor); an inter-collective inflation series that behaves per §7; clearly marked experimental status.
+
+E. Research & foundation accessibility (the through-line goal)
+
+Why: the explicit aim — make the modules legible and instantiable, not just runnable.
+Build:
+
+
+In-depth docstrings: every core/ function gains the governing equation, units, ε-behavior, and a worked numeric example. This is the "full-blown workings" the high-level stubs lack.
+Parameter provenance table: for every EohParams value, document source/derivation and whether it is physics (structural) or a calibration knob. Put it in docs/ and link from the README.
+Reproducible figure/notebook scripts (suggest examples/ or docs/notebooks/): the arc sweep, the multiplier four-factor breakdown (A), and the χ(ε) contestability chart (B), each runnable end-to-end from repo root.
+Foundation Implementation Guide (docs/): how an institution maps its real data (capital stock, ecosystem health, population structure, knowledge base) onto the EOH inputs; which parameters to calibrate; how to run a scenario against local data; what outputs mean. Written for an analyst, not a core dev.
+Acceptance: a newcomer can go from clone → understand one core mechanism in depth → run a figure → see how to plug in their own numbers, using only docs/ and examples/.
+
+
+F. Objectivity → transparency language pass (theory-flagged — open PR for sign-off)
+
+Why: reconciliation §9-item-9. Replace physical-truth claims ("the currency tells the truth," "better physics") with show-your-work / floor framing in README and docs/.
+Do not apply unilaterally. Open a single PR proposing the wording changes with the reconciliation rationale, for author approval. Low effort, high return, but it is a positioning decision.
+
+5. What NOT to do
+
+
+Do not delete or rewrite the existing inflation-impossibility result; reframe it as floor-level/limit per §7 and leave the original theorem documented as the ε→1 case (behind a sign-off PR).
+Do not move experimental code into core/ until it has a stable API and full tests.
+Do not invent function signatures from this prompt; confirm the real ones in the code first (this prompt is written from the README, not the module internals).
+Do not change calibration constants to make a chart look better; if a result is ugly, report it.
+
+
+6. Definition of done (per PR)
+
+New/changed code has: governing-equation docstrings, arc tests at ε ∈ {0, 0.4, 0.99}, green full suite, clean mypy, a CLI or notebook entry point where user-facing, and — for theory-flagged items (C, D's reframing, F) — a PR description linking the relevant reconciliation section and explicitly requesting author sign-off.
+
+7. Suggested sequencing
+
+
+Gap map (§1 first action) — where each paper module lives, which are stubs.
+A. Multiplier — biggest deepening win, self-contained.
+B. Contestability — legitimacy-critical; depends on fiscal.py Trust hooks.
+E. Accessibility — run alongside A and B so each new mechanic ships with its docstring, provenance entry, and figure.
+C. Price-as-floor — small, but theory-flagged; open the sign-off PR early so it can be discussed in parallel.
+D. Polycentric scaffolding — largest; research-tier; anchor it with the N=1 regression test.
+F. Language pass — last, as a single reviewable PR.
+
+
+8. The test that this prompt succeeded
+
+A researcher who has never seen HOURS can open the repo, read one core mechanism (say the multiplier) and understand its full workings from the docstring alone, run the χ(ε) contestability chart to see whether exit stays viable across the arc, and find a guide telling them how to plug their own institution's data in — and every claim the code makes about itself is a show-your-work claim the ledger can back, not a physics-truth claim it cannot.
+
+
+
 ## Commands
 
 ```bash
@@ -14,6 +159,7 @@ for f in diagrams/*.mmd; do mmdc -i "$f" -o "docs/images/$(basename $f .mmd).svg
 The package is importable directly from the repo root. `tests/conftest.py` adds the repo root to sys.path automatically for all tests.
 
 ---
+
 
 ## Architecture
 

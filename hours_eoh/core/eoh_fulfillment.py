@@ -109,18 +109,24 @@ def teh_created(
     """
     TEH created when workers fulfill registered EOH at their multiplied tier rates.
 
-    The fundamental formula: TEH = EOH_registered × multiplier.
+    Governing equation:
+        TEH = EOH_registered × m̄
 
-    Example: 100 EOH of infrastructure maintenance by a Tier 3 worker at 3.0×
-    creates 300 TEH. The multiplier measures entropy-reduction leverage —
-    how much EOH one hour of this person's labor addresses.
+    where m̄ = population_weighted_mean_multiplier() across all workers fulfilling
+    registered EOH in this period.
 
-    The mean_multiplier is the population-weighted average across all workers
-    fulfilling registered EOH. It must satisfy Condition II (band [1.8, 2.1]).
+    Worked example: 1,000 registered EOH fulfilled by a workforce with mean
+    multiplier m̄ = 2.10 → 2,100 TEH created this period.
+    At m̄ = 1.0 (all base tier): 1,000 EOH → 1,000 TEH.
+    At m̄ = 3.0 (advanced workforce): 1,000 EOH → 3,000 TEH.
+
+    The mean_multiplier must satisfy Condition II (band [1.8, 2.1]). Caller is
+    responsible for verifying this via multiplier_band_check() before passing
+    mean_multiplier here. This function does not gate on the band.
 
     Args:
         registered_eoh_hours: Registered EOH fulfilled this period (hours).
-        mean_multiplier: Population-weighted mean multiplier (must be in band).
+        mean_multiplier: Population-weighted mean multiplier (must be ≥ 1.0).
 
     Returns:
         TEH created (currency units — 1 TEH = 1 verified hour of entropy resistance).

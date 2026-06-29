@@ -17,10 +17,17 @@ from hours_eoh.core.multipliers import (
     detect_artificial_scarcity,
     tier_expiry_check,
     reclassification_impact,
+    compute_impact_score,
+    assess_tier,
 )
 from hours_eoh.data import (
     DEFAULT_SEGMENTS, M_BAND_LOW, M_BAND_HIGH,
     SCARCITY_SEVERE_THRESHOLD, TIER_ASSESSMENT_INTERVAL_YEARS,
+    ALPHA_SCALE,
+    ALPHA_IMPACT_EOH_REDUCTION_WEIGHT, ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT,
+    ALPHA_IMPACT_RESILIENCE_WEIGHT,
+    GOVERNANCE_IRR_WARN_THRESHOLD, GOVERNANCE_IRR_CRIT_THRESHOLD,
+    GOVERNANCE_MIN_ASSESSORS,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -74,11 +81,12 @@ class TestMultiplierSystem:
         m = tier_multiplier(training=0.8, demand=0.7, scarcity=0.6, impact=0.9)
         assert m > 2.0, f"High-leverage engineer should have m > 2.0, got {m:.2f}"
 
-    def test_epoch_alpha_weights_sum_to_one(self):
+    def test_epoch_alpha_coefficients_sum_to_alpha_scale(self):
         for eps in KEY_EPSILONS:
-            weights = epoch_alpha_weights(eps)
-            assert sum(weights) == pytest.approx(1.0, abs=1e-6), (
-                f"Alpha weights must sum to 1.0 at ε={eps}"
+            coefficients = epoch_alpha_weights(eps)
+            assert sum(coefficients) == pytest.approx(ALPHA_SCALE, abs=1e-6), (
+                f"Alpha coefficients must sum to ALPHA_SCALE={ALPHA_SCALE} at ε={eps}, "
+                f"got {sum(coefficients):.6f}"
             )
 
     def test_epoch_alpha_weights_all_positive(self):
@@ -434,3 +442,139 @@ class TestReclassificationImpact:
         after_names = {s["name"]: s["mean_mu"] for s in result["segments_after"]}
         assert after_names["base"] == pytest.approx(1.30)
         assert after_names["standard"] == pytest.approx(2.00)
+
+
+class TestTierMultiplierAdditiveFormula:
+
+    def test_formula_is_additive_single_factor(self):
+        """Single non-zero coefficient: m = 1 + a1*T, strictly additive."""
+        m = tier_multiplier(0.5, 0.0, 0.0, 0.0, alpha_coefficients=(2.0, 0.0, 0.0, 0.0))
+        assert m == pytest.approx(2.0), (
+            f"Expected 1 + 2.0×0.5 = 2.0, got {m}"
+        )
+
+    def test_cap_still_enforced_with_large_coefficients(self):
+        """Huge coefficients with all-ones factors must clamp to M_MAX."""
+        from hours_eoh.data import M_MAX
+        m = tier_multiplier(1.0, 1.0, 1.0, 1.0, alpha_coefficients=(10.0, 10.0, 10.0, 10.0))
+        assert m == pytest.approx(M_MAX)
+
+    def test_floor_at_zero_factors(self):
+        """All-zero factors always produce exactly 1.0 regardless of coefficients."""
+        m = tier_multiplier(0.0, 0.0, 0.0, 0.0, alpha_coefficients=(3.0, 1.0, 0.5, 0.5))
+        assert m == pytest.approx(1.0)
+
+    def test_arc_coherence_coefficients(self):
+        """At each key ε, epoch_alpha_weights() returns positive coefficients summing to ALPHA_SCALE."""
+        for eps in KEY_EPSILONS:
+            coefficients = epoch_alpha_weights(eps)
+            assert len(coefficients) == 4
+            assert all(c > 0 for c in coefficients), (
+                f"All coefficients must be positive at ε={eps}: {coefficients}"
+            )
+            assert sum(coefficients) == pytest.approx(ALPHA_SCALE, abs=1e-6), (
+                f"Coefficients must sum to ALPHA_SCALE={ALPHA_SCALE} at ε={eps}"
+            )
+
+
+class TestComputeImpactScore:
+
+    def test_weighted_sum_known_values(self):
+        """I = w_eoh×0.8 + w_cov×0.6 + w_res×0.4 with default weights."""
+        expected = (
+            ALPHA_IMPACT_EOH_REDUCTION_WEIGHT * 0.8
+            + ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT * 0.6
+            + ALPHA_IMPACT_RESILIENCE_WEIGHT * 0.4
+        )
+        result = compute_impact_score(
+            eoh_reduction_fraction=0.8,
+            domain_coverage=0.6,
+            resilience_contribution=0.4,
+        )
+        assert result == pytest.approx(expected, abs=1e-9)
+
+    def test_all_ones_returns_one(self):
+        assert compute_impact_score(1.0, 1.0, 1.0) == pytest.approx(1.0)
+
+    def test_all_zeros_returns_zero(self):
+        assert compute_impact_score(0.0, 0.0, 0.0) == pytest.approx(0.0)
+
+    def test_out_of_range_raises(self):
+        with pytest.raises(ValueError):
+            compute_impact_score(1.5, 0.5, 0.5)
+
+    def test_weight_mismatch_raises(self):
+        with pytest.raises(ValueError):
+            compute_impact_score(0.5, 0.5, 0.5, w_eoh=0.5, w_cov=0.5, w_res=0.5)
+
+
+class TestAssessTier:
+
+    def test_governance_ok_all_valid_inputs(self):
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+            governance={
+                "sortition_flag":     True,
+                "assessor_count":     5,
+                "irr_score":          0.85,
+                "adversarial_review": True,
+            },
+        )
+        assert result["governance_status"] == "OK"
+        assert result["passes_governance"] is True
+        assert result["warnings"] == []
+        assert result["multiplier"] >= 1.0
+
+    def test_governance_warn_low_assessors(self):
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+            governance={"assessor_count": GOVERNANCE_MIN_ASSESSORS - 1},
+        )
+        assert result["governance_status"] == "WARN"
+        assert result["passes_governance"] is True
+        assert any("assessor_count" in w for w in result["warnings"])
+
+    def test_governance_warn_irr_below_warn_threshold(self):
+        irr = GOVERNANCE_IRR_WARN_THRESHOLD - 0.05
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+            governance={"irr_score": irr},
+        )
+        assert result["governance_status"] == "WARN"
+        assert result["passes_governance"] is True
+
+    def test_governance_crit_irr_below_crit_threshold(self):
+        irr = GOVERNANCE_IRR_CRIT_THRESHOLD - 0.05
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+            governance={"irr_score": irr},
+        )
+        assert result["governance_status"] == "CRIT"
+        assert result["passes_governance"] is False
+
+    def test_no_governance_returns_ok(self):
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+        )
+        assert result["governance_status"] == "OK"
+        assert result["warnings"] == []
+        assert result["sunset_check"] is None
+
+    def test_sunset_check_wired_when_epochs_provided(self):
+        result = assess_tier(
+            training=0.5, demand=0.4, scarcity=0.2, impact=0.3, epsilon=0.40,
+            governance={"review_epoch": 2010, "current_epoch": 2025},
+        )
+        assert result["sunset_check"] is not None
+        assert result["sunset_check"]["status"] == "OVERDUE"
+        assert any("expired" in w.lower() or "overdue" in w.lower()
+                   or "elapsed" in w.lower() for w in result["warnings"])
+
+    def test_result_keys_present(self):
+        result = assess_tier(
+            training=0.3, demand=0.3, scarcity=0.2, impact=0.2, epsilon=0.40,
+        )
+        assert set(result.keys()) == {
+            "multiplier", "alpha_coefficients", "governance_status",
+            "warnings", "passes_governance", "sunset_check", "inputs",
+        }

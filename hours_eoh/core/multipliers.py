@@ -18,12 +18,18 @@ across all three layers without structural change."
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from hours_eoh.data import (
     DEFAULT_SEGMENTS, M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX,
     SCARCITY_ROLLING_WINDOW, SCARCITY_SUPPLY_LAG_YEARS, SCARCITY_SEVERE_THRESHOLD,
     TRAINING_VALIDATION_TOLERANCE,
     ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR, ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD,
     TIER_ASSESSMENT_INTERVAL_YEARS,
+    ALPHA_SCALE,
+    ALPHA_IMPACT_EOH_REDUCTION_WEIGHT, ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT,
+    ALPHA_IMPACT_RESILIENCE_WEIGHT,
+    GOVERNANCE_MIN_ASSESSORS, GOVERNANCE_IRR_WARN_THRESHOLD, GOVERNANCE_IRR_CRIT_THRESHOLD,
 )
 
 
@@ -236,33 +242,51 @@ def tier_multiplier(
     demand: float,
     scarcity: float,
     impact: float,
-    alpha_weights: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25),
+    alpha_coefficients: tuple[float, float, float, float] = (1.25, 1.25, 1.25, 1.25),
     m_max: float = M_MAX,
 ) -> float:
     """
     Compute a tier multiplier from the four-factor entropy-reduction assessment.
 
+    Paper §4.2 additive form:
+        m(c) = 1 + α₁·T(c) + α₂·D(c) + α₃·S(c) + α₄·I(c)
+
+    NOTE: this multiplier sets the floor wage rate, not the economy-wide price.
+    See reconciliation §3 and §5. Awaiting author sign-off before propagating to README/docs/.
+
     The four factors each measure a dimension of entropy-reduction leverage:
-    - Training:  Investment required to develop this entropy-reduction capability
-    - Demand:    Intensity of EOH demand for this specific skill
-    - Scarcity:  How rare practitioners are relative to EOH demand for their skill
-    - Impact:    Measurable EOH reduction per hour of this person's labor
+    - Training (T):  Investment required to develop this entropy-reduction capability
+    - Demand (D):    Intensity of EOH demand for this specific skill
+    - Scarcity (S):  How rare practitioners are relative to EOH demand for their skill
+    - Impact (I):    Measurable EOH reduction per hour of this person's labor (use
+                     compute_impact_score() to derive from observable sub-questions)
 
-    Each factor ∈ [0, 1]. Multiplier = 1.0 (base) + weighted factor sum scaled
-    to (m_max - 1). Clamped to [1.0, m_max].
+    Each factor ∈ [0, 1]. Each αᵢ is an absolute coefficient in TEH/hr per unit
+    factor score. The default (1.25, 1.25, 1.25, 1.25) sums to ALPHA_SCALE = 5.0,
+    so m reaches M_MAX = 6.0 when all factors are 1.0.
 
-    The four-factor weights (alpha_weights) shift across economic layers — in the
-    care economy, Training and Impact dominate; in production, Demand and Scarcity
-    are prominent; in stewardship, all four balance. But the formula is structurally
-    unchanged across layers (Mission Statement: Principle 4).
+    For arc-correct behavior across the automation arc, pass
+    alpha_coefficients = epoch_alpha_weights(epsilon). At ε=0.40 the returned
+    coefficients are approximately (1.70, 1.25, 0.91, 1.14).
+
+    ε-behavior of coefficients (from epoch_alpha_weights):
+    - α₁ (training): high throughout; rises further as ε→1 (deep expertise)
+    - α₂ (demand): peaks near ε=0.40 (production economy), falls at high ε
+    - α₃ (scarcity): rises sharply at high ε (rare skills become critical)
+    - α₄ (impact): holds residual; high at low ε, compressed at high ε
+
+    Worked example at ε=0.40 (α ≈ 1.70, 1.25, 0.91, 1.14):
+        T=0.65, D=0.55, S=0.30, I=0.45
+        m = 1 + 1.70×0.65 + 1.25×0.55 + 0.91×0.30 + 1.14×0.45 ≈ 3.58
 
     Args:
         training: Training requirement ∈ [0, 1].
         demand: EOH demand intensity ∈ [0, 1].
-        scarcity: Practitioner scarcity ∈ [0, 1].
-        impact: Societal EOH impact ∈ [0, 1].
-        alpha_weights: Weight of each factor (must sum to 1.0).
-        m_max: Maximum allowed multiplier. Default: 6.0.
+        scarcity: Practitioner scarcity ∈ [0, 1]. Use scarcity_score() to derive.
+        impact: Societal EOH impact ∈ [0, 1]. Use compute_impact_score() to derive.
+        alpha_coefficients: Absolute TEH/hr coefficients for each factor. Expected
+            to sum to ALPHA_SCALE (= M_MAX - 1 = 5.0). Default: balanced equal weights.
+        m_max: Maximum allowed multiplier. Default: M_MAX = 6.0.
 
     Returns:
         Tier multiplier ∈ [1.0, m_max].
@@ -279,12 +303,8 @@ def tier_multiplier(
         if not 0.0 <= val <= 1.0:
             raise ValueError(f"Factor '{name}' must be in [0, 1], got {val}")
 
-    if abs(sum(alpha_weights) - 1.0) > 0.001:
-        raise ValueError(f"alpha_weights must sum to 1.0, got {sum(alpha_weights):.4f}")
-
-    factor_values = (training, demand, scarcity, impact)
-    weighted_sum = sum(a * f for a, f in zip(alpha_weights, factor_values))
-    raw = 1.0 + weighted_sum * (m_max - 1.0)
+    a1, a2, a3, a4 = alpha_coefficients
+    raw = 1.0 + a1 * training + a2 * demand + a3 * scarcity + a4 * impact
     return min(max(raw, 1.0), m_max)
 
 
@@ -296,11 +316,19 @@ def epoch_alpha_weights(
     epsilon: float,
 ) -> tuple[float, float, float, float]:
     """
-    Factor weights (training, demand, scarcity, impact) adapted to automation level.
+    Absolute alpha coefficients (training, demand, scarcity, impact) for the
+    tier_multiplier() additive formula, adapted to automation level.
 
-    The relative weight of each four-factor dimension shifts as the economy
-    transitions through care, production, and stewardship layers. No discrete
-    switch — continuous blending across the epsilon range.
+    Governing equations:
+        α₁(ε) = BASE_train + SLOPE_train × ε
+        α₂(ε) = BASE_demand − CURV_demand × (ε − ε_peak)²
+        α₃(ε) = BASE_scarcity + GROWTH_scarcity × ε²
+        α₄(ε) = residual (floor-clamped, renormalized)
+
+    All four are then normalized to relative fractions, then scaled by ALPHA_SCALE
+    so they sum to ALPHA_SCALE = M_MAX − 1 = 5.0.  The shape (which factor
+    dominates at each ε) is unchanged from the normalized form; only the scale
+    changes. To recover normalized fractions: divide each coefficient by ALPHA_SCALE.
 
     At ε=0 (care/subsistence economy):
       Training and Impact dominate — building and deploying human capacity
@@ -309,16 +337,21 @@ def epoch_alpha_weights(
     At ε=0.40 (production economy):
       All four factors relatively balanced — standard professional tiers.
 
-    At ε=0.90 (stewardship economy):
+    At ε≈0.99 (stewardship economy):
       Scarcity becomes critical — rare skills for rare maintenance tasks.
       Training remains high — deep expertise required for complex systems.
+
+    Example coefficient values:
+        ε=0.00: α ≈ (1.50, 1.17, 0.75, 1.58)  sum = 5.0
+        ε=0.40: α ≈ (1.70, 1.25, 0.91, 1.14)  sum = 5.0
+        ε=0.99: α ≈ (1.98, 1.06, 1.71, 0.25)  sum = 5.0
 
     Args:
         epsilon: Automation level [0.0, 0.99].
 
     Returns:
-        Tuple (alpha_training, alpha_demand, alpha_scarcity, alpha_impact)
-        summing to 1.0.
+        Tuple (alpha_training, alpha_demand, alpha_scarcity, alpha_impact) of
+        absolute TEH/hr coefficients summing to ALPHA_SCALE ≈ 5.0.
 
     Reference: Mission Statement §"Principle 4" — "the relative weighting of
     factors shifts as the economy evolves."
@@ -335,12 +368,13 @@ def epoch_alpha_weights(
     # Impact: high throughout; normalize remainder
     alpha_impact = 1.0 - alpha_training - alpha_demand - alpha_scarcity
 
-    # Clamp and renormalize to handle edge cases
+    # Clamp to minimum floor and renormalize to relative fractions, then scale
+    # to absolute coefficients summing to ALPHA_SCALE
     alphas = [max(_ALPHA_FACTOR_MIN, a) for a in
               (alpha_training, alpha_demand, alpha_scarcity, alpha_impact)]
     total = sum(alphas)
-    normalized = tuple(a / total for a in alphas)
-    return normalized  # type: ignore[return-value]
+    absolute = tuple(a / total * ALPHA_SCALE for a in alphas)
+    return absolute  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
@@ -605,4 +639,193 @@ def tier_expiry_check(
         "remaining":      remaining,
         "expired":        expired,
         "status":         status,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Impact Score Decomposition
+# ---------------------------------------------------------------------------
+
+def compute_impact_score(
+    eoh_reduction_fraction: float,
+    domain_coverage: float,
+    resilience_contribution: float,
+    w_eoh: float = ALPHA_IMPACT_EOH_REDUCTION_WEIGHT,
+    w_cov: float = ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT,
+    w_res: float = ALPHA_IMPACT_RESILIENCE_WEIGHT,
+) -> float:
+    """
+    Decompose the impact factor I(c) ∈ [0,1] from observable sub-questions.
+
+    Governing equation:
+        I(c) = w_eoh · eoh_reduction_fraction
+             + w_cov · domain_coverage
+             + w_res · resilience_contribution
+
+    Sub-questions:
+        eoh_reduction_fraction: fraction of domain EOH one practitioner eliminates
+            per hour of labor (e.g. a surgeon addressing 40% of demand = 0.40) ∈ [0,1]
+        domain_coverage: fraction of domain EOH breadth this role contributes to
+            (e.g. a generalist covering 60% of domain needs = 0.60) ∈ [0,1]
+        resilience_contribution: emergency reserve capacity
+            (0 = no reserve role, 1 = critical-path emergency responder) ∈ [0,1]
+
+    The result feeds directly into tier_multiplier() as the `impact` argument.
+    The default weights sum to 1.0; if custom weights are supplied they must also
+    sum to 1.0 (validated here).
+
+    Args:
+        eoh_reduction_fraction: Fraction of EOH demand addressed per practitioner-hour ∈ [0,1].
+        domain_coverage: Breadth of EOH domain served by this role ∈ [0,1].
+        resilience_contribution: Emergency reserve capacity ∈ [0,1].
+        w_eoh: Weight for EOH reduction. Default: ALPHA_IMPACT_EOH_REDUCTION_WEIGHT.
+        w_cov: Weight for domain coverage. Default: ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT.
+        w_res: Weight for resilience. Default: ALPHA_IMPACT_RESILIENCE_WEIGHT.
+
+    Returns:
+        Impact score I(c) ∈ [0,1].
+
+    Raises:
+        ValueError: If any input is outside [0,1] or weights do not sum to 1.0.
+
+    Reference: Mission Statement §"Principle 4" — decomposed impact sub-questions.
+    """
+    for name, val in [("eoh_reduction_fraction", eoh_reduction_fraction),
+                      ("domain_coverage", domain_coverage),
+                      ("resilience_contribution", resilience_contribution)]:
+        if not 0.0 <= val <= 1.0:
+            raise ValueError(f"'{name}' must be in [0, 1], got {val}")
+
+    if abs(w_eoh + w_cov + w_res - 1.0) > 0.001:
+        raise ValueError(
+            f"Weights must sum to 1.0, got {w_eoh + w_cov + w_res:.4f}"
+        )
+
+    return w_eoh * eoh_reduction_fraction + w_cov * domain_coverage + w_res * resilience_contribution
+
+
+# ---------------------------------------------------------------------------
+# Governance Assessment
+# ---------------------------------------------------------------------------
+
+class GovernanceInputs(TypedDict, total=False):
+    """Governance metadata for a tier assessment. All fields optional."""
+    sortition_flag:     bool       # assessors randomly selected from eligible pool
+    assessor_count:     int        # number of independent assessors
+    irr_score:          float      # inter-rater reliability ∈ [0,1]
+    adversarial_review: bool       # external challenge mechanism applied
+    review_epoch:       int | None # epoch of last assessment (for sunset clock)
+    current_epoch:      int | None # current epoch (for sunset clock)
+
+
+def assess_tier(
+    training: float,
+    demand: float,
+    scarcity: float,
+    impact: float,
+    epsilon: float,
+    governance: GovernanceInputs | None = None,
+) -> dict:
+    """
+    Full tier assessment: arc-correct multiplier computation + governance validation.
+
+    Combines epoch_alpha_weights(epsilon) → tier_multiplier() with structured
+    governance checks against thresholds from data.py. Reuses tier_expiry_check()
+    when both review_epoch and current_epoch are provided. Returns a status dict
+    following the codebase's "status/warnings/passes" pattern.
+
+    Governance checks performed (when governance inputs are supplied):
+    - assessor_count < GOVERNANCE_MIN_ASSESSORS → WARN
+    - irr_score < GOVERNANCE_IRR_CRIT_THRESHOLD → CRIT
+    - irr_score < GOVERNANCE_IRR_WARN_THRESHOLD → WARN
+    - not sortition_flag → WARN
+    - sum(alpha_coefficients) > ALPHA_SCALE × 1.10 → WARN (coefficient overshoot)
+    - review_epoch provided and tier is OVERDUE (via tier_expiry_check) → WARN
+
+    The overall governance_status is the worst level across all triggered checks.
+
+    Args:
+        training: Training requirement ∈ [0, 1].
+        demand: EOH demand intensity ∈ [0, 1].
+        scarcity: Practitioner scarcity ∈ [0, 1].
+        impact: Societal EOH impact ∈ [0, 1].
+        epsilon: Automation level [0.0, 0.99] — used to derive alpha_coefficients.
+        governance: Optional governance metadata dict (see GovernanceInputs).
+
+    Returns:
+        dict with keys:
+          "multiplier":         float       — the computed m(c)
+          "alpha_coefficients": tuple       — from epoch_alpha_weights(epsilon)
+          "governance_status":  str         — "OK" | "WARN" | "CRIT"
+          "warnings":           list[str]   — human-readable governance issues
+          "passes_governance":  bool        — True iff status != "CRIT"
+          "sunset_check":       dict|None   — tier_expiry_check() result if epochs provided
+          "inputs":             dict        — echo of all inputs for audit trail
+
+    Reference: Mission Statement §"Governance safeguards" — sortition, IRR, sunset.
+    """
+    alpha_coefficients = epoch_alpha_weights(epsilon)
+    multiplier = tier_multiplier(training, demand, scarcity, impact, alpha_coefficients)
+
+    warnings: list[str] = []
+    severity_levels = {"OK": 0, "WARN": 1, "CRIT": 2}
+    worst = "OK"
+    sunset_check = None
+
+    def _escalate(level: str, message: str) -> None:
+        warnings.append(message)
+        nonlocal worst
+        if severity_levels[level] > severity_levels[worst]:
+            worst = level
+
+    if sum(alpha_coefficients) > ALPHA_SCALE * 1.10:
+        _escalate("WARN",
+            f"alpha_coefficients sum to {sum(alpha_coefficients):.3f}, "
+            f"exceeding ALPHA_SCALE × 1.10 = {ALPHA_SCALE * 1.10:.3f}; "
+            "cap will clamp but coefficients may be miscalibrated")
+
+    if governance:
+        assessor_count = governance.get("assessor_count", GOVERNANCE_MIN_ASSESSORS)
+        if assessor_count < GOVERNANCE_MIN_ASSESSORS:
+            _escalate("WARN",
+                f"assessor_count={assessor_count} < GOVERNANCE_MIN_ASSESSORS="
+                f"{GOVERNANCE_MIN_ASSESSORS}")
+
+        irr_score = governance.get("irr_score", 1.0)
+        if irr_score < GOVERNANCE_IRR_CRIT_THRESHOLD:
+            _escalate("CRIT",
+                f"irr_score={irr_score:.2f} < GOVERNANCE_IRR_CRIT_THRESHOLD="
+                f"{GOVERNANCE_IRR_CRIT_THRESHOLD}")
+        elif irr_score < GOVERNANCE_IRR_WARN_THRESHOLD:
+            _escalate("WARN",
+                f"irr_score={irr_score:.2f} < GOVERNANCE_IRR_WARN_THRESHOLD="
+                f"{GOVERNANCE_IRR_WARN_THRESHOLD}")
+
+        if not governance.get("sortition_flag", True):
+            _escalate("WARN", "sortition_flag=False: assessors were not randomly selected")
+
+        review_epoch = governance.get("review_epoch")
+        current_epoch = governance.get("current_epoch")
+        if review_epoch is not None and current_epoch is not None:
+            sunset_check = tier_expiry_check(review_epoch, current_epoch)
+            if sunset_check["expired"]:
+                _escalate("WARN",
+                    f"Tier assessment expired: {sunset_check['elapsed']} years elapsed, "
+                    f"interval={sunset_check['interval_years']}")
+
+    return {
+        "multiplier":         multiplier,
+        "alpha_coefficients": alpha_coefficients,
+        "governance_status":  worst,
+        "warnings":           warnings,
+        "passes_governance":  worst != "CRIT",
+        "sunset_check":       sunset_check,
+        "inputs": {
+            "training":   training,
+            "demand":     demand,
+            "scarcity":   scarcity,
+            "impact":     impact,
+            "epsilon":    epsilon,
+            "governance": dict(governance) if governance else None,
+        },
     }

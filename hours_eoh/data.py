@@ -256,6 +256,21 @@ M_BAND_HIGH: float = 2.1
 M_BAND_TARGET: float = 2.1
 M_MAX: float = 6.0
 
+# Multiplier — additive formula absolute scale
+# When all four alpha coefficients are at their equal share, each equals
+# ALPHA_SCALE / 4 = 1.25, so m(c) = 1 + Σ αᵢ·fᵢ reaches M_MAX at all-ones.
+ALPHA_SCALE: float = M_MAX - 1.0          # = 5.0; Σαᵢ = ALPHA_SCALE at full range
+
+# Impact sub-question weights for compute_impact_score(); must sum to 1.0.
+ALPHA_IMPACT_EOH_REDUCTION_WEIGHT:   float = 0.40  # fraction of domain EOH eliminated per hour
+ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT: float = 0.35  # breadth of domain EOH this role covers
+ALPHA_IMPACT_RESILIENCE_WEIGHT:      float = 0.25  # emergency reserve capacity
+
+# Governance assessment thresholds
+GOVERNANCE_MIN_ASSESSORS:       int   = 3     # fewer than this triggers a WARN
+GOVERNANCE_IRR_WARN_THRESHOLD:  float = 0.70  # inter-rater reliability below → WARN
+GOVERNANCE_IRR_CRIT_THRESHOLD:  float = 0.50  # inter-rater reliability below → CRIT
+
 # ---------------------------------------------------------------------------
 # Multiplier governance: scarcity dampening (B3)
 # Mission Statement: §"Scarcity — the three-year rolling average prevents
