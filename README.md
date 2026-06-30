@@ -248,12 +248,24 @@ python3 -m pytest tests/test_conditions.py::TestDashboardSnapshot::test_green_at
 python3 -m mypy hours_eoh/
 ```
 
+## Examples
+
+Three standalone scripts demonstrate the core mechanics. Run from repo root with no extra dependencies:
+
+```bash
+python3 examples/arc_sweep.py           # EOH → TEH pipeline across 11 ε points
+python3 examples/multiplier_breakdown.py # four-factor multiplier at {0, 0.40, 0.90, 0.99}
+python3 examples/contestability_chart.py # χ(ε) under replicable vs adversarial regimes
+```
+
 ## Documentation
 
 Full documentation: **[hours-source.github.io/HOURS](https://hours-source.github.io/HOURS/)**
 
 - [Theory](https://hours-source.github.io/HOURS/theory/overview/) — Mathematical foundations, ε arc, structural conditions, design principles
 - [Developer Reference](https://hours-source.github.io/HOURS/api/) — Complete API for all modules with worked examples
+- [Parameter Provenance](https://hours-source.github.io/HOURS/parameter_provenance/) — Every EohParams value: default, units, physics vs. calibration, derivation rationale
+- [Implementation Guide](https://hours-source.github.io/HOURS/guides/implementation_guide/) — How to plug your institution's real data into the model
 - [Guides](https://hours-source.github.io/HOURS/guides/quickstart/) — Quick start, CLI reference, extending the library
 - [Architecture Reference](CLAUDE.md) — Module layout, design invariants, layer rules (local)
 - [Contributing](CONTRIBUTING.md) — Development guide and function requirements

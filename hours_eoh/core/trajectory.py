@@ -103,6 +103,27 @@ def canonical_physical_state(epsilon: float) -> dict:
     automation with rich ecological infrastructure are valid trajectories. The
     canonical arc is the reference against which those trajectories are measured.
 
+    Governing equations (CANONICAL_* constants from data.py):
+
+        capital_stock_teh      = 2.0B × (1 + 2ε)            [TEH]
+        capital_age_ratio      = 0.30 + 0.20ε                [0→1]
+        ecosystem_health       = max(0.01, 0.90 − 0.20ε)    [0→1]
+        monitoring_capability  = 0.50 + 0.50ε                [0→1]
+        knowledge_base_size    = 1.0 + 9ε                    [relative]
+        knowledge_complexity_per_unit = 1.0 + ε² × 9        [factor ≥ 1]
+
+    As ε rises from 0 to 1, capital stock grows (automation requires investment),
+    ecosystem health degrades slightly (productivity pressure on natural systems),
+    monitoring improves (better sensing technology), and knowledge complexity
+    grows dramatically (maintaining a larger knowledge base costs more per unit).
+
+    Worked table at ε∈{0, 0.40, 0.90}:
+
+        ε     capital (B TEH)  eco_health  monitoring  knowledge_size  complexity/unit
+        0.00        2.00          0.900       0.500         1.0              1.00
+        0.40        3.60          0.820       0.700         4.6              2.44
+        0.90        5.60          0.720       0.950         9.1              8.29
+
     The constants defining this arc are in data.py under the CANONICAL_* prefix.
     To recalibrate the arc, change those constants — not this function.
 
@@ -111,13 +132,13 @@ def canonical_physical_state(epsilon: float) -> dict:
 
     Returns:
         dict: {
-          "capital_stock_teh":      float,  — actual current capital stock
-          "capital_age_ratio":      float,  — mean asset age across arc
-          "ecosystem_health":       float,  — ecosystem state on ideal arc
-          "monitoring_capability":  float,  — ecological monitoring capacity
-          "knowledge_base_size":    float,  — knowledge complexity (relative, 1.0 = ε=0 reference)
-          "knowledge_complexity_per_unit": float, — per-unit maintenance cost factor
-          "age_distribution":       dict,   — population age fractions
+          "capital_stock_teh":      float,  TEH — actual current capital stock
+          "capital_age_ratio":      float,  [0→1] — mean asset age / design life
+          "ecosystem_health":       float,  [0→1] — pristine=1.0, collapsed≈0.0
+          "monitoring_capability":  float,  [0→1] — fraction of deferred EOH legible
+          "knowledge_base_size":    float,  [relative] — 1.0 = ε=0 reference level
+          "knowledge_complexity_per_unit": float, [factor ≥ 1] — per-unit maintenance cost
+          "age_distribution":       dict,   — age group → fraction of population
         }
 
     Reference: Mission Statement §"Two attractors: ε=0 (subsistence) and ε=1
@@ -167,6 +188,11 @@ def compute_epsilon(
     for when machine capacity is modeled endogenously: once a machine_capacity
     sub-model tracks actual automated fulfillment, this function produces a
     non-trivial ε that emerges from the physical state rather than being assumed.
+
+    Worked example: machine_eoh_fulfilled = 940M h/yr, total_potential = 2,353M h/yr
+        → ε = 940M / 2,353M = 0.40 (mid-arc, canonical defaults at ε=0.40 imply this)
+    ε=0.40 in concrete EOH terms: machines handle 940M h/yr of the civilization's
+    2,353M h/yr obligation; the remaining 1,413M h/yr falls to human labor.
 
     Args:
         machine_eoh_fulfilled: EOH handled by machines this period (hours/year).

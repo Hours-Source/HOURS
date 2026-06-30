@@ -358,6 +358,30 @@ def eoh_to_teh_pipeline(
           "capital_personal_eoh_fulfilled": float,
         }
 
+    Governing equation (compound over four domains):
+
+        TEH = [Σ_domain  EOH_domain × (1−ε) × reg_share_domain(ε)] × m̄
+
+    where reg_share_domain differs by domain (personal uses demand registration;
+    infrastructure/ecological/knowledge use the labor composite).
+
+    As ε rises from 0 to 1, total_eoh grows (more complex civilization) but
+    human_eoh = total_eoh × (1−ε) falls; registered EOH first rises then falls
+    as registration rates saturate; TEH_created peaks near mid-arc and collapses
+    as ε → 1 (machines handle almost everything).
+
+    Worked example at ε=0.40 (canonical defaults, population=1M, m̄=2.10):
+        total_eoh   = 2,353M h/yr
+        human_eoh   = 2,353M × 0.60         = 1,412M h/yr  (1−ε share)
+        personal reg = 313M × 0.141         =    44M h/yr  (demand sigmoid pers_reg(0.40)=0.141)
+        non-pers reg = 1,098M × 0.592       =   191M h/yr  (labor sigmoid np_reg(0.40)=0.592)
+        registered  =   44M + 191M          =   235M h/yr
+        TEH_created = 235M × 2.10           =   494M TEH/yr
+
+    For comparison:
+        ε=0.00: total=2,288M, human=2,288M, reg=33M, TEH=70M  (near-zero personal reg)
+        ε=0.90: total=2,432M, human=243M,   reg=199M, TEH=419M (high reg, low human supply)
+
     Reference: Mission Statement §"EOH as demand signal" — the pipeline from
     physical obligation to currency creation must be transparent and auditable.
     """

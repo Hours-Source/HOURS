@@ -182,26 +182,43 @@ def basket_price(
     """
     TEH cost of the sufficiency basket at automation level ε.
 
-    The basket contains both goods and services. Goods prices fall
-    steeply with automation (production is automated first). Services
-    prices fall more slowly because care, knowledge, and judgment
-    resist full automation. This shift in relative prices means the
-    basket cost declines, but not as fast as pure-goods prices.
+    The basket contains both goods (60%) and services (40%). Goods prices fall
+    steeply with automation (production is automated first). Services prices fall
+    more slowly because care, knowledge, and judgment resist full automation.
 
-    The basket_price is always positive and monotonically decreasing
-    with ε, which is the mathematical basis for Principle 5.
+    Governing equations:
+
+        goods_ratio     = max(1 − ε × (1 − goods_floor), goods_floor)     [0.05, 1.0]
+        services_ratio  = services_floor + (1 − services_floor) × (1−ε)^0.35  [0.2, 1.0]
+        basket_price    = baseline × (goods_weight × goods_ratio
+                                    + services_weight × services_ratio)
+
+    Five governing parameters (from prices.py constants):
+        baseline_cost_teh   = 120.0 TEH  (basket cost at ε=0 = MEANINGFUL_ACTIVITY_TEH_BASE)
+        goods_weight        = 0.60
+        services_weight     = 0.40
+        goods_price_floor   = 0.05  (goods cannot fall below 5% of ε=0 price)
+        services_price_floor= 0.20  (services floor at 20% — labor-intensive minimum)
+
+    As ε rises from 0 to 1, basket_price falls monotonically — the mathematical
+    basis for Principle 5 (sufficiency purchasing power rises with automation).
+
+    Worked trajectory:
+        ε=0.00: basket_price = 120.0 TEH/yr  (full human-labor cost)
+        ε=0.40: basket_price =  86.4 TEH/yr  (−28% from automation gains)
+        ε=0.90: basket_price =  37.2 TEH/yr  (−69% as services also fall)
 
     Args:
         epsilon: Automation level [0.0, 0.99].
-        baseline_cost_teh: Basket cost at ε=0 (TEH/year). Default: 1020.
+        baseline_cost_teh: Basket cost at ε=0 (TEH/year). Default: 120.0.
         goods_weight: Fraction of basket that is goods. Default: 0.60.
         services_weight: Fraction of basket that is services. Default: 0.40.
-        goods_price_floor: Minimum goods price ratio (can't reach zero).
-        services_price_floor: Minimum services price ratio.
+        goods_price_floor: Minimum goods price ratio (floor). Default: 0.05.
+        services_price_floor: Minimum services price ratio. Default: 0.20.
 
     Returns:
-        TEH cost of the sufficiency basket at ε. Always in
-        (baseline_cost_teh × min_floor, baseline_cost_teh].
+        TEH cost of the sufficiency basket (TEH/yr). Always positive; bounded
+        in (baseline_cost_teh × weighted_floor, baseline_cost_teh].
 
     Reference: Mission Statement §"As automation reduces the human labor
     content of the Sufficiency basket, the Guarantee's purchasing power

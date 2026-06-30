@@ -328,19 +328,38 @@ def sufficiency_guarantee(
             exists — capital handles fulfillment, reducing what individuals need
             TEH to address. Floored at zero so over-fulfillment doesn't go negative.
 
+    Governing equations (two-component guarantee per recipient):
+
+        raw_eoh = ā × personal_eoh_base          (ā = 1.475, age-weighted EOH mean)
+        eoh_reimb = max(0, raw_eoh − capital_fulfilled_per_person)  [TEH/yr]
+        meaningful_activity = base × (1 + scale × ε²)              [TEH/yr]
+        total_per_person = eoh_reimb + meaningful_activity
+        total_cost = recipients × total_per_person
+
+    As ε rises from 0 to 1, total_cost_teh *falls* (fewer recipients × smaller
+    reimbursement as capital handles more personal EOH) even as per-person
+    purchasing power rises (meaningful_activity grows with ε²).
+
+    Worked examples (population=1M, capital_fulfilled=0, canonical defaults):
+
+        ε     recipients  eoh_reimb/person  ma_teh/person  total/person  total_cost
+        0.00    150,000       2,213 TEH        120 TEH      2,333 TEH      350M TEH
+        0.40    130,000       2,213 TEH        149 TEH      2,361 TEH      307M TEH
+        0.70    115,000       2,213 TEH        208 TEH      2,421 TEH      278M TEH
+
     Returns:
         dict: {
           "population":                              float,
           "floor_fraction":                          float,
           "recipients":                              float,
-          "raw_eoh_per_person":                      float,  (age-weighted personal EOH, pre-fulfillment)
+          "raw_eoh_per_person":                      float,  TEH/yr — age-weighted, pre-fulfillment
           "capital_personal_eoh_fulfilled_per_person": float,
-          "eoh_reimbursement_per_person":            float,  (= max(0, raw - capital_fulfilled))
-          "meaningful_activity_teh_effective":       float,  (ε-scaled bonus)
-          "total_per_person":                        float,
-          "eoh_reimbursement_total":                 float,
-          "meaningful_activity_total":               float,
-          "total_cost_teh":                          float,
+          "eoh_reimbursement_per_person":            float,  TEH/yr — max(0, raw − capital_fulfilled)
+          "meaningful_activity_teh_effective":       float,  TEH/yr — ε-scaled discretionary bonus
+          "total_per_person":                        float,  TEH/yr
+          "eoh_reimbursement_total":                 float,  TEH/yr — aggregate
+          "meaningful_activity_total":               float,  TEH/yr
+          "total_cost_teh":                          float,  TEH/yr — total guarantee cost
           "epsilon":                                 float,
         }
 
@@ -550,6 +569,26 @@ def fiscal_snapshot(
         eco_eoh_override: Pre-computed ecological EOH from total_eoh()["ecological"].
             Pass this whenever the caller has already run total_eoh() — otherwise
             ecological_eoh() is recomputed internally. Same pattern as infra_eoh_override.
+
+    Solvency identity (Trust is solvent when):
+
+        levy_inflow + Trust_dividend ≥ stewardship + ecological + guarantee + care_stipend
+
+    Trust dynamics each period:
+        Trust_end = Trust_start − depreciation(dep_rate) − dividend(div_rate) + levy_inflow
+
+    As ε rises from 0 to 1, labor_income falls (machines do more), levy_inflow
+    falls with it, but guarantee_cost also falls (capital fulfills personal EOH),
+    creating a long-run fiscal equilibrium — provided Trust grew large enough
+    during mid-arc to fund obligations through dividend alone.
+
+    Worked example at ε=0.40 (population=1M, Trust=35B TEH, labor_income=494M TEH):
+        levy_inflow     =   6.2M TEH  (494M × 1.25% suff_levy)
+        stewardship     = 282M TEH    (capital stock infrastructure obligation)
+        ecological      =   0.9M TEH  (healthy ecosystem)
+        guarantee       = 307M TEH    (130K recipients × 2,361 TEH/person)
+        trust_dividend  = 630M TEH    (35B × 4.5% dep × 40% div)
+        surplus_deficit =  46.6M TEH  → solvent=True; trust_stable=False (Trust eroding)
 
     Returns:
         dict with "levies", "stewardship", "ecological", "guarantee", "trust",
