@@ -519,3 +519,17 @@ PP_INDEX_WARN_SLOPE:       float = (PP_INDEX_WARN - 1.0) / 0.40  # per-ε slope:
 LEVY_SUFFICIENCY_WARN:     float = 0.02   # YELLOW if levy covers < 2% of guarantee
 CARE_ADMISSION_GREEN_FRAC: float = 0.20   # care share ≥ 20% of saturation → GREEN
 CARE_ADMISSION_YELLOW_FRAC: float = 0.10  # care share ≥ 10% of saturation → YELLOW
+
+# ---------------------------------------------------------------------------
+# Contestability invariant (reconciliation §8)
+# Functional forms proposed, not calibrated from data — see research/contestability.py.
+# ---------------------------------------------------------------------------
+CONTESTABILITY_K0_TEH: float = 1_800.0          # founding cost of a viable alternative collective at ε=0 (TEH/person)
+CONTESTABILITY_K_SLOPE: float = 1.6             # how fast K_entry scales per unit ε
+CONTESTABILITY_K_FLOOR_FRACTION: float = 0.10   # minimum K_entry as fraction of K0 (replicable regime floor)
+CONTESTABILITY_CHI_WARN: float = 1.20           # χ below → YELLOW
+CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant breached)
+CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at ε=0
+CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
+CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
+CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield rate assumption

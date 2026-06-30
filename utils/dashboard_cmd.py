@@ -15,10 +15,12 @@ from hours_eoh.data import (
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
     PERSONAL_EOH_BASE, ESSENTIAL_DOMAINS,
     MEANINGFUL_ACTIVITY_TEH_BASE,
+    CONTESTABILITY_CHI_CRIT,
 )
 from hours_eoh.params import EohParams
+from hours_eoh.research.contestability import contestability_margin
 
-from utils.formatters import bold, status_color, fmt_float, fmt_eps
+from utils.formatters import bold, green, red, status_color, fmt_float, fmt_eps
 
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -128,6 +130,20 @@ def run(args: argparse.Namespace) -> None:
     _fh_row("PP index",              "pp_index",              "pp_status")
     _fh_row("Levy/guarantee ratio",  "levy_to_guarantee_ratio","levy_status")
     _fh_row("Ecological cost",       "ecological_cost",       "ecological_status")
+
+    print()
+    print(bold("Contestability (§8)"))
+    _chi = contestability_margin(
+        args.epsilon, args.population, args.trust_balance,
+    )
+    _cv = _chi["chi"]
+    _chi_label = (
+        green(f"χ = {_cv:.3f} ≥ 1") if _cv >= CONTESTABILITY_CHI_CRIT
+        else red(f"χ = {_cv:.3f} < 1 — EXIT IS NOMINAL")
+    )
+    print(f"  P/K_entry (increasing_returns): {_chi_label}")
+    print(f"  P = {fmt_float(_chi['p'], decimals=0)} TEH/person   "
+          f"K_entry = {fmt_float(_chi['k_entry'], decimals=0)} TEH/person")
 
     for flag_key, flag_label in [("red_flags", "Red flags"), ("yellow_flags", "Warnings")]:
         flags = snap.get(flag_key, [])
