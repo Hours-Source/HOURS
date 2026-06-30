@@ -15,7 +15,7 @@ from hours_eoh.core.trajectory import canonical_physical_state
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.registration import total_registration_share
-from hours_eoh.core.prices import basket_price, floor_purchasing_power
+from hours_eoh.core.prices import basket_price, floor_price, floor_purchasing_power
 from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.data import TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT
@@ -53,7 +53,7 @@ def _sweep(n_points: int, population: float, trust_balance: float) -> list[dict]
         )
         pipeline = eoh_to_teh_pipeline(eps, population=population)
         reg = total_registration_share(eps)
-        price = basket_price(eps)
+        price = floor_price(eps)
         floor_pp_result = floor_purchasing_power(MEANINGFUL_ACTIVITY_TEH_BASE, eps)
         floor_pp = float(floor_pp_result.get("pp_index", 0.0))
 
@@ -77,7 +77,7 @@ def _sweep(n_points: int, population: float, trust_balance: float) -> list[dict]
             "total_eoh": eoh.get("total", 0.0),
             "registration": reg,
             "teh_created": pipeline.get("teh_created", 0.0),
-            "basket_price": price,
+            "floor_price": price,
             "floor_pp": floor_pp,
             "solvent": snap.get("solvent", False),
         })
@@ -99,7 +99,7 @@ def run(args: argparse.Namespace) -> None:
 
     # table
     headers = ["ε", "personal", "infra", "eco", "knowledge", "total_eoh",
-               "reg%", "teh_created", "price", "floor_pp", "solvent"]
+               "reg%", "teh_created", "floor_price", "floor_pp", "solvent"]
     rows = []
     for r in rows_data:
         rows.append([
@@ -111,7 +111,7 @@ def run(args: argparse.Namespace) -> None:
             fmt_float(r["total_eoh"]),
             fmt_pct(r["registration"]),
             fmt_float(r["teh_created"]),
-            fmt_float(r["basket_price"]),
+            fmt_float(r["floor_price"]),
             fmt_float(r["floor_pp"]),
             "Y" if r["solvent"] else "N",
         ])

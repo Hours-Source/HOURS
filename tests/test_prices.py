@@ -13,6 +13,7 @@ from hours_eoh.core.prices import (
     teh_price,
     teh_price_trajectory,
     basket_price,
+    floor_price,
     purchasing_power,
     floor_purchasing_power,
     floor_monotonicity_guard,
@@ -343,3 +344,36 @@ class TestCpiGoodsDestruction:
     def test_mechanism_label(self):
         result = cpi_goods_destruction(1000.0, 0.40)
         assert result["mechanism"] == "D4_cpi"
+
+
+# ===========================================================================
+# floor_price (Workstream C — price-as-floor reframing)
+# ===========================================================================
+
+class TestFloorPrice:
+
+    def test_zero_premium_equals_basket_price_at_all_key_epsilons(self):
+        for eps in KEY_EPSILONS:
+            assert floor_price(eps) == pytest.approx(basket_price(eps), rel=1e-9)
+
+    def test_premium_adds_to_floor(self):
+        for eps in KEY_EPSILONS:
+            fp = floor_price(eps, market_premium=50.0)
+            assert fp == pytest.approx(basket_price(eps) + 50.0, rel=1e-9)
+
+    def test_floor_component_falls_monotonically(self):
+        vals = [floor_price(eps, market_premium=0.0) for eps in KEY_EPSILONS]
+        for lo, hi in zip(vals, vals[1:]):
+            assert hi < lo, f"floor must fall with ε: {lo} → {hi}"
+
+    def test_negative_premium_raises(self):
+        with pytest.raises(ValueError, match="market_premium"):
+            floor_price(0.40, market_premium=-1.0)
+
+    def test_large_premium_dominated_by_premium(self):
+        fp = floor_price(0.40, market_premium=10_000.0)
+        assert fp > 10_000.0
+
+    def test_arc_arc_behavior(self):
+        for eps in KEY_EPSILONS:
+            assert floor_price(eps) > 0

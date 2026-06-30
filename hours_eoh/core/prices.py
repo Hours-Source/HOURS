@@ -1,20 +1,30 @@
 """
-Price Dynamics
+Price Dynamics — Floor Prices
 
-In the EOH framework, price is not set by supply and demand — it is set by
-the human labor content of the good or service. A good costs as many TEH as
-it took human labor to produce. As automation rises, the human labor content
-of produced goods falls, so prices fall automatically.
+In the EOH framework, the TEH ledger sets the **floor price** of a good or
+service: the minimum price implied by its human labor content. Market discovery
+can produce prices above this floor (via `floor_price(..., market_premium=X>`),
+but the floor itself is determined by the Comprehensive Price Identity, not by
+supply and demand.
+
+The floor price of a good equals its human labor content × mean multiplier.
+As automation rises, the human labor content falls, so floor prices fall
+automatically. This is a floor guarantee, not a claim that all prices converge
+to it — see reconciliation §3 (price-as-floor reframing) and §9-item-3.
 
 This creates Principle 5 (floor purchasing power rises with automation) as a
 mathematical consequence: if the sufficiency floor is constant in nominal TEH
-and prices fall, the floor purchases more. No policy intervention required.
+and floor prices fall, the floor purchases more. No policy intervention required.
 
-The price basket contains goods AND services. Goods prices fall steeply with
-automation (production is the first thing automated). Service prices fall more
-slowly (care, knowledge, judgment resist full automation longer). This shift
-in basket composition ensures services remain meaningful as goods become nearly
-free — consistent with the care economy becoming dominant at high ε.
+The price basket contains goods AND services. Goods floor prices fall steeply
+with automation (production is the first thing automated). Service floor prices
+fall more slowly (care, knowledge, judgment resist full automation longer).
+
+**Theory flag (reconciliation §3)**: the functions in this module compute
+*floor prices*, not universal prices. The term "price" in existing docstrings
+and the arc CLI refers to the floor. A `market_premium` seam is exposed via
+`floor_price()` for discovered premiums above the floor. The reframing of
+basket_price() as floor_price() is pending author sign-off (Workstream C PR).
 
 Mission Statement: §"Principle 5 — The floor rises with automation; it never
 falls"; §"TEH-denominated prices fall as automation handles more EOH, so the
@@ -125,12 +135,16 @@ def teh_price(
     Returns:
         TEH price of the good at this automation level.
 
+    This computes the **floor price** — the minimum price guaranteed by the
+    TEH ledger. Market discovery above this floor is not modeled here.
+
     Example: A loaf of bread requires 0.1 hours of human labor at ε=0 with
-    mean_multiplier=2.0 → base price = 0.2 TEH. At ε=0.80: price = 0.2 × 0.20
+    mean_multiplier=2.0 → floor price = 0.2 TEH. At ε=0.80: floor price = 0.2 × 0.20
     = 0.04 TEH (clipped to floor if needed).
 
     Reference: Mission Statement §"Prices tell you how much human life went
-    into making something"; §"Phase 3.2 — teh_price(good, human_labor_content, ε)"
+    into making something"; §"Phase 3.2 — teh_price(good, human_labor_content, ε)";
+    reconciliation §3 (price-as-floor reframing).
     """
     # Human labor content at this ε
     human_fraction = max(1.0 - epsilon, goods_price_floor)
@@ -220,6 +234,10 @@ def basket_price(
         TEH cost of the sufficiency basket (TEH/yr). Always positive; bounded
         in (baseline_cost_teh × weighted_floor, baseline_cost_teh].
 
+    This function computes the **floor price** of the basket — the minimum
+    guaranteed by the TEH ledger. Use `floor_price()` to add a market_premium
+    above the floor. See reconciliation §3 (price-as-floor reframing).
+
     Reference: Mission Statement §"As automation reduces the human labor
     content of the Sufficiency basket, the Guarantee's purchasing power
     increases automatically."
@@ -239,6 +257,65 @@ def basket_price(
 
     basket_ratio = goods_weight * goods_price_ratio + services_weight * services_price_ratio
     return baseline_cost_teh * basket_ratio
+
+
+def floor_price(
+    epsilon: float,
+    market_premium: float = 0.0,
+    baseline_cost_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
+    goods_weight: float = BASKET_GOODS_WEIGHT,
+    services_weight: float = BASKET_SERVICES_WEIGHT,
+    goods_price_floor: float = GOODS_PRICE_FLOOR,
+    services_price_floor: float = SERVICES_PRICE_FLOOR,
+) -> float:
+    """
+    Floor price of the sufficiency basket with an optional market_premium above it.
+
+    Governing equation:
+        floor_price(ε) = basket_price(ε) + market_premium
+
+    This is the primary entry point for the price-as-floor reframing
+    (reconciliation §3). The TEH ledger guarantees basket_price(ε) as the
+    floor — the price that labor content alone justifies. Any market discovery
+    above the floor is expressed as market_premium (TEH/yr, absolute).
+
+    At market_premium=0.0 (default), this is identical to basket_price().
+    Behavior is therefore unchanged from the pre-refactor code at the default,
+    satisfying the Workstream C acceptance criterion.
+
+    As ε rises from 0 to 1, the floor falls monotonically (Principle 5) while
+    market_premium is a caller-supplied observable — it may rise, fall, or vary
+    independently of the automation level.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        market_premium: Discovered price above the floor (TEH/yr). Default 0.0.
+                        Positive values represent premiums from scarcity, quality,
+                        or collective-level price discovery. The floor guarantee
+                        is unaffected by this parameter.
+        baseline_cost_teh: Basket floor cost at ε=0 (TEH/year). Default: 120.0.
+        goods_weight: Fraction of basket that is goods. Default: 0.60.
+        services_weight: Fraction of basket that is services. Default: 0.40.
+        goods_price_floor: Minimum goods floor ratio. Default: 0.05.
+        services_price_floor: Minimum services floor ratio. Default: 0.20.
+
+    Returns:
+        Total basket price (TEH/yr) = floor + premium. Equal to basket_price()
+        when market_premium=0.0.
+
+    Reference: reconciliation §3 (price-as-floor reframing) and §9-item-3.
+    Author sign-off required before merging this reframing — see Workstream C PR.
+    """
+    if market_premium < 0.0:
+        raise ValueError(f"market_premium must be ≥ 0.0, got {market_premium}")
+    return basket_price(
+        epsilon=epsilon,
+        baseline_cost_teh=baseline_cost_teh,
+        goods_weight=goods_weight,
+        services_weight=services_weight,
+        goods_price_floor=goods_price_floor,
+        services_price_floor=services_price_floor,
+    ) + market_premium
 
 
 # ---------------------------------------------------------------------------
