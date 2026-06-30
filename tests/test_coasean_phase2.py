@@ -176,7 +176,7 @@ class TestThreeRegimeInflation:
     def test_heterogeneous_federation_nonzero_inter_inflation(self):
         # Different eco schedules across periods → exchange rates drift
         fed_a = make_federation(0.40, n=2, population=1_000_000.0,
-                                ecosystem_health_schedule=[0.80, 0.60])
+                                ecosystem_health_schedule=[_ECO_A, _ECO_B])
         fed_b = make_federation(0.50, n=2, population=1_000_000.0,
                                 ecosystem_health_schedule=[0.75, 0.65])
         r0 = exchange_rates(fed_a)
@@ -195,7 +195,7 @@ class TestThreeRegimeInflation:
 
     def test_system_inflation_shrinks_toward_high_epsilon(self):
         # Same rate drift at low vs high ε → system_inflation is smaller at high ε
-        eco_a = [0.80, 0.60]
+        eco_a = [_ECO_A, _ECO_B]
         eco_b = [0.75, 0.65]
         rates_before_low = exchange_rates(
             make_federation(0.20, n=2, population=1_000_000.0,

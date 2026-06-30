@@ -314,21 +314,12 @@ def n1_regression_anchor(
           "ref_solvent"        — reference solvent bool
           "fed_solvent"        — federation solvent bool
     """
-    ref_pipeline = eoh_to_teh_pipeline(
+    ref_pipeline, ref_fiscal = run_collective_period(
         epsilon,
         population=population,
-        capital_stock=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-        ecosystem_health=ecosystem_health,
-    )
-    ref_labor_income = ref_pipeline["teh_created"]
-    ref_fiscal = fiscal_snapshot(
         trust_balance=trust_balance,
-        labor_income=ref_labor_income,
         capital_stock_teh=capital_stock_teh,
         capital_age_ratio=capital_age_ratio,
-        population=population,
-        epsilon=epsilon,
         ecosystem_health=ecosystem_health,
     )
 
@@ -407,19 +398,17 @@ def exchange_rates(collectives: list[Collective]) -> dict[tuple[int, int], float
     if len(collectives) <= 1:
         return {}
 
-    per_capita: dict[int, float] = {}
-    for c in collectives:
-        teh = c.pipeline.get("teh_created", 0.0)
-        per_capita[c.collective_id] = teh / max(c.population, 1.0)
+    per_capita: dict[int, float] = {
+        c.collective_id: c.pipeline["teh_created"] / c.population
+        for c in collectives
+    }
 
-    rates: dict[tuple[int, int], float] = {}
-    for ci in collectives:
-        pi = per_capita[ci.collective_id]
-        for cj in collectives:
-            if ci.collective_id == cj.collective_id:
-                continue
-            pj = per_capita[cj.collective_id]
-            rates[(ci.collective_id, cj.collective_id)] = pi / max(pj, 1e-12)
+    rates: dict[tuple[int, int], float] = {
+        (id_i, id_j): pi / max(pj, 1e-6)
+        for id_i, pi in per_capita.items()
+        for id_j, pj in per_capita.items()
+        if id_i != id_j
+    }
 
     return rates
 
@@ -543,6 +532,7 @@ def simulate_federation(
     capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     heterogeneity: float = 0.10,
+    baseline_ecosystem_health: float = 0.70,
     seed: int = 42,
 ) -> list[dict[str, Any]]:
     """
@@ -598,11 +588,11 @@ def simulate_federation(
     for period, epsilon in enumerate(epsilon_trajectory):
         n = coasean_collective_count(epsilon)
 
-        # Per-collective ecosystem health: Normal(0.70, heterogeneity²), clipped
+        # Per-collective ecosystem health: Normal(baseline, heterogeneity²), clipped
         eco_schedule: list[float] | None = None
         if heterogeneity > 0.0:
             eco_schedule = [
-                max(0.01, min(0.99, 0.70 + rng.gauss(0.0, heterogeneity)))
+                max(0.01, min(0.99, baseline_ecosystem_health + rng.gauss(0.0, heterogeneity)))
                 for _ in range(n)
             ]
 
@@ -613,13 +603,16 @@ def simulate_federation(
             trust_balance=trust_balance,
             capital_stock_teh=capital_stock_teh,
             capital_age_ratio=capital_age_ratio,
+            ecosystem_health=baseline_ecosystem_health,
             ecosystem_health_schedule=eco_schedule,
         )
 
-        curr_rates  = exchange_rates(collectives)
-        inflation   = three_regime_inflation(prev_rates, curr_rates, epsilon)
-        total_teh   = sum(c.pipeline.get("teh_created", 0.0) for c in collectives)
-        all_solvent = all(c.fiscal.get("solvent", False) for c in collectives)
+        curr_rates = exchange_rates(collectives)
+        inflation  = three_regime_inflation(prev_rates, curr_rates, epsilon)
+        total_teh, all_solvent = 0.0, True
+        for c in collectives:
+            total_teh  += c.pipeline["teh_created"]
+            all_solvent = all_solvent and c.fiscal["solvent"]
 
         records.append({
             "period":           period,

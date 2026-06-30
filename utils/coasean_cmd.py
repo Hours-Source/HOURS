@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from utils.formatters import table, fmt_float, fmt_eps, fmt_pct, bold
+from utils.formatters import table, fmt_float, fmt_eps
 
 
 def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
@@ -61,7 +61,6 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
 
 def run_n1_check(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import n1_regression_anchor
-    from hours_eoh.data import TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT
 
     print("EXPERIMENTAL — research/coasean.py (Workstream D Phase 1)\n")
 
@@ -71,8 +70,6 @@ def run_n1_check(args: argparse.Namespace) -> None:
         res = n1_regression_anchor(
             epsilon=eps,
             population=args.population,
-            trust_balance=TRUST_BASE_TEH,
-            capital_stock_teh=CAPITAL_STOCK_DEFAULT,
         )
         rows_data.append({
             "epsilon":           eps,
@@ -83,7 +80,7 @@ def run_n1_check(args: argparse.Namespace) -> None:
             "solvent_match":     res["solvent_match"],
         })
 
-    if getattr(args, "fmt", "table") == "json":
+    if args.fmt == "json":
         print(json.dumps(rows_data, indent=2))
         return
 
@@ -118,7 +115,7 @@ def run_count(args: argparse.Namespace) -> None:
         n = coasean_collective_count(eps)
         rows_data.append({"epsilon": eps, "n_collectives": n})
 
-    if getattr(args, "fmt", "table") == "json":
+    if args.fmt == "json":
         print(json.dumps(rows_data, indent=2))
         return
 
@@ -137,12 +134,9 @@ def run_simulate(args: argparse.Namespace) -> None:
         f"heterogeneity={args.heterogeneity:.2f}  seed={args.seed}\n"
     )
 
-    n_periods = args.periods
-    eps_start = args.eps_start
-    eps_end   = args.eps_end
     trajectory = [
-        eps_start + (eps_end - eps_start) * i / max(n_periods - 1, 1)
-        for i in range(n_periods)
+        args.eps_start + (args.eps_end - args.eps_start) * i / max(args.periods - 1, 1)
+        for i in range(args.periods)
     ]
 
     records = simulate_federation(
@@ -152,8 +146,7 @@ def run_simulate(args: argparse.Namespace) -> None:
         seed=args.seed,
     )
 
-    if getattr(args, "fmt", "table") == "json":
-        import json
+    if args.fmt == "json":
         print(json.dumps(records, indent=2))
         return
 
@@ -210,7 +203,7 @@ def run_federation(args: argparse.Namespace) -> None:
             "surplus":  c.fiscal.get("trust", {}).get("surplus_deficit", 0.0),
         })
 
-    if getattr(args, "fmt", "table") == "json":
+    if args.fmt == "json":
         print(json.dumps(rows_data, indent=2))
         return
 
