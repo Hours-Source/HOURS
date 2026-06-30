@@ -1,6 +1,6 @@
 # HOURS EOH Framework
 
-**HOURS** is a mathematical framework for a currency system — *Entropy Obligation Hours (EOH) → Time-Equivalent Hours (TEH)* — that remains coherent, physically grounded, and fiscally solvent across the full civilizational transition from subsistence to post-scarcity.
+**HOURS** is a mathematical framework for a currency system — *Entropy Obligation Hours (EOH) → Time-Equivalent Hours (TEH)* — that remains internally coherent, auditable, and fiscally solvent across the full civilizational transition from subsistence to post-scarcity.
 
 > "An economy is the organized effort of a civilization to resist entropy — in its people, in its infrastructure, in its ecosystems, and in its knowledge."
 
@@ -56,7 +56,7 @@ Physical state → total_eoh()            # entropy obligation from physics
               → × worker multiplier     # TEH enters circulation
 ```
 
-EOH generation is pure physics — functions take actual physical state (capital stock, ecosystem health, age distribution, knowledge base) and return entropy obligations. EOH fulfillment is where ε belongs — the machine/human split, registration curves, and fiscal mechanics are genuinely ε-driven.
+EOH generation is measurement-driven — functions take actual physical state (capital stock, ecosystem health, age distribution, knowledge base) and return entropy obligations derived from calibrated physical constants and auditable baselines. EOH fulfillment is where ε belongs — the machine/human split, registration curves, and fiscal mechanics are genuinely ε-driven.
 
 ---
 
@@ -67,7 +67,7 @@ Four conditions define system integrity. All must hold at every ε:
 | Condition | Rule | Enforced by |
 |-----------|------|-------------|
 | **I — Ledger Identity** | TEH supply = created − destroyed | `condition_i_check()` |
-| **II — Multiplier Band** | Skill multipliers within physics-grounded band | `condition_ii_check()` |
+| **II — Multiplier Band** | Skill multipliers within a governed, auditable band | `condition_ii_check()` |
 | **III — Zero Interest** | Balances grow through labor only, never passively | `condition_iii_balance_growth_check()` |
 | **IV — Distributed Competency** | Human reserve in every essential domain | `condition_iv_check()` |
 

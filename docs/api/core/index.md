@@ -11,7 +11,7 @@ The `core/` package contains pure physics and mechanics — the stable API. It i
 | Module | What it models |
 |--------|---------------|
 | [`trajectory.py`](trajectory.md) | Canonical arc at each ε; ε derivation from physical state |
-| [`eoh_generation.py`](eoh_generation.md) | Four EOH domain functions + `total_eoh()` — pure physics |
+| [`eoh_generation.py`](eoh_generation.md) | Four EOH domain functions + `total_eoh()` — principled measurement from physical state |
 | [`eoh_fulfillment.md`](eoh_fulfillment.md) | EOH → TEH pipeline; human/machine split; registration |
 | [`multipliers.py`](multipliers.md) | Condition II: skill-tier multipliers, population-weighted band |
 | [`fiscal.py`](fiscal.md) | Levies, allocations, sufficiency guarantee, trust mechanics |

@@ -28,7 +28,7 @@ New scenario code goes in `scenarios/`. Do not add to `core/stress.py` (backward
 
 ### EOH Generation Functions
 
-EOH generation is pure physics — functions take actual physical state as primary inputs.
+EOH generation is measurement-driven — functions take actual physical state as primary inputs and return entropy obligations derived from calibrated physical constants and auditable baselines.
 
 ```python
 def my_eoh_function(

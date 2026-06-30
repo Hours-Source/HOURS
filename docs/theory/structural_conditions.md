@@ -1,6 +1,8 @@
 # Structural Conditions
 
-A TEH-denominated economy achieves stable, inflation-proof operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.
+A TEH-denominated economy achieves stable, within-collective floor-guaranteed operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.
+
+*(Scope note: within-collective inflation is structurally impossible at all ε by Condition I. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility holds as ε→1. See the [Coasean federation module](../../hours_eoh/research/coasean.py) and reconciliation §7.)*
 
 ---
 
@@ -40,7 +42,7 @@ A TEH-denominated economy achieves stable, inflation-proof operation if and only
 
     Stored currency may not generate additional currency through any mechanism. No lending at interest, investment returns, or financial instruments that produce currency without corresponding labor. Account balances change only through earnings and expenditures.
 
-    **Physical grounding:** Entropy compounds in physical reality — a neglected roof generates escalating obligations. The monetary system measures that reality honestly. Adding monetary interest would be measuring entropy that does not exist. Condition III ensures the currency reflects only real entropy resistance, never fictional growth.
+    **Rationale:** Entropy compounds in physical reality — a neglected roof generates escalating obligations. The model tracks this compounding from measurable physical inputs. Adding monetary interest would generate TEH without a corresponding entropy-reduction event — Condition I's auditable-creation rule prohibits it. Condition III ensures the currency reflects only work that was actually done.
 
     **Note:** EOH compounding is physics (entropy accumulation), not interest — it does not create TEH. TEH is created only when someone actually does the work.
 
