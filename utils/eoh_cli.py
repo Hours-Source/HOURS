@@ -12,6 +12,7 @@ Commands:
   guf             Ground Use Fee calculations
   multiplier      Tier multiplier four-factor breakdown and arc sweep
   contestability  Contestability invariant arc table and stress sweep (§8)
+  coasean         [EXPERIMENTAL] Coasean collective federation (§§6–7)
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ import utils.sensitivity_cmd as sensitivity_cmd
 import utils.guf_cmd as guf_cmd
 import utils.multiplier_cmd as multiplier_cmd
 import utils.contestability_cmd as contestability_cmd
+import utils.coasean_cmd as coasean_cmd
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     guf_cmd.build_parser(sub)
     multiplier_cmd.build_parser(sub)
     contestability_cmd.build_parser(sub)
+    coasean_cmd.build_parser(sub)
 
     return parser
 
