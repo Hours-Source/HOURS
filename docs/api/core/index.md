@@ -2,7 +2,7 @@
 
 **Package:** `hours_eoh/core/`
 
-The `core/` package contains pure physics and mechanics — the stable API. It imports only from `data.py`, `params.py`, and other `core/` modules. Nothing imports from `core/` except the layers above it (`land/`, `scenarios/`, `research/`, `utils/`).
+The `core/` package contains measurement-driven mechanics — the stable API. It imports only from `data.py`, `params.py`, and other `core/` modules. Nothing imports from `core/` except the layers above it (`land/`, `scenarios/`, `research/`, `utils/`).
 
 ---
 
