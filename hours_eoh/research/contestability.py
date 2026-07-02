@@ -18,20 +18,25 @@ Where:
     χ < 1      — exit is nominal; "HOURS has rebuilt the knife no one is
                   holding inside its own ledger" (reconciliation §8.1)
 
-NOTE: P(ε) is modeled as the population-average portable endowment — the same
-universal Trust dividend and guarantee floor for every individual at a given ε,
-regardless of tenure in the collective. Individual P with tenure-based vesting
-is a known extension (reconciliation §9, open item 7). chi_arc() outputs are
-labeled accordingly.
+Two views of P(ε):
+    Population-average — the same universal Trust dividend and guarantee floor
+    for every individual at a given ε (portable_endowment()).
+    Individual/marginal — tenure-vested dividend via
+    portable_endowment_individual(); chi_marginal is χ for the tenure-0,
+    savings-0 member, the person the invariant actually protects
+    (reconciliation §9, open item 7).
 
 Public functions:
     portable_endowment(epsilon, population, trust_balance) → dict
+    portable_endowment_individual(epsilon, tenure_years, ...) → dict
     entry_cost(epsilon, regime, k0, k_slope) → float
     contestability_margin(epsilon, population, trust_balance, regime, ...) → dict
     commonized_fraction(epsilon) → float
     trust_capital_ratio(trust_balance, capital_stock) → float
     tau_gradient_check(eps_lo, eps_hi, trust_lo, trust_hi, cap_lo, cap_hi) → dict
     min_levy_for_pi(epsilon, trust_balance, capital_stock, g_priv) → dict
+    trust_required_for_chi(epsilon, chi_target, ...) → dict
+    levy_schedule_for_chi(n_points, regime, ...) → list[dict]
     chi_arc(n_points, regime, population, trust_balance, capital_stock) → list[dict]
 
 Mission Statement: §"Contestability — the invariant the arc must preserve."
@@ -47,6 +52,7 @@ from hours_eoh.data import (
     CONTESTABILITY_CHI_WARN, CONTESTABILITY_CHI_CRIT,
     CONTESTABILITY_PHI_FLOOR, CONTESTABILITY_PHI_EXPONENT,
     CONTESTABILITY_G_PRIV, CONTESTABILITY_CAPITAL_YIELD_RATE,
+    CONTESTABILITY_VESTING_YEARS,
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
 )
 
@@ -122,6 +128,82 @@ def portable_endowment(
         "trust_dividend_per_capita": trust_dividend,
         "capital_fulfilled_per_person": capital_fulfilled,
         "epsilon": epsilon,
+    }
+
+
+def portable_endowment_individual(
+    epsilon: float,
+    tenure_years: float,
+    vesting_years: float = CONTESTABILITY_VESTING_YEARS,
+    savings: float = 0.0,
+    population: float = 1_000_000.0,
+    trust_balance: float = TRUST_BASE_TEH,
+) -> dict:
+    """
+    Individual portable endowment P_ind(ε) with tenure-based dividend vesting.
+
+    Governing equation:
+        P_ind(ε) = S(ε) + v(tenure) · D(ε) + savings
+        v(tenure) = min(1, tenure_years / vesting_years)   (linear vesting)
+
+    Where:
+        S(ε) — sufficiency guarantee per person. UNCONDITIONAL: the floor is
+               membership-independent (reconciliation §8.1), so it never vests.
+        D(ε) — per-capita Trust dividend. Vests linearly over vesting_years;
+               a new member (tenure=0) commands none of it on exit.
+        savings — portable personal savings; add to P but are not guaranteed
+               (reconciliation §8.1).
+
+    This closes §9 open item 7 at the mechanism level: the population-average
+    χ in portable_endowment() overstates exit viability for recent members.
+    The marginal member (tenure=0, savings=0) has P_ind = S(ε) only — the
+    honest lower bound the invariant must protect.
+
+    Worked example (ε=0.40, defaults, trust=35B, pop=1M):
+        S ≈ 1476 TEH/person, D = 630 TEH/person
+        tenure=0:   P_ind ≈ 1476  (floor only)
+        tenure=2.5: P_ind ≈ 1476 + 0.5·630 = 1791
+        tenure≥5:   P_ind ≈ 2106  (equals population-average P)
+
+    ε-behavior: S falls as machines fulfill personal EOH (see
+    portable_endowment()); the vested dividend share is ε-invariant in this
+    static model, so the marginal member's P declines fastest across the arc.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        tenure_years: Years of membership in the collective (≥ 0).
+        vesting_years: Years for the dividend to fully vest (> 0).
+                       Default: CONTESTABILITY_VESTING_YEARS = 5.0.
+        savings: Portable personal savings in TEH (≥ 0). Default 0.0.
+        population: Total population (default: 1M).
+        trust_balance: Trust fund balance in TEH (default: TRUST_BASE_TEH).
+
+    Returns:
+        dict with keys: p_individual, vested_fraction, guarantee_per_person,
+        trust_dividend_vested, trust_dividend_full, savings, tenure_years,
+        epsilon.
+    """
+    if tenure_years < 0.0:
+        raise ValueError(f"tenure_years must be >= 0, got {tenure_years}")
+    if vesting_years <= 0.0:
+        raise ValueError(f"vesting_years must be > 0, got {vesting_years}")
+    if savings < 0.0:
+        raise ValueError(f"savings must be >= 0, got {savings}")
+
+    avg = portable_endowment(epsilon, population, trust_balance)
+    vested_fraction = min(1.0, tenure_years / vesting_years)
+    dividend_vested = avg["trust_dividend_per_capita"] * vested_fraction
+    p_individual = avg["guarantee_per_person"] + dividend_vested + savings
+
+    return {
+        "p_individual":          p_individual,
+        "vested_fraction":       vested_fraction,
+        "guarantee_per_person":  avg["guarantee_per_person"],
+        "trust_dividend_vested": dividend_vested,
+        "trust_dividend_full":   avg["trust_dividend_per_capita"],
+        "savings":               savings,
+        "tenure_years":          tenure_years,
+        "epsilon":               epsilon,
     }
 
 
@@ -210,6 +292,14 @@ def contestability_margin(
         This is the adversarial finding: without adequate commonization the
         invariant fails as automation matures.
 
+    Marginal χ:
+        chi_marginal = P_ind(tenure=0, savings=0) / K_entry — χ for the newest
+        member, whose Trust dividend has not vested. Always ≤ chi. This is the
+        honest lower bound: the invariant protects the person for whom exit is
+        hardest (§9 open item 7). status/passes remain keyed to the
+        population-average chi for backward compatibility; status_marginal
+        reports the marginal member's position.
+
     Args:
         epsilon: Automation level [0.0, 0.99].
         population: Total population.
@@ -219,26 +309,32 @@ def contestability_margin(
         k_slope: Rate of K_entry change per unit ε.
 
     Returns:
-        dict with keys: chi, p, k_entry, status, passes, regime, epsilon,
-        guarantee_per_person, trust_dividend_per_capita.
+        dict with keys: chi, chi_marginal, p, p_marginal, k_entry, status,
+        status_marginal, passes, regime, epsilon, guarantee_per_person,
+        trust_dividend_per_capita.
     """
     p_result = portable_endowment(epsilon, population, trust_balance)
     p = p_result["p"]
+    p_marginal = p_result["guarantee_per_person"]  # tenure=0: unvested dividend
     k = entry_cost(epsilon, regime, k0, k_slope)
     chi = p / k
+    chi_marginal = p_marginal / k
 
-    if chi >= CONTESTABILITY_CHI_WARN:
-        status = "OK"
-    elif chi >= CONTESTABILITY_CHI_CRIT:
-        status = "WARN"
-    else:
-        status = "CRIT"
+    def _status(value: float) -> str:
+        if value >= CONTESTABILITY_CHI_WARN:
+            return "OK"
+        if value >= CONTESTABILITY_CHI_CRIT:
+            return "WARN"
+        return "CRIT"
 
     return {
         "chi": chi,
+        "chi_marginal": chi_marginal,
         "p": p,
+        "p_marginal": p_marginal,
         "k_entry": k,
-        "status": status,
+        "status": _status(chi),
+        "status_marginal": _status(chi_marginal),
         "passes": chi >= CONTESTABILITY_CHI_CRIT,
         "regime": regime,
         "epsilon": epsilon,
@@ -388,6 +484,18 @@ def min_levy_for_pi(
     private capital stock. levy_as_fraction_of_automated_output > 1 means the
     required levy exceeds the entire automated output — correct behavior, not a bug.
 
+    CALIBRATION NOTE: τ = T/K ≈ 17.5 at canonical defaults is intentional
+    (see docs/parameter_provenance.md: TRUST_BASE_TEH is sized at 35,000
+    TEH/person to fund the guarantee; CAPITAL_STOCK_DEFAULT at 2,000
+    TEH/person). The Trust dwarfing private capital makes the g_Trust ≥ g_priv
+    rate condition expensive in absolute TEH — a large T growing at 3% needs a
+    large levy. But the binding constraint for exit is not τ's level; it is the
+    per-capita dividend (T·DEP_RATE·DIV_RATE/pop ≈ 630 TEH) versus K_entry
+    (up to ≈4,651 TEH at ε=0.99). dτ/dε ≥ 0 governs the *trend* — the commons
+    must not erode relative to private capital — while χ ≥ 1 requires the
+    dividend to *grow* toward K_entry. See trust_required_for_chi() for the
+    Trust balance that closes the χ gap.
+
     Args:
         epsilon: Automation level [0.0, 0.99].
         trust_balance: Trust fund balance T (TEH).
@@ -426,6 +534,172 @@ def min_levy_for_pi(
 
 
 # ---------------------------------------------------------------------------
+# Derived levy schedule — the Trust path that holds χ ≥ target (§8.2)
+# ---------------------------------------------------------------------------
+
+def trust_required_for_chi(
+    epsilon: float,
+    chi_target: float = CONTESTABILITY_CHI_CRIT,
+    population: float = 1_000_000.0,
+    regime: str = "increasing_returns",
+    k0: float = CONTESTABILITY_K0_TEH,
+    k_slope: float = CONTESTABILITY_K_SLOPE,
+) -> dict:
+    """
+    Trust balance required to hold the contestability invariant at a given ε.
+
+    Governing equation — invert χ(ε) ≥ χ_target for T:
+        P(ε) = S(ε) + T·DEP_RATE·DIV_RATE / pop  ≥  χ_target · K_entry(ε)
+        T_required = max(0, χ_target·K_entry(ε) − S(ε)) · pop / (DEP_RATE·DIV_RATE)
+
+    Where S(ε) is the per-person sufficiency guarantee (unconditional,
+    membership-independent) and the dividend rate DEP_RATE·DIV_RATE converts a
+    Trust stock into an annual per-capita flow. This is the §8.2 requirement
+    made concrete: as K_entry rises and S falls across the arc, the only
+    component of P that can rise to meet it is the commonized dividend, so the
+    Trust must grow. This function says by how much.
+
+    Worked example (ε=0.99, increasing_returns, pop=1M, χ_target=1):
+        K_entry ≈ 4651 TEH, S ≈ 318 TEH
+        T_required = (4651 − 318) × 1M / (0.045 × 0.40) ≈ 2.41e11 TEH
+        — roughly 6.9× the canonical TRUST_BASE_TEH of 3.5e10. The invariant
+        is closable, but only with a Trust that grows ~7× across the arc.
+
+    ε-behavior: in the increasing_returns regime T_required rises
+    monotonically (K_entry rises, S falls). In the replicable regime it
+    typically falls to 0 at high ε (K_entry collapses below S).
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        chi_target: Required contestability margin. Default: 1.0 (the invariant).
+        population: Total population.
+        regime: "increasing_returns" (default/adversarial) or "replicable".
+        k0: Base founding cost at ε=0.
+        k_slope: Rate of K_entry change per unit ε.
+
+    Returns:
+        dict with keys: trust_required, gap_vs_base (T_required −
+        TRUST_BASE_TEH; negative = current base suffices), dividend_required
+        (per-capita annual dividend needed), guarantee_per_person, k_entry,
+        chi_target, epsilon.
+    """
+    if chi_target <= 0.0:
+        raise ValueError(f"chi_target must be > 0, got {chi_target}")
+
+    p_result = portable_endowment(epsilon, population, TRUST_BASE_TEH)
+    s = p_result["guarantee_per_person"]
+    k = entry_cost(epsilon, regime, k0, k_slope)
+
+    dividend_required = max(0.0, chi_target * k - s)
+    trust_required = dividend_required * population / (DEP_RATE * DIV_RATE)
+
+    return {
+        "trust_required":       trust_required,
+        "gap_vs_base":          trust_required - TRUST_BASE_TEH,
+        "dividend_required":    dividend_required,
+        "guarantee_per_person": s,
+        "k_entry":              k,
+        "chi_target":           chi_target,
+        "epsilon":              epsilon,
+    }
+
+
+def levy_schedule_for_chi(
+    n_points: int = 20,
+    regime: str = "increasing_returns",
+    population: float = 1_000_000.0,
+    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    chi_target: float = CONTESTABILITY_CHI_CRIT,
+    trust_start: float = TRUST_BASE_TEH,
+) -> list[dict]:
+    """
+    Common-fund levy schedule that holds χ ≥ χ_target across the arc (§8.2).
+
+    The missing Workstream B deliverable: derive, per ε-step, the levy revenue
+    the Trust must collect so that the contestability invariant holds at every
+    point on the arc. Treats each arc step as one accounting period.
+
+    Governing equations, per step i:
+        T_target(ε_i)   = max(trust_start, trust_required_for_chi(ε_i))
+                          — the Trust never needs to shrink below its start
+        ΔT_i            = T_target(ε_i) − T_target(ε_{i−1})     (0 at i=0)
+        dividend_out_i  = T_target(ε_i) · DEP_RATE · DIV_RATE
+                          — the outflow that must be replenished to hold T
+        levy_required_i = max(0, ΔT_i) + dividend_out_i
+        output_i        = ε_i · K · CONTESTABILITY_CAPITAL_YIELD_RATE
+        levy_fraction_i = levy_required_i / output_i    (None at ε=0)
+        feasible_i      = levy_fraction_i ≤ 1
+
+    HONEST RESULT, NOT TUNED: at canonical defaults in the adversarial regime
+    the schedule is infeasible at every ε — the levy on automated output alone
+    cannot fund the required Trust growth, because CAPITAL_STOCK_DEFAULT
+    (2,000 TEH/person) yields at most 200 TEH/person·yr while the required
+    dividend approaches 4,300 TEH/person·yr. Closing the invariant needs
+    either a much larger automated capital base (K grows with ε — see
+    research/coasean.py Phase 3 dynamics), additional levy bases (the
+    accumulation-ceiling redirection, estate dissolution), or the replicable
+    regime. Reporting this infeasibility is the point (reconciliation §8.5:
+    design for the adversarial case; CLAUDE.md §5: if a result is ugly,
+    report it).
+
+    Args:
+        n_points: Number of ε points across [0, 0.99]. Default: 20.
+        regime: K_entry regime. Default: "increasing_returns" (adversarial).
+        population: Total population.
+        capital_stock: Total automated capital K (TEH), held fixed across the
+            arc (static model; K(ε) dynamics are research/coasean.py Phase 3).
+        chi_target: Required contestability margin. Default: 1.0.
+        trust_start: Trust balance at ε=0. Default: TRUST_BASE_TEH.
+
+    Returns:
+        list[dict] — one row per ε with keys:
+            epsilon, k_entry, guarantee_per_person, trust_target, delta_trust,
+            dividend_outflow, levy_required, automated_output,
+            levy_fraction (None at ε=0), feasible, chi_check.
+        chi_check is contestability_margin() recomputed at trust_target — it
+        must satisfy chi ≥ chi_target at every row (asserted in tests).
+    """
+    rows: list[dict] = []
+    prev_target = None
+    for i in range(n_points):
+        eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
+        req = trust_required_for_chi(eps, chi_target, population, regime)
+        trust_target = max(trust_start, req["trust_required"])
+        delta_trust = 0.0 if prev_target is None else trust_target - prev_target
+        dividend_outflow = trust_target * DEP_RATE * DIV_RATE
+        levy_required = max(0.0, delta_trust) + dividend_outflow
+
+        automated_output = eps * capital_stock * CONTESTABILITY_CAPITAL_YIELD_RATE
+        levy_fraction: float | None
+        if automated_output > 0.0:
+            levy_fraction = levy_required / automated_output
+            feasible = levy_fraction <= 1.0
+        else:
+            levy_fraction = None  # undefined at ε=0
+            feasible = False
+
+        chi_check = contestability_margin(
+            eps, population, trust_target, regime,
+        )["chi"]
+
+        rows.append({
+            "epsilon":              eps,
+            "k_entry":              req["k_entry"],
+            "guarantee_per_person": req["guarantee_per_person"],
+            "trust_target":         trust_target,
+            "delta_trust":          delta_trust,
+            "dividend_outflow":     dividend_outflow,
+            "levy_required":        levy_required,
+            "automated_output":     automated_output,
+            "levy_fraction":        levy_fraction,
+            "feasible":             feasible,
+            "chi_check":            chi_check,
+        })
+        prev_target = trust_target
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # Arc sweep
 # ---------------------------------------------------------------------------
 
@@ -443,8 +717,9 @@ def chi_arc(
     and min_levy_for_pi() at each ε point. Returns one row per point.
 
     Output labels chi as chi_population_avg to make explicit that P is the
-    population-average portable endowment, not individually tenure-vested
-    (see module docstring and §9 open item 7).
+    population-average portable endowment. chi_marginal is the tenure-0,
+    savings-0 member's margin (unvested dividend — the honest lower bound;
+    see portable_endowment_individual() and §9 open item 7).
 
     Args:
         n_points: Number of ε points (default: 20).
@@ -455,7 +730,7 @@ def chi_arc(
 
     Returns:
         list[dict] — one dict per ε with keys:
-            epsilon, p, k_entry, chi_population_avg, phi, tau,
+            epsilon, p, k_entry, chi_population_avg, chi_marginal, phi, tau,
             levy_fraction, levy_feasible, status.
     """
     rows = []
@@ -470,6 +745,7 @@ def chi_arc(
             "p":                  chi_result["p"],
             "k_entry":            chi_result["k_entry"],
             "chi_population_avg": chi_result["chi"],
+            "chi_marginal":       chi_result["chi_marginal"],
             "phi":                phi,
             "tau":                tau,
             "levy_fraction":      levy["levy_as_fraction_of_automated_output"],

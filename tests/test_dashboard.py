@@ -445,3 +445,51 @@ class TestSystemDashboard:
         result = system_dashboard(**kwargs)
         # EOH deferred RED → overall at least YELLOW (probably RED)
         assert result["overall_status"] in ("YELLOW", "RED")
+
+
+# ---------------------------------------------------------------------------
+# TestSystemDashboardContestability — χ wiring (reconciliation §8)
+# ---------------------------------------------------------------------------
+
+class TestSystemDashboardContestability:
+
+    def test_chi_none_is_not_assessed_and_backward_compatible(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs)
+        assert result["contestability_chi"] is None
+        assert result["contestability_status"] == "NOT_ASSESSED"
+        assert not any("Contestability" in f for f in result["red_flags"])
+        assert not any("Contestability" in f for f in result["yellow_flags"])
+
+    def test_chi_breach_raises_red_flag_and_overall_red(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=0.5)
+        assert result["contestability_status"] == "RED"
+        assert any("Contestability" in f and "exit is nominal" in f
+                   for f in result["red_flags"])
+        assert result["overall_status"] == "RED"
+
+    def test_chi_thin_margin_is_yellow(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=1.1)
+        assert result["contestability_status"] == "YELLOW"
+        assert any("Contestability" in f for f in result["yellow_flags"])
+        assert not any("Contestability" in f for f in result["red_flags"])
+
+    def test_chi_healthy_is_green(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=1.5)
+        assert result["contestability_status"] == "GREEN"
+        assert not any("Contestability" in f for f in result["red_flags"])
+        assert not any("Contestability" in f for f in result["yellow_flags"])
+
+    def test_chi_echoed_in_result(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=0.75)
+        assert result["contestability_chi"] == pytest.approx(0.75)
+
+    def test_chi_flag_at_all_key_epsilons(self):
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            kwargs = _normal_dashboard_kwargs(eps)
+            result = system_dashboard(**kwargs, chi=0.2)
+            assert result["overall_status"] == "RED", f"χ=0.2 must be RED at ε={eps}"

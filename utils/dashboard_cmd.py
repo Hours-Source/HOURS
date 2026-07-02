@@ -85,7 +85,12 @@ def run(args: argparse.Namespace) -> None:
         args.epsilon, args.population, args.trust_balance,
         args.capital_stock, args.ecosystem_health,
     )
-    snap = system_dashboard(**kwargs)
+    # Contestability (§8): computed here (research/ layer) and passed into
+    # core system_dashboard() as a plain float so overall_status reflects it.
+    _chi = contestability_margin(
+        args.epsilon, args.population, args.trust_balance,
+    )
+    snap = system_dashboard(**kwargs, chi=_chi["chi"])
 
     if args.fmt == "json":
         print(json.dumps(snap, indent=2, default=str))
@@ -133,15 +138,18 @@ def run(args: argparse.Namespace) -> None:
 
     print()
     print(bold("Contestability (§8)"))
-    _chi = contestability_margin(
-        args.epsilon, args.population, args.trust_balance,
-    )
     _cv = _chi["chi"]
+    _cm = _chi["chi_marginal"]
     _chi_label = (
         green(f"χ = {_cv:.3f} ≥ 1") if _cv >= CONTESTABILITY_CHI_CRIT
         else red(f"χ = {_cv:.3f} < 1 — EXIT IS NOMINAL")
     )
+    _marg_label = (
+        green(f"χ_marginal = {_cm:.3f} ≥ 1") if _cm >= CONTESTABILITY_CHI_CRIT
+        else red(f"χ_marginal = {_cm:.3f} < 1")
+    )
     print(f"  P/K_entry (increasing_returns): {_chi_label}")
+    print(f"  Tenure-0 member (unvested dividend): {_marg_label}")
     print(f"  P = {fmt_float(_chi['p'], decimals=0)} TEH/person   "
           f"K_entry = {fmt_float(_chi['k_entry'], decimals=0)} TEH/person")
 

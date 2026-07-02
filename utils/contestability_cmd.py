@@ -8,11 +8,19 @@ contestability — contestability invariant arc table and stress sweep.
   eoh contestability stress [--points N] [--population F] [--trust-balance F]
                             [--capital-stock F] [--format table|csv|json]
 
+  eoh contestability levy   [--regime increasing_returns|replicable] [--points N]
+                            [--population F] [--capital-stock F] [--chi-target F]
+                            [--format table|csv|json]
+
 'arc' prints the full contestability sweep across ε: P (portable endowment),
 K_entry (founding cost), χ = P/K_entry, φ (commonized fraction), τ = T/K,
 levy_fraction (levy required vs automated output), and PASS/FAIL status.
 
 'stress' forces increasing_returns regime and reports the first ε where χ < 1.
+
+'levy' prints the derived common-fund levy schedule (§8.2): the Trust balance
+required at each ε to hold χ ≥ target, the per-step levy needed to fund it,
+and whether the levy is feasible from automated output.
 
 NOTE: levy_fraction > 1 means the required levy exceeds the entire automated
 output — an adversarial finding, not a bug (reconciliation §8.3).
@@ -24,7 +32,9 @@ import csv
 import json
 import sys
 
-from hours_eoh.research.contestability import chi_arc, contestability_margin
+from hours_eoh.research.contestability import (
+    chi_arc, contestability_margin, levy_schedule_for_chi,
+)
 from hours_eoh.data import (
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN,
@@ -78,6 +88,27 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     s.add_argument("--format", choices=["table", "csv", "json"],
                    default="table", dest="fmt")
     s.set_defaults(func=_stress)
+
+    # ------------------------------------------------------------------ levy
+    lv = sub2.add_parser(
+        "levy",
+        help="Derived levy schedule that holds χ ≥ target across the arc (§8.2)",
+    )
+    lv.add_argument("--regime",
+                    choices=["increasing_returns", "replicable"],
+                    default="increasing_returns",
+                    help="K_entry regime (default: increasing_returns / adversarial)")
+    lv.add_argument("--points", type=int, default=20, metavar="N",
+                    help="Number of ε points (default: 20)")
+    lv.add_argument("--population", type=float, default=1_000_000.0)
+    lv.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
+                    dest="capital_stock")
+    lv.add_argument("--chi-target", type=float, default=CONTESTABILITY_CHI_CRIT,
+                    dest="chi_target",
+                    help="Required contestability margin (default: 1.0)")
+    lv.add_argument("--format", choices=["table", "csv", "json"],
+                    default="table", dest="fmt")
+    lv.set_defaults(func=_levy)
 
 
 # ---------------------------------------------------------------------------
@@ -228,3 +259,60 @@ def _stress(args: argparse.Namespace) -> None:
     print()
     n_breach = sum(1 for r in rows_data if r["chi_population_avg"] < CONTESTABILITY_CHI_CRIT)
     print(dim(f"  {n_breach}/{args.points} points breach χ < {CONTESTABILITY_CHI_CRIT}"))
+
+
+def _levy(args: argparse.Namespace) -> None:
+    rows_data = levy_schedule_for_chi(
+        n_points=args.points,
+        regime=args.regime,
+        population=args.population,
+        capital_stock=args.capital_stock,
+        chi_target=args.chi_target,
+    )
+
+    if args.fmt == "json":
+        print(json.dumps(rows_data, indent=2))
+        return
+
+    if args.fmt == "csv":
+        if rows_data:
+            writer = csv.DictWriter(sys.stdout, fieldnames=list(rows_data[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows_data)
+        return
+
+    n_feasible = sum(1 for r in rows_data if r["feasible"])
+    n_total = len(rows_data)
+    regime_label = green("replicable") if args.regime == "replicable" else yellow("increasing_returns (adversarial)")
+    print(bold(f"Derived levy schedule — {regime_label}  "
+               f"[χ ≥ {args.chi_target}, {args.points} points]"))
+    print(dim(
+        "  trust_target = Trust balance required to hold χ ≥ target (§8.2)   "
+        "levy = ΔT + dividend outflow   levy_frac > 1 = infeasible from automated output"
+    ))
+    print()
+
+    table_rows = []
+    for r in rows_data:
+        table_rows.append([
+            fmt_eps(r["epsilon"]),
+            fmt_float(r["k_entry"], decimals=0),
+            f"{r['trust_target']:.2e}",
+            f"{r['levy_required']:.2e}",
+            _levy_cell(r["levy_fraction"]),
+            green("YES") if r["feasible"] else red("NO"),
+            _chi_color(r["chi_check"]),
+        ])
+
+    print(fmt_table(
+        ["ε", "K_entry", "trust_target", "levy_req", "levy_frac", "feasible", "χ_check"],
+        table_rows,
+    ))
+    print()
+    print(dim(f"  {n_feasible}/{n_total} points feasible from automated output alone"))
+    if n_feasible < n_total:
+        print(dim(
+            "  Infeasible points need additional levy bases (accumulation-ceiling "
+            "redirection, estate dissolution) or a growing capital base — "
+            "honest adversarial finding, not a bug (§8.5)."
+        ))

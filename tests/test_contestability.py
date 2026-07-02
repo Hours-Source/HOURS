@@ -11,6 +11,9 @@ import pytest
 
 from hours_eoh.research.contestability import (
     portable_endowment,
+    portable_endowment_individual,
+    trust_required_for_chi,
+    levy_schedule_for_chi,
     entry_cost,
     contestability_margin,
     commonized_fraction,
@@ -131,7 +134,8 @@ class TestContestabilityMargin:
     def test_required_keys_present(self):
         result = contestability_margin(0.40, _POP, _TRUST)
         assert set(result.keys()) == {
-            "chi", "p", "k_entry", "status", "passes", "regime",
+            "chi", "chi_marginal", "p", "p_marginal", "k_entry",
+            "status", "status_marginal", "passes", "regime",
             "epsilon", "guarantee_per_person", "trust_dividend_per_capita",
         }
 
@@ -313,7 +317,7 @@ class TestChiArc:
     def test_required_keys_per_row(self):
         rows = chi_arc(n_points=5)
         expected = {
-            "epsilon", "p", "k_entry", "chi_population_avg",
+            "epsilon", "p", "k_entry", "chi_population_avg", "chi_marginal",
             "phi", "tau", "levy_fraction", "levy_feasible", "status",
         }
         for row in rows:
@@ -351,3 +355,196 @@ class TestChiArc:
         rows = chi_arc(n_points=5, trust_balance=1000.0, capital_stock=400.0)
         for row in rows:
             assert row["tau"] == pytest.approx(2.5, abs=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# TestPortableEndowmentIndividual — tenure-vested P (§9 open item 7)
+# ---------------------------------------------------------------------------
+
+class TestPortableEndowmentIndividual:
+
+    def test_tenure_zero_is_floor_only(self):
+        """A new member commands only the unconditional guarantee on exit."""
+        for eps in KEY_EPSILONS:
+            ind = portable_endowment_individual(eps, tenure_years=0.0,
+                                                population=_POP, trust_balance=_TRUST)
+            avg = portable_endowment(eps, _POP, _TRUST)
+            assert ind["p_individual"] == pytest.approx(avg["guarantee_per_person"])
+            assert ind["vested_fraction"] == 0.0
+
+    def test_full_tenure_equals_population_average(self):
+        """At tenure ≥ vesting_years, P_ind equals the population-average P."""
+        for eps in KEY_EPSILONS:
+            ind = portable_endowment_individual(eps, tenure_years=50.0,
+                                                population=_POP, trust_balance=_TRUST)
+            avg = portable_endowment(eps, _POP, _TRUST)
+            assert ind["p_individual"] == pytest.approx(avg["p"])
+            assert ind["vested_fraction"] == 1.0
+
+    def test_vesting_is_monotone_in_tenure(self):
+        tenures = [0.0, 1.0, 2.5, 5.0, 10.0]
+        values = [portable_endowment_individual(0.40, t)["p_individual"]
+                  for t in tenures]
+        for lo, hi in zip(values, values[1:]):
+            assert hi >= lo
+
+    def test_savings_are_additive(self):
+        base = portable_endowment_individual(0.40, 2.0)["p_individual"]
+        with_savings = portable_endowment_individual(0.40, 2.0, savings=500.0)["p_individual"]
+        assert with_savings == pytest.approx(base + 500.0)
+
+    def test_positive_at_all_key_epsilons(self):
+        for eps in KEY_EPSILONS:
+            result = portable_endowment_individual(eps, tenure_years=0.0)
+            assert result["p_individual"] > 0
+
+    def test_negative_tenure_raises(self):
+        with pytest.raises(ValueError):
+            portable_endowment_individual(0.40, tenure_years=-1.0)
+
+    def test_zero_vesting_years_raises(self):
+        with pytest.raises(ValueError):
+            portable_endowment_individual(0.40, 1.0, vesting_years=0.0)
+
+    def test_negative_savings_raises(self):
+        with pytest.raises(ValueError):
+            portable_endowment_individual(0.40, 1.0, savings=-10.0)
+
+
+# ---------------------------------------------------------------------------
+# TestChiMarginal — marginal member's contestability margin
+# ---------------------------------------------------------------------------
+
+class TestChiMarginal:
+
+    def test_chi_marginal_never_exceeds_population_chi(self):
+        for eps in KEY_EPSILONS:
+            r = contestability_margin(eps, _POP, _TRUST)
+            assert r["chi_marginal"] <= r["chi"] + 1e-12
+
+    def test_chi_marginal_keys_present(self):
+        r = contestability_margin(0.40, _POP, _TRUST)
+        for key in ("chi_marginal", "p_marginal", "status_marginal"):
+            assert key in r
+
+    def test_status_marginal_valid(self):
+        for eps in KEY_EPSILONS:
+            r = contestability_margin(eps, _POP, _TRUST)
+            assert r["status_marginal"] in ("OK", "WARN", "CRIT")
+
+    def test_p_marginal_equals_guarantee(self):
+        r = contestability_margin(0.40, _POP, _TRUST)
+        assert r["p_marginal"] == pytest.approx(r["guarantee_per_person"])
+
+    def test_chi_arc_includes_chi_marginal(self):
+        rows = chi_arc(n_points=5)
+        for row in rows:
+            assert "chi_marginal" in row
+            assert row["chi_marginal"] <= row["chi_population_avg"] + 1e-12
+
+
+# ---------------------------------------------------------------------------
+# TestTrustRequiredForChi — §8.2 inversion
+# ---------------------------------------------------------------------------
+
+class TestTrustRequiredForChi:
+
+    def test_closure_at_all_key_epsilons(self):
+        """Feeding T_required back into contestability_margin yields χ ≥ target."""
+        for eps in KEY_EPSILONS:
+            req = trust_required_for_chi(eps, chi_target=1.0, population=_POP)
+            trust = max(req["trust_required"], 1.0)  # trust_capital guard
+            chi = contestability_margin(eps, _POP, trust)["chi"]
+            assert chi >= 1.0 - 1e-9, (
+                f"closure failed at ε={eps}: T_req={req['trust_required']:.3e} "
+                f"gives χ={chi:.4f}"
+            )
+
+    def test_monotone_increasing_in_adversarial_regime(self):
+        values = [trust_required_for_chi(eps, regime="increasing_returns")["trust_required"]
+                  for eps in [0.0, 0.25, 0.50, 0.75, 0.99]]
+        for lo, hi in zip(values, values[1:]):
+            assert hi >= lo, f"T_required must rise with ε in increasing_returns: {lo:.3e} → {hi:.3e}"
+
+    def test_zero_when_guarantee_covers_entry(self):
+        """Replicable regime at high ε: K_entry collapses below S → no Trust needed."""
+        req = trust_required_for_chi(0.99, regime="replicable")
+        assert req["trust_required"] == pytest.approx(0.0), (
+            f"K_entry={req['k_entry']:.0f} < S={req['guarantee_per_person']:.0f} "
+            f"should need no Trust, got {req['trust_required']:.3e}"
+        )
+
+    def test_gap_vs_base_sign(self):
+        req = trust_required_for_chi(0.99, regime="increasing_returns")
+        assert req["gap_vs_base"] == pytest.approx(
+            req["trust_required"] - TRUST_BASE_TEH)
+
+    def test_invalid_chi_target_raises(self):
+        with pytest.raises(ValueError):
+            trust_required_for_chi(0.40, chi_target=0.0)
+
+    def test_higher_target_needs_more_trust(self):
+        lo = trust_required_for_chi(0.99, chi_target=1.0)["trust_required"]
+        hi = trust_required_for_chi(0.99, chi_target=1.5)["trust_required"]
+        assert hi > lo
+
+
+# ---------------------------------------------------------------------------
+# TestLevyScheduleForChi — the derived §8.2 schedule
+# ---------------------------------------------------------------------------
+
+class TestLevyScheduleForChi:
+
+    def test_chi_check_holds_at_every_row(self):
+        """The schedule's whole point: the invariant holds at every arc point."""
+        for regime in ("increasing_returns", "replicable"):
+            rows = levy_schedule_for_chi(n_points=10, regime=regime)
+            for row in rows:
+                assert row["chi_check"] >= 1.0 - 1e-9, (
+                    f"{regime}: χ_check={row['chi_check']:.4f} < 1 "
+                    f"at ε={row['epsilon']:.3f}"
+                )
+
+    def test_trust_target_monotone_in_adversarial_regime(self):
+        rows = levy_schedule_for_chi(n_points=10, regime="increasing_returns")
+        targets = [r["trust_target"] for r in rows]
+        for lo, hi in zip(targets, targets[1:]):
+            assert hi >= lo
+
+    def test_trust_target_never_below_start(self):
+        rows = levy_schedule_for_chi(n_points=10, trust_start=TRUST_BASE_TEH)
+        for row in rows:
+            assert row["trust_target"] >= TRUST_BASE_TEH
+
+    def test_adversarial_infeasible_at_defaults(self):
+        """Honest adversarial finding: automated output alone cannot fund the
+        schedule at canonical defaults. If this ever passes, the calibration
+        changed — re-examine, do not silently accept."""
+        rows = levy_schedule_for_chi(n_points=10, regime="increasing_returns")
+        assert not all(r["feasible"] for r in rows)
+
+    def test_levy_fraction_none_at_epsilon_zero(self):
+        rows = levy_schedule_for_chi(n_points=10)
+        assert rows[0]["epsilon"] == pytest.approx(0.0, abs=1e-9)
+        assert rows[0]["levy_fraction"] is None
+        assert rows[0]["feasible"] is False
+
+    def test_required_keys_present(self):
+        rows = levy_schedule_for_chi(n_points=3)
+        expected = {
+            "epsilon", "k_entry", "guarantee_per_person", "trust_target",
+            "delta_trust", "dividend_outflow", "levy_required",
+            "automated_output", "levy_fraction", "feasible", "chi_check",
+        }
+        for row in rows:
+            assert set(row.keys()) == expected
+
+    def test_replicable_cheaper_than_adversarial(self):
+        adv = levy_schedule_for_chi(n_points=10, regime="increasing_returns")
+        rep = levy_schedule_for_chi(n_points=10, regime="replicable")
+        assert sum(r["levy_required"] for r in rep) <= sum(r["levy_required"] for r in adv)
+
+    def test_arc_coverage(self):
+        rows = levy_schedule_for_chi(n_points=10)
+        assert rows[0]["epsilon"] == pytest.approx(0.0, abs=1e-9)
+        assert rows[-1]["epsilon"] == pytest.approx(0.99, abs=1e-6)
