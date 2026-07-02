@@ -542,3 +542,9 @@ CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield
 COASEAN_N_MAX: int = 20            # collective count at ε=0 (maximally fragmented)
 COASEAN_BOUNDARY_EXPONENT: float = 1.0   # exponent in N(ε) = max(1, round(N_max×(1−ε)^exp))
 COASEAN_RESERVE_FRACTION: float = 0.10  # fraction of TEH created held in inter-collective reserve
+COASEAN_IMBALANCE_CEILING: float = 0.50  # bilateral net-flow ceiling as fraction of the deficit
+                                         # collective's reserve; beyond it settlement is required
+                                         # (paper's bilateral-imbalance-ceiling sketch, recon. §9-item-4)
+COASEAN_DEPRECIATION_SLOPE: float = 0.20 # exchange-rate depreciation per unit of unsettled imbalance
+                                         # beyond the ceiling (relative to reserve) — over-issuance
+                                         # exports depreciation honestly (recon. §7 transition regime)
