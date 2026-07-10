@@ -304,7 +304,9 @@ TEH lifecycle, automation arc.
 
 ## Current status
 
-**1283 tests passing** (2026-06-03). Phase 2 complete. No open gaps.
+**1502 tests passing** (2026-07-10). Workstreams A–F merged to main, including the contestability closure (derived levy schedule, marginal χ, dashboard wiring) and Coasean Phase 3 (trust dynamics, settlement rules, desire stub).
+
+**Open follow-up — federation contestability closure** (reconciliation §8.7 addendum, decided 2026-07-10): two-tier Trust (per-collective trusts + federation commons backing the sufficiency floor), individual capital accounts with federation-portable tenure, indivisible-reserve escheat on dissolution/merger, TEH-conserving boundary events, and a `MembershipTerms`-style contract audit (`contestability_audit(terms, ε)`). Code consequences: `trust_balance` in contestability functions means the collective's trust plus the federation floor; `portable_endowment_individual` tenure is federation tenure; `research/coasean.py` needs a commons tier and per-collective per-period χ inside `simulate_federation`.
 
 **eco-collapse-1 closed** (2026-05-18): ecological collapse is handled via the GUF layer (`land/guf.py` §9), not TEH destruction. Two pathways: restoration (V_s baselines reset to recovery target, revenue maintained) and abandonment (rebuilding surcharge R_b(p,ε) added, Eq. 28–29). Preventive monitoring via `eoh_accumulation_warning()` (§9.8). `research/writedown.py` re-exports these functions with rationale.
 
