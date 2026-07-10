@@ -72,9 +72,10 @@ def domain_scarcity_multiplier(
     """
     Price scarcity multiplier when EOH demand outpaces fulfillment capacity.
 
-    In the EOH framework, prices normally reflect labor content only. When a
-    domain's EOH demand chronically exceeds the workforce's ability to fulfill
-    it, a scarcity signal is appropriate — prices rise to ration consumption
+    In the EOH framework, floor prices reflect labor content; market discovery
+    sets premiums above the floor (reconciliation §3). When a domain's EOH
+    demand chronically exceeds the workforce's ability to fulfill it, a
+    scarcity signal is appropriate — prices rise to ration consumption
     and redirect labor toward the shortfall.
 
     At balance (demand ≤ capacity): multiplier = 1.0 (no scarcity signal).
@@ -676,8 +677,9 @@ def cpi_goods_destruction(
             "mechanism":                        "D4_cpi",
         }
 
-    Reference: Comprehensive Price Identity — goods are priced at embedded labor
-    content; consumption at that price is the destruction event.
+    Reference: Comprehensive Price Identity — goods' floor prices are set by
+    embedded labor content (reconciliation §3); consumption at that price is
+    the destruction event.
     """
     baskets = capital_personal_eoh_fulfilled_total / max(basket_eoh_content, 1.0)
     bp      = basket_price(epsilon)

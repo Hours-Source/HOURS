@@ -1,6 +1,6 @@
 # HOURS
 
-**HOURS** is a mathematical framework for a currency system — *Entropy Obligation Hours (EOH) → Time-Equivalent Hours (TEH)* — that remains coherent, physically grounded, and fiscally solvent across the full civilizational transition from subsistence to post-scarcity.
+**HOURS** is a mathematical framework for a currency system — *Entropy Obligation Hours (EOH) → Time-Equivalent Hours (TEH)* — that remains internally coherent, auditable, and fiscally solvent across the full civilizational transition from subsistence to post-scarcity.
 
 > "An economy is the organized effort of a civilization to resist entropy — in its people, in its infrastructure, in its ecosystems, and in its knowledge."
 
@@ -35,7 +35,7 @@ Physical state → total_eoh()          # entropy obligation from physics
              → × worker multiplier    # TEH enters circulation
 ```
 
-**EOH generation is pure physics.** Functions take the actual physical state of the civilization (capital stock, ecosystem health, population structure, knowledge base) and return the entropy obligations that state implies.
+**EOH generation is measurement-driven.** Functions take the actual physical state of the civilization (capital stock, ecosystem health, population structure, knowledge base) and return the entropy obligations that state implies, derived from calibrated physical constants and auditable baselines.
 
 **EOH fulfillment is where ε belongs.** The machine/human split, registration curves, and fiscal mechanisms are genuinely ε-driven.
 
