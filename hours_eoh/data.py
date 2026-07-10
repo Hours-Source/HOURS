@@ -533,6 +533,9 @@ CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
 CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
 CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield rate assumption
+CONTESTABILITY_VESTING_YEARS: float = 5.0       # years of membership for the Trust dividend to fully vest
+                                                # (linear vesting; calibration knob — matches the 5-year
+                                                # tier-reassessment cadence, TIER_ASSESSMENT_INTERVAL_YEARS)
 
 # ---------------------------------------------------------------------------
 # Coasean collective federation (reconciliation §§6–7; research/coasean.py)

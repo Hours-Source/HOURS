@@ -30,6 +30,8 @@ import math
 from hours_eoh.data import (
     CARE_SIGMOID_DEFAULTS,
     COMPETENCY_THRESHOLD,
+    CONTESTABILITY_CHI_CRIT,
+    CONTESTABILITY_CHI_WARN,
     DEFAULT_SEGMENTS,
     M_BAND_LOW,
     M_BAND_HIGH,
@@ -400,6 +402,8 @@ def system_dashboard(
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
+    # Contestability (reconciliation §8) — computed by the caller
+    chi: float | None = None,
 ) -> dict:
     """
     Full system health dashboard — all four conditions plus health indicators.
@@ -407,6 +411,14 @@ def system_dashboard(
     Combines Condition monitors (Phase 1 conditions.py), EOH health indicators
     (Phase 5.2), and fiscal health (Phase 5.3) into a single structural
     integrity report. The overall status is the worst of all individual statuses.
+
+    Contestability: the χ margin (reconciliation §8) lives in research/ and
+    core/ cannot import it (layer rules), so the caller computes
+    contestability_margin() and passes chi in as a plain float. When provided,
+    χ < CONTESTABILITY_CHI_CRIT (1.0) raises a RED flag — exit is nominal, the
+    invariant is breached — and χ < CONTESTABILITY_CHI_WARN (1.2) a YELLOW.
+    When None (default), contestability is not assessed and behavior is
+    unchanged.
 
     Args:
         epsilon: Automation level.
@@ -435,6 +447,8 @@ def system_dashboard(
         suff_levy_rate: Levy rate on labor income.
         dep_rate: Trust annual depreciation rate.
         div_rate: Dividend fraction of depreciation.
+        chi: Contestability margin χ = P/K_entry, computed by the caller via
+            research/contestability.contestability_margin(). None = not assessed.
 
     Returns:
         dict: {
@@ -444,6 +458,8 @@ def system_dashboard(
           "condition_iv":  dict,   (from competency_check)
           "eoh_health":    dict,   (from eoh_health_indicators)
           "fiscal_health": dict,   (from fiscal_health_check)
+          "contestability_chi":   float | None,  (echo of chi input)
+          "contestability_status": str,  ("GREEN"/"YELLOW"/"RED"/"NOT_ASSESSED")
           "conditions_all_pass":  bool,
           "overall_status":       str,   ("GREEN"/"YELLOW"/"RED")
           "red_flags":            list[str],
@@ -519,6 +535,23 @@ def system_dashboard(
         elif status == "YELLOW":
             yellow_flags.append(f"Fiscal — {indicator}: YELLOW")
 
+    # Contestability (reconciliation §8): χ < 1 means exit is nominal — the
+    # invariant the whole arc must preserve is breached.
+    if chi is None:
+        contestability_status = "NOT_ASSESSED"
+    elif chi < CONTESTABILITY_CHI_CRIT:
+        contestability_status = "RED"
+        red_flags.append(
+            f"Contestability — χ = {chi:.3f} < {CONTESTABILITY_CHI_CRIT}: exit is nominal"
+        )
+    elif chi < CONTESTABILITY_CHI_WARN:
+        contestability_status = "YELLOW"
+        yellow_flags.append(
+            f"Contestability — χ = {chi:.3f} < {CONTESTABILITY_CHI_WARN}: margin thinning"
+        )
+    else:
+        contestability_status = "GREEN"
+
     if red_flags:
         overall_status = "RED"
     elif yellow_flags:
@@ -533,6 +566,8 @@ def system_dashboard(
         "condition_iv":         c4,
         "eoh_health":           eoh_h,
         "fiscal_health":        fis_h,
+        "contestability_chi":   chi,
+        "contestability_status": contestability_status,
         "conditions_all_pass":  conditions_pass,
         "overall_status":       overall_status,
         "red_flags":            red_flags,
