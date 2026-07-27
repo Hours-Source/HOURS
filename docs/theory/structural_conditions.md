@@ -2,7 +2,7 @@
 
 A TEH-denominated economy achieves stable, within-collective floor-guaranteed operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.
 
-*(Scope note: within-collective inflation is structurally impossible at all ε by Condition I. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility holds as ε→1. See the [Coasean federation module](../../hours_eoh/research/coasean.py) and reconciliation §7.)*
+*(Scope note: within-collective inflation is structurally impossible at all ε by Condition I. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility holds as ε→1. See the [Coasean federation module](../api/research.md) (`hours_eoh/research/coasean.py`) and reconciliation §7.)*
 
 ---
 

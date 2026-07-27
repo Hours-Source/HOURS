@@ -47,8 +47,12 @@ See [GUF Framework §9](../theory/guf_framework.md#9-ecological-write-down-event
 
 ## contestability.py — Contestability Invariant (Workstream B)
 
-Implements the contestability invariant χ(ε) = P(ε) / K_entry(ε) ≥ 1 from
-`hours-reconciliation.md §8`. All functions are experimental — the regime
+Implements the contestability instrumentation from `hours-reconciliation.md
+§8`. The original invariant statement — χ(ε) = P(ε)/K_entry(ε) ≥ 1 — failed
+adversarial testing for the marginal member and is SUPERSEDED by the §8.9
+time-to-finance/two-arm form (see `recalibration.py` below); the χ functions
+remain as instrumentation and documented negative results. All functions are
+experimental — the regime
 parameters are uncertain and the model uses population-average P rather than
 individually tenure-vested endowments (see module docstring).
 
@@ -227,9 +231,12 @@ function; default `"dilution"`):
   ≈ 0.17 early, crossing 1 at ε ≈ 0.48); nothing is purchased, the dividend is
   the full φ·Y, and private capital follows a no-sale ratchet — it can rise,
   never falls by sale. Honest cost: φ caps at ≈ 0.66 by ε = 0.99 (target
-  0.99); the exit invariant still holds at every arc point, with
-  self-financing from ε ≈ 0.30. `formation_levy_rate()` quantifies the
-  compensated-bridge variant (≈ 1% of labor-era output, sunset by ε ≈ 0.2).
+  0.99); the exit invariant still holds at every arc point. (The static
+  model's self-financing onset of ε ≈ 0.30 did NOT survive the §8.9c
+  formation feedback — the feedback-consistent onset is ε ≈ 0.86, with
+  underwriting carrying the transition; see formation.py below.)
+  `formation_levy_rate()` quantifies the compensated-bridge variant
+  (≈ 1% of labor-era output, sunset by ε ≈ 0.2).
 - **`"target"`** — the §8.9a purchase model (regression anchor; reproduces
   the published §8.9 numbers, including the early-arc acquisition
   infeasibility window that the charter doctrine removes).

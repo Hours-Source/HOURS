@@ -120,7 +120,10 @@ canonical_physical_state(ε) is for testing and cross-sectional analysis only.
 
 ## Contestability Parameters (Workstream B — `research/contestability.py`)
 
-Added to support the contestability invariant χ(ε) = P(ε) / K_entry(ε) ≥ 1.
+Added to support the contestability instrumentation (originally the bare
+invariant χ(ε) = P(ε)/K_entry(ε) ≥ 1, since superseded by the §8.9
+time-to-finance/two-arm form — see the Recalibration and §8.9c sections
+below; the χ machinery remains as documented negative results).
 See `hours-reconciliation.md §8` and `notes/workstream b.md` for derivation.
 
 | Constant | Default | Units | Kind | Source / Derivation |
