@@ -1403,6 +1403,72 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#contestability-contestability-invariant-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability — Contestability Invariant (§8)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="contestability — Contestability Invariant (§8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contestability-recal" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability recal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contestability-formation" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability formation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contestability-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability audit
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coasean-collective-federation-67-87" class="md-nav__link">
+    <span class="md-ellipsis">
+      coasean — Collective Federation (§§6–7, §8.7)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="coasean — Collective Federation (§§6–7, §8.7)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#coasean-simulate-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      coasean simulate flags
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1704,6 +1770,72 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#contestability-contestability-invariant-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability — Contestability Invariant (§8)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="contestability — Contestability Invariant (§8)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contestability-recal" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability recal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contestability-formation" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability formation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contestability-audit" class="md-nav__link">
+    <span class="md-ellipsis">
+      contestability audit
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coasean-collective-federation-67-87" class="md-nav__link">
+    <span class="md-ellipsis">
+      coasean — Collective Federation (§§6–7, §8.7)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="coasean — Collective Federation (§§6–7, §8.7)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#coasean-simulate-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      coasean simulate flags
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1957,6 +2089,144 @@
 </span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="p">]</span>
 </span></code></pre></div>
 <p>See <a href="../../api/land/#collective-land-inventory">Land — Collective Inventory</a> for the full parcel schema.</p>
+<hr />
+<h2 id="contestability-contestability-invariant-8">contestability — Contestability Invariant (§8)<a class="headerlink" href="#contestability-contestability-invariant-8" title="Permanent link">&para;</a></h2>
+<p>Arc table, stress sweep, derived levy schedule, the §8.9 recalibrated arc,
+and the §8.7e membership-terms audit.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>arc<span class="w">    </span><span class="o">[</span>--regime<span class="w"> </span>increasing_returns<span class="p">|</span>replicable<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>stress<span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>levy<span class="w">   </span><span class="o">[</span>--chi-target<span class="w"> </span><span class="m">1</span>.0<span class="o">]</span><span class="w"> </span><span class="o">[</span>--levy-base<span class="w"> </span>capital_yield<span class="p">|</span>machine_output<span class="o">]</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w">  </span><span class="o">[</span>--regime<span class="w"> </span>...<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--capital-output-ratio<span class="w"> </span><span class="m">4</span>.0<span class="o">]</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w">  </span><span class="o">[</span>--terms-json<span class="w"> </span>PATH<span class="p">|</span>-<span class="o">]</span><span class="w"> </span><span class="o">[</span>inline<span class="w"> </span>flags<span class="o">]</span>
+</span></code></pre></div>
+<p><code>--levy-base machine_output</code> uses the physically-consistent base
+<code>ε·total_EOH</code> (the pipeline's own measure of automated production) instead of
+the static <code>ε·K·yield</code>, which understates it ~12× at high ε (proposed §8.8 M3).</p>
+<h3 id="contestability-recal">contestability recal<a class="headerlink" href="#contestability-recal" title="Permanent link">&para;</a></h3>
+<p>The proposed-§8.9/§8.9b recalibrated arc: the commons owns share φ(ε) of an
+ε-consistent capital stock (τ = φ ≤ 1, dτ/dε ≥ 0 structural), and exit is
+financed by own labor (low ε), commons underwriting (mid ε), or dividend
+savings (high ε) — <code>t_exit ≤ horizon</code> replaces the retired flow/stock χ.</p>
+<p><code>--phi-policy</code> selects the doctrine: <strong>dilution</strong> (default, §8.9b charter
+formation — the commons' share attaches to new capital at commissioning;
+private capital is never sold down, so φ caps at ≈ 0.66 by ε = 0.99, marked
+<code>*</code> in the table), <strong>target</strong> (§8.9a purchase model, regression anchor), or
+<strong>escalated</strong> (dilution + the charter escalation clause — full generational
+conversion via capital-estate escheat if observed concentration threatens
+exit; never fires at canonical defaults, rows marked <code>!</code> when active).
+<code>--estate-escheat</code> sets the baseline capital-estate share (default 0.15 =
+<code>ESTATE_LEVY_FRACTION</code>, the D5 doctrine extended); raise
+<code>--min-viable-population</code> to stress the escalation trigger.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># The doctrine arc (dilution default)</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># §8.9a purchase model for comparison</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>target
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># Force the escalation clause to fire (40× founding cohort)</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>escalated<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="w">    </span>--min-viable-population<span class="w"> </span><span class="m">200000</span>
+</span></code></pre></div>
+<h3 id="contestability-formation">contestability formation<a class="headerlink" href="#contestability-formation" title="Permanent link">&para;</a></h3>
+<p>The §8.9c formation-feedback simulation: formation is financed or it does
+not happen (private supply falls as the charter share rises), the commons
+co-funds from net income per <code>--priority</code> (share-first holds the canonical
+pace at the dividend's expense; dividend-first crawls and never completes),
+and ε derives from the capital actually formed. <code>--charter-share 0</code> is the
+null anchor; <code>--hurdle</code>/<code>--full-supply</code> toward fiat-like returns quantify
+the Condition III finding (zero interest makes the charter affordable:
+s* = 0.50 vs ≈ 0.10 fiat-like).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># The doctrine run (share-first)</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># The crawling counterfactual</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--priority<span class="w"> </span>dividend<span class="w"> </span>--years<span class="w"> </span><span class="m">120</span>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="c1"># The fiat-world counterfactual (dividend driven to zero mid-arc)</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--hurdle<span class="w"> </span><span class="m">0</span>.06<span class="w"> </span>--full-supply<span class="w"> </span><span class="m">0</span>.18
+</span></code></pre></div>
+<h3 id="contestability-audit">contestability audit<a class="headerlink" href="#contestability-audit" title="Permanent link">&para;</a></h3>
+<p>Checks proposed membership terms against the χ invariant (the code audits the
+contract; it does not legislate it). Terms come from a JSON file, stdin (<code>-</code>),
+or inline flags (<code>--vesting-years</code>, <code>--admission-cost</code>, <code>--exit-notice-years</code>,
+<code>--minimum-hours</code>, <code>--dividend-fraction</code>); inline flags override JSON keys.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Inline: an admission fee at high ε breaches the invariant</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># From a terms file</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--terms-json<span class="w"> </span>terms.json<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="c1"># §8.8 closure flags: same admission fee, but a funded commons finances exit</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="w">    </span>--commons-balance<span class="w"> </span>1e10<span class="w"> </span>--commons-dividend<span class="w"> </span>--underwriting-policy
+</span></code></pre></div>
+<p><strong>Terms JSON format</strong> (all fields optional; absent fields keep canonical defaults):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="p">{</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="w">  </span><span class="nt">&quot;vesting_years&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="w">  </span><span class="nt">&quot;admission_cost_teh&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">250.0</span><span class="p">,</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="w">  </span><span class="nt">&quot;exit_notice_years&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="w">  </span><span class="nt">&quot;minimum_hours_annual&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">400.0</span><span class="p">,</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="w">  </span><span class="nt">&quot;dividend_policy_fraction&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="coasean-collective-federation-67-87">coasean — Collective Federation (§§6–7, §8.7)<a class="headerlink" href="#coasean-collective-federation-67-87" title="Permanent link">&para;</a></h2>
+<p>Research-tier federation mechanics. <code>--format table|json</code> goes before the subcommand.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>n1-check<span class="w">                  </span><span class="c1"># N=1 regression anchor</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>count<span class="w">                     </span><span class="c1"># emergent N(ε) across the arc</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>federation<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4<span class="w">  </span><span class="c1"># per-collective snapshot</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w">     </span><span class="c1"># multi-period arc</span>
+</span></code></pre></div>
+<h3 id="coasean-simulate-flags">coasean simulate flags<a class="headerlink" href="#coasean-simulate-flags" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dynamics</code></td>
+<td>Phase 3 Trust/capital evolution (adds <code>T</code>, <code>τ</code>, <code>piketty</code> columns)</td>
+</tr>
+<tr>
+<td><code>--g-priv F</code></td>
+<td>private capital growth per period (with <code>--dynamics</code>)</td>
+</tr>
+<tr>
+<td><code>--levy-rate F</code></td>
+<td>common-fund levy on automated output (with <code>--dynamics</code>)</td>
+</tr>
+<tr>
+<td><code>--commons</code></td>
+<td>Phase 4 two-tier commons: escheat, tithe, per-collective χ (adds <code>commons</code>, <code>escheat</code>, <code>χ_marg_min</code>, <code>χ_status</code> columns)</td>
+</tr>
+<tr>
+<td><code>--commons-tithe F</code></td>
+<td>levy fraction routed to the federation commons (default 0.03)</td>
+</tr>
+<tr>
+<td><code>--regime R</code></td>
+<td>K_entry regime for per-collective χ</td>
+</tr>
+<tr>
+<td><code>--commons-dividend</code></td>
+<td>§8.8 M1: commons pays a universal unvested dividend that feeds χ (adds <code>entry_cap</code>, <code>exit_fin</code> semantics)</td>
+</tr>
+<tr>
+<td><code>--commons-start F</code></td>
+<td>initial commons balance in TEH (seed; <code>commons_seed_required()</code> ≈ 1.8e7 at defaults)</td>
+</tr>
+</tbody>
+</table>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># The full two-tier arc: consolidation escheat, tithe, and the χ invariant</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w"> </span>--dynamics<span class="w"> </span>--commons<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.3
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># §8.8 closure: seeded commons + universal dividend → exit financeable across the arc</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">21</span><span class="w"> </span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span>--dynamics<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="w">    </span>--g-priv<span class="w"> </span><span class="m">0</span>.02<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.2<span class="w"> </span>--commons<span class="w"> </span>--commons-dividend<span class="w"> </span>--commons-start<span class="w"> </span><span class="m">1</span>.8e7
+</span></code></pre></div>
 
 
 

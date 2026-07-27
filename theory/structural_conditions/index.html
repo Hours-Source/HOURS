@@ -1501,7 +1501,8 @@
 
 
 <h1 id="structural-conditions">Structural Conditions<a class="headerlink" href="#structural-conditions" title="Permanent link">&para;</a></h1>
-<p>A TEH-denominated economy achieves stable, inflation-proof operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.</p>
+<p>A TEH-denominated economy achieves stable, within-collective floor-guaranteed operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.</p>
+<p><em>(Scope note: within-collective inflation is structurally impossible at all ε by Condition I. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility holds as ε→1. See the <a href="../../api/research/">Coasean federation module</a> (<code>hours_eoh/research/coasean.py</code>) and reconciliation §7.)</em></p>
 <hr />
 <h2 id="condition-i-ledger-identity">Condition I — Ledger Identity<a class="headerlink" href="#condition-i-ledger-identity" title="Permanent link">&para;</a></h2>
 <div class="admonition success">
@@ -1523,7 +1524,7 @@
 <h2 id="condition-iii-zero-interest">Condition III — Zero Interest<a class="headerlink" href="#condition-iii-zero-interest" title="Permanent link">&para;</a></h2>
 <div class="admonition success">
 <p>Stored currency may not generate additional currency through any mechanism. No lending at interest, investment returns, or financial instruments that produce currency without corresponding labor. Account balances change only through earnings and expenditures.</p>
-<p><strong>Physical grounding:</strong> Entropy compounds in physical reality — a neglected roof generates escalating obligations. The monetary system measures that reality honestly. Adding monetary interest would be measuring entropy that does not exist. Condition III ensures the currency reflects only real entropy resistance, never fictional growth.</p>
+<p><strong>Rationale:</strong> Entropy compounds in physical reality — a neglected roof generates escalating obligations. The model tracks this compounding from measurable physical inputs. Adding monetary interest would generate TEH without a corresponding entropy-reduction event — Condition I's auditable-creation rule prohibits it. Condition III ensures the currency reflects only work that was actually done.</p>
 <p><strong>Note:</strong> EOH compounding is physics (entropy accumulation), not interest — it does not create TEH. TEH is created only when someone actually does the work.</p>
 <p><strong>Code:</strong> <code>hours_eoh/core/conditions.py</code> → <code>condition_iii_balance_growth_check()</code></p>
 </div>

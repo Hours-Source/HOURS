@@ -881,6 +881,33 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#coasean-federation-parameters-workstream-d-phase-3-researchcoaseanpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coasean Federation Parameters (Workstream D / Phase 3 — research/coasean.py)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recalibration-prototype-proposed-89-researchrecalibrationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recalibration Prototype (proposed §8.9 — research/recalibration.py)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#membership-terms-audit-thresholds-reconciliation-87e-researchmembershippy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Membership-Terms Audit Thresholds (reconciliation §8.7e — research/membership.py)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1575,6 +1602,33 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#coasean-federation-parameters-workstream-d-phase-3-researchcoaseanpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coasean Federation Parameters (Workstream D / Phase 3 — research/coasean.py)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recalibration-prototype-proposed-89-researchrecalibrationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recalibration Prototype (proposed §8.9 — research/recalibration.py)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#membership-terms-audit-thresholds-reconciliation-87e-researchmembershippy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Membership-Terms Audit Thresholds (reconciliation §8.7e — research/membership.py)
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1998,7 +2052,10 @@ canonical_physical_state(ε) is for testing and cross-sectional analysis only.</
 </table>
 <hr />
 <h2 id="contestability-parameters-workstream-b-researchcontestabilitypy">Contestability Parameters (Workstream B — <code>research/contestability.py</code>)<a class="headerlink" href="#contestability-parameters-workstream-b-researchcontestabilitypy" title="Permanent link">&para;</a></h2>
-<p>Added to support the contestability invariant χ(ε) = P(ε) / K_entry(ε) ≥ 1.
+<p>Added to support the contestability instrumentation (originally the bare
+invariant χ(ε) = P(ε)/K_entry(ε) ≥ 1, since superseded by the §8.9
+time-to-finance/two-arm form — see the Recalibration and §8.9c sections
+below; the χ machinery remains as documented negative results).
 See <code>hours-reconciliation.md §8</code> and <code>notes/workstream b.md</code> for derivation.</p>
 <table>
 <thead>
@@ -2073,6 +2130,237 @@ See <code>hours-reconciliation.md §8</code> and <code>notes/workstream b.md</co
 <td>fraction / year</td>
 <td>Calibration</td>
 <td>Automated capital yield rate: 10%/yr. Used to compute automated_output_teh = ε × capital_stock × yield for the Piketty-inversion levy calculation.</td>
+</tr>
+<tr>
+<td><code>CONTESTABILITY_VESTING_YEARS</code></td>
+<td>5.0</td>
+<td>years</td>
+<td>Calibration</td>
+<td>Years of <strong>federation</strong> tenure for the Trust dividend to fully vest (linear vesting), used by <code>portable_endowment_individual()</code> and <code>portable_endowment_federated()</code>. Tenure is federation-wide (reconciliation §8.7b): moving between collectives never resets the clock or forfeits vested balance. Matches the 5-year tier-reassessment cadence (<code>TIER_ASSESSMENT_INTERVAL_YEARS</code>). The sufficiency floor never vests — it is membership-independent (reconciliation §8.1). A pure calibration knob: shorter vesting strengthens the marginal member's χ.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="coasean-federation-parameters-workstream-d-phase-3-researchcoaseanpy">Coasean Federation Parameters (Workstream D / Phase 3 — <code>research/coasean.py</code>)<a class="headerlink" href="#coasean-federation-parameters-workstream-d-phase-3-researchcoaseanpy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Units</th>
+<th>Type</th>
+<th>Source / Derivation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COASEAN_N_MAX</code></td>
+<td>20</td>
+<td>collectives</td>
+<td>Calibration</td>
+<td>Collective count at ε=0 (maximally fragmented). A working hypothesis from reconciliation §6, not derived from institutional data — the real count depends on governance, geography, and transaction-cost structure. Calibration knob, not physics.</td>
+</tr>
+<tr>
+<td><code>COASEAN_BOUNDARY_EXPONENT</code></td>
+<td>1.0</td>
+<td>dimensionless</td>
+<td>Calibration</td>
+<td>Exponent in N(ε) = max(1, round(N_max × (1−ε)^exp)). Linear default: collective count consolidates in proportion to automation. Higher values front-load consolidation.</td>
+</tr>
+<tr>
+<td><code>COASEAN_RESERVE_FRACTION</code></td>
+<td>0.10</td>
+<td>fraction of TEH created</td>
+<td>Calibration</td>
+<td>Share of each collective's period TEH creation held as inter-collective reserve, consumed by <code>settlement_check()</code> for imbalance settlement. Analogous to a central-bank FX reserve ratio.</td>
+</tr>
+<tr>
+<td><code>COASEAN_IMBALANCE_CEILING</code></td>
+<td>0.50</td>
+<td>fraction of debtor reserve</td>
+<td>Calibration</td>
+<td>Bilateral net-flow credit ceiling (paper's bilateral-imbalance-ceiling sketch, reconciliation §9-item-4). Within it, trade continues on credit; beyond it, settlement from reserve is required.</td>
+</tr>
+<tr>
+<td><code>COASEAN_DEPRECIATION_SLOPE</code></td>
+<td>0.20</td>
+<td>dimensionless</td>
+<td>Calibration</td>
+<td>Exchange-rate depreciation per unit of unsettled imbalance beyond the ceiling: factor = 1/(1 + slope × excess_ratio). Makes over-issuance a visible exchange-rate movement (reconciliation §7 transition regime). Proposed functional form, not calibrated from data.</td>
+</tr>
+<tr>
+<td><code>COASEAN_COMMONS_TITHE</code></td>
+<td>0.03</td>
+<td>fraction of levy revenue</td>
+<td>Calibration</td>
+<td>Fraction of each collective's common-fund levy revenue passed up to the federation commons (reconciliation §8.7a). Precedent: Italian Law 59/1992 requires cooperatives to contribute 3% of annual surplus to the mutualistic funds — the only real-world calibration point for a federation-level mutual levy.</td>
+</tr>
+<tr>
+<td><code>COASEAN_INDIVISIBLE_RESERVE_FRACTION</code></td>
+<td>0.30</td>
+<td>fraction of collective trust</td>
+<td>Calibration</td>
+<td>Unallocated (indivisible) share of a collective's trust — credited to no individual capital account; escheats to the federation commons on merger/split/dissolution (reconciliation §8.7c). Precedent: Italian co-op law's statutory ~30% indivisible legal reserve. The model tracks no individual accounts, so a named constant is the minimal honest allocated/unallocated split — a tenure-derived fraction would be false precision.</td>
+</tr>
+<tr>
+<td><code>CONTESTABILITY_MIN_VIABLE_POPULATION</code></td>
+<td>5,000</td>
+<td>persons</td>
+<td>Calibration</td>
+<td>Smallest population able to staff a viable alternative collective: the four-domain EOH pipeline with a full age distribution and a governance quorum (proposed §8.8 M2). UNCALIBRATED research placeholder, deliberately far below Coasean-efficient scale — a viable alternative need only clear minimum scale; requiring optimal scale would make the entry threat vacuous at high ε.</td>
+</tr>
+<tr>
+<td><code>CONTESTABILITY_UNDERWRITE_FRACTION</code></td>
+<td>0.50</td>
+<td>fraction of commons</td>
+<td>Calibration</td>
+<td>Maximum share of the federation commons deployable per period as entry underwriting (proposed §8.8 M2); the remainder stays as the sufficiency-floor backstop (§8.7a). Underwritten capital moves commons → new collective trust, staying commonized and indivisible (§8.7c).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recalibration-prototype-proposed-89-researchrecalibrationpy">Recalibration Prototype (proposed §8.9 — <code>research/recalibration.py</code>)<a class="headerlink" href="#recalibration-prototype-proposed-89-researchrecalibrationpy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Units</th>
+<th>Type</th>
+<th>Source / Derivation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RECAL_CAPITAL_OUTPUT_RATIO</code></td>
+<td>4.0</td>
+<td>years (K per unit annual output)</td>
+<td>Calibration</td>
+<td>ν in K(ε) = K₀ + ν·Y(ε): capital stock required per unit of annual machine output. Precedent: Piketty's β (national capital / national income) ≈ 4–6 across observed economies; the low end is the adversarially-cheap-capital posture (a smaller commons weakens the underwriting arm). Fixes §8.8 open item 3 at the root — the old frame held an ε=0-era stock fixed while ε rose, giving τ = 17.5 for a quantity defined as a share ≤ 1.</td>
+</tr>
+<tr>
+<td><code>RECAL_EPSILON_RATE_PER_YEAR</code></td>
+<td>0.02</td>
+<td>ε per year</td>
+<td>Calibration</td>
+<td>Arc speed dε/dt — a ~50-year subsistence→post-scarcity transition. UNCALIBRATED placeholder; converts per-ε acquisition needs into per-year flows, and faster arcs tighten acquisition feasibility linearly.</td>
+</tr>
+<tr>
+<td><code>RECAL_FOUNDING_LABOR_HOURS</code></td>
+<td>1,000</td>
+<td>hours/year</td>
+<td>Calibration</td>
+<td>Hours per year a floor-backed founder can devote to building an alternative collective (≈ 2/3 of <code>PERSONAL_EOH_BASE</code>). The sufficiency floor is what frees this labor — the floor is the entry finance of the low-ε arc. UNCALIBRATED placeholder.</td>
+</tr>
+<tr>
+<td><code>RECAL_EXIT_HORIZON_YEARS</code></td>
+<td>5.0</td>
+<td>years</td>
+<td>Calibration</td>
+<td>Self-financing horizon: exit must be financeable within one vesting period (= <code>CONTESTABILITY_VESTING_YEARS</code>). This is the RC4 fix — a stock target against a flow yields a TIME; the retired χ = P/K_entry demanded the founding stock be covered by one year of income.</td>
+</tr>
+<tr>
+<td><code>RECAL_ACCOUNT_CREDIT_SHARE</code></td>
+<td>0.50</td>
+<td>fraction of dividend</td>
+<td>Calibration</td>
+<td>Share of the annual per-capita dividend credited to the member's individual capital account (§8.7b) rather than paid as cash. Zero-interest per Condition III: the account is a sum of credits, never compounded. Precedent: Mondragon internal capital accounts.</td>
+</tr>
+<tr>
+<td><code>RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE</code></td>
+<td>0.15</td>
+<td>fraction of capital estate</td>
+<td>Calibration</td>
+<td>Share of a decedent's private capital escheating to the commons (§8.9b, B4). Set equal to <code>ESTATE_LEVY_FRACTION</code>: capital estates treated exactly like TEH estates — the existing D5 doctrine extended to capital, not a new rule. No living holder is ever divested; conversion happens at mortality speed.</td>
+</tr>
+<tr>
+<td><code>RECAL_ESCALATION_ESTATE_SHARE</code></td>
+<td>1.0</td>
+<td>fraction of capital estate</td>
+<td>Calibration</td>
+<td>Capital-estate escheat share while a §8.9b charter escalation is active: full generational conversion (Piketty's inheritance-tax instrument). Even at 1.0 the private-capital half-life is ≈ 69 years at the 1%/yr death rate — φ → target is asymptotic over generations; the exit invariant never depends on reaching it.</td>
+</tr>
+<tr>
+<td><code>RECAL_ESCALATION_CAPACITY_FLOOR</code></td>
+<td>10.0</td>
+<td>foundings financeable</td>
+<td>Calibration</td>
+<td>Entry-underwriting capacity below which the charter escalates (with the adversarial regime observed): the commons must always be able to finance an order of magnitude more foundings than one. UNCALIBRATED placeholder; at canonical defaults capacity stays ≈ 145–280 and the trigger never fires.</td>
+</tr>
+<tr>
+<td><code>FORMATION_DEPRECIATION_RATE</code></td>
+<td>0.05</td>
+<td>per year</td>
+<td>Calibration</td>
+<td>Aggregate annual depreciation of machine capital (§8.9c) — the aggregate counterpart of the per-asset lifecycle in <code>core/capital.py</code>, derived from <code>CAPITAL_MACHINE_PROFILES</code> design lives (≈ 20 yr → δ ≈ 1/20). Sets the gross return on capital 1/ν − δ = 0.20 and the commons replacement cost δ·T_K (a ≈ 20–24% haircut on the gross dividend).</td>
+</tr>
+<tr>
+<td><code>FORMATION_HURDLE_RATE_MIN</code></td>
+<td>0.02</td>
+<td>net return per year</td>
+<td>Calibration</td>
+<td>Net private return below which no private capital formation occurs (§8.9c). Low BECAUSE of Condition III: idle TEH earns zero interest and leaks via the accumulation ceiling (D6) and estate dissolution (D5), so only risk compensation remains. UNCALIBRATED placeholder; raising it toward fiat-like levels is the Condition III counterfactual.</td>
+</tr>
+<tr>
+<td><code>FORMATION_FULL_SUPPLY_RATE</code></td>
+<td>0.10</td>
+<td>net return per year</td>
+<td>Calibration</td>
+<td>Net private return at which formation demand is fully supplied (linear supply between the two rates — heterogeneous hurdle rates). Implies the incentive-compatible charter share s<em> = 1 − 0.10/0.20 = 0.50; a fiat-like 0.18 gives s</em> ≈ 0.10. UNCALIBRATED placeholder.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="membership-terms-audit-thresholds-reconciliation-87e-researchmembershippy">Membership-Terms Audit Thresholds (reconciliation §8.7e — <code>research/membership.py</code>)<a class="headerlink" href="#membership-terms-audit-thresholds-reconciliation-87e-researchmembershippy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Units</th>
+<th>Type</th>
+<th>Source / Derivation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MEMBERSHIP_VESTING_WARN_YEARS</code></td>
+<td>10.0</td>
+<td>years</td>
+<td>Calibration</td>
+<td>Vesting beyond 2× <code>CONTESTABILITY_VESTING_YEARS</code> → WARN: a dividend held hostage for a decade thins the marginal member's exit without formally breaching χ.</td>
+</tr>
+<tr>
+<td><code>MEMBERSHIP_EXIT_NOTICE_WARN_YEARS</code></td>
+<td>1.0</td>
+<td>years</td>
+<td>Calibration</td>
+<td>Exit notice beyond one year → WARN (exit friction accumulating).</td>
+</tr>
+<tr>
+<td><code>MEMBERSHIP_EXIT_NOTICE_CRIT_YEARS</code></td>
+<td>3.0</td>
+<td>years</td>
+<td>Calibration</td>
+<td>Notice beyond three years → CRIT: exit deferred that long is nominal, not substantive (reconciliation §8.1) — the term itself breaches the invariant regardless of χ arithmetic.</td>
+</tr>
+<tr>
+<td><code>MEMBERSHIP_MIN_HOURS_WARN_FRACTION</code></td>
+<td>0.50</td>
+<td>fraction of <code>PERSONAL_EOH_BASE</code></td>
+<td>Calibration</td>
+<td>Minimum-hours obligation above half the personal entropy load (750 h/yr) → WARN (§9-item-7: membership rules must not be drawn so tight they destroy χ).</td>
+</tr>
+<tr>
+<td><code>MEMBERSHIP_MIN_HOURS_CRIT_FRACTION</code></td>
+<td>1.00</td>
+<td>fraction of <code>PERSONAL_EOH_BASE</code></td>
+<td>Physics-adjacent</td>
+<td>Obligation at or above the full personal EOH load (1500 h/yr) → CRIT: an obligation equal to the whole entropy load is compulsion by definition, not a membership term.</td>
+</tr>
+<tr>
+<td><code>MEMBERSHIP_DIVIDEND_POLICY_WARN</code></td>
+<td>0.25</td>
+<td>fraction of pro-rata dividend</td>
+<td>Calibration</td>
+<td>Distributing less than 25% of the pro-rata dividend to accounts → WARN: retention rebuilds the honeypot (undistributed commons) inside the collective that the indivisible-reserve escheat rule exists to defuse.</td>
 </tr>
 </tbody>
 </table>

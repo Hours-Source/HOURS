@@ -1582,6 +1582,163 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<p><strong>Federation contestability closure (reconciliation §8.7 — research tier)</strong>
+- <code>research/coasean.py</code> Phase 4 — two-tier Trust: <code>merge_collectives()</code> and
+  <code>split_collective()</code> boundary events with indivisible-reserve escheat (§8.7c) and
+  TEH-conservation postconditions (§8.7d); <code>simulate_federation(commons=True)</code> tracks a
+  federation commons funded by a levy tithe (<code>COASEAN_COMMONS_TITHE</code>, Italian Law 59/1992
+  precedent) plus consolidation escheats, and records per-collective χ each period
+  (<code>chi_min</code>, <code>chi_marginal_min</code>, <code>chi_worst_collective</code>, <code>chi_status_worst</code>,
+  <code>commons_balance</code>, <code>commons_floor_coverage</code>). τ counts both tiers. Defaults are
+  byte-identical to Phase 3.
+- <code>research/contestability.py</code> — <code>portable_endowment_federated()</code> (two-tier P: the floor
+  is federation-guaranteed and never vests; the dividend claim is per-collective),
+  <code>exit_value()</code> (the floor crosses collective boundaries at par; only the capital
+  account converts at the exchange rate), <code>contestability_margin_federated()</code>.
+  Tenure is federation-wide (§8.7b): moving collectives never resets vesting.
+- <code>research/membership.py</code> — <code>MembershipTerms</code> + <code>contestability_audit()</code>: the §8.7e
+  math/contract line. Admission cost adds to K_entry; exit notice, minimum hours,
+  vesting length, and dividend retention are audited against <code>MEMBERSHIP_*</code> thresholds.
+- CLI: <code>eoh coasean simulate</code> gains <code>--dynamics --g-priv --levy-rate --commons
+  --commons-tithe --regime</code>; new <code>eoh contestability audit</code> subcommand.
+- Honest adversarial findings at defaults (reported, not tuned): commons floor coverage
+  is tiny at a 3% tithe, and consolidation escheat migrates trust from collective
+  dividends to the commons across the arc, so the worst marginal χ worsens toward ε→1.</p>
+<p><strong>Contestability closure mechanisms (proposed §8.8 — research tier, pending author
+sign-off; see <code>notes/contestability-closure-proposal.md</code>)</strong>
+- Answers the Phase 4 adversarial findings. Root-cause diagnosis: (1) the commons was
+  dividend-inert, so §8.7c escheat drained tenure-vested dividends into a fund paying
+  no one; (2) the marginal (tenure-0) member holds no capital claim, so no levy
+  schedule can close χ_marginal; (3) the static levy base ε·K·yield understates
+  machine output ~12× at high ε (an ε=0-era capital calibration held fixed);
+  (4) χ compares an annual endowment flow to a one-time founding stock.
+- M1 — universal commons dividend: <code>portable_endowment_federated(...,
+  commons_balance)</code> pays the commons yield per capita UNVESTED (Alaska Permanent
+  Fund precedent); escheat becomes a stabilizer — consolidation moves capital from
+  tenure-gated collective dividends into the universal tier.
+- M2 — entry underwriting: <code>entry_underwriting()</code> + <code>commons_seed_required()</code>;
+  the commons capitalizes new collectives' trusts (stays commonized, §8.7c).
+  Combined invariant: <code>exit_financeable ⇔ χ_marginal ≥ 1 OR entry_capacity ≥ 1</code>.
+  With a seed of ~1.8e7 TEH (~0.05% of the Trust base) the combined invariant holds
+  at EVERY period of the canonical adversarial arc (asserted in tests) — while
+  χ_marginal alone stays honestly CRIT at high ε (commons-financed, not
+  self-financed exit).
+- M3 — physically-consistent levy base: <code>machine_output_teh(ε) = ε·total_eoh(ε)</code>;
+  <code>levy_schedule_for_chi(levy_base="machine_output")</code>. Growth steps of the schedule
+  remain infeasible — M3 removes the calibration artifact, it does not manufacture
+  feasibility.
+- <code>simulate_federation(commons_dividend=True, commons_start=...)</code> wires M1+M2 into
+  the federation arc (<code>commons_dividend_paid</code>, <code>entry_capacity</code>, <code>exit_financeable</code>);
+  <code>contestability_audit(commons_dividend=, underwriting_policy=)</code> audits terms
+  against the combined invariant (CRIT → WARN waiver is opt-in; §8.7e defaults
+  unchanged). New constants <code>CONTESTABILITY_MIN_VIABLE_POPULATION</code> (uncalibrated
+  placeholder, documented as such) and <code>CONTESTABILITY_UNDERWRITE_FRACTION</code>.
+- CLI: <code>coasean simulate --commons-dividend --commons-start</code>; <code>contestability levy
+  --levy-base</code>; <code>contestability audit --commons-dividend --underwriting-policy</code>.
+- All defaults preserve §8.7 behavior float-exact; 38 new tests (1595 total).</p>
+<p><strong>Recalibration prototype (proposed §8.9 — research tier; adopted-in-principle by the
+author 2026-07-26, formal reconciliation-doc edit pending)</strong>
+- <code>research/recalibration.py</code> — resolves the three §8.8 "honest remainders" at their
+  causes. RC4 fix: the flow/stock χ is replaced by time-to-finance-exit
+  (<code>exit_financing()</code>, invariant <code>t_exit ≤ RECAL_EXIT_HORIZON_YEARS</code> = one vesting
+  period) and a genuine accumulating §8.7b capital account (<code>capital_account_stock()</code>,
+  Mondragon internal-account precedent, zero-interest per Condition III). Open item 3
+  fix: <code>capital_stock_epsilon()</code> grows the stock with machine output
+  (K(ε) = K₀ + ν·Y(ε), ν = Piketty's β ≈ 4) and the commons OWNS share φ(ε) of it
+  (Meade social-dividend model), so τ = φ ≤ 1 by construction and dτ/dε ≥ 0
+  (Piketty inversion) is structural, not levy-contingent. The dividend is the commons'
+  capital income net of share acquisition (<code>commons_income_statement()</code>) — 0 at ε=0,
+  ≈1,873 TEH/person·yr at ε=0.99: funded by measured machine output, not a promise.
+- Self-financing dropped as the test (author decision): exit finance has three
+  physical channels — own labor at low ε (the floor feeds the founders while they
+  build), commons underwriting through the mid-arc trough (Caja Laboral / Marcora
+  precedent), dividend savings at high ε. <code>recalibrated_arc()</code> shows the combined
+  invariant holding at EVERY arc point in the adversarial regime, with the channel
+  arcing labor → underwritten → self (asserted in tests).
+- Honest findings at defaults (reported, not tuned): share acquisition out of commons
+  income is infeasible for ε ≲ 0.15 (the initial endowment φ₀·K₀ and human-era
+  fiscal levies must carry the early arc); endogenous private-capital growth turns
+  negative past ε ≈ 0.5 — the §8.2 commonization made visible instead of assumed
+  away as a fixed g_priv.
+- <code>trust_required_for_chi()</code> and <code>levy_schedule_for_chi()</code> marked SUPERSEDED
+  (retained unchanged as documented negative results: the trust-growth path cannot
+  close bare χ — which is why underwriting exists).
+- New constants (all provenance-documented, placeholders flagged):
+  <code>RECAL_CAPITAL_OUTPUT_RATIO</code>, <code>RECAL_EPSILON_RATE_PER_YEAR</code>,
+  <code>RECAL_FOUNDING_LABOR_HOURS</code>, <code>RECAL_EXIT_HORIZON_YEARS</code>,
+  <code>RECAL_ACCOUNT_CREDIT_SHARE</code>.
+- CLI: <code>eoh contestability recal</code> — the §8.9 arc table. 62 new tests (1657 total).</p>
+<p><strong>§8.9b — charter-formation doctrine (research tier; doctrine bundle agreed with the
+author 2026-07-26)</strong>
+- <code>phi_policy</code> on the recalibration module: <code>"dilution"</code> (new default doctrine),
+  <code>"target"</code> (§8.9a purchase model, kept as the regression anchor), <code>"escalated"</code>.
+- Charter formation (A3): the commons' share attaches to NEW capital at
+  commissioning as a federation charter condition (resource-license / Georgist
+  model) — <code>formation_share_required()</code> gives the per-ε charter share s(ε)
+  (≈ 0.17 early, crossing 1 at ε ≈ 0.48). Nothing is purchased, so the §8.9a
+  early-arc funding gap disappears and the dividend is the full φ·Y (self-financed
+  exit from ε ≈ 0.30 vs 0.59 under §8.9a). <code>formation_levy_rate()</code> quantifies the
+  compensated bridge (≈ 1% of labor-era output, sunsetting by ε ≈ 0.2).
+- Dilution ratchet (B2): private capital is NEVER sold down — it follows a
+  running-max ratchet (rises while s ≤ 1, then flat). Honest cost, reported not
+  tuned: φ caps at ≈ 0.66–0.68 by ε = 0.99 (target 0.99); the exit invariant
+  still holds at every arc point with D ≈ 1,600 TEH/person·yr.
+- Escalation clause (B3): <code>escalation_trigger()</code> — adversarial regime observed AND
+  (entry capacity &lt; <code>RECAL_ESCALATION_CAPACITY_FLOOR</code> or invariant failing) →
+  the charter takes all new formation (s = 1) and capital-estate escheat rises to
+  <code>RECAL_ESCALATION_ESTATE_SHARE</code>. The trigger LATCHES in the arc; at canonical
+  defaults it NEVER fires (asserted in tests; forced firing tested at a 40×
+  founding cohort, lifting φ to ≈ 0.86 at ε = 0.99).
+- Generational conversion (B4): <code>estate_conversion_flow()</code> — capital estates
+  escheat at <code>RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE</code> (0.15 = <code>ESTATE_LEVY_FRACTION</code>:
+  the D5 doctrine extended to capital, not a new rule). Honest finding: mortality
+  speed is slow (half-life ≈ 69 yr even at full escheat) — φ → target is
+  asymptotic over generations; §8.2's "φ must be ABLE to → 1" survives as an
+  asymptotic capability, and the exit invariant never depends on it.
+- <code>recalibrated_arc()</code> path-integrates the capital split (TEH-conservation
+  asserted); rows gain phi_target, cap_binding, s_required, escalation_active,
+  private_capital_delta_per_year (the absolute-flow reporting fix — a rate on a
+  vanishing base was theatrical). Open item, flagged: the charter share is an
+  implicit tax on private capital formation; the investment-disincentive feedback
+  on K(ε) is not simulated.
+- CLI: <code>contestability recal --phi-policy --estate-escheat --min-viable-population</code>;
+  s_req/ΔKpriv columns, cap-binding and escalation markers. 79 new tests (1736
+  total).</p>
+<p><strong>§8.9c — formation feedback (research tier): who actually builds K(ε)</strong>
+- <code>research/formation.py</code> closes the investment-disincentive circularity §8.9b
+  flagged open. Formation is FINANCED or it does not happen: private supply
+  f(s) falls linearly as the charter share cuts the net return
+  r_priv = (1−s)(1/ν−δ); the commons co-funds from net income per a priority
+  policy; ε is DERIVED from the capital actually formed (aggregate inversion of
+  the module's own physics; typed-capital integration via core/civilization.py
+  is the follow-up).
+- Two corrections found in planning, now in the accounting: (1) the §8.9b
+  funding hole — in the cap region s = 1 attracts zero private funding, so the
+  commons pays for ALL formation there; (2) replacement — the commons must
+  replace its own worn stock (δ·T_K ≈ a 20–24% dividend haircut);
+  <code>commons_income_statement(net_of_replacement=True)</code> reports it (default False
+  preserves published §8.9b gross figures).
+- Null anchor (charter share pinned 0): reproduces the canonical ~50-yr arc
+  pace exactly — the baseline every feedback effect is measured against.
+- VERDICTS (honest, asserted in tests): share-first priority holds the canonical
+  pace with ZERO delay — the feedback costs the arc nothing in time, but the
+  dividend pays for it (D ≈ 113 vs static 302 at ε ≈ 0.4; self-financing onset
+  moves from ε ≈ 0.30 to ε ≈ 0.86, underwriting carries the transition).
+  Dividend-first never stalls but CRAWLS: ε ≈ 0.60 after 120 years, never
+  completing. The exit invariant holds at every simulated year under BOTH
+  priorities and even in the fiat counterfactual — capacity does not depend on
+  the dividend.
+- THE CONDITION III FINDING: zero interest is the doctrine's structural ally.
+  The incentive-compatible charter share is s* = 1 − r_full/r_gross = 0.50 at
+  zero-interest returns vs ≈ 0.10 at fiat-like returns; in the fiat
+  counterfactual the commons must drive the dividend to literally ZERO mid-arc
+  to hold pace, where the zero-interest world never does. The framework's
+  pieces reinforce each other, quantified.
+- New constants (provenance-documented, flagged): <code>FORMATION_DEPRECIATION_RATE</code>
+  (from CAPITAL_MACHINE_PROFILES design lives), <code>FORMATION_HURDLE_RATE_MIN</code>,
+  <code>FORMATION_FULL_SUPPLY_RATE</code>. CLI: <code>contestability formation --priority
+  --hurdle --full-supply --escalation --charter-share</code>. 39 new tests (1775
+  total).</p>
 <p><strong>Collective land-inventory system (<code>hours_eoh/land/</code>)</strong>
 - <code>collective.py</code> — Standard parcel schema and batch GUF calculator for a collective land
   inventory. <code>compute_collective_guf(parcels, epsilon, median_income)</code> loops all parcels through
