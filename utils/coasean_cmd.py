@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from utils.formatters import table, fmt_float, fmt_eps
+from utils.formatters import table, fmt_float, fmt_eps, green, yellow, red
 
 
 def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
@@ -54,6 +54,26 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
     sim.add_argument("--heterogeneity", type=float, default=0.10,
                      help="Std dev of ecosystem health variation (default: 0.10)")
     sim.add_argument("--seed",          type=int,   default=42)
+    sim.add_argument("--dynamics", action="store_true",
+                     help="Enable Phase 3 Trust/capital evolution")
+    sim.add_argument("--g-priv",    type=float, default=0.0, dest="g_priv",
+                     help="Private capital growth rate per period (with --dynamics)")
+    sim.add_argument("--levy-rate", type=float, default=0.0, dest="levy_rate",
+                     help="Common-fund levy on automated output (with --dynamics)")
+    sim.add_argument("--commons", action="store_true",
+                     help="Enable Phase 4 two-tier commons (escheat, tithe, per-collective χ)")
+    sim.add_argument("--commons-tithe", type=float, default=None, dest="commons_tithe",
+                     help="Levy fraction routed to the federation commons "
+                          "(default: COASEAN_COMMONS_TITHE = 0.03)")
+    sim.add_argument("--regime", choices=["increasing_returns", "replicable"],
+                     default="increasing_returns",
+                     help="K_entry regime for per-collective χ (with --commons)")
+    sim.add_argument("--commons-dividend", action="store_true", dest="commons_dividend",
+                     help="Phase 4b closure (§8.8 M1): commons pays a universal "
+                          "unvested dividend that feeds χ")
+    sim.add_argument("--commons-start", type=float, default=0.0, dest="commons_start",
+                     help="Initial commons balance in TEH (seed; see "
+                          "commons_seed_required() — ~1.8e7 at defaults)")
     sim.set_defaults(func=run_simulate)
 
     p.set_defaults(func=lambda args: p.print_help())
@@ -126,12 +146,19 @@ def run_count(args: argparse.Namespace) -> None:
 
 def run_simulate(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import simulate_federation
+    from hours_eoh.data import COASEAN_COMMONS_TITHE, CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN
 
-    print("EXPERIMENTAL — research/coasean.py (three-regime inflation, §7)\n")
+    print("EXPERIMENTAL — research/coasean.py (three-regime inflation, §7; commons, §8.7)\n")
+    tithe = COASEAN_COMMONS_TITHE if args.commons_tithe is None else args.commons_tithe
+    extras = ""
+    if args.dynamics:
+        extras += f"  dynamics: levy={args.levy_rate:.2f} g_priv={args.g_priv:.3f}"
+    if args.commons:
+        extras += f"  commons: tithe={tithe:.3f} regime={args.regime}"
     print(
         f"Simulating {args.periods} periods  "
         f"ε: {args.eps_start:.3f} → {args.eps_end:.3f}  "
-        f"heterogeneity={args.heterogeneity:.2f}  seed={args.seed}\n"
+        f"heterogeneity={args.heterogeneity:.2f}  seed={args.seed}{extras}\n"
     )
 
     trajectory = [
@@ -144,6 +171,14 @@ def run_simulate(args: argparse.Namespace) -> None:
         population=args.population,
         heterogeneity=args.heterogeneity,
         seed=args.seed,
+        dynamics=args.dynamics,
+        g_priv=args.g_priv,
+        levy_rate=args.levy_rate,
+        commons=args.commons,
+        commons_tithe=tithe,
+        regime=args.regime,
+        commons_dividend=args.commons_dividend,
+        commons_start=args.commons_start,
     )
 
     if args.fmt == "json":
@@ -151,9 +186,14 @@ def run_simulate(args: argparse.Namespace) -> None:
         return
 
     headers = ["t", "ε", "N", "total_teh", "within_infl", "inter_infl", "sys_infl", "solvent"]
+    if args.dynamics:
+        headers += ["T", "τ", "piketty"]
+    if args.commons:
+        headers += ["commons", "escheat", "χ_marg_min", "χ_status",
+                    "entry_cap", "exit_fin"]
     rows = []
     for r in records:
-        rows.append([
+        row = [
             str(r["period"]),
             f"{r['epsilon']:.3f}",
             str(r["n_collectives"]),
@@ -162,13 +202,48 @@ def run_simulate(args: argparse.Namespace) -> None:
             f"{r['inter_inflation']:.4f}",
             f"{r['system_inflation']:.4f}",
             "Y" if r["all_solvent"] else "N",
-        ])
+        ]
+        if args.dynamics:
+            piketty = r["piketty_ok"]
+            row += [
+                fmt_float(r["trust_balance"]),
+                f"{r['tau']:.4f}",
+                "-" if piketty is None else ("Y" if piketty else "N"),
+            ]
+        if args.commons:
+            chi_m = r["chi_marginal_min"]
+            chi_cell = f"{chi_m:.3f}"
+            if chi_m < CONTESTABILITY_CHI_CRIT:
+                chi_cell = red(chi_cell)
+            elif chi_m < CONTESTABILITY_CHI_WARN:
+                chi_cell = yellow(chi_cell)
+            else:
+                chi_cell = green(chi_cell)
+            fin = r["exit_financeable"]
+            fin_cell = "-" if fin is None else (green("Y") if fin else red("N"))
+            row += [
+                fmt_float(r["commons_balance"]),
+                fmt_float(r["escheat_this_period"]),
+                chi_cell,
+                r["chi_status_worst"],
+                "-" if r["entry_capacity"] is None else f"{r['entry_capacity']:.1f}",
+                fin_cell,
+            ]
+        rows.append(row)
     print(table(headers, rows))
     print(
         "\nwithin_infl = 0 always (floor-impossibility, structural)"
         "\ninter_infl  = exchange-rate drift between collectives"
         "\nsys_infl    = inter × (1−ε) → 0 as ε → 1 (§7 asymptote)"
     )
+    if args.commons:
+        print(
+            "χ_marg_min  = worst collective's tenure-0 member (§8.7) — "
+            "the invariant requires ≥ 1"
+            "\nentry_cap   = viable foundings the commons can underwrite (§8.8 M2)"
+            "\nexit_fin    = χ_marg_min ≥ 1 OR entry_cap ≥ 1 (proposed §8.8 "
+            "combined invariant)"
+        )
 
 
 def run_federation(args: argparse.Namespace) -> None:

@@ -12,9 +12,15 @@ import pytest
 from hours_eoh.research.contestability import (
     portable_endowment,
     portable_endowment_individual,
+    portable_endowment_federated,
+    exit_value,
+    contestability_margin_federated,
     trust_required_for_chi,
     levy_schedule_for_chi,
     entry_cost,
+    entry_underwriting,
+    commons_seed_required,
+    machine_output_teh,
     contestability_margin,
     commonized_fraction,
     trust_capital_ratio,
@@ -29,6 +35,9 @@ from hours_eoh.data import (
     CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN,
     CONTESTABILITY_PHI_FLOOR, CONTESTABILITY_PHI_EXPONENT,
     CONTESTABILITY_G_PRIV,
+    CONTESTABILITY_MIN_VIABLE_POPULATION,
+    CONTESTABILITY_UNDERWRITE_FRACTION,
+    DEP_RATE, DIV_RATE,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -535,6 +544,7 @@ class TestLevyScheduleForChi:
             "epsilon", "k_entry", "guarantee_per_person", "trust_target",
             "delta_trust", "dividend_outflow", "levy_required",
             "automated_output", "levy_fraction", "feasible", "chi_check",
+            "levy_base",
         }
         for row in rows:
             assert set(row.keys()) == expected
@@ -548,3 +558,358 @@ class TestLevyScheduleForChi:
         rows = levy_schedule_for_chi(n_points=10)
         assert rows[0]["epsilon"] == pytest.approx(0.0, abs=1e-9)
         assert rows[-1]["epsilon"] == pytest.approx(0.99, abs=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# TestPortableEndowmentFederated — §8.7 two-tier P
+# ---------------------------------------------------------------------------
+
+class TestPortableEndowmentFederated:
+
+    def test_identity_with_individual_when_single_ledger(self):
+        """federation == collective: P_fed equals P_ind exactly."""
+        for eps in KEY_EPSILONS:
+            for tenure in (0.0, 2.5, 5.0, 10.0):
+                fed = portable_endowment_federated(
+                    eps, collective_trust=_TRUST,
+                    collective_population=_POP, tenure_years=tenure)
+                ind = portable_endowment_individual(eps, tenure_years=tenure)
+                assert fed["p_federated"] == pytest.approx(
+                    ind["p_individual"]), f"identity broken at ε={eps}"
+
+    def test_marginal_member_floor_only(self):
+        """tenure=0: P_fed == S — the person the invariant protects."""
+        fed = portable_endowment_federated(
+            0.40, collective_trust=_TRUST, collective_population=_POP)
+        assert fed["p_federated"] == pytest.approx(fed["guarantee_per_person"])
+        assert fed["dividend_vested"] == 0.0
+
+    def test_vesting_monotone_in_tenure(self):
+        values = [
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                tenure_years=t)["p_federated"]
+            for t in (0.0, 1.0, 2.5, 5.0, 8.0)
+        ]
+        assert values == sorted(values)
+        # Vesting saturates at vesting_years.
+        assert values[-1] == pytest.approx(values[-2])
+
+    def test_equal_split_preserves_per_capita_dividend(self):
+        """An equal N-way split leaves D_coll unchanged — the federation
+        inherits the single-ledger per-capita picture."""
+        whole = portable_endowment_federated(
+            0.40, collective_trust=_TRUST, collective_population=_POP,
+            tenure_years=5.0)
+        slice_ = portable_endowment_federated(
+            0.40, collective_trust=_TRUST / 12,
+            collective_population=_POP / 12,
+            federation_population=_POP, tenure_years=5.0)
+        assert slice_["dividend_full"] == pytest.approx(whole["dividend_full"])
+        assert slice_["p_federated"] == pytest.approx(whole["p_federated"])
+
+    def test_arc_key_epsilons(self):
+        """Meaningful, finite output across the arc; S declines with ε."""
+        floors = []
+        for eps in KEY_EPSILONS:
+            fed = portable_endowment_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            assert 0.0 < fed["p_federated"] < float("inf")
+            floors.append(fed["guarantee_per_person"])
+        assert floors[0] > floors[-1], "S should decline across the arc"
+
+    def test_validation_raises(self):
+        with pytest.raises(ValueError, match="tenure_years"):
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                tenure_years=-1.0)
+        with pytest.raises(ValueError, match="vesting_years"):
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                vesting_years=0.0)
+        with pytest.raises(ValueError, match="savings"):
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                savings=-5.0)
+        with pytest.raises(ValueError, match="federation_population"):
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                federation_population=0.0)
+        with pytest.raises(ValueError, match="epsilon"):
+            portable_endowment_federated(
+                1.5, collective_trust=_TRUST, collective_population=_POP)
+
+
+# ---------------------------------------------------------------------------
+# TestExitValue — §8.7 (b)+(d): the boundary crossing
+# ---------------------------------------------------------------------------
+
+class TestExitValue:
+
+    def test_rate_one_identity(self):
+        """Symmetric collectives: p_exit == S + D_vested + savings."""
+        result = exit_value(1476.0, 630.0, savings=100.0, rate=1.0)
+        assert result["p_exit"] == pytest.approx(1476.0 + 630.0 + 100.0)
+
+    def test_floor_not_converted(self):
+        """Only the account crosses the exchange boundary: p_exit − S scales
+        linearly with rate while the floor component is rate-invariant."""
+        for rate in (0.5, 0.9, 1.0, 1.3):
+            result = exit_value(1476.0, 630.0, rate=rate)
+            assert result["floor_component"] == pytest.approx(1476.0)
+            assert result["p_exit"] - 1476.0 == pytest.approx(630.0 * rate)
+
+    def test_bad_inputs_raise(self):
+        with pytest.raises(ValueError, match="rate"):
+            exit_value(1476.0, 630.0, rate=0.0)
+        with pytest.raises(ValueError, match="guarantee_per_person"):
+            exit_value(-1.0, 630.0)
+        with pytest.raises(ValueError, match="dividend_vested"):
+            exit_value(1476.0, -1.0)
+        with pytest.raises(ValueError, match="savings"):
+            exit_value(1476.0, 630.0, savings=-1.0)
+
+
+# ---------------------------------------------------------------------------
+# TestContestabilityMarginFederated — §8.7 per-collective χ
+# ---------------------------------------------------------------------------
+
+class TestContestabilityMarginFederated:
+
+    def test_matches_single_ledger_margin(self):
+        """federation == collective: key-for-key identity with
+        contestability_margin on chi, chi_marginal, p, p_marginal, k_entry."""
+        for eps in KEY_EPSILONS:
+            fed = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            single = contestability_margin(eps, _POP, _TRUST)
+            for key in ("chi", "chi_marginal", "p", "p_marginal", "k_entry"):
+                assert fed[key] == pytest.approx(single[key]), (
+                    f"{key} diverged at ε={eps}")
+
+    def test_marginal_leq_average(self):
+        for eps in KEY_EPSILONS:
+            fed = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            assert fed["chi_marginal"] <= fed["chi"]
+
+    def test_statuses_at_key_epsilons(self):
+        """Valid statuses across the arc; the adversarial finding survives
+        the two-tier reframing: CRIT at ε=0.99 increasing_returns."""
+        for eps in KEY_EPSILONS:
+            fed = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            assert fed["status"] in ("OK", "WARN", "CRIT")
+            assert fed["status_marginal"] in ("OK", "WARN", "CRIT")
+        final = contestability_margin_federated(
+            0.99, collective_trust=_TRUST, collective_population=_POP)
+        assert final["status"] == "CRIT"
+
+    def test_replicable_regime(self):
+        adv = contestability_margin_federated(
+            0.90, collective_trust=_TRUST, collective_population=_POP)
+        rep = contestability_margin_federated(
+            0.90, collective_trust=_TRUST, collective_population=_POP,
+            regime="replicable")
+        assert rep["chi"] > adv["chi"]
+
+
+# ---------------------------------------------------------------------------
+# TestEntryUnderwriting — §8.8 M2 (commons as entry-financier)
+# ---------------------------------------------------------------------------
+
+class TestEntryUnderwriting:
+
+    def test_required_keys_present(self):
+        result = entry_underwriting(0.40, 1e9)
+        assert set(result.keys()) == {
+            "entry_capacity", "passes", "deployable", "founding_need",
+            "underwrite_per_founder", "k_entry", "min_viable_population",
+            "underwrite_fraction", "regime", "epsilon",
+        }
+
+    def test_capacity_identity(self):
+        """capacity = fraction·C / (min_viable·K_entry) at all key ε."""
+        commons = 5e9
+        for eps in KEY_EPSILONS:
+            result = entry_underwriting(eps, commons)
+            expected = (
+                CONTESTABILITY_UNDERWRITE_FRACTION * commons
+                / (CONTESTABILITY_MIN_VIABLE_POPULATION * entry_cost(eps))
+            )
+            assert result["entry_capacity"] == pytest.approx(expected)
+
+    def test_empty_commons_cannot_finance(self):
+        for eps in KEY_EPSILONS:
+            result = entry_underwriting(eps, 0.0)
+            assert result["entry_capacity"] == 0.0
+            assert result["passes"] is False
+
+    def test_worked_example_high_eps(self):
+        """Docstring worked example: ε=0.99, C=1.57e10 → capacity ≈ 337."""
+        result = entry_underwriting(0.99, 1.57e10)
+        assert result["entry_capacity"] == pytest.approx(337.5, rel=0.01)
+        assert result["passes"] is True
+
+    def test_replicable_cheaper_than_adversarial(self):
+        commons = 1e9
+        adv = entry_underwriting(0.90, commons)
+        rep = entry_underwriting(0.90, commons, regime="replicable")
+        assert rep["entry_capacity"] > adv["entry_capacity"]
+
+    def test_underwrite_per_founder_capped_at_k_entry(self):
+        result = entry_underwriting(0.40, 1e12)  # abundant commons
+        assert result["underwrite_per_founder"] == pytest.approx(result["k_entry"])
+
+    def test_validation(self):
+        with pytest.raises(ValueError):
+            entry_underwriting(0.40, -1.0)
+        with pytest.raises(ValueError):
+            entry_underwriting(0.40, 1e9, min_viable_population=0.0)
+        with pytest.raises(ValueError):
+            entry_underwriting(0.40, 1e9, underwrite_fraction=1.5)
+
+
+# ---------------------------------------------------------------------------
+# TestCommonsSeedRequired — §8.8 M2 (ε=0 window)
+# ---------------------------------------------------------------------------
+
+class TestCommonsSeedRequired:
+
+    def test_default_value(self):
+        """seed = min_viable · k0 / fraction = 5000·1800/0.5 = 1.8e7."""
+        assert commons_seed_required() == pytest.approx(
+            CONTESTABILITY_MIN_VIABLE_POPULATION * CONTESTABILITY_K0_TEH
+            / CONTESTABILITY_UNDERWRITE_FRACTION
+        )
+
+    def test_seed_yields_capacity_one_at_eps_zero(self):
+        seed = commons_seed_required()
+        result = entry_underwriting(0.0, seed)
+        assert result["entry_capacity"] == pytest.approx(1.0)
+        assert result["passes"] is True
+
+    def test_seed_is_small_vs_trust_base(self):
+        """The early-arc gap closes for well under 0.1% of the Trust."""
+        assert commons_seed_required() < 0.001 * TRUST_BASE_TEH
+
+    def test_validation(self):
+        with pytest.raises(ValueError):
+            commons_seed_required(min_viable_population=0.0)
+        with pytest.raises(ValueError):
+            commons_seed_required(underwrite_fraction=0.0)
+
+
+# ---------------------------------------------------------------------------
+# TestCommonsDividendEndowment — §8.8 M1 (universal unvested dividend)
+# ---------------------------------------------------------------------------
+
+class TestCommonsDividendEndowment:
+
+    def test_zero_commons_identity(self):
+        """commons_balance=0 reproduces §8.7 values exactly."""
+        for eps in KEY_EPSILONS:
+            base = portable_endowment_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            with_zero = portable_endowment_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP,
+                commons_balance=0.0)
+            assert base["p_federated"] == with_zero["p_federated"]
+            assert with_zero["dividend_commons"] == 0.0
+            assert with_zero["p_marginal"] == with_zero["guarantee_per_person"]
+
+    def test_dividend_reaches_tenure_zero(self):
+        """The commons dividend is unvested: tenure-0 P rises by D_fed."""
+        commons = 5e9
+        for eps in KEY_EPSILONS:
+            result = portable_endowment_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP,
+                tenure_years=0.0, commons_balance=commons)
+            d_fed = commons * DEP_RATE * DIV_RATE / _POP
+            assert result["dividend_commons"] == pytest.approx(d_fed)
+            assert result["p_marginal"] == pytest.approx(
+                result["guarantee_per_person"] + d_fed)
+
+    def test_negative_commons_raises(self):
+        with pytest.raises(ValueError):
+            portable_endowment_federated(
+                0.40, collective_trust=_TRUST, collective_population=_POP,
+                commons_balance=-1.0)
+
+    def test_margin_federated_zero_commons_identity(self):
+        for eps in KEY_EPSILONS:
+            base = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            zero = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP,
+                commons_balance=0.0)
+            assert base["chi"] == zero["chi"]
+            assert base["chi_marginal"] == zero["chi_marginal"]
+            assert zero["entry_capacity"] == 0.0
+
+    def test_margin_federated_commons_raises_marginal_chi(self):
+        for eps in KEY_EPSILONS:
+            base = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP)
+            rich = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP,
+                commons_balance=1e10)
+            assert rich["chi_marginal"] > base["chi_marginal"]
+
+    def test_exit_financeable_combined_invariant(self):
+        """Generous commons: financeable everywhere even where χ_marginal
+        is CRIT — the §8.8 combined invariant."""
+        for eps in KEY_EPSILONS:
+            result = contestability_margin_federated(
+                eps, collective_trust=_TRUST, collective_population=_POP,
+                commons_balance=1e10)
+            assert result["exit_financeable"] is True
+        # And with no commons the high-ε points are NOT financeable.
+        bare = contestability_margin_federated(
+            0.99, collective_trust=_TRUST, collective_population=_POP)
+        assert bare["exit_financeable"] is False
+
+
+# ---------------------------------------------------------------------------
+# TestMachineOutputLevyBase — §8.8 M3 (physically-consistent levy base)
+# ---------------------------------------------------------------------------
+
+class TestMachineOutputLevyBase:
+
+    def test_zero_at_eps_zero(self):
+        assert machine_output_teh(0.0, _POP) == 0.0
+
+    def test_monotone_rising_in_eps(self):
+        values = [machine_output_teh(eps, _POP) for eps in KEY_EPSILONS]
+        assert values == sorted(values)
+
+    def test_exceeds_static_base_at_high_eps(self):
+        """The calibration-artifact finding: the physical base is an order
+        of magnitude above the static ε·K·yield base at high ε."""
+        eps = 0.99
+        static = eps * _CAP * 0.10  # CONTESTABILITY_CAPITAL_YIELD_RATE
+        physical = machine_output_teh(eps, _POP)
+        assert physical > 10.0 * static
+
+    def test_levy_schedule_invalid_base_raises(self):
+        with pytest.raises(ValueError):
+            levy_schedule_for_chi(n_points=3, levy_base="bogus")
+
+    def test_levy_schedule_base_echoed(self):
+        rows = levy_schedule_for_chi(n_points=3, levy_base="machine_output")
+        assert all(r["levy_base"] == "machine_output" for r in rows)
+
+    def test_machine_base_no_worse_than_capital_yield(self):
+        """Same levy_required, larger base → fractions weakly smaller and
+        feasibility weakly better at every ε > 0."""
+        cap = levy_schedule_for_chi(n_points=10)
+        mach = levy_schedule_for_chi(n_points=10, levy_base="machine_output")
+        for rc, rm in zip(cap, mach):
+            assert rm["levy_required"] == pytest.approx(rc["levy_required"])
+            if rc["levy_fraction"] is not None and rm["levy_fraction"] is not None:
+                assert rm["levy_fraction"] <= rc["levy_fraction"]
+
+    def test_chi_check_holds_under_machine_base(self):
+        rows = levy_schedule_for_chi(n_points=10, levy_base="machine_output")
+        for r in rows:
+            assert r["chi_check"] >= 1.0 - 1e-9

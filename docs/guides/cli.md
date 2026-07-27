@@ -271,3 +271,140 @@ Omit `--parcels` to use the default 1 000-parcel synthetic urban inventory.
 ```
 
 See [Land — Collective Inventory](../api/land.md#collective-land-inventory) for the full parcel schema.
+
+---
+
+## contestability — Contestability Invariant (§8)
+
+Arc table, stress sweep, derived levy schedule, the §8.9 recalibrated arc,
+and the §8.7e membership-terms audit.
+
+```bash
+python3 utils/eoh_cli.py contestability arc    [--regime increasing_returns|replicable] [--points N]
+python3 utils/eoh_cli.py contestability stress [--points N]
+python3 utils/eoh_cli.py contestability levy   [--chi-target 1.0] [--levy-base capital_yield|machine_output]
+python3 utils/eoh_cli.py contestability recal  [--regime ...] [--points N] [--capital-output-ratio 4.0]
+python3 utils/eoh_cli.py contestability audit  [--terms-json PATH|-] [inline flags]
+```
+
+`--levy-base machine_output` uses the physically-consistent base
+`ε·total_EOH` (the pipeline's own measure of automated production) instead of
+the static `ε·K·yield`, which understates it ~12× at high ε (proposed §8.8 M3).
+
+### contestability recal
+
+The proposed-§8.9/§8.9b recalibrated arc: the commons owns share φ(ε) of an
+ε-consistent capital stock (τ = φ ≤ 1, dτ/dε ≥ 0 structural), and exit is
+financed by own labor (low ε), commons underwriting (mid ε), or dividend
+savings (high ε) — `t_exit ≤ horizon` replaces the retired flow/stock χ.
+
+`--phi-policy` selects the doctrine: **dilution** (default, §8.9b charter
+formation — the commons' share attaches to new capital at commissioning;
+private capital is never sold down, so φ caps at ≈ 0.66 by ε = 0.99, marked
+`*` in the table), **target** (§8.9a purchase model, regression anchor), or
+**escalated** (dilution + the charter escalation clause — full generational
+conversion via capital-estate escheat if observed concentration threatens
+exit; never fires at canonical defaults, rows marked `!` when active).
+`--estate-escheat` sets the baseline capital-estate share (default 0.15 =
+`ESTATE_LEVY_FRACTION`, the D5 doctrine extended); raise
+`--min-viable-population` to stress the escalation trigger.
+
+```bash
+# The doctrine arc (dilution default)
+python3 utils/eoh_cli.py contestability recal
+
+# §8.9a purchase model for comparison
+python3 utils/eoh_cli.py contestability recal --phi-policy target
+
+# Force the escalation clause to fire (40× founding cohort)
+python3 utils/eoh_cli.py contestability recal --phi-policy escalated \
+    --min-viable-population 200000
+```
+
+### contestability formation
+
+The §8.9c formation-feedback simulation: formation is financed or it does
+not happen (private supply falls as the charter share rises), the commons
+co-funds from net income per `--priority` (share-first holds the canonical
+pace at the dividend's expense; dividend-first crawls and never completes),
+and ε derives from the capital actually formed. `--charter-share 0` is the
+null anchor; `--hurdle`/`--full-supply` toward fiat-like returns quantify
+the Condition III finding (zero interest makes the charter affordable:
+s* = 0.50 vs ≈ 0.10 fiat-like).
+
+```bash
+# The doctrine run (share-first)
+python3 utils/eoh_cli.py contestability formation
+
+# The crawling counterfactual
+python3 utils/eoh_cli.py contestability formation --priority dividend --years 120
+
+# The fiat-world counterfactual (dividend driven to zero mid-arc)
+python3 utils/eoh_cli.py contestability formation --hurdle 0.06 --full-supply 0.18
+```
+
+### contestability audit
+
+Checks proposed membership terms against the χ invariant (the code audits the
+contract; it does not legislate it). Terms come from a JSON file, stdin (`-`),
+or inline flags (`--vesting-years`, `--admission-cost`, `--exit-notice-years`,
+`--minimum-hours`, `--dividend-fraction`); inline flags override JSON keys.
+
+```bash
+# Inline: an admission fee at high ε breaches the invariant
+python3 utils/eoh_cli.py contestability audit --admission-cost 800 --epsilon 0.9
+
+# From a terms file
+python3 utils/eoh_cli.py contestability audit --terms-json terms.json --epsilon 0.4
+
+# §8.8 closure flags: same admission fee, but a funded commons finances exit
+python3 utils/eoh_cli.py contestability audit --admission-cost 800 --epsilon 0.9 \
+    --commons-balance 1e10 --commons-dividend --underwriting-policy
+```
+
+**Terms JSON format** (all fields optional; absent fields keep canonical defaults):
+
+```json
+{
+  "vesting_years": 5.0,
+  "admission_cost_teh": 250.0,
+  "exit_notice_years": 0.5,
+  "minimum_hours_annual": 400.0,
+  "dividend_policy_fraction": 1.0
+}
+```
+
+---
+
+## coasean — Collective Federation (§§6–7, §8.7)
+
+Research-tier federation mechanics. `--format table|json` goes before the subcommand.
+
+```bash
+python3 utils/eoh_cli.py coasean n1-check                  # N=1 regression anchor
+python3 utils/eoh_cli.py coasean count                     # emergent N(ε) across the arc
+python3 utils/eoh_cli.py coasean federation --epsilon 0.4  # per-collective snapshot
+python3 utils/eoh_cli.py coasean simulate --periods 10     # multi-period arc
+```
+
+### coasean simulate flags
+
+| Flag | Effect |
+|------|--------|
+| `--dynamics` | Phase 3 Trust/capital evolution (adds `T`, `τ`, `piketty` columns) |
+| `--g-priv F` | private capital growth per period (with `--dynamics`) |
+| `--levy-rate F` | common-fund levy on automated output (with `--dynamics`) |
+| `--commons` | Phase 4 two-tier commons: escheat, tithe, per-collective χ (adds `commons`, `escheat`, `χ_marg_min`, `χ_status` columns) |
+| `--commons-tithe F` | levy fraction routed to the federation commons (default 0.03) |
+| `--regime R` | K_entry regime for per-collective χ |
+| `--commons-dividend` | §8.8 M1: commons pays a universal unvested dividend that feeds χ (adds `entry_cap`, `exit_fin` semantics) |
+| `--commons-start F` | initial commons balance in TEH (seed; `commons_seed_required()` ≈ 1.8e7 at defaults) |
+
+```bash
+# The full two-tier arc: consolidation escheat, tithe, and the χ invariant
+python3 utils/eoh_cli.py coasean simulate --periods 10 --dynamics --commons --levy-rate 0.3
+
+# §8.8 closure: seeded commons + universal dividend → exit financeable across the arc
+python3 utils/eoh_cli.py coasean simulate --periods 21 --epsilon-start 0.0 --dynamics \
+    --g-priv 0.02 --levy-rate 0.2 --commons --commons-dividend --commons-start 1.8e7
+```

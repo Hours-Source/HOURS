@@ -533,9 +533,11 @@ CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
 CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
 CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield rate assumption
-CONTESTABILITY_VESTING_YEARS: float = 5.0       # years of membership for the Trust dividend to fully vest
-                                                # (linear vesting; calibration knob — matches the 5-year
-                                                # tier-reassessment cadence, TIER_ASSESSMENT_INTERVAL_YEARS)
+CONTESTABILITY_VESTING_YEARS: float = 5.0       # years of FEDERATION tenure for the Trust dividend to fully
+                                                # vest (linear vesting; calibration knob — matches the 5-year
+                                                # tier-reassessment cadence, TIER_ASSESSMENT_INTERVAL_YEARS).
+                                                # Tenure is federation-wide (recon. §8.7b): moving between
+                                                # collectives never resets the clock or forfeits vested balance.
 
 # ---------------------------------------------------------------------------
 # Coasean collective federation (reconciliation §§6–7; research/coasean.py)
@@ -551,3 +553,142 @@ COASEAN_IMBALANCE_CEILING: float = 0.50  # bilateral net-flow ceiling as fractio
 COASEAN_DEPRECIATION_SLOPE: float = 0.20 # exchange-rate depreciation per unit of unsettled imbalance
                                          # beyond the ceiling (relative to reserve) — over-issuance
                                          # exports depreciation honestly (recon. §7 transition regime)
+
+# ---------------------------------------------------------------------------
+# Federation commons tier (reconciliation §8.7 a/c; research/coasean.py Phase 4)
+# Calibration knobs with cooperative-law precedent, not physics.
+# ---------------------------------------------------------------------------
+COASEAN_COMMONS_TITHE: float = 0.03      # fraction of each collective's common-fund levy revenue passed
+                                         # up to the federation commons. Precedent: Italian Law 59/1992
+                                         # requires co-ops to contribute 3% of surplus to mutual funds.
+COASEAN_INDIVISIBLE_RESERVE_FRACTION: float = 0.30
+                                         # unallocated (indivisible) share of a collective's trust —
+                                         # credited to no individual capital account; escheats to the
+                                         # federation commons on merger/split/dissolution (recon. §8.7c).
+                                         # Precedent: Italian co-op law's statutory ~30% indivisible
+                                         # reserve. The allocated remainder follows members' accounts.
+
+# ---------------------------------------------------------------------------
+# Federation contestability closure (proposed §8.8; research/contestability.py
+# entry_underwriting + commons dividend). Calibration knobs, not physics —
+# both are uncalibrated research placeholders and say so.
+# ---------------------------------------------------------------------------
+CONTESTABILITY_MIN_VIABLE_POPULATION: float = 5_000.0
+                                         # smallest population that can staff a viable alternative
+                                         # collective: run the four-domain EOH pipeline (care,
+                                         # production, stewardship, knowledge) with a full age
+                                         # distribution and a governance quorum. UNCALIBRATED research
+                                         # placeholder — deliberately far below the Coasean-efficient
+                                         # size at any ε: a viable alternative need only clear minimum
+                                         # scale, accepting a coordination-cost disadvantage; requiring
+                                         # Coasean-optimal scale would make the entry threat vacuous at
+                                         # high ε (the "alternative" would be the whole economy).
+CONTESTABILITY_UNDERWRITE_FRACTION: float = 0.50
+                                         # maximum share of the federation commons deployable per
+                                         # period as entry underwriting (capitalizing new collectives'
+                                         # trusts). The remainder is reserved as the sufficiency-floor
+                                         # backstop (recon. §8.7a) — underwriting must never empty the
+                                         # fund that backs the floor. Underwritten capital moves
+                                         # commons → new collective trust: it stays commonized and
+                                         # indivisible (§8.7c), never becoming a personal claim.
+
+# ---------------------------------------------------------------------------
+# Recalibration prototype (proposed §8.9; research/recalibration.py).
+# Mutually-consistent K(ε)/T(ε) accounting: the commons OWNS share φ(ε) of a
+# capital stock that grows with machine output, so τ = φ ≤ 1 by construction
+# and dτ/dε ≥ 0 (Piketty inversion) is structural, not levy-contingent.
+# Adopted-in-principle by the author 2026-07-26; calibration knobs flagged.
+# ---------------------------------------------------------------------------
+RECAL_CAPITAL_OUTPUT_RATIO: float = 4.0  # ν: capital stock required per unit of annual machine output
+                                         # (K_machine = ν·Y_machine). Precedent: Piketty's β (national
+                                         # capital / national income) ≈ 4–6 across observed economies;
+                                         # low end chosen as the adversarially-cheap-capital posture
+                                         # (smaller K → smaller commons → weaker underwriting arm).
+RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
+                                         # arc speed dε/dt: a ~50-year subsistence→post-scarcity
+                                         # transition. UNCALIBRATED placeholder — converts per-ε
+                                         # capital-acquisition needs into per-year flows; faster arcs
+                                         # tighten acquisition feasibility linearly.
+RECAL_FOUNDING_LABOR_HOURS: float = 1_000.0
+                                         # hours/yr a floor-backed founder can devote to building an
+                                         # alternative collective (≈ 2/3 of PERSONAL_EOH_BASE, leaving
+                                         # the rest for personal EOH). The sufficiency floor is what
+                                         # makes this labor available — the floor IS the entry finance
+                                         # of the low-ε arc. UNCALIBRATED placeholder.
+RECAL_EXIT_HORIZON_YEARS: float = 5.0    # exit must be self-financeable within one vesting period
+                                         # (= CONTESTABILITY_VESTING_YEARS): a member who joins can
+                                         # accumulate the means to leave by the time they fully vest.
+                                         # This is the RC4 fix — a stock target (K_entry) against a
+                                         # flow (savable income) yields a TIME, not a ratio; the old
+                                         # χ = P/K_entry demanded the stock be covered by ONE year of
+                                         # flow, which made the invariant nearly unclosable (§8.8 RC4).
+RECAL_ACCOUNT_CREDIT_SHARE: float = 0.50 # share of the annual per-capita dividend credited to the
+                                         # member's individual capital account (a stock, per §8.7b)
+                                         # rather than paid as cash. Zero-interest per Condition III:
+                                         # the account is a sum of credits, never compounded.
+                                         # Precedent: Mondragon internal capital accounts, which
+                                         # retain a share of each year's surplus to member accounts.
+
+# ---------------------------------------------------------------------------
+# §8.9b charter-formation doctrine (research/recalibration.py phi_policy).
+# The commons' share attaches to NEW capital at commissioning (charter
+# condition; resource-license/Georgist model) — never by forced sale of
+# existing holdings. Escalation converts private capital generationally,
+# extending the existing D5 estate treatment to capital.
+# ---------------------------------------------------------------------------
+RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE: float = 0.15
+                                         # share of a decedent's private CAPITAL escheating to the
+                                         # commons (= ESTATE_LEVY_FRACTION: capital estates treated
+                                         # exactly like TEH estates — the D5 doctrine extended, not
+                                         # a new rule). Applies in the dilution/escalated policies.
+RECAL_ESCALATION_ESTATE_SHARE: float = 1.0
+                                         # capital-estate escheat share while a charter escalation is
+                                         # active: full generational conversion (no living holder is
+                                         # ever divested; conversion happens at mortality speed).
+RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
+                                         # entry-underwriting capacity below which the charter
+                                         # escalates (with the adversarial regime observed): the
+                                         # commons must always be able to finance ~an order of
+                                         # magnitude more foundings than one. Calibration knob,
+                                         # UNCALIBRATED placeholder.
+
+# ---------------------------------------------------------------------------
+# §8.9c formation feedback (research/formation.py). Models who actually
+# builds K(ε) under the charter share — the investment-disincentive loop the
+# static §8.9b model flagged as open. Proposed forms, flagged.
+# ---------------------------------------------------------------------------
+FORMATION_DEPRECIATION_RATE: float = 0.05
+                                         # aggregate annual depreciation of machine capital.
+                                         # Derived from CAPITAL_MACHINE_PROFILES design lives
+                                         # (≈ 20 yr → δ ≈ 1/20); the aggregate counterpart of the
+                                         # per-asset lifecycle in core/capital.py. Gross return on
+                                         # capital = 1/ν − δ = 0.25 − 0.05 = 0.20 at defaults.
+FORMATION_HURDLE_RATE_MIN: float = 0.02
+                                         # net private return below which NO private capital
+                                         # formation occurs. Low BECAUSE of Condition III: idle TEH
+                                         # earns zero interest and leaks via the accumulation
+                                         # ceiling (D6) and estate dissolution (D5), so the
+                                         # opportunity cost of investing is uniquely small —
+                                         # ≈ risk compensation only. UNCALIBRATED placeholder.
+FORMATION_FULL_SUPPLY_RATE: float = 0.10
+                                         # net private return at (or above) which private investors
+                                         # supply ALL needed formation. Linear supply between the
+                                         # two rates (heterogeneous hurdle rates). Implies the
+                                         # incentive-compatible charter share
+                                         # s* = 1 − 0.10/0.20 = 0.50. UNCALIBRATED placeholder.
+
+# ---------------------------------------------------------------------------
+# Membership-terms audit thresholds (reconciliation §8.7e, §9-item-7;
+# research/membership.py). Terms are contract space; these bound it — the
+# code audits agreements against the contestability invariant, it does not
+# legislate them.
+# ---------------------------------------------------------------------------
+MEMBERSHIP_VESTING_WARN_YEARS: float = 10.0     # vesting beyond 2× CONTESTABILITY_VESTING_YEARS → WARN
+                                                # (dividend held hostage for a decade thins exit)
+MEMBERSHIP_EXIT_NOTICE_WARN_YEARS: float = 1.0  # exit notice beyond one year → WARN (exit friction)
+MEMBERSHIP_EXIT_NOTICE_CRIT_YEARS: float = 3.0  # beyond three years → CRIT (exit is nominal, not substantive)
+MEMBERSHIP_MIN_HOURS_WARN_FRACTION: float = 0.50  # min-hours obligation > 0.50 × PERSONAL_EOH_BASE → WARN
+MEMBERSHIP_MIN_HOURS_CRIT_FRACTION: float = 1.00  # ≥ full personal EOH load → CRIT (membership is compulsion
+                                                  # by definition — obligation equals the whole entropy load)
+MEMBERSHIP_DIVIDEND_POLICY_WARN: float = 0.25   # distributing < 25% of the pro-rata dividend → WARN
+                                                # (retention rebuilds the honeypot inside the collective)

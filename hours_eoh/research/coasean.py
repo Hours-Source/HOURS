@@ -58,6 +58,18 @@ Phase 3 (this file adds)
     Discovery seam: exchange_rates(discovery_premium=...) layers discovered
     deviations over the productivity-parity baseline, mirroring the
     floor-price + market_premium seam in core/prices.py (reconciliation §3).
+
+Phase 4 (this file adds) — reconciliation §8.7 two-tier Trust
+    Boundary events: merge_collectives() and split_collective() with the
+    indivisible-reserve escheat (§8.7c) and TEH-conservation postconditions
+    (§8.7d — boundary events create and destroy zero TEH; exchange rates are
+    unit conversions, not valuations).
+    Federation commons: simulate_federation(commons=True) tracks a commons
+    balance above the collective trusts — funded by a levy tithe
+    (COASEAN_COMMONS_TITHE, Italian Law 59/1992 precedent) plus consolidation
+    escheats — and reports per-collective χ each period via
+    contestability_margin_federated() from research/contestability.py. The
+    commons backs the sufficiency floor as reinsurance, not as payer.
 """
 
 from __future__ import annotations
@@ -74,13 +86,19 @@ from hours_eoh.data import (
     COASEAN_RESERVE_FRACTION,
     COASEAN_IMBALANCE_CEILING,
     COASEAN_DEPRECIATION_SLOPE,
+    COASEAN_COMMONS_TITHE,
+    COASEAN_INDIVISIBLE_RESERVE_FRACTION,
     CONTESTABILITY_CAPITAL_YIELD_RATE,
     DEP_RATE,
     DIV_RATE,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.research.contestability import tau_gradient_check
+from hours_eoh.research.contestability import (
+    contestability_margin_federated,
+    entry_underwriting,
+    tau_gradient_check,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -694,6 +712,248 @@ def three_regime_inflation(
     }
 
 
+# ---------------------------------------------------------------------------
+# Phase 4: boundary events + federation commons (reconciliation §8.7)
+# ---------------------------------------------------------------------------
+
+def merge_collectives(
+    absorber: Collective,
+    absorbed: Collective,
+    rate: float = 1.0,
+    indivisible_fraction: float = COASEAN_INDIVISIBLE_RESERVE_FRACTION,
+) -> dict[str, Any]:
+    """
+    Merge two collectives: the absorbed dissolves into the absorber — §8.7 (c)+(d).
+
+    Governing equations (all in absorber units; rate = r(absorbed → absorber)
+    from exchange_rates(), a unit conversion, not a valuation):
+        escheat      = T_b · r · f                    (indivisible reserve → commons, §8.7c)
+        T_merged     = T_a + T_b · r · (1 − f)        (allocated accounts carry over, §8.7b)
+        K_merged     = K_a + K_b · r ;  R_merged = R_a + R_b · r
+        pop_merged   = pop_a + pop_b ;  eco = population-weighted mean
+
+    Conservation (§8.7d — boundary events create and destroy zero TEH):
+        teh_before = T_a + T_b · r  ==  T_merged + escheat  = teh_after
+        exact in absorber units for ANY rate; asserted in the returned
+        `conserved` flag with tolerance 1e-9 · max(1, teh_before).
+
+    The escheat is not lost: it is circulatory, moving from the collective
+    tier to the federation commons (the caller banks it — simulate_federation
+    adds it to commons_t; standalone callers must route it themselves).
+
+    The merged collective's pipeline/fiscal are recomputed via
+    run_collective_period() at the merged parameters (capital_age_ratio at
+    the module default 0.50 — Collective does not carry it), so the returned
+    Collective is valid for further federation use.
+
+    Worked example (T_a = T_b = 2.9B, r = 1, f = 0.30):
+        escheat = 0.875B ;  T_merged = 2.917B + 2.042B = 4.958B
+        teh_before = 5.833B = teh_after ✓
+
+    Args:
+        absorber: Surviving collective.
+        absorbed: Dissolving collective (same ε as absorber).
+        rate: Exchange rate r(absorbed → absorber) (> 0). 1.0 = symmetric.
+        indivisible_fraction: Unallocated share of the absorbed trust that
+            escheats (∈ [0, 1]). Default COASEAN_INDIVISIBLE_RESERVE_FRACTION.
+
+    Returns:
+        dict with keys: merged (Collective), escheat_teh, teh_before,
+        teh_after, conserved (bool), rate.
+    """
+    if rate <= 0.0:
+        raise ValueError(f"rate must be > 0, got {rate}")
+    if absorber.epsilon != absorbed.epsilon:
+        raise ValueError(
+            f"epsilon mismatch: absorber={absorber.epsilon}, absorbed={absorbed.epsilon}"
+        )
+    if not 0.0 <= indivisible_fraction <= 1.0:
+        raise ValueError(
+            f"indivisible_fraction must be in [0, 1], got {indivisible_fraction}"
+        )
+
+    trust_b_converted = absorbed.trust_balance * rate
+    escheat = trust_b_converted * indivisible_fraction
+    merged_trust = absorber.trust_balance + trust_b_converted * (1.0 - indivisible_fraction)
+    merged_pop = absorber.population + absorbed.population
+    merged_capital = absorber.capital_stock + absorbed.capital_stock * rate
+    merged_reserve = absorber.reserve + absorbed.reserve * rate
+    merged_eco = (
+        absorber.ecosystem_health * absorber.population
+        + absorbed.ecosystem_health * absorbed.population
+    ) / merged_pop
+
+    pipeline, fiscal = run_collective_period(
+        epsilon=absorber.epsilon,
+        population=merged_pop,
+        trust_balance=merged_trust,
+        capital_stock_teh=merged_capital,
+        ecosystem_health=merged_eco,
+    )
+    merged = Collective(
+        collective_id=absorber.collective_id,
+        epsilon=absorber.epsilon,
+        population=merged_pop,
+        trust_balance=merged_trust,
+        capital_stock=merged_capital,
+        ecosystem_health=merged_eco,
+        pipeline=pipeline,
+        fiscal=fiscal,
+        reserve=merged_reserve,
+    )
+
+    teh_before = absorber.trust_balance + trust_b_converted
+    teh_after = merged_trust + escheat
+    conserved = abs(teh_before - teh_after) <= 1e-9 * max(1.0, teh_before)
+
+    return {
+        "merged":      merged,
+        "escheat_teh": escheat,
+        "teh_before":  teh_before,
+        "teh_after":   teh_after,
+        "conserved":   conserved,
+        "rate":        rate,
+    }
+
+
+def split_collective(
+    parent: Collective,
+    fractions: list[float],
+    indivisible_fraction: float = COASEAN_INDIVISIBLE_RESERVE_FRACTION,
+    new_ids: list[int] | None = None,
+) -> dict[str, Any]:
+    """
+    Split a collective into successors: the parent dissolves — §8.7 (c)+(d).
+
+    Governing equations:
+        escheat     = T_parent · f                     (parent dissolves → §8.7c escheat)
+        T_i         = T_parent · (1 − f) · fractions[i]
+        pop_i, K_i, R_i = parent value · fractions[i]
+
+    §8.7(d)'s "indivisible reserve dividing by the escheat rule": a split
+    dissolves the parent, so its indivisible portion escheats to the commons —
+    it is NOT negotiated among successors. Successors receive only the
+    allocated share, pro-rata by population fractions: members carry their
+    capital accounts to whichever successor they join, and `fractions` is the
+    aggregate representation of that sorting (the model tracks no individual
+    accounts). No exchange rate applies: all successors start in the parent's
+    unit.
+
+    Conservation (§8.7d): Σ T_i + escheat == T_parent, exact; `conserved` flag
+    with tolerance 1e-9 · max(1, T_parent).
+
+    Worked example (T = 35B, f = 0.30, fractions = [0.5, 0.5]):
+        escheat = 10.5B ;  T_0 = T_1 = 12.25B ;  12.25·2 + 10.5 = 35 ✓
+
+    Args:
+        parent: Dissolving collective.
+        fractions: Population shares of the successors (≥ 2 entries, each > 0,
+            summing to 1 within 1e-9).
+        indivisible_fraction: Escheating unallocated share (∈ [0, 1]).
+        new_ids: Successor collective_ids (None → parent.collective_id, then
+            sequential from it).
+
+    Returns:
+        dict with keys: successors (list[Collective]), escheat_teh,
+        teh_before, teh_after, conserved (bool).
+    """
+    if len(fractions) < 2:
+        raise ValueError(f"need at least 2 successor fractions, got {len(fractions)}")
+    if any(f <= 0.0 for f in fractions):
+        raise ValueError(f"all fractions must be > 0, got {fractions}")
+    if abs(sum(fractions) - 1.0) > 1e-9:
+        raise ValueError(f"fractions must sum to 1, got sum={sum(fractions)}")
+    if not 0.0 <= indivisible_fraction <= 1.0:
+        raise ValueError(
+            f"indivisible_fraction must be in [0, 1], got {indivisible_fraction}"
+        )
+    if new_ids is not None and len(new_ids) != len(fractions):
+        raise ValueError(
+            f"new_ids length {len(new_ids)} != fractions length {len(fractions)}"
+        )
+
+    escheat = parent.trust_balance * indivisible_fraction
+    allocated = parent.trust_balance * (1.0 - indivisible_fraction)
+    ids = new_ids if new_ids is not None else [
+        parent.collective_id + i for i in range(len(fractions))
+    ]
+
+    successors = []
+    for i, frac in enumerate(fractions):
+        pop_i = parent.population * frac
+        trust_i = allocated * frac
+        capital_i = parent.capital_stock * frac
+        pipeline, fiscal = run_collective_period(
+            epsilon=parent.epsilon,
+            population=pop_i,
+            trust_balance=trust_i,
+            capital_stock_teh=capital_i,
+            ecosystem_health=parent.ecosystem_health,
+        )
+        successors.append(Collective(
+            collective_id=ids[i],
+            epsilon=parent.epsilon,
+            population=pop_i,
+            trust_balance=trust_i,
+            capital_stock=capital_i,
+            ecosystem_health=parent.ecosystem_health,
+            pipeline=pipeline,
+            fiscal=fiscal,
+            reserve=parent.reserve * frac,
+        ))
+
+    teh_after = sum(s.trust_balance for s in successors) + escheat
+    conserved = abs(parent.trust_balance - teh_after) <= 1e-9 * max(1.0, parent.trust_balance)
+
+    return {
+        "successors":  successors,
+        "escheat_teh": escheat,
+        "teh_before":  parent.trust_balance,
+        "teh_after":   teh_after,
+        "conserved":   conserved,
+    }
+
+
+def _consolidation_escheat(
+    trust_total: float,
+    n_prev: int,
+    n_new: int,
+    indivisible_fraction: float = COASEAN_INDIVISIBLE_RESERVE_FRACTION,
+) -> float:
+    """
+    Aggregate escheat when the federation's N(ε) changes between periods.
+
+    Governing equation (first-order rule):
+        escheat = |n_prev − n_new| · (trust_total / n_prev) · f
+
+    On consolidation (n_new < n_prev) this is provably identical to
+    d = n_prev − n_new sequential merge_collectives(rate=1) calls on the
+    equal-split federation: each dissolving collective holds trust_total/n_prev
+    and escheats f of it (asserted in tests). On fragmentation (n_new > n_prev,
+    ε decreasing) the symmetric rule treats each net-new collective as one
+    parent split, escheating f of one equal share per split — first-order only:
+    it undercounts compounded splits when d > n_prev. Canonical trajectories
+    are monotone-increasing in ε, so fragmentation is a corner case.
+
+    Capped at trust_total · f (cannot escheat more than the total indivisible
+    share).
+
+    Args:
+        trust_total: Sum of all collective trusts before the transition (≥ 0).
+        n_prev: Collective count last period (≥ 1).
+        n_new: Collective count this period (≥ 1).
+        indivisible_fraction: Escheating unallocated share (∈ [0, 1]).
+
+    Returns:
+        Escheat in TEH (≥ 0); 0.0 when n_new == n_prev.
+    """
+    d = abs(n_prev - n_new)
+    if d == 0:
+        return 0.0
+    raw = d * (trust_total / n_prev) * indivisible_fraction
+    return min(raw, trust_total * indivisible_fraction)
+
+
 def simulate_federation(
     epsilon_trajectory: list[float],
     population: float = 1_000_000.0,
@@ -706,6 +966,11 @@ def simulate_federation(
     dynamics: bool = False,
     g_priv: float = 0.0,
     levy_rate: float = 0.0,
+    commons: bool = False,
+    commons_tithe: float = COASEAN_COMMONS_TITHE,
+    commons_start: float = 0.0,
+    regime: str = "increasing_returns",
+    commons_dividend: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Multi-period Coasean federation simulation across an ε trajectory.
@@ -745,6 +1010,71 @@ def simulate_federation(
     every record matches the Phase 2 output exactly — the regression anchor
     for existing callers.
 
+    Phase 4: two-tier Trust / federation commons (commons=True) — recon. §8.7
+    -------------------------------------------------------------------------
+    With the commons tier enabled, three mechanisms activate:
+
+    1. Escheat on N-transition (§8.7c): when N(ε) changes between periods,
+       the indivisible share of each net-dissolving collective's trust
+       escheats to the federation commons via _consolidation_escheat():
+           escheat = |Δn| · (T / n_prev) · COASEAN_INDIVISIBLE_RESERVE_FRACTION
+       Escheat is circulatory — trust_balance + commons_balance is conserved
+       by the transition (no TEH created or destroyed, §8.7d).
+    2. Levy tithe (§8.7a; requires dynamics=True): a fraction commons_tithe
+       of each period's levy revenue routes to the commons instead of the
+       collective trusts (Italian Law 59/1992 3% precedent):
+           tithe_paid = commons_tithe · levy_revenue
+           T_{t+1}    = T_t + levy_revenue − tithe_paid − dividend_outflow
+           C_{t+1}    = C_t + tithe_paid + escheat_{t+1}
+    3. Per-collective χ (§8.1 at the collective level): each period computes
+       contestability_margin_federated() per collective and records the
+       federation's worst case — chi_min (population-average) and
+       chi_marginal_min (tenure-0 member, the person the invariant protects).
+
+    The commons is a BACKSTOP for the sufficiency floor, not the payer — each
+    collective's fiscal snapshot already charges the guarantee, so an explicit
+    commons payout would double-count the floor. commons_floor_coverage
+    reports the reinsurance ratio C / (S(ε) · population): years of
+    federation-wide floor the commons could carry. HONEST FINDINGS to expect
+    at defaults: coverage is tiny at a 3% tithe, and consolidation escheat
+    migrates trust from collective dividends to the commons across the arc,
+    so chi_marginal_min worsens while total τ holds. Report, don't tune
+    (CLAUDE.md §5).
+
+    Phase 4b: contestability closure (commons_dividend=True) — proposed §8.8
+    -------------------------------------------------------------------------
+    Answers the Phase 4 adversarial findings with two mechanisms:
+
+    M1 — universal commons dividend: the commons pays its yield per capita to
+    every member, UNVESTED (Alaska Permanent Fund precedent):
+        D_fed_t = C_t · DEP_RATE · DIV_RATE / population   (per person)
+        C_{t+1} = C_t + tithe + escheat − C_t·DEP_RATE·DIV_RATE
+    Per-collective χ is computed with commons_balance=C_t, so escheat now
+    RAISES the marginal member's endowment instead of draining it — the
+    §8.7c escheat becomes a stabilizer: consolidation moves capital from
+    tenure-gated collective dividends into the universal tier.
+
+    M2 — entry-underwriting capacity (always reported when commons=True,
+    since it is a property of the commons stock, not of dividend policy):
+        entry_capacity_t = UNDERWRITE_FRACTION · C_t
+                           / (MIN_VIABLE_POPULATION · K_entry(ε_t))
+        exit_financeable_t ⇔ chi_marginal_min ≥ 1 OR entry_capacity ≥ 1
+    The Baumol threat made credible: the commons can capitalize new
+    collectives' trusts (capital stays commonized — §8.7c is respected).
+    Seed the commons via commons_start ≥ commons_seed_required() (≈1.8e7 TEH
+    at defaults, ~0.05% of TRUST_BASE_TEH) to close the ε≈0 window before
+    escheat inflows begin.
+
+    With commons_dividend=False every χ value and balance is float-exact
+    identical to Phase 4 (commons_balance=0 is passed to the χ computation
+    and no dividend outflow occurs); the M2 metrics are additional keys only.
+
+    τ under the commons: tau = (T + C) / K — §8.3's Piketty condition
+    concerns TOTAL commonized capital vs private; excluding the commons would
+    make escheat (a pure intra-commons transfer) spuriously flip piketty_ok.
+    With commons=False, C ≡ 0.0 and every value is float-exact identical to
+    the Phase 3 output.
+
     N=1 asymptote (regression check)
     ---------------------------------
     At ε = 0.99, N = 1 → exchange_rates() returns {} → three_regime_inflation()
@@ -769,6 +1099,19 @@ def simulate_federation(
                             when dynamics=True.
         levy_rate:          Common-fund levy as a fraction of automated output,
                             feeding the Trust. Used only when dynamics=True.
+        commons:            Enable the Phase 4 two-tier commons machinery
+                            (escheat, tithe, per-collective χ). Default False
+                            (Phase 3 behavior, float-exact identical).
+        commons_tithe:      Fraction of levy revenue routed to the commons.
+                            Default COASEAN_COMMONS_TITHE (0.03). Used only
+                            when commons=True and dynamics=True.
+        commons_start:      Initial commons balance in TEH. Default 0.0.
+        regime:             K_entry regime for per-collective χ:
+                            "increasing_returns" (default/adversarial) or
+                            "replicable". Used only when commons=True.
+        commons_dividend:   Enable the Phase 4b closure (M1 universal commons
+                            dividend feeding χ; dividend outflow from C under
+                            dynamics). Default False (Phase 4 float-exact).
 
     Returns:
         List of period dicts, one per element of epsilon_trajectory. Each dict:
@@ -785,9 +1128,32 @@ def simulate_federation(
           "regime_note"       str   — qualitative regime description
           "trust_balance"     float — Trust at this period (constant unless dynamics)
           "capital_stock"     float — capital at this period (constant unless dynamics)
-          "tau"               float — T/K this period
+          "tau"               float — (T + commons)/K this period
           "dtau"              float | None — τ change vs previous period (None at period 0)
           "piketty_ok"        bool | None — dτ ≥ 0 (None at period 0)
+        Phase 4 keys (always present; neutral when commons=False):
+          "commons_balance"        float — commons at period start, post-escheat
+          "commons_tithe_paid"     float — tithe routed this period (0.0 unless
+                                           commons and dynamics)
+          "escheat_this_period"    float — indivisible-reserve escheat at this
+                                           period's N-transition (0.0 if none)
+          "commons_floor_coverage" float | None — commons / (S(ε)·population),
+                                           years of floor the commons could carry
+          "chi_min"                float | None — min over collectives of the
+                                           two-tier population-average χ
+          "chi_marginal_min"       float | None — min over collectives of the
+                                           tenure-0 χ (the invariant's honest bound)
+          "chi_worst_collective"   int | None — collective_id at chi_marginal_min
+          "chi_status_worst"       str | None — "OK"/"WARN"/"CRIT" at chi_marginal_min
+        Phase 4b keys (always present; neutral when commons=False):
+          "commons_dividend_paid"  float — universal dividend outflow this
+                                           period (0.0 unless commons_dividend
+                                           and dynamics)
+          "entry_capacity"         float | None — commons entry-underwriting
+                                           capacity (viable foundings financeable)
+          "exit_financeable"       bool | None — chi_marginal_min ≥ 1 OR
+                                           entry_capacity ≥ 1 (proposed §8.8
+                                           combined invariant)
     """
     rng = _random.Random(seed)
     records: list[dict[str, Any]] = []
@@ -795,11 +1161,21 @@ def simulate_federation(
 
     trust_t = trust_balance
     capital_t = capital_stock_teh
+    commons_t = commons_start if commons else 0.0
     prev_tau: float | None = None
     prev_eps: float | None = None
+    prev_n: int | None = None
 
     for period, epsilon in enumerate(epsilon_trajectory):
         n = coasean_collective_count(epsilon)
+
+        # §8.7c: N-transition escheat — the net-dissolving collectives'
+        # indivisible reserves move to the commons before the re-pool.
+        escheat = 0.0
+        if commons and prev_n is not None and n != prev_n:
+            escheat = _consolidation_escheat(trust_t, prev_n, n)
+            trust_t -= escheat
+            commons_t += escheat
 
         # Per-collective ecosystem health: Normal(baseline, heterogeneity²), clipped
         eco_schedule: list[float] | None = None
@@ -827,8 +1203,50 @@ def simulate_federation(
             total_teh  += c.pipeline["teh_created"]
             all_solvent = all_solvent and c.fiscal["solvent"]
 
+        # §8.7: per-collective χ under the two-tier P — worst case is the
+        # federation's contestability position (the invariant is only as
+        # strong as its weakest collective's marginal member).
+        chi_min: float | None = None
+        chi_marginal_min: float | None = None
+        chi_worst_collective: int | None = None
+        chi_status_worst: str | None = None
+        commons_floor_coverage: float | None = None
+        entry_capacity: float | None = None
+        exit_financeable: bool | None = None
+        if commons:
+            # Phase 4b (M1): χ sees the commons only under the dividend
+            # policy — commons_balance=0.0 keeps Phase 4 float-exact.
+            chi_commons = commons_t if commons_dividend else 0.0
+            margins = [
+                contestability_margin_federated(
+                    epsilon,
+                    collective_trust=c.trust_balance,
+                    collective_population=c.population,
+                    federation_population=population,
+                    regime=regime,
+                    commons_balance=chi_commons,
+                )
+                for c in collectives
+            ]
+            chi_min = min(m["chi"] for m in margins)
+            worst_idx = min(range(len(margins)), key=lambda i: margins[i]["chi_marginal"])
+            chi_marginal_min = margins[worst_idx]["chi_marginal"]
+            chi_worst_collective = collectives[worst_idx].collective_id
+            chi_status_worst = margins[worst_idx]["status_marginal"]
+            # Reinsurance ratio: years of federation-wide floor the commons
+            # could carry. S is ε-only, identical across collectives.
+            floor_liability = margins[0]["guarantee_per_person"] * population
+            commons_floor_coverage = commons_t / max(floor_liability, 1e-9)
+            # Phase 4b (M2): entry capacity is a property of the commons
+            # stock itself, reported regardless of dividend policy.
+            underwriting = entry_underwriting(epsilon, commons_t, regime)
+            entry_capacity = underwriting["entry_capacity"]
+            exit_financeable = chi_marginal_min >= 1.0 or underwriting["passes"]
+
         # Piketty-inversion tracking (§8.3): dτ ≥ 0 ⟺ g_Trust ≥ g_priv.
-        tau = trust_t / max(capital_t, 1e-9)
+        # τ counts TOTAL commonized capital — both tiers (see docstring);
+        # commons_t ≡ 0.0 when commons=False keeps Phase 3 float-exact.
+        tau = (trust_t + commons_t) / max(capital_t, 1e-9)
         dtau: float | None = None
         piketty_ok: bool | None = None
         if prev_tau is not None and prev_eps is not None:
@@ -845,6 +1263,25 @@ def simulate_federation(
             else:
                 dtau = tau - prev_tau  # flat ε: raw per-period τ difference
                 piketty_ok = dtau >= -1e-12
+
+        # Dynamics arithmetic hoisted above the append so the tithe is
+        # reportable in the same period's record. Expressions preserved
+        # verbatim from Phase 3; tithe_paid ≡ 0.0 when commons=False, and
+        # (T + levy) − 0.0 − dividend is IEEE-identical to (T + levy) − dividend.
+        tithe_paid = 0.0
+        commons_dividend_paid = 0.0
+        if dynamics:
+            automated_output = (
+                epsilon * capital_t * CONTESTABILITY_CAPITAL_YIELD_RATE
+            )
+            levy_revenue = levy_rate * automated_output
+            if commons:
+                tithe_paid = commons_tithe * levy_revenue
+                if commons_dividend:
+                    # M1: the commons pays its yield universally, same
+                    # outflow rule as collective trust dividends.
+                    commons_dividend_paid = commons_t * DEP_RATE * DIV_RATE
+            dividend_outflow = trust_t * DEP_RATE * DIV_RATE
 
         records.append({
             "period":           period,
@@ -863,19 +1300,27 @@ def simulate_federation(
             "tau":              tau,
             "dtau":             dtau,
             "piketty_ok":       piketty_ok,
+            "commons_balance":        commons_t,
+            "commons_tithe_paid":     tithe_paid,
+            "escheat_this_period":    escheat,
+            "commons_floor_coverage": commons_floor_coverage,
+            "chi_min":                chi_min,
+            "chi_marginal_min":       chi_marginal_min,
+            "chi_worst_collective":   chi_worst_collective,
+            "chi_status_worst":       chi_status_worst,
+            "commons_dividend_paid":  commons_dividend_paid,
+            "entry_capacity":         entry_capacity,
+            "exit_financeable":       exit_financeable,
         })
 
         prev_rates = curr_rates
         prev_tau = tau
         prev_eps = epsilon
+        prev_n = n
 
         if dynamics:
-            automated_output = (
-                epsilon * capital_t * CONTESTABILITY_CAPITAL_YIELD_RATE
-            )
-            levy_revenue = levy_rate * automated_output
-            dividend_outflow = trust_t * DEP_RATE * DIV_RATE
-            trust_t = max(0.0, trust_t + levy_revenue - dividend_outflow)
+            trust_t = max(0.0, trust_t + levy_revenue - tithe_paid - dividend_outflow)
+            commons_t = max(0.0, commons_t + tithe_paid - commons_dividend_paid)
             capital_t = capital_t * (1.0 + g_priv)
 
     return records

@@ -29,8 +29,14 @@ Two views of P(ε):
 Public functions:
     portable_endowment(epsilon, population, trust_balance) → dict
     portable_endowment_individual(epsilon, tenure_years, ...) → dict
+    portable_endowment_federated(epsilon, collective_trust, ...) → dict
+    exit_value(guarantee_per_person, dividend_vested, savings, rate) → dict
     entry_cost(epsilon, regime, k0, k_slope) → float
+    entry_underwriting(epsilon, commons_balance, regime, ...) → dict
+    commons_seed_required(min_viable_population, ...) → float
+    machine_output_teh(epsilon, population) → float
     contestability_margin(epsilon, population, trust_balance, regime, ...) → dict
+    contestability_margin_federated(epsilon, collective_trust, ...) → dict
     commonized_fraction(epsilon) → float
     trust_capital_ratio(trust_balance, capital_stock) → float
     tau_gradient_check(eps_lo, eps_hi, trust_lo, trust_hi, cap_lo, cap_hi) → dict
@@ -44,6 +50,7 @@ Mission Statement: §"Contestability — the invariant the arc must preserve."
 
 from __future__ import annotations
 
+from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import sufficiency_guarantee
 from hours_eoh.data import (
     AGE_GROUPS, PERSONAL_EOH_BASE, DEP_RATE, DIV_RATE,
@@ -53,6 +60,8 @@ from hours_eoh.data import (
     CONTESTABILITY_PHI_FLOOR, CONTESTABILITY_PHI_EXPONENT,
     CONTESTABILITY_G_PRIV, CONTESTABILITY_CAPITAL_YIELD_RATE,
     CONTESTABILITY_VESTING_YEARS,
+    CONTESTABILITY_MIN_VIABLE_POPULATION,
+    CONTESTABILITY_UNDERWRITE_FRACTION,
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
 )
 
@@ -171,7 +180,10 @@ def portable_endowment_individual(
 
     Args:
         epsilon: Automation level [0.0, 0.99].
-        tenure_years: Years of membership in the collective (≥ 0).
+        tenure_years: Years of FEDERATION tenure (≥ 0). Tenure accrues to the
+                      person federation-wide (reconciliation §8.7b): moving
+                      between collectives never resets the clock or forfeits
+                      vested balance.
         vesting_years: Years for the dividend to fully vest (> 0).
                        Default: CONTESTABILITY_VESTING_YEARS = 5.0.
         savings: Portable personal savings in TEH (≥ 0). Default 0.0.
@@ -204,6 +216,191 @@ def portable_endowment_individual(
         "savings":               savings,
         "tenure_years":          tenure_years,
         "epsilon":               epsilon,
+    }
+
+
+def portable_endowment_federated(
+    epsilon: float,
+    collective_trust: float,
+    collective_population: float,
+    federation_population: float | None = None,
+    tenure_years: float = 0.0,
+    vesting_years: float = CONTESTABILITY_VESTING_YEARS,
+    savings: float = 0.0,
+    commons_balance: float = 0.0,
+) -> dict:
+    """
+    Two-tier portable endowment P_fed(ε) — reconciliation §8.7 (a)+(b),
+    extended with the commons dividend (proposed §8.8, mechanism M1).
+
+    Governing equation:
+        P_fed(ε) = S(ε) + D_fed + v(tenure) · D_coll(ε) + savings
+        D_coll   = collective_trust · DEP_RATE · DIV_RATE / collective_population
+        D_fed    = commons_balance · DEP_RATE · DIV_RATE / federation_population
+        v        = min(1, tenure_years / vesting_years)   (linear vesting)
+
+    D_fed is the UNIVERSAL commons dividend: the federation commons pays its
+    yield per capita to every member with NO vesting (Alaska Permanent Fund
+    precedent — residency-based, not tenure-vested). This is what turns the
+    §8.7c escheat from an adversarial finding into a stabilizer: consolidation
+    moves capital from tenure-gated collective dividends into the universal
+    tier, so the marginal member's P *rises* with concentration instead of
+    being drained by it. The commons corpus stays indivisible (§8.7c); only
+    yield distributes — exactly as collective trusts already pay dividends.
+    Default commons_balance = 0.0 reproduces §8.7 behavior unchanged.
+
+    Two-tier semantics (§8.7a): the sufficiency floor S is FEDERATION-guaranteed
+    and membership-independent — it never vests and does not depend on which
+    collective the member belongs to. The dividend claim D_coll is held against
+    the member's own collective's trust through their capital account (§8.7b).
+    tenure_years is FEDERATION tenure: moving between collectives never resets
+    the clock or forfeits vested balance.
+
+    S per person is population-invariant (sufficiency_guarantee's
+    total_per_person depends only on ε), so the federation-level guarantee
+    equals the per-collective number; federation_population is carried for
+    context and future federation-level cost accounting.
+
+    Identity (testable): with federation_population == collective_population,
+    P_fed equals portable_endowment_individual(...)["p_individual"] exactly —
+    both funnel through portable_endowment().
+
+    Worked example (ε=0.40, collective_trust=35B/12, collective_pop=1M/12):
+        S ≈ 1476 TEH/person (federation floor, ε-scaled)
+        D_coll = (35B/12) × 0.045 × 0.40 / (1M/12) = 630 TEH/person
+                 (equal split leaves the per-capita dividend unchanged)
+        tenure=0:  P_fed ≈ 1476   (floor only — the marginal member)
+        tenure≥5:  P_fed ≈ 2106
+        with commons_balance=4.5B, fed_pop=1M: D_fed = 4.5B×0.018/1M = 81
+        added at EVERY tenure, including tenure=0.
+
+    ε-behavior: S falls as machines fulfill personal EOH (see
+    portable_endowment()); D_coll is ε-invariant in this static view, so the
+    marginal member's P declines fastest across the arc — unless the commons
+    grows with ε (escheat + tithe), in which case D_fed partially offsets the
+    decline. Meaningful across ε ∈ [0, 0.99]; no discontinuities as ε → 1.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        collective_trust: The member's collective's trust balance in TEH.
+        collective_population: The collective's population (> 0).
+        federation_population: Total federation population (None → treat the
+            collective as the whole federation, the single-ledger limit).
+        tenure_years: FEDERATION tenure in years (≥ 0). Default 0.0 — the
+            marginal member the invariant protects.
+        vesting_years: Years for the dividend to fully vest (> 0).
+        savings: Portable personal savings in TEH (≥ 0).
+        commons_balance: Federation commons balance in TEH (≥ 0). Its yield
+            pays the universal unvested dividend D_fed. Default 0.0 — §8.7
+            behavior, no commons dividend.
+
+    Returns:
+        dict with keys: p_federated, p_marginal, guarantee_per_person,
+        dividend_full, dividend_vested, dividend_commons, vested_fraction,
+        savings, tenure_years, epsilon, collective_trust,
+        collective_population, federation_population.
+    """
+    if tenure_years < 0.0:
+        raise ValueError(f"tenure_years must be >= 0, got {tenure_years}")
+    if vesting_years <= 0.0:
+        raise ValueError(f"vesting_years must be > 0, got {vesting_years}")
+    if savings < 0.0:
+        raise ValueError(f"savings must be >= 0, got {savings}")
+    if federation_population is not None and federation_population <= 0:
+        raise ValueError(
+            f"federation_population must be positive, got {federation_population}"
+        )
+    if commons_balance < 0.0:
+        raise ValueError(f"commons_balance must be >= 0, got {commons_balance}")
+
+    fed_pop = collective_population if federation_population is None else federation_population
+    # S is per-person and population-invariant; D_coll needs the collective's
+    # own trust and population — portable_endowment() supplies both components.
+    coll = portable_endowment(epsilon, collective_population, collective_trust)
+    vested_fraction = min(1.0, tenure_years / vesting_years)
+    dividend_vested = coll["trust_dividend_per_capita"] * vested_fraction
+    # M1: universal commons dividend — unvested, so it reaches tenure-0.
+    dividend_commons = commons_balance * DEP_RATE * DIV_RATE / fed_pop
+    p_marginal = coll["guarantee_per_person"] + dividend_commons
+    p_federated = p_marginal + dividend_vested + savings
+
+    return {
+        "p_federated":           p_federated,
+        "p_marginal":            p_marginal,
+        "guarantee_per_person":  coll["guarantee_per_person"],
+        "dividend_full":         coll["trust_dividend_per_capita"],
+        "dividend_vested":       dividend_vested,
+        "dividend_commons":      dividend_commons,
+        "vested_fraction":       vested_fraction,
+        "savings":               savings,
+        "tenure_years":          tenure_years,
+        "epsilon":               epsilon,
+        "collective_trust":      collective_trust,
+        "collective_population": collective_population,
+        "federation_population": fed_pop,
+    }
+
+
+def exit_value(
+    guarantee_per_person: float,
+    dividend_vested: float,
+    savings: float = 0.0,
+    rate: float = 1.0,
+) -> dict:
+    """
+    Value a member commands on exit across a collective boundary — §8.7 (b)+(d).
+
+    Governing equation:
+        p_exit = S + (D_vested + savings) · r
+
+    Where r is the inter-collective exchange rate r(home → destination) from
+    research/coasean.exchange_rates(). The FLOOR IS NOT CONVERTED: S is
+    federation-denominated and guaranteed everywhere (§8.7a), so it crosses
+    the boundary at par. Only the home-collective-denominated capital account
+    (vested dividend + savings) converts at the prevailing rate (§8.7b:
+    accounts convert 1:1 at the exchange rate — a unit conversion, not a
+    valuation; zero TEH is created or destroyed, §8.7d).
+
+    Takes plain floats rather than an endowment result dict to avoid coupling
+    to the differing key schemas of portable_endowment_individual()
+    (trust_dividend_vested) and portable_endowment_federated()
+    (dividend_vested).
+
+    Worked example (S=1476, D_vested=630, savings=0, r=0.9):
+        p_exit = 1476 + 630 × 0.9 = 2043 TEH — the member arrives in a
+        lower-productivity collective with the floor intact and the account
+        marked down by the rate.
+
+    Args:
+        guarantee_per_person: Federation floor S in TEH (≥ 0).
+        dividend_vested: Vested capital-account dividend in home TEH (≥ 0).
+        savings: Portable savings in home TEH (≥ 0).
+        rate: Exchange rate r(home → destination) (> 0). 1.0 = symmetric
+              collectives (the single-ledger limit).
+
+    Returns:
+        dict with keys: p_exit, floor_component, account_component_home,
+        account_component_converted, rate.
+    """
+    if rate <= 0.0:
+        raise ValueError(f"rate must be > 0, got {rate}")
+    if guarantee_per_person < 0.0:
+        raise ValueError(
+            f"guarantee_per_person must be >= 0, got {guarantee_per_person}"
+        )
+    if dividend_vested < 0.0:
+        raise ValueError(f"dividend_vested must be >= 0, got {dividend_vested}")
+    if savings < 0.0:
+        raise ValueError(f"savings must be >= 0, got {savings}")
+
+    account_home = dividend_vested + savings
+    account_converted = account_home * rate
+    return {
+        "p_exit":                      guarantee_per_person + account_converted,
+        "floor_component":             guarantee_per_person,
+        "account_component_home":      account_home,
+        "account_component_converted": account_converted,
+        "rate":                        rate,
     }
 
 
@@ -259,6 +456,146 @@ def entry_cost(
         raise ValueError(
             f"regime must be 'increasing_returns' or 'replicable', got {regime!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Entry underwriting — the commons as entry-financier (proposed §8.8, M2)
+# ---------------------------------------------------------------------------
+
+def entry_underwriting(
+    epsilon: float,
+    commons_balance: float,
+    regime: str = "increasing_returns",
+    min_viable_population: float = CONTESTABILITY_MIN_VIABLE_POPULATION,
+    underwrite_fraction: float = CONTESTABILITY_UNDERWRITE_FRACTION,
+    k0: float = CONTESTABILITY_K0_TEH,
+    k_slope: float = CONTESTABILITY_K_SLOPE,
+) -> dict:
+    """
+    Commons-financed entry capacity — the Baumol threat made credible.
+
+    Governing equations:
+        deployable      = underwrite_fraction · commons_balance
+        founding_need   = min_viable_population · K_entry(ε, regime)
+        entry_capacity  = deployable / founding_need     ≥ 1  required
+
+    Contestability (Baumol–Panzar–Willig 1982) disciplines an incumbent
+    through the credible THREAT of entry — which requires entry finance, not
+    that every individual carry K_entry in cash. χ(ε) = P/K_entry compares an
+    individual's annual endowment flow to a one-time founding stock and is
+    therefore nearly unclosable in the adversarial regime (trust required
+    ≈ 6.9× base at ε=0.99; see trust_required_for_chi()). This function
+    closes the stock side directly: the federation commons underwrites the
+    founding capital of new collectives. Underwritten capital moves
+    commons → new collective's trust — it stays commonized and indivisible
+    (§8.7c), never becoming a personal claim, so the escheat rule is
+    respected, and the §8.7c escheat itself becomes the feedback that makes
+    concentration self-limiting: every consolidation feeds the fund that
+    finances alternatives.
+
+    The combined invariant (proposed §8.8):
+        exit is financeable at ε  ⇔  χ_marginal(ε) ≥ 1  OR  entry_capacity(ε) ≥ 1
+        (self-financed exit at low ε; commons-financed entry at high ε)
+
+    Worked example (ε=0.99, increasing_returns, commons=1.57e10):
+        K_entry ≈ 4651; founding_need = 5000 × 4651 ≈ 2.33e7
+        deployable = 0.5 × 1.57e10 ≈ 7.8e9 → entry_capacity ≈ 337  "OK"
+    At ε=0 the commons is typically empty (capacity 0) but χ_marginal ≈ 1.3
+    carries the invariant; the crossover is covered by seeding the commons —
+    see commons_seed_required().
+
+    ε-behavior: founding_need rises with K_entry in the adversarial regime,
+    but a tithe+escheat-fed commons grows faster along canonical trajectories,
+    so capacity rises toward ε→1 — concentration finances its own
+    contestability. Meaningful across ε ∈ [0, 0.99].
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        commons_balance: Federation commons balance in TEH (≥ 0).
+        regime: "increasing_returns" (default/adversarial) or "replicable".
+        min_viable_population: Smallest population able to staff a viable
+            alternative collective (uncalibrated placeholder — see data.py).
+        underwrite_fraction: Max deployable share of the commons per period;
+            the rest stays as the floor backstop (§8.7a).
+        k0: Base founding cost at ε=0.
+        k_slope: Rate of K_entry change per unit ε.
+
+    Returns:
+        dict with keys: entry_capacity, passes (capacity ≥ 1), deployable,
+        founding_need, underwrite_per_founder (per-capita grant available,
+        capped at K_entry), k_entry, min_viable_population,
+        underwrite_fraction, regime, epsilon.
+    """
+    if commons_balance < 0.0:
+        raise ValueError(f"commons_balance must be >= 0, got {commons_balance}")
+    if min_viable_population <= 0.0:
+        raise ValueError(
+            f"min_viable_population must be > 0, got {min_viable_population}"
+        )
+    if not 0.0 <= underwrite_fraction <= 1.0:
+        raise ValueError(
+            f"underwrite_fraction must be in [0, 1], got {underwrite_fraction}"
+        )
+
+    k = entry_cost(epsilon, regime, k0, k_slope)
+    deployable = underwrite_fraction * commons_balance
+    founding_need = min_viable_population * k
+    entry_capacity = deployable / founding_need
+    underwrite_per_founder = min(k, deployable / min_viable_population)
+
+    return {
+        "entry_capacity":         entry_capacity,
+        "passes":                 entry_capacity >= 1.0,
+        "deployable":             deployable,
+        "founding_need":          founding_need,
+        "underwrite_per_founder": underwrite_per_founder,
+        "k_entry":                k,
+        "min_viable_population":  min_viable_population,
+        "underwrite_fraction":    underwrite_fraction,
+        "regime":                 regime,
+        "epsilon":                epsilon,
+    }
+
+
+def commons_seed_required(
+    min_viable_population: float = CONTESTABILITY_MIN_VIABLE_POPULATION,
+    underwrite_fraction: float = CONTESTABILITY_UNDERWRITE_FRACTION,
+    k0: float = CONTESTABILITY_K0_TEH,
+) -> float:
+    """
+    Commons seed capital for entry_capacity ≥ 1 at ε=0 (proposed §8.8, M2).
+
+    Governing equation — invert entry_capacity(0) ≥ 1 for commons_balance:
+        seed = min_viable_population · K_entry(0) / underwrite_fraction
+             = min_viable_population · k0 / underwrite_fraction
+        (K_entry(0) = k0 in both regimes)
+
+    At ε=0 the commons has collected no tithe and no escheat, so without a
+    seed the entry-underwriting arm of the combined invariant starts at
+    capacity 0. χ_marginal ≈ 1.3 at ε=0 carries the invariant on its own
+    there, but the seed removes the early-arc window where both arms could
+    sag before escheat inflows begin.
+
+    Worked example (defaults): 5000 × 1800 / 0.5 = 1.8e7 TEH — about 0.05%
+    of TRUST_BASE_TEH. The early-arc gap closes for ~1/2000th of the Trust.
+
+    Args:
+        min_viable_population: Smallest viable founding cohort (> 0).
+        underwrite_fraction: Max deployable commons share (∈ (0, 1]).
+        k0: Base founding cost at ε=0.
+
+    Returns:
+        Seed balance in TEH (float > 0).
+    """
+    if min_viable_population <= 0.0:
+        raise ValueError(
+            f"min_viable_population must be > 0, got {min_viable_population}"
+        )
+    if not 0.0 < underwrite_fraction <= 1.0:
+        raise ValueError(
+            f"underwrite_fraction must be in (0, 1], got {underwrite_fraction}"
+        )
+    return min_viable_population * k0 / underwrite_fraction
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +677,118 @@ def contestability_margin(
         "epsilon": epsilon,
         "guarantee_per_person": p_result["guarantee_per_person"],
         "trust_dividend_per_capita": p_result["trust_dividend_per_capita"],
+    }
+
+
+def contestability_margin_federated(
+    epsilon: float,
+    collective_trust: float,
+    collective_population: float,
+    federation_population: float | None = None,
+    regime: str = "increasing_returns",
+    k0: float = CONTESTABILITY_K0_TEH,
+    k_slope: float = CONTESTABILITY_K_SLOPE,
+    commons_balance: float = 0.0,
+    min_viable_population: float = CONTESTABILITY_MIN_VIABLE_POPULATION,
+    underwrite_fraction: float = CONTESTABILITY_UNDERWRITE_FRACTION,
+) -> dict:
+    """
+    Per-collective contestability margin under the two-tier Trust — §8.7,
+    extended with the commons closure mechanisms (proposed §8.8).
+
+    Governing equation (reconciliation §8.1, re-based on the two-tier P):
+        χ(ε)          = P_fed(fully vested) / K_entry(ε)
+        χ_marginal(ε) = (S(ε) + D_fed(ε)) / K_entry(ε)   (tenure-0 member)
+        D_fed         = commons_balance · DEP_RATE · DIV_RATE / fed_pop
+        exit_financeable ⇔ χ_marginal ≥ 1  OR  entry_capacity ≥ 1
+
+    The marginal member — federation tenure 0, savings 0 — commands the
+    federation floor S plus the universal (unvested) commons dividend D_fed;
+    they are the person the invariant actually protects (§9 open item 7).
+    With commons_balance = 0 (default), D_fed = 0 and entry_capacity = 0:
+    every value reproduces §8.7 behavior exactly, and exit_financeable
+    reduces to χ_marginal ≥ 1. Status thresholds and key shape mirror
+    contestability_margin(); identity (testable): with
+    federation_population == collective_population and commons_balance = 0
+    this equals contestability_margin(epsilon, collective_population,
+    collective_trust, ...) key-for-key on chi, chi_marginal, p, p_marginal,
+    k_entry.
+
+    Worked example (ε=0.40, 12-collective equal split of 35B/1M, no commons):
+        S ≈ 1476, D_coll = 630, K_entry = 1800·(1+1.6·0.40) = 2952
+        χ = (1476+630)/2952 ≈ 0.71 "CRIT"; χ_marginal = 1476/2952 ≈ 0.50
+        The equal split preserves per-capita values, so the federation
+        inherits the single-ledger adversarial finding unchanged.
+    Same point with commons_balance = 4.5e9 (canonical escheat by ε=0.40):
+        D_fed = 81 → χ_marginal ≈ 0.53 — still CRIT on its own, but
+        entry_capacity = 0.5·4.5e9/(5000·2952) ≈ 152 → exit_financeable.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        collective_trust: The collective's trust balance in TEH.
+        collective_population: The collective's population (> 0).
+        federation_population: Total federation population (None → collective
+            is the whole federation).
+        regime: "increasing_returns" (default/adversarial) or "replicable".
+        k0: Base founding cost at ε=0.
+        k_slope: Rate of K_entry change per unit ε.
+        commons_balance: Federation commons balance in TEH (≥ 0). Feeds both
+            the universal dividend (M1) and entry underwriting (M2).
+        min_viable_population: Smallest viable founding cohort (> 0).
+        underwrite_fraction: Max deployable commons share (∈ [0, 1]).
+
+    Returns:
+        dict with keys: chi, chi_marginal, p, p_marginal, k_entry, status,
+        status_marginal, passes, regime, epsilon, guarantee_per_person,
+        dividend_per_capita, dividend_commons, entry_capacity,
+        exit_financeable, collective_trust, collective_population.
+    """
+    vested = portable_endowment_federated(
+        epsilon,
+        collective_trust=collective_trust,
+        collective_population=collective_population,
+        federation_population=federation_population,
+        tenure_years=CONTESTABILITY_VESTING_YEARS,  # fully vested
+        commons_balance=commons_balance,
+    )
+    p = vested["p_federated"]
+    p_marginal = vested["p_marginal"]  # tenure=0: floor + commons dividend
+    k = entry_cost(epsilon, regime, k0, k_slope)
+    chi = p / k
+    chi_marginal = p_marginal / k
+    underwriting = entry_underwriting(
+        epsilon, commons_balance, regime,
+        min_viable_population, underwrite_fraction, k0, k_slope,
+    )
+    exit_financeable = (
+        chi_marginal >= CONTESTABILITY_CHI_CRIT or underwriting["passes"]
+    )
+
+    def _status(value: float) -> str:
+        if value >= CONTESTABILITY_CHI_WARN:
+            return "OK"
+        if value >= CONTESTABILITY_CHI_CRIT:
+            return "WARN"
+        return "CRIT"
+
+    return {
+        "chi": chi,
+        "chi_marginal": chi_marginal,
+        "p": p,
+        "p_marginal": p_marginal,
+        "k_entry": k,
+        "status": _status(chi),
+        "status_marginal": _status(chi_marginal),
+        "passes": chi >= CONTESTABILITY_CHI_CRIT,
+        "regime": regime,
+        "epsilon": epsilon,
+        "guarantee_per_person": vested["guarantee_per_person"],
+        "dividend_per_capita": vested["dividend_full"],
+        "dividend_commons": vested["dividend_commons"],
+        "entry_capacity": underwriting["entry_capacity"],
+        "exit_financeable": exit_financeable,
+        "collective_trust": collective_trust,
+        "collective_population": collective_population,
     }
 
 
@@ -548,6 +997,15 @@ def trust_required_for_chi(
     """
     Trust balance required to hold the contestability invariant at a given ε.
 
+    SUPERSEDED (proposed §8.9, 2026-07-26): the bare-χ target this inverts
+    divides an annual income flow by a one-time founding stock (§8.8 RC4),
+    which is why T_required balloons to 6.9× base — the demand that one
+    year of dividend cover the whole founding cost. The dimensionally-clean
+    successors are the time-to-finance-exit invariant and stock-based
+    capital accounts in research/recalibration.py. Retained unchanged as
+    the documented negative result: the trust-growth path cannot close
+    bare χ, which is why entry underwriting (M2) exists.
+
     Governing equation — invert χ(ε) ≥ χ_target for T:
         P(ε) = S(ε) + T·DEP_RATE·DIV_RATE / pop  ≥  χ_target · K_entry(ε)
         T_required = max(0, χ_target·K_entry(ε) − S(ε)) · pop / (DEP_RATE·DIV_RATE)
@@ -604,6 +1062,38 @@ def trust_required_for_chi(
     }
 
 
+def machine_output_teh(epsilon: float, population: float = 1_000_000.0) -> float:
+    """
+    Machine-fulfilled EOH per year — the physically-consistent levy base.
+
+    Governing equation:
+        machine_output(ε) = ε · total_eoh(ε)     [TEH/yr, population-level]
+
+    ε is BY DEFINITION the fraction of total EOH fulfilled by machines
+    (CLAUDE.md: compute_epsilon(machine_eoh, total_eoh)), so the value of
+    automated production per year is ε times the total entropy obligation —
+    measured by the pipeline's own generation functions, not assumed. The
+    static base ε·K·CONTESTABILITY_CAPITAL_YIELD_RATE understates this ~12×
+    at high ε (198 vs 2,421 TEH/person·yr at ε=0.99 at canonical defaults)
+    because CAPITAL_STOCK_DEFAULT is an ε=0-era calibration held fixed while
+    ε rises — a capital stock physically incapable of fulfilling 99% of EOH.
+    Using the pipeline's own measure removes that inconsistency from the
+    levy-feasibility question (proposed §8.8, mechanism M3).
+
+    ε-behavior: rises smoothly from 0 at ε=0 to ≈ total EOH at ε→1; no
+    discontinuities. Uses canonical physical state via total_eoh(epsilon=...)
+    backward-compat pathway.
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        population: Total population.
+
+    Returns:
+        Machine-fulfilled TEH per year, population-level (float ≥ 0).
+    """
+    return epsilon * total_eoh(epsilon=epsilon, population=population)["total"]
+
+
 def levy_schedule_for_chi(
     n_points: int = 20,
     regime: str = "increasing_returns",
@@ -611,9 +1101,20 @@ def levy_schedule_for_chi(
     capital_stock: float = CAPITAL_STOCK_DEFAULT,
     chi_target: float = CONTESTABILITY_CHI_CRIT,
     trust_start: float = TRUST_BASE_TEH,
+    levy_base: str = "capital_yield",
 ) -> list[dict]:
     """
     Common-fund levy schedule that holds χ ≥ χ_target across the arc (§8.2).
+
+    SUPERSEDED (proposed §8.9, 2026-07-26): the trust targets this schedule
+    chases inherit the §8.8 RC4 flow-vs-stock artifact (see
+    trust_required_for_chi()), so its growth-step infeasibility is a
+    property of the retired invariant, not of the system. Retained
+    unchanged as the documented negative result. The recalibrated frame
+    (research/recalibration.py) replaces the levy-rate race entirely:
+    the commons owns share φ(ε) of an ε-consistent capital stock, so
+    dτ/dε ≥ 0 is structural and the dividend is funded by measured
+    machine output.
 
     The missing Workstream B deliverable: derive, per ε-step, the levy revenue
     the Trust must collect so that the contestability invariant holds at every
@@ -626,21 +1127,25 @@ def levy_schedule_for_chi(
         dividend_out_i  = T_target(ε_i) · DEP_RATE · DIV_RATE
                           — the outflow that must be replenished to hold T
         levy_required_i = max(0, ΔT_i) + dividend_out_i
-        output_i        = ε_i · K · CONTESTABILITY_CAPITAL_YIELD_RATE
+        output_i        = ε_i · K · CONTESTABILITY_CAPITAL_YIELD_RATE   (capital_yield)
+                        = machine_output_teh(ε_i, pop)                  (machine_output)
         levy_fraction_i = levy_required_i / output_i    (None at ε=0)
         feasible_i      = levy_fraction_i ≤ 1
 
-    HONEST RESULT, NOT TUNED: at canonical defaults in the adversarial regime
-    the schedule is infeasible at every ε — the levy on automated output alone
-    cannot fund the required Trust growth, because CAPITAL_STOCK_DEFAULT
-    (2,000 TEH/person) yields at most 200 TEH/person·yr while the required
-    dividend approaches 4,300 TEH/person·yr. Closing the invariant needs
-    either a much larger automated capital base (K grows with ε — see
-    research/coasean.py Phase 3 dynamics), additional levy bases (the
-    accumulation-ceiling redirection, estate dissolution), or the replicable
-    regime. Reporting this infeasibility is the point (reconciliation §8.5:
-    design for the adversarial case; CLAUDE.md §5: if a result is ugly,
-    report it).
+    HONEST RESULT, NOT TUNED: with the default capital_yield base at
+    canonical defaults in the adversarial regime the schedule is infeasible
+    at every ε — but ~12× of that gap is a calibration artifact:
+    CAPITAL_STOCK_DEFAULT (2,000 TEH/person) is an ε=0-era stock that cannot
+    physically fulfill 99% of EOH, yet the base holds it fixed while ε rises.
+    levy_base="machine_output" uses the pipeline's own measure of automated
+    production (ε·total_eoh — see machine_output_teh()); under it the
+    SUSTAINING levy (dividend outflow at a held T_target) becomes feasible
+    across most of the arc, while the GROWTH steps (ΔT to reach the 6.9×
+    trust target) remain infeasible in mid-arc. Even the corrected base
+    cannot make χ_marginal ≥ 1 self-financing — that is what the
+    entry-underwriting mechanism (entry_underwriting()) is for. Reporting
+    the remaining infeasibility is the point (reconciliation §8.5;
+    CLAUDE.md §5: if a result is ugly, report it).
 
     Args:
         n_points: Number of ε points across [0, 0.99]. Default: 20.
@@ -648,17 +1153,24 @@ def levy_schedule_for_chi(
         population: Total population.
         capital_stock: Total automated capital K (TEH), held fixed across the
             arc (static model; K(ε) dynamics are research/coasean.py Phase 3).
+            Used only when levy_base="capital_yield".
         chi_target: Required contestability margin. Default: 1.0.
         trust_start: Trust balance at ε=0. Default: TRUST_BASE_TEH.
+        levy_base: "capital_yield" (default, §8.7-era static base) or
+            "machine_output" (physically-consistent base, proposed §8.8 M3).
 
     Returns:
         list[dict] — one row per ε with keys:
             epsilon, k_entry, guarantee_per_person, trust_target, delta_trust,
             dividend_outflow, levy_required, automated_output,
-            levy_fraction (None at ε=0), feasible, chi_check.
+            levy_fraction (None at ε=0), feasible, chi_check, levy_base.
         chi_check is contestability_margin() recomputed at trust_target — it
         must satisfy chi ≥ chi_target at every row (asserted in tests).
     """
+    if levy_base not in ("capital_yield", "machine_output"):
+        raise ValueError(
+            f"levy_base must be 'capital_yield' or 'machine_output', got {levy_base!r}"
+        )
     rows: list[dict] = []
     prev_target = None
     for i in range(n_points):
@@ -669,7 +1181,10 @@ def levy_schedule_for_chi(
         dividend_outflow = trust_target * DEP_RATE * DIV_RATE
         levy_required = max(0.0, delta_trust) + dividend_outflow
 
-        automated_output = eps * capital_stock * CONTESTABILITY_CAPITAL_YIELD_RATE
+        if levy_base == "machine_output":
+            automated_output = machine_output_teh(eps, population)
+        else:
+            automated_output = eps * capital_stock * CONTESTABILITY_CAPITAL_YIELD_RATE
         levy_fraction: float | None
         if automated_output > 0.0:
             levy_fraction = levy_required / automated_output
@@ -694,6 +1209,7 @@ def levy_schedule_for_chi(
             "levy_fraction":        levy_fraction,
             "feasible":             feasible,
             "chi_check":            chi_check,
+            "levy_base":            levy_base,
         })
         prev_target = trust_target
     return rows

@@ -2,7 +2,7 @@
 
 **Module:** `hours_eoh/core/eoh_generation.py`
 
-Pure physics — these functions take the actual physical state of the civilization and return entropy obligations. ε is not a primary input here; these functions measure what entropy demands, not who fulfills it.
+Measurement-driven — these functions take the actual physical state of the civilization and return entropy obligations, derived from physical inputs via calibrated constants. ε is not a primary input here; these functions measure what entropy demands, not who fulfills it.
 
 ---
 

@@ -13,7 +13,7 @@ hours_eoh/
   data.py              All named constants — single source of truth
   params.py            EohParams — mutable parameter container
 
-  core/                Pure physics + mechanics — stable API
+  core/                Measurement-driven mechanics — stable API
     trajectory.py          Canonical arc + ε derivation
     eoh_generation.py      Four EOH domain functions + total_eoh()
     registration.py        Sigmoid admission curves per domain
