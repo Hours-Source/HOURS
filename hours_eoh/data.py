@@ -266,6 +266,55 @@ ALPHA_IMPACT_EOH_REDUCTION_WEIGHT:   float = 0.40  # fraction of domain EOH elim
 ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT: float = 0.35  # breadth of domain EOH this role covers
 ALPHA_IMPACT_RESILIENCE_WEIGHT:      float = 0.25  # emergency reserve capacity
 
+# ---------------------------------------------------------------------------
+# Multiplier — measured-data geometric map (frozen reference mult-5.1.0)
+#
+# The FLOOR-semantics map adopted from the O*NET/BLS v5.1 measurement pass
+# (reference epoch 2026-07-29). This SUPERSEDES the additive
+# m = 1 + Σαᵢ·fᵢ form for the reference multiplier: author-signed-off
+# 2026-07-30 (see notes/hours-reconciliation.md §3, handoffs/multipliers-v5
+# KNOWN_ISSUES §3 — the additive floor term mechanically crushed the ladder).
+# The additive tier_multiplier()/epoch_alpha_weights() are retained, deprecated,
+# for backward compatibility.
+#
+#     m(composite) = M_FLOOR · M_GEOMETRIC_R ** z
+#     z = clip((composite − Z_LO) / (Z_HI − Z_LO), 0, 1)
+#     composite = Σ w_i · f_i    over measured factors f_i ∈ [0, 1]
+#
+# R, the z-range and the factor weights are FROZEN at the reference epoch; they
+# are DERIVED-THEN-FROZEN, not tunable (re-derivation restores the circularity
+# the freeze exists to break). Mirror of reference/data/multiplier_reference_bounds.json.
+# ---------------------------------------------------------------------------
+M_FLOOR:          float = 1.0    # constitutional floor multiplier (measured min)
+M_GEOMETRIC_R:    float = 3.2    # DERIVED-THEN-FROZEN spread ratio (solved at reference epoch)
+M_COMPOSITE_Z_LO: float = 0.15307309621788462  # frozen composite lower bound
+M_COMPOSITE_Z_HI: float = 0.7401986094479613   # frozen composite upper bound
+
+# Frozen factor weights (training, demand, scarcity, impact) — CHOSEN, uncalibrated.
+# Epistemic pointer: no measurement behind the split; sweep ±0.10 each (see
+# scenarios/multiplier_sensitivity.py). Sum to 1.0.
+M_FACTOR_WEIGHTS: tuple[float, float, float, float] = (0.30, 0.25, 0.20, 0.25)
+
+# Frozen impact sub-domain weights (dependency, substitutability, harm, temporal)
+# — CHOSEN. Used to reconstruct f_impact from the measured i_* sub-components.
+# Sum to 1.0. Impact composite is affine outer-normalized against these bounds.
+M_IMPACT_SUBDOMAIN_WEIGHTS: tuple[float, float, float, float] = (0.30, 0.25, 0.25, 0.20)
+M_IMPACT_COMPOSITE_LO: float = 0.3317494225632136  # frozen impact-composite lower bound
+M_IMPACT_COMPOSITE_HI: float = 0.7519582943881703  # frozen impact-composite upper bound
+
+# Epoch-adaptive factor weights across the automation arc — CHOSEN (illustrative
+# anchors, piecewise-linear interpolated). Each anchor is (training, demand,
+# scarcity, impact), summing to 1.0. Epistemic pointer: the ε-dependence of the
+# weighting is a governance judgement, not a measurement; the ε=0.40 anchor
+# equals the frozen M_FACTOR_WEIGHTS by construction. At ε→1 impact dominates
+# (copy/merge limit: only impact survives — see handoffs KNOWN_ISSUES §5).
+M_EPOCH_WEIGHT_ANCHORS: dict[float, tuple[float, float, float, float]] = {
+    0.00: (0.35, 0.30, 0.20, 0.15),
+    0.40: (0.30, 0.25, 0.20, 0.25),
+    0.90: (0.20, 0.20, 0.20, 0.40),
+    0.99: (0.15, 0.15, 0.15, 0.55),
+}
+
 # Governance assessment thresholds
 GOVERNANCE_MIN_ASSESSORS:       int   = 3     # fewer than this triggers a WARN
 GOVERNANCE_IRR_WARN_THRESHOLD:  float = 0.70  # inter-rater reliability below → WARN

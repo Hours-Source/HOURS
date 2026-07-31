@@ -1,15 +1,38 @@
 # Parameter Provenance
 
 Every parameter used by the EOH → TEH model, with its default value, units,
-and derivation rationale. The **Kind** column distinguishes:
+and derivation rationale.
 
-- **Physics** — changing this changes the model's physical claim about the world.
-  These reflect choices about how entropy works; changing them requires a theoretical
-  justification, not just calibration.
-- **Calibration** — a knob researchers turn to fit their local economy. Change
-  these to match your data; the structural behavior of the model is preserved.
+## The tag scheme
 
-Source: `hours_eoh/data.py` and `hours_eoh/params.py`.
+The goal is that **every constant carries a provenance tag, and the CHOSEN set
+shrinks over time as measured data replaces guesses**. Four tags:
+
+- **physics** — a structural claim about how entropy works. Changing it changes
+  the model's claim about the world; needs a theoretical justification, not a knob.
+- **measured** — read from an external empirical source (e.g. O*NET, BLS). The
+  strongest tag: it can be wrong, and a data refresh would show it.
+- **derived** — computed from measured inputs by a stated formula (normalizations,
+  composites). Inherits its authority from the measurements beneath it.
+- **CHOSEN** — a value set by judgement, not yet backed by measurement. **Every
+  CHOSEN constant carries an *epistemic pointer* — the specific evidence or
+  measurement that would move it off CHOSEN.** These are the calibration targets
+  and the honest debts of the model.
+
+A fifth working label, **derived-then-FROZEN**, marks a derived value pinned at a
+reference epoch so it stays comparable across data vintages (re-deriving it per
+vintage would reintroduce circularity).
+
+> **Migration note.** The EOH-domain tables below predate this scheme and still
+> use the older binary **Kind = Physics | Calibration** (Physics ≈ `physics`;
+> Calibration ≈ `CHOSEN` awaiting local calibration). The **Multiplier** section
+> is the first block fully migrated to the four-tag scheme with epistemic
+> pointers. The machine-readable source of truth for the multiplier constants is
+> [`hours_eoh/reference/data/multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv)
+> (column `resolves_by` = the epistemic pointer).
+
+Source: `hours_eoh/data.py` and `hours_eoh/params.py`; measured multiplier data
+in `hours_eoh/reference/data/` (O*NET 30.3 / BLS, frozen epoch 2026-07-29).
 
 ---
 
@@ -179,3 +202,56 @@ See `hours-reconciliation.md §8` and `notes/workstream b.md` for derivation.
 | `MEMBERSHIP_MIN_HOURS_WARN_FRACTION` | 0.50 | fraction of `PERSONAL_EOH_BASE` | Calibration | Minimum-hours obligation above half the personal entropy load (750 h/yr) → WARN (§9-item-7: membership rules must not be drawn so tight they destroy χ). |
 | `MEMBERSHIP_MIN_HOURS_CRIT_FRACTION` | 1.00 | fraction of `PERSONAL_EOH_BASE` | Physics-adjacent | Obligation at or above the full personal EOH load (1500 h/yr) → CRIT: an obligation equal to the whole entropy load is compulsion by definition, not a membership term. |
 | `MEMBERSHIP_DIVIDEND_POLICY_WARN` | 0.25 | fraction of pro-rata dividend | Calibration | Distributing less than 25% of the pro-rata dividend to accounts → WARN: retention rebuilds the honeypot (undistributed commons) inside the collective that the indivisible-reserve escheat rule exists to defuse. |
+
+---
+
+## Reference Multiplier (measured — O*NET 30.3 / BLS, mult-5.1.0)
+
+The multiplier prices **one hour of labour** and sets the **floor at which TEH is
+minted** — not realized earnings (a discovered market premium sits on top;
+reconciliation §3). All four assessment factors are **measured** from public
+survey data; the map that turns them into a multiplier is **derived-then-frozen**.
+
+**Read `handoffs/multipliers-v5/FALSIFIABILITY.md` before citing any number.**
+The rank ordering and pairwise ratios are measurements (falsifiable against
+source data); the absolute range, global spread ratio and band pass are
+construction artifacts of the normalization choice (±2.8× swing across
+normalizations) with no empirical content. `scenarios/multiplier_sensitivity.py`
+quantifies both — run `eoh multiplier sensitivity`.
+
+### Measured factors and the geometric map
+
+| Parameter | Default | Kind | Source / Derivation |
+|---|---|---|---|
+| `f_training`, `f_demand`, `f_scarcity`, `f_impact` | per-occupation, ∈[0,1] | measured / derived | O*NET 30.3 education+training (T), abilities/skills/work-context burden (D), BLS EP openings+growth (S), O*NET+BLS impact sub-components (I). 751 occupations, 94.2% of US employment. Loaded via `hours_eoh.reference.onet_multipliers`. |
+| `M_FLOOR` | 1.0 | CHOSEN (constitutional) | Constitutional floor multiplier. Resolves only by a charter decision on the floor. |
+| `M_GEOMETRIC_R` | 3.2 | derived-then-FROZEN | Spread ratio, solved once from {floor, band, measured composite} at the reference epoch. Not a knob — re-derivation per vintage restores the circularity the freeze breaks. |
+| `M_COMPOSITE_Z_LO`, `M_COMPOSITE_Z_HI` | 0.153, 0.740 | derived-then-FROZEN | Frozen composite normalization range for `z = clip((c−z_lo)/(z_hi−z_lo),0,1)`. |
+| `M_IMPACT_COMPOSITE_LO/HI` | 0.332, 0.752 | derived-then-FROZEN | Frozen affine outer-normalization bounds for the impact composite (makes stated sub-domain weights operative; rank-preserving). |
+
+The map: `composite = Σ wᵢ·fᵢ`; `m = M_FLOOR · M_GEOMETRIC_R ** z`. It has **no
+free parameters** — floor constitutional, R and z-range derived-then-frozen,
+curvature deleted (`core/multipliers.py:reference_multiplier`).
+
+### CHOSEN constants — each with its epistemic pointer
+
+Every remaining CHOSEN carries the evidence that would resolve it. Full list with
+sweep ranges in the CSV; the load-bearing ones:
+
+| Parameter | Default | Epistemic pointer (`resolves_by`) |
+|---|---|---|
+| `M_FACTOR_WEIGHTS` | (0.30, 0.25, 0.20, 0.25) | External anchor (an occupation-pair ratio asserted on other grounds) or a stated distributional target the measured data could fail. Sensitivity harness bounds the exposure: rank ordering robust (Spearman ≳0.97 under ±0.10), band is convention. |
+| `M_EPOCH_WEIGHT_ANCHORS` | 4 ε-anchor vectors | Governance judgement on which leverage matters as ε rises; the ε→1 impact-only limit is theory (copy/merge degeneracy, `KNOWN_ISSUES §5`), not measurement. |
+| `M_IMPACT_SUBDOMAIN_WEIGHTS` | (0.30, 0.25, 0.25, 0.20) | An outcome study linking dependency/substitutability/harm/temporal to measured entropy-reduction would calibrate the split. |
+| `scarcity_leg_weights` | O 0.667 / G 0.333 | Add the vacancy leg V (JOLTS by SOC, economy-wide) and fit O/G/V from realized time-to-fill. |
+| `substitution_tier_weights` | 1.0 / 0.6 / 0.3 | Observed cross-occupation transition rates (BLS mobility / longitudinal survey). |
+| `temporal_activity_lists` | 5 persisting / 3 transient | An output-half-life measure (how long the work's product persists) would replace hand-picked activity lists. |
+| `epsilon` | 0.40 | Measure ε = machine_EOH / total_EOH from capital stock (`civilization.py`) — then ε is *observed*, not chosen. |
+| `band` scope | [1.8, 2.1] | Resolve whether it binds the minted floor or realized compensation; the band is near-non-discriminating (a convention). A distributional target the data could actually fail would replace it. |
+
+### Not yet available (tag: planned)
+
+`vacancy_leg_V` (JOLTS by SOC), `abandonment_rate` (longitudinal exit-without-
+onward-destination — an audit trigger, not a multiplier input), `time_to_harm_speed`
+(no dataset exists), `ai_exposure_machine_leg` (per-occupation Iceberg Index).
+These are the model's honest data debts.

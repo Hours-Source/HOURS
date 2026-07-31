@@ -124,6 +124,28 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     r.add_argument("--format", choices=["table", "csv", "json"], default="table", dest="fmt")
     r.set_defaults(func=_arc)
 
+    # ---------------------------------------------------------------- sensitivity
+    s = sub2.add_parser(
+        "sensitivity",
+        help="Robustness of the measured reference multiplier to its CHOSEN constants",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=(
+            "Sweep the CHOSEN constants of the measured (O*NET/BLS) reference\n"
+            "multiplier and report robustness. PRIMARY metrics are falsifiable\n"
+            "(Spearman rank correlation vs the frozen ordering; pairwise-ratio\n"
+            "drift). SECONDARY metrics (band verdict, spread) are construction\n"
+            "artifacts of the normalization choice — reported, but not evidence.\n"
+            "See handoffs/multipliers-v5/FALSIFIABILITY.md."
+        ),
+    )
+    s.add_argument("--delta", type=float, default=0.10, metavar="D",
+                   help="Weight perturbation magnitude (default: 0.10)")
+    s.add_argument("--draws", type=int, default=300, metavar="N",
+                   help="Dirichlet Monte-Carlo draws (default: 300)")
+    s.add_argument("--seed", type=int, default=0, help="RNG seed (default: 0)")
+    s.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    s.set_defaults(func=_sensitivity)
+
 
 # ---------------------------------------------------------------------------
 # Handlers
@@ -325,3 +347,56 @@ def _arc(args: argparse.Namespace) -> None:
         contrib_rows,
     ))
     print(dim(f"  green = in band [{M_BAND_LOW},{M_BAND_HIGH}]"))
+
+
+def _sensitivity(args: argparse.Namespace) -> None:
+    from hours_eoh.scenarios.multiplier_sensitivity import sensitivity_report
+
+    rep = sensitivity_report(delta=args.delta, n_draws=args.draws, seed=args.seed)
+
+    if args.fmt == "json":
+        print(json.dumps(rep, indent=2))
+        return
+
+    print(bold("Reference multiplier — sensitivity to CHOSEN constants"))
+    print(dim(
+        "  measured O*NET/BLS registry (751 occs). PRIMARY = falsifiable "
+        "(rank/pairwise);\n  SECONDARY = convention (band/spread) per FALSIFIABILITY.md."
+    ))
+    base_mean = bold(f"{rep['baseline_weighted_mean']:.4f}")
+    print(f"  baseline: weighted mean = {base_mean}"
+          f"   spread = {rep['baseline_spread_ratio']:.3f}:1")
+
+    def _sweep_table(title: str, results: list) -> None:
+        print()
+        print(bold(title))
+        rows = []
+        for p in results:
+            band = green(p["band_verdict"]) if p["band_verdict"] == "IN" else red(p["band_verdict"])
+            sp = p["spearman_vs_baseline"]
+            sp_s = (green if sp > 0.95 else yellow if sp > 0.85 else red)(f"{sp:.4f}")
+            rows.append([
+                p["label"], sp_s, f"{p['min_pairwise_ratio_drift']:.3f}",
+                f"{p['weighted_mean']:.3f}", band, f"{p['clip_fraction']:.3f}",
+            ])
+        print(fmt_table(
+            ["perturbation", "ρ(rank)", "ratio_drift", "wmean", "band", "clip"],
+            rows,
+        ))
+
+    _sweep_table("Factor-weight sweep (±delta)", rep["factor_weight_sweep"])
+    _sweep_table("Impact sub-domain sweep (±delta)", rep["impact_subdomain_sweep"])
+    _sweep_table("ε arc (epoch_factor_weights)", rep["epsilon_arc"])
+
+    mc = rep["monte_carlo"]
+    print()
+    print(bold(f"Dirichlet Monte-Carlo ({mc['n_draws']} draws, conc={mc['concentration']:g})"))
+    print(f"  Spearman  p5={mc['spearman_p5']:.3f}  median={mc['spearman_median']:.3f}"
+          f"  min={mc['spearman_min']:.3f}   {dim('(rank ordering — falsifiable)')}")
+    print(f"  band pass fraction = {mc['band_pass_fraction']:.2f}   "
+          f"ratio drift p95 = {mc['ratio_drift_p95']:.3f}")
+
+    print()
+    print(dim("  Not swept from the registry alone:"))
+    for item in rep["not_swept"]:
+        print(dim(f"    · {item}"))
