@@ -271,3 +271,94 @@ sweep ranges in the CSV; the load-bearing ones:
 onward-destination — an audit trigger, not a multiplier input), `time_to_harm_speed`
 (no dataset exists), `ai_exposure_machine_leg` (per-occupation Iceberg Index).
 These are the model's honest data debts.
+
+---
+
+## Thermal Sink EOH — planetary radiative budget (research/thermal.py, P0)
+
+The uncounted vector: degraded energy exits only by radiation to space, and that
+capacity is fixed and non-restorable by labour
+(`handoffs/Thermal_Sink_EOH_Implementation_Handoff_1_0.md`). P0 computes the
+provable automation-ceiling bound (E29 / finding F2) — advisory-only, generates
+no obligation. Two provenance tiers, kept explicit:
+
+| Parameter | Default | Units | Kind | `resolves_by` (epistemic pointer) |
+|---|---|---|---|---|
+| `A_EARTH_M2` | 5.101e14 | m² | physics | Earth surface area. |
+| `SIGMA_SB` | 5.6704e-8 | W·m⁻²·K⁻⁴ | physics | Stefan–Boltzmann constant. |
+| `SECONDS_PER_YEAR` | 3.1558e7 | s | physics | Δt_s for a one-year period. |
+| `THERMAL_LAMBDA_FEEDBACK` | 1.2 | W·m⁻²·K⁻¹ | CHOSEN | Climate assessment (IPCC-class); Planck-only ≈ 3.2. Corridor **sign** is highly sensitive to this — §10.2 robustness. |
+| `THERMAL_F_GHG` | 3.0 | W·m⁻² | CHOSEN | Anthropogenic GHG forcing assessment (AR6 order). Lowering it raises the budget (F3: decarbonization ↔ automation headroom). |
+| `THERMAL_DT_LO` | 2.0 | K | CHOSEN | Habitability-threshold assessment (low end). §8 requires a range spanning ≥2×; the sign sensitivity across it is the P0 finding, not this point value. |
+| `THERMAL_COMMONS_RESERVE` | 0.20 | fraction | CHOSEN | Governance; ratcheted down only. |
+| `THERMAL_ANTHROPOGENIC_DISSIPATION_W` | 2.0e13 | W | measured | Present Φ_other reference (~0.04 W·m⁻²); energy-balance inventory. |
+| `THERMAL_IOTA_FLOOR_*` (4 domains) | 3.6e5 / 3.6e5 / 3.6e4 / 1e-6 | J/EOH | CHOSEN | Thermodynamic floors ι_floor,d: Landauer (knowledge), Carnot/enthalpy (infrastructure), caloric+COP (personal). The gating uncertainty — the J/EOH mapping is unmeasured; measured ι via handoff §13.1 ladder D→C→B retires these. |
+
+**Honest P0 result.** At non-degenerate constants the floor-based bound comes back
+ε_max ≫ 1 → **INCONCLUSIVE**: the thermodynamic floor is too low to bind
+automation. A floor bound can only overstate ε_max, so a bound < 1 would be
+conclusive (F2) — but it does not bind, which correctly points to the measured-ι
+ladder (path C) as the binding question, not a constant change. The only
+"binding" corner is UNBUDGETED (ψ*=0), driven by GHG forcing exhausting the
+allowance — an F3 statement about decarbonization, not automation intensity.
+
+### Path C — measured top-down thermal residual (research/thermal_path_c.py)
+
+The measurement that resolves the P0 "INCONCLUSIVE" bound into a concrete answer,
+via the operative formula ε_max = ε_current · allocated_budget / Φ_auto (ι and
+EOH_total cancel — no EOH register needed). Measured energy mix, κ table, forcing
+and national records ship in [`reference/data/thermal_path_c.json`](../hours_eoh/reference/data/thermal_path_c.json)
+with per-input provenance tiers (A retrieved / B constant / C training-data-unverified
+/ D framework placeholder) — **the weakest data drives the strongest finding, so
+read the tiers before citing.** Structural constants added to `data.py`:
+
+| Parameter | Default | Units | Kind | `resolves_by` |
+|---|---|---|---|---|
+| `A_LAND_CLAIMED_M2` | 1.35e14 | m² | physics | land ex-Antarctica; the ψ* denominator. |
+| `THERMAL_F_NET_ERF` | 3.366 | W·m⁻² | measured (Tier A) | IGCC 2025a total ERF at 2025 — the **budget** basis per C4 (natural forcing consumes habitability regardless of cause). Verified 2026-08-03. |
+| `THERMAL_F_NET_ERF_P05` / `_P95` | 2.602 / 4.102 | W·m⁻² | measured (Tier A) | IGCC 2025a p05/p95. The band is what makes the determinacy map computable. |
+| `THERMAL_F_ANTHRO_ERF` | 3.104 | W·m⁻² | measured (Tier A) | IGCC 2025a anthropogenic ERF — the **removable** forcing, hence the defensible F3 gain basis (sign-off item). |
+| `THERMAL_F_WMGHG_ERF` | 3.585 | W·m⁻² | measured (Tier A) | IGCC 2025a well-mixed GHG ERF (forward-looking basis as aerosol cooling declines). |
+| `THERMAL_TXX_PER_GMST` | 1.48 | K·K⁻¹ | measured (Tier A) | C6 land-extreme amplification; OLS of the ERA5/Berkeley/HadEX3 mean TXx series on GMST, 1950–2025, n=76. Per-dataset spread 1.33–1.57. Guardrail I — refresh annually. |
+| `THERMAL_LAMBDA_FEEDBACK` | 1.2 | W·m⁻²·K⁻¹ | measured (**Tier C**) | **The most leveraged unverified input.** Every threshold is F/λ; the budget spans 6.5× across λ ∈ [1.2, 1.63]. The shipped IGCC data's own energy budget implies 1.47–1.54 on a historical basis (which runs high vs equilibrium λ — pattern effect). Must be paired with the matching equilibrium/transient frame. Promote to Guardrail I. |
+| `THERMAL_U_FLOOR` | 0.50 | — | CHOSEN | derive from observed variance in Φ and ψ*, not chosen. |
+| `THERMAL_EPS_CURRENT` | 0.40 | — | CHOSEN | framework current-equilibrium ε (arc midpoint). **ε_max is directly proportional to this**, which sits badly with the invariant that ε is an observable, not an input — report the measured ratio `B/Φ_auto` instead, and derive ε from `core/civilization.py`. |
+
+**P0 reorder (F3-first).** Per the Path C run, the P0 headline is now F3
+(`research/thermal.py:decarbonization_headroom`, computable from constants), and
+the thermodynamic-floor ceiling bound (E29/F1/F2) is demoted to CONDITIONAL —
+non-binding at current dissipation.
+
+**Findings (reproduced exactly).** F1: the global thermal ceiling does NOT bind at
+current dissipation (ε_max = 2.6–19×) — conditional, binds at ~10–50× present Φ.
+F3 (load-bearing, now the P0 headline): decarbonization is worth ~1000–1100 TW ≈ 60× current dissipation —
+carbon has consumed the budget. F11 (strongest measured, now a corridor bound):
+dense collectives are in Contact NOW (Singapore U≈22, S. Korea 1.4, Netherlands 1.0)
+while the World aggregate sits at U≈0.05 — so the thermal corridor bound is a
+**collective-level** instrument (`measured_thermal_ceiling`), global is uninformative.
+ΔT_lo (Tier D) dominates all of it; Path C is 5–10× uncertainty — regime SIGN only,
+**not** obligation (that needs Path B).
+
+### Capital thermal profiles — §12.2 dual-output (research/thermal_capital.py)
+
+The §12.2 adaptation: the same capital inventory that eliminates EOH
+(`CAPITAL_MACHINE_PROFILES`) also dissipates heat. `CAPITAL_THERMAL_PROFILES`
+(parallel dict, all 11 capital types) carries the two new physical fields;
+`design_life` (already in the EOH profiles) is the third §12.2 field, and grid κ
+is a collective input (§8.1), not per-type.
+
+| Parameter | Default | Units | Kind | `resolves_by` |
+|---|---|---|---|---|
+| `power_intensity_w_per_teh` (per type) | 0.3–8.0 | W/TEH | CHOSEN | measured energy-use intensity by capital class (IEA end-use / sectoral balances). |
+| `embodied_energy_j_per_teh` (per type) | 2e7–1.5e8 | J/TEH | CHOSEN | LCA inventories (ecoinvent / EPDs); amortized over `design_life`. |
+| `THERMAL_GRID_KAPPA_DEFAULT` | 0.93 | — | CHOSEN/measured | physical grid mix serving the capital (§8.1), not procurement; default = world fossil+nuclear share. |
+
+`machine_dissipation_from_capital` derives Φ_auto = Σ (teh·condition·power_intensity
++ teh·embodied/(design_life·Δt_s))·κ̄ — the thermal twin of
+`machine_eoh_from_capital`, reusing its resolved stock (DRY). **Honest status:** the
+intensities are CHOSEN placeholders — relative ordering defensible (compute/industry
+heavy), absolute scale anchored only to order-of-consistency with Path C's measured
+~2200 W·person⁻¹ (a well-invested standard-tier collective reads ~3200 W·person⁻¹,
+within ~1.5×; NOT fitted). Path-B-shaped structure on Path-D magnitudes: the
+deliverable is the closed loop (one inventory → {ε, Φ, U, thermal ceiling}), not the
+numbers. Advisory only.

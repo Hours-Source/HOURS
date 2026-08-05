@@ -204,8 +204,13 @@ def compute_epsilon(
         Derived ε ∈ [0.0, 1.0].
 
     Reference: Mission Statement §"ε ... the measured degree to which physical
-    entropy obligations are fulfilled by machines rather than human bodies";
-    §"the civilization's measured progress score toward post-scarcity."
+    entropy obligations are fulfilled by machines rather than human bodies."
+
+    Note (2026-08-01, author sign-off): ε = 1 is ASPIRATIONAL — the target to
+    reach — not the success criterion. Success is a stable feasible corridor
+    [ε_suff, ε_max] with a met sufficiency floor; a collective stable at ε=0.6
+    with a positive corridor is a success, not a failed run at ε=1. See
+    research/corridor.py and notes/thermal (§1.1 / §12.1).
     """
     if total_eoh_collective_potential <= 0.0:
         return 0.0

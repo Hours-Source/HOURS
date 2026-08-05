@@ -42,6 +42,7 @@ Thumbs.db
 # Dev Notes
 notes/
 handoffs/
+rawdata/
 
 # MkDocs build output (deployed via GitHub Actions, not committed)
 site/

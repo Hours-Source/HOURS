@@ -1,0 +1,164 @@
+{
+  "dataset": "Path C first-pass inputs",
+  "run_date": "2026-08-01",
+  "provenance_tiers": {
+    "A": "Retrieved this session, URL recorded",
+    "B": "Standard physical or geographic constant, independently verifiable",
+    "C": "From model training data, NOT verified this session - treat as unconfirmed",
+    "D": "Assumption or placeholder set by the framework, not measured"
+  },
+
+  "physical_constants": {
+    "seconds_per_year":        {"value": 3.156e7,  "unit": "s",        "tier": "B"},
+    "earth_surface_area":      {"value": 5.10e14,  "unit": "m2",       "tier": "B"},
+    "land_area_total":         {"value": 1.49e14,  "unit": "m2",       "tier": "B"},
+    "land_area_claimed":       {"value": 1.35e14,  "unit": "m2",       "tier": "B",
+                                "note": "total land minus Antarctica (~1.4e13 m2)"},
+    "stefan_boltzmann":        {"value": 5.670e-8, "unit": "W m-2 K-4","tier": "B"},
+    "absorbed_solar_flux":     {"value": 240,      "unit": "W m-2",    "tier": "B"}
+  },
+
+  "climate_parameters": {
+    "_c5_correction": "2026-08-03. Forcing moved from AR6 2019-baseline Tier C values to measured IGCC 2025a, verified against effective-radiative-forcing_global_igcc-assessment_synthesis_annual-mean-timeseries_IGCC-2025a.csv at time=2025 (percentile rows p05/p50/p95). The recalled 2.72 was the right number for the wrong year. All derived_outputs below are post-correction.",
+    "_source": "Indicators of Global Climate Change 2025 (IGCC-2025a), Zenodo DOI 10.5281/zenodo.7883757; forcing timeseries by C. Smith and P. Forster.",
+    "_basis_rule": "C4 — the BUDGET uses total ERF (natural forcing consumes the habitability allowance regardless of cause). The decarbonization GAIN is a different question and should arguably use anthropogenic ERF alone, since that is the only removable part. Open item, see F3_basis below.",
+
+    "lambda_feedback":         {"value": 1.2,  "unit": "W m-2 K-1", "tier": "C",
+                                "note": "climate feedback parameter incl. feedbacks; Planck-only ~3.2. NOT verified this session. THE most leveraged parameter after delta_T_lo: every threshold is F/lambda, linear in 1/lambda. An AR6-consistent 1.31 moves the budget-opening threshold from 2.805 K to 2.570 K"},
+    "F_total_erf":             {"value": 3.366, "unit": "W m-2", "tier": "A",
+                                "p05": 2.602, "p95": 4.102,
+                                "note": "IGCC 2025a total ERF at 2025, incl. natural. The BUDGET basis per C4. The p05/p95 band is what makes the determinacy map (handoff 2.0 section 4.2) computable at all"},
+    "F_anthropogenic_erf":     {"value": 3.104, "unit": "W m-2", "tier": "A",
+                                "note": "IGCC 2025a anthro at 2025, incl. aerosol cooling (-0.962). The REMOVABLE forcing — the defensible F3 basis"},
+    "F_wmghg_erf":             {"value": 3.585, "unit": "W m-2", "tier": "A",
+                                "note": "IGCC 2025a well-mixed GHG alone at 2025. Forward-looking basis as aerosol cooling declines; over-estimates the decarbonization gain because it ignores the aerosol cooling lost alongside"},
+    "F_natural_erf":           {"value": 0.262, "unit": "W m-2", "tier": "A",
+                                "note": "solar + volcanic at 2025. Consumes budget; NOT removable by labor. The wedge between the budget basis and the F3 basis"},
+    "txx_per_gmst":            {"value": 1.48, "unit": "K/K", "tier": "A",
+                                "note": "C6 land extreme amplification. Measured 2026-08-03: OLS of the ERA5/Berkeley/HadEX3 mean TXx series on GMST, 1950-2025, n=76, slope 1.483. Per-dataset spread 1.33 (Berkeley) to 1.57 (ERA5) is the honest uncertainty. Guardrail I quantity — refresh annually"},
+    "delta_T_lo_cases":        {"value": [1.5, 2.0, 2.5, 3.0, 3.5, 4.0], "unit": "K", "tier": "D",
+                                "note": "swept, not assessed. Result is dominated by this input"}
+  },
+
+  "framework_parameters": {
+    "epsilon_current":  {"value": 0.40, "tier": "D", "note": "HOURS current-equilibrium estimate"},
+    "commons_reserve_r":{"value": 0.20, "tier": "D", "note": "recommended default, not derived"},
+    "U_floor":          {"value": 0.50, "tier": "D", "note": "should be derived from observed variance"}
+  },
+
+  "world_energy_2025": {
+    "_tier": "A",
+    "_source_url": "https://blog.friendsofscience.org/2026/07/02/the-2026-statistical-review-of-world-energy/",
+    "_source_secondary_url": "https://clintel.org/global-primary-energy-2025/",
+    "_primary_source": "Energy Institute, Statistical Review of World Energy 2026 (2025 data)",
+    "_caveat": "Primary source NOT fetched directly. Both URLs are third-party commentary summarising the EI review. Figures should be re-derived from the EI workbook before publication.",
+    "_methodology_note": "EI counts nuclear at input heat and non-combustible renewables at gross electrical output. This happens to be the correct basis for kappa weighting. Note also that EI switched from Primary Energy to Total Energy Supply methodology in 2025; substitution-method figures for 2024 run ~632 EJ vs 600 EJ TES, a ~5% methodological spread.",
+    "total_supply_EJ": 600.5,
+    "by_source_EJ": {
+      "oil": 201.0,
+      "coal": 166.0,
+      "gas": 151.0,
+      "nuclear": 31.0,
+      "hydro": 16.0,
+      "wind": 9.8,
+      "solar": 10.1,
+      "other_renewables": 15.6
+    },
+    "electricity_generation_TWh": {
+      "_total": 32202,
+      "wind": 2714,
+      "solar": 2811,
+      "hydro": 4479,
+      "other_renewables": 745
+    },
+    "co2e_emissions_Mt": 35806
+  },
+
+  "kappa_coefficients": {
+    "_tier": "D",
+    "_note": "Net thermal addition coefficients. Framework-defined, not measured. PV value is siting-dependent and must be assessed per deployment.",
+    "oil": 1.00,
+    "coal": 1.00,
+    "gas": 1.00,
+    "nuclear": 1.00,
+    "hydro": 0.00,
+    "wind": 0.05,
+    "solar": 0.15,
+    "other_renewables": 0.50,
+    "_other_renewables_note": "placeholder splitting biomass (k~0) from geothermal (k=1) with no published breakdown; moves total Phi by <1%"
+  },
+
+  "national_data": {
+    "_tier": "C",
+    "_WARNING": "Energy figures are from model training data and were NOT verified this session. Verification was attempted; Statista returned paywalled/masked values. Netherlands and South Korea sit at U = 1.03 and 1.38 respectively, where a 30% error flips the regime classification. Do not cite Finding 3 for these two without re-sourcing. Singapore at U = 22.4 is robust to large error. Land areas are tier B.",
+    "_fossil_nuclear_share_tier": "D — estimated, not assessed per grid",
+    "records": [
+      {"name": "World",          "energy_EJ": 600.0, "land_m2": 1.35e14, "fossil_nuclear_share": 0.931, "share_tier": "A"},
+      {"name": "Singapore",      "energy_EJ":   1.4, "land_m2": 7.3e8,   "fossil_nuclear_share": 0.98},
+      {"name": "Netherlands",    "energy_EJ":   3.1, "land_m2": 3.35e10, "fossil_nuclear_share": 0.93},
+      {"name": "South Korea",    "energy_EJ":  12.5, "land_m2": 1.00e11, "fossil_nuclear_share": 0.93},
+      {"name": "Japan",          "energy_EJ":  17.0, "land_m2": 3.78e11, "fossil_nuclear_share": 0.90},
+      {"name": "Germany",        "energy_EJ":  11.5, "land_m2": 3.57e11, "fossil_nuclear_share": 0.80},
+      {"name": "United Kingdom", "energy_EJ":   7.0, "land_m2": 2.43e11, "fossil_nuclear_share": 0.83},
+      {"name": "China",          "energy_EJ": 162.0, "land_m2": 9.60e12, "fossil_nuclear_share": 0.88,
+       "energy_tier": "A", "energy_source_url": "https://www.statista.com/statistics/263455/primary-energy-consumption-of-selected-countries/"},
+      {"name": "United States",  "energy_EJ":  95.0, "land_m2": 9.15e12, "fossil_nuclear_share": 0.90},
+      {"name": "India",          "energy_EJ":  42.0, "land_m2": 3.29e12, "fossil_nuclear_share": 0.92},
+      {"name": "Australia",      "energy_EJ":   5.8, "land_m2": 7.69e12, "fossil_nuclear_share": 0.93},
+      {"name": "Canada",         "energy_EJ":  14.0, "land_m2": 9.09e12, "fossil_nuclear_share": 0.75}
+    ]
+  },
+
+  "world_energy_owid_2024": {
+    "_tier": "A",
+    "_source": "Our World in Data energy dataset (owid-energy-data.csv), country=World, year=2024",
+    "_note": "Independent cross-check of the EI-2025 mix above, computed 2026-08-03 directly from the shipped OWID CSV rather than from third-party summaries. This is the basis for the handoff 2.0 section 4.1 headline figures. It is NOT the module default — world_dissipation() still reads world_energy_2025 — so the two differ by ~1.4% in Phi and both are recorded rather than reconciled.",
+    "_method": "net-additive = fossil + nuclear-at-input-heat + kappa-weighted non-fossil. Nuclear corrected per section 6.1: nuclear_electricity / 0.33, NOT the substitution-method nuclear_consumption. Same kappa table as above.",
+    "fossil_EJ": 512.7,
+    "nuclear_input_heat_EJ": 30.3,
+    "kappa_weighted_other_EJ": 8.34,
+    "net_additive_EJ_yr": 551.4,
+    "phi_TW": 17.47,
+    "psi_world_claimed_land_W_m2": 0.1294,
+    "psi_world_planet_W_m2": 0.0342,
+    "net_additive_share_of_supply": 0.867,
+    "_share_note": "0.867 on the OWID substitution basis, whose denominator grosses non-fossil up ~40%. The 0.931 figure quoted elsewhere is the EI/TES basis (558.8/600.5) and is NOT comparable — see section 6.1 on the ~6% methodological gap. Do not mix them in one table."
+  },
+
+  "derived_outputs": {
+    "_basis": "Computed on world_energy_2025 (the module default, Phi = 17.71 TW) at the post-C5 forcing. Where the handoff quotes a slightly different figure it is on the OWID-2024 basis (Phi = 17.47 TW); the spread is ~1.4% and does not move any regime classification.",
+    "_superseded": "Pre-C5 values, retained so the delta is auditable: budget_opens 2.27 K, psi_star_at_3K 2.660, psi_star_at_2p5K 0.846, decarbonisation_value 1110 TW, and the withdrawn 'binds at 10-50x present dissipation'.",
+
+    "phi_net_additive_EJ_yr": 558.8,
+    "phi_TW": 17.71,
+    "psi_world_claimed_land_W_m2": 0.1312,
+    "psi_world_planet_W_m2": 0.0347,
+
+    "budget_opens_at_delta_T_total_ERF_K": 2.805,
+    "budget_opens_at_delta_T_p05_K": 2.168,
+    "budget_opens_at_delta_T_p95_K": 3.418,
+    "budget_opens_at_delta_T_anthro_K": 2.587,
+    "budget_opens_at_delta_T_ghg_only_K": 2.988,
+
+    "determinacy_unbudgeted_below_K_gmst": 2.168,
+    "determinacy_budgeted_above_K_gmst": 3.418,
+    "determinacy_unbudgeted_below_K_txx": 3.209,
+    "determinacy_budgeted_above_K_txx": 5.059,
+    "_determinacy_note": "The upper determinate zone needs ~5.1 K of LAND EXTREME warming, beyond any defensible habitability threshold. The determinate answer available is the lower one: assess below 3.2 K TXx and the budget is zero, robustly across the whole forcing band.",
+
+    "psi_star_at_3K_W_m2": 0.707,
+    "psi_star_at_3p5K_W_m2": 2.521,
+    "psi_star_at_2p5K_W_m2": 0.0,
+
+    "decarbonisation_value_TW_total_basis": 1374,
+    "decarbonisation_value_TW_anthro_basis": 1267,
+    "decarbonisation_value_TW_wmghg_basis": 1463,
+    "decarbonisation_over_current_dissipation_total": 77.6,
+    "decarbonisation_over_current_dissipation_anthro": 71.5,
+    "_decarbonisation_note": "Gain = (1-r)*F*A_earth, independent of delta_T_lo and LINEAR in the forcing assumed removable — so the basis is the whole answer. Default remains total (net_erf) for budget consistency; anthro is the defensible basis and switching it is a sign-off item.",
+
+    "epsilon_max_at_3K": 2.16,
+    "_epsilon_max_note": "2.19 on the OWID-2024 Phi. Binding requires Phi >= eps_current * budget, so the binding MULTIPLE equals epsilon_max itself: the global ceiling binds at 2.2x present dissipation at 3.0 K, not the withdrawn 10-50x. Also directly proportional to epsilon_current (0.40, tier D): at 0.20 it is 1.08 and binds now.",
+    "phi_at_epsilon_1_TW": 44.3
+  }
+}

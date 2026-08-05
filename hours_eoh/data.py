@@ -763,3 +763,134 @@ MEMBERSHIP_MIN_HOURS_CRIT_FRACTION: float = 1.00  # ≥ full personal EOH load �
                                                   # by definition — obligation equals the whole entropy load)
 MEMBERSHIP_DIVIDEND_POLICY_WARN: float = 0.25   # distributing < 25% of the pro-rata dividend → WARN
                                                 # (retention rebuilds the honeypot inside the collective)
+
+# ---------------------------------------------------------------------------
+# Thermal Sink EOH — planetary radiative capacity (research/thermal.py, P0)
+#
+# The uncounted vector: all degraded energy must exit through thermal emission
+# to space, and that capacity is fixed and non-restorable by labor. See
+# handoffs/Thermal_Sink_EOH_Implementation_Handoff_1_0.md. P0 / finding F2 is the
+# provable ceiling bound (E29): the highest automation ε the thermal budget
+# permits, computable from constants + existing inventory with NO new measurement.
+#
+# Two tiers of provenance, kept explicit:
+#   - the budget chain (A_EARTH, σ_SB, seconds/year) is physics/measured;
+#   - the assessed climate inputs (λ, F_GHG, ΔT_lo) and the thermodynamic floors
+#     ι_floor are CHOSEN placeholders — the gating uncertainty. A floor-based
+#     bound can only OVERSTATE ε_max (real ι ≥ ι_floor), so a floor bound < 1 is
+#     conclusive (F2); a floor bound ≥ 1 is inconclusive and needs the measured
+#     ι ladder (handoff §13.1 path C/B), not a constant change here.
+# ---------------------------------------------------------------------------
+A_EARTH_M2: float = 5.101e14        # Earth surface area, m² (physics)
+SIGMA_SB: float = 5.670374419e-8    # Stefan–Boltzmann constant, W·m⁻²·K⁻⁴ (physics)
+SECONDS_PER_YEAR: float = 3.155760e7  # Δt_s for one year (physics)
+
+# Assessed climate inputs — CHOSEN placeholders (Guardrail I: measured, published
+# with uncertainty, never negotiated). Values are for scaffolding only.
+THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ climate feedback param; Planck-only ≈ 3.2.
+                                       # Epistemic pointer: climate assessment (IPCC-class).
+THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
+                                       # Epistemic pointer: greenhouse forcing assessment.
+THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
+THERMAL_DT_LO: float = 2.0             # K assessed habitability threshold (low end). §8 requires
+                                       # a range spanning ≥ 2×; sensitivity is the P0 finding, not
+                                       # this point value. Epistemic pointer: habitability assessment.
+THERMAL_COMMONS_RESERVE: float = 0.20  # r — fraction of budget held in reserve; ratcheted down only.
+THERMAL_ANTHROPOGENIC_DISSIPATION_W: float = 2.0e13  # present Φ_other reference, W (~0.04 W·m⁻²).
+                                                     # Epistemic pointer: energy-balance inventory.
+
+# Thermodynamic floors ι_floor,d (J per EOH fulfilled) — CHOSEN placeholders.
+# The per-domain minimum joules to fulfill one EOH by machine (E27). Ordering
+# reflects the handoff: personal/infrastructure carry real caloric/enthalpy
+# floors; knowledge's Landauer floor is astronomically lower (F6). ONE EOH is one
+# hour of entropy-obligation-equivalent; the J/EOH mapping is the open quantity.
+# Epistemic pointer: Landauer (knowledge), Carnot/enthalpy minima (infrastructure),
+# caloric + heat-rejection COP (personal) — handoff §7.3 iota_floor().
+THERMAL_IOTA_FLOOR_PERSONAL: float = 3.6e5        # J/EOH ≈ 100 W over one hour (metabolic-order floor)
+THERMAL_IOTA_FLOOR_INFRASTRUCTURE: float = 3.6e5  # J/EOH — enthalpy/Carnot minimum, placeholder = personal order
+THERMAL_IOTA_FLOOR_ECOLOGICAL: float = 3.6e4      # J/EOH — stewardship, order below personal, placeholder
+THERMAL_IOTA_FLOOR_KNOWLEDGE: float = 1.0e-6      # J/EOH — Landauer-order; astronomically low (F6)
+
+# ---------------------------------------------------------------------------
+# Thermal Sink — Path C measured inputs (research/thermal_path_c.py)
+#
+# The measured top-down thermal residual (Eq. C1). Where P0 used thermodynamic
+# floors, Path C uses published energy statistics + measured forcing, and the
+# operative formula ε_max = ε_current · allocated_budget / Φ_auto needs NO EOH
+# register (ι and EOH_total cancel). Measured energy mix, κ table, national
+# records and their provenance tiers live in the shipped dataset
+# reference/data/thermal_path_c.json — not here (that is data, with provenance).
+# These are the structural constants the measured module needs beyond the P0 set.
+# ---------------------------------------------------------------------------
+A_LAND_CLAIMED_M2: float = 1.35e14     # land area ex-Antarctica, m² (geographic; the
+                                       # denominator for land-allocated ψ*). Physics/geographic.
+# Forcing — correction C5 (handoff 2.0 §2, applied 2026-08-03). The prior values
+# were AR6 2019-baseline Tier C; these are measured IGCC 2025a, verified this
+# session against the shipped synthesis timeseries (`total`/`anthro`/`wmghg`
+# columns, time = 2025). Tier A. The recalled 2.72 was right for the wrong year.
+#
+# C4 governs WHICH column: the BUDGET uses `total`, not `anthro` — natural forcing
+# consumes the habitability allowance regardless of cause. `anthro` is carried
+# separately because the decarbonization GAIN (F3) is a different question: only
+# the anthropogenic part is removable by labor. See research/thermal.py F3.
+THERMAL_F_NET_ERF: float = 3.366       # W·m⁻² TOTAL ERF, IGCC 2025a p50, time=2025. Tier A.
+THERMAL_F_NET_ERF_P05: float = 2.602   # W·m⁻² total ERF p05 — the determinacy band's lower edge.
+THERMAL_F_NET_ERF_P95: float = 4.102   # W·m⁻² total ERF p95 — the determinacy band's upper edge.
+THERMAL_F_ANTHRO_ERF: float = 3.104    # W·m⁻² anthropogenic ERF alone (incl. aerosol cooling) —
+                                       # the REMOVABLE forcing, hence the honest F3 basis. Tier A.
+THERMAL_F_WMGHG_ERF: float = 3.585     # W·m⁻² well-mixed GHG ERF alone (the forward-looking basis as
+                                       # aerosol cooling declines). IGCC 2025a `wmghg`. Tier A.
+THERMAL_TXX_PER_GMST: float = 1.48     # dTXx/dGMST — land extreme amplification (C6). Measured this
+                                       # session: OLS on the ERA5/Berkeley/HadEX3 mean TXx series vs
+                                       # GMST, 1950–2025, n=76, slope 1.483. Per-dataset spread
+                                       # 1.33–1.57 is the honest uncertainty. Tier A; Guardrail I
+                                       # quantity — refresh annually.
+THERMAL_U_FLOOR: float = 0.50          # utilization boundary for Standing-exposure regime. CHOSEN;
+                                       # resolves_by: observed variance in Φ and ψ*, not a chosen value.
+THERMAL_EPS_CURRENT: float = 0.40      # framework current-equilibrium ε for Eq. C1. CHOSEN (= arc midpoint).
+
+# ---------------------------------------------------------------------------
+# Capital thermal profiles — the §12.2 dual-output overlay (research/thermal_capital.py)
+#
+# The thermal handoff §12.2 makes infrastructure/capital DUAL-OUTPUT: the same
+# capital inventory that eliminates EOH (CAPITAL_MACHINE_PROFILES) also dissipates
+# heat. These are the two new physical fields per capital type — net operational
+# power draw and embodied energy per unit capacity — that turn a capital stock
+# into a thermal load Φ_auto. (The third §12.2 field, reliable service life, is
+# already `design_life` in CAPITAL_MACHINE_PROFILES; the fourth, physical grid
+# mix, is a COLLECTIVE property — κ applies to the grid serving the capital,
+# §8.1 — so it is a derivation input, not a per-type field.)
+#
+# Kept as a SEPARATE parallel dict, not merged into CAPITAL_MACHINE_PROFILES:
+# these are CHOSEN placeholders (research-tier, sign-off-gated ε-vector context),
+# and separating them keeps the established EOH capital model visibly distinct
+# from the experimental thermal overlay.
+#
+#   power_intensity_w_per_teh:  operational net power draw, W per TEH of capital.
+#   embodied_energy_j_per_teh:  embodied (manufacturing) energy, J per TEH; the
+#                               derivation amortizes it over design_life.
+#
+# Epistemic pointers (all CHOSEN — the calibration debts): power intensity ←
+# measured energy-use intensity by capital class (IEA end-use / sectoral energy
+# balances); embodied energy ← LCA inventories (ecoinvent, EPDs). Relative
+# ordering is defensible (compute/industry heavy; software/monitoring light); the
+# absolute scale is anchored only to order-of-consistency with Path C's measured
+# ~2200 W·person⁻¹ net-additive dissipation, NOT fitted.
+# ---------------------------------------------------------------------------
+CAPITAL_THERMAL_PROFILES: dict[str, dict] = {
+    "power_grid":               {"power_intensity_w_per_teh": 2.0, "embodied_energy_j_per_teh": 8.0e7},
+    "water_treatment":          {"power_intensity_w_per_teh": 0.8, "embodied_energy_j_per_teh": 5.0e7},
+    "medical_systems":          {"power_intensity_w_per_teh": 1.5, "embodied_energy_j_per_teh": 6.0e7},
+    "agricultural_automation":  {"power_intensity_w_per_teh": 1.2, "embodied_energy_j_per_teh": 4.0e7},
+    "environmental_monitoring": {"power_intensity_w_per_teh": 0.3, "embodied_energy_j_per_teh": 3.0e7},
+    "industrial_automation":    {"power_intensity_w_per_teh": 4.0, "embodied_energy_j_per_teh": 1.0e8},
+    "transportation":           {"power_intensity_w_per_teh": 3.0, "embodied_energy_j_per_teh": 9.0e7},
+    "computing_ai":             {"power_intensity_w_per_teh": 8.0, "embodied_energy_j_per_teh": 1.2e8},
+    "software":                 {"power_intensity_w_per_teh": 0.5, "embodied_energy_j_per_teh": 2.0e7},
+    "building":                 {"power_intensity_w_per_teh": 0.6, "embodied_energy_j_per_teh": 1.5e8},
+    "generic_infra":            {"power_intensity_w_per_teh": 1.0, "embodied_energy_j_per_teh": 8.0e7},
+}
+
+# Net thermal addition coefficient κ̄ of the grid serving the capital (§8.1). Default
+# = world fossil+nuclear share (Path C, 2025). A fully flux-redirecting grid → 0.
+THERMAL_GRID_KAPPA_DEFAULT: float = 0.93  # CHOSEN/measured; resolves_by: physical grid mix, not procurement.
