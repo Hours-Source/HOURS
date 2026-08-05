@@ -13,6 +13,12 @@ thermal — planetary radiative capacity: overage, determinacy, ceilings.
   eoh thermal ceiling     [--points "2.0,2.5,3.0"] [--lambda F] [--reserve F]
                           [--format table|json]
 
+  eoh thermal drawdown    [--delta-t K] [--hours-per-tonne F] [--years N]
+                          [--format table|json]
+
+  eoh thermal gate        [--delta-t K] [--hours-per-tonne F] [--years N]
+                          [--format table|json]
+
 'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth,
 the power by which civilization exceeds its radiative allowance, decomposed into
 its forcing and waste-heat terms, paired with the forcing reduction that would
@@ -32,8 +38,30 @@ is stated in land extremes rather than GMST (C6, ÷1.48).
 natural forcing floor. Where no pre-drawdown ceiling exists the budget is zero,
 and the ε ceiling is carbon-determined.
 
-ADVISORY. Every number here is a bound the framework reports; none generates
-obligation or mints TEH. ΔT_max is the framework's own judgment and dominates
+'drawdown' shows the conversion chain from the required forcing reduction to the
+labour that would deliver it, with each link's provenance tier. Note the energy
+term cancels out of the EOH — the obligation is gross tonnage × labour-hours per
+tonne — so energy per tonne affects only the programme's own dissipation.
+
+'gate' runs the fiscal solvency gate under the FLOW convention: the drawdown
+obligation annualized over the programme horizon, injected through the
+framework's own deferred-ecological hook so it flows through the whole pipeline
+and partly funds itself. All five pass conditions at every ε, plus the backward
+query — what labour intensity would break the Trust, and how far the shipped
+estimate sits from it. The null-load baseline is re-run every time, so a failure
+can never be misattributed to the thermal load.
+
+ΔT_max (default 2.0 K) and the programme horizon (default 40 yr — one lifetime
+of responsibility) are both CHOSEN. ΔT_max dominates every result and may be
+judged too high later; every downward revision enlarges the obligation. The
+horizon is an ethical choice about who does the work, and the obligation scales
+as 1/horizon. Allocation across collectives defaults to RESPONSIBILITY
+(cumulative emissions), falling back to population — with the fallback declared —
+when emissions history is not supplied.
+
+The thermal obligation is now WIRED into ecological EOH as a fourth term
+(core.eoh_generation.ecological_eoh, `thermal_obligation`, default 0.0). The
+bounds below remain advisory; ΔT_max is the framework's own judgment and dominates
 every result — that is why these are sweeps, not point values. λ is Tier C and
 the budget spans ~6.5× across its plausible range; it is printed with the table
 for that reason.
@@ -44,6 +72,9 @@ import argparse
 import json
 
 from hours_eoh.data import (
+    CDR_LABOR_HOURS_PER_TONNE,
+    THERMAL_DT_LO,
+    THERMAL_PROGRAMME_YEARS,
     THERMAL_LAMBDA_FEEDBACK,
     THERMAL_COMMONS_RESERVE,
     THERMAL_F_NET_ERF,
@@ -210,6 +241,74 @@ def _ceiling(args: argparse.Namespace) -> None:
         "budget at all — heat binds only after the forcing is gone."))
 
 
+# -------------------------------------------------------------------- drawdown
+
+def _drawdown(args: argparse.Namespace) -> None:
+    from hours_eoh.research.thermal_drawdown import drawdown_job, drawdown_power
+    c = drawdown_job(args.delta_t, labor_hours_per_tonne=args.hours_per_tonne)
+    if args.fmt == "json":
+        print(json.dumps({**c, "power": drawdown_power(c, args.years)}, indent=2))
+        return
+    rows = [
+        ["ΔF required", f"{c['forcing_reduction']:.3f} W·m⁻²", "derived from the overage"],
+        ["→ concentration", f"{c['ppm_reduction']:.1f} ppm → {c['concentration_target']:.1f}",
+         c["tiers"]["co2_forcing_coefficient"]],
+        ["→ net mass", f"{c['net_mass_gt']:,.0f} GtCO₂", c["tiers"]["ppm_to_gt"]],
+        ["→ gross mass", f"{c['gross_mass_gt']:,.0f} GtCO₂", c["tiers"]["gross_removal_factor"]],
+        ["→ energy", f"{c['energy_j']:.3g} J", c["tiers"]["energy_per_tonne"]],
+        ["→ EOH", f"{c['eoh_global']:.4g} hours", c["tiers"]["labor_hours_per_tonne"]],
+    ]
+    print(formatters.bold(f"\nDrawdown chain at ΔT_max = {args.delta_t} K\n"))
+    print(formatters.table(["step", "value", "provenance"], rows))
+    pw = drawdown_power(c, args.years)
+    print("\n" + formatters.dim(
+        f"  programme over {args.years:.0f} yr draws {pw['phi_programme_w']/_TW:.2f} TW — "
+        f"{100*pw['ratio_to_overage']:.2f}% of the overage it clears; "
+        f"self-defeating at κ=1: {pw['self_defeating_at_kappa_1']}"))
+    print(formatters.dim(
+        "  the energy term CANCELS out of the EOH: obligation = gross tonnes × labour-hours/tonne."))
+
+
+# ------------------------------------------------------------------------ gate
+
+def _gate(args: argparse.Namespace) -> None:
+    from hours_eoh.research.thermal_solvency import solvency_gate, breaking_labor_intensity
+    g = solvency_gate(delta_t_max=args.delta_t, labor_hours_per_tonne=args.hours_per_tonne,
+                      programme_years=args.years)
+    b = breaking_labor_intensity(delta_t_max=args.delta_t, programme_years=args.years)
+    if args.fmt == "json":
+        print(json.dumps({**g, "backward_query": b}, indent=2))
+        return
+
+    body = [[
+        formatters.fmt_eps(r["epsilon"]),
+        f"{r['eco_baseline_eoh']:,.0f}",
+        f"{r['eco_loaded_eoh']:,.0f}",
+        f"{r['load_ratio']:.2f}×",
+        f"{r['labor_income_loaded']:,.0f}",
+        formatters.fmt_pct(r["eco_coverage"]),
+        formatters.fmt_pct(r["labor_fraction"]),
+        formatters.green("PASS") if r["passes"] else formatters.red("FAIL " + ",".join(r["failures"])),
+    ] for r in g["verdicts"]]
+    print(formatters.bold(
+        f"\nFiscal solvency gate — ΔT_max {args.delta_t} K, {args.hours_per_tonne} h/t, "
+        f"{args.years:.0f} yr, FLOW convention\n"))
+    print(formatters.table(
+        ["ε", "eco base h/yr", "eco loaded", "load", "labour income", "eco cov", "labour", ""], body))
+    verdict = formatters.green("PASS") if g["passes"] else formatters.red("FAIL")
+    print(f"\n  overall: {verdict}    null-load baseline passes: {g['baseline_passes']} "
+          f"(failures attributable: {g['attributable']})")
+    if b["breaking_value"]:
+        print(f"  backward query: the Trust gives way at {b['breaking_value']:.1f} h/t — "
+              f"{b['margin']:.0f}× the shipped {b['shipped_value']} h/t ({b['verdict']})")
+    else:
+        print(f"  backward query: {b['verdict']}")
+    print(formatters.dim(
+        "\n  The obligation is WIRED into ecological EOH as a fourth term (2026-08-05).\n"
+        "  Sizing inputs remain Tier C/D — see `thermal drawdown` for per-link provenance."))
+
+
+
 # ---------------------------------------------------------------------- parser
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -254,3 +353,20 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     cl.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     _common(cl)
     cl.set_defaults(func=_ceiling)
+
+    dd = sub2.add_parser("drawdown", help="The forcing→labour conversion chain")
+    dd.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
+    dd.add_argument("--hours-per-tonne", type=float, default=CDR_LABOR_HOURS_PER_TONNE,
+                    dest="hours_per_tonne", metavar="F")
+    dd.add_argument("--years", type=float, default=THERMAL_PROGRAMME_YEARS, metavar="N",
+                    help=f"Programme horizon (default: {THERMAL_PROGRAMME_YEARS:.0f}, CHOSEN)")
+    dd.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    dd.set_defaults(func=_drawdown)
+
+    gt = sub2.add_parser("gate", help="Fiscal solvency gate + backward query")
+    gt.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
+    gt.add_argument("--hours-per-tonne", type=float, default=CDR_LABOR_HOURS_PER_TONNE,
+                    dest="hours_per_tonne", metavar="F")
+    gt.add_argument("--years", type=float, default=THERMAL_PROGRAMME_YEARS, metavar="N")
+    gt.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    gt.set_defaults(func=_gate)

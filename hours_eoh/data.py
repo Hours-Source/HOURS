@@ -792,9 +792,17 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ climate feedback para
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
 THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
-THERMAL_DT_LO: float = 2.0             # K assessed habitability threshold (low end). §8 requires
-                                       # a range spanning ≥ 2×; sensitivity is the P0 finding, not
-                                       # this point value. Epistemic pointer: habitability assessment.
+THERMAL_DT_LO: float = 2.0             # K assessed habitability threshold. **CHOSEN — the single
+                                       # most leveraged input in the whole thermal layer.** It sets
+                                       # the overage, the drawdown job and the obligation, and it is
+                                       # the framework's own judgment rather than a measurement.
+                                       # 2.0 K is adopted because it keeps results stable and lands
+                                       # inside the indeterminate band, NOT because it is assessed;
+                                       # it may well be judged too HIGH later, and every downward
+                                       # revision enlarges the obligation (1.5 K is ~1.5× the job).
+                                       # Assess in land extremes and convert by ÷THERMAL_TXX_PER_GMST
+                                       # per C6. Epistemic pointer: a habitability assessment naming
+                                       # the variable that actually binds, not a GMST round number.
 THERMAL_COMMONS_RESERVE: float = 0.20  # r — fraction of budget held in reserve; ratcheted down only.
 THERMAL_ANTHROPOGENIC_DISSIPATION_W: float = 2.0e13  # present Φ_other reference, W (~0.04 W·m⁻²).
                                                      # Epistemic pointer: energy-balance inventory.
@@ -840,6 +848,48 @@ THERMAL_F_ANTHRO_ERF: float = 3.104    # W·m⁻² anthropogenic ERF alone (incl
                                        # the REMOVABLE forcing, hence the honest F3 basis. Tier A.
 THERMAL_F_WMGHG_ERF: float = 3.585     # W·m⁻² well-mixed GHG ERF alone (the forward-looking basis as
                                        # aerosol cooling declines). IGCC 2025a `wmghg`. Tier A.
+# Drawdown chain (research/thermal_drawdown.py) — converting a forcing reduction
+# into the labor that would deliver it. Each step is separately tiered so the
+# gate's sensitivity lands on named quantities rather than one lumped constant.
+CO2_FORCING_COEFFICIENT: float = 5.645  # W·m⁻² per ln(C/C₀). Tier A — DERIVED this
+                                       # session by OLS of the IGCC 2025a CO₂ ERF series on
+                                       # ln(concentration) over 350–426 ppm (n=38), the range a
+                                       # drawdown actually traverses. Self-validating: the fitted
+                                       # intercept implies C₀ = 279.8 ppm against the accepted
+                                       # pre-industrial 278. Myhre's classic 5.35 runs 5.2% low here.
+CO2_CONCENTRATION_PPM: float = 425.65  # ppm, IGCC 2025a annual mean at 2025. Tier A.
+CO2_PPM_TO_GT: float = 7.82            # GtCO₂ per ppm. Tier B — atmospheric mass 5.148e18 kg
+                                       # × 1e-6 × (44.01/28.96 molar ratio). Derivable, not fitted.
+CDR_GROSS_REMOVAL_FACTOR: float = 1.8  # Removing CO₂ from the air lets ocean/land sinks OUTGAS
+                                       # back, so the gross tonnage exceeds the concentration
+                                       # drop. Tier D placeholder. resolves_by: ESM CDR
+                                       # reversibility experiments (Zickfeld et al.). Omitting it
+                                       # would understate the obligation ~2× and bias the
+                                       # solvency gate toward passing — exactly the wrong error.
+CDR_ENERGY_GJ_PER_TONNE: float = 4.0   # GJ per tonne CO₂ removed. Tier C — DAC-order, recalled
+                                       # range 2–6. resolves_by: published plant LCA.
+THERMAL_PROGRAMME_YEARS: float = 40.0  # Years over which the drawdown obligation is discharged.
+                                       # **CHOSEN.** 40 yr keeps the programme inside a single
+                                       # lifetime of responsibility: the generation that incurred
+                                       # the debt discharges it, rather than booking the benefit and
+                                       # willing the work to people who did not choose it. The
+                                       # obligation scales as 1/horizon, so this is a real lever —
+                                       # 30 yr is 1.33× the annual load, 100 yr is 0.4×. Epistemic
+                                       # pointer: this is an ETHICAL choice about who bears the
+                                       # work, not a technical one, and it should be argued as such.
+CDR_ALLOCATION_BASIS: str = "responsibility"  # How the global job is split across collectives.
+                                       # **CHOSEN, and a governance decision, not physics.**
+                                       # "responsibility" (cumulative emissions) over "population"
+                                       # because a collective cannot burden others with the
+                                       # consequences of choices it made. See allocation_share().
+CDR_LABOR_HOURS_PER_TONNE: float = 0.6 # Labor-hours per tonne removed. Tier D — a ~1 Mt/yr plant
+                                       # at ~300 staff × 2000 h. resolves_by: operator staffing
+                                       # disclosures. Together with the line above this DERIVES
+                                       # ι_drawdown = (GJ/t)/(h/t) ≈ 6.7e9 J/EOH, so the framework's
+                                       # ι is a function of two plant observables rather than a
+                                       # third free placeholder. ~4 orders above the infrastructure
+                                       # ι floor, as expected: drawdown is energy-intensive and
+                                       # labor-thin.
 THERMAL_F_NATURAL_ERF: float = 0.262   # W·m⁻² solar + volcanic ERF at 2025, IGCC 2025a `natural`.
                                        # Tier A. Consumes budget (C4) but is NOT removable by labor —
                                        # so it is the floor on achievable forcing, and the wedge

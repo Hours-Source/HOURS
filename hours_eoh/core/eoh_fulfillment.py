@@ -292,6 +292,7 @@ def eoh_to_teh_pipeline(
     mean_multiplier: float = 2.10,
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
+    thermal_obligation: float = 0.0,
 ) -> dict:
     """
     End-to-end EOH → human share → registered → TEH creation in one call.
@@ -407,6 +408,7 @@ def eoh_to_teh_pipeline(
         competency_gap_factor=competency_gap_factor,
         monitoring_capability=monitoring_capability,
         knowledge_complexity_per_unit=knowledge_complexity_per_unit,
+        thermal_obligation=thermal_obligation,
     )
 
     # Per-domain human EOH via the existing helper (uniform (1-ε) per domain)
