@@ -882,6 +882,20 @@ CDR_ALLOCATION_BASIS: str = "responsibility"  # How the global job is split acro
                                        # "responsibility" (cumulative emissions) over "population"
                                        # because a collective cannot burden others with the
                                        # consequences of choices it made. See allocation_share().
+CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure weights
+                                       # responsibility: "incl_luc" (fossil + cement +
+                                       # land-use change — the whole atmospheric burden the
+                                       # drawdown must remove, and the basis matching the
+                                       # forcing coefficient, which was fitted to a
+                                       # concentration record that already reflects land use)
+                                       # or "fossil" (lower uncertainty, but leaves ~33% of
+                                       # the burden unallocated). **CHOSEN, and a live equity
+                                       # question**: including land use moves substantial
+                                       # burden onto collectives that were often converting
+                                       # land under external demand, and the framework cannot
+                                       # yet trade-adjust — OWID consumption-based emissions
+                                       # begin only in 1990, far too short for a cumulative
+                                       # measure. Sign-off item.
 CDR_LABOR_HOURS_PER_TONNE: float = 0.6 # Labor-hours per tonne removed. Tier D — a ~1 Mt/yr plant
                                        # at ~300 staff × 2000 h. resolves_by: operator staffing
                                        # disclosures. Together with the line above this DERIVES

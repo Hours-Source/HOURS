@@ -1,0 +1,1742 @@
+{
+ "dataset": "Cumulative CO2 by collective \u2014 the responsibility-allocation basis",
+ "_source": "Our World in Data CO2 and Greenhouse Gas Emissions (owid-co2-data.csv); Global Carbon Budget. Retrieved 2026-08-05.",
+ "_tier": "A \u2014 published dataset, covers 1750-2024",
+ "_why": "CDR_ALLOCATION_BASIS = 'responsibility': a collective cannot burden others with the consequences of choices it made. Allocating the drawdown job by headcount silently transfers one collective's history onto everyone.",
+ "_basis_choice": {
+  "fossil": "cumulative_co2 \u2014 fossil fuels + cement. Lower uncertainty, but leaves ~33% of the atmospheric burden unallocated.",
+  "incl_luc": "cumulative_co2_including_luc \u2014 adds land-use change. DEFAULT: it matches the physical target, since the drawdown must remove the whole atmospheric CO2 burden and the forcing coefficient was fitted to a concentration record that already reflects land-use emissions.",
+  "OPEN \u2014 SIGN-OFF": "Including land use is the technically coherent basis but a live equity question: it moves substantial burden onto collectives that were often converting land under external demand, and LUC estimates carry much larger uncertainty than fossil. The framework cannot yet trade-adjust \u2014 OWID consumption-based emissions begin only in 1990, far too short for a cumulative measure."
+ },
+ "_truncation_warning": "A series truncated at a recent start year under-charges early industrializers, precisely the collectives the rule exists to charge. Measured against a 1965+ fossil-energy proxy: UK under-charged 1.70x, Germany 1.31x, Russia 1.16x, while Singapore was over-charged 4.1x and Qatar 1.70x. Do not use a truncated basis.",
+ "_unattributed": {
+  "note": "Collective shares sum to 0.975 (fossil) and 0.998 (incl. land use), NOT to 1. The residual is international shipping (29.6 GtCO2) and aviation (16.3 GtCO2) \u2014 46 GtCO2, 2.49% of the cumulative fossil total \u2014 which OWID reports separately because they belong to no territory.",
+  "OPEN \u2014 SIGN-OFF": "Under a responsibility rule nobody owes the drawdown for bunker fuels. Three options: leave it unallocated (the commons absorbs it), redistribute pro-rata to responsibility shares (charges everyone for transport they may not have used), or allocate by consumption (needs trade data the framework does not have before 1990). Currently UNALLOCATED \u2014 shares are used as-is, so 2.5% of the obligation has no bearer.",
+  "share_fossil_unattributed": 0.0249,
+  "share_incl_luc_unattributed": 0.0019
+ },
+ "world_cumulative_co2_gt": 1849.1,
+ "world_cumulative_co2_incl_luc_gt": 2751.5,
+ "collectives": {
+  "Argentina": {
+   "iso": "ARG",
+   "cumulative_co2_mt": 9151.5,
+   "cumulative_co2_incl_luc_mt": 23021.9,
+   "share_fossil": 0.00494912,
+   "share_incl_luc": 0.00836703,
+   "share_population": 0.00560527
+  },
+  "Bermuda": {
+   "iso": "BMU",
+   "cumulative_co2_mt": 31.0,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 1.678e-05,
+   "share_incl_luc": null,
+   "share_population": 7.93e-06
+  },
+  "Botswana": {
+   "iso": "BWA",
+   "cumulative_co2_mt": 184.3,
+   "cumulative_co2_incl_luc_mt": 296.0,
+   "share_fossil": 9.969e-05,
+   "share_incl_luc": 0.00010757,
+   "share_population": 0.00030925
+  },
+  "Trinidad and Tobago": {
+   "iso": "TTO",
+   "cumulative_co2_mt": 1711.0,
+   "cumulative_co2_incl_luc_mt": 1696.8,
+   "share_fossil": 0.00092529,
+   "share_incl_luc": 0.00061667,
+   "share_population": 0.00018495
+  },
+  "Maldives": {
+   "iso": "MDV",
+   "cumulative_co2_mt": 33.7,
+   "cumulative_co2_incl_luc_mt": 33.7,
+   "share_fossil": 1.82e-05,
+   "share_incl_luc": 1.223e-05,
+   "share_population": 6.474e-05
+  },
+  "Mali": {
+   "iso": "MLI",
+   "cumulative_co2_mt": 100.2,
+   "cumulative_co2_incl_luc_mt": 1730.0,
+   "share_fossil": 5.419e-05,
+   "share_incl_luc": 0.00062874,
+   "share_population": 0.00300264
+  },
+  "Saint Vincent and the Grenadines": {
+   "iso": "VCT",
+   "cumulative_co2_mt": 8.0,
+   "cumulative_co2_incl_luc_mt": 9.4,
+   "share_fossil": 4.31e-06,
+   "share_incl_luc": 3.4e-06,
+   "share_population": 1.234e-05
+  },
+  "Afghanistan": {
+   "iso": "AFG",
+   "cumulative_co2_mt": 242.6,
+   "cumulative_co2_incl_luc_mt": 611.7,
+   "share_fossil": 0.00013122,
+   "share_incl_luc": 0.00022232,
+   "share_population": 0.00523131
+  },
+  "Equatorial Guinea": {
+   "iso": "GNQ",
+   "cumulative_co2_mt": 163.4,
+   "cumulative_co2_incl_luc_mt": 133.6,
+   "share_fossil": 8.836e-05,
+   "share_incl_luc": 4.855e-05,
+   "share_population": 0.00023214
+  },
+  "North Macedonia": {
+   "iso": "MKD",
+   "cumulative_co2_mt": 538.0,
+   "cumulative_co2_incl_luc_mt": 945.8,
+   "share_fossil": 0.00029095,
+   "share_incl_luc": 0.00034375,
+   "share_population": 0.00022362
+  },
+  "Malawi": {
+   "iso": "MWI",
+   "cumulative_co2_mt": 57.6,
+   "cumulative_co2_incl_luc_mt": 1186.4,
+   "share_fossil": 3.113e-05,
+   "share_incl_luc": 0.00043119,
+   "share_population": 0.00265632
+  },
+  "Bulgaria": {
+   "iso": "BGR",
+   "cumulative_co2_mt": 3984.2,
+   "cumulative_co2_incl_luc_mt": 4990.1,
+   "share_fossil": 0.00215464,
+   "share_incl_luc": 0.00181359,
+   "share_population": 0.00082892
+  },
+  "Burundi": {
+   "iso": "BDI",
+   "cumulative_co2_mt": 16.7,
+   "cumulative_co2_incl_luc_mt": 327.3,
+   "share_fossil": 9.02e-06,
+   "share_incl_luc": 0.00011896,
+   "share_population": 0.00172316
+  },
+  "Peru": {
+   "iso": "PER",
+   "cumulative_co2_mt": 2161.8,
+   "cumulative_co2_incl_luc_mt": 7986.0,
+   "share_fossil": 0.00116911,
+   "share_incl_luc": 0.00290243,
+   "share_population": 0.00419729
+  },
+  "Taiwan": {
+   "iso": "TWN",
+   "cumulative_co2_mt": 10091.9,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 0.00545767,
+   "share_incl_luc": null,
+   "share_population": 0.00284751
+  },
+  "Malaysia": {
+   "iso": "MYS",
+   "cumulative_co2_mt": 7042.4,
+   "cumulative_co2_incl_luc_mt": 20000.2,
+   "share_fossil": 0.00380851,
+   "share_incl_luc": 0.00726881,
+   "share_population": 0.00436164
+  },
+  "Albania": {
+   "iso": "ALB",
+   "cumulative_co2_mt": 307.9,
+   "cumulative_co2_incl_luc_mt": 548.3,
+   "share_fossil": 0.00016653,
+   "share_incl_luc": 0.00019927,
+   "share_population": 0.00034245
+  },
+  "Saint Pierre and Miquelon": {
+   "iso": "SPM",
+   "cumulative_co2_mt": 3.9,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 2.11e-06,
+   "share_incl_luc": null,
+   "share_population": 6.9e-07
+  },
+  "Cuba": {
+   "iso": "CUB",
+   "cumulative_co2_mt": 1814.1,
+   "cumulative_co2_incl_luc_mt": 5795.8,
+   "share_fossil": 0.00098107,
+   "share_incl_luc": 0.00210641,
+   "share_population": 0.00134682
+  },
+  "Hong Kong": {
+   "iso": "HKG",
+   "cumulative_co2_mt": 1750.3,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 0.00094656,
+   "share_incl_luc": null,
+   "share_population": 0.00090954
+  },
+  "Bosnia and Herzegovina": {
+   "iso": "BIH",
+   "cumulative_co2_mt": 1043.5,
+   "cumulative_co2_incl_luc_mt": 1271.7,
+   "share_fossil": 0.00056431,
+   "share_incl_luc": 0.00046217,
+   "share_population": 0.00038814
+  },
+  "Austria": {
+   "iso": "AUT",
+   "cumulative_co2_mt": 5749.7,
+   "cumulative_co2_incl_luc_mt": 5969.5,
+   "share_fossil": 0.0031094,
+   "share_incl_luc": 0.00216956,
+   "share_population": 0.00111879
+  },
+  "Montenegro": {
+   "iso": "MNE",
+   "cumulative_co2_mt": 122.1,
+   "cumulative_co2_incl_luc_mt": 220.4,
+   "share_fossil": 6.605e-05,
+   "share_incl_luc": 8.008e-05,
+   "share_population": 7.832e-05
+  },
+  "Sweden": {
+   "iso": "SWE",
+   "cumulative_co2_mt": 5134.6,
+   "cumulative_co2_incl_luc_mt": 7556.0,
+   "share_fossil": 0.00277675,
+   "share_incl_luc": 0.00274612,
+   "share_population": 0.00130109
+  },
+  "Indonesia": {
+   "iso": "IDN",
+   "cumulative_co2_mt": 17419.9,
+   "cumulative_co2_incl_luc_mt": 86936.6,
+   "share_fossil": 0.00942064,
+   "share_incl_luc": 0.03159603,
+   "share_population": 0.03477372
+  },
+  "Tuvalu": {
+   "iso": "TUV",
+   "cumulative_co2_mt": 0.3,
+   "cumulative_co2_incl_luc_mt": 0.3,
+   "share_fossil": 1.6e-07,
+   "share_incl_luc": 1.1e-07,
+   "share_population": 1.19e-06
+  },
+  "Myanmar": {
+   "iso": "MMR",
+   "cumulative_co2_mt": 727.9,
+   "cumulative_co2_incl_luc_mt": 9119.8,
+   "share_fossil": 0.00039364,
+   "share_incl_luc": 0.00331446,
+   "share_population": 0.00668519
+  },
+  "Guinea-Bissau": {
+   "iso": "GNB",
+   "cumulative_co2_mt": 8.3,
+   "cumulative_co2_incl_luc_mt": 239.0,
+   "share_fossil": 4.48e-06,
+   "share_incl_luc": 8.686e-05,
+   "share_population": 0.00027003
+  },
+  "South Africa": {
+   "iso": "ZAF",
+   "cumulative_co2_mt": 22827.0,
+   "cumulative_co2_incl_luc_mt": 29695.5,
+   "share_fossil": 0.01234475,
+   "share_incl_luc": 0.01079247,
+   "share_population": 0.00785137
+  },
+  "Moldova": {
+   "iso": "MDA",
+   "cumulative_co2_mt": 1358.4,
+   "cumulative_co2_incl_luc_mt": 1435.5,
+   "share_fossil": 0.0007346,
+   "share_incl_luc": 0.00052171,
+   "share_population": 0.00037228
+  },
+  "Tunisia": {
+   "iso": "TUN",
+   "cumulative_co2_mt": 1066.2,
+   "cumulative_co2_incl_luc_mt": 1438.7,
+   "share_fossil": 0.00057659,
+   "share_incl_luc": 0.00052287,
+   "share_population": 0.00150596
+  },
+  "Nicaragua": {
+   "iso": "NIC",
+   "cumulative_co2_mt": 197.7,
+   "cumulative_co2_incl_luc_mt": 4525.6,
+   "share_fossil": 0.00010689,
+   "share_incl_luc": 0.00164478,
+   "share_population": 0.00084836
+  },
+  "Gambia": {
+   "iso": "GMB",
+   "cumulative_co2_mt": 17.7,
+   "cumulative_co2_incl_luc_mt": 74.0,
+   "share_fossil": 9.56e-06,
+   "share_incl_luc": 2.688e-05,
+   "share_population": 0.00033855
+  },
+  "Ukraine": {
+   "iso": "UKR",
+   "cumulative_co2_mt": 31236.5,
+   "cumulative_co2_incl_luc_mt": 44320.2,
+   "share_fossil": 0.01689259,
+   "share_incl_luc": 0.01610763,
+   "share_population": 0.00464408
+  },
+  "Barbados": {
+   "iso": "BRB",
+   "cumulative_co2_mt": 63.9,
+   "cumulative_co2_incl_luc_mt": 64.1,
+   "share_fossil": 3.454e-05,
+   "share_incl_luc": 2.33e-05,
+   "share_population": 3.465e-05
+  },
+  "Lebanon": {
+   "iso": "LBN",
+   "cumulative_co2_mt": 794.7,
+   "cumulative_co2_incl_luc_mt": 805.8,
+   "share_fossil": 0.00042978,
+   "share_incl_luc": 0.00029285,
+   "share_population": 0.00071218
+  },
+  "Ireland": {
+   "iso": "IRL",
+   "cumulative_co2_mt": 2366.4,
+   "cumulative_co2_incl_luc_mt": 2545.9,
+   "share_fossil": 0.00127976,
+   "share_incl_luc": 0.00092529,
+   "share_population": 0.0006446
+  },
+  "Israel": {
+   "iso": "ISR",
+   "cumulative_co2_mt": 2607.6,
+   "cumulative_co2_incl_luc_mt": 2648.5,
+   "share_fossil": 0.0014102,
+   "share_incl_luc": 0.00096256,
+   "share_population": 0.00115145
+  },
+  "Portugal": {
+   "iso": "PRT",
+   "cumulative_co2_mt": 2767.6,
+   "cumulative_co2_incl_luc_mt": 3196.4,
+   "share_fossil": 0.00149672,
+   "share_incl_luc": 0.00116169,
+   "share_population": 0.00127881
+  },
+  "Suriname": {
+   "iso": "SUR",
+   "cumulative_co2_mt": 128.8,
+   "cumulative_co2_incl_luc_mt": 259.3,
+   "share_fossil": 6.963e-05,
+   "share_incl_luc": 9.425e-05,
+   "share_population": 7.782e-05
+  },
+  "Papua New Guinea": {
+   "iso": "PNG",
+   "cumulative_co2_mt": 209.7,
+   "cumulative_co2_incl_luc_mt": 1764.3,
+   "share_fossil": 0.00011341,
+   "share_incl_luc": 0.00064122,
+   "share_population": 0.00129736
+  },
+  "Antigua and Barbuda": {
+   "iso": "ATG",
+   "cumulative_co2_mt": 26.9,
+   "cumulative_co2_incl_luc_mt": 17.8,
+   "share_fossil": 1.456e-05,
+   "share_incl_luc": 6.48e-06,
+   "share_population": 1.15e-05
+  },
+  "Jamaica": {
+   "iso": "JAM",
+   "cumulative_co2_mt": 485.2,
+   "cumulative_co2_incl_luc_mt": 658.9,
+   "share_fossil": 0.0002624,
+   "share_incl_luc": 0.00023946,
+   "share_population": 0.00034826
+  },
+  "Greenland": {
+   "iso": "GRL",
+   "cumulative_co2_mt": 35.2,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 1.903e-05,
+   "share_incl_luc": null,
+   "share_population": 6.85e-06
+  },
+  "India": {
+   "iso": "IND",
+   "cumulative_co2_mt": 66072.5,
+   "cumulative_co2_incl_luc_mt": 105592.5,
+   "share_fossil": 0.0357318,
+   "share_incl_luc": 0.03837629,
+   "share_population": 0.17797734
+  },
+  "Spain": {
+   "iso": "ESP",
+   "cumulative_co2_mt": 15700.2,
+   "cumulative_co2_incl_luc_mt": 17728.5,
+   "share_fossil": 0.00849063,
+   "share_incl_luc": 0.0064432,
+   "share_population": 0.00587689
+  },
+  "Vanuatu": {
+   "iso": "VUT",
+   "cumulative_co2_mt": 5.5,
+   "cumulative_co2_incl_luc_mt": 90.3,
+   "share_fossil": 3e-06,
+   "share_incl_luc": 3.281e-05,
+   "share_population": 4.021e-05
+  },
+  "Curacao": {
+   "iso": "CUW",
+   "cumulative_co2_mt": 532.0,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 0.00028769,
+   "share_incl_luc": null,
+   "share_population": 2.275e-05
+  },
+  "Cote d'Ivoire": {
+   "iso": "CIV",
+   "cumulative_co2_mt": 400.1,
+   "cumulative_co2_incl_luc_mt": 10430.5,
+   "share_fossil": 0.00021638,
+   "share_incl_luc": 0.00379082,
+   "share_population": 0.00391717
+  },
+  "Bonaire Sint Eustatius and Saba": {
+   "iso": "BES",
+   "cumulative_co2_mt": 10.6,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 5.75e-06,
+   "share_incl_luc": null,
+   "share_population": 3.77e-06
+  },
+  "Guyana": {
+   "iso": "GUY",
+   "cumulative_co2_mt": 117.3,
+   "cumulative_co2_incl_luc_mt": 624.3,
+   "share_fossil": 6.346e-05,
+   "share_incl_luc": 0.00022691,
+   "share_population": 0.00010194
+  },
+  "Bhutan": {
+   "iso": "BTN",
+   "cumulative_co2_mt": 29.8,
+   "cumulative_co2_incl_luc_mt": 697.2,
+   "share_fossil": 1.611e-05,
+   "share_incl_luc": 0.00025338,
+   "share_population": 9.709e-05
+  },
+  "Syria": {
+   "iso": "SYR",
+   "cumulative_co2_mt": 2055.8,
+   "cumulative_co2_incl_luc_mt": 2480.5,
+   "share_fossil": 0.00111178,
+   "share_incl_luc": 0.00090149,
+   "share_population": 0.00302646
+  },
+  "Canada": {
+   "iso": "CAN",
+   "cumulative_co2_mt": 35644.1,
+   "cumulative_co2_incl_luc_mt": 76041.9,
+   "share_fossil": 0.01927623,
+   "share_incl_luc": 0.02763648,
+   "share_population": 0.00487496
+  },
+  "Micronesia (country)": {
+   "iso": "FSM",
+   "cumulative_co2_mt": 4.9,
+   "cumulative_co2_incl_luc_mt": 4.9,
+   "share_fossil": 2.63e-06,
+   "share_incl_luc": 1.77e-06,
+   "share_population": 1.388e-05
+  },
+  "Sint Maarten (Dutch part)": {
+   "iso": "SXM",
+   "cumulative_co2_mt": 62.2,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 3.365e-05,
+   "share_incl_luc": null,
+   "share_population": 5.32e-06
+  },
+  "Pakistan": {
+   "iso": "PAK",
+   "cumulative_co2_mt": 5739.8,
+   "cumulative_co2_incl_luc_mt": 7749.3,
+   "share_fossil": 0.00310409,
+   "share_incl_luc": 0.00281638,
+   "share_population": 0.03082164
+  },
+  "North Korea": {
+   "iso": "PRK",
+   "cumulative_co2_mt": 5492.7,
+   "cumulative_co2_incl_luc_mt": 7021.7,
+   "share_fossil": 0.00297041,
+   "share_incl_luc": 0.00255197,
+   "share_population": 0.00325045
+  },
+  "Tonga": {
+   "iso": "TON",
+   "cumulative_co2_mt": 4.9,
+   "cumulative_co2_incl_luc_mt": 7.8,
+   "share_fossil": 2.66e-06,
+   "share_incl_luc": 2.82e-06,
+   "share_population": 1.278e-05
+  },
+  "Saint Kitts and Nevis": {
+   "iso": "KNA",
+   "cumulative_co2_mt": 8.0,
+   "cumulative_co2_incl_luc_mt": 4.4,
+   "share_fossil": 4.35e-06,
+   "share_incl_luc": 1.59e-06,
+   "share_population": 5.75e-06
+  },
+  "Saint Helena": {
+   "iso": "SHN",
+   "cumulative_co2_mt": 0.4,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 2.3e-07,
+   "share_incl_luc": null,
+   "share_population": 6.5e-07
+  },
+  "Germany": {
+   "iso": "DEU",
+   "cumulative_co2_mt": 95135.7,
+   "cumulative_co2_incl_luc_mt": 94907.5,
+   "share_fossil": 0.05144906,
+   "share_incl_luc": 0.03449295,
+   "share_population": 0.0103715
+  },
+  "Ethiopia": {
+   "iso": "ETH",
+   "cumulative_co2_mt": 330.2,
+   "cumulative_co2_incl_luc_mt": 7353.4,
+   "share_fossil": 0.00017859,
+   "share_incl_luc": 0.00267252,
+   "share_population": 0.01619896
+  },
+  "Central African Republic": {
+   "iso": "CAF",
+   "cumulative_co2_mt": 12.3,
+   "cumulative_co2_incl_luc_mt": 755.9,
+   "share_fossil": 6.67e-06,
+   "share_incl_luc": 0.00027471,
+   "share_population": 0.00065388
+  },
+  "Lesotho": {
+   "iso": "LSO",
+   "cumulative_co2_mt": 72.3,
+   "cumulative_co2_incl_luc_mt": 196.2,
+   "share_fossil": 3.912e-05,
+   "share_incl_luc": 7.129e-05,
+   "share_population": 0.00028672
+  },
+  "Nauru": {
+   "iso": "NRU",
+   "cumulative_co2_mt": 5.1,
+   "cumulative_co2_incl_luc_mt": 5.1,
+   "share_fossil": 2.74e-06,
+   "share_incl_luc": 1.84e-06,
+   "share_population": 1.47e-06
+  },
+  "Kenya": {
+   "iso": "KEN",
+   "cumulative_co2_mt": 551.3,
+   "cumulative_co2_incl_luc_mt": 3192.0,
+   "share_fossil": 0.00029815,
+   "share_incl_luc": 0.0011601,
+   "share_population": 0.00692228
+  },
+  "Dominica": {
+   "iso": "DMA",
+   "cumulative_co2_mt": 5.5,
+   "cumulative_co2_incl_luc_mt": 3.6,
+   "share_fossil": 2.97e-06,
+   "share_incl_luc": 1.31e-06,
+   "share_population": 8.12e-06
+  },
+  "Sierra Leone": {
+   "iso": "SLE",
+   "cumulative_co2_mt": 42.6,
+   "cumulative_co2_incl_luc_mt": 1332.7,
+   "share_fossil": 2.305e-05,
+   "share_incl_luc": 0.00048436,
+   "share_population": 0.00106006
+  },
+  "Switzerland": {
+   "iso": "CHE",
+   "cumulative_co2_mt": 3158.1,
+   "cumulative_co2_incl_luc_mt": 3413.8,
+   "share_fossil": 0.00170787,
+   "share_incl_luc": 0.0012407,
+   "share_population": 0.0010944
+  },
+  "Benin": {
+   "iso": "BEN",
+   "cumulative_co2_mt": 128.4,
+   "cumulative_co2_incl_luc_mt": 1744.4,
+   "share_fossil": 6.943e-05,
+   "share_incl_luc": 0.00063399,
+   "share_population": 0.00177405
+  },
+  "Uruguay": {
+   "iso": "URY",
+   "cumulative_co2_mt": 476.8,
+   "cumulative_co2_incl_luc_mt": 1032.7,
+   "share_fossil": 0.00025783,
+   "share_incl_luc": 0.00037533,
+   "share_population": 0.00041541
+  },
+  "Thailand": {
+   "iso": "THA",
+   "cumulative_co2_mt": 8308.3,
+   "cumulative_co2_incl_luc_mt": 25176.1,
+   "share_fossil": 0.00449311,
+   "share_incl_luc": 0.00914995,
+   "share_population": 0.00879107
+  },
+  "Georgia": {
+   "iso": "GEO",
+   "cumulative_co2_mt": 662.4,
+   "cumulative_co2_incl_luc_mt": 233.5,
+   "share_fossil": 0.00035822,
+   "share_incl_luc": 8.486e-05,
+   "share_population": 0.00046706
+  },
+  "South Korea": {
+   "iso": "KOR",
+   "cumulative_co2_mt": 20707.5,
+   "cumulative_co2_incl_luc_mt": 20972.1,
+   "share_fossil": 0.01119857,
+   "share_incl_luc": 0.00762204,
+   "share_population": 0.00634388
+  },
+  "Lithuania": {
+   "iso": "LTU",
+   "cumulative_co2_mt": 1610.1,
+   "cumulative_co2_incl_luc_mt": 2866.3,
+   "share_fossil": 0.00087073,
+   "share_incl_luc": 0.00104172,
+   "share_population": 0.00035071
+  },
+  "Luxembourg": {
+   "iso": "LUX",
+   "cumulative_co2_mt": 783.0,
+   "cumulative_co2_incl_luc_mt": 776.0,
+   "share_fossil": 0.00042346,
+   "share_incl_luc": 0.00028204,
+   "share_population": 8.256e-05
+  },
+  "Kiribati": {
+   "iso": "KIR",
+   "cumulative_co2_mt": 2.3,
+   "cumulative_co2_incl_luc_mt": 2.3,
+   "share_fossil": 1.26e-06,
+   "share_incl_luc": 8.5e-07,
+   "share_population": 1.65e-05
+  },
+  "Laos": {
+   "iso": "LAO",
+   "cumulative_co2_mt": 243.0,
+   "cumulative_co2_incl_luc_mt": 2639.2,
+   "share_fossil": 0.00013142,
+   "share_incl_luc": 0.00095919,
+   "share_population": 0.00095308
+  },
+  "Yemen": {
+   "iso": "YEM",
+   "cumulative_co2_mt": 708.0,
+   "cumulative_co2_incl_luc_mt": 744.7,
+   "share_fossil": 0.0003829,
+   "share_incl_luc": 0.00027067,
+   "share_population": 0.00497809
+  },
+  "Algeria": {
+   "iso": "DZA",
+   "cumulative_co2_mt": 5476.6,
+   "cumulative_co2_incl_luc_mt": 6544.1,
+   "share_fossil": 0.00296171,
+   "share_incl_luc": 0.00237839,
+   "share_population": 0.00574242
+  },
+  "Faroe Islands": {
+   "iso": "FRO",
+   "cumulative_co2_mt": 33.7,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 1.82e-05,
+   "share_incl_luc": null,
+   "share_population": 6.8e-06
+  },
+  "Nigeria": {
+   "iso": "NGA",
+   "cumulative_co2_mt": 4710.8,
+   "cumulative_co2_incl_luc_mt": 15858.7,
+   "share_fossil": 0.0025476,
+   "share_incl_luc": 0.00576363,
+   "share_population": 0.02854136
+  },
+  "Uzbekistan": {
+   "iso": "UZB",
+   "cumulative_co2_mt": 6750.7,
+   "cumulative_co2_incl_luc_mt": 7137.7,
+   "share_fossil": 0.00365073,
+   "share_incl_luc": 0.0025941,
+   "share_population": 0.00446028
+  },
+  "Niger": {
+   "iso": "NER",
+   "cumulative_co2_mt": 61.5,
+   "cumulative_co2_incl_luc_mt": 1336.1,
+   "share_fossil": 3.326e-05,
+   "share_incl_luc": 0.00048557,
+   "share_population": 0.0033159
+  },
+  "Iraq": {
+   "iso": "IRQ",
+   "cumulative_co2_mt": 5350.7,
+   "cumulative_co2_incl_luc_mt": 5844.4,
+   "share_fossil": 0.00289366,
+   "share_incl_luc": 0.00212409,
+   "share_population": 0.00564769
+  },
+  "Angola": {
+   "iso": "AGO",
+   "cumulative_co2_mt": 739.6,
+   "cumulative_co2_incl_luc_mt": 5374.2,
+   "share_fossil": 0.00039997,
+   "share_incl_luc": 0.00195319,
+   "share_population": 0.00464722
+  },
+  "Montserrat": {
+   "iso": "MSR",
+   "cumulative_co2_mt": 1.7,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 9.1e-07,
+   "share_incl_luc": null,
+   "share_population": 5.4e-07
+  },
+  "United Kingdom": {
+   "iso": "GBR",
+   "cumulative_co2_mt": 80079.4,
+   "cumulative_co2_incl_luc_mt": 79771.9,
+   "share_fossil": 0.0433067,
+   "share_incl_luc": 0.02899212,
+   "share_population": 0.00848075
+  },
+  "Cyprus": {
+   "iso": "CYP",
+   "cumulative_co2_mt": 321.6,
+   "cumulative_co2_incl_luc_mt": 271.7,
+   "share_fossil": 0.00017389,
+   "share_incl_luc": 9.875e-05,
+   "share_population": 0.00016661
+  },
+  "Haiti": {
+   "iso": "HTI",
+   "cumulative_co2_mt": 88.8,
+   "cumulative_co2_incl_luc_mt": 815.3,
+   "share_fossil": 4.805e-05,
+   "share_incl_luc": 0.00029631,
+   "share_population": 0.00144407
+  },
+  "Djibouti": {
+   "iso": "DJI",
+   "cumulative_co2_mt": 21.1,
+   "cumulative_co2_incl_luc_mt": 27.2,
+   "share_fossil": 1.142e-05,
+   "share_incl_luc": 9.88e-06,
+   "share_population": 0.00014336
+  },
+  "Philippines": {
+   "iso": "PHL",
+   "cumulative_co2_mt": 3983.6,
+   "cumulative_co2_incl_luc_mt": 15282.4,
+   "share_fossil": 0.00215434,
+   "share_incl_luc": 0.00555421,
+   "share_population": 0.01420983
+  },
+  "Turkey": {
+   "iso": "TUR",
+   "cumulative_co2_mt": 12887.6,
+   "cumulative_co2_incl_luc_mt": 19524.5,
+   "share_fossil": 0.00696954,
+   "share_incl_luc": 0.00709595,
+   "share_population": 0.01072987
+  },
+  "Mexico": {
+   "iso": "MEX",
+   "cumulative_co2_mt": 22015.9,
+   "cumulative_co2_incl_luc_mt": 36005.9,
+   "share_fossil": 0.0119061,
+   "share_incl_luc": 0.0130859,
+   "share_population": 0.01605191
+  },
+  "New Caledonia": {
+   "iso": "NCL",
+   "cumulative_co2_mt": 171.8,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 9.289e-05,
+   "share_incl_luc": null,
+   "share_population": 3.59e-05
+  },
+  "Iceland": {
+   "iso": "ISL",
+   "cumulative_co2_mt": 171.7,
+   "cumulative_co2_incl_luc_mt": 274.6,
+   "share_fossil": 9.285e-05,
+   "share_incl_luc": 9.979e-05,
+   "share_population": 4.826e-05
+  },
+  "Palestine": {
+   "iso": "PSE",
+   "cumulative_co2_mt": 78.0,
+   "cumulative_co2_incl_luc_mt": 76.7,
+   "share_fossil": 4.218e-05,
+   "share_incl_luc": 2.788e-05,
+   "share_population": 0.00067409
+  },
+  "Brazil": {
+   "iso": "BRA",
+   "cumulative_co2_mt": 18198.7,
+   "cumulative_co2_incl_luc_mt": 139444.3,
+   "share_fossil": 0.0098418,
+   "share_incl_luc": 0.0506793,
+   "share_population": 0.02600456
+  },
+  "Chile": {
+   "iso": "CHL",
+   "cumulative_co2_mt": 3324.9,
+   "cumulative_co2_incl_luc_mt": 7816.9,
+   "share_fossil": 0.00179807,
+   "share_incl_luc": 0.00284096,
+   "share_population": 0.00242442
+  },
+  "Russia": {
+   "iso": "RUS",
+   "cumulative_co2_mt": 122808.2,
+   "cumulative_co2_incl_luc_mt": 227020.6,
+   "share_fossil": 0.06641428,
+   "share_incl_luc": 0.08250782,
+   "share_population": 0.01776423
+  },
+  "Somalia": {
+   "iso": "SOM",
+   "cumulative_co2_mt": 41.9,
+   "cumulative_co2_incl_luc_mt": 1126.8,
+   "share_fossil": 2.268e-05,
+   "share_incl_luc": 0.00040951,
+   "share_population": 0.00233174
+  },
+  "Finland": {
+   "iso": "FIN",
+   "cumulative_co2_mt": 3324.8,
+   "cumulative_co2_incl_luc_mt": 6765.9,
+   "share_fossil": 0.00179803,
+   "share_incl_luc": 0.00245898,
+   "share_population": 0.00068904
+  },
+  "Guinea": {
+   "iso": "GIN",
+   "cumulative_co2_mt": 105.9,
+   "cumulative_co2_incl_luc_mt": 2803.1,
+   "share_fossil": 5.729e-05,
+   "share_incl_luc": 0.00101874,
+   "share_population": 0.00180988
+  },
+  "Singapore": {
+   "iso": "SGP",
+   "cumulative_co2_mt": 2247.7,
+   "cumulative_co2_incl_luc_mt": 2253.5,
+   "share_fossil": 0.00121555,
+   "share_incl_luc": 0.00081902,
+   "share_population": 0.00071542
+  },
+  "Sao Tome and Principe": {
+   "iso": "STP",
+   "cumulative_co2_mt": 4.0,
+   "cumulative_co2_incl_luc_mt": -0.4,
+   "share_fossil": 2.17e-06,
+   "share_incl_luc": -1.5e-07,
+   "share_population": 2.889e-05
+  },
+  "Saudi Arabia": {
+   "iso": "SAU",
+   "cumulative_co2_mt": 19020.3,
+   "cumulative_co2_incl_luc_mt": 19206.3,
+   "share_fossil": 0.01028614,
+   "share_incl_luc": 0.0069803,
+   "share_population": 0.004166
+  },
+  "Brunei": {
+   "iso": "BRN",
+   "cumulative_co2_mt": 427.8,
+   "cumulative_co2_incl_luc_mt": 515.6,
+   "share_fossil": 0.00023133,
+   "share_incl_luc": 0.00018737,
+   "share_population": 5.676e-05
+  },
+  "Serbia": {
+   "iso": "SRB",
+   "cumulative_co2_mt": 2924.9,
+   "cumulative_co2_incl_luc_mt": 3375.0,
+   "share_fossil": 0.00158177,
+   "share_incl_luc": 0.0012266,
+   "share_population": 0.00082629
+  },
+  "Turkmenistan": {
+   "iso": "TKM",
+   "cumulative_co2_mt": 2741.6,
+   "cumulative_co2_incl_luc_mt": 2923.4,
+   "share_fossil": 0.00148267,
+   "share_incl_luc": 0.00106246,
+   "share_population": 0.0009193
+  },
+  "Egypt": {
+   "iso": "EGY",
+   "cumulative_co2_mt": 7471.5,
+   "cumulative_co2_incl_luc_mt": 7805.9,
+   "share_fossil": 0.00404056,
+   "share_incl_luc": 0.00283697,
+   "share_population": 0.01429503
+  },
+  "Belarus": {
+   "iso": "BLR",
+   "cumulative_co2_mt": 5184.2,
+   "cumulative_co2_incl_luc_mt": 10072.1,
+   "share_fossil": 0.00280361,
+   "share_incl_luc": 0.00366059,
+   "share_population": 0.00111093
+  },
+  "Macao": {
+   "iso": "MAC",
+   "cumulative_co2_mt": 57.5,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 3.111e-05,
+   "share_incl_luc": null,
+   "share_population": 8.835e-05
+  },
+  "Cambodia": {
+   "iso": "KHM",
+   "cumulative_co2_mt": 251.6,
+   "cumulative_co2_incl_luc_mt": 3511.2,
+   "share_fossil": 0.00013607,
+   "share_incl_luc": 0.00127612,
+   "share_population": 0.00216364
+  },
+  "Samoa": {
+   "iso": "WSM",
+   "cumulative_co2_mt": 7.8,
+   "cumulative_co2_incl_luc_mt": 14.6,
+   "share_fossil": 4.2e-06,
+   "share_incl_luc": 5.29e-06,
+   "share_population": 2.674e-05
+  },
+  "Slovenia": {
+   "iso": "SVN",
+   "cumulative_co2_mt": 911.4,
+   "cumulative_co2_incl_luc_mt": 1215.8,
+   "share_fossil": 0.00049288,
+   "share_incl_luc": 0.00044188,
+   "share_population": 0.00025989
+  },
+  "Nepal": {
+   "iso": "NPL",
+   "cumulative_co2_mt": 232.1,
+   "cumulative_co2_incl_luc_mt": 1625.8,
+   "share_fossil": 0.00012552,
+   "share_incl_luc": 0.00059089,
+   "share_population": 0.00363711
+  },
+  "Seychelles": {
+   "iso": "SYC",
+   "cumulative_co2_mt": 16.1,
+   "cumulative_co2_incl_luc_mt": 16.1,
+   "share_fossil": 8.71e-06,
+   "share_incl_luc": 5.86e-06,
+   "share_population": 1.6e-05
+  },
+  "Christmas Island": {
+   "iso": "CXR",
+   "cumulative_co2_mt": 1.3,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 7.2e-07,
+   "share_incl_luc": null,
+   "share_population": null
+  },
+  "Democratic Republic of Congo": {
+   "iso": "COD",
+   "cumulative_co2_mt": 238.7,
+   "cumulative_co2_incl_luc_mt": 26035.7,
+   "share_fossil": 0.00012909,
+   "share_incl_luc": 0.00946235,
+   "share_population": 0.01340425
+  },
+  "United Arab Emirates": {
+   "iso": "ARE",
+   "cumulative_co2_mt": 5824.2,
+   "cumulative_co2_incl_luc_mt": 5825.9,
+   "share_fossil": 0.00314973,
+   "share_incl_luc": 0.00211733,
+   "share_population": 0.00135263
+  },
+  "Eswatini": {
+   "iso": "SWZ",
+   "cumulative_co2_mt": 44.6,
+   "cumulative_co2_incl_luc_mt": 189.9,
+   "share_fossil": 2.413e-05,
+   "share_incl_luc": 6.903e-05,
+   "share_population": 0.00015245
+  },
+  "Mauritius": {
+   "iso": "MUS",
+   "cumulative_co2_mt": 133.2,
+   "cumulative_co2_incl_luc_mt": 136.5,
+   "share_fossil": 7.204e-05,
+   "share_incl_luc": 4.961e-05,
+   "share_population": 0.00015593
+  },
+  "Cameroon": {
+   "iso": "CMR",
+   "cumulative_co2_mt": 309.2,
+   "cumulative_co2_incl_luc_mt": 2925.9,
+   "share_fossil": 0.00016724,
+   "share_incl_luc": 0.00106338,
+   "share_population": 0.00357243
+  },
+  "Belgium": {
+   "iso": "BEL",
+   "cumulative_co2_mt": 12906.2,
+   "cumulative_co2_incl_luc_mt": 13181.0,
+   "share_fossil": 0.00697962,
+   "share_incl_luc": 0.00479047,
+   "share_population": 0.00143992
+  },
+  "Sudan": {
+   "iso": "SDN",
+   "cumulative_co2_mt": 517.0,
+   "cumulative_co2_incl_luc_mt": 2696.2,
+   "share_fossil": 0.0002796,
+   "share_incl_luc": 0.00097989,
+   "share_population": 0.00618826
+  },
+  "Senegal": {
+   "iso": "SEN",
+   "cumulative_co2_mt": 300.6,
+   "cumulative_co2_incl_luc_mt": 764.9,
+   "share_fossil": 0.00016256,
+   "share_incl_luc": 0.00027801,
+   "share_population": 0.00226952
+  },
+  "Mozambique": {
+   "iso": "MOZ",
+   "cumulative_co2_mt": 211.2,
+   "cumulative_co2_incl_luc_mt": 4654.2,
+   "share_fossil": 0.00011423,
+   "share_incl_luc": 0.00169153,
+   "share_population": 0.00424807
+  },
+  "Grenada": {
+   "iso": "GRD",
+   "cumulative_co2_mt": 9.6,
+   "cumulative_co2_incl_luc_mt": 6.1,
+   "share_fossil": 5.22e-06,
+   "share_incl_luc": 2.23e-06,
+   "share_population": 1.438e-05
+  },
+  "El Salvador": {
+   "iso": "SLV",
+   "cumulative_co2_mt": 264.6,
+   "cumulative_co2_incl_luc_mt": 861.5,
+   "share_fossil": 0.00014308,
+   "share_incl_luc": 0.00031309,
+   "share_population": 0.00077747
+  },
+  "Kuwait": {
+   "iso": "KWT",
+   "cumulative_co2_mt": 3875.9,
+   "cumulative_co2_incl_luc_mt": 3875.9,
+   "share_fossil": 0.00209609,
+   "share_incl_luc": 0.00140866,
+   "share_population": 0.00060529
+  },
+  "Niue": {
+   "iso": "NIU",
+   "cumulative_co2_mt": 0.3,
+   "cumulative_co2_incl_luc_mt": 0.3,
+   "share_fossil": 1.5e-07,
+   "share_incl_luc": 1e-07,
+   "share_population": 2.3e-07
+  },
+  "New Zealand": {
+   "iso": "NZL",
+   "cumulative_co2_mt": 2012.3,
+   "cumulative_co2_incl_luc_mt": 5134.6,
+   "share_fossil": 0.00108827,
+   "share_incl_luc": 0.00186612,
+   "share_population": 0.00063956
+  },
+  "Italy": {
+   "iso": "ITA",
+   "cumulative_co2_mt": 26005.9,
+   "cumulative_co2_incl_luc_mt": 26140.3,
+   "share_fossil": 0.01406393,
+   "share_incl_luc": 0.00950037,
+   "share_population": 0.00727922
+  },
+  "China": {
+   "iso": "CHN",
+   "cumulative_co2_mt": 285087.0,
+   "cumulative_co2_incl_luc_mt": 359646.9,
+   "share_fossil": 0.15417411,
+   "share_incl_luc": 0.1307092,
+   "share_population": 0.17409939
+  },
+  "Liechtenstein": {
+   "iso": "LIE",
+   "cumulative_co2_mt": 10.0,
+   "cumulative_co2_incl_luc_mt": 9.4,
+   "share_fossil": 5.39e-06,
+   "share_incl_luc": 3.41e-06,
+   "share_population": 4.89e-06
+  },
+  "Venezuela": {
+   "iso": "VEN",
+   "cumulative_co2_mt": 7886.5,
+   "cumulative_co2_incl_luc_mt": 13404.2,
+   "share_fossil": 0.00426498,
+   "share_incl_luc": 0.00487158,
+   "share_population": 0.00348433
+  },
+  "Sri Lanka": {
+   "iso": "LKA",
+   "cumulative_co2_mt": 567.9,
+   "cumulative_co2_incl_luc_mt": 2246.0,
+   "share_fossil": 0.0003071,
+   "share_incl_luc": 0.00081628,
+   "share_population": 0.00283397
+  },
+  "Palau": {
+   "iso": "PLW",
+   "cumulative_co2_mt": 11.4,
+   "cumulative_co2_incl_luc_mt": 11.4,
+   "share_fossil": 6.16e-06,
+   "share_incl_luc": 4.14e-06,
+   "share_population": 2.17e-06
+  },
+  "Dominican Republic": {
+   "iso": "DOM",
+   "cumulative_co2_mt": 869.2,
+   "cumulative_co2_incl_luc_mt": 2468.3,
+   "share_fossil": 0.00047004,
+   "share_incl_luc": 0.00089707,
+   "share_population": 0.00140175
+  },
+  "Bangladesh": {
+   "iso": "BGD",
+   "cumulative_co2_mt": 2001.0,
+   "cumulative_co2_incl_luc_mt": 3716.6,
+   "share_fossil": 0.00108212,
+   "share_incl_luc": 0.00135074,
+   "share_population": 0.02128982
+  },
+  "Fiji": {
+   "iso": "FJI",
+   "cumulative_co2_mt": 54.1,
+   "cumulative_co2_incl_luc_mt": 98.9,
+   "share_fossil": 2.924e-05,
+   "share_incl_luc": 3.596e-05,
+   "share_population": 0.00011393
+  },
+  "Turks and Caicos Islands": {
+   "iso": "TCA",
+   "cumulative_co2_mt": 7.6,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 4.11e-06,
+   "share_incl_luc": null,
+   "share_population": 5.71e-06
+  },
+  "Qatar": {
+   "iso": "QAT",
+   "cumulative_co2_mt": 2590.9,
+   "cumulative_co2_incl_luc_mt": 2592.2,
+   "share_fossil": 0.00140114,
+   "share_incl_luc": 0.0009421,
+   "share_population": 0.00037393
+  },
+  "France": {
+   "iso": "FRA",
+   "cumulative_co2_mt": 40047.6,
+   "cumulative_co2_incl_luc_mt": 35808.8,
+   "share_fossil": 0.02165759,
+   "share_incl_luc": 0.01301425,
+   "share_population": 0.0081631
+  },
+  "East Timor": {
+   "iso": "TLS",
+   "cumulative_co2_mt": 12.1,
+   "cumulative_co2_incl_luc_mt": 121.3,
+   "share_fossil": 6.56e-06,
+   "share_incl_luc": 4.409e-05,
+   "share_population": 0.00017181
+  },
+  "Romania": {
+   "iso": "ROU",
+   "cumulative_co2_mt": 8861.8,
+   "cumulative_co2_incl_luc_mt": 11851.9,
+   "share_fossil": 0.00479241,
+   "share_incl_luc": 0.00430742,
+   "share_population": 0.00233246
+  },
+  "Togo": {
+   "iso": "TGO",
+   "cumulative_co2_mt": 76.6,
+   "cumulative_co2_incl_luc_mt": 697.5,
+   "share_fossil": 4.144e-05,
+   "share_incl_luc": 0.0002535,
+   "share_population": 0.00103118
+  },
+  "Gabon": {
+   "iso": "GAB",
+   "cumulative_co2_mt": 307.1,
+   "cumulative_co2_incl_luc_mt": 1071.8,
+   "share_fossil": 0.00016607,
+   "share_incl_luc": 0.00038953,
+   "share_population": 0.00031144
+  },
+  "Chad": {
+   "iso": "TCD",
+   "cumulative_co2_mt": 51.3,
+   "cumulative_co2_incl_luc_mt": 804.2,
+   "share_fossil": 2.777e-05,
+   "share_incl_luc": 0.00029226,
+   "share_population": 0.00248997
+  },
+  "Morocco": {
+   "iso": "MAR",
+   "cumulative_co2_mt": 2015.7,
+   "cumulative_co2_incl_luc_mt": 3543.1,
+   "share_fossil": 0.00109007,
+   "share_incl_luc": 0.0012877,
+   "share_population": 0.00467118
+  },
+  "Croatia": {
+   "iso": "HRV",
+   "cumulative_co2_mt": 1184.7,
+   "cumulative_co2_incl_luc_mt": 1843.1,
+   "share_fossil": 0.00064068,
+   "share_incl_luc": 0.00066986,
+   "share_population": 0.00047536
+  },
+  "Comoros": {
+   "iso": "COM",
+   "cumulative_co2_mt": 7.5,
+   "cumulative_co2_incl_luc_mt": 13.8,
+   "share_fossil": 4.06e-06,
+   "share_incl_luc": 5.01e-06,
+   "share_population": 0.0001063
+  },
+  "Paraguay": {
+   "iso": "PRY",
+   "cumulative_co2_mt": 208.5,
+   "cumulative_co2_incl_luc_mt": 4042.1,
+   "share_fossil": 0.00011277,
+   "share_incl_luc": 0.00146905,
+   "share_population": 0.00084996
+  },
+  "French Polynesia": {
+   "iso": "PYF",
+   "cumulative_co2_mt": 35.0,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 1.894e-05,
+   "share_incl_luc": null,
+   "share_population": 3.457e-05
+  },
+  "Aruba": {
+   "iso": "ABW",
+   "cumulative_co2_mt": 75.8,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 4.098e-05,
+   "share_incl_luc": null,
+   "share_population": 1.326e-05
+  },
+  "Greece": {
+   "iso": "GRC",
+   "cumulative_co2_mt": 4296.8,
+   "cumulative_co2_incl_luc_mt": 5287.4,
+   "share_fossil": 0.00232368,
+   "share_incl_luc": 0.00192164,
+   "share_population": 0.0012325
+  },
+  "Kazakhstan": {
+   "iso": "KAZ",
+   "cumulative_co2_mt": 14937.4,
+   "cumulative_co2_incl_luc_mt": 18967.3,
+   "share_fossil": 0.00807812,
+   "share_incl_luc": 0.00689343,
+   "share_population": 0.00252596
+  },
+  "Antarctica": {
+   "iso": "ATA",
+   "cumulative_co2_mt": 0.2,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 8e-08,
+   "share_incl_luc": null,
+   "share_population": null
+  },
+  "Ecuador": {
+   "iso": "ECU",
+   "cumulative_co2_mt": 1391.2,
+   "cumulative_co2_incl_luc_mt": 5814.6,
+   "share_fossil": 0.00075235,
+   "share_incl_luc": 0.00211323,
+   "share_population": 0.00222457
+  },
+  "Kyrgyzstan": {
+   "iso": "KGZ",
+   "cumulative_co2_mt": 883.2,
+   "cumulative_co2_incl_luc_mt": 1245.7,
+   "share_fossil": 0.00047764,
+   "share_incl_luc": 0.00045275,
+   "share_population": 0.00088146
+  },
+  "Azerbaijan": {
+   "iso": "AZE",
+   "cumulative_co2_mt": 2637.1,
+   "cumulative_co2_incl_luc_mt": 3227.7,
+   "share_fossil": 0.00142616,
+   "share_incl_luc": 0.00117306,
+   "share_population": 0.00126792
+  },
+  "Congo": {
+   "iso": "COG",
+   "cumulative_co2_mt": 191.1,
+   "cumulative_co2_incl_luc_mt": 1882.0,
+   "share_fossil": 0.00010333,
+   "share_incl_luc": 0.00068398,
+   "share_population": 0.00077683
+  },
+  "Mongolia": {
+   "iso": "MNG",
+   "cumulative_co2_mt": 861.5,
+   "cumulative_co2_incl_luc_mt": 2076.2,
+   "share_fossil": 0.00046587,
+   "share_incl_luc": 0.00075456,
+   "share_population": 0.00042632
+  },
+  "Wallis and Futuna": {
+   "iso": "WLF",
+   "cumulative_co2_mt": 0.9,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 4.7e-07,
+   "share_incl_luc": null,
+   "share_population": 1.39e-06
+  },
+  "Rwanda": {
+   "iso": "RWA",
+   "cumulative_co2_mt": 37.3,
+   "cumulative_co2_incl_luc_mt": 410.8,
+   "share_fossil": 2.018e-05,
+   "share_incl_luc": 0.00014929,
+   "share_population": 0.00174877
+  },
+  "Cape Verde": {
+   "iso": "CPV",
+   "cumulative_co2_mt": 16.9,
+   "cumulative_co2_incl_luc_mt": 21.0,
+   "share_fossil": 9.15e-06,
+   "share_incl_luc": 7.65e-06,
+   "share_population": 6.438e-05
+  },
+  "Liberia": {
+   "iso": "LBR",
+   "cumulative_co2_mt": 52.5,
+   "cumulative_co2_incl_luc_mt": 1113.6,
+   "share_fossil": 2.84e-05,
+   "share_incl_luc": 0.00040471,
+   "share_population": 0.00068849
+  },
+  "Anguilla": {
+   "iso": "AIA",
+   "cumulative_co2_mt": 3.6,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 1.94e-06,
+   "share_incl_luc": null,
+   "share_population": 1.79e-06
+  },
+  "Poland": {
+   "iso": "POL",
+   "cumulative_co2_mt": 29043.9,
+   "cumulative_co2_incl_luc_mt": 29419.5,
+   "share_fossil": 0.01570685,
+   "share_incl_luc": 0.01069216,
+   "share_population": 0.00472737
+  },
+  "Namibia": {
+   "iso": "NAM",
+   "cumulative_co2_mt": 87.2,
+   "cumulative_co2_incl_luc_mt": 219.8,
+   "share_fossil": 4.716e-05,
+   "share_incl_luc": 7.99e-05,
+   "share_population": 0.00037169
+  },
+  "Uganda": {
+   "iso": "UGA",
+   "cumulative_co2_mt": 131.4,
+   "cumulative_co2_incl_luc_mt": 2339.3,
+   "share_fossil": 7.105e-05,
+   "share_incl_luc": 0.00085021,
+   "share_population": 0.00613504
+  },
+  "Iran": {
+   "iso": "IRN",
+   "cumulative_co2_mt": 21810.6,
+   "cumulative_co2_incl_luc_mt": 23454.7,
+   "share_fossil": 0.01179512,
+   "share_incl_luc": 0.00852433,
+   "share_population": 0.01123205
+  },
+  "Solomon Islands": {
+   "iso": "SLB",
+   "cumulative_co2_mt": 11.6,
+   "cumulative_co2_incl_luc_mt": 208.7,
+   "share_fossil": 6.28e-06,
+   "share_incl_luc": 7.584e-05,
+   "share_population": 0.00010049
+  },
+  "Costa Rica": {
+   "iso": "CRI",
+   "cumulative_co2_mt": 285.8,
+   "cumulative_co2_incl_luc_mt": 2485.7,
+   "share_fossil": 0.00015456,
+   "share_incl_luc": 0.0009034,
+   "share_population": 0.00062925
+  },
+  "Bolivia": {
+   "iso": "BOL",
+   "cumulative_co2_mt": 641.2,
+   "cumulative_co2_incl_luc_mt": 7596.0,
+   "share_fossil": 0.00034675,
+   "share_incl_luc": 0.00276067,
+   "share_population": 0.00152267
+  },
+  "South Sudan": {
+   "iso": "SSD",
+   "cumulative_co2_mt": 45.5,
+   "cumulative_co2_incl_luc_mt": 1656.5,
+   "share_fossil": 2.462e-05,
+   "share_incl_luc": 0.00060204,
+   "share_population": 0.00146502
+  },
+  "Japan": {
+   "iso": "JPN",
+   "cumulative_co2_mt": 69612.3,
+   "cumulative_co2_incl_luc_mt": 74886.6,
+   "share_fossil": 0.03764609,
+   "share_incl_luc": 0.02721662,
+   "share_population": 0.01518002
+  },
+  "Malta": {
+   "iso": "MLT",
+   "cumulative_co2_mt": 111.2,
+   "cumulative_co2_incl_luc_mt": 106.2,
+   "share_fossil": 6.015e-05,
+   "share_incl_luc": 3.858e-05,
+   "share_population": 6.619e-05
+  },
+  "Zimbabwe": {
+   "iso": "ZWE",
+   "cumulative_co2_mt": 832.9,
+   "cumulative_co2_incl_luc_mt": 2934.4,
+   "share_fossil": 0.00045044,
+   "share_incl_luc": 0.00106649,
+   "share_population": 0.00204044
+  },
+  "Belize": {
+   "iso": "BLZ",
+   "cumulative_co2_mt": 22.5,
+   "cumulative_co2_incl_luc_mt": 375.2,
+   "share_fossil": 1.218e-05,
+   "share_incl_luc": 0.00013638,
+   "share_population": 5.116e-05
+  },
+  "Madagascar": {
+   "iso": "MDG",
+   "cumulative_co2_mt": 112.7,
+   "cumulative_co2_incl_luc_mt": 5198.4,
+   "share_fossil": 6.092e-05,
+   "share_incl_luc": 0.00188928,
+   "share_population": 0.00392094
+  },
+  "Zambia": {
+   "iso": "ZMB",
+   "cumulative_co2_mt": 300.8,
+   "cumulative_co2_incl_luc_mt": 5011.3,
+   "share_fossil": 0.00016269,
+   "share_incl_luc": 0.00182131,
+   "share_population": 0.00261457
+  },
+  "Panama": {
+   "iso": "PAN",
+   "cumulative_co2_mt": 360.5,
+   "cumulative_co2_incl_luc_mt": 2478.9,
+   "share_fossil": 0.00019494,
+   "share_incl_luc": 0.00090091,
+   "share_population": 0.0005539
+  },
+  "Oman": {
+   "iso": "OMN",
+   "cumulative_co2_mt": 1673.4,
+   "cumulative_co2_incl_luc_mt": 1678.5,
+   "share_fossil": 0.00090494,
+   "share_incl_luc": 0.00061004,
+   "share_population": 0.00064785
+  },
+  "Ghana": {
+   "iso": "GHA",
+   "cumulative_co2_mt": 426.5,
+   "cumulative_co2_incl_luc_mt": 2687.9,
+   "share_fossil": 0.00023067,
+   "share_incl_luc": 0.00097688,
+   "share_population": 0.004223
+  },
+  "Estonia": {
+   "iso": "EST",
+   "cumulative_co2_mt": 1668.5,
+   "cumulative_co2_incl_luc_mt": 1800.0,
+   "share_fossil": 0.00090229,
+   "share_incl_luc": 0.00065419,
+   "share_population": 0.00016689
+  },
+  "Saint Lucia": {
+   "iso": "LCA",
+   "cumulative_co2_mt": 16.5,
+   "cumulative_co2_incl_luc_mt": 15.9,
+   "share_fossil": 8.9e-06,
+   "share_incl_luc": 5.76e-06,
+   "share_population": 2.205e-05
+  },
+  "Mauritania": {
+   "iso": "MRT",
+   "cumulative_co2_mt": 99.9,
+   "cumulative_co2_incl_luc_mt": 143.7,
+   "share_fossil": 5.401e-05,
+   "share_incl_luc": 5.221e-05,
+   "share_population": 0.0006341
+  },
+  "Bahrain": {
+   "iso": "BHR",
+   "cumulative_co2_mt": 1112.2,
+   "cumulative_co2_incl_luc_mt": 1112.2,
+   "share_fossil": 0.00060147,
+   "share_incl_luc": 0.00040422,
+   "share_population": 0.00019713
+  },
+  "Andorra": {
+   "iso": "AND",
+   "cumulative_co2_mt": 16.7,
+   "cumulative_co2_incl_luc_mt": 17.1,
+   "share_fossil": 9.01e-06,
+   "share_incl_luc": 6.23e-06,
+   "share_population": 1.005e-05
+  },
+  "Libya": {
+   "iso": "LBY",
+   "cumulative_co2_mt": 2489.9,
+   "cumulative_co2_incl_luc_mt": 2550.4,
+   "share_fossil": 0.00134652,
+   "share_incl_luc": 0.00092692,
+   "share_population": 0.00090539
+  },
+  "Armenia": {
+   "iso": "ARM",
+   "cumulative_co2_mt": 406.7,
+   "cumulative_co2_incl_luc_mt": 512.6,
+   "share_fossil": 0.00021994,
+   "share_incl_luc": 0.0001863,
+   "share_population": 0.00036478
+  },
+  "Vietnam": {
+   "iso": "VNM",
+   "cumulative_co2_mt": 5668.9,
+   "cumulative_co2_incl_luc_mt": 14823.6,
+   "share_fossil": 0.00306571,
+   "share_incl_luc": 0.00538746,
+   "share_population": 0.01238754
+  },
+  "British Virgin Islands": {
+   "iso": "VGB",
+   "cumulative_co2_mt": 6.3,
+   "cumulative_co2_incl_luc_mt": null,
+   "share_fossil": 3.39e-06,
+   "share_incl_luc": null,
+   "share_population": 4.84e-06
+  },
+  "Guatemala": {
+   "iso": "GTM",
+   "cumulative_co2_mt": 515.8,
+   "cumulative_co2_incl_luc_mt": 4514.2,
+   "share_fossil": 0.00027892,
+   "share_incl_luc": 0.00164064,
+   "share_population": 0.0022578
+  },
+  "Denmark": {
+   "iso": "DNK",
+   "cumulative_co2_mt": 4199.7,
+   "cumulative_co2_incl_luc_mt": 5573.9,
+   "share_fossil": 0.00227116,
+   "share_incl_luc": 0.00202578,
+   "share_population": 0.00073321
+  },
+  "Netherlands": {
+   "iso": "NLD",
+   "cumulative_co2_mt": 12261.7,
+   "cumulative_co2_incl_luc_mt": 13325.2,
+   "share_fossil": 0.00663109,
+   "share_incl_luc": 0.00484286,
+   "share_population": 0.00223601
+  },
+  "Bahamas": {
+   "iso": "BHS",
+   "cumulative_co2_mt": 180.6,
+   "cumulative_co2_incl_luc_mt": 182.8,
+   "share_fossil": 9.765e-05,
+   "share_incl_luc": 6.643e-05,
+   "share_population": 4.922e-05
+  },
+  "Czechia": {
+   "iso": "CZE",
+   "cumulative_co2_mt": 12331.8,
+   "cumulative_co2_incl_luc_mt": 12006.5,
+   "share_fossil": 0.00666899,
+   "share_incl_luc": 0.0043636,
+   "share_population": 0.0013169
+  },
+  "Latvia": {
+   "iso": "LVA",
+   "cumulative_co2_mt": 980.8,
+   "cumulative_co2_incl_luc_mt": 1839.0,
+   "share_fossil": 0.00053039,
+   "share_incl_luc": 0.00066836,
+   "share_population": 0.00022961
+  },
+  "Jordan": {
+   "iso": "JOR",
+   "cumulative_co2_mt": 793.4,
+   "cumulative_co2_incl_luc_mt": 857.6,
+   "share_fossil": 0.00042906,
+   "share_incl_luc": 0.00031169,
+   "share_population": 0.00141712
+  },
+  "Norway": {
+   "iso": "NOR",
+   "cumulative_co2_mt": 2787.3,
+   "cumulative_co2_incl_luc_mt": 3833.0,
+   "share_fossil": 0.00150736,
+   "share_incl_luc": 0.00139304,
+   "share_population": 0.00068405
+  },
+  "Hungary": {
+   "iso": "HUN",
+   "cumulative_co2_mt": 5183.9,
+   "cumulative_co2_incl_luc_mt": 5758.4,
+   "share_fossil": 0.00280343,
+   "share_incl_luc": 0.0020928,
+   "share_population": 0.00118691
+  },
+  "Burkina Faso": {
+   "iso": "BFA",
+   "cumulative_co2_mt": 95.8,
+   "cumulative_co2_incl_luc_mt": 1352.6,
+   "share_fossil": 5.18e-05,
+   "share_incl_luc": 0.00049159,
+   "share_population": 0.00288858
+  },
+  "Slovakia": {
+   "iso": "SVK",
+   "cumulative_co2_mt": 4028.3,
+   "cumulative_co2_incl_luc_mt": 4528.1,
+   "share_fossil": 0.0021785,
+   "share_incl_luc": 0.00164568,
+   "share_population": 0.00067548
+  },
+  "Australia": {
+   "iso": "AUS",
+   "cumulative_co2_mt": 20039.7,
+   "cumulative_co2_incl_luc_mt": 34012.7,
+   "share_fossil": 0.01083739,
+   "share_incl_luc": 0.01236151,
+   "share_population": 0.00327674
+  },
+  "Honduras": {
+   "iso": "HND",
+   "cumulative_co2_mt": 310.2,
+   "cumulative_co2_incl_luc_mt": 3583.1,
+   "share_fossil": 0.00016778,
+   "share_incl_luc": 0.00130223,
+   "share_population": 0.00132792
+  },
+  "Eritrea": {
+   "iso": "ERI",
+   "cumulative_co2_mt": 19.1,
+   "cumulative_co2_incl_luc_mt": 160.0,
+   "share_fossil": 1.033e-05,
+   "share_incl_luc": 5.816e-05,
+   "share_population": 0.00043369
+  },
+  "Tajikistan": {
+   "iso": "TJK",
+   "cumulative_co2_mt": 517.8,
+   "cumulative_co2_incl_luc_mt": 640.9,
+   "share_fossil": 0.00028002,
+   "share_incl_luc": 0.00023292,
+   "share_population": 0.00129912
+  },
+  "United States": {
+   "iso": "USA",
+   "cumulative_co2_mt": 434866.6,
+   "cumulative_co2_incl_luc_mt": 560542.0,
+   "share_fossil": 0.23517438,
+   "share_incl_luc": 0.20372202,
+   "share_population": 0.04237135
+  },
+  "Tanzania": {
+   "iso": "TZA",
+   "cumulative_co2_mt": 344.9,
+   "cumulative_co2_incl_luc_mt": 7593.5,
+   "share_fossil": 0.00018649,
+   "share_incl_luc": 0.00275978,
+   "share_population": 0.00840985
+  },
+  "Colombia": {
+   "iso": "COL",
+   "cumulative_co2_mt": 3802.0,
+   "cumulative_co2_incl_luc_mt": 24334.6,
+   "share_fossil": 0.00205613,
+   "share_incl_luc": 0.00884412,
+   "share_population": 0.00648724
+  },
+  "Cook Islands": {
+   "iso": "COK",
+   "cumulative_co2_mt": 2.7,
+   "cumulative_co2_incl_luc_mt": 2.7,
+   "share_fossil": 1.45e-06,
+   "share_incl_luc": 9.8e-07,
+   "share_population": 1.69e-06
+  },
+  "Marshall Islands": {
+   "iso": "MHL",
+   "cumulative_co2_mt": 4.0,
+   "cumulative_co2_incl_luc_mt": 4.0,
+   "share_fossil": 2.17e-06,
+   "share_incl_luc": 1.46e-06,
+   "share_population": 4.61e-06
+  }
+ }
+}

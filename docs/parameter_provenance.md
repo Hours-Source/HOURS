@@ -3,6 +3,12 @@
 Every parameter used by the EOH → TEH model, with its default value, units,
 and derivation rationale.
 
+> **Known allocation gap.** Collective responsibility shares sum to 0.975 (fossil
+> basis), not 1. The residual is international shipping (29.6 GtCO₂) and aviation
+> (16.3 GtCO₂) — 46 GtCO₂, 2.49% of the cumulative total — which belong to no
+> territory. Under a responsibility rule **nobody owes the drawdown for bunker
+> fuels**; the obligation is currently left unallocated. Sign-off item.
+
 ## The tag scheme
 
 The goal is that **every constant carries a provenance tag, and the CHOSEN set
@@ -321,7 +327,8 @@ read the tiers before citing.** Structural constants added to `data.py`:
 | `THERMAL_F_WMGHG_ERF` | 3.585 | W·m⁻² | measured (Tier A) | IGCC 2025a well-mixed GHG ERF (forward-looking basis as aerosol cooling declines). |
 | `THERMAL_DT_LO` | 2.0 | K | **CHOSEN** | The single most leveraged input in the thermal layer — it sets the overage, the drawdown job and the obligation. Adopted because it keeps results stable and sits inside the indeterminate band, **not** because it is assessed; may well be judged too high later, and every downward revision *enlarges* the obligation (1.5 K ≈ 1.5× the job). Assess in land extremes, convert by ÷1.48 (C6). |
 | `THERMAL_PROGRAMME_YEARS` | 40 | years | **CHOSEN** | Horizon over which the drawdown obligation is discharged. 40 yr keeps it inside a single lifetime of responsibility: the generation that incurred the debt does the work rather than willing it forward. Obligation scales as 1/horizon (30 yr = 1.33× the annual load). An **ethical** choice, not a technical one. |
-| `CDR_ALLOCATION_BASIS` | `"responsibility"` | — | **CHOSEN** | How the global job splits across collectives. Responsibility (cumulative emissions) over population, because a collective cannot burden others with the consequences of its own choices. Moves allocations by up to ~65× between collectives. Needs cumulative emissions from industrialization onward; falls back to population **and declares the fallback** when absent. |
+| `CDR_ALLOCATION_BASIS` | `"responsibility"` | — | **CHOSEN** | How the global job splits across collectives. Responsibility (cumulative emissions) over population, because a collective cannot burden others with the consequences of its own choices. Resolved 2026-08-05 against [`reference/data/cumulative_emissions.json`](../hours_eoh/reference/data/cumulative_emissions.json) (OWID / Global Carbon Budget, **1750–2024**, 215 collectives). Falls back to population **and declares the fallback** for an unknown collective. Effect: the US owes 4.8× its headcount share, Bangladesh 0.06× — ~80× per-person spread. |
+| `CDR_RESPONSIBILITY_BASIS` | `"incl_luc"` | — | **CHOSEN — sign-off** | Which cumulative measure weights responsibility. `incl_luc` (fossil + cement + land-use change) matches the physical target — the drawdown removes the whole atmospheric burden, and the forcing coefficient was fitted to a concentration record that already reflects land use. `fossil` has lower uncertainty but leaves ~33% unallocated. **Live equity question**: including land use roughly quintuples Brazil's share and cuts the UK's by a third, moving burden onto collectives that often converted land under external demand. Cannot yet be trade-adjusted — OWID consumption-based emissions begin only in 1990. |
 | `CDR_ENERGY_GJ_PER_TONNE` | 4.0 | GJ/tCO₂ | measured (Tier C) | DAC-order, recalled range 2–6. **Does not affect the EOH obligation at all** — the energy term cancels out of it (EOH = gross tonnes × labour-hours/tonne); it drives only the programme's own dissipation. |
 | `CDR_LABOR_HOURS_PER_TONNE` | 0.6 | h/tCO₂ | **CHOSEN (Tier D)** | The one number the obligation actually rests on. ~1 Mt/yr plant at ~300 staff × 2000 h. Together with the line above it *derives* ι_drawdown ≈ 6.7e9 J/EOH. resolves_by: operator staffing disclosures. Gate margin: the Trust gives way at 22.9 h/t, 38× this value. |
 | `CDR_GROSS_REMOVAL_FACTOR` | 1.8 | — | **CHOSEN (Tier D)** | Sink reversal: removing CO₂ lets ocean/land outgas back, so tonnage processed exceeds the concentration drop. Omitting it understates the obligation ~2× and biases the solvency gate toward passing. resolves_by: ESM CDR reversibility experiments. |

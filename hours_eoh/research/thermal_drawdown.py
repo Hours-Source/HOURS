@@ -56,11 +56,15 @@ scenarios/.
 
 from __future__ import annotations
 
+import json
 import math
+from functools import lru_cache
+from pathlib import Path
 from typing import TypedDict
 
 from hours_eoh.data import (
     CDR_ALLOCATION_BASIS,
+    CDR_RESPONSIBILITY_BASIS,
     CDR_ENERGY_GJ_PER_TONNE,
     CDR_GROSS_REMOVAL_FACTOR,
     CDR_LABOR_HOURS_PER_TONNE,
@@ -314,12 +318,49 @@ def drawdown_power(chain: DrawdownChain, programme_years: float) -> dict:
 # How the global job is split across collectives
 # ---------------------------------------------------------------------------
 
+@lru_cache(maxsize=1)
+def load_cumulative_emissions() -> dict:
+    """The shipped cumulative-CO2 table (reference/data/cumulative_emissions.json).
+
+    OWID / Global Carbon Budget, 1750–2024, 215 collectives. Read `_basis_choice`
+    and `_truncation_warning` before citing any share."""
+    path = Path(__file__).resolve().parents[1] / "reference" / "data" / "cumulative_emissions.json"
+    with path.open(encoding="utf-8") as fh:
+        data: dict = json.load(fh)
+    return data
+
+
+def responsibility_share(collective: str, basis: str = CDR_RESPONSIBILITY_BASIS) -> float | None:
+    """
+    A collective's share of cumulative CO₂ — the responsibility allocation weight.
+
+    `basis` selects "incl_luc" (default: fossil + cement + land-use change, the
+    whole atmospheric burden the drawdown must remove) or "fossil" (fossil +
+    cement only, lower uncertainty but leaving ~33% of the burden unallocated).
+    Which is right is a live equity question, not a technical one — see the
+    shipped table's `_basis_choice`.
+
+    Returns None for an unknown collective rather than guessing, so a caller
+    falls back explicitly instead of silently receiving a zero share.
+
+    units: dimensionless share ∈ [0, 1].
+    """
+    if basis not in ("fossil", "incl_luc"):
+        raise ValueError(f"unknown responsibility basis: {basis!r}")
+    rec = load_cumulative_emissions()["collectives"].get(collective)
+    if rec is None:
+        return None
+    return rec[f"share_{'incl_luc' if basis == 'incl_luc' else 'fossil'}"]
+
+
 def allocation_share(
     population: float,
     world_population: float,
     cumulative_emissions_t: float | None = None,
     world_cumulative_emissions_t: float | None = None,
     basis: str = CDR_ALLOCATION_BASIS,
+    collective: str | None = None,
+    responsibility_basis: str = CDR_RESPONSIBILITY_BASIS,
 ) -> dict:
     """
     A collective's share of the global drawdown job.
@@ -337,13 +378,16 @@ def allocation_share(
     the choice is not a detail; it is most of the answer for anyone who is not
     near the world average.
 
-    HONEST DATA GAP. Responsibility weighting needs cumulative emissions from the
-    onset of industrialization. When they are not supplied this falls back to
-    population and SAYS SO in `basis_used` and `caveat` — it does not quietly
-    substitute one rule for the other. Note also that any cumulative series
-    truncated at a recent start year under-charges early industrializers, which
-    is precisely the population the rule exists to charge; a truncated basis is
-    therefore worse than useless unless its start year is reported with it.
+RESOLVED 2026-08-05. Pass `collective` and the share is looked up in the shipped
+    1750–2024 table (reference/data/cumulative_emissions.json, OWID / Global
+    Carbon Budget). Explicit emissions figures still override it. Without either,
+    this falls back to population and SAYS SO in `basis_used` and `caveat` — it
+    does not quietly substitute one rule for the other.
+
+    Truncation is not a small error: measured against a 1965+ fossil-energy proxy,
+    the UK is under-charged 1.70× and Germany 1.31×, while Singapore is
+    over-charged 4.1×. A cumulative basis that does not reach 1750 mis-ranks
+    exactly the collectives the rule exists to charge.
 
     units: dimensionless share ∈ [0, 1].
 
@@ -359,9 +403,20 @@ def allocation_share(
         raise ValueError(f"unknown allocation basis: {basis!r}")
 
     pop_share = min(1.0, population / world_population)
+
+    # A named collective resolves against the shipped 1750–2024 table, so callers
+    # need not carry emissions figures around.
+    if basis == "responsibility" and collective is not None and cumulative_emissions_t is None:
+        share = responsibility_share(collective, responsibility_basis)
+        if share is not None:
+            return {"share": share, "basis_used": "responsibility",
+                    "requested_basis": basis, "caveat": None,
+                    "responsibility_basis": responsibility_basis}
+
     if basis == "population":
         return {"share": pop_share, "basis_used": "population",
-                "requested_basis": basis, "caveat": None}
+                "requested_basis": basis, "caveat": None,
+                "responsibility_basis": None}
 
     if (cumulative_emissions_t is None
             or world_cumulative_emissions_t is None
@@ -373,10 +428,12 @@ def allocation_share(
             "caveat": ("responsibility weighting requested but cumulative emissions "
                        "were not supplied — fell back to population share, which "
                        "under-charges high-emitting collectives"),
+            "responsibility_basis": None,
         }
     return {
         "share": min(1.0, cumulative_emissions_t / world_cumulative_emissions_t),
         "basis_used": "responsibility",
         "requested_basis": basis,
         "caveat": None,
+        "responsibility_basis": responsibility_basis,
     }

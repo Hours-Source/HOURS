@@ -226,3 +226,95 @@ def test_faster_programmes_are_thermally_worse():
 def test_drawdown_power_rejects_nonpositive_horizon():
     with pytest.raises(ValueError):
         drawdown_power(drawdown_job(2.0), 0.0)
+
+
+# ---------------------------------------------------------------------------
+# responsibility allocation — the shipped 1750-2024 table
+# ---------------------------------------------------------------------------
+
+from hours_eoh.data import CDR_RESPONSIBILITY_BASIS
+from hours_eoh.research.thermal_drawdown import (
+    allocation_share,
+    load_cumulative_emissions,
+    responsibility_share,
+)
+
+
+def test_table_covers_the_full_industrial_record():
+    """Truncation is the failure mode this table exists to prevent."""
+    d = load_cumulative_emissions()
+    assert "1750-2024" in d["_tier"]
+    assert len(d["collectives"]) > 150
+    assert d["world_cumulative_co2_gt"] == pytest.approx(1849, rel=0.01)
+    assert d["world_cumulative_co2_incl_luc_gt"] == pytest.approx(2752, rel=0.01)
+
+
+def test_shares_do_not_sum_to_one_and_the_gap_is_named():
+    """2.49% of cumulative fossil CO2 is international shipping and aviation,
+    which belong to no territory — so under a responsibility rule nobody owes the
+    drawdown for it. Asserted rather than tolerated, because a future refresh
+    that quietly closes or widens this gap should fail loudly."""
+    d = load_cumulative_emissions()
+    c = d["collectives"]
+    fossil = sum(r["share_fossil"] for r in c.values() if r["share_fossil"] is not None)
+    luc = sum(r["share_incl_luc"] for r in c.values() if r["share_incl_luc"] is not None)
+    assert fossil == pytest.approx(0.975, abs=0.005)
+    assert luc == pytest.approx(0.998, abs=0.005)
+    assert d["_unattributed"]["share_fossil_unattributed"] == pytest.approx(1 - fossil, abs=0.002)
+    assert "SIGN-OFF" in " ".join(d["_unattributed"])
+
+
+def test_land_use_basis_materially_reallocates():
+    """Including land-use change is not a rounding adjustment — it roughly
+    quintuples Brazil's share and cuts the UK's by a third. Which basis is right
+    is an equity question, not a technical one."""
+    assert responsibility_share("Brazil", "incl_luc") > 4 * responsibility_share("Brazil", "fossil")
+    assert responsibility_share("United Kingdom", "incl_luc") < responsibility_share("United Kingdom", "fossil")
+
+
+def test_default_basis_is_the_whole_atmospheric_burden():
+    assert CDR_RESPONSIBILITY_BASIS == "incl_luc"
+    assert responsibility_share("Brazil") == responsibility_share("Brazil", "incl_luc")
+
+
+def test_unknown_collective_returns_none_not_zero():
+    """A zero share would silently excuse a collective from its obligation."""
+    assert responsibility_share("Atlantis") is None
+
+
+def test_rejects_unknown_basis():
+    with pytest.raises(ValueError):
+        responsibility_share("Brazil", "vibes")
+
+
+def test_named_collective_resolves_without_carrying_figures():
+    a = allocation_share(1e6, 8.16e9, collective="United States")
+    assert a["basis_used"] == "responsibility"
+    assert a["responsibility_basis"] == "incl_luc"
+    assert a["caveat"] is None
+    assert a["share"] == pytest.approx(0.2037, rel=0.01)
+
+
+def test_explicit_figures_override_the_table():
+    a = allocation_share(1e6, 8.16e9, cumulative_emissions_t=1.0,
+                         world_cumulative_emissions_t=4.0, collective="United States")
+    assert a["share"] == pytest.approx(0.25)
+
+
+def test_unknown_name_falls_back_and_declares_it():
+    a = allocation_share(1e6, 8.16e9, collective="Atlantis")
+    assert a["basis_used"] == "population"
+    assert "under-charges" in a["caveat"]
+
+
+def test_responsibility_departs_sharply_from_headcount():
+    """The rule's whole point: the US owes ~5x its headcount share and
+    Bangladesh ~0.06x, a spread of roughly 80x per person."""
+    us = responsibility_share("United States")
+    bd = responsibility_share("Bangladesh")
+    tbl = load_cumulative_emissions()["collectives"]
+    us_pc = us / tbl["United States"]["share_population"]
+    bd_pc = bd / tbl["Bangladesh"]["share_population"]
+    assert us_pc > 4.0
+    assert bd_pc < 0.1
+    assert us_pc / bd_pc > 50.0

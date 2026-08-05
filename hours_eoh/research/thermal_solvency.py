@@ -140,6 +140,7 @@ def thermal_flow_eoh(
     cumulative_emissions_t: float | None = None,
     world_cumulative_emissions_t: float | None = None,
     basis: str = CDR_ALLOCATION_BASIS,
+    collective: str | None = None,
 ) -> float:
     """
     The annual EOH the drawdown obligation adds to the ecological domain (h/yr).
@@ -149,8 +150,9 @@ def thermal_flow_eoh(
 
     The share follows `allocation_share`: responsibility (cumulative emissions)
     by default, because a collective cannot burden others with the consequences
-    of choices it made. Without emissions data it falls back to population and
-    says so — see the caveat that function returns.
+    of choices it made. Pass `collective` to resolve against the shipped
+    1750–2024 table; without it, or for an unknown name, this falls back to
+    population and says so rather than substituting one rule for the other.
 
     units: hours/year. ε-behavior: essentially flat — the job moves under 10%
     across the whole arc, because Φ is ~1% of the forcing reduction. The debt is
@@ -170,6 +172,7 @@ def thermal_flow_eoh(
     alloc = allocation_share(
         population, world_population,
         cumulative_emissions_t, world_cumulative_emissions_t, basis,
+        collective=collective,
     )
     share = alloc["share"]
     job = drawdown_job(
