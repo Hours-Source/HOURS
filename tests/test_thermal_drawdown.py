@@ -249,19 +249,51 @@ def test_table_covers_the_full_industrial_record():
     assert d["world_cumulative_co2_incl_luc_gt"] == pytest.approx(2752, rel=0.01)
 
 
-def test_shares_do_not_sum_to_one_and_the_gap_is_named():
+def test_raw_shares_leave_a_named_gap():
     """2.49% of cumulative fossil CO2 is international shipping and aviation,
-    which belong to no territory — so under a responsibility rule nobody owes the
-    drawdown for it. Asserted rather than tolerated, because a future refresh
-    that quietly closes or widens this gap should fail loudly."""
+    which belong to no territory. Asserted rather than tolerated, so a future
+    data refresh that quietly moves the gap fails loudly."""
     d = load_cumulative_emissions()
     c = d["collectives"]
     fossil = sum(r["share_fossil"] for r in c.values() if r["share_fossil"] is not None)
     luc = sum(r["share_incl_luc"] for r in c.values() if r["share_incl_luc"] is not None)
     assert fossil == pytest.approx(0.975, abs=0.005)
     assert luc == pytest.approx(0.998, abs=0.005)
-    assert d["_unattributed"]["share_fossil_unattributed"] == pytest.approx(1 - fossil, abs=0.002)
-    assert "SIGN-OFF" in " ".join(d["_unattributed"])
+    assert d["_unattributed"]["share_fossil_unattributed_raw"] == pytest.approx(1 - fossil, abs=0.002)
+
+
+def test_pro_rata_leaves_no_part_of_the_obligation_unowned():
+    """The default policy: redistribute the territory-less emissions across
+    collectives so the shares sum to 1. We all inherited the world as it is."""
+    from hours_eoh.data import CDR_UNATTRIBUTED_POLICY
+    assert CDR_UNATTRIBUTED_POLICY == "pro_rata"
+    c = load_cumulative_emissions()["collectives"]
+    for basis in ("fossil", "incl_luc"):
+        total = sum(s for s in (responsibility_share(k, basis) for k in c) if s is not None)
+        assert total == pytest.approx(1.0, abs=1e-6), basis
+
+
+def test_unallocated_policy_returns_the_raw_share():
+    raw = responsibility_share("United States", "fossil", "unallocated")
+    pro = responsibility_share("United States", "fossil", "pro_rata")
+    assert raw == pytest.approx(0.23517, rel=0.01)
+    assert pro > raw                       # redistribution adds, never subtracts
+    assert pro == pytest.approx(0.24118, rel=0.01)
+
+
+def test_rejects_unknown_unattributed_policy():
+    with pytest.raises(ValueError):
+        responsibility_share("Brazil", unattributed="ignore_it")
+
+
+def test_doctrine_ships_with_the_data():
+    """The reasoning travels with the numbers — a future reader needs to know the
+    line was drawn deliberately, not by accident of what data existed."""
+    d = load_cumulative_emissions()
+    assert "STARTING POINT" in d["_doctrine"]
+    assert "the argument, recorded" in d["_basis_choice"]
+    assert "DECIDED 2026-08-05" in d["_unattributed"]
+    assert "DECIDED 2026-08-05" in d["_basis_choice"]
 
 
 def test_land_use_basis_materially_reallocates():
@@ -292,7 +324,7 @@ def test_named_collective_resolves_without_carrying_figures():
     assert a["basis_used"] == "responsibility"
     assert a["responsibility_basis"] == "incl_luc"
     assert a["caveat"] is None
-    assert a["share"] == pytest.approx(0.2037, rel=0.01)
+    assert a["share"] == pytest.approx(0.2041, rel=0.01)   # pro-rata normalised
 
 
 def test_explicit_figures_override_the_table():

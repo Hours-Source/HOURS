@@ -896,6 +896,19 @@ CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure wei
                                        # yet trade-adjust — OWID consumption-based emissions
                                        # begin only in 1990, far too short for a cumulative
                                        # measure. Sign-off item.
+CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging to no
+                                       # territory — international shipping and aviation,
+                                       # 46 GtCO₂ / 2.49% of the cumulative fossil total.
+                                       # "pro_rata" (default): redistribute across
+                                       # collectives in proportion to their existing shares,
+                                       # so shares sum to 1 and no part of the obligation is
+                                       # left without a bearer. We all inherited the world as
+                                       # it is. "unallocated": leave the gap open, which
+                                       # means the commons silently absorbs it.
+                                       # resolves_by: consumption-based allocation, once
+                                       # trade data supports it — OWID's begins in 1990, and
+                                       # 1990-forward is where the framework will start when
+                                       # it does. CHOSEN.
 CDR_LABOR_HOURS_PER_TONNE: float = 0.6 # Labor-hours per tonne removed. Tier D — a ~1 Mt/yr plant
                                        # at ~300 staff × 2000 h. resolves_by: operator staffing
                                        # disclosures. Together with the line above this DERIVES

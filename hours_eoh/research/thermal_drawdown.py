@@ -65,6 +65,7 @@ from typing import TypedDict
 from hours_eoh.data import (
     CDR_ALLOCATION_BASIS,
     CDR_RESPONSIBILITY_BASIS,
+    CDR_UNATTRIBUTED_POLICY,
     CDR_ENERGY_GJ_PER_TONNE,
     CDR_GROSS_REMOVAL_FACTOR,
     CDR_LABOR_HOURS_PER_TONNE,
@@ -330,27 +331,54 @@ def load_cumulative_emissions() -> dict:
     return data
 
 
-def responsibility_share(collective: str, basis: str = CDR_RESPONSIBILITY_BASIS) -> float | None:
+@lru_cache(maxsize=4)
+def _attributed_total(basis: str) -> float:
+    key = f"share_{basis}"
+    return sum(r[key] for r in load_cumulative_emissions()["collectives"].values()
+               if r[key] is not None)
+
+
+def responsibility_share(
+    collective: str,
+    basis: str = CDR_RESPONSIBILITY_BASIS,
+    unattributed: str = CDR_UNATTRIBUTED_POLICY,
+) -> float | None:
     """
     A collective's share of cumulative CO₂ — the responsibility allocation weight.
 
     `basis` selects "incl_luc" (default: fossil + cement + land-use change, the
     whole atmospheric burden the drawdown must remove) or "fossil" (fossil +
     cement only, lower uncertainty but leaving ~33% of the burden unallocated).
-    Which is right is a live equity question, not a technical one — see the
-    shipped table's `_basis_choice`.
+
+    `unattributed` decides what happens to emissions belonging to no territory —
+    international shipping and aviation, 46 GtCO₂ or 2.49% of the cumulative
+    fossil total. Under "pro_rata" (default) they are redistributed in proportion
+    to existing shares, so shares sum to 1 and every part of the obligation has a
+    bearer. Under "unallocated" the raw shares are returned and the commons
+    silently absorbs the remainder.
 
     Returns None for an unknown collective rather than guessing, so a caller
     falls back explicitly instead of silently receiving a zero share.
 
     units: dimensionless share ∈ [0, 1].
+
+    Raises:
+        ValueError: on an unknown basis or unattributed policy.
     """
     if basis not in ("fossil", "incl_luc"):
         raise ValueError(f"unknown responsibility basis: {basis!r}")
+    if unattributed not in ("pro_rata", "unallocated"):
+        raise ValueError(f"unknown unattributed policy: {unattributed!r}")
     rec = load_cumulative_emissions()["collectives"].get(collective)
     if rec is None:
         return None
-    return rec[f"share_{'incl_luc' if basis == 'incl_luc' else 'fossil'}"]
+    raw = rec[f"share_{basis}"]
+    if raw is None:
+        return None
+    if unattributed == "unallocated":
+        return raw
+    total = _attributed_total(basis)
+    return raw / total if total > 0.0 else raw
 
 
 def allocation_share(
@@ -361,6 +389,7 @@ def allocation_share(
     basis: str = CDR_ALLOCATION_BASIS,
     collective: str | None = None,
     responsibility_basis: str = CDR_RESPONSIBILITY_BASIS,
+    unattributed: str = CDR_UNATTRIBUTED_POLICY,
 ) -> dict:
     """
     A collective's share of the global drawdown job.
@@ -378,7 +407,18 @@ def allocation_share(
     the choice is not a detail; it is most of the answer for anyone who is not
     near the world average.
 
-RESOLVED 2026-08-05. Pass `collective` and the share is looked up in the shipped
+DOCTRINE (2026-08-05). The framework is built to work going forward, not to be a
+    complete record of the past. Records are biased toward whoever kept
+    documentation, so the more history an allocation demands, the more it
+    privileges the well-documented; a line has to be drawn or there is no end to
+    how far back one goes. Looking back sets a starting point, not a verdict.
+    That is why emissions belonging to no territory are redistributed rather than
+    left unowned, and why land converted inside a collective counts as that
+    collective's regardless of the demand that motivated it — the world we
+    inherited is the world as it is. Both are arguments worth having in a live
+    implementation; neither is resolved by the model.
+
+    RESOLVED 2026-08-05. Pass `collective` and the share is looked up in the shipped
     1750–2024 table (reference/data/cumulative_emissions.json, OWID / Global
     Carbon Budget). Explicit emissions figures still override it. Without either,
     this falls back to population and SAYS SO in `basis_used` and `caveat` — it
@@ -407,7 +447,7 @@ RESOLVED 2026-08-05. Pass `collective` and the share is looked up in the shipped
     # A named collective resolves against the shipped 1750–2024 table, so callers
     # need not carry emissions figures around.
     if basis == "responsibility" and collective is not None and cumulative_emissions_t is None:
-        share = responsibility_share(collective, responsibility_basis)
+        share = responsibility_share(collective, responsibility_basis, unattributed)
         if share is not None:
             return {"share": share, "basis_used": "responsibility",
                     "requested_basis": basis, "caveat": None,

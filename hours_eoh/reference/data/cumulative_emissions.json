@@ -6,14 +6,15 @@
  "_basis_choice": {
   "fossil": "cumulative_co2 \u2014 fossil fuels + cement. Lower uncertainty, but leaves ~33% of the atmospheric burden unallocated.",
   "incl_luc": "cumulative_co2_including_luc \u2014 adds land-use change. DEFAULT: it matches the physical target, since the drawdown must remove the whole atmospheric CO2 burden and the forcing coefficient was fitted to a concentration record that already reflects land-use emissions.",
-  "OPEN \u2014 SIGN-OFF": "Including land use is the technically coherent basis but a live equity question: it moves substantial burden onto collectives that were often converting land under external demand, and LUC estimates carry much larger uncertainty than fossil. The framework cannot yet trade-adjust \u2014 OWID consumption-based emissions begin only in 1990, far too short for a cumulative measure."
+  "DECIDED 2026-08-05": "KEEP incl_luc. Land converted within a collective is land that collective converted, whatever demand motivated it. Whether external demand should shift that burden is a real argument, but it is one for live implementations to settle \u2014 it is recorded here, not resolved by the model.",
+  "the argument, recorded": "It moves substantial burden onto collectives that were often converting land under external demand, and LUC estimates carry much larger uncertainty than fossil. The framework cannot yet trade-adjust \u2014 OWID consumption-based emissions begin only in 1990, far too short for a cumulative measure."
  },
  "_truncation_warning": "A series truncated at a recent start year under-charges early industrializers, precisely the collectives the rule exists to charge. Measured against a 1965+ fossil-energy proxy: UK under-charged 1.70x, Germany 1.31x, Russia 1.16x, while Singapore was over-charged 4.1x and Qatar 1.70x. Do not use a truncated basis.",
  "_unattributed": {
-  "note": "Collective shares sum to 0.975 (fossil) and 0.998 (incl. land use), NOT to 1. The residual is international shipping (29.6 GtCO2) and aviation (16.3 GtCO2) \u2014 46 GtCO2, 2.49% of the cumulative fossil total \u2014 which OWID reports separately because they belong to no territory.",
-  "OPEN \u2014 SIGN-OFF": "Under a responsibility rule nobody owes the drawdown for bunker fuels. Three options: leave it unallocated (the commons absorbs it), redistribute pro-rata to responsibility shares (charges everyone for transport they may not have used), or allocate by consumption (needs trade data the framework does not have before 1990). Currently UNALLOCATED \u2014 shares are used as-is, so 2.5% of the obligation has no bearer.",
-  "share_fossil_unattributed": 0.0249,
-  "share_incl_luc_unattributed": 0.0019
+  "note": "Raw collective shares sum to 0.975 (fossil) and 0.998 (incl. land use), NOT to 1. The residual is international shipping (29.6 GtCO2) and aviation (16.3 GtCO2) \u2014 46 GtCO2, 2.49% of the cumulative fossil total \u2014 which OWID reports separately because they belong to no territory.",
+  "DECIDED 2026-08-05": "REDISTRIBUTE PRO-RATA (CDR_UNATTRIBUTED_POLICY = 'pro_rata'). Shares are normalised so they sum to 1 and no part of the obligation is left without a bearer. We all inherited the world as it is. Consumption-based allocation supersedes this once trade data supports it; OWID's begins in 1990, and 1990-forward is where the framework will start when it does.",
+  "share_fossil_unattributed_raw": 0.0249,
+  "share_incl_luc_unattributed_raw": 0.0019
  },
  "world_cumulative_co2_gt": 1849.1,
  "world_cumulative_co2_incl_luc_gt": 2751.5,
@@ -1738,5 +1739,6 @@
    "share_incl_luc": 1.46e-06,
    "share_population": 4.61e-06
   }
- }
+ },
+ "_doctrine": "The framework is built to work going forward, not to be a complete record of the past. An exhaustive backward accounting is impossible and self-defeating: records are biased toward whoever kept documentation, so the more history you demand, the more you privilege the well-documented. A line has to be drawn somewhere or there is no end to how far back one goes. Looking back sets a STARTING POINT, not a verdict. Pick a defensible line, allocate what is known, move forward \u2014 that begins solving and preventing, which a perfect ledger of blame never does."
 }
