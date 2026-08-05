@@ -840,6 +840,13 @@ THERMAL_F_ANTHRO_ERF: float = 3.104    # W·m⁻² anthropogenic ERF alone (incl
                                        # the REMOVABLE forcing, hence the honest F3 basis. Tier A.
 THERMAL_F_WMGHG_ERF: float = 3.585     # W·m⁻² well-mixed GHG ERF alone (the forward-looking basis as
                                        # aerosol cooling declines). IGCC 2025a `wmghg`. Tier A.
+THERMAL_F_NATURAL_ERF: float = 0.262   # W·m⁻² solar + volcanic ERF at 2025, IGCC 2025a `natural`.
+                                       # Tier A. Consumes budget (C4) but is NOT removable by labor —
+                                       # so it is the floor on achievable forcing, and the wedge
+                                       # between the budget basis and the F3 gain basis (§10.1).
+THERMAL_GMST_OBSERVED: float = 1.23    # K observed GMST anomaly, 2015–2024 mean (IGCC 2025a). Tier A.
+                                       # Paired with the committed F/λ to expose the pipeline: the
+                                       # warming already bought and not yet delivered (§10.3).
 THERMAL_TXX_PER_GMST: float = 1.48     # dTXx/dGMST — land extreme amplification (C6). Measured this
                                        # session: OLS on the ERA5/Berkeley/HadEX3 mean TXx series vs
                                        # GMST, 1950–2025, n=76, slope 1.483. Per-dataset spread

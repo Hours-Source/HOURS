@@ -39,6 +39,7 @@ from typing import TypedDict
 
 from hours_eoh.core.civilization import machine_eoh_from_capital
 from hours_eoh.data import (
+    CAPITAL_MACHINE_PROFILES,
     CAPITAL_THERMAL_PROFILES,
     SECONDS_PER_YEAR,
     THERMAL_GRID_KAPPA_DEFAULT,
@@ -189,3 +190,141 @@ def capital_thermal_ceiling(
         capital_desc, population, land_m2, grid_kappa, delta_t_lo, basis,
     )
     return measured_thermal_ceiling(st["utilization"], epsilon_current)
+
+
+# ---------------------------------------------------------------------------
+# The census twin — one physical survey, two floors
+# ---------------------------------------------------------------------------
+
+class ThermalFloor(TypedDict):
+    phi_operational_w: float      # running power draw × κ (W)
+    phi_embodied_w: float         # embodied energy amortized over life × κ (W)
+    phi_total_w: float            # the dissipation floor (W)
+    grid_kappa: float
+    coverage: float               # share of counted assets carrying thermal fields
+    unpriced_buckets: list[int]   # indices contributing 0 for want of thermal data
+    by_bucket: list[dict]
+
+
+def infrastructure_thermal_floor(
+    asset_census: list[dict],
+    grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
+) -> ThermalFloor:
+    """
+    The dissipation floor Φ (W) from the SAME physical condition census that
+    yields the labour floor — core.eoh_generation.infrastructure_statutory_floor.
+
+    Governing equation (per bucket, then summed):
+
+        Φ_bucket = count · teh_per_unit
+                   · [ condition · power_intensity
+                       + embodied_energy / (design_life · Δt_s) ] · κ̄_grid
+
+    This is `machine_dissipation_from_capital`'s per-type equation evaluated at
+    census granularity: `count · teh_per_unit` supplies the TEH that the per-type
+    route reads from the tier tables. Deliberately symmetric with the hours floor
+    — same argument, same shape, watts instead of hours — so the pair reviews as
+    one idea rather than two.
+
+    Why it matters: the census is the item with an external deadline. A survey
+    specified without `type`/`teh_per_unit`/`condition` can still produce the
+    labour floor but can never produce this one without re-surveying, and it is
+    the census — not national energy statistics — that makes F11's per-collective
+    utilization defensible from a collective's own inventory.
+
+    COVERAGE, NOT SILENT ZEROS. A bucket without usable thermal fields
+    contributes nothing and is listed in `unpriced_buckets`; `coverage` is the
+    share of counted assets that were actually priced. A thermal floor at 40%
+    coverage is a different claim from one at 100%, and the caller is told which
+    it holds. Reading a low-coverage total as a real floor understates Φ.
+
+    Defaults are conservative where the census is silent: missing `condition`
+    reads as 1.0 (full utilization → maximum operational draw), and missing
+    `design_life_years` falls back to the type's CAPITAL_MACHINE_PROFILES life.
+
+    units: watts. ε-behavior: none — like its hours twin this is a property of
+    what is built and its condition, not of the automation level. ε enters when
+    Φ is compared against an allocation (collective_thermal_from_capital), not
+    here.
+
+    Worked example (2,813 poor bridges, 40,000 TEH each, condition 0.35,
+    transportation profile at 3.0 W/TEH and 90 MJ/TEH over 40 y, κ = 0.93):
+        operational = 2813 · 40000 · 0.35 · 3.0          = 118.1 MW
+        embodied    = 2813 · 40000 · 9.0e7 / (40 · Δt_s) =   8.0 MW
+        Φ           = (118.1 + 8.0) · 0.93               = 117.3 MW
+
+    Args:
+        asset_census: buckets as documented on infrastructure_statutory_floor.
+            Thermally priced iff `type` is a CAPITAL_THERMAL_PROFILES key and
+            `teh_per_unit` is positive.
+        grid_kappa: κ̄ of the grid serving the assets ∈ [0, 1]; 1 = fully
+            stock-liberating. A collective property, not a per-asset one.
+
+    Returns:
+        ThermalFloor.
+
+    Raises:
+        ValueError: if grid_kappa is outside [0, 1], or a bucket has a negative
+            count or negative thermal quantity.
+    """
+    if not 0.0 <= grid_kappa <= 1.0:
+        raise ValueError(f"grid_kappa must be in [0, 1], got {grid_kappa}")
+
+    op_total = 0.0
+    emb_total = 0.0
+    counted = 0.0
+    priced = 0.0
+    unpriced: list[int] = []
+    by_bucket: list[dict] = []
+
+    for i, bucket in enumerate(asset_census):
+        count = float(bucket.get("count", 0.0))
+        if count < 0.0:
+            raise ValueError(f"census bucket {i} has negative count: {bucket!r}")
+        counted += count
+
+        raw_type = bucket.get("type")
+        type_name = str(raw_type) if raw_type is not None else ""
+        teh_per_unit = float(bucket.get("teh_per_unit", 0.0) or 0.0)
+        profile = CAPITAL_THERMAL_PROFILES.get(type_name) if type_name else None
+        if profile is None or teh_per_unit <= 0.0:
+            unpriced.append(i)
+            by_bucket.append({"index": i, "priced": False, "phi_w": 0.0})
+            continue
+        if teh_per_unit < 0.0:
+            raise ValueError(f"census bucket {i} has negative teh_per_unit: {bucket!r}")
+
+        condition = float(bucket.get("condition", 1.0))
+        design_life = float(
+            bucket.get("design_life_years")
+            or CAPITAL_MACHINE_PROFILES.get(type_name, {}).get("design_life", 1.0)
+        )
+        if condition < 0.0 or design_life <= 0.0:
+            raise ValueError(
+                f"census bucket {i} needs condition ≥ 0 and design_life > 0: {bucket!r}"
+            )
+
+        teh = count * teh_per_unit
+        op = teh * condition * profile["power_intensity_w_per_teh"]
+        emb = teh * profile["embodied_energy_j_per_teh"] / (design_life * SECONDS_PER_YEAR)
+        op_total += op
+        emb_total += emb
+        priced += count
+        by_bucket.append({
+            "index": i,
+            "priced": True,
+            "type": type_name,
+            "operational_w": op * grid_kappa,
+            "embodied_w": emb * grid_kappa,
+            "phi_w": (op + emb) * grid_kappa,
+        })
+
+    return ThermalFloor(
+        phi_operational_w=op_total * grid_kappa,
+        phi_embodied_w=emb_total * grid_kappa,
+        phi_total_w=(op_total + emb_total) * grid_kappa,
+        grid_kappa=grid_kappa,
+        coverage=(priced / counted if counted > 0.0 else 0.0),
+        unpriced_buckets=unpriced,
+        by_bucket=by_bucket,
+    )

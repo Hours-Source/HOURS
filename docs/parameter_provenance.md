@@ -319,6 +319,8 @@ read the tiers before citing.** Structural constants added to `data.py`:
 | `THERMAL_F_NET_ERF_P05` / `_P95` | 2.602 / 4.102 | W·m⁻² | measured (Tier A) | IGCC 2025a p05/p95. The band is what makes the determinacy map computable. |
 | `THERMAL_F_ANTHRO_ERF` | 3.104 | W·m⁻² | measured (Tier A) | IGCC 2025a anthropogenic ERF — the **removable** forcing, hence the defensible F3 gain basis (sign-off item). |
 | `THERMAL_F_WMGHG_ERF` | 3.585 | W·m⁻² | measured (Tier A) | IGCC 2025a well-mixed GHG ERF (forward-looking basis as aerosol cooling declines). |
+| `THERMAL_F_NATURAL_ERF` | 0.262 | W·m⁻² | measured (Tier A) | IGCC 2025a solar + volcanic at 2025. Consumes budget per C4 but is **not removable by labor**, so it is the floor on achievable forcing and the wedge between the budget basis and the F3 gain basis. |
+| `THERMAL_GMST_OBSERVED` | 1.23 | K | measured (Tier A) | IGCC 2025a GMST anomaly, 2015–2024 mean. Paired with the committed F/λ to expose the pipeline — the warming already bought and not yet delivered. |
 | `THERMAL_TXX_PER_GMST` | 1.48 | K·K⁻¹ | measured (Tier A) | C6 land-extreme amplification; OLS of the ERA5/Berkeley/HadEX3 mean TXx series on GMST, 1950–2025, n=76. Per-dataset spread 1.33–1.57. Guardrail I — refresh annually. |
 | `THERMAL_LAMBDA_FEEDBACK` | 1.2 | W·m⁻²·K⁻¹ | measured (**Tier C**) | **The most leveraged unverified input.** Every threshold is F/λ; the budget spans 6.5× across λ ∈ [1.2, 1.63]. The shipped IGCC data's own energy budget implies 1.47–1.54 on a historical basis (which runs high vs equilibrium λ — pattern effect). Must be paired with the matching equilibrium/transient frame. Promote to Guardrail I. |
 | `THERMAL_U_FLOOR` | 0.50 | — | CHOSEN | derive from observed variance in Φ and ψ*, not chosen. |
@@ -338,6 +340,35 @@ while the World aggregate sits at U≈0.05 — so the thermal corridor bound is 
 **collective-level** instrument (`measured_thermal_ceiling`), global is uninformative.
 ΔT_lo (Tier D) dominates all of it; Path C is 5–10× uncertainty — regime SIGN only,
 **not** obligation (that needs Path B).
+
+### Asset census — one survey, two floors (B1/B2)
+
+The condition census consumed by `infrastructure_statutory_floor` carries four
+**optional** thermal keys alongside the two required ones. The hours side ignores
+them; `research/thermal_capital.infrastructure_thermal_floor` reads them and
+returns the dissipation floor in watts from the same survey.
+
+| Key | Required | Kind | Notes |
+|---|---|---|---|
+| `count` | yes | measured | physical asset count in the condition class |
+| `hours_per_unit_year` | yes | task-normative | interval × crew-hours; no currency enters |
+| `type` | no | measured | `CAPITAL_THERMAL_PROFILES` key |
+| `teh_per_unit` | no | measured | bridges census **counts** to per-TEH intensities |
+| `condition` | no | measured | ∈ [0, 1]; missing reads as 1.0 — conservative (max draw) |
+| `design_life_years` | no | measured | missing falls back to the type's profile life |
+
+A bucket without usable thermal keys contributes zero **and is reported** in
+`unpriced_buckets`, with `coverage` giving the share of counted assets actually
+priced — a thermal floor at 40% coverage is a different claim from one at 100%.
+
+The good/fair/poor condition defaults in `census_from_condition_counts`
+(0.85 / 0.60 / 0.35) are **CHOSEN**, mapping NBI-style classes onto the [0, 1]
+scale the capital profiles use. A real census carries per-asset condition and
+should pass it rather than accept these.
+
+Specifying the thermal keys at survey time costs nothing; retrofitting means
+re-surveying. That is the whole argument for fixing this schema before the
+census is collected rather than after.
 
 ### Capital thermal profiles — §12.2 dual-output (research/thermal_capital.py)
 

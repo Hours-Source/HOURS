@@ -44,6 +44,12 @@ def census_from_condition_counts(
     hours_good: float = INFRA_TREATMENT_HOURS_GOOD,
     hours_fair: float = INFRA_TREATMENT_HOURS_FAIR,
     hours_poor: float = INFRA_TREATMENT_HOURS_POOR,
+    asset_type: str | None = None,
+    teh_per_unit: float | None = None,
+    condition_good: float = 0.85,
+    condition_fair: float = 0.60,
+    condition_poor: float = 0.35,
+    design_life_years: float | None = None,
 ) -> list[dict]:
     """
     Build an asset census (for infrastructure_eoh_breakdown) from good/fair/poor
@@ -52,12 +58,45 @@ def census_from_condition_counts(
     The per-condition hours are currency-free engineering figures (interval ×
     crew-hours); a real deployment replaces the defaults with a state DOT's
     maintenance-activity manual rates.
+
+    THERMAL FIELDS (optional). Supplying `asset_type` and `teh_per_unit` also
+    emits the keys the dissipation twin needs, so ONE survey yields both the
+    labour floor in hours and the dissipation floor in watts
+    (research/thermal_capital.infrastructure_thermal_floor). Buckets without them
+    are still valid — they simply go unpriced thermally, and the twin reports the
+    coverage gap rather than silently treating them as zero.
+
+    The condition defaults map NBI-style good/fair/poor onto the [0, 1] condition
+    scale the capital profiles use. They are CHOSEN, not measured: a real census
+    carries per-asset condition and should pass it rather than accept these.
+
+    Args:
+        good, fair, poor: asset counts in each condition class.
+        hours_good/fair/poor: task-normative treatment hours per unit-year.
+        asset_type: CAPITAL_THERMAL_PROFILES key (e.g. "transportation"); when
+            None, no thermal keys are emitted.
+        teh_per_unit: TEH embodied per asset — the bridge between the census's
+            physical COUNTS and the profiles' per-TEH intensities. Required
+            alongside asset_type for a bucket to be thermally priced.
+        condition_good/fair/poor: condition ∈ [0, 1] per class.
+        design_life_years: overrides the type's profile design life.
     """
-    return [
-        {"count": good, "hours_per_unit_year": hours_good},
-        {"count": fair, "hours_per_unit_year": hours_fair},
-        {"count": poor, "hours_per_unit_year": hours_poor},
+    rows: list[tuple[float, float, float]] = [
+        (good, hours_good, condition_good),
+        (fair, hours_fair, condition_fair),
+        (poor, hours_poor, condition_poor),
     ]
+    out: list[dict] = []
+    for count, hours, condition in rows:
+        bucket: dict = {"count": count, "hours_per_unit_year": hours}
+        if asset_type is not None and teh_per_unit is not None:
+            bucket["type"] = asset_type
+            bucket["teh_per_unit"] = teh_per_unit
+            bucket["condition"] = condition
+            if design_life_years is not None:
+                bucket["design_life_years"] = design_life_years
+        out.append(bucket)
+    return out
 
 
 def condition_census_floor(

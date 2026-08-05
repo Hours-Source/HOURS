@@ -200,6 +200,14 @@ def infrastructure_statutory_floor(asset_census: list[dict]) -> float:
         asset_census: list of buckets, each a dict with keys
             "count" (float ≥ 0) and "hours_per_unit_year" (float ≥ 0).
 
+            OPTIONAL thermal keys are read by the census's other consumer and
+            IGNORED here: "type" (a CAPITAL_THERMAL_PROFILES key), "teh_per_unit",
+            "condition", "design_life_years". The same physical inventory yields
+            both the labour floor (hours, this function) and the dissipation floor
+            (watts, research/thermal_capital.infrastructure_thermal_floor) — the
+            §12.2 dual-output property at census granularity. Specifying them
+            together costs nothing; retrofitting means re-surveying.
+
     Returns:
         Total statutory-floor EOH (hours/year).
 
