@@ -368,6 +368,28 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 PERSONAL_EOH_BASE: float   = 1500.0     # hours/year per working-age-equivalent
 INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year
 INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life
+
+# ---------------------------------------------------------------------------
+# Infrastructure — task-normative statutory floor (B+D design, currency-free)
+#
+# The floor stream of infrastructure_eoh_breakdown(): labour-hours per asset per
+# year from a physical condition census, with NO money→hours conversion in the
+# path. This is the measured, auditable half; discretionary maintenance ambition
+# above it is a policy choice and enters the fulfilment/fiscal layer, never the
+# floor. Motivated by handoffs/Infrastructure: the monetized capital_stock_teh
+# path is convention-dominated 10× while every physical knob reads ×1.000 — the
+# floor is ~5.9× better determined and its residual is timesheet-measurable.
+#
+# hours/unit/year = (12 / inspection_interval_months) × crew_hours_per_visit,
+# which is what these defaults encode at the NBIS routine interval.
+# Tag: CHOSEN (task-normative). Epistemic pointer: state DOT maintenance-activity
+# manuals / inspection timesheets give the real per-condition crew-hours.
+# ---------------------------------------------------------------------------
+INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT: float = 24.0  # 23 CFR 650 routine default
+INFRA_TREATMENT_HOURS_GOOD: float = 8.0    # hours/unit/year, good condition
+INFRA_TREATMENT_HOURS_FAIR: float = 20.0   # hours/unit/year, fair condition
+INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
+
 ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health
 ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike
 KNOWLEDGE_EOH_BASE: float  = 100_000.0  # baseline knowledge EOH at ε=0

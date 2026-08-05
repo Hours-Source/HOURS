@@ -55,6 +55,22 @@ in `hours_eoh/reference/data/` (O*NET 30.3 / BLS, frozen epoch 2026-07-29).
 | `INFRA_AGE_FACTOR_MAX` | 2.0 | dimensionless multiplier | Physics | At age_ratio=1.0 (all assets at end of design life), maintenance burden doubles. Reflects convex aging: infrastructure requires disproportionately more labor as it approaches failure. |
 | `CAPITAL_STOCK_DEFAULT` | 2,000,000,000 | TEH (1 TEH = 1 verified labor-hour) | Calibration | Default for a civilization of 1M people at ε=0: 2,000 TEH/person in capital stock. Produces infrastructure EOH ≈ 75M h/yr at mid-life (age_ratio=0.5), ≈ 8% of personal EOH. Replace with measured national-accounts capital stock for your jurisdiction. |
 
+### Task-normative statutory floor (B+D design — currency-free)
+
+The floor stream of `infrastructure_eoh_breakdown()`. These reprice the physical
+condition census into hours **without** a money→hours conversion — the auditable
+half. Motivated by `handoffs/Infrastructure`: the monetized `capital_stock_teh`
+path moves 10× with the accounting doctrine and ×1.000 with every physical knob;
+the floor moves only with the physical census (`scenarios/infrastructure_floor.py`
+proves floor_spread = 1.000). 4-tag scheme with epistemic pointers:
+
+| Parameter | Default | Units | Kind | `resolves_by` (epistemic pointer) |
+|---|---|---|---|---|
+| `INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT` | 24.0 | months | measured | 23 CFR 650 routine inspection interval (regulation). |
+| `INFRA_TREATMENT_HOURS_GOOD` | 8.0 | h/unit·yr | CHOSEN | State DOT maintenance-activity manuals / inspection timesheets give real per-condition crew-hours. |
+| `INFRA_TREATMENT_HOURS_FAIR` | 20.0 | h/unit·yr | CHOSEN | (as above) — the fair-condition crew-hour rate is timesheet-measurable. |
+| `INFRA_TREATMENT_HOURS_POOR` | 48.0 | h/unit·yr | CHOSEN | (as above) — poor-condition rate; the residual 1.69× determinacy gap is this tiering, and it is measurable, not conventional. |
+
 ---
 
 ## EOH Generation — Ecological Domain
