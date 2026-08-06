@@ -68,6 +68,7 @@ from hours_eoh.data import (
     THERMAL_TXX_PER_GMST,
     THERMAL_U_FLOOR,
     THERMAL_EPS_CURRENT,
+    ETA_BASIS,
 )
 from hours_eoh.research.thermal import (
     allocated_density,
@@ -271,31 +272,48 @@ def determinacy_zone(
 
 class CollectiveUtilization(TypedDict):
     name: str
-    psi: float                # W·m⁻² dissipation density on claimed land
+    psi: float                # W·m⁻² dissipation density on EFFECTIVE land (η·a)
     psi_star: float           # W·m⁻² allocated density
     utilization: float        # U = ψ/ψ*
     regime: Regime
     in_contact: bool
+    eta: float | None         # η looked up; None = unresolved or unknown collective
+    eta_applied: float        # what was actually used — 1.0 when η is None
 
 
 def collective_dissipation_density(
     energy_ej: float,
     land_m2: float,
     fossil_nuclear_share: float,
+    eta: float = 1.0,
 ) -> float:
     """
-    ψ (W·m⁻²) — a collective's net-additive dissipation per unit claimed land.
+    ψ (W·m⁻²) — a collective's net-additive dissipation per unit EFFECTIVE land.
 
-        ψ = ( energy_EJ · 10¹⁸ / Δt_s ) · κ̄ / land_m²
+        A_eff = η · land_m²
+        ψ     = ( energy_EJ · 10¹⁸ / Δt_s ) · κ̄ / A_eff
 
     κ̄ is approximated by the fossil+nuclear share (those sources have κ = 1; the
-    remainder ≈ 0). Raw land area — η radiative weighting would penalize humid
-    tropical collectives further (Singapore worse than shown).
+    remainder ≈ 0).
+
+    η (P2, reference/data/eta_land.json) weights land by how effectively its
+    column sheds heat to space, normalised so the mean over claimed land is 1 —
+    so η REDISTRIBUTES a fixed planetary budget rather than changing it. Default
+    1.0 leaves every existing caller unmoved.
+
+    Effect at ΔT_lo = 3.0 K: no collective crosses the Contact boundary. η moves
+    utilization by −9% to +18% — Singapore 84.2 → 79.2, Canada 0.05 → 0.06,
+    Germany and the UK deeper into Contact. Real, second-order, and not a rescue.
+
+    Raises:
+        ValueError: if land_m2 or eta is not positive.
     """
     if land_m2 <= 0.0:
         raise ValueError("land_m2 must be positive")
+    if eta <= 0.0:
+        raise ValueError(f"eta must be positive, got {eta}")
     phi = energy_ej * _EJ_TO_J / SECONDS_PER_YEAR * fossil_nuclear_share
-    return phi / land_m2
+    return phi / (eta * land_m2)
 
 
 def utilization_regime(
@@ -323,6 +341,8 @@ def collective_utilization(
     delta_t_lo: float = 3.0,
     basis: ForcingBasis = "net_erf",
     u_floor: float = THERMAL_U_FLOOR,
+    eta: float | None = None,
+    eta_name: str | None = None,
 ) -> CollectiveUtilization:
     """Full per-collective utilization (F11). Post-C5 at ΔT_lo=3.0 K, net-ERF,
     Singapore reads U ≈ 84 (Contact); the World aggregate reads U ≈ 0.18 (below
@@ -330,12 +350,16 @@ def collective_utilization(
     planetary. The C5 correction quadrupled every U at this threshold; the
     regime SIGN is unchanged for the extremes but Germany and the UK crossed
     into Contact, so marginal collectives must be re-read, not carried over."""
-    psi = collective_dissipation_density(energy_ej, land_m2, fossil_nuclear_share)
+    if eta is None:
+        eta = eta_for(eta_name if eta_name is not None else name)
+    eta_applied = 1.0 if eta is None else eta
+    psi = collective_dissipation_density(energy_ej, land_m2, fossil_nuclear_share, eta_applied)
     psi_star = budget_psi_star(delta_t_lo, basis)
     u, regime = utilization_regime(psi, psi_star, u_floor)
     return CollectiveUtilization(
         name=name, psi=psi, psi_star=psi_star,
         utilization=u, regime=regime, in_contact=(regime == "contact"),
+        eta=eta, eta_applied=eta_applied,
     )
 
 
@@ -473,3 +497,55 @@ def global_ceiling(
         allocated_budget_w=allocated, utilization=u,
         epsilon_max=eps_max, binds_below_1=binds, note=note,
     )
+
+
+# ---------------------------------------------------------------------------
+# η — radiative-efficiency weighting on claimed land (P2)
+# ---------------------------------------------------------------------------
+
+_ETA_DATA = Path(__file__).resolve().parents[1] / "reference" / "data" / "eta_land.json"
+
+
+@lru_cache(maxsize=1)
+def load_eta_land() -> dict:
+    """The shipped η table (reference/data/eta_land.json).
+
+    ERA5 1940–2025, clear-sky and all-sky, normalised to CLAIMED land so its mean
+    is 1 on the same footing as A_LAND_CLAIMED_M2. Read `_limitations` before
+    citing: this is a sampled climatology (6 months, the 1st of each, 107 balanced
+    days), not an annual mean."""
+    with _ETA_DATA.open(encoding="utf-8") as fh:
+        data: dict = json.load(fh)
+    return data
+
+
+def eta_for(collective: str, basis: str = ETA_BASIS) -> float | None:
+    """
+    η for a collective — the weight on its claimed land area.
+
+        A_eff(c) = η(c) · a(c)
+
+    η redistributes a fixed budget rather than changing it: Σ η_i·a_i = Σ a_i over
+    claimed land. A collective whose column sheds heat efficiently gets a larger
+    allocation from the same planetary total.
+
+    Returns None for a collective below ERA5's resolution with no land neighbour
+    (three mid-Pacific atolls) and for unknown names — never a fabricated value,
+    because a made-up η for a nation that may not survive the arc is not a
+    rounding convenience. Callers must decide explicitly what to do with None.
+
+    `basis` defaults to data.ETA_BASIS ("clear_sky"); "all_sky" is retained as the
+    physical reality check. Where the two diverge the basis choice is doing real
+    work — Singapore +0.12, Brazil +0.06, the Gulf −0.05 to −0.08.
+
+    units: dimensionless, mean 1 over claimed land.
+
+    Raises:
+        ValueError: on an unknown basis.
+    """
+    if basis not in ("clear_sky", "all_sky"):
+        raise ValueError(f"unknown eta basis: {basis!r}")
+    rec = load_eta_land()["collectives"].get(collective)
+    if rec is None:
+        return None
+    return rec[f"eta_{basis}"]

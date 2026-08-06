@@ -896,6 +896,21 @@ CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure wei
                                        # yet trade-adjust — OWID consumption-based emissions
                                        # begin only in 1990, far too short for a cumulative
                                        # measure. Sign-off item.
+ETA_BASIS: str = "clear_sky"           # Which radiative-efficiency field weights a
+                                       # collective's land allocation: "clear_sky" (default)
+                                       # or "all_sky". **CHOSEN 2026-08-05.** All-sky η
+                                       # credits a collective for being cloudy — cloud cover
+                                       # is not a policy lever, is partly endogenous to
+                                       # warming, and is the noisiest part of the field, so an
+                                       # all-sky rule rewards weather. Clear-sky measures the
+                                       # structural radiative transparency of the column,
+                                       # which is what "this land's share of the sink" should
+                                       # mean. The choice is not cosmetic: the two differ by
+                                       # up to 0.27 in η (RMS 0.051, p95 0.085), so all-sky is
+                                       # reported alongside as the physical reality check and
+                                       # the per-collective gap must stay visible.
+ETA_LAND_MASK_THRESHOLD: float = 0.50  # lsm ≥ this counts as land (§5 decision 1: territorial
+                                       # sea excluded). Measured; ERA5 lsm is a fraction.
 CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging to no
                                        # territory — international shipping and aviation,
                                        # 46 GtCO₂ / 2.49% of the cumulative fossil total.

@@ -113,9 +113,16 @@ def test_global_ceiling_nonbinding_note_is_conditional():
 # ---------------------------------------------------------------------------
 
 def test_singapore_in_contact():
-    # post-C5 U roughly quadruples at 3.0 K (22.4 → 84.2): same regime, far worse margin
+    # post-C5 U roughly quadruples at 3.0 K (22.4 → 84.2): same regime, far worse margin.
+    # Since P2, η is applied BY DEFAULT when the name resolves in the shipped table, so
+    # the operative figure is 79.2 — Singapore sheds slightly better than the claimed-land
+    # mean (η = 1.063). The un-weighted value stays recoverable with eta=1.0, and the two
+    # are pinned together so the wiring cannot drift unnoticed.
     c = collective_utilization("Singapore", 1.4, 7.3e8, 0.98, delta_t_lo=3.0)
-    assert c["utilization"] == pytest.approx(84.2, abs=0.5)
+    raw = collective_utilization("Singapore", 1.4, 7.3e8, 0.98, delta_t_lo=3.0, eta=1.0)
+    assert raw["utilization"] == pytest.approx(84.2, abs=0.5)
+    assert c["utilization"] == pytest.approx(79.2, abs=0.5)
+    assert c["utilization"] == pytest.approx(raw["utilization"] / c["eta_applied"], rel=1e-9)
     assert c["in_contact"] is True
     assert c["regime"] == "contact"
 
