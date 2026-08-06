@@ -72,5 +72,15 @@
   "value": 0.182,
   "note": "historical minus equilibrium (AR6 best). Positive as expected, and its size is consistent with the published range \u2014 an independent check on the derivation."
  },
- "_sensitivity_is_first_class": "The budget spans several-fold across the plausible lambda range, larger than any input except dT_max. No psi*-derived figure should be published without its lambda and this band."
+ "_sensitivity_is_first_class": "The budget spans several-fold across the plausible lambda range, larger than any input except dT_max. No psi*-derived figure should be published without its lambda and this band.",
+ "_can_it_be_assessed_here": {
+  "verdict": "NO. lambda_equilibrium cannot be assessed from the shipped data, and the shipped 1.2 stands as a BEST GUESS -- bracketed, conservative, and labelled.",
+  "what_was_tried": {
+   "ratio_of_means": "(F-N)/dT over four windows -> 1.492, spread under 5%.",
+   "regression": "OLS of (F-N) on dT, 53 years 1971-2020 -> 1.693 +/- 0.472 (95%), r=0.702. Consistent with the ratio estimate, but the band spans 1.22-2.17, so even the HISTORICAL feedback is only pinned to about +/-32% by these series."
+  },
+  "why_it_stops_there": "Both estimators measure the HISTORICAL feedback. Converting it to the EQUILIBRIUM feedback the budget needs requires the pattern effect -- how much the historical estimator is biased by warming having been concentrated in stabilising regions. That requires pattern-forced model experiments or paleoclimate constraints. Neither is in this archive and neither can be derived from ERF, EEI and GMST alone.",
+  "resolves_by": "an assessed equilibrium climate sensitivity with its uncertainty (AR6-class, combining process understanding, paleoclimate and emergent constraints). This is an EXTERNAL input -- no rearrangement of the present data produces it.",
+  "meanwhile": "1.2 is retained as the best guess. Its position is known (below AR6 best 1.310 and below both historical estimates), its direction of error is known (conservative: lower lambda -> smaller budget -> larger obligation), and the sensitivity band ships with every figure derived from it."
+ }
 }

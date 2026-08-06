@@ -805,8 +805,17 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate f
                                        # SENSITIVITY IS FIRST-CLASS: across AR6's likely ECS
                                        # range the budget runs from ZERO (ECS 5 K) to ~11× the
                                        # shipped case. Never publish a ψ*-derived figure without
-                                       # λ and that band. resolves_by: an assessed equilibrium
-                                       # feedback with its uncertainty, not a point value.
+                                       # λ and that band.
+                                       # BEST GUESS, and it stays one (checked 2026-08-05):
+                                       # λ_equilibrium CANNOT be assessed from the shipped data.
+                                       # Two independent estimators of the HISTORICAL feedback
+                                       # agree — 1.492 (ratio) and 1.693 ± 0.472 (regression,
+                                       # 53 yr) — but converting historical to equilibrium needs
+                                       # the pattern effect, which requires pattern-forced model
+                                       # experiments or paleoclimate constraints. Neither is
+                                       # derivable from ERF, EEI and GMST.
+                                       # resolves_by: an assessed ECS with uncertainty — an
+                                       # EXTERNAL input, not a rearrangement of what we hold.
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
 THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
