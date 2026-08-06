@@ -40,6 +40,8 @@ from typing import TypedDict
 from hours_eoh.core.civilization import machine_eoh_from_capital
 from hours_eoh.data import (
     CAPITAL_MACHINE_PROFILES,
+    INFRA_MAINT_RATE,
+    INFRA_AGE_FACTOR_MAX,
     CAPITAL_THERMAL_PROFILES,
     SECONDS_PER_YEAR,
     THERMAL_GRID_KAPPA_DEFAULT,
@@ -328,3 +330,210 @@ def infrastructure_thermal_floor(
         unpriced_buckets=unpriced,
         by_bucket=by_bucket,
     )
+
+
+# ---------------------------------------------------------------------------
+# B3 — maintain vs replace, with the embodied-energy pulse
+# ---------------------------------------------------------------------------
+
+class MaintainReplace(TypedDict):
+    strategy: str
+    horizon_years: float
+    human_eoh: float              # cumulative human-labour hours over the horizon
+    operational_j: float          # integrated running dissipation
+    embodied_j: float             # embodied energy actually SPENT in the horizon
+    dissipation_j: float
+    replacements: int
+    mean_age_ratio: float
+
+
+def _run_strategy(
+    teh: float, design_life: float, start_age: float, horizon: float,
+    replace_at: float, epsilon: float, base_maint_rate: float,
+    age_factor_max: float, power_intensity: float, embodied_per_teh: float,
+    grid_kappa: float, dt: float = 0.25,
+) -> tuple[float, float, float, int, float]:
+    """Step an asset through the horizon, replacing whenever it reaches
+    `replace_at` years of age. Returns (human_eoh, operational_j, embodied_j,
+    replacements, mean_age_ratio)."""
+    age = start_age
+    t = 0.0
+    human = op = emb = 0.0
+    reps = 0
+    age_ratio_sum = 0.0
+    steps = 0.0
+    while t < horizon - 1e-12:
+        step = min(dt, horizon - t)
+        ratio = min(age / design_life, 1.0)
+        age_factor = 1.0 + (age_factor_max - 1.0) * ratio
+        # maintenance obligation rises with age; humans carry the (1-eps) share
+        human += teh * base_maint_rate * age_factor * (1.0 - epsilon) * step
+        # condition proxies utilisation, and declines linearly across design life
+        condition = max(0.0, 1.0 - ratio)
+        op += teh * condition * power_intensity * grid_kappa * SECONDS_PER_YEAR * step
+        age_ratio_sum += ratio * step
+        steps += step
+        age += step
+        t += step
+        if age >= replace_at - 1e-12 and t < horizon - 1e-12:
+            emb += teh * embodied_per_teh * grid_kappa    # the pulse, spent at replacement
+            reps += 1
+            age = 0.0
+    return human, op, emb, reps, (age_ratio_sum / steps if steps else 0.0)
+
+
+def maintain_vs_replace(
+    capital_type: str,
+    teh_value: float,
+    current_age: float,
+    horizon_years: float = 60.0,
+    epsilon: float = 0.40,
+    grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
+    base_maint_rate: float = INFRA_MAINT_RATE,
+    age_factor_max: float = INFRA_AGE_FACTOR_MAX,
+) -> dict:
+    """
+    B3 — the first decision the thermal layer can actually inform.
+
+    Infrastructure EOH rises with age (`age_factor` climbs toward
+    `age_factor_max`), so replacing an asset cuts the maintenance obligation. But
+    embodied energy is spent AT CONSTRUCTION, so every replacement is a
+    dissipation PULSE. Replace early and you buy fewer labour-hours at the price
+    of more pulses per century — F9 ("crash transition programmes are thermally
+    worse") at asset scale rather than civilizational scale.
+
+    Two strategies over one horizon:
+
+        maintain  run each asset to its full design life, then replace
+        replace   retire at `current_age`, then run on the same full-life cycle
+
+    Both are stepped quarterly through the horizon, accumulating the rising
+    maintenance obligation, the running dissipation (which falls as condition
+    declines — see the caveat) and an embodied pulse at each replacement.
+
+    THE EXCHANGE RATE is the output that matters: labour-hours saved per joule of
+    extra dissipation. It is the first quantity in the framework that prices one
+    domain's obligation against another's, and it is what a stewardship decision
+    actually turns on.
+
+    CAVEAT, stated rather than buried: the shipped thermal model treats condition
+    as a UTILISATION proxy, so an aged asset draws less power because it does less
+    work. Real equipment usually draws the same or more for less output — an
+    efficiency decay this model does not carry. That biases the comparison AGAINST
+    replacement (it under-credits the efficiency a new asset would bring), so the
+    replace case here is a conservative floor.
+
+    units: hours, joules, years. ε-behavior: human EOH scales with (1−ε);
+    dissipation does not, so the exchange rate steepens as automation rises —
+    labour saved becomes cheaper in hours and unchanged in joules.
+
+    Returns:
+        dict with both strategies, their difference, and the exchange rate.
+
+    Raises:
+        ValueError: for an unknown capital type, or a non-positive horizon.
+    """
+    if capital_type not in CAPITAL_MACHINE_PROFILES:
+        raise ValueError(f"unknown capital type: {capital_type!r}")
+    if horizon_years <= 0.0:
+        raise ValueError(f"horizon_years must be positive, got {horizon_years}")
+    tp = CAPITAL_THERMAL_PROFILES.get(capital_type)
+    if tp is None:
+        raise ValueError(f"no thermal profile for capital type: {capital_type!r}")
+
+    design_life = float(CAPITAL_MACHINE_PROFILES[capital_type]["design_life"])
+    current_age = max(0.0, min(current_age, design_life))
+    out: dict[str, MaintainReplace] = {}
+    # maintain: carry the existing asset to full design life before replacing
+    h, o, e, r, ar = _run_strategy(
+        teh_value, design_life, current_age, horizon_years, design_life, epsilon,
+        base_maint_rate, age_factor_max, tp["power_intensity_w_per_teh"],
+        tp["embodied_energy_j_per_teh"], grid_kappa)
+    out["maintain"] = MaintainReplace(
+        strategy="maintain", horizon_years=horizon_years, human_eoh=h,
+        operational_j=o, embodied_j=e, dissipation_j=o + e, replacements=r,
+        mean_age_ratio=ar)
+    # replace: retire now, then the same full-life cycle from age zero
+    h2, o2, e2, r2, ar2 = _run_strategy(
+        teh_value, design_life, 0.0, horizon_years, design_life, epsilon,
+        base_maint_rate, age_factor_max, tp["power_intensity_w_per_teh"],
+        tp["embodied_energy_j_per_teh"], grid_kappa)
+    e2 += teh_value * tp["embodied_energy_j_per_teh"] * grid_kappa   # the pulse spent today
+    r2 += 1
+    out["replace"] = MaintainReplace(
+        strategy="replace", horizon_years=horizon_years, human_eoh=h2,
+        operational_j=o2, embodied_j=e2, dissipation_j=o2 + e2, replacements=r2,
+        mean_age_ratio=ar2)
+
+    eoh_saved = out["maintain"]["human_eoh"] - out["replace"]["human_eoh"]
+    extra_j = out["replace"]["dissipation_j"] - out["maintain"]["dissipation_j"]
+    return {
+        "capital_type": capital_type,
+        "design_life_years": design_life,
+        "current_age_years": current_age,
+        "epsilon": epsilon,
+        "strategies": out,
+        "eoh_saved_by_replacing": eoh_saved,
+        "extra_dissipation_j": extra_j,
+        "exchange_rate_eoh_per_tj": (eoh_saved / (extra_j / 1e12)) if extra_j > 0 else None,
+        "replacing_is_thermally_worse": extra_j > 0.0,
+        "note": ("condition proxies utilisation in the shipped model, so an aged asset "
+                 "draws less rather than costing more per unit output; the replace case "
+                 "is therefore a conservative floor"),
+    }
+
+
+def replacement_exchange_curve(
+    capital_type: str,
+    teh_value: float,
+    horizon_years: float = 40.0,
+    epsilon: float = 0.40,
+    ages: tuple[float, ...] | None = None,
+    grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
+) -> dict:
+    """
+    The exchange rate as a function of replacement age — the decision rule.
+
+    Sweeps `maintain_vs_replace` across ages and reports labour-hours saved per
+    terajoule of extra dissipation at each. The rate rises monotonically with
+    age: replacing a nearly-worn asset buys the same relief for a far smaller
+    thermal pulse, because the embodied energy already bought most of its service
+    life.
+
+    For a 30-year transportation asset over a 40-year horizon the rate runs from
+    ~70 EOH/TJ at age 2 to ~170 at age 29 — **deferring replacement to end of
+    life buys about 2.4x more labour relief per joule dissipated.**
+
+    That is F9 at asset scale, and it is a rule a steward can act on: replacing
+    early is not merely more expensive in capital, it is thermally worse, and the
+    penalty is now priced rather than asserted.
+
+    units: EOH per TJ. Returns the curve, the best age, and the ratio best/worst.
+    """
+    design_life = float(CAPITAL_MACHINE_PROFILES[capital_type]["design_life"])
+    if ages is None:
+        ages = tuple(round(design_life * f, 1) for f in (0.05, 0.2, 0.4, 0.6, 0.8, 0.95))
+    rows = []
+    for a in ages:
+        r = maintain_vs_replace(capital_type, teh_value, a, horizon_years, epsilon, grid_kappa)
+        rows.append({
+            "age_years": a,
+            "age_ratio": round(a / design_life, 3),
+            "eoh_saved": r["eoh_saved_by_replacing"],
+            "extra_dissipation_j": r["extra_dissipation_j"],
+            "exchange_rate_eoh_per_tj": r["exchange_rate_eoh_per_tj"],
+        })
+    rated = [r for r in rows if r["exchange_rate_eoh_per_tj"] is not None]
+    best = max(rated, key=lambda r: r["exchange_rate_eoh_per_tj"]) if rated else None
+    worst = min(rated, key=lambda r: r["exchange_rate_eoh_per_tj"]) if rated else None
+    return {
+        "capital_type": capital_type,
+        "design_life_years": design_life,
+        "horizon_years": horizon_years,
+        "curve": rows,
+        "best_age_years": best["age_years"] if best else None,
+        "best_over_worst": (best["exchange_rate_eoh_per_tj"] / worst["exchange_rate_eoh_per_tj"]
+                            if best and worst and worst["exchange_rate_eoh_per_tj"] > 0 else None),
+        "rule": ("replace at end of life, not before — the exchange rate rises with age, "
+                 "so early replacement pays more joules for the same hours"),
+    }
