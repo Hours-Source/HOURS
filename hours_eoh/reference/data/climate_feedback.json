@@ -1,0 +1,76 @@
+{
+ "dataset": "Climate feedback parameter \u03bb \u2014 derived, with its frame",
+ "_source": "IGCC 2025a: total effective radiative forcing (p05/p50/p95), Earth energy imbalance (ocean full-depth inventory), GMST anomaly. Derived 2026-08-05 from data shipped in handoffs/thermal_sink/data (gitignored).",
+ "_governing_equation": "lambda_historical = (F - N) / dT \u2014 the energy-budget estimate. F is total ERF, N the Earth energy imbalance, dT the GMST anomaly, each averaged over the window. N is the ocean full-depth uptake rate grossed up by the ocean's 0.911 share of total uptake.",
+ "_the_frame_problem": {
+  "statement": "lambda is NOT one number. The energy-budget estimate is the HISTORICAL feedback, which runs high relative to the EQUILIBRIUM feedback because warming has so far been concentrated where feedbacks are more stabilising (the pattern effect). Using one where the other belongs produces a figure with no interpretation.",
+  "equilibrium": "pairs with the EQUILIBRIUM budget lambda*dT_max - F, which is COMMITMENT accounting: it counts warming already bought and not yet delivered. This is the framework's chosen frame (handoff section 10.3).",
+  "historical": "pairs with a TRANSIENT reading, which shows a larger near-term budget precisely by spending the pipeline. The framework rejects that frame; the historical value is recorded for validation, NOT for the budget.",
+  "the_error_to_avoid": "historical lambda in the equilibrium budget. At dT_max = 3.0 K it inflates the budget roughly sixfold \u2014 the single largest way to overstate the thermal allowance."
+ },
+ "historical": {
+  "central": 1.492,
+  "unit": "W m-2 K-1",
+  "tier": "A",
+  "windows": {
+   "1995-2024": 1.483,
+   "2005-2024": 1.484,
+   "2011-2024": 1.537,
+   "2015-2024": 1.466
+  },
+  "window_spread": "1.466-1.537 \u2014 under 5%, so the estimate is not window-sensitive",
+  "band_from_forcing_uncertainty": [
+   0.52,
+   2.44
+  ],
+  "band_note": "dominated by aerosol forcing uncertainty in the ERF p05/p95, not by the energy imbalance or the temperature record. The wide band states how poorly aerosol forcing is known, not a weakness of the method."
+ },
+ "equilibrium": {
+  "shipped_default": 1.2,
+  "implied_ecs_k": 3.28,
+  "ar6_implied": {
+   "lambda": 1.31,
+   "ecs_k": 3.0,
+   "f_2xco2": 3.93,
+   "tier": "A"
+  },
+  "note": "The shipped 1.2 implies ECS 3.28 K \u2014 inside the AR6 likely range, slightly on the sensitive side, and CONSERVATIVE for the framework: lower lambda means a smaller budget and a larger obligation.",
+  "ar6_ranges": {
+   "_correction": "An earlier revision shipped ECS [2, 5] labelled 'likely'. That is AR6's VERY LIKELY (90%) range. The likely (66%) range is ECS 2.5-4.0. Carrying the 90% range while calling it likely overstated the uncertainty and understated the framework's determinate claim.",
+   "likely_66pct": {
+    "ecs_k": [
+     2.5,
+     4.0
+    ],
+    "lambda": [
+     0.983,
+     1.572
+    ],
+    "note": "DEFAULT. Matches how 'likely' claims are normally stated."
+   },
+   "very_likely_90pct": {
+    "ecs_k": [
+     2.0,
+     5.0
+    ],
+    "lambda": [
+     0.786,
+     1.965
+    ],
+    "note": "the conservative bound; report alongside where the verdict is close to a boundary"
+   },
+   "best_estimate": {
+    "ecs_k": 3.0,
+    "lambda": 1.31
+   },
+   "f_2xco2": 3.93,
+   "tier": "A",
+   "_source": "IPCC AR6 WG1 SPM"
+  }
+ },
+ "pattern_effect": {
+  "value": 0.182,
+  "note": "historical minus equilibrium (AR6 best). Positive as expected, and its size is consistent with the published range \u2014 an independent check on the derivation."
+ },
+ "_sensitivity_is_first_class": "The budget spans several-fold across the plausible lambda range, larger than any input except dT_max. No psi*-derived figure should be published without its lambda and this band."
+}

@@ -270,3 +270,37 @@ def test_upper_determinate_zone_is_probably_unreachable():
     """The §4.2 conclusion: reporting determinate HEADROOM needs ~5.1 K of land
     extreme warming. The determinate answer available is the lower one."""
     assert determinacy_zone(3.0)["budgeted_above_txx_k"] > 5.0
+
+
+# ---------------------------------------------------------------------------
+# H — the measured headroom multiple (the ε_current fix)
+# ---------------------------------------------------------------------------
+
+def test_headroom_multiple_is_the_measured_content():
+    """H = budget/Φ contains no chosen constant; ε_max = H·ε_current does."""
+    from hours_eoh.research.thermal_path_c import headroom_multiple
+    g = global_ceiling(3.0)
+    assert g["headroom_multiple"] == pytest.approx(5.39, rel=0.01)
+    assert g["epsilon_max"] == pytest.approx(
+        g["headroom_multiple"] * g["eps_current"], rel=1e-9)
+
+
+def test_H_is_invariant_to_the_chosen_epsilon():
+    """The whole point: changing ε_current moves ε_max and leaves H alone."""
+    a = global_ceiling(3.0, eps_current=0.40)
+    b = global_ceiling(3.0, eps_current=0.20)
+    assert a["headroom_multiple"] == pytest.approx(b["headroom_multiple"])
+    assert b["epsilon_max"] == pytest.approx(a["epsilon_max"] / 2.0)
+
+
+def test_headroom_none_when_unbudgeted():
+    from hours_eoh.research.thermal_path_c import headroom_multiple
+    assert headroom_multiple(0.0, 1e13) is None
+    with pytest.raises(ValueError):
+        headroom_multiple(1e14, 0.0)
+
+
+def test_note_leads_with_the_measured_quantity():
+    note = global_ceiling(3.0)["note"]
+    assert "MEASURED" in note and "H =" in note
+    assert "CHOSEN" in note

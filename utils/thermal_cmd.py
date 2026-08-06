@@ -7,8 +7,8 @@ thermal — planetary radiative capacity: overage, determinacy, ceilings.
   eoh thermal arc         --delta-t K [--lambda F] [--forcing F]
                           [--format table|csv|json]
 
-  eoh thermal determinacy [--delta-t K] [--txx] [--lambda F]
-                          [--format table|json]
+  eoh thermal determinacy [--delta-t K] [--txx] [--single-axis]
+                          [--lambda-lo F] [--lambda-hi F] [--format table|json]
 
   eoh thermal ceiling     [--points "2.0,2.5,3.0"] [--lambda F] [--reserve F]
                           [--format table|json]
@@ -18,6 +18,8 @@ thermal — planetary radiative capacity: overage, determinacy, ceilings.
 
   eoh thermal gate        [--delta-t K] [--hours-per-tonne F] [--years N]
                           [--format table|json]
+
+  eoh thermal lambda      [--delta-t K] [--format table|json]
 
 'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth,
 the power by which civilization exceeds its radiative allowance, decomposed into
@@ -29,10 +31,15 @@ only through forcing.
 'arc' sweeps the same overage across ε at one threshold, showing when (if ever)
 waste heat stops being a rounding error.
 
-'determinacy' reports which regime an assessed habitability threshold lands in
-once the IGCC forcing uncertainty band is carried through — determinate
-unbudgeted, indeterminate, or determinate budgeted. Pass --txx if your threshold
-is stated in land extremes rather than GMST (C6, ÷1.48).
+'determinacy' is the HEADLINE, and it leads: it reports what the framework can
+determinately say at a threshold before it reports any number. Both the forcing
+band AND λ are carried, because determinacy requires the whole parameter box to
+agree and holding λ fixed at an unassessed value overstates the determinate zone
+roughly threefold. Where the answer is indeterminate the budget is WITHHELD, not
+estimated — a number there would be a point estimate from inside a band that
+contains both 'no budget' and 'ample budget'. --single-axis reproduces the older
+forcing-only map for comparison. Pass --txx if your threshold is stated in land
+extremes rather than GMST (C6, ÷1.48).
 
 'ceiling' contrasts the automation ceiling before and after drawdown to the
 natural forcing floor. Where no pre-drawdown ceiling exists the budget is zero,
@@ -50,6 +57,11 @@ and partly funds itself. All five pass conditions at every ε, plus the backward
 query — what labour intensity would break the Trust, and how far the shipped
 estimate sits from it. The null-load baseline is re-run every time, so a failure
 can never be misattributed to the thermal load.
+
+'lambda' reports the derived feedback parameter with its frame and the budget
+sensitivity across the plausible range. λ is the second-largest lever after
+ΔT_max and the budget spans ZERO to ~11x across AR6's own likely ECS range, so
+the band is printed as a first-class output rather than a footnote.
 
 ΔT_max (default 2.0 K) and the programme horizon (default 40 yr — one lifetime
 of responsibility) are both CHOSEN. ΔT_max dominates every result and may be
@@ -182,32 +194,71 @@ def _arc(args: argparse.Namespace) -> None:
 # ----------------------------------------------------------------- determinacy
 
 def _determinacy(args: argparse.Namespace) -> None:
+    from hours_eoh.research.thermal_lambda import (
+        determinacy_gain_from_tightening, determinacy_map, thermal_verdict)
     dt = args.delta_t / THERMAL_TXX_PER_GMST if args.txx else args.delta_t
-    z = determinacy_zone(dt, lam=args.lam)
 
-    if args.fmt == "json":
-        print(json.dumps({**z, "input_was_txx": args.txx}, indent=2))
+    if args.single_axis:
+        z = determinacy_zone(dt)
+        if args.fmt == "json":
+            print(json.dumps({**z, "SUPERSEDED": "holds λ fixed; see the two-axis map"}, indent=2))
+            return
+        print(formatters.bold("\nSingle-axis determinacy (forcing only) — SUPERSEDED\n"))
+        print(formatters.table(["boundary", "GMST", "land TXx"],
+              [["unbudgeted below", f"{z['unbudgeted_below_k']:.3f}", f"{z['unbudgeted_below_txx_k']:.3f}"],
+               ["budgeted above", f"{z['budgeted_above_k']:.3f}", f"{z['budgeted_above_txx_k']:.3f}"]]))
+        print(formatters.yellow(
+            "\n  Holds λ fixed at an unassessed value and overstates the determinate zone "
+            "~3x.\n  Use the default (two-axis) map."))
         return
 
-    label = {
-        "determinate_unbudgeted": formatters.red("DETERMINATE — UNBUDGETED"),
-        "indeterminate": formatters.yellow("INDETERMINATE"),
-        "determinate_budgeted": formatters.green("DETERMINATE — BUDGETED"),
-    }[z["zone"]]
-    print(formatters.bold("\nDeterminacy map — robustness across the IGCC forcing p05–p95 band\n"))
-    print(formatters.table(
-        ["zone", "ΔT_max (GMST)", "ΔT_max (land TXx)"],
-        [["unbudgeted below", f"{z['unbudgeted_below_k']:.3f}", f"{z['unbudgeted_below_txx_k']:.3f}"],
-         ["budgeted above", f"{z['budgeted_above_k']:.3f}", f"{z['budgeted_above_txx_k']:.3f}"]]))
+    band = (args.lambda_lo, args.lambda_hi) if args.lambda_lo and args.lambda_hi else None
+    m = determinacy_map(dt, lam_band=band)
+    v = thermal_verdict(dt, lam_band=band)
+    if args.fmt == "json":
+        print(json.dumps({"verdict": v, "map": m}, indent=2)); return
+
+    label = {"determinate_unbudgeted": formatters.red("DETERMINATE — UNBUDGETED"),
+             "indeterminate": formatters.yellow("INDETERMINATE"),
+             "determinate_budgeted": formatters.green("DETERMINATE — BUDGETED")}[v["zone"]]
     src = "land TXx" if args.txx else "GMST"
-    print(f"\n  assessed {args.delta_t} K ({src}) → {dt:.3f} K GMST → {label}")
-    if not z["robust"]:
-        print(formatters.dim(
-            "  Forcing uncertainty ALONE spans below-floor to Contact here. The framework "
-            "cannot report a sign, and asserting one would exceed the data."))
+    print(formatters.bold(f"\nThermal verdict at {args.delta_t} K ({src})\n"))
+    print(f"  {label}\n")
+    for line in _wrap(v["claim"], 76):
+        print(f"  {line}")
+    if v["budget_tw"] is not None:
+        print(f"\n  budget: {v['budget_tw']:,.1f} TW")
+    if v["overage_tw"] is not None:
+        over = f"{v['overage_tw']:,.1f} TW"
+        print(f"  overage: {formatters.red(over)}")
+    if v["what_would_resolve"]:
+        print()
+        for line in _wrap("What would resolve it: " + v["what_would_resolve"], 76):
+            print(formatters.dim(f"  {line}"))
+    vs, a = m["vs_single_axis"], m["attribution"]
+    print(formatters.bold("\nthe map\n"))
+    print(formatters.table(
+        ["map", "unbudgeted below", "budgeted above", "indeterminate width"],
+        [["single axis (λ fixed)", f"{vs['single_unbudgeted_below_k']:.3f} K",
+          f"{vs['single_budgeted_above_k']:.3f} K", f"{vs['single_width_k']:.3f} K"],
+         ["two axis (default)", f"{m['unbudgeted_below_k']:.3f} K",
+          f"{m['budgeted_above_k']:.3f} K",
+          formatters.yellow(f"{m['indeterminate_width_k']:.3f} K")]]))
     print(formatters.dim(
-        f"\n  The upper determinate zone needs ~{z['budgeted_above_txx_k']:.1f} K of land extreme "
-        "warming — beyond any defensible habitability threshold."))
+        f"  land extremes: unbudgeted below {m['unbudgeted_below_txx_k']:.2f} K TXx "
+        f"(observed TXx is already ~1.8 K)"))
+    print(formatters.dim(
+        f"  carrying λ widens the band {vs['widening_factor']:.2f}x — an extra uncertain axis "
+        "never buys agreement"))
+    tight = determinacy_gain_from_tightening((1.10, 1.45))
+    print(formatters.dim(
+        f"  λ is worth {a['lambda_over_forcing']:.1f}x the forcing band; a tight assessed "
+        f"λ would recover {tight['width_reduction_k']:.2f} K"))
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    import textwrap
+    return textwrap.wrap(text, width)
 
 
 # --------------------------------------------------------------------- ceiling
@@ -309,6 +360,42 @@ def _gate(args: argparse.Namespace) -> None:
 
 
 
+# ---------------------------------------------------------------------- lambda
+
+def _lambda(args: argparse.Namespace) -> None:
+    from hours_eoh.research.thermal_lambda import (
+        lambda_for_frame, lambda_sensitivity, load_climate_feedback)
+    d = load_climate_feedback()
+    rows = lambda_sensitivity(args.delta_t)
+    if args.fmt == "json":
+        print(json.dumps({"frames": {f: lambda_for_frame(f) for f in ("equilibrium", "historical")},
+                          "sensitivity": rows, "pattern_effect": d["pattern_effect"]}, indent=2))
+        return
+    print(formatters.bold("\nClimate feedback λ — derived from IGCC 2025a\n"))
+    eq, hi = lambda_for_frame("equilibrium"), lambda_for_frame("historical")
+    print(formatters.table(
+        ["frame", "λ", "band", "pairs with"],
+        [["equilibrium", f"{eq['value']:.3f}", f"{eq['band'][0]:.2f}–{eq['band'][1]:.2f}",
+          "the equilibrium budget (commitment accounting)"],
+         ["historical", f"{hi['value']:.3f}", f"{hi['band'][0]:.2f}–{hi['band'][1]:.2f}",
+          formatters.yellow("a transient reading — REJECTED by this framework")]]))
+    print(formatters.dim(f"\n  λ_hist = (F − N)/ΔT over four windows, spread "
+                         f"{d['historical']['window_spread']}"))
+    print(formatters.dim(f"  pattern effect {d['pattern_effect']['value']:+.3f} — positive as "
+                         "expected, an independent check on the derivation"))
+    body = []
+    for r in rows:
+        flag = formatters.red("UNBUDGETED") if r["unbudgeted"] else f"{r['budget_tw']:,.1f}"
+        note = formatters.yellow("frame mismatch") if r["note"] else ""
+        body.append([r["label"], f"{r['lambda']:.3f}", r["frame"], flag,
+                     "—" if r["vs_shipped"] is None else f"{r['vs_shipped']}x", note])
+    print(formatters.bold(f"\nBudget sensitivity at ΔT_max = {args.delta_t} K\n"))
+    print(formatters.table(["λ candidate", "λ", "frame", "budget TW", "vs shipped", ""], body))
+    print("\n" + formatters.dim(
+        "  Across AR6's own likely ECS range the budget runs from ZERO to ~11x the shipped\n"
+        "  case. λ uncertainty ALONE can close the budget — separately from the forcing band."))
+
+
 # ---------------------------------------------------------------------- parser
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -341,6 +428,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     dz.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
     dz.add_argument("--txx", action="store_true",
                     help="Interpret --delta-t as land TXx rather than GMST (C6, ÷1.48)")
+    dz.add_argument("--single-axis", action="store_true", dest="single_axis",
+                    help="SUPERSEDED forcing-only map, for comparison")
+    dz.add_argument("--lambda-lo", type=float, default=None, dest="lambda_lo", metavar="F")
+    dz.add_argument("--lambda-hi", type=float, default=None, dest="lambda_hi", metavar="F")
     dz.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     _common(dz)
     dz.set_defaults(func=_determinacy)
@@ -370,3 +461,9 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     gt.add_argument("--years", type=float, default=THERMAL_PROGRAMME_YEARS, metavar="N")
     gt.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     gt.set_defaults(func=_gate)
+
+    lm = sub2.add_parser("lambda", help="Derived climate feedback λ + budget sensitivity")
+    lm.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
+    lm.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
+    lm.set_defaults(func=_lambda)
+

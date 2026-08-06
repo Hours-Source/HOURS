@@ -214,10 +214,22 @@ def determinacy_zone(
     f_p95: float = THERMAL_F_NET_ERF_P95,
 ) -> dict:
     """
-    The determinacy map (handoff 2.0 §4.2) — the central Path C result, and the
-    one thing C5 made computable: with a forcing UNCERTAINTY BAND rather than a
-    point value, some habitability thresholds give a robust answer and some do
-    not.
+    The SINGLE-AXIS determinacy map (handoff 2.0 §4.2) — the central Path C
+    result, and the one thing C5 made computable: with a forcing UNCERTAINTY BAND
+    rather than a point value, some habitability thresholds give a robust answer
+    and some do not.
+
+    **SUPERSEDED 2026-08-05 by research.thermal_lambda.determinacy_map.** This
+    function holds λ FIXED at an unassessed value, so it reports a determinate
+    zone about three times wider than the evidence supports. Carrying λ as well —
+    which the two-axis map does — moves the determinately-unbudgeted boundary from
+    2.168 K to 1.324 K GMST, or 3.21 K to 1.96 K in land extremes, and widens the
+    indeterminate band 3.12×. Determinacy requires the WHOLE parameter box to
+    agree, so an extra uncertain axis can only ever make agreement harder.
+
+    Retained because the §4.2 numbers were published against it and the delta must
+    stay auditable. Do NOT lead with it: `thermal_lambda.thermal_verdict` is the
+    headline entry point.
 
         budget opens at  ΔT = F/λ
 
@@ -447,10 +459,46 @@ class GlobalCeilingReport(TypedDict):
     basis: ForcingBasis
     phi_w: float
     allocated_budget_w: float
+    headroom_multiple: float | None   # H = budget/Φ_auto — MEASURED, no chosen input
     utilization: float | None
-    epsilon_max: float | None
+    epsilon_max: float | None         # = H · ε_current, so it inherits a CHOSEN constant
+    eps_current: float
     binds_below_1: bool
     note: str
+
+
+def headroom_multiple(
+    allocated_budget_w: float,
+    phi_auto_w: float,
+) -> float | None:
+    """
+    H — the thermal headroom multiple: how many times present automation
+    dissipation the budget supports.
+
+        H = allocated_budget / Φ_auto
+
+    THE MEASURED CONTENT OF F1. Eq. C1 gives ε_max = ε_current · H, so ε_max is
+    proportional to ε_current — a CHOSEN Tier D constant (0.40, "the arc
+    midpoint"). H is the same statement with that constant divided out: a pure
+    ratio of two energy quantities, both measured. "The thermal budget supports
+    5.4× current automation dissipation" is a claim the ledger can back; "ε_max =
+    2.16" is that claim multiplied by a number nobody measured.
+
+    Report H as the headline and ε_max as a labelled conversion. This also sits
+    better with the framework's own invariant that ε is an observable rather than
+    an input — a ceiling expressed as a multiple of measured dissipation needs no
+    view about where ε currently sits.
+
+    units: dimensionless. Returns None when the budget is zero (unbudgeted).
+
+    Raises:
+        ValueError: if phi_auto_w is not positive.
+    """
+    if allocated_budget_w <= 0.0:
+        return None
+    if phi_auto_w <= 0.0:
+        raise ValueError("phi_auto_w must be positive")
+    return allocated_budget_w / phi_auto_w
 
 
 def global_ceiling(
@@ -481,6 +529,7 @@ def global_ceiling(
     phi = world_dissipation()
     f_th = lam * delta_t_lo - _forcing_value(basis)
     allocated = (1.0 - r) * max(0.0, f_th) * a_earth
+    h = headroom_multiple(allocated, phi)
     eps_max = measured_epsilon_max(allocated, phi, eps_current)
     u = phi / allocated if allocated > 0.0 else None
     binds = eps_max is not None and eps_max < 1.0
@@ -489,13 +538,15 @@ def global_ceiling(
     elif binds:
         note = "thermal ceiling binds globally at current dissipation"
     else:
-        note = (f"non-binding globally (F1 conditional): ε_max > 1 at current Φ; "
-                f"binds at {eps_max:.2g}× present dissipation (that multiple IS "
-                f"ε_max by Eq. C1), and scales with the chosen ε_current")
+        note = (f"non-binding globally (F1 conditional). MEASURED: the budget supports "
+                f"H = {h:.3g}× present automation dissipation. Derived: ε_max = H·ε_current "
+                f"= {eps_max:.3g} at the CHOSEN ε_current = {eps_current}, so the ceiling "
+                f"binds at {eps_max:.2g}× present Φ — quote H, not ε_max, where the chosen "
+                f"constant would travel with the claim")
     return GlobalCeilingReport(
         delta_t_lo=delta_t_lo, basis=basis, phi_w=phi,
-        allocated_budget_w=allocated, utilization=u,
-        epsilon_max=eps_max, binds_below_1=binds, note=note,
+        allocated_budget_w=allocated, headroom_multiple=h, utilization=u,
+        epsilon_max=eps_max, eps_current=eps_current, binds_below_1=binds, note=note,
     )
 
 

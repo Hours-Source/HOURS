@@ -787,8 +787,26 @@ SECONDS_PER_YEAR: float = 3.155760e7  # Δt_s for one year (physics)
 
 # Assessed climate inputs — CHOSEN placeholders (Guardrail I: measured, published
 # with uncertainty, never negotiated). Values are for scaffolding only.
-THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ climate feedback param; Planck-only ≈ 3.2.
-                                       # Epistemic pointer: climate assessment (IPCC-class).
+THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate feedback parameter;
+                                       # Planck-only ≈ 3.2. Value unchanged, but its POSITION is
+                                       # now derived rather than assumed (2026-08-05,
+                                       # research/thermal_lambda.py + reference/data/
+                                       # climate_feedback.json): it sits below the AR6-implied
+                                       # 1.310 (ECS 3.0 K) and the historical energy-budget
+                                       # estimate 1.492 derived from the shipped IGCC series.
+                                       # Both directions matter — a LOWER λ means a SMALLER
+                                       # budget and a LARGER obligation, so 1.2 is the
+                                       # conservative side and was not flattering the result.
+                                       # FRAME DISCIPLINE: this is the EQUILIBRIUM λ and pairs
+                                       # only with the equilibrium budget λ·ΔT−F. The historical
+                                       # 1.492 pairs with a transient reading the framework
+                                       # rejects; mixing them inflates the allowance ~6×, and
+                                       # thermal_lambda.budget_forcing_headroom refuses it.
+                                       # SENSITIVITY IS FIRST-CLASS: across AR6's likely ECS
+                                       # range the budget runs from ZERO (ECS 5 K) to ~11× the
+                                       # shipped case. Never publish a ψ*-derived figure without
+                                       # λ and that band. resolves_by: an assessed equilibrium
+                                       # feedback with its uncertainty, not a point value.
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
 THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
