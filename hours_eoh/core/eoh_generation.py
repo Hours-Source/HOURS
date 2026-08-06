@@ -174,6 +174,169 @@ def infrastructure_eoh(
     return effective_capital * base_maint_rate * age_factor
 
 
+def infrastructure_statutory_floor(asset_census: list[dict]) -> float:
+    """
+    Task-normative infrastructure EOH floor from a physical condition census —
+    currency-free.
+
+    Governing equation:
+        floor = Σ_bucket  count · hours_per_unit_year
+
+    Each census bucket is a physical count of assets in a given condition and the
+    task-normative labour-hours per unit per year to inspect/maintain them (e.g.
+    (12 / inspection_interval_months) · crew_hours_per_visit). No money→hours
+    conversion enters — this is the auditable, measured stream. Motivated by the
+    NBI calibration (handoffs/Infrastructure): flipping any physical knob moves
+    this floor; flipping an accounting convention does not, because there is none.
+
+    units: hours/year. ε-behavior: none — maintenance burden is a property of what
+    is built and its condition, not of the automation level (ε enters fulfilment,
+    not this generation floor).
+
+    Worked example: 8,019 good @ 8 h + 12,482 fair @ 20 h + 2,813 poor @ 48 h
+        = 64,152 + 249,640 + 135,024 = 448,816 h/yr.
+
+    Args:
+        asset_census: list of buckets, each a dict with keys
+            "count" (float ≥ 0) and "hours_per_unit_year" (float ≥ 0).
+
+            OPTIONAL thermal keys are read by the census's other consumer and
+            IGNORED here: "type" (a CAPITAL_THERMAL_PROFILES key), "teh_per_unit",
+            "condition", "design_life_years". The same physical inventory yields
+            both the labour floor (hours, this function) and the dissipation floor
+            (watts, research/thermal_capital.infrastructure_thermal_floor) — the
+            §12.2 dual-output property at census granularity. Specifying them
+            together costs nothing; retrofitting means re-surveying.
+
+    Returns:
+        Total statutory-floor EOH (hours/year).
+
+    Raises:
+        ValueError: if any count or hours_per_unit_year is negative or a bucket
+            is missing a required key.
+
+    Reference: handoffs/Infrastructure §4.4 (statutory floor survives); Mission
+    Statement Guardrail I (physical grounding).
+    """
+    total = 0.0
+    for i, bucket in enumerate(asset_census):
+        try:
+            count = float(bucket["count"])
+            hpu = float(bucket["hours_per_unit_year"])
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                f"census bucket {i} needs 'count' and 'hours_per_unit_year': {bucket!r}"
+            ) from exc
+        if count < 0.0 or hpu < 0.0:
+            raise ValueError(f"census bucket {i} has negative count/hours: {bucket!r}")
+        total += count * hpu
+    return total
+
+
+def infrastructure_eoh_breakdown(
+    capital_stock: float | None = None,
+    capital_age_ratio: float = 0.50,
+    asset_census: list[dict] | None = None,
+    discretionary_eoh: float = 0.0,
+    deferred_stock: float = 0.0,
+    monitoring_capability: float | None = None,
+    epsilon: float | None = None,
+    base_maint_rate: float = 0.025,
+    age_factor_max: float = 2.0,
+    assessment_id: str = "none",
+) -> dict:
+    """
+    Infrastructure EOH split into a measured floor and a convention-laden remainder.
+
+    The B+D design (author-selected 2026-07-31). infrastructure_eoh() returns a
+    single float that conceals two halves of very different epistemic status. This
+    companion separates them, mirroring ecological_eoh_breakdown():
+
+        statutory_floor  — task-normative, currency-free, AUDITED when an
+                           asset_census is supplied; the measured stream.
+        discretionary    — maintenance ambition ABOVE the floor. Doctrine/
+                           convention-dependent → a policy choice that belongs in
+                           the fulfilment/fiscal layer, quarantined here as an input.
+        visible_deferred — accrued-but-unfulfilled obligation made visible by
+                           monitoring (deferred_stock · monitoring_factor).
+        total = statutory_floor + discretionary + visible_deferred
+
+    This is the same "floor = measurement, above the floor = discovery/politics"
+    move as the price-as-floor reconciliation (§3) and the measured multiplier —
+    infrastructure as the third domain under one epistemics.
+
+    Two input paths:
+      - asset_census (PRIMARY, physical): the floor is
+        infrastructure_statutory_floor(asset_census); audited=True. Currency never
+        enters, so ε's infrastructure denominator can honestly be this floor
+        (handoffs/Infrastructure §5.4b) — the [0.04, 0.40] ε-indeterminacy of the
+        monetized path collapses to a physical count.
+      - capital_stock (FALLBACK, monetized): the floor is infrastructure_eoh(...);
+        audited=False. With discretionary=0 and deferred=0 the total EQUALS
+        infrastructure_eoh() with the same args — full backward compatibility.
+
+    ε-behavior: the census floor is ε-invariant (physical). The scalar-fallback
+    floor applies the legacy canonical growth when epsilon is given (unchanged).
+    Degrades gracefully across ε ∈ [0, 0.99]; monitoring_factor is clamped.
+
+    Args:
+        capital_stock: monetized stock (TEH) for the fallback path. Required when
+            asset_census is None.
+        capital_age_ratio: mean age/design-life ∈ [0, 1] (fallback path only).
+        asset_census: physical condition census (see infrastructure_statutory_floor).
+            When provided, takes precedence over capital_stock for the floor.
+        discretionary_eoh: policy ambition above the floor (hours/year); default 0.
+        deferred_stock: accrued unfulfilled obligation (hours); default 0.
+        monitoring_capability: fraction of deferred visible ∈ [0, 1]; resolved from
+            epsilon when None (shared with the ecological path).
+        epsilon: automation level; fallback-path canonical growth + monitoring default.
+        base_maint_rate, age_factor_max: fallback-path rate model parameters.
+        assessment_id: label naming the doctrine/source behind discretionary_eoh.
+
+    Returns:
+        dict: {
+          "statutory_floor":  float,   (measured/auditable floor)
+          "discretionary":    float,   (convention-dependent ambition)
+          "visible_deferred": float,   (deferred_stock · monitoring_factor)
+          "total":            float,   (= floor + discretionary + visible_deferred)
+          "audited":          bool,    (True iff a physical census produced the floor)
+          "monitoring_factor": float,
+          "assessment_id":    str,
+          "epsilon":          float | None,
+        }
+
+    Raises:
+        ValueError: if neither asset_census nor capital_stock is provided.
+
+    Reference: handoffs/Infrastructure §5.1–5.4; reconciliation §3 (floor semantics);
+    Mission Statement Guardrail I.
+    """
+    if asset_census is not None:
+        floor = infrastructure_statutory_floor(asset_census)
+        audited = True
+    elif capital_stock is not None:
+        floor = infrastructure_eoh(
+            capital_stock, capital_age_ratio, epsilon, base_maint_rate, age_factor_max
+        )
+        audited = False
+    else:
+        raise ValueError("infrastructure_eoh_breakdown needs asset_census or capital_stock")
+
+    mon = _resolve_monitoring_capability(monitoring_capability, epsilon)
+    visible_deferred = max(0.0, deferred_stock) * mon
+
+    return {
+        "statutory_floor":  floor,
+        "discretionary":    discretionary_eoh,
+        "visible_deferred": visible_deferred,
+        "total":            floor + discretionary_eoh + visible_deferred,
+        "audited":          audited,
+        "monitoring_factor": mon,
+        "assessment_id":    assessment_id,
+        "epsilon":          epsilon,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Ecological EOH
 # ---------------------------------------------------------------------------
@@ -185,18 +348,29 @@ def ecological_eoh(
     threshold: float = 0.40,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
+    thermal_obligation: float = 0.0,
 ) -> float:
     """
     Total ecological EOH generated by natural systems civilization depends on.
 
-    Three-component formula:
+    Four-component formula:
 
         baseline        = base_rate / ecosystem_health                      [h/yr]
         spike           = base_rate × 5 × ((threshold − health) / threshold)²
                           (only when ecosystem_health < threshold; else 0)  [h/yr]
         visible_deferred = deferred × monitoring_capability                 [h/yr]
+        thermal          = the planetary radiative-capacity obligation       [h/yr]
 
-        total = baseline + spike + visible_deferred
+        total = baseline + spike + visible_deferred + thermal
+
+    The thermal term (added 2026-08-05, author sign-off) is the first obligation
+    the framework books against planetary radiative capacity — the one ecological
+    service labor cannot restore. It arrives as an annual FLOW, the drawdown job
+    discharged over a programme horizon, and it is NOT scaled by monitoring
+    capability: measured forcing is a direct observation, so unlike historical
+    neglect this obligation is fully visible at every ε. Sized by
+    research/thermal_drawdown and research/thermal_solvency; zero by default, so
+    it is opt-in and every prior caller is unaffected.
 
     Ecological systems do not degrade smoothly — long periods of slow
     accumulation are punctuated by sharp threshold failures (fishery collapse,
@@ -245,7 +419,8 @@ def ecological_eoh(
     EOH rates derived from measurable physical indicators."
     """
     return ecological_eoh_breakdown(
-        ecosystem_health, epsilon, base_rate, threshold, deferred, monitoring_capability
+        ecosystem_health, epsilon, base_rate, threshold, deferred,
+        monitoring_capability, thermal_obligation
     )["total"]
 
 
@@ -355,9 +530,11 @@ def ecological_eoh_breakdown(
     threshold: float = 0.40,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
+    thermal_obligation: float = 0.0,
 ) -> dict:
     """
-    Full component breakdown of ecological EOH: baseline + spike + visible deferred.
+    Full component breakdown of ecological EOH: baseline + spike + visible
+    deferred + thermal obligation.
 
     ecological_eoh() returns the total only. This companion function exposes the
     three constituent terms for transparency (Guardrail I) and monitoring dashboards.
@@ -376,13 +553,17 @@ def ecological_eoh_breakdown(
         deferred: Accumulated deferred EOH from historical neglect (hours).
         monitoring_capability: Fraction of deferred EOH visible to the ledger,
                                ∈ [0.0, 1.0]. When provided, takes precedence.
+        thermal_obligation: Annual EOH owed against the planetary radiative
+                            budget (h/yr). Default 0.0 — supplying it is opt-in,
+                            so every existing caller is unaffected.
 
     Returns:
         dict: {
           "baseline":         float,   (routine stewardship at current health)
           "spike":            float,   (nonlinear threshold spike; 0 if above threshold)
           "visible_deferred": float,   (deferred obligation visible at this ε)
-          "total":            float,   (= baseline + spike + visible_deferred)
+          "thermal":          float,   (planetary radiative-capacity obligation)
+          "total":            float,   (= baseline + spike + visible_deferred + thermal)
           "monitoring_factor": float,  (fraction of deferred that is visible)
           "in_threshold_spike": bool,
           "ecosystem_health": float,
@@ -407,7 +588,8 @@ def ecological_eoh_breakdown(
         "baseline":          baseline,
         "spike":             spike,
         "visible_deferred":  visible_deferred,
-        "total":             baseline + spike + visible_deferred,
+        "thermal":           thermal_obligation,
+        "total":             baseline + spike + visible_deferred + thermal_obligation,
         "monitoring_factor": mon,
         "in_threshold_spike": ecosystem_health < threshold,
         "ecosystem_health":  ecosystem_health,
@@ -440,6 +622,7 @@ def total_eoh(
     # Physical state parameters (new API — override canonical defaults when provided)
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
+    thermal_obligation: float = 0.0,
 ) -> dict[str, float]:
     """
     Aggregate EOH across all four domains.
@@ -532,7 +715,8 @@ def total_eoh(
     i = infrastructure_eoh(capital_stock, capital_age_ratio, epsilon,
                            infra_maint_rate, 2.0) + infrastructure_compounding_eoh
     e = ecological_eoh(ecosystem_health, epsilon, ecological_base,
-                       ecological_threshold, deferred_ecological, monitoring_capability)
+                       ecological_threshold, deferred_ecological,
+                       monitoring_capability, thermal_obligation)
     k = knowledge_eoh(knowledge_complexity, skill_decay_rate, epsilon,
                       knowledge_base, knowledge_exponent, knowledge_complexity_per_unit)
 

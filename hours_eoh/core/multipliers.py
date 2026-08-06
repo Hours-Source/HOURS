@@ -30,6 +30,9 @@ from hours_eoh.data import (
     ALPHA_IMPACT_EOH_REDUCTION_WEIGHT, ALPHA_IMPACT_DOMAIN_COVERAGE_WEIGHT,
     ALPHA_IMPACT_RESILIENCE_WEIGHT,
     GOVERNANCE_MIN_ASSESSORS, GOVERNANCE_IRR_WARN_THRESHOLD, GOVERNANCE_IRR_CRIT_THRESHOLD,
+    M_FLOOR, M_GEOMETRIC_R, M_COMPOSITE_Z_LO, M_COMPOSITE_Z_HI,
+    M_FACTOR_WEIGHTS, M_IMPACT_SUBDOMAIN_WEIGHTS,
+    M_IMPACT_COMPOSITE_LO, M_IMPACT_COMPOSITE_HI, M_EPOCH_WEIGHT_ANCHORS,
 )
 
 
@@ -234,7 +237,246 @@ def reclassification_impact(
 
 
 # ---------------------------------------------------------------------------
-# Tier Multiplier (four-factor assessment)
+# Reference multiplier — measured-data geometric map (mult-5.1.0, FROZEN)
+#
+# This is the ADOPTED reference multiplier form (author sign-off 2026-07-30),
+# replacing the additive tier_multiplier() below for the minted floor. It is
+# calibrated on measured O*NET/BLS factor levels (hours_eoh.reference.
+# onet_multipliers) rather than on hand-assigned factor scores.
+#
+#     composite = Σ w_i · f_i                          (composite_from_factors)
+#     z = clip((composite − Z_LO)/(Z_HI − Z_LO), 0, 1)
+#     m = FLOOR · R ** z                               (reference_multiplier)
+#
+# The map has no free parameters: FLOOR is constitutional, R and the z-range are
+# DERIVED-THEN-FROZEN at the reference epoch, curvature is deleted. See
+# handoffs/multipliers-v5/FALSIFIABILITY.md — the rank ordering and pairwise
+# ratios are the measurements; the absolute range/spread/band pass are
+# construction artifacts of the normalization choice.
+# ---------------------------------------------------------------------------
+
+def composite_from_factors(
+    training: float,
+    demand: float,
+    scarcity: float,
+    impact: float,
+    weights: tuple[float, float, float, float] = M_FACTOR_WEIGHTS,
+) -> float:
+    """
+    Weighted composite of the four measured assessment factors.
+
+    Governing equation:
+        composite = w_T·T + w_D·D + w_S·S + w_I·I
+
+    Each factor is an economy-wide normalized measurement ∈ [0, 1]
+    (`hours_eoh.reference.onet_multipliers`). At the frozen weights
+    M_FACTOR_WEIGHTS = (0.30, 0.25, 0.20, 0.25) this reproduces the registry's
+    `composite` column exactly. `weights` is exposed so the sensitivity harness
+    can perturb the (CHOSEN) split; pass `epoch_factor_weights(ε)` for
+    arc-adapted weighting.
+
+    ε-behavior: this function is ε-agnostic; ε enters only through `weights`.
+    At ε=0.40 the epoch weights equal the frozen weights by construction.
+
+    Worked example (Chief Executives, occ 11-1011):
+        T=1.000, D=0.30698, S=0.22586, I=0.62812, frozen weights →
+        composite = 0.30 + 0.076746 + 0.045172 + 0.157031 ≈ 0.5789
+
+    Args:
+        training, demand, scarcity, impact: measured factors ∈ [0, 1].
+        weights: (w_T, w_D, w_S, w_I); need not sum to 1 but conventionally does.
+
+    Returns:
+        composite score (same scale as the factors when weights sum to 1).
+
+    Raises:
+        ValueError: if any factor is outside [0, 1].
+
+    Reference: handoffs/multipliers-v5/methodology_params.yaml §multiplier_map;
+    reconciliation §3 (floor semantics).
+    """
+    factors = {"training": training, "demand": demand,
+               "scarcity": scarcity, "impact": impact}
+    for name, val in factors.items():
+        if not 0.0 <= val <= 1.0:
+            raise ValueError(f"Factor '{name}' must be in [0, 1], got {val}")
+    w_t, w_d, w_s, w_i = weights
+    return w_t * training + w_d * demand + w_s * scarcity + w_i * impact
+
+
+def impact_composite_from_subdomains(
+    dependency: float,
+    substitutability: float,
+    harm: float,
+    temporal: float,
+    weights: tuple[float, float, float, float] = M_IMPACT_SUBDOMAIN_WEIGHTS,
+    lo: float = M_IMPACT_COMPOSITE_LO,
+    hi: float = M_IMPACT_COMPOSITE_HI,
+) -> float:
+    """
+    Reconstruct the measured impact factor f_impact from its four sub-components.
+
+    Governing equations:
+        raw = w_dep·dependency + w_sub·substitutability + w_harm·harm + w_temp·temporal
+        f_impact = clip((raw − lo)/(hi − lo), 0, 1)          (affine outer-normalization)
+
+    The outer-normalization is an affine rescale (rank- and spacing-preserving)
+    that makes the stated sub-domain weights operative — without it a composite
+    of near-orthogonal parts concentrates toward the middle and the stated
+    weights become fiction (see reference_bounds.json → outer_normalization).
+    `lo`/`hi` are FROZEN; `weights` is exposed for the sensitivity harness (the
+    impact sub-domain split is CHOSEN, uncalibrated).
+
+    Worked example (Chief Executives): dep=0.99341, sub=0.07222, harm=0.58403,
+        temp=0.66804, frozen weights → raw ≈ 0.59569 →
+        f_impact = (0.59569 − 0.33175)/(0.75196 − 0.33175) ≈ 0.6281
+
+    Args:
+        dependency, substitutability, harm, temporal: measured sub-components ∈ [0, 1].
+        weights: (w_dep, w_sub, w_harm, w_temp).
+        lo, hi: frozen impact-composite normalization bounds; hi must exceed lo.
+
+    Returns:
+        f_impact ∈ [0, 1], the impact argument to composite_from_factors().
+
+    Raises:
+        ValueError: if any sub-component is outside [0, 1] or hi ≤ lo.
+
+    Reference: handoffs/multipliers-v5/methodology_params.yaml §factors.impact.
+    """
+    subs = {"dependency": dependency, "substitutability": substitutability,
+            "harm": harm, "temporal": temporal}
+    for name, val in subs.items():
+        if not 0.0 <= val <= 1.0:
+            raise ValueError(f"Impact sub-component '{name}' must be in [0, 1], got {val}")
+    if hi <= lo:
+        raise ValueError(f"impact-composite bounds require hi > lo, got lo={lo}, hi={hi}")
+    w_dep, w_sub, w_harm, w_temp = weights
+    raw = w_dep * dependency + w_sub * substitutability + w_harm * harm + w_temp * temporal
+    f = (raw - lo) / (hi - lo)
+    return min(1.0, max(0.0, f))
+
+
+def reference_multiplier(
+    composite: float,
+    floor: float = M_FLOOR,
+    R: float = M_GEOMETRIC_R,
+    z_lo: float = M_COMPOSITE_Z_LO,
+    z_hi: float = M_COMPOSITE_Z_HI,
+) -> float:
+    """
+    Minted-floor multiplier from a factor composite via the frozen geometric map.
+
+    Governing equations:
+        z = clip((composite − z_lo)/(z_hi − z_lo), 0, 1)
+        m = floor · R ** z
+
+    This is the ADOPTED reference form (author sign-off 2026-07-30). It prices
+    ONE HOUR of labour and sets the FLOOR at which TEH is minted — not realized
+    earnings; a discovered market premium sits on top (reconciliation §3,
+    market_premium hook). The map has no free parameters: `floor` is
+    constitutional, `R` and the z-range are DERIVED-THEN-FROZEN at the reference
+    epoch. Output is bounded to [floor, floor·R] = [1.0, 3.2] at defaults, well
+    under the aspirational M_MAX = 6.0 cap (which has never bound).
+
+    ε-behavior: the map itself is ε-invariant (a frozen cross-section). ε enters
+    upstream through the composite's factor weights — pass a composite built with
+    `epoch_factor_weights(ε)` for arc behavior. Degrades gracefully at every ε:
+    z is clipped, so no discontinuity or division issue across [0, 0.99].
+
+    Worked example (Chief Executives, composite 0.5789):
+        z = (0.5789 − 0.15307)/(0.74020 − 0.15307) = 0.7253
+        m = 1.0 · 3.2 ** 0.7253 ≈ 2.325   (matches the registry)
+
+    Args:
+        composite: weighted factor composite (from composite_from_factors()).
+        floor: constitutional floor multiplier (default M_FLOOR = 1.0).
+        R: frozen spread ratio (default M_GEOMETRIC_R = 3.2).
+        z_lo, z_hi: frozen composite normalization range; z_hi must exceed z_lo.
+
+    Returns:
+        Minted-floor multiplier ∈ [floor, floor·R].
+
+    Raises:
+        ValueError: if z_hi ≤ z_lo.
+
+    Reference: handoffs/multipliers-v5/reference_bounds.json; README semantics;
+    reconciliation §3.
+    """
+    if z_hi <= z_lo:
+        raise ValueError(f"composite z-range requires z_hi > z_lo, got z_lo={z_lo}, z_hi={z_hi}")
+    z = (composite - z_lo) / (z_hi - z_lo)
+    z = min(1.0, max(0.0, z))
+    return floor * (R ** z)
+
+
+def epoch_factor_weights(
+    epsilon: float,
+) -> tuple[float, float, float, float]:
+    """
+    Factor weights (training, demand, scarcity, impact) adapted to automation level.
+
+    Piecewise-linear interpolation over the CHOSEN anchors M_EPOCH_WEIGHT_ANCHORS.
+    This is the measured-data-aligned replacement for the additive form's
+    epoch_alpha_weights(): it returns NORMALIZED weights summing to 1.0 (fractions
+    of the composite), not absolute TEH/hr α coefficients. Feed the result to
+    composite_from_factors() and then reference_multiplier().
+
+    Governing behavior (anchors, each summing to 1.0):
+        ε=0.00 → (0.35, 0.30, 0.20, 0.15)   care/subsistence: training+demand lead
+        ε=0.40 → (0.30, 0.25, 0.20, 0.25)   production: balanced (= frozen weights)
+        ε=0.90 → (0.20, 0.20, 0.20, 0.40)   stewardship: impact rising
+        ε=0.99 → (0.15, 0.15, 0.15, 0.55)   copy/merge limit: impact dominates
+    Values between anchors are linearly interpolated; outside [0, 0.99] the
+    nearest anchor is held (clamped). The convex interpolation preserves sum = 1.
+
+    Epistemic status: CHOSEN. The ε-dependence encodes a governance judgement
+    (which leverage matters as machines take over), not a measurement. The
+    ε=0.99 shape is the theoretical limit where training/scarcity/demand
+    degenerate under copy/merge and only impact survives (handoffs KNOWN_ISSUES §5).
+
+    Args:
+        epsilon: automation level; clamped to the anchor range [0.0, 0.99].
+
+    Returns:
+        (w_training, w_demand, w_scarcity, w_impact) summing to 1.0.
+
+    Reference: handoffs/multipliers-v5/methodology_params.yaml §factors.weights_by_epsilon.
+    """
+    anchors = sorted(M_EPOCH_WEIGHT_ANCHORS.items())
+    lo_eps, lo_w = anchors[0]
+    hi_eps, hi_w = anchors[-1]
+    if epsilon <= lo_eps:
+        weights = lo_w
+    elif epsilon >= hi_eps:
+        weights = hi_w
+    else:
+        # find the bracketing anchor pair
+        left_eps, left_w = lo_eps, lo_w
+        right_eps, right_w = hi_eps, hi_w
+        for a_eps, a_w in anchors:
+            if a_eps <= epsilon:
+                left_eps, left_w = a_eps, a_w
+            if a_eps >= epsilon:
+                right_eps, right_w = a_eps, a_w
+                break
+        span = right_eps - left_eps
+        t = 0.0 if span == 0.0 else (epsilon - left_eps) / span
+        weights = tuple(l + t * (r - l) for l, r in zip(left_w, right_w))  # type: ignore[assignment]
+    total = sum(weights)
+    return tuple(w / total for w in weights)  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# Tier Multiplier (four-factor assessment) — DEPRECATED additive form
+#
+# Retained for backward compatibility. SUPERSEDED for the reference multiplier
+# by the geometric map above (reference_multiplier / composite_from_factors),
+# author sign-off 2026-07-30. The additive floor term "1.0 +" mechanically
+# compresses the ladder (handoffs/multipliers-v5/KNOWN_ISSUES §3); the measured
+# pass adopts the geometric map instead. New code should prefer
+# reference_multiplier(); this function and epoch_alpha_weights() are kept so
+# existing callers and the alpha-coefficient interpretation remain available.
 # ---------------------------------------------------------------------------
 
 def tier_multiplier(
@@ -318,6 +560,11 @@ def epoch_alpha_weights(
     """
     Absolute alpha coefficients (training, demand, scarcity, impact) for the
     tier_multiplier() additive formula, adapted to automation level.
+
+    DEPRECATED (2026-07-30): the additive reference form is superseded by the
+    geometric map. For the measured-data reference multiplier use
+    epoch_factor_weights() → composite_from_factors() → reference_multiplier().
+    Retained for backward compatibility and the α-coefficient interpretation.
 
     Governing equations:
         α₁(ε) = BASE_train + SLOPE_train × ε

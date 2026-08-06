@@ -1,0 +1,111 @@
+{
+  "reference_epoch": "2026-07-29",
+  "methodology": "mult-5.1.0",
+  "outer_normalization": {
+    "applied_to": [
+      "scarcity_composite",
+      "impact_composite"
+    ],
+    "reason": "without it, influence = weight x dispersion, silently down-weighting composite factors; impact was stated 0.25 but operating at 0.134 effective",
+    "character": "affine rescale \u2014 preserves all ranks and relative spacing; NOT tail-clipping"
+  },
+  "factor_weights": {
+    "training": 0.3,
+    "demand": 0.25,
+    "scarcity": 0.2,
+    "impact": 0.25
+  },
+  "effective_weights": {
+    "training": 0.305,
+    "demand": 0.274,
+    "scarcity": 0.171,
+    "impact": 0.25
+  },
+  "sources": [
+    "O*NET 30.3 (May 2026)",
+    "BLS EP 2024-2034",
+    "BLS OEWS May 2025 (2025A01)"
+  ],
+  "normalization": "winsorized_1_99",
+  "winsor_percentiles": [
+    0.01,
+    0.99
+  ],
+  "bounds": {
+    "train_log": [
+      6.647103615221381,
+      10.524612487449065
+    ],
+    "demand_mix": [
+      0.2815398660714285,
+      0.6028204634353742
+    ],
+    "scarcity_O": [
+      0.027612267598919396,
+      0.23995098039215762
+    ],
+    "scarcity_G": [
+      -0.022218,
+      0.02167700000000001
+    ],
+    "dispersion": [
+      0.5203682246383022,
+      0.9832908597036294
+    ],
+    "route_pool_log": [
+      5.740923434385486,
+      9.943982444192589
+    ],
+    "harm": [
+      0.3324999999999999,
+      0.9146583333333335
+    ],
+    "temporal_raw": [
+      0.16641343462614958,
+      0.9672654574533825
+    ],
+    "temporal_residual": [
+      -0.3498313408662925,
+      0.3431935456039874
+    ],
+    "scarcity_composite": [
+      0.18497718442013306,
+      0.8294365938036481
+    ],
+    "impact_composite": [
+      0.3317494225632136,
+      0.7519582943881703
+    ]
+  },
+  "temporal_residualization": {
+    "slope": 0.5577353311774232,
+    "intercept": 0.1429095468996833,
+    "note": "frozen \u2014 residual drifts with each vintage if refitted"
+  },
+  "composite_z_range": [
+    0.15307309621788462,
+    0.7401986094479613
+  ],
+  "natural_ratio": 4.836,
+  "R": 3.2,
+  "compression_applied": 1.511,
+  "floor": 1.0,
+  "cap": 6.0,
+  "band": [
+    1.8,
+    2.1
+  ],
+  "reference_metrics": {
+    "weighted_mean": 1.9993,
+    "ratio": 3.2,
+    "p90_over_p10": 1.5754,
+    "p75_over_p25": 1.3413,
+    "gini": 0.1038,
+    "pct_clipped": 13.07,
+    "n_occupations": 742,
+    "employment": 154964800,
+    "clip_note": "~1% per tail per component across 7 components; this is the BASELINE, not a fault. Drift is measured as INCREASE above it."
+  },
+  "frozen": true,
+  "warning": "Do NOT re-derive any of these per vintage. Re-derivation restores the circularity."
+}

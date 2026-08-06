@@ -30,6 +30,9 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH)
     p.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT)
     p.add_argument("--ecosystem-health", type=float, default=0.70)
+    p.add_argument("--measured", action="store_true",
+                   help="Source Condition II from the measured O*NET/BLS registry "
+                        "(751 occupations, repriced to ε) instead of DEFAULT_SEGMENTS")
     p.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     p.set_defaults(func=run)
 
@@ -90,6 +93,11 @@ def run(args: argparse.Namespace) -> None:
     _chi = contestability_margin(
         args.epsilon, args.population, args.trust_balance,
     )
+    # --measured: replace synthetic DEFAULT_SEGMENTS with the O*NET/BLS registry
+    # repriced to this ε (boundary injection; core stays pure).
+    if getattr(args, "measured", False):
+        from hours_eoh.scenarios.measured import measured_segments
+        kwargs["segments"] = measured_segments(args.epsilon)
     snap = system_dashboard(**kwargs, chi=_chi["chi"])
 
     if args.fmt == "json":
@@ -99,6 +107,13 @@ def run(args: argparse.Namespace) -> None:
     overall = snap.get("overall_status", "UNKNOWN")
     print(bold(f"System Dashboard — ε = {fmt_eps(args.epsilon)}  "
                f"[{status_color(overall)}]"))
+    if getattr(args, "measured", False):
+        c2 = snap.get("condition_ii", {})
+        m_meas = c2.get("mean_multiplier") if isinstance(c2, dict) else None
+        note = "Condition II from measured O*NET/BLS registry (751 occs, repriced to ε)"
+        if isinstance(m_meas, (int, float)):
+            note += f" — mean m̄ = {m_meas:.4f}"
+        print(green("  ● " + note))
     print()
 
     print(bold("Structural Conditions"))

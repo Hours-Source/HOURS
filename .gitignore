@@ -32,6 +32,8 @@ coverage.xml
 # Output / results
 results/
 *.json
+# ...except committed package reference data (the multiplier registry needs it)
+!hours_eoh/reference/data/*.json
 
 # OS
 .DS_Store
@@ -39,6 +41,8 @@ Thumbs.db
 
 # Dev Notes
 notes/
+handoffs/
+rawdata/
 
 # MkDocs build output (deployed via GitHub Actions, not committed)
 site/

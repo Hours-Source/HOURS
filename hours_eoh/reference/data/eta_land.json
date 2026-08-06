@@ -1,0 +1,2374 @@
+{
+ "dataset": "eta \u2014 radiative-efficiency weight on claimed land, per collective",
+ "_source": "ERA5 reanalysis single levels (0.25 deg), synoptic archive 00/06/12/18 UTC, 1st of Jan/Mar/May/Aug/Oct/Dec, every 5th year 1940-2025. Boundaries: Natural Earth 10m admin-0. Generated 2026-08-05.",
+ "_method": {
+  "daily_mean": "mean of the four synoptic hours; only days with all four are used (107 of 108 balanced days). Diurnal aliasing measured at <0.53 W/m2 worst zonal bias, <0.2% of mean OLR, stable 1940-2020.",
+  "field": "OLR = -avg_tnlwrfcs (clear-sky) / -avg_tnlwrf (all-sky); ECMWF net radiation is positive-downward. Reanalysis grid only (Ni=1440) \u2014 the 0.5 deg ensemble shares shortNames and must be excluded.",
+  "weighting": "cos(latitude) x land FRACTION (lsm), not a binary threshold, so partial coastal cells contribute their actual land area.",
+  "aggregation": "land-area-weighted mean of eta over cells whose centre falls in the collective; sub-grid collectives inherit a neighbourhood mean (see method field) at the smallest radius containing land."
+ },
+ "_basis": {
+  "shipped_default": "clear_sky (data.ETA_BASIS). All-sky credits a collective for being cloudy \u2014 cloud is not a policy lever, is partly endogenous to warming, and is the noisiest part of the field. Clear-sky measures the structural transparency of the column.",
+  "all_sky_retained": "Reported alongside as the physical reality check. The GAP is the diagnostic: where it is large the basis choice is doing real work. Singapore +0.129 (persistently convective \u2014 all-sky would penalise it for cloud it does not control), Brazil +0.066, Gulf states -0.05..-0.08."
+ },
+ "_normalisation": {
+  "basis": "CLAIMED land, Antarctica EXCLUDED, so the mean is 1 on the same footing as A_LAND_CLAIMED_M2 (1.35e14 m2), the denominator of psi*.",
+  "why": "Normalising over all land instead inflates every other collective by 2.96%, because Antarctica is 8.35% of cos-weighted land at eta ~0.67. eta REDISTRIBUTES a fixed budget \u2014 sum(eta_i * a_i) = sum(a_i) \u2014 so a mismatched denominator would silently change the total allocated."
+ },
+ "_limitations": {
+  "seasonal": "6 months per year and unevenly spaced (+2,+2,+3,+2,+2 \u2014 not strictly bimonthly). This is a sampled climatology, not an annual mean.",
+  "day_of_month": "the 1st only; 107 days total. Per-cell values carry weather noise that partly averages out in collective aggregates but not entirely.",
+  "1940": "two synoptic slots missing, costing one month of that year.",
+  "unresolved": "3 collectives return null \u2014 see below.",
+  "conceptual": "eta is TOTAL outgoing longwave, so hot arid land scores high. Whether high OLR means spare capacity or an already-stressed surface is a live question; a marginal-capacity measure would be a different rule. See the review."
+ },
+ "world": {
+  "balanced_days": 107,
+  "mean_olr_clear_sky_w_m2": 258.876,
+  "mean_olr_all_sky_w_m2": 237.704,
+  "longwave_cloud_radiative_effect_w_m2": 21.172,
+  "collectives_direct": 207,
+  "collectives_inherited": 48,
+  "collectives_unresolved": 3
+ },
+ "collectives": {
+  "Indonesia": {
+   "iso": "IDN",
+   "eta_clear_sky": 1.0542,
+   "eta_all_sky": 0.9084,
+   "gap": 0.1458,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.012490272
+  },
+  "Malaysia": {
+   "iso": "MYS",
+   "eta_clear_sky": 1.0553,
+   "eta_all_sky": 0.9204,
+   "gap": 0.1349,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002278364
+  },
+  "Chile": {
+   "iso": "CHL",
+   "eta_clear_sky": 1.018,
+   "eta_all_sky": 1.0477,
+   "gap": -0.0297,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004878199
+  },
+  "Bolivia": {
+   "iso": "BOL",
+   "eta_clear_sky": 1.0593,
+   "eta_all_sky": 1.0036,
+   "gap": 0.0557,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.008052796
+  },
+  "Peru": {
+   "iso": "PER",
+   "eta_clear_sky": 1.0377,
+   "eta_all_sky": 0.9373,
+   "gap": 0.1004,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.009503188
+  },
+  "Argentina": {
+   "iso": "ARG",
+   "eta_clear_sky": 1.0407,
+   "eta_all_sky": 1.0552,
+   "gap": -0.0145,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.020349672
+  },
+  "Dhekelia Sovereign Base Area": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0916,
+   "eta_all_sky": 1.1309,
+   "gap": -0.0393,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.963e-06
+  },
+  "Cyprus": {
+   "iso": "CYP",
+   "eta_clear_sky": 1.0784,
+   "eta_all_sky": 1.1217,
+   "gap": -0.0433,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.4472e-05
+  },
+  "India": {
+   "iso": "IND",
+   "eta_clear_sky": 1.0942,
+   "eta_all_sky": 1.0937,
+   "gap": 0.0005,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.023129185
+  },
+  "China": {
+   "iso": "CHN",
+   "eta_clear_sky": 0.9462,
+   "eta_all_sky": 0.9486,
+   "gap": -0.0024,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.069018061
+  },
+  "Israel": {
+   "iso": "ISR",
+   "eta_clear_sky": 1.093,
+   "eta_all_sky": 1.155,
+   "gap": -0.062,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000161602
+  },
+  "Palestine": {
+   "iso": "PSE",
+   "eta_clear_sky": 1.0855,
+   "eta_all_sky": 1.1487,
+   "gap": -0.0632,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.9706e-05
+  },
+  "Lebanon": {
+   "iso": "LBN",
+   "eta_clear_sky": 1.0533,
+   "eta_all_sky": 1.1005,
+   "gap": -0.0472,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 6.2832e-05
+  },
+  "Ethiopia": {
+   "iso": "ETH",
+   "eta_clear_sky": 1.0971,
+   "eta_all_sky": 1.1048,
+   "gap": -0.0077,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.0083581
+  },
+  "South Sudan": {
+   "iso": "SSD",
+   "eta_clear_sky": 1.1009,
+   "eta_all_sky": 1.0536,
+   "gap": 0.0473,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004728947
+  },
+  "Somalia": {
+   "iso": "SOM",
+   "eta_clear_sky": 1.1344,
+   "eta_all_sky": 1.1896,
+   "gap": -0.0552,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003491463
+  },
+  "Kenya": {
+   "iso": "KEN",
+   "eta_clear_sky": 1.1063,
+   "eta_all_sky": 1.1276,
+   "gap": -0.0213,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004240213
+  },
+  "Malawi": {
+   "iso": "MWI",
+   "eta_clear_sky": 1.0838,
+   "eta_all_sky": 1.0483,
+   "gap": 0.0355,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000743387
+  },
+  "United Republic of Tanzania": {
+   "iso": "TZA",
+   "eta_clear_sky": 1.0817,
+   "eta_all_sky": 1.0525,
+   "gap": 0.0292,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.006541187
+  },
+  "Syria": {
+   "iso": "SYR",
+   "eta_clear_sky": 1.0661,
+   "eta_all_sky": 1.1165,
+   "gap": -0.0504,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00138077
+  },
+  "Somaliland": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1301,
+   "eta_all_sky": 1.1877,
+   "gap": -0.0576,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001222072
+  },
+  "France": {
+   "iso": "-99",
+   "eta_clear_sky": 0.9839,
+   "eta_all_sky": 0.9896,
+   "gap": -0.0057,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004592564
+  },
+  "Suriname": {
+   "iso": "SUR",
+   "eta_clear_sky": 1.0776,
+   "eta_all_sky": 1.0698,
+   "gap": 0.0078,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001050232
+  },
+  "Guyana": {
+   "iso": "GUY",
+   "eta_clear_sky": 1.0752,
+   "eta_all_sky": 1.0654,
+   "gap": 0.0098,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001567597
+  },
+  "South Korea": {
+   "iso": "KOR",
+   "eta_clear_sky": 0.9874,
+   "eta_all_sky": 0.9846,
+   "gap": 0.0028,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000649578
+  },
+  "North Korea": {
+   "iso": "PRK",
+   "eta_clear_sky": 0.9372,
+   "eta_all_sky": 0.9275,
+   "gap": 0.0097,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000832568
+  },
+  "Morocco": {
+   "iso": "MAR",
+   "eta_clear_sky": 1.076,
+   "eta_all_sky": 1.1263,
+   "gap": -0.0503,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004310896
+  },
+  "Western Sahara": {
+   "iso": "ESH",
+   "eta_clear_sky": 1.1205,
+   "eta_all_sky": 1.165,
+   "gap": -0.0445,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000676192
+  },
+  "Costa Rica": {
+   "iso": "CRI",
+   "eta_clear_sky": 1.075,
+   "eta_all_sky": 1.0069,
+   "gap": 0.0681,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000344898
+  },
+  "Nicaragua": {
+   "iso": "NIC",
+   "eta_clear_sky": 1.0973,
+   "eta_all_sky": 1.0883,
+   "gap": 0.009,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000842841
+  },
+  "Republic of the Congo": {
+   "iso": "COG",
+   "eta_clear_sky": 1.0613,
+   "eta_all_sky": 0.9568,
+   "gap": 0.1045,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002590226
+  },
+  "Democratic Republic of the Congo": {
+   "iso": "COD",
+   "eta_clear_sky": 1.0615,
+   "eta_all_sky": 0.9356,
+   "gap": 0.1259,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.01721161
+  },
+  "Bhutan": {
+   "iso": "BTN",
+   "eta_clear_sky": 0.9774,
+   "eta_all_sky": 0.9461,
+   "gap": 0.0313,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000302221
+  },
+  "Ukraine": {
+   "iso": "UKR",
+   "eta_clear_sky": 0.9397,
+   "eta_all_sky": 0.9361,
+   "gap": 0.0036,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004161562
+  },
+  "Belarus": {
+   "iso": "BLR",
+   "eta_clear_sky": 0.9215,
+   "eta_all_sky": 0.9124,
+   "gap": 0.0091,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00153451
+  },
+  "Namibia": {
+   "iso": "NAM",
+   "eta_clear_sky": 1.1213,
+   "eta_all_sky": 1.1599,
+   "gap": -0.0386,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.006036903
+  },
+  "South Africa": {
+   "iso": "ZAF",
+   "eta_clear_sky": 1.0813,
+   "eta_all_sky": 1.1149,
+   "gap": -0.0336,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.009007639
+  },
+  "Saint Martin": {
+   "iso": "MAF",
+   "eta_clear_sky": 1.1324,
+   "eta_all_sky": 1.1814,
+   "gap": -0.049,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.574e-06
+  },
+  "Sint Maarten": {
+   "iso": "SXM",
+   "eta_clear_sky": 1.1324,
+   "eta_all_sky": 1.1814,
+   "gap": -0.049,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.574e-06
+  },
+  "Oman": {
+   "iso": "OMN",
+   "eta_clear_sky": 1.1662,
+   "eta_all_sky": 1.2468,
+   "gap": -0.0806,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002270305
+  },
+  "Uzbekistan": {
+   "iso": "UZB",
+   "eta_clear_sky": 1.0074,
+   "eta_all_sky": 1.0348,
+   "gap": -0.0274,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003225091
+  },
+  "Kazakhstan": {
+   "iso": "KAZ",
+   "eta_clear_sky": 0.9442,
+   "eta_all_sky": 0.9587,
+   "gap": -0.0145,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.01952243
+  },
+  "Tajikistan": {
+   "iso": "TJK",
+   "eta_clear_sky": 0.893,
+   "eta_all_sky": 0.9079,
+   "gap": -0.0149,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001052328
+  },
+  "Lithuania": {
+   "iso": "LTU",
+   "eta_clear_sky": 0.9233,
+   "eta_all_sky": 0.9223,
+   "gap": 0.001,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000480738
+  },
+  "Brazil": {
+   "iso": "BRA",
+   "eta_clear_sky": 1.0792,
+   "eta_all_sky": 1.0188,
+   "gap": 0.0604,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.062372258
+  },
+  "Uruguay": {
+   "iso": "URY",
+   "eta_clear_sky": 1.0627,
+   "eta_all_sky": 1.072,
+   "gap": -0.0093,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001280905
+  },
+  "Mongolia": {
+   "iso": "MNG",
+   "eta_clear_sky": 0.8865,
+   "eta_all_sky": 0.9082,
+   "gap": -0.0217,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.011545361
+  },
+  "Russia": {
+   "iso": "RUS",
+   "eta_clear_sky": 0.8396,
+   "eta_all_sky": 0.8437,
+   "gap": -0.0041,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.121794406
+  },
+  "Czechia": {
+   "iso": "CZE",
+   "eta_clear_sky": 0.9377,
+   "eta_all_sky": 0.9345,
+   "gap": 0.0032,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000582908
+  },
+  "Germany": {
+   "iso": "DEU",
+   "eta_clear_sky": 0.9463,
+   "eta_all_sky": 0.942,
+   "gap": 0.0043,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002597014
+  },
+  "Estonia": {
+   "iso": "EST",
+   "eta_clear_sky": 0.9158,
+   "eta_all_sky": 0.914,
+   "gap": 0.0018,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000288312
+  },
+  "Latvia": {
+   "iso": "LVA",
+   "eta_clear_sky": 0.9189,
+   "eta_all_sky": 0.9195,
+   "gap": -0.0006,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000448163
+  },
+  "Norway": {
+   "iso": "-99",
+   "eta_clear_sky": 0.873,
+   "eta_all_sky": 0.8586,
+   "gap": 0.0144,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002397574
+  },
+  "Sweden": {
+   "iso": "SWE",
+   "eta_clear_sky": 0.8965,
+   "eta_all_sky": 0.8827,
+   "gap": 0.0138,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002977555
+  },
+  "Finland": {
+   "iso": "FIN",
+   "eta_clear_sky": 0.8885,
+   "eta_all_sky": 0.8852,
+   "gap": 0.0033,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002218717
+  },
+  "Vietnam": {
+   "iso": "VNM",
+   "eta_clear_sky": 1.0783,
+   "eta_all_sky": 1.0546,
+   "gap": 0.0237,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002357422
+  },
+  "Cambodia": {
+   "iso": "KHM",
+   "eta_clear_sky": 1.0881,
+   "eta_all_sky": 1.0417,
+   "gap": 0.0464,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001304991
+  },
+  "Luxembourg": {
+   "iso": "LUX",
+   "eta_clear_sky": 0.9509,
+   "eta_all_sky": 0.9534,
+   "gap": -0.0025,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.8676e-05
+  },
+  "United Arab Emirates": {
+   "iso": "ARE",
+   "eta_clear_sky": 1.1644,
+   "eta_all_sky": 1.2429,
+   "gap": -0.0785,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000493926
+  },
+  "Belgium": {
+   "iso": "BEL",
+   "eta_clear_sky": 0.9565,
+   "eta_all_sky": 0.9557,
+   "gap": 0.0008,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000219274
+  },
+  "Georgia": {
+   "iso": "GEO",
+   "eta_clear_sky": 0.9442,
+   "eta_all_sky": 0.9426,
+   "gap": 0.0016,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000509043
+  },
+  "North Macedonia": {
+   "iso": "MKD",
+   "eta_clear_sky": 0.9591,
+   "eta_all_sky": 0.9678,
+   "gap": -0.0087,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000196035
+  },
+  "Albania": {
+   "iso": "ALB",
+   "eta_clear_sky": 0.9788,
+   "eta_all_sky": 0.9879,
+   "gap": -0.0091,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000182988
+  },
+  "Azerbaijan": {
+   "iso": "AZE",
+   "eta_clear_sky": 0.9847,
+   "eta_all_sky": 1.0034,
+   "gap": -0.0187,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00061967
+  },
+  "Kosovo": {
+   "iso": "-99",
+   "eta_clear_sky": 0.96,
+   "eta_all_sky": 0.9598,
+   "gap": 0.0002,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 8.0655e-05
+  },
+  "Turkey": {
+   "iso": "TUR",
+   "eta_clear_sky": 0.9861,
+   "eta_all_sky": 1.0078,
+   "gap": -0.0217,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.005558437
+  },
+  "Spain": {
+   "iso": "ESP",
+   "eta_clear_sky": 1.0022,
+   "eta_all_sky": 1.0307,
+   "gap": -0.0285,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003613655
+  },
+  "Laos": {
+   "iso": "LAO",
+   "eta_clear_sky": 1.08,
+   "eta_all_sky": 1.0673,
+   "gap": 0.0127,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001660008
+  },
+  "Kyrgyzstan": {
+   "iso": "KGZ",
+   "eta_clear_sky": 0.8941,
+   "eta_all_sky": 0.8944,
+   "gap": -0.0003,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001432029
+  },
+  "Armenia": {
+   "iso": "ARM",
+   "eta_clear_sky": 0.9502,
+   "eta_all_sky": 0.9637,
+   "gap": -0.0135,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000201542
+  },
+  "Denmark": {
+   "iso": "DNK",
+   "eta_clear_sky": 0.9447,
+   "eta_all_sky": 0.9382,
+   "gap": 0.0065,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000245703
+  },
+  "Libya": {
+   "iso": "LBY",
+   "eta_clear_sky": 1.0991,
+   "eta_all_sky": 1.1674,
+   "gap": -0.0683,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.012043153
+  },
+  "Tunisia": {
+   "iso": "TUN",
+   "eta_clear_sky": 1.0524,
+   "eta_all_sky": 1.0937,
+   "gap": -0.0413,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001105743
+  },
+  "Romania": {
+   "iso": "ROU",
+   "eta_clear_sky": 0.9491,
+   "eta_all_sky": 0.9502,
+   "gap": -0.0011,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001734282
+  },
+  "Hungary": {
+   "iso": "HUN",
+   "eta_clear_sky": 0.9544,
+   "eta_all_sky": 0.9537,
+   "gap": 0.0007,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000688761
+  },
+  "Slovakia": {
+   "iso": "SVK",
+   "eta_clear_sky": 0.9333,
+   "eta_all_sky": 0.9361,
+   "gap": -0.0028,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000348862
+  },
+  "Poland": {
+   "iso": "POL",
+   "eta_clear_sky": 0.9356,
+   "eta_all_sky": 0.9317,
+   "gap": 0.0039,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002269465
+  },
+  "Ireland": {
+   "iso": "IRL",
+   "eta_clear_sky": 0.9568,
+   "eta_all_sky": 0.9391,
+   "gap": 0.0177,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000451507
+  },
+  "United Kingdom": {
+   "iso": "GBR",
+   "eta_clear_sky": 0.9508,
+   "eta_all_sky": 0.9405,
+   "gap": 0.0103,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001579566
+  },
+  "Greece": {
+   "iso": "GRC",
+   "eta_clear_sky": 1.0072,
+   "eta_all_sky": 1.0283,
+   "gap": -0.0211,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000782147
+  },
+  "Zambia": {
+   "iso": "ZMB",
+   "eta_clear_sky": 1.0811,
+   "eta_all_sky": 1.0344,
+   "gap": 0.0467,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.005537266
+  },
+  "Sierra Leone": {
+   "iso": "SLE",
+   "eta_clear_sky": 1.0827,
+   "eta_all_sky": 1.0433,
+   "gap": 0.0394,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000504519
+  },
+  "Guinea": {
+   "iso": "GIN",
+   "eta_clear_sky": 1.094,
+   "eta_all_sky": 1.0735,
+   "gap": 0.0205,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001817363
+  },
+  "Liberia": {
+   "iso": "LBR",
+   "eta_clear_sky": 1.077,
+   "eta_all_sky": 1.0461,
+   "gap": 0.0309,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000670853
+  },
+  "Central African Republic": {
+   "iso": "CAF",
+   "eta_clear_sky": 1.0933,
+   "eta_all_sky": 1.0317,
+   "gap": 0.0616,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00462768
+  },
+  "Sudan": {
+   "iso": "SDN",
+   "eta_clear_sky": 1.1397,
+   "eta_all_sky": 1.1961,
+   "gap": -0.0564,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.013828343
+  },
+  "Djibouti": {
+   "iso": "DJI",
+   "eta_clear_sky": 1.1555,
+   "eta_all_sky": 1.2006,
+   "gap": -0.0451,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000154978
+  },
+  "Eritrea": {
+   "iso": "ERI",
+   "eta_clear_sky": 1.1418,
+   "eta_all_sky": 1.1937,
+   "gap": -0.0519,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000887807
+  },
+  "Austria": {
+   "iso": "AUT",
+   "eta_clear_sky": 0.926,
+   "eta_all_sky": 0.9266,
+   "gap": -0.0006,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000629889
+  },
+  "Iraq": {
+   "iso": "IRQ",
+   "eta_clear_sky": 1.1005,
+   "eta_all_sky": 1.1528,
+   "gap": -0.0523,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003201764
+  },
+  "Italy": {
+   "iso": "ITA",
+   "eta_clear_sky": 0.9811,
+   "eta_all_sky": 0.9929,
+   "gap": -0.0118,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002025455
+  },
+  "Switzerland": {
+   "iso": "CHE",
+   "eta_clear_sky": 0.9144,
+   "eta_all_sky": 0.9193,
+   "gap": -0.0049,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.0003042
+  },
+  "Iran": {
+   "iso": "IRN",
+   "eta_clear_sky": 1.0712,
+   "eta_all_sky": 1.119,
+   "gap": -0.0478,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.011929368
+  },
+  "Netherlands": {
+   "iso": "NLD",
+   "eta_clear_sky": 0.9564,
+   "eta_all_sky": 0.9471,
+   "gap": 0.0093,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000233773
+  },
+  "Liechtenstein": {
+   "iso": "LIE",
+   "eta_clear_sky": 0.9091,
+   "eta_all_sky": 0.9126,
+   "gap": -0.0035,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 6.1277e-05
+  },
+  "Ivory Coast": {
+   "iso": "CIV",
+   "eta_clear_sky": 1.0877,
+   "eta_all_sky": 1.0733,
+   "gap": 0.0144,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002370883
+  },
+  "Republic of Serbia": {
+   "iso": "SRB",
+   "eta_clear_sky": 0.9583,
+   "eta_all_sky": 0.9549,
+   "gap": 0.0034,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000566742
+  },
+  "Mali": {
+   "iso": "MLI",
+   "eta_clear_sky": 1.1297,
+   "eta_all_sky": 1.1639,
+   "gap": -0.0342,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.009311358
+  },
+  "Senegal": {
+   "iso": "SEN",
+   "eta_clear_sky": 1.1195,
+   "eta_all_sky": 1.114,
+   "gap": 0.0055,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001470242
+  },
+  "Nigeria": {
+   "iso": "NGA",
+   "eta_clear_sky": 1.1053,
+   "eta_all_sky": 1.0966,
+   "gap": 0.0087,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.006731906
+  },
+  "Benin": {
+   "iso": "BEN",
+   "eta_clear_sky": 1.1045,
+   "eta_all_sky": 1.0922,
+   "gap": 0.0123,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000863307
+  },
+  "Angola": {
+   "iso": "AGO",
+   "eta_clear_sky": 1.0772,
+   "eta_all_sky": 1.0288,
+   "gap": 0.0484,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.009214188
+  },
+  "Croatia": {
+   "iso": "HRV",
+   "eta_clear_sky": 0.9626,
+   "eta_all_sky": 0.9603,
+   "gap": 0.0023,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000369587
+  },
+  "Slovenia": {
+   "iso": "SVN",
+   "eta_clear_sky": 0.951,
+   "eta_all_sky": 0.9498,
+   "gap": 0.0012,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.0001465
+  },
+  "Qatar": {
+   "iso": "QAT",
+   "eta_clear_sky": 1.1538,
+   "eta_all_sky": 1.2302,
+   "gap": -0.0764,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 6.2085e-05
+  },
+  "Saudi Arabia": {
+   "iso": "SAU",
+   "eta_clear_sky": 1.1371,
+   "eta_all_sky": 1.208,
+   "gap": -0.0709,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.014322537
+  },
+  "Botswana": {
+   "iso": "BWA",
+   "eta_clear_sky": 1.1071,
+   "eta_all_sky": 1.1359,
+   "gap": -0.0288,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004335182
+  },
+  "Zimbabwe": {
+   "iso": "ZWE",
+   "eta_clear_sky": 1.0985,
+   "eta_all_sky": 1.1195,
+   "gap": -0.021,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002866007
+  },
+  "Pakistan": {
+   "iso": "PAK",
+   "eta_clear_sky": 1.0847,
+   "eta_all_sky": 1.1289,
+   "gap": -0.0442,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.006436655
+  },
+  "Bulgaria": {
+   "iso": "BGR",
+   "eta_clear_sky": 0.965,
+   "eta_all_sky": 0.9723,
+   "gap": -0.0073,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000824606
+  },
+  "Thailand": {
+   "iso": "THA",
+   "eta_clear_sky": 1.0908,
+   "eta_all_sky": 1.0597,
+   "gap": 0.0311,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003728264
+  },
+  "San Marino": {
+   "iso": "SMR",
+   "eta_clear_sky": 0.9846,
+   "eta_all_sky": 0.991,
+   "gap": -0.0064,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 5.4702e-05
+  },
+  "Haiti": {
+   "iso": "HTI",
+   "eta_clear_sky": 1.1113,
+   "eta_all_sky": 1.1364,
+   "gap": -0.0251,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00016029
+  },
+  "Dominican Republic": {
+   "iso": "DOM",
+   "eta_clear_sky": 1.1021,
+   "eta_all_sky": 1.1286,
+   "gap": -0.0265,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000318915
+  },
+  "Chad": {
+   "iso": "TCD",
+   "eta_clear_sky": 1.129,
+   "eta_all_sky": 1.1731,
+   "gap": -0.0441,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.009387087
+  },
+  "Kuwait": {
+   "iso": "KWT",
+   "eta_clear_sky": 1.1352,
+   "eta_all_sky": 1.1894,
+   "gap": -0.0542,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000111513
+  },
+  "El Salvador": {
+   "iso": "SLV",
+   "eta_clear_sky": 1.1019,
+   "eta_all_sky": 1.0858,
+   "gap": 0.0161,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00014705
+  },
+  "Guatemala": {
+   "iso": "GTM",
+   "eta_clear_sky": 1.082,
+   "eta_all_sky": 1.0771,
+   "gap": 0.0049,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000812305
+  },
+  "East Timor": {
+   "iso": "TLS",
+   "eta_clear_sky": 1.092,
+   "eta_all_sky": 1.0467,
+   "gap": 0.0453,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 8.5315e-05
+  },
+  "Brunei": {
+   "iso": "BRN",
+   "eta_clear_sky": 1.0575,
+   "eta_all_sky": 0.9131,
+   "gap": 0.1444,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.8594e-05
+  },
+  "Monaco": {
+   "iso": "MCO",
+   "eta_clear_sky": 0.9866,
+   "eta_all_sky": 1.0022,
+   "gap": -0.0156,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.0046e-05
+  },
+  "Algeria": {
+   "iso": "DZA",
+   "eta_clear_sky": 1.0964,
+   "eta_all_sky": 1.1456,
+   "gap": -0.0492,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.017264829
+  },
+  "Mozambique": {
+   "iso": "MOZ",
+   "eta_clear_sky": 1.1071,
+   "eta_all_sky": 1.1181,
+   "gap": -0.011,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.005736916
+  },
+  "eSwatini": {
+   "iso": "SWZ",
+   "eta_clear_sky": 1.081,
+   "eta_all_sky": 1.1119,
+   "gap": -0.0309,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000128848
+  },
+  "Burundi": {
+   "iso": "BDI",
+   "eta_clear_sky": 1.0478,
+   "eta_all_sky": 0.9426,
+   "gap": 0.1052,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000189978
+  },
+  "Rwanda": {
+   "iso": "RWA",
+   "eta_clear_sky": 1.0424,
+   "eta_all_sky": 0.9602,
+   "gap": 0.0822,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000181567
+  },
+  "Myanmar": {
+   "iso": "MMR",
+   "eta_clear_sky": 1.0756,
+   "eta_all_sky": 1.0492,
+   "gap": 0.0264,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004764742
+  },
+  "Bangladesh": {
+   "iso": "BGD",
+   "eta_clear_sky": 1.093,
+   "eta_all_sky": 1.0609,
+   "gap": 0.0321,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000953662
+  },
+  "Andorra": {
+   "iso": "AND",
+   "eta_clear_sky": 0.9337,
+   "eta_all_sky": 0.9533,
+   "gap": -0.0196,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.262e-06
+  },
+  "Afghanistan": {
+   "iso": "AFG",
+   "eta_clear_sky": 1.0218,
+   "eta_all_sky": 1.0652,
+   "gap": -0.0434,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004817163
+  },
+  "Montenegro": {
+   "iso": "MNE",
+   "eta_clear_sky": 0.9482,
+   "eta_all_sky": 0.9517,
+   "gap": -0.0035,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.00010973
+  },
+  "Bosnia and Herzegovina": {
+   "iso": "BIH",
+   "eta_clear_sky": 0.9537,
+   "eta_all_sky": 0.9535,
+   "gap": 0.0002,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000376563
+  },
+  "Uganda": {
+   "iso": "UGA",
+   "eta_clear_sky": 1.0714,
+   "eta_all_sky": 0.9971,
+   "gap": 0.0743,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001553941
+  },
+  "US Naval Base Guantanamo Bay": {
+   "iso": "-99",
+   "eta_clear_sky": 1.117,
+   "eta_all_sky": 1.1422,
+   "gap": -0.0252,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.454e-05
+  },
+  "Cuba": {
+   "iso": "CUB",
+   "eta_clear_sky": 1.1125,
+   "eta_all_sky": 1.1392,
+   "gap": -0.0267,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000673122
+  },
+  "Honduras": {
+   "iso": "HND",
+   "eta_clear_sky": 1.0904,
+   "eta_all_sky": 1.0906,
+   "gap": -0.0002,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000784352
+  },
+  "Ecuador": {
+   "iso": "ECU",
+   "eta_clear_sky": 1.0432,
+   "eta_all_sky": 0.9497,
+   "gap": 0.0935,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001826556
+  },
+  "Colombia": {
+   "iso": "COL",
+   "eta_clear_sky": 1.0548,
+   "eta_all_sky": 0.9406,
+   "gap": 0.1142,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.008343941
+  },
+  "Paraguay": {
+   "iso": "PRY",
+   "eta_clear_sky": 1.0983,
+   "eta_all_sky": 1.089,
+   "gap": 0.0093,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002983579
+  },
+  "Brazilian Island": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0807,
+   "eta_all_sky": 1.0921,
+   "gap": -0.0114,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 7.7969e-05
+  },
+  "Portugal": {
+   "iso": "PRT",
+   "eta_clear_sky": 1.0207,
+   "eta_all_sky": 1.0557,
+   "gap": -0.035,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000625186
+  },
+  "Moldova": {
+   "iso": "MDA",
+   "eta_clear_sky": 0.9502,
+   "eta_all_sky": 0.9537,
+   "gap": -0.0035,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000236894
+  },
+  "Turkmenistan": {
+   "iso": "TKM",
+   "eta_clear_sky": 1.0382,
+   "eta_all_sky": 1.0729,
+   "gap": -0.0347,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003429066
+  },
+  "Jordan": {
+   "iso": "JOR",
+   "eta_clear_sky": 1.0903,
+   "eta_all_sky": 1.1565,
+   "gap": -0.0662,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000636061
+  },
+  "Nepal": {
+   "iso": "NPL",
+   "eta_clear_sky": 1.0042,
+   "eta_all_sky": 0.9911,
+   "gap": 0.0131,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001109217
+  },
+  "Lesotho": {
+   "iso": "LSO",
+   "eta_clear_sky": 1.0206,
+   "eta_all_sky": 1.0367,
+   "gap": -0.0161,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000225785
+  },
+  "Cameroon": {
+   "iso": "CMR",
+   "eta_clear_sky": 1.0792,
+   "eta_all_sky": 1.0194,
+   "gap": 0.0598,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003452101
+  },
+  "Gabon": {
+   "iso": "GAB",
+   "eta_clear_sky": 1.0596,
+   "eta_all_sky": 0.9758,
+   "gap": 0.0838,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001897877
+  },
+  "Niger": {
+   "iso": "NER",
+   "eta_clear_sky": 1.1278,
+   "eta_all_sky": 1.1899,
+   "gap": -0.0621,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.008901371
+  },
+  "Burkina Faso": {
+   "iso": "BFA",
+   "eta_clear_sky": 1.1183,
+   "eta_all_sky": 1.1267,
+   "gap": -0.0084,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002034778
+  },
+  "Togo": {
+   "iso": "TGO",
+   "eta_clear_sky": 1.0938,
+   "eta_all_sky": 1.0694,
+   "gap": 0.0244,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000423488
+  },
+  "Ghana": {
+   "iso": "GHA",
+   "eta_clear_sky": 1.0959,
+   "eta_all_sky": 1.0753,
+   "gap": 0.0206,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001699638
+  },
+  "Guinea-Bissau": {
+   "iso": "GNB",
+   "eta_clear_sky": 1.1068,
+   "eta_all_sky": 1.0938,
+   "gap": 0.013,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000223601
+  },
+  "Gibraltar": {
+   "iso": "GIB",
+   "eta_clear_sky": 1.0502,
+   "eta_all_sky": 1.0991,
+   "gap": -0.0489,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.52e-05
+  },
+  "United States of America": {
+   "iso": "USA",
+   "eta_clear_sky": 0.9649,
+   "eta_all_sky": 0.9733,
+   "gap": -0.0084,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.066912791
+  },
+  "Canada": {
+   "iso": "CAN",
+   "eta_clear_sky": 0.8476,
+   "eta_all_sky": 0.8555,
+   "gap": -0.0079,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.065884188
+  },
+  "Mexico": {
+   "iso": "MEX",
+   "eta_clear_sky": 1.0782,
+   "eta_all_sky": 1.0959,
+   "gap": -0.0177,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.014169629
+  },
+  "Belize": {
+   "iso": "BLZ",
+   "eta_clear_sky": 1.0999,
+   "eta_all_sky": 1.1069,
+   "gap": -0.007,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000141187
+  },
+  "Panama": {
+   "iso": "PAN",
+   "eta_clear_sky": 1.0762,
+   "eta_all_sky": 0.976,
+   "gap": 0.1002,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000460009
+  },
+  "Venezuela": {
+   "iso": "VEN",
+   "eta_clear_sky": 1.0784,
+   "eta_all_sky": 1.0225,
+   "gap": 0.0559,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.006626132
+  },
+  "Papua New Guinea": {
+   "iso": "PNG",
+   "eta_clear_sky": 1.0474,
+   "eta_all_sky": 0.8767,
+   "gap": 0.1707,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003191564
+  },
+  "Egypt": {
+   "iso": "EGY",
+   "eta_clear_sky": 1.1179,
+   "eta_all_sky": 1.1985,
+   "gap": -0.0806,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.007526032
+  },
+  "Yemen": {
+   "iso": "YEM",
+   "eta_clear_sky": 1.1447,
+   "eta_all_sky": 1.2083,
+   "gap": -0.0636,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.003300318
+  },
+  "Mauritania": {
+   "iso": "MRT",
+   "eta_clear_sky": 1.1268,
+   "eta_all_sky": 1.1599,
+   "gap": -0.0331,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.007799124
+  },
+  "Equatorial Guinea": {
+   "iso": "GNQ",
+   "eta_clear_sky": 1.0591,
+   "eta_all_sky": 0.9832,
+   "gap": 0.0759,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000174444
+  },
+  "Gambia": {
+   "iso": "GMB",
+   "eta_clear_sky": 1.1109,
+   "eta_all_sky": 1.0974,
+   "gap": 0.0135,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 7.4866e-05
+  },
+  "Hong Kong S.A.R.": {
+   "iso": "HKG",
+   "eta_clear_sky": 1.0829,
+   "eta_all_sky": 1.0884,
+   "gap": -0.0055,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 6.835e-06
+  },
+  "Vatican": {
+   "iso": "VAT",
+   "eta_clear_sky": 1.0019,
+   "eta_all_sky": 1.0194,
+   "gap": -0.0175,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 4.4699e-05
+  },
+  "Northern Cyprus": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0845,
+   "eta_all_sky": 1.1225,
+   "gap": -0.038,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.6423e-05
+  },
+  "Cyprus No Mans Area": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0882,
+   "eta_all_sky": 1.1286,
+   "gap": -0.0404,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.5086e-05
+  },
+  "Siachen Glacier": {
+   "iso": "-99",
+   "eta_clear_sky": 0.7652,
+   "eta_all_sky": 0.7823,
+   "gap": -0.0171,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.8855e-05
+  },
+  "Baykonur Cosmodrome": {
+   "iso": "-99",
+   "eta_clear_sky": 0.9757,
+   "eta_all_sky": 1.008,
+   "gap": -0.0323,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.7957e-05
+  },
+  "Akrotiri Sovereign Base Area": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0768,
+   "eta_all_sky": 1.1218,
+   "gap": -0.045,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.1506e-05
+  },
+  "Southern Patagonian Ice Field": {
+   "iso": "-99",
+   "eta_clear_sky": 0.9188,
+   "eta_all_sky": 0.8856,
+   "gap": 0.0332,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 6.73e-06
+  },
+  "Bir Tawil": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1719,
+   "eta_all_sky": 1.2566,
+   "gap": -0.0847,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.37e-06
+  },
+  "Antarctica": {
+   "iso": "ATA",
+   "eta_clear_sky": 0.6459,
+   "eta_all_sky": 0.6833,
+   "gap": -0.0374,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.091063984
+  },
+  "Australia": {
+   "iso": "AUS",
+   "eta_clear_sky": 1.1189,
+   "eta_all_sky": 1.1537,
+   "gap": -0.0348,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.056266085
+  },
+  "Greenland": {
+   "iso": "GRL",
+   "eta_clear_sky": 0.7269,
+   "eta_all_sky": 0.7491,
+   "gap": -0.0222,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.015492035
+  },
+  "Fiji": {
+   "iso": "FJI",
+   "eta_clear_sky": 1.0943,
+   "eta_all_sky": 1.0621,
+   "gap": 0.0322,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 8.7146e-05
+  },
+  "New Zealand": {
+   "iso": "NZL",
+   "eta_clear_sky": 0.9938,
+   "eta_all_sky": 0.9962,
+   "gap": -0.0024,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001773406
+  },
+  "New Caledonia": {
+   "iso": "NCL",
+   "eta_clear_sky": 1.1051,
+   "eta_all_sky": 1.1206,
+   "gap": -0.0155,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 9.6732e-05
+  },
+  "Madagascar": {
+   "iso": "MDG",
+   "eta_clear_sky": 1.0949,
+   "eta_all_sky": 1.0895,
+   "gap": 0.0054,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.004215315
+  },
+  "Philippines": {
+   "iso": "PHL",
+   "eta_clear_sky": 1.0843,
+   "eta_all_sky": 1.021,
+   "gap": 0.0633,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.001684543
+  },
+  "Sri Lanka": {
+   "iso": "LKA",
+   "eta_clear_sky": 1.0855,
+   "eta_all_sky": 1.0242,
+   "gap": 0.0613,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000427742
+  },
+  "Cura\u00e7ao": {
+   "iso": "CUW",
+   "eta_clear_sky": 1.1172,
+   "eta_all_sky": 1.1151,
+   "gap": 0.0021,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.356e-06
+  },
+  "Aruba": {
+   "iso": "ABW",
+   "eta_clear_sky": 1.1199,
+   "eta_all_sky": 1.1252,
+   "gap": -0.0053,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.077e-06
+  },
+  "The Bahamas": {
+   "iso": "BHS",
+   "eta_clear_sky": 1.1124,
+   "eta_all_sky": 1.1402,
+   "gap": -0.0278,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.8309e-05
+  },
+  "Turks and Caicos Islands": {
+   "iso": "TCA",
+   "eta_clear_sky": 1.1194,
+   "eta_all_sky": 1.149,
+   "gap": -0.0296,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.87e-06
+  },
+  "Taiwan": {
+   "iso": "TWN",
+   "eta_clear_sky": 1.0591,
+   "eta_all_sky": 1.0565,
+   "gap": 0.0026,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000229642
+  },
+  "Japan": {
+   "iso": "JPN",
+   "eta_clear_sky": 0.9845,
+   "eta_all_sky": 0.9853,
+   "gap": -0.0008,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.002359745
+  },
+  "Saint Pierre and Miquelon": {
+   "iso": "SPM",
+   "eta_clear_sky": 0.9503,
+   "eta_all_sky": 0.9292,
+   "gap": 0.0211,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 6.17e-06
+  },
+  "Iceland": {
+   "iso": "ISL",
+   "eta_clear_sky": 0.8821,
+   "eta_all_sky": 0.8487,
+   "gap": 0.0334,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000668057
+  },
+  "Pitcairn Islands": {
+   "iso": "PCN",
+   "eta_clear_sky": 1.0877,
+   "eta_all_sky": 1.084,
+   "gap": 0.0037,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.08e-07
+  },
+  "French Polynesia": {
+   "iso": "PYF",
+   "eta_clear_sky": 1.1077,
+   "eta_all_sky": 1.1114,
+   "gap": -0.0037,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.523e-06
+  },
+  "French Southern and Antarctic Lands": {
+   "iso": "ATF",
+   "eta_clear_sky": 0.9281,
+   "eta_all_sky": 0.9121,
+   "gap": 0.016,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.7899e-05
+  },
+  "Seychelles": {
+   "iso": "SYC",
+   "eta_clear_sky": 1.1044,
+   "eta_all_sky": 1.1098,
+   "gap": -0.0054,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.97e-07
+  },
+  "Kiribati": {
+   "iso": "KIR",
+   "eta_clear_sky": null,
+   "eta_all_sky": null,
+   "gap": null,
+   "method": "unresolved",
+   "radius_deg": null,
+   "land_weight": 0.0,
+   "note": "no land fraction within 5 degrees \u2014 below ERA5 resolution with no land neighbour"
+  },
+  "Marshall Islands": {
+   "iso": "MHL",
+   "eta_clear_sky": null,
+   "eta_all_sky": null,
+   "gap": null,
+   "method": "unresolved",
+   "radius_deg": null,
+   "land_weight": 0.0,
+   "note": "no land fraction within 5 degrees \u2014 below ERA5 resolution with no land neighbour"
+  },
+  "Trinidad and Tobago": {
+   "iso": "TTO",
+   "eta_clear_sky": 1.1048,
+   "eta_all_sky": 1.099,
+   "gap": 0.0058,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.6068e-05
+  },
+  "Grenada": {
+   "iso": "GRD",
+   "eta_clear_sky": 1.1185,
+   "eta_all_sky": 1.1249,
+   "gap": -0.0064,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.323e-06
+  },
+  "Saint Vincent and the Grenadines": {
+   "iso": "VCT",
+   "eta_clear_sky": 1.1221,
+   "eta_all_sky": 1.1338,
+   "gap": -0.0117,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4e-07
+  },
+  "Barbados": {
+   "iso": "BRB",
+   "eta_clear_sky": 1.1217,
+   "eta_all_sky": 1.1253,
+   "gap": -0.0036,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.266e-06
+  },
+  "Saint Lucia": {
+   "iso": "LCA",
+   "eta_clear_sky": 1.1242,
+   "eta_all_sky": 1.1407,
+   "gap": -0.0165,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.622e-06
+  },
+  "Dominica": {
+   "iso": "DMA",
+   "eta_clear_sky": 1.1298,
+   "eta_all_sky": 1.1621,
+   "gap": -0.0323,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 7.25e-06
+  },
+  "United States Minor Outlying Islands": {
+   "iso": "UMI",
+   "eta_clear_sky": 1.1054,
+   "eta_all_sky": 1.1157,
+   "gap": -0.0103,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 4.4e-08
+  },
+  "Montserrat": {
+   "iso": "MSR",
+   "eta_clear_sky": 1.1332,
+   "eta_all_sky": 1.1768,
+   "gap": -0.0436,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.649e-06
+  },
+  "Antigua and Barbuda": {
+   "iso": "ATG",
+   "eta_clear_sky": 1.1331,
+   "eta_all_sky": 1.1765,
+   "gap": -0.0434,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 7.13e-07
+  },
+  "Saint Kitts and Nevis": {
+   "iso": "KNA",
+   "eta_clear_sky": 1.1326,
+   "eta_all_sky": 1.1783,
+   "gap": -0.0457,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.845e-06
+  },
+  "United States Virgin Islands": {
+   "iso": "VIR",
+   "eta_clear_sky": 1.1316,
+   "eta_all_sky": 1.1781,
+   "gap": -0.0465,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.49e-07
+  },
+  "Saint Barthelemy": {
+   "iso": "BLM",
+   "eta_clear_sky": 1.1324,
+   "eta_all_sky": 1.1805,
+   "gap": -0.0481,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.204e-06
+  },
+  "Puerto Rico": {
+   "iso": "PRI",
+   "eta_clear_sky": 1.1253,
+   "eta_all_sky": 1.1651,
+   "gap": -0.0398,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.3831e-05
+  },
+  "Anguilla": {
+   "iso": "AIA",
+   "eta_clear_sky": 1.1323,
+   "eta_all_sky": 1.1826,
+   "gap": -0.0503,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.03e-07
+  },
+  "British Virgin Islands": {
+   "iso": "VGB",
+   "eta_clear_sky": 1.1312,
+   "eta_all_sky": 1.1803,
+   "gap": -0.0491,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.023e-06
+  },
+  "Jamaica": {
+   "iso": "JAM",
+   "eta_clear_sky": 1.1178,
+   "eta_all_sky": 1.1368,
+   "gap": -0.019,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.3593e-05
+  },
+  "Cayman Islands": {
+   "iso": "CYM",
+   "eta_clear_sky": 1.1264,
+   "eta_all_sky": 1.1507,
+   "gap": -0.0243,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.8e-08
+  },
+  "Bermuda": {
+   "iso": "BMU",
+   "eta_clear_sky": 1.0736,
+   "eta_all_sky": 1.0681,
+   "gap": 0.0055,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 5.4e-08
+  },
+  "Heard Island and McDonald Islands": {
+   "iso": "HMD",
+   "eta_clear_sky": 0.917,
+   "eta_all_sky": 0.8905,
+   "gap": 0.0265,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.51e-07
+  },
+  "Saint Helena": {
+   "iso": "SHN",
+   "eta_clear_sky": 1.1413,
+   "eta_all_sky": 1.2202,
+   "gap": -0.0789,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.3e-08
+  },
+  "Mauritius": {
+   "iso": "MUS",
+   "eta_clear_sky": 1.1162,
+   "eta_all_sky": 1.1422,
+   "gap": -0.026,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 7.515e-06
+  },
+  "Comoros": {
+   "iso": "COM",
+   "eta_clear_sky": 1.111,
+   "eta_all_sky": 1.1175,
+   "gap": -0.0065,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.026e-06
+  },
+  "S\u00e3o Tom\u00e9 and Principe": {
+   "iso": "STP",
+   "eta_clear_sky": 1.0765,
+   "eta_all_sky": 1.0374,
+   "gap": 0.0391,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.329e-06
+  },
+  "Cabo Verde": {
+   "iso": "CPV",
+   "eta_clear_sky": 1.1096,
+   "eta_all_sky": 1.1447,
+   "gap": -0.0351,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.502e-06
+  },
+  "Malta": {
+   "iso": "MLT",
+   "eta_clear_sky": 1.0659,
+   "eta_all_sky": 1.0969,
+   "gap": -0.031,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.548e-06
+  },
+  "Jersey": {
+   "iso": "JEY",
+   "eta_clear_sky": 0.9864,
+   "eta_all_sky": 0.9849,
+   "gap": 0.0015,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 9.65e-06
+  },
+  "Guernsey": {
+   "iso": "GGY",
+   "eta_clear_sky": 0.9877,
+   "eta_all_sky": 0.986,
+   "gap": 0.0017,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.502e-06
+  },
+  "Isle of Man": {
+   "iso": "IMN",
+   "eta_clear_sky": 0.969,
+   "eta_all_sky": 0.948,
+   "gap": 0.021,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 7.01e-07
+  },
+  "Aland": {
+   "iso": "ALA",
+   "eta_clear_sky": 0.9334,
+   "eta_all_sky": 0.9188,
+   "gap": 0.0146,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.629e-06
+  },
+  "Faroe Islands": {
+   "iso": "FRO",
+   "eta_clear_sky": 0.9427,
+   "eta_all_sky": 0.9061,
+   "gap": 0.0366,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 4.345e-06
+  },
+  "Indian Ocean Territories": {
+   "iso": "-99",
+   "eta_clear_sky": 1.121,
+   "eta_all_sky": 1.1371,
+   "gap": -0.0161,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 8.99e-07
+  },
+  "British Indian Ocean Territory": {
+   "iso": "IOT",
+   "eta_clear_sky": 1.0837,
+   "eta_all_sky": 1.0211,
+   "gap": 0.0626,
+   "method": "neighbourhood",
+   "radius_deg": 1.0,
+   "land_weight": 0.0
+  },
+  "Singapore": {
+   "iso": "SGP",
+   "eta_clear_sky": 1.0635,
+   "eta_all_sky": 0.941,
+   "gap": 0.1225,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 4.531e-05
+  },
+  "Norfolk Island": {
+   "iso": "NFK",
+   "eta_clear_sky": 1.0862,
+   "eta_all_sky": 1.1032,
+   "gap": -0.017,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.75e-07
+  },
+  "Cook Islands": {
+   "iso": "COK",
+   "eta_clear_sky": 1.0875,
+   "eta_all_sky": 1.058,
+   "gap": 0.0295,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.03e-07
+  },
+  "Tonga": {
+   "iso": "TON",
+   "eta_clear_sky": 1.1009,
+   "eta_all_sky": 1.0819,
+   "gap": 0.019,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.877e-06
+  },
+  "Wallis and Futuna": {
+   "iso": "WLF",
+   "eta_clear_sky": 1.095,
+   "eta_all_sky": 1.0426,
+   "gap": 0.0524,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.39e-07
+  },
+  "Samoa": {
+   "iso": "WSM",
+   "eta_clear_sky": 1.0936,
+   "eta_all_sky": 1.0499,
+   "gap": 0.0437,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 8.733e-06
+  },
+  "Solomon Islands": {
+   "iso": "SLB",
+   "eta_clear_sky": 1.0798,
+   "eta_all_sky": 0.9604,
+   "gap": 0.1194,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 0.000100154
+  },
+  "Tuvalu": {
+   "iso": "TUV",
+   "eta_clear_sky": 1.103,
+   "eta_all_sky": 1.0798,
+   "gap": 0.0232,
+   "method": "neighbourhood",
+   "radius_deg": 3.0,
+   "land_weight": 3.3e-08
+  },
+  "Maldives": {
+   "iso": "MDV",
+   "eta_clear_sky": 1.0992,
+   "eta_all_sky": 1.0677,
+   "gap": 0.0315,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 0.0
+  },
+  "Nauru": {
+   "iso": "NRU",
+   "eta_clear_sky": 1.1048,
+   "eta_all_sky": 1.1072,
+   "gap": -0.0024,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 9e-09
+  },
+  "Federated States of Micronesia": {
+   "iso": "FSM",
+   "eta_clear_sky": 1.0911,
+   "eta_all_sky": 0.9826,
+   "gap": 0.1085,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.479e-06
+  },
+  "South Georgia and the Islands": {
+   "iso": "SGS",
+   "eta_clear_sky": 0.9071,
+   "eta_all_sky": 0.8865,
+   "gap": 0.0206,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 1.5307e-05
+  },
+  "Falkland Islands": {
+   "iso": "FLK",
+   "eta_clear_sky": 0.9489,
+   "eta_all_sky": 0.9349,
+   "gap": 0.014,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 5.0758e-05
+  },
+  "Vanuatu": {
+   "iso": "VUT",
+   "eta_clear_sky": 1.1026,
+   "eta_all_sky": 1.0582,
+   "gap": 0.0444,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 3.9774e-05
+  },
+  "Niue": {
+   "iso": "NIU",
+   "eta_clear_sky": 1.1021,
+   "eta_all_sky": 1.0773,
+   "gap": 0.0248,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.181e-06
+  },
+  "American Samoa": {
+   "iso": "ASM",
+   "eta_clear_sky": 1.0983,
+   "eta_all_sky": 1.057,
+   "gap": 0.0413,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 2.36e-07
+  },
+  "Palau": {
+   "iso": "PLW",
+   "eta_clear_sky": 1.0851,
+   "eta_all_sky": 0.985,
+   "gap": 0.1001,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.335e-06
+  },
+  "Guam": {
+   "iso": "GUM",
+   "eta_clear_sky": 1.1188,
+   "eta_all_sky": 1.0829,
+   "gap": 0.0359,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 3.482e-06
+  },
+  "Northern Mariana Islands": {
+   "iso": "MNP",
+   "eta_clear_sky": 1.1196,
+   "eta_all_sky": 1.0924,
+   "gap": 0.0272,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 1.489e-06
+  },
+  "Bahrain": {
+   "iso": "BHR",
+   "eta_clear_sky": 1.1506,
+   "eta_all_sky": 1.2141,
+   "gap": -0.0635,
+   "method": "direct",
+   "radius_deg": null,
+   "land_weight": 9.41e-07
+  },
+  "Coral Sea Islands": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1033,
+   "eta_all_sky": 1.1403,
+   "gap": -0.037,
+   "method": "neighbourhood",
+   "radius_deg": 3.0,
+   "land_weight": 4.026e-06
+  },
+  "Spratly Islands": {
+   "iso": "-99",
+   "eta_clear_sky": 1.0868,
+   "eta_all_sky": 1.0155,
+   "gap": 0.0713,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 1.2223e-05
+  },
+  "Clipperton Island": {
+   "iso": "-99",
+   "eta_clear_sky": null,
+   "eta_all_sky": null,
+   "gap": null,
+   "method": "unresolved",
+   "radius_deg": null,
+   "land_weight": 0.0,
+   "note": "no land fraction within 5 degrees \u2014 below ERA5 resolution with no land neighbour"
+  },
+  "Macao S.A.R": {
+   "iso": "MAC",
+   "eta_clear_sky": 1.082,
+   "eta_all_sky": 1.0892,
+   "gap": -0.0072,
+   "method": "neighbourhood",
+   "radius_deg": 0.5,
+   "land_weight": 2.7517e-05
+  },
+  "Ashmore and Cartier Islands": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1224,
+   "eta_all_sky": 1.1099,
+   "gap": 0.0125,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 1.6491e-05
+  },
+  "Bajo Nuevo Bank (Petrel Is.)": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1236,
+   "eta_all_sky": 1.146,
+   "gap": -0.0224,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 7e-08
+  },
+  "Serranilla Bank": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1168,
+   "eta_all_sky": 1.1405,
+   "gap": -0.0237,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 5.477e-06
+  },
+  "Scarborough Reef": {
+   "iso": "-99",
+   "eta_clear_sky": 1.1104,
+   "eta_all_sky": 1.0816,
+   "gap": 0.0288,
+   "method": "neighbourhood",
+   "radius_deg": 2.0,
+   "land_weight": 5.301e-06
+  }
+ },
+ "_marginal_capacity_investigated": {
+  "question": "eta as shipped is TOTAL outgoing longwave, so hot arid land scores high. Whether that means spare capacity or an already-stressed surface is a live question; the conceptually apter measure is MARGINAL capacity dOLR/dT_surface \u2014 how much extra the column sheds per unit of additional warming.",
+  "result": "NEGATIVE \u2014 not determinable from this sampling. Three estimators were built and they disagree materially.",
+  "estimators": {
+   "seasonal (across the 6 sampled months)": "35.2% of land weight at r2<0.5; the tropics have only ~5 K of seasonal range to regress against, and the inversion it produces is concentrated in exactly those unreliable cells. Raw spread p05-p95 7.6x vs 1.5x for total OLR \u2014 mostly noise.",
+   "diurnal (within-day, across the 4 synoptic hours)": "BEST conditioned, 5.8% at r2<0.5, mean diurnal range 13.3 K. But it measures the FAST response, with the atmospheric column effectively fixed \u2014 the wrong timescale for a sustained heat addition.",
+   "interannual (within-month, across the 18 sampled years)": "the RIGHT timescale \u2014 the equilibrated response a permanent addition acts on \u2014 but the WORST conditioned, 57.6% at r2<0.5 (UAE 0.02, Singapore 0.08). Unusable."
+  },
+  "disagreement": "Brazil spans 0.802 (diurnal) to 1.612 (interannual); UAE 0.273 to 0.977. The estimators do not measure the same physical quantity, and the best-conditioned one answers the wrong question.",
+  "physical_check": "mean dOLR/dT = 1.4-1.9 W/m2/K against a graybody 4*sigma*T^3 of 5.4 \u2014 the water-vapour effect made visible, and a sign the regressions are capturing real physics even where they are noisy.",
+  "resolves_by": "12-month sampling with more days per month, giving enough seasonal AND interannual temperature variation to condition the regression at the sustained-forcing timescale. This is a DATA requirement, not an analysis one \u2014 no rearrangement of the present archive fixes it.",
+  "status": "eta ships on TOTAL clear-sky OLR. The conceptual objection stands and is NOT resolved; it is recorded so the next attempt starts from the negative result rather than repeating it."
+ }
+}

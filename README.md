@@ -15,6 +15,8 @@ A single parameter, **ε (epsilon)**, tracks where a civilization sits on the tr
 
 ε is not a policy lever. It is an *observed* state of the world — the measured degree to which physical entropy obligations are fulfilled by machines rather than human bodies.
 
+**ε = 1 is aspirational — the target to reach, not the measure of success.** Success is a *stable, measurable corridor*: a band of ε over which every invariant holds (the sufficiency floor, contestability, solvency, and — once measured — the thermal ceiling), with positive width sustained over time. A collective stable at ε = 0.6 with a positive corridor and a met sufficiency floor is a success by this framework's standard, not a failed run at ε = 1. If a ceiling sits below full automation, that is a finding the framework is built to report, not a failure. See `hours_eoh/research/corridor.py`.
+
 Every function in this codebase must produce physically meaningful output across the full arc from ε = 0 to ε = 0.99. A mechanism that only works at the current calibration midpoint (ε = 0.40) is incomplete.
 
 ## Four Entropy Domains

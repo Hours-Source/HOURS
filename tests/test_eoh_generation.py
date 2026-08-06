@@ -434,3 +434,58 @@ class TestEohToEssentialDomains:
         result = eoh_to_essential_domains({"personal": 0.0, "infrastructure": 0.0,
                                            "ecological": 1_000_000.0, "knowledge": 0.0})
         assert result["agriculture"] == max(result.values())
+
+
+# ---------------------------------------------------------------------------
+# Thermal obligation — the planetary radiative-capacity term (2026-08-05)
+# ---------------------------------------------------------------------------
+
+def test_thermal_obligation_defaults_to_zero_everywhere():
+    """The wiring is opt-in: every pre-existing caller must be unaffected."""
+    from hours_eoh.core.eoh_generation import ecological_eoh_breakdown, ecological_eoh, total_eoh
+    b = ecological_eoh_breakdown(0.70, 0.40)
+    assert b["thermal"] == 0.0
+    assert b["total"] == pytest.approx(b["baseline"] + b["spike"] + b["visible_deferred"])
+    assert ecological_eoh(0.70, 0.40) == pytest.approx(b["total"])
+    assert total_eoh(0.40)["ecological"] == pytest.approx(b["total"])
+
+
+def test_thermal_obligation_adds_to_the_ecological_domain():
+    from hours_eoh.core.eoh_generation import ecological_eoh_breakdown, total_eoh
+    base = ecological_eoh_breakdown(0.70, 0.40)
+    load = ecological_eoh_breakdown(0.70, 0.40, thermal_obligation=1_789_175.0)
+    assert load["thermal"] == pytest.approx(1_789_175.0)
+    assert load["total"] - base["total"] == pytest.approx(1_789_175.0)
+    assert total_eoh(0.40, thermal_obligation=1_789_175.0)["ecological"] - \
+           total_eoh(0.40)["ecological"] == pytest.approx(1_789_175.0)
+
+
+def test_thermal_obligation_is_not_scaled_by_monitoring():
+    """Unlike historical neglect, measured forcing is a direct observation — it is
+    fully visible at every ε rather than emerging as sensing improves."""
+    from hours_eoh.core.eoh_generation import ecological_eoh_breakdown
+    at_zero = ecological_eoh_breakdown(0.70, 0.0, thermal_obligation=1e6)
+    at_full = ecological_eoh_breakdown(0.70, 0.99, thermal_obligation=1e6)
+    assert at_zero["thermal"] == at_full["thermal"] == pytest.approx(1e6)
+    assert at_zero["monitoring_factor"] < at_full["monitoring_factor"]
+
+
+def test_thermal_obligation_flows_through_pipeline_and_fiscal():
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.fiscal import fiscal_snapshot
+    flow = 1_789_175.0
+    a = eoh_to_teh_pipeline(0.40)
+    b = eoh_to_teh_pipeline(0.40, thermal_obligation=flow)
+    assert b["eoh_by_domain"]["ecological"] - a["eoh_by_domain"]["ecological"] == pytest.approx(flow)
+    assert b["teh_created"] > a["teh_created"]          # the obligation partly funds itself
+    s = fiscal_snapshot(3.5e10, b["teh_created"], 2e9, 0.3, 1e6, 0.40, thermal_obligation=flow)
+    s0 = fiscal_snapshot(3.5e10, a["teh_created"], 2e9, 0.3, 1e6, 0.40)
+    assert s["ecological"]["ecological_eoh_total"] - \
+           s0["ecological"]["ecological_eoh_total"] == pytest.approx(flow)
+
+
+def test_thermal_obligation_arc_coherent():
+    from hours_eoh.core.eoh_generation import ecological_eoh
+    for eps in (0.0, 0.40, 0.90, 0.99):
+        v = ecological_eoh(0.70, eps, thermal_obligation=1_789_175.0)
+        assert v > 0.0 and math.isfinite(v)

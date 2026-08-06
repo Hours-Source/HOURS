@@ -1,0 +1,45 @@
+constant_or_input,value,tag,source_or_note,sensitivity_sweep,resolves_by
+hours_per_FTE_year,2080,physics,definitional: 40h x 52w,,n/a (structural)
+onet_education_RL,category distributions,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_training_RW_OJ_PT,category distributions,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_abilities_LV,4 cognitive elements,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_essential_skills_LV,Critical Thinking,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_transferable_skills_LV,"Complex Problem Solving, Judgment and Decision Making",measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_work_context_CX,physical/emotional/hazard/harm elements,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_work_activities_LV,persisting vs transient,measured,O*NET 30.3 May 2026,,n/a (measured)
+onet_related_occupations,18460 rows with relatedness tiers,measured,O*NET 30.3 May 2026,,n/a (measured)
+bls_ep_employment_PR,742 occupations,measured,BLS EP 2024-2034,,n/a (measured)
+bls_ep_openings_A4,742 occupations,measured,BLS EP 2024-2034,,n/a (measured)
+bls_ep_pct_change_A2,742 occupations,measured,BLS EP 2024-2034,,n/a (measured)
+bls_ep_industry_shares_A6,dependency dispersion,measured,BLS EP 2024-2034,,n/a (measured)
+bls_oews_employment,1097 occupations,measured,BLS OEWS May 2025 (2025A01),,n/a (measured)
+bls_oews_median_wage,1097 occupations,measured,BLS OEWS May 2025 (2025A01),,n/a (measured)
+f_training,log-minmax of measured hours,derived,economy-wide normalization,,n/a (derived from measured)
+f_demand,weighted subdomain mean,derived,from measured,,n/a (derived from measured)
+f_scarcity,0.667*O + 0.333*G,derived,from measured,,n/a (derived from measured)
+i_dependency,1 - HHI,derived,from measured,,n/a (derived from measured)
+i_substitutability_human,1 - norm(log(route pool)),derived,from measured,,n/a (derived from measured)
+i_harm,mean of 3 work_context elements,derived,from measured,,n/a (derived from measured)
+i_temporal_residualized,residual on training,derived,explainability cost — see manifest,,resolve residualize-vs-reweight governance choice (open_decisions.temporal)
+multiplier_floor,1.0,CHOSEN,framework,fixed,constitutional — resolves only by a governance/charter decision on the floor
+multiplier_cap,6.0,CHOSEN,constitutional 6:1,fixed,"constitutional; empirically slack (max observed 3.2) — resolve cap_scope (floor-only vs floor+market)"
+band,1.8-2.1,CHOSEN,framework; scope UNRESOLVED,fixed,"resolve band_scope (minted floor vs realized comp); band is near-non-discriminating (a convention) — a distributional target that measured data could fail would replace it"
+epsilon,0.40,CHOSEN,no measurement; make an INPUT for simulations,0.0-0.99,"measure ε = machine_EOH / total_EOH from capital stock (civilization.py) — then ε is observed, not chosen"
+factor_weights,30/25/20/25 at eps=0.40,CHOSEN,uncalibrated,+/-0.10 each,"external anchor (an asserted occupation-pair ratio) or a stated distributional target the data could fail; sensitivity harness bounds the exposure (rank robust, band convention)"
+factor_weight_epsilon_anchors,4 anchor vectors,CHOSEN,illustrative,+/-0.10 each,"governance judgement on which leverage matters as ε rises; the ε->1 impact-only limit is theory (KNOWN_ISSUES §5), not measurement"
+demand_subdomain_weights,30/25/25/20,CHOSEN,no empirical basis,+/-0.10 each,"an empirical burden model (e.g. injury/illness or wage-hedonic evidence on cognitive/physical/emotional/hazard load) would replace the flat guess"
+impact_subdomain_weights,30/25/25/20,CHOSEN,no empirical basis,+/-0.10 each,"an outcome study linking dependency/substitutability/harm/temporal to measured entropy-reduction would calibrate the split"
+scarcity_leg_weights,O 0.667 / G 0.333,CHOSEN,V leg absent economy-wide,O 0.3-0.8,"add the vacancy leg V (JOLTS/NSI/HRSA economy-wide) and fit O/G/V from realized time-to-fill"
+substitution_tier_weights,1.0 / 0.6 / 0.3,CHOSEN,relatedness tier weighting,+/-0.2,"observed cross-occupation transition rates (BLS mobility / longitudinal survey) would set tier weights empirically"
+temporal_activity_lists,5 persisting / 3 transient,CHOSEN,element selection is judgment,alternate element sets,"an output-half-life measure (how long the work's product persists) would replace hand-picked activity lists"
+ai_exposure_machine_leg,pattern-estimated,CHOSEN,needs Iceberg per-occupation,pending data,"per-occupation AI-exposure (Iceberg Index) — swaps the pattern estimate for a measurement"
+time_to_harm_speed,not implemented,CHOSEN,no dataset exists,pending,"a dataset of consequence-onset latency by occupation; none exists yet"
+abandonment_rate,not implemented,planned,exit without onward destination,pending,"longitudinal exit-with-no-onward-destination data (distinct from turnover) — the audit trigger, not a multiplier input"
+vacancy_leg_V,4 occupations only,planned,NSI/HRSA do not cover economy-wide,pending,"economy-wide vacancy series (JOLTS by SOC) to complete the scarcity triad"
+spread_ratio_R,3.20,derived_then_FROZEN,solved once at reference epoch,n/a,"n/a — solved from {floor, band, measured composite}; re-derivation restores circularity"
+map_form,geometric (no free params),derived,floor anchors; R solved; curvature deleted,n/a,"n/a — adopted 2026-07-30 (author sign-off); additive form deprecated (KNOWN_ISSUES §3)"
+curvature_p,deleted,n/a,removed in v4 — satisfied all constraints at p=1,n/a,n/a (deleted)
+reference_epoch,2026-07-29,CHOSEN,frozen bounds anchor here; staleness detectable via clip rate + band,n/a,"choice of epoch is convention; staleness (need to re-freeze) is detected by clip-rate + band drift triggers"
+frozen_normalization_bounds,8 components,derived_then_FROZEN,reference_bounds.json; recomputing restores circularity,n/a,n/a (frozen; recomputing restores circularity)
+temporal_residualization_coefs,slope 0.5577 / int 0.1429,derived_then_FROZEN,must freeze or residual drifts each vintage,n/a,n/a (frozen; refit drifts each vintage)
+outer_normalization,scarcity + impact composites,derived_then_FROZEN,"makes stated weights operative; affine, lossless",n/a,n/a (frozen; affine, rank-preserving)
