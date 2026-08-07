@@ -270,6 +270,142 @@ def human_eoh_per_domain(
 
 
 # ---------------------------------------------------------------------------
+# Labor-constrained fulfillment — the personal-EOH deficit
+# ---------------------------------------------------------------------------
+
+_DOMAINS: tuple[str, ...] = ("personal", "infrastructure", "ecological", "knowledge")
+_NON_PERSONAL: tuple[str, ...] = ("infrastructure", "ecological", "knowledge")
+
+
+def labor_constrained_fulfillment(
+    human_by_domain: dict[str, float],
+    available_labor_eoh: float,
+    rationing: str = "survival_first",
+) -> dict:
+    """
+    Split human-carried EOH demand into what labor can SERVE and what is DEFERRED.
+
+    The pipeline's default assumption is that every hour of human-carried EOH gets
+    worked: human_eoh = (1−ε)·total, full stop. That is a demand figure being
+    reported as a fulfillment figure, and it hides the one thing an obligation
+    ledger exists to show — obligation that goes unmet. Ecological EOH has carried
+    a `deferred` term since the beginning; personal EOH, which is the survival
+    floor, carried none.
+
+    Governing relations:
+
+        demand   H_d = Σ_domain human_by_domain[d]
+        supply   L   = available_labor_eoh
+        served   S   = min(H_d, L)
+        deferred D   = max(0, H_d − L)
+
+    and D is allocated across domains by the rationing doctrine:
+
+        "survival_first" (default)  personal EOH is served to the extent labor
+            allows, and the shortfall falls on the non-personal domains pro-rata.
+            Only once personal alone exceeds L does `deferred_personal` become
+            non-zero. This is the physically realistic order — a population short
+            of labor feeds itself before it maintains bridges — and it means a
+            non-zero personal deficit is a severe reading, not a routine one.
+
+        "pro_rata"  the shortfall is spread across all four domains in proportion
+            to demand. Use when modelling a collective that cannot or does not
+            triage, or as the pessimistic comparison.
+
+    WHAT THIS DOES NOT CLAIM. Deferred personal EOH is unmet biological
+    obligation — nutrition, shelter, hygiene, care. Its consequences are real, but
+    this function reports HOURS, not outcomes. Mortality in this model is
+    exogenous (`ANNUAL_DEATH_RATE`, `death_rate_elderly`) and nothing here feeds
+    it; treating a deficit as a death rate would require a dose-response
+    relationship the framework does not have and this function does not supply.
+    What it supplies is the quantity such a relationship would take as input.
+
+    units: all EOH in hours/year; `coverage` dimensionless.
+    ε-behavior: the caller supplies human-carried demand, which already has (1−ε)
+    applied, so the deficit falls as ε rises — machines relieve labor. At high ε
+    the deficit goes to zero and this function is a no-op, which is correct.
+
+    Args:
+        human_by_domain: Human-carried EOH per domain (from human_eoh_per_domain).
+        available_labor_eoh: L, human labor capacity in EOH-hours/year (≥ 0),
+            e.g. workforce_size × reference work-year hours.
+        rationing: "survival_first" (default) | "pro_rata".
+
+    Returns:
+        dict: {
+          "demand_by_domain":   dict,   (echo of input, the four domains)
+          "served_by_domain":   dict,
+          "deferred_by_domain": dict,
+          "demand_total":       float,
+          "served_total":       float,
+          "deferred_total":     float,
+          "deferred_personal":  float,  (the survival-floor shortfall)
+          "available_labor":    float,
+          "labor_constrained":  bool,   (demand exceeds supply)
+          "coverage":           float,  (served / demand ∈ [0, 1])
+          "rationing":          str,
+        }
+
+    Raises:
+        ValueError: on negative labor, negative demand, or an unknown doctrine.
+
+    Worked example (1M people, ε=0, shipped constants, L = 1e9 h/yr):
+        personal demand    2,213M h/yr      served 1,000M    deferred 1,213M
+        non-personal          76M h/yr      served     0M    deferred    76M
+        coverage 0.437 — the population can cover 44% of its obligation, and
+        under survival_first every hour of labor goes to personal EOH with
+        nothing left for infrastructure, ecology or knowledge.
+    """
+    if available_labor_eoh < 0.0:
+        raise ValueError(
+            f"available_labor_eoh must be ≥ 0, got {available_labor_eoh}"
+        )
+    if rationing not in ("survival_first", "pro_rata"):
+        raise ValueError(
+            f"rationing must be 'survival_first' or 'pro_rata', got {rationing!r}"
+        )
+
+    demand = {d: float(human_by_domain.get(d, 0.0)) for d in _DOMAINS}
+    for d, v in demand.items():
+        if v < 0.0:
+            raise ValueError(f"human EOH for {d} must be ≥ 0, got {v}")
+
+    demand_total = sum(demand.values())
+    served_total = min(demand_total, available_labor_eoh)
+
+    if demand_total <= available_labor_eoh or demand_total == 0.0:
+        served = dict(demand)
+    elif rationing == "pro_rata":
+        f = served_total / demand_total
+        served = {d: v * f for d, v in demand.items()}
+    else:  # survival_first
+        p_served = min(demand["personal"], available_labor_eoh)
+        remaining = available_labor_eoh - p_served
+        np_demand = sum(demand[d] for d in _NON_PERSONAL)
+        f = (remaining / np_demand) if np_demand > 0.0 else 0.0
+        f = min(1.0, f)
+        served = {"personal": p_served,
+                  **{d: demand[d] * f for d in _NON_PERSONAL}}
+
+    deferred = {d: max(0.0, demand[d] - served[d]) for d in _DOMAINS}
+
+    return {
+        "demand_by_domain":   demand,
+        "served_by_domain":   served,
+        "deferred_by_domain": deferred,
+        "demand_total":       demand_total,
+        "served_total":       sum(served.values()),
+        "deferred_total":     sum(deferred.values()),
+        "deferred_personal":  deferred["personal"],
+        "available_labor":    available_labor_eoh,
+        "labor_constrained":  demand_total > available_labor_eoh,
+        "coverage":           (sum(served.values()) / demand_total
+                               if demand_total > 0.0 else 1.0),
+        "rationing":          rationing,
+    }
+
+
+# ---------------------------------------------------------------------------
 # End-to-end EOH → TEH pipeline orchestrator
 # ---------------------------------------------------------------------------
 
@@ -293,6 +429,8 @@ def eoh_to_teh_pipeline(
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
     thermal_obligation: float = 0.0,
+    available_labor_eoh: float | None = None,
+    rationing: str = "survival_first",
 ) -> dict:
     """
     End-to-end EOH → human share → registered → TEH creation in one call.
@@ -341,6 +479,15 @@ def eoh_to_teh_pipeline(
             None → use personal_eoh_registration_share(epsilon) dynamically.
             Ignored if registration_share is set.
         mean_multiplier: Population-weighted mean multiplier for step 4.
+        available_labor_eoh: OPTIONAL labor-supply constraint, EOH-hours/year.
+            None (default) → the historical behavior: every hour of human-carried
+            EOH is assumed worked, and `deferred_*` are 0. When supplied,
+            registration operates on SERVED rather than DEMANDED EOH — labor that
+            does not exist cannot mint TEH — and the shortfall is reported.
+        rationing: How a shortfall is allocated across domains,
+            "survival_first" (default) | "pro_rata". See
+            labor_constrained_fulfillment(). Ignored when available_labor_eoh
+            is None.
 
     Returns:
         dict: {
@@ -357,6 +504,11 @@ def eoh_to_teh_pipeline(
           "teh_created":              float,
           "capital_eoh_eliminated":        float,
           "capital_personal_eoh_fulfilled": float,
+          "deficit":              dict | None,  (full labor_constrained_fulfillment result)
+          "deferred_personal":    float,  (0.0 when unconstrained)
+          "deferred_total":       float,
+          "labor_constrained":    bool,
+          "fulfillment_coverage": float,  (1.0 when unconstrained)
         }
 
     Governing equation (compound over four domains):
@@ -414,6 +566,17 @@ def eoh_to_teh_pipeline(
     # Per-domain human EOH via the existing helper (uniform (1-ε) per domain)
     hd                 = human_eoh_per_domain(eoh_dict, epsilon)
     personal_eoh_val   = eoh_dict["personal"]
+
+    # Labor constraint (opt-in). Without it the pipeline assumes every hour of
+    # human-carried EOH gets worked — a demand figure reported as fulfillment.
+    # With it, registration operates on SERVED EOH, so labor that does not exist
+    # cannot mint TEH, and the shortfall is reported rather than absorbed.
+    deficit: dict | None = None
+    if available_labor_eoh is not None:
+        deficit = labor_constrained_fulfillment(hd, available_labor_eoh, rationing)
+        served = deficit["served_by_domain"]
+        hd = {**hd, **served, "total": deficit["served_total"]}
+
     human_personal     = hd["personal"]
     human_non_personal = hd["infrastructure"] + hd["ecological"] + hd["knowledge"]
     human_total        = hd["total"]
@@ -490,4 +653,11 @@ def eoh_to_teh_pipeline(
         "teh_created":        teh,
         "capital_eoh_eliminated":         capital_eoh_eliminated,
         "capital_personal_eoh_fulfilled":  capital_personal_eoh_fulfilled,
+        # Labor constraint. None when available_labor_eoh was not supplied —
+        # the pipeline then assumes full fulfillment, as it always has.
+        "deficit":            deficit,
+        "deferred_personal":  (deficit["deferred_personal"] if deficit else 0.0),
+        "deferred_total":     (deficit["deferred_total"] if deficit else 0.0),
+        "labor_constrained":  bool(deficit["labor_constrained"]) if deficit else False,
+        "fulfillment_coverage": (deficit["coverage"] if deficit else 1.0),
     }

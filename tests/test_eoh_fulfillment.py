@@ -16,6 +16,7 @@ from hours_eoh.core.eoh_fulfillment import (
     teh_supply,
     human_eoh_per_domain,
     eoh_to_teh_pipeline,
+    labor_constrained_fulfillment,
 )
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.registration import (
@@ -445,3 +446,130 @@ class TestEohToTehPipeline:
         ]
         for i in range(len(shares) - 1):
             assert shares[i + 1] >= shares[i]
+
+
+# ---------------------------------------------------------------------------
+# labor_constrained_fulfillment — the personal-EOH deficit (2026-08-06)
+#
+# Ecological EOH has carried a `deferred` term since the beginning; personal EOH,
+# which is the survival floor, carried none — the pipeline reported a demand
+# figure as if it were fulfillment. These pin the new tracking and, critically,
+# that supplying nothing leaves every existing caller untouched.
+# ---------------------------------------------------------------------------
+
+class TestLaborConstrainedFulfillment:
+
+    HD = {"personal": 2000.0, "infrastructure": 500.0,
+          "ecological": 100.0, "knowledge": 50.0}   # demand 2650
+
+    def test_no_deficit_when_labor_is_ample(self):
+        r = labor_constrained_fulfillment(self.HD, available_labor_eoh=5000.0)
+        assert r["labor_constrained"] is False
+        assert r["deferred_total"] == 0.0
+        assert r["deferred_personal"] == 0.0
+        assert r["coverage"] == pytest.approx(1.0)
+        assert r["served_by_domain"] == self.HD
+
+    def test_survival_first_protects_personal_until_it_alone_exceeds_supply(self):
+        # 2200 covers all 2000 of personal, leaving 200 for the other 650
+        r = labor_constrained_fulfillment(self.HD, 2200.0)
+        assert r["deferred_personal"] == 0.0
+        assert r["served_by_domain"]["personal"] == pytest.approx(2000.0)
+        assert r["deferred_total"] == pytest.approx(450.0)
+
+    def test_survival_first_personal_deficit_is_a_severe_reading(self):
+        # below personal demand → personal itself is cut, nothing else is served
+        r = labor_constrained_fulfillment(self.HD, 1500.0)
+        assert r["deferred_personal"] == pytest.approx(500.0)
+        for d in ("infrastructure", "ecological", "knowledge"):
+            assert r["served_by_domain"][d] == 0.0
+
+    def test_pro_rata_cuts_every_domain(self):
+        r = labor_constrained_fulfillment(self.HD, 1325.0, rationing="pro_rata")
+        assert r["coverage"] == pytest.approx(0.5)
+        for d, v in self.HD.items():
+            assert r["served_by_domain"][d] == pytest.approx(v * 0.5)
+
+    def test_doctrines_differ_and_survival_first_is_kinder_to_personal(self):
+        a = labor_constrained_fulfillment(self.HD, 1500.0, "survival_first")
+        b = labor_constrained_fulfillment(self.HD, 1500.0, "pro_rata")
+        assert a["deferred_personal"] < b["deferred_personal"]
+        assert a["deferred_total"] == pytest.approx(b["deferred_total"])
+
+    def test_conservation_served_plus_deferred_equals_demand(self):
+        for L in (0.0, 1000.0, 2650.0, 9999.0):
+            for rat in ("survival_first", "pro_rata"):
+                r = labor_constrained_fulfillment(self.HD, L, rat)
+                for d in self.HD:
+                    assert (r["served_by_domain"][d] + r["deferred_by_domain"][d]
+                            == pytest.approx(r["demand_by_domain"][d]))
+                assert r["served_total"] == pytest.approx(min(2650.0, L))
+
+    def test_zero_labor_defers_everything(self):
+        r = labor_constrained_fulfillment(self.HD, 0.0)
+        assert r["served_total"] == 0.0
+        assert r["deferred_total"] == pytest.approx(2650.0)
+        assert r["coverage"] == 0.0
+
+    def test_rejects_bad_inputs(self):
+        with pytest.raises(ValueError):
+            labor_constrained_fulfillment(self.HD, -1.0)
+        with pytest.raises(ValueError):
+            labor_constrained_fulfillment(self.HD, 100.0, rationing="whatever")
+        with pytest.raises(ValueError):
+            labor_constrained_fulfillment({"personal": -5.0}, 100.0)
+
+
+class TestPipelineLaborConstraint:
+
+    L = 1.0e9
+
+    def test_omitting_the_constraint_changes_nothing(self):
+        """Every existing caller must be untouched."""
+        r = eoh_to_teh_pipeline(0.40)
+        assert r["deficit"] is None
+        assert r["deferred_personal"] == 0.0
+        assert r["labor_constrained"] is False
+        assert r["fulfillment_coverage"] == 1.0
+
+    def test_constraint_reduces_teh_created(self):
+        """Labor that does not exist cannot mint TEH.
+
+        Taken at ε=0, where the constraint binds at shipped constants. By ε≈0.40
+        machines have relieved enough demand that L = 1e9 is no longer binding —
+        which is the behaviour, not a gap in the test.
+        """
+        free = eoh_to_teh_pipeline(0.0)
+        held = eoh_to_teh_pipeline(0.0, available_labor_eoh=self.L)
+        assert held["teh_created"] < free["teh_created"]
+        assert held["labor_constrained"] is True
+
+    def test_ample_labor_reproduces_the_unconstrained_result(self):
+        """The regression anchor: a non-binding constraint is a no-op."""
+        free = eoh_to_teh_pipeline(0.40)
+        held = eoh_to_teh_pipeline(0.40, available_labor_eoh=1.0e12)
+        assert held["teh_created"] == pytest.approx(free["teh_created"])
+        assert held["labor_constrained"] is False
+        assert held["deferred_personal"] == 0.0
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_arc_coherent_under_constraint(self, eps):
+        r = eoh_to_teh_pipeline(eps, available_labor_eoh=self.L)
+        assert 0.0 <= r["fulfillment_coverage"] <= 1.0
+        assert r["deferred_personal"] >= 0.0
+        assert r["teh_created"] >= 0.0
+
+    def test_deficit_falls_as_automation_rises(self):
+        """Machines relieve labor, so the deficit is an ε=0 phenomenon."""
+        d = [eoh_to_teh_pipeline(e, available_labor_eoh=self.L)["deferred_total"]
+             for e in (0.0, 0.40, 0.80, 0.99)]
+        assert d == sorted(d, reverse=True)
+        assert d[0] > 0.0
+        assert d[-1] == 0.0
+
+    def test_deficit_matches_the_standalone_function(self):
+        r = eoh_to_teh_pipeline(0.0, available_labor_eoh=self.L)
+        hd = human_eoh_per_domain(
+            {k: v for k, v in r["eoh_by_domain"].items()}, 0.0)
+        direct = labor_constrained_fulfillment(hd, self.L)
+        assert r["deferred_personal"] == pytest.approx(direct["deferred_personal"])
