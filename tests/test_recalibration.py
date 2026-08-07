@@ -197,15 +197,18 @@ class TestFormationLevy:
         assert 0.005 < r["levy_rate"] < 0.02
         assert not r["sunset"]
 
-    @pytest.mark.parametrize("eps", [0.20, 0.40, 0.90, 0.99])
-    def test_sunsets_by_eps_02(self, eps):
+    @pytest.mark.parametrize("eps", [0.25, 0.40, 0.90, 0.99])
+    def test_sunsets_by_eps_025(self, eps):
+        # Sunset moved 0.20 → 0.25 when PERSONAL_EOH_BASE was repriced
+        # 1500 → 1000 (2026-08-06): less personal EOH → less labour output →
+        # the compensated bridge takes slightly longer to become unnecessary.
         r = formation_levy_rate(eps)
         assert r["levy_rate"] == 0.0
         assert r["sunset"]
 
     def test_monotone_decline_past_peak(self):
         rates = [formation_levy_rate(e)["levy_rate"]
-                 for e in [0.05, 0.10, 0.15, 0.20]]
+                 for e in [0.10, 0.15, 0.20, 0.25]]
         assert all(b <= a for a, b in zip(rates, rates[1:]))
 
 
@@ -223,10 +226,13 @@ class TestCommonsIncomeStatement:
 
     @pytest.mark.parametrize("policy", ["target", "dilution"])
     def test_dividend_meaningful_at_high_eps(self, policy):
-        # The dividend replaces labor income as automation matures.
+        # The dividend replaces labor income as automation matures. Threshold
+        # is 1,000 (was 1,500) after the PERSONAL_EOH_BASE reprice: machine
+        # output scales with total EOH, so a smaller personal domain means a
+        # smaller dividend — target 1,287, dilution 1,092 at ε=0.99.
         assert commons_income_statement(
             0.99, phi_policy=policy
-        )["dividend_per_capita"] > 1_500.0
+        )["dividend_per_capita"] > 1_000.0
 
     def test_dividend_rises_across_upper_arc(self):
         divs = [
@@ -250,14 +256,16 @@ class TestCommonsIncomeStatement:
         assert d_charter >= d_purchase
 
     def test_doctrine_dividend_smaller_at_the_cap(self):
-        # The honest cost at high ε: the purchase model's 1,873 needs forced
-        # sales; the charter's ≈ 1,606 does not.
+        # The honest cost at high ε: the purchase model's 1,287 needs forced
+        # sales; the charter's ≈ 1,092 does not. (Both fell ~31% with the
+        # PERSONAL_EOH_BASE reprice; the RATIO — the price of no forced sales —
+        # is what this test is about and it is unchanged at ≈ 15%.)
         d_charter = commons_income_statement(
             0.99, phi_policy="dilution")["dividend_per_capita"]
         d_purchase = commons_income_statement(
             0.99, phi_policy="target")["dividend_per_capita"]
         assert d_charter < d_purchase
-        assert d_charter > 1_500.0
+        assert d_charter > 1_000.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
         # §8.9a honest finding: dφ/dε outruns tiny machine output early.
@@ -429,10 +437,12 @@ class TestExitFinancing:
         assert r["entry_capacity"] >= 1.0
         assert r["exit_financeable"]
 
-    def test_self_channel_from_eps_03(self):
+    def test_self_channel_from_eps_05(self):
         # The doctrine dividend (full φ·Y) makes exit self-financeable from
-        # ε ≈ 0.30 — §8.9a's purchase model needed ε ≈ 0.59.
-        r = exit_financing(0.4)
+        # ε ≈ 0.50. Was ε ≈ 0.30 at PERSONAL_EOH_BASE = 1500; the reprice
+        # shrank machine output and pushed the crossover out. The ORDERING
+        # (doctrine beats §8.9a's purchase model, which needs ε ≈ 0.79) holds.
+        r = exit_financing(0.5)
         assert r["channel"] == "self"
         assert r["self_financeable"]
 
@@ -525,14 +535,15 @@ class TestRecalibratedArc:
 
     def test_channel_progression(self):
         # labor → underwritten → self as ε rises; "none" never appears;
-        # self-financing from ε ≈ 0.30 under the doctrine dividend.
+        # self-financing from ε ≈ 0.50 under the doctrine dividend (was 0.30
+        # before the PERSONAL_EOH_BASE reprice — do NOT quote the old onset).
         channels = [r["channel"] for r in recalibrated_arc(21)]
         assert "none" not in channels
         assert channels[0] == "labor"
         assert channels[-1] == "self"
         assert "underwritten" in channels
         first_self = channels.index("self")
-        assert recalibrated_arc(21)[first_self]["epsilon"] < 0.35
+        assert recalibrated_arc(21)[first_self]["epsilon"] < 0.55
         assert all(c == "self" for c in channels[first_self:])
 
     def test_private_capital_never_falls_by_sale(self):
@@ -579,10 +590,10 @@ class TestRecalibratedArc:
         rows = recalibrated_arc(21, phi_policy="target")
         last = rows[-1]
         assert last["phi"] == pytest.approx(0.9865338, rel=1e-5)
-        assert last["dividend_per_capita"] == pytest.approx(1873.19, rel=1e-4)
+        assert last["dividend_per_capita"] == pytest.approx(1286.55, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
-        assert rows[first_self]["epsilon"] == pytest.approx(0.594, abs=0.001)
+        assert rows[first_self]["epsilon"] == pytest.approx(0.792, abs=0.001)
         assert not any(r["acquisition_feasible"] for r in rows if r["epsilon"] < 0.15)
 
     def test_point_arc_consistency_dilution(self):

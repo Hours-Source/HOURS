@@ -884,12 +884,16 @@ class TestMachineOutputLevyBase:
         assert values == sorted(values)
 
     def test_exceeds_static_base_at_high_eps(self):
-        """The calibration-artifact finding: the physical base is an order
-        of magnitude above the static ε·K·yield base at high ε."""
+        """The calibration-artifact finding: the physical base is nearly an
+        order of magnitude above the static ε·K·yield base at high ε.
+
+        8.5× after the PERSONAL_EOH_BASE reprice (was ~12×) — machine output
+        scales with total EOH, so shrinking the personal domain shrinks it too.
+        The finding (the static base badly understates) is unchanged."""
         eps = 0.99
         static = eps * _CAP * 0.10  # CONTESTABILITY_CAPITAL_YIELD_RATE
         physical = machine_output_teh(eps, _POP)
-        assert physical > 10.0 * static
+        assert physical > 8.0 * static
 
     def test_levy_schedule_invalid_base_raises(self):
         with pytest.raises(ValueError):

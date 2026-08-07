@@ -371,10 +371,139 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 
 # ---------------------------------------------------------------------------
 # EOH base rates (per-capita or per-unit at reference conditions)
+#
+# DOMAIN BALANCE (measured 2026-08-05, docs/parameter_provenance.md §"Domain
+# balance"): at defaults the personal domain is 91–97% of total_eoh() at EVERY
+# ε; ecological is 0.71 h/person·yr and knowledge 0.01–0.97. ε = machine/total is
+# therefore ~95% a personal-domain number, and PERSONAL_EOH_BASE is the single
+# most leveraged constant in the model. Retagged CHOSEN in the same pass — it is
+# an arithmetic sum of four desk estimates (208 + 156 + 208 + 936), not a
+# structural claim about entropy. Epistemic pointer: BLS American Time Use
+# Survey, which measures all four components directly and is not yet used
+# anywhere in this repo.
+#
 # ---------------------------------------------------------------------------
-PERSONAL_EOH_BASE: float   = 1500.0     # hours/year per working-age-equivalent
-INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year
-INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life
+# THE STANDARDS SPLIT (Block I, 2026-08-06). One constant was doing three jobs.
+#
+# Two ORTHOGONAL axes were conflated in a single `PERSONAL_EOH_BASE`:
+#
+#                        autarky delivery      collective delivery
+#   survival standard          S_a                    S_c
+#   sufficiency standard       F_a                    F_c
+#
+# STANDARD is what is owed (staying alive vs living decently). DELIVERY is what
+# it costs to discharge it (alone vs through a collective's apparatus). They are
+# independent, and abatement — infrastructure REDUCING the obligation, not merely
+# serving it — is the map from the left column to the right.
+#
+# Both standards below are AUTARKY-REFERENCED (X_a): what the obligation costs a
+# person handling their own, with no collective apparatus. That is the reference
+# the overbuild test compares against, and it is why F_a is allowed to exceed the
+# labour supply — the gap between what sufficiency costs alone and what a
+# population can supply alone is precisely why collectives form.
+#
+# S_a IS HARD-BOUNDED, F_a IS NOT. A survival standard exceeding labour supply
+# means extinction, so S_a ≤ (L − R)/w = 627 per-equivalent against this file's
+# own H_REF × workforce_fraction. 600 sits just inside it and is set
+# INDEPENDENTLY rather than pinned to the bound, so scenarios/feasibility.py can
+# still CHECK it — a constant that cannot fail its own test says nothing.
+#
+# This split corrects a category error: the earlier finding that "ε = 0 is not a
+# feasible state" applied a SURVIVAL feasibility test to a SUFFICIENCY number. At
+# S_a = 600, ε_suff = 0 — subsistence survives with no automation, as it did. The
+# true statement is that subsistence can survive but cannot reach SUFFICIENCY
+# without automation.
+# ---------------------------------------------------------------------------
+PERSONAL_EOH_SURVIVAL: float    = 600.0   # S_a — autarky-referenced survival standard.
+                                          # CHOSEN. Bounded above by (L−R)/w = 627; checked,
+                                          # not pinned. resolves_by: minimum-subsistence
+                                          # time-allocation studies (the components that
+                                          # kill you if unmet: food, water, shelter, warmth).
+PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficiency standard.
+                                          # CHOSEN. The original desk estimate, re-read
+                                          # correctly: it was never a survival figure.
+                                          # Cross-checks: the identity route gives
+                                          # F_c(modern) = 390–926, implying 38–74% abatement,
+                                          # and "all needs met" needs 30% at ε=0.99 — mid-band.
+                                          # resolves_by: cross-cultural time allocation at a
+                                          # stated adequacy standard, + the identity route.
+
+# ---------------------------------------------------------------------------
+# PERSONAL_EOH_BASE — the ABATEMENT-COLLAPSED operating value.
+#
+# Until abatement a(K) exists (Block II), one number has to stand in for
+# F_a × (1 − a(K)) at an unstated point on the arc. 1000 is that placeholder, and
+# it is coherent as one: 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range
+# between the 10% that "all needs met" requires at ε = 0.40 and the 38–74% the
+# identity route implies at modern capital.
+#
+# Repriced 1500 → 1000 on 2026-08-06 (author decision) to the high end of the
+# then-available evidence, on the asymmetric-loss argument: setting it too low
+# hides a real shortfall (model reports feasible, capital under-built, deficit
+# paid in unserved obligation), too high only over-builds capital.
+#
+# Block I deliberately does NOT move this to 1500. The standards above are
+# declared and usable, but the generation default is unchanged, because it is
+# abatement — not the standards split — that determines the operating value. When
+# Block II lands, this constant is replaced by F_a × (1 − a(K)) and retired.
+#
+# STILL CHOSEN. resolves_by: the capital-inventory + time-use identity, NOT
+# time-use data alone — see the circularity section in
+# docs/parameter_provenance.md.
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ABATEMENT (Block II, 2026-08-06) — infrastructure REDUCES the obligation,
+# it does not only serve it.
+#
+# The model previously had SUBSTITUTION only: personal EOH is flat across the
+# whole arc (1475 → 1480) and ε merely splits who serves it. That is physically
+# wrong. PERSONAL_EOH_BASE's own components are infrastructure-dependent — a
+# serviced dwelling needs less upkeep than a mud hut, a tap replaces water
+# hauling, and sanitation cuts the disease burden that drives care hours.
+#
+#     B(K) = F_a × (1 − a(K))        a(K) = a_max · K / (K + K_half)
+#
+# a(0) = 0 and a(∞) = a_max. a_max is NOT a free parameter — it is derived from
+# the per-component abatability ceilings below, weighted by the component shares,
+# which are themselves the original desk estimate's own four terms
+# (208 / 156 / 208 / 936 over 1508).
+#
+# THE STRUCTURAL PREDICTION, encoded here and TESTED rather than assumed:
+# abatability and sufficiency are ANTI-CORRELATED. What infrastructure can remove
+# is the survival-shaped work — hauling water, gathering fuel, preparing food.
+# What it cannot remove is CARE: a child needs human attention, which is the
+# Baumol case. So the residual personal obligation as ε → 1 should be almost
+# entirely care, and a_max is bounded well below 1 by care's 62% share.
+# ---------------------------------------------------------------------------
+PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
+    # share:       fraction of the personal obligation (from the desk estimate)
+    # abatability: the ceiling — the most of this component infrastructure can
+    #              ever remove. CHOSEN, each with an epistemic pointer.
+    "nutrition": {"share": 208.0 / 1508.0, "abatability": 0.85},
+    #   resolves_by: food-system time-use across development levels (subsistence
+    #   cultivation + processing vs a distribution network). Highly abatable.
+    "shelter":   {"share": 156.0 / 1508.0, "abatability": 0.90},
+    #   resolves_by: WHO/UNICEF JMP water-and-sanitation access studies, which
+    #   measure hauling-time reduction directly. The most abatable component.
+    "health":    {"share": 208.0 / 1508.0, "abatability": 0.60},
+    #   resolves_by: GBD disease burden attributable to WASH, converted to care
+    #   hours avoided. Partly abatable — prevention scales, treatment less so.
+    "care":      {"share": 936.0 / 1508.0, "abatability": 0.25},
+    #   resolves_by: childcare/eldercare time-use across development levels.
+    #   LEAST abatable and the largest share — this is what bounds a_max.
+}
+
+ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
+#   K_half — capital per capita at which HALF of the abatable obligation is
+#   abated. CHOSEN, and the least-grounded constant in this block: it sets the
+#   PACE of abatement along the arc, not its ceiling. resolves_by: the identity
+#   route run at two or more capital levels — B(K) measured at matched
+#   (inventory, time-use) pairs pins both a_max and K_half at once. Report the
+#   sensitivity with any abatement figure until it does.
+
+PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent. CHOSEN — resolves_by: capital-inventory + time-use identity
+INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year. CHOSEN — a point inside the OECD 2–4% band
+INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life. physics (convexity) / CHOSEN (the 2.0)
 
 # ---------------------------------------------------------------------------
 # Infrastructure — task-normative statutory floor (B+D design, currency-free)
@@ -463,7 +592,9 @@ DIV_RATE:                     float = 0.40              # fraction of depreciati
 MEANINGFUL_ACTIVITY_TEH_BASE: float = 120.0            # discretionary spending bonus at ε=0 (TEH/yr)
 MEANINGFUL_ACTIVITY_TEH_SCALE: float = 1.5              # quadratic ε-growth factor; bonus = base×(1+scale×ε²)
 CAPITAL_STOCK_DEFAULT:        float = 2_000_000_000.0   # default capital stock for scenario functions
-BASKET_EOH_CONTENT:           float = 1500.0            # personal EOH hours satisfied per sufficiency basket (= PERSONAL_EOH_BASE)
+BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours satisfied per sufficiency basket — DEFINED as = PERSONAL_EOH_BASE
+                                                         # (was a literal 1500.0 duplicating it; bound to the constant 2026-08-06 so the
+                                                         # two cannot drift apart under repricing — one basket covers one person-year)
 
 # ---------------------------------------------------------------------------
 # Human capital biological constants (population.py + capital.py)

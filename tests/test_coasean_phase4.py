@@ -420,14 +420,29 @@ class TestPhase4bClosure:
             "combined invariant (χ_marginal ≥ 1 OR entry_capacity ≥ 1) "
             "must hold across the arc with the derived seed")
 
-    def test_unseeded_commons_fails_at_period_zero_only_gap(self):
-        """Honest boundary: without the seed, ε=0 relies on χ_marginal
-        alone (which holds); the commons arm starts at capacity 0."""
+    def test_unseeded_commons_leaves_period_zero_uncovered(self):
+        """Honest boundary, and it WORSENED with the 2026-08-06 reprice.
+
+        Before: without the seed, ε=0 relied on χ_marginal alone, and that held
+        (χ_marginal ≥ 1). After repricing PERSONAL_EOH_BASE 1500 → 1000 the
+        sufficiency floor — which IS the tenure-0 member's whole portable
+        endowment — no longer covers K_entry, so χ_marginal is 0.886 and the
+        commons arm still starts at capacity 0. Period zero is now uncovered by
+        BOTH arms unless the commons is seeded, which sharpens rather than
+        softens the case for the §8.8 M2 seed.
+        """
         records = simulate_federation(
             self._ARC, **self._DYN, commons_dividend=True)
         assert records[0]["entry_capacity"] == 0.0
-        assert records[0]["chi_marginal_min"] >= 1.0
-        assert records[0]["exit_financeable"] is True
+        assert records[0]["chi_marginal_min"] < 1.0
+        # Both arms fail at period zero without a seed — the gap is now real,
+        # where before the reprice χ_marginal covered it on its own.
+        assert records[0]["exit_financeable"] is False
+        # And the seed closes it, which is the point of the M2 mechanism.
+        seeded = simulate_federation(
+            self._ARC, **self._DYN, commons_dividend=True,
+            commons_start=commons_seed_required())
+        assert seeded[0]["exit_financeable"] is True
 
     def test_key_epsilon_arc_values_meaningful(self):
         for eps in KEY_EPSILONS:

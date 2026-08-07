@@ -94,10 +94,19 @@ class TestNullAnchor:
     def test_reproduces_canonical_pace(self):
         # s pinned to 0 (no charter): full private funding, and the sim must
         # reproduce the canonical ~50-year arc (0.95/0.02 = 47.5 yr).
+        #
+        # Asserted as a band, and the small LEAD is a documented consequence
+        # rather than noise. ε = realized capacity / total EOH, so repricing
+        # PERSONAL_EOH_BASE 1500 → 1000 (2026-08-06) shrank the denominator and
+        # the same capacity now scores higher: the derived path runs ahead of
+        # 0.02/yr (year 44 reads ε = 0.919 against a canonical 0.880) and
+        # crosses 0.95 at year 46 instead of 47.5. That is the same
+        # "ε rises everywhere at unchanged capital" effect seen in the level,
+        # showing up in the time domain — not a change in physical pace.
         v = formation_verdict(formation_feedback_simulation(
             n_years=60, charter_share_override=0.0))
-        assert v["years_to_eps_95"] == 47
-        assert abs(v["delay_years"]) < 1.0
+        assert 45 <= v["years_to_eps_95"] <= 49
+        assert abs(v["delay_years"]) < 2.0
         assert not v["stalled"]
         assert v["invariant_holds"]
 
@@ -172,16 +181,19 @@ class TestSharePriority:
         # residual the charter share scares off.
         v = formation_verdict(formation_feedback_simulation(
             n_years=60, priority="share"))
-        assert v["years_to_eps_95"] == 47
+        assert 45 <= v["years_to_eps_95"] <= 49
         assert v["invariant_holds"]
         assert not v["stalled"]
 
     def test_dividend_pays_the_price_mid_arc(self):
-        # Feedback-consistent D ≈ 113 at ε ≈ 0.41 (static §8.9b gross: 302).
+        # Feedback-consistent D ≈ 50 at ε ≈ 0.41. Was ≈ 113 at
+        # PERSONAL_EOH_BASE = 1500; the reprice shrank machine output and the
+        # dividend with it. The POINT of the test — the feedback-consistent
+        # dividend is a fraction of the static §8.9b gross — holds a fortiori.
         rows = formation_feedback_simulation(n_years=60, priority="share")
         r20 = rows[20]
         assert r20["eps_actual"] == pytest.approx(0.406, abs=0.01)
-        assert r20["dividend_per_capita"] == pytest.approx(113.0, abs=15.0)
+        assert r20["dividend_per_capita"] == pytest.approx(50.0, abs=15.0)
 
     def test_cap_region_funding_hole_is_commons_funded(self):
         # Where s = 1 private supply is zero and the commons pays for all
@@ -194,17 +206,28 @@ class TestSharePriority:
             assert r["supply_fraction"] == 0.0
             assert r["commons_funded"] > 0.0
 
-    def test_underwriting_carries_the_arc(self):
-        # Under the feedback-consistent dividend, self-financing arrives
-        # only at ε ≈ 0.86 (static §8.9b claimed 0.30): the underwritten
-        # channel dominates the transition.
+    def test_underwriting_carries_the_whole_arc(self):
+        """Under the feedback-consistent dividend the commons carries exit
+        for the ENTIRE arc — the self-financing channel never opens.
+
+        This tightened when PERSONAL_EOH_BASE was repriced 1500 → 1000
+        (2026-08-06). Before: self-financing arrived at ε ≈ 0.86 (and the
+        static §8.9b figure of 0.30 was already known to be wrong). After: the
+        dividend never reaches the self-financing threshold inside the
+        simulated horizon at all.
+
+        The exit INVARIANT still holds at every step — the underwritten channel
+        carries it — but the honest statement is now stronger and less
+        comfortable: at this calibration, contestability is commons-financed
+        for the whole transition, and there is no point at which a member's own
+        dividend would fund exit. Do NOT quote ε ≈ 0.86, and do not quote 0.30.
+        """
         rows = formation_feedback_simulation(n_years=60, priority="share")
         mid = [r for r in rows if 0.1 <= r["eps_actual"] <= 0.85]
         assert all(r["channel"] == "underwritten" for r in mid)
-        first_self = next(r for r in rows if r["channel"] == "self"
-                          and r["eps_actual"] > 0.0)
-        assert first_self["eps_actual"] == pytest.approx(0.86, abs=0.03)
-        assert rows[-1]["channel"] == "self"
+        assert not any(r["channel"] == "self" for r in rows)
+        # the invariant itself is never breached
+        assert not any(r["channel"] == "none" for r in rows)
 
     def test_estate_conversion_visible_post_arc(self):
         # After ε plateaus, τ keeps rising via the D5-extension escheat —

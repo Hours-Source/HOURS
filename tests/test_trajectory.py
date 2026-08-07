@@ -97,9 +97,26 @@ class TestCanonicalPhysicalState:
         s = self._state(0.40)
         assert s.keys() == self.KEYS
 
-    def test_eps0_capital_equals_default(self):
+    def test_eps0_capital_is_zero(self):
+        """Block III (2026-08-06): subsistence has NO collective apparatus.
+
+        The path was 2.0B × (1 + 2ε), which asserted 2,000 TEH/capita of built
+        infrastructure at ε=0 — a collective with an apparatus and no automation
+        to justify it. That contradicted ε's own definition (zero machine capital
+        ⇒ ε = 0, which civilization_epsilon already honoured) and made the autarky
+        comparison report the canonical arc as overbuilt at the origin for a
+        reason that was an artifact of this line.
+        """
         s = self._state(0.0)
-        assert s["capital_stock_teh"] == pytest.approx(CAPITAL_STOCK_DEFAULT, rel=1e-9)
+        assert s["capital_stock_teh"] == 0.0
+
+    def test_eps1_endpoint_is_preserved(self):
+        """Only the intercept moved: capital at ε=1 is still 3× the base."""
+        assert self._state(1.0)["capital_stock_teh"] == pytest.approx(
+            3.0 * CAPITAL_STOCK_DEFAULT, rel=1e-9)
+        # and the upper arc is materially unchanged (5,940 vs the previous 5,960)
+        assert self._state(0.99)["capital_stock_teh"] == pytest.approx(
+            2.97 * CAPITAL_STOCK_DEFAULT, rel=1e-9)
 
     def test_eps1_capital_tripled(self):
         s = self._state(1.0)
@@ -202,12 +219,24 @@ class TestEffectiveCapitalFromEpsilon:
     def test_eps0_returns_baseline(self):
         assert effective_capital_from_epsilon(1_000_000.0, 0.0) == pytest.approx(1_000_000.0)
 
-    def test_matches_canonical_physical_state(self):
-        # effective_capital_from_epsilon(CAPITAL_STOCK_DEFAULT, ε) == state["capital_stock_teh"]
+    def test_deliberately_differs_from_canonical_physical_state(self):
+        """The two answer different questions, and since Block III they diverge.
+
+        `canonical_physical_state(ε)` is the ARC's capital AT ε — zero at the
+        origin, because subsistence has no apparatus. This function scales a
+        CALLER-SUPPLIED ε=0 baseline; the caller is asserting that stock exists,
+        so zeroing it would destroy their input rather than model anything.
+
+        Pinned so the divergence stays deliberate rather than looking like drift.
+        """
         for eps in [0.0, 0.40, 0.90]:
             state = canonical_physical_state(eps)
             manual = effective_capital_from_epsilon(CAPITAL_STOCK_DEFAULT, eps)
-            assert manual == pytest.approx(state["capital_stock_teh"], rel=1e-9)
+            assert manual > state["capital_stock_teh"]
+        # the supplied baseline survives at ε=0; the arc does not have one
+        assert effective_capital_from_epsilon(CAPITAL_STOCK_DEFAULT, 0.0) == pytest.approx(
+            CAPITAL_STOCK_DEFAULT)
+        assert canonical_physical_state(0.0)["capital_stock_teh"] == 0.0
 
     def test_scales_with_baseline(self):
         # Different baselines scale proportionally
@@ -315,6 +344,15 @@ class TestBackwardCompat:
             assert p_new == pytest.approx(p_old, rel=1e-9), f"ε={eps}"
 
     def test_infrastructure_eoh_compat(self):
+        """The physical-state path and the legacy ε path now DIFFER by the
+        intercept, and deliberately so (Block III).
+
+        The legacy path treats `self.CAPITAL` as an ε=0 baseline that exists and
+        grows; the arc says the apparatus is built FROM nothing. Both are
+        internally consistent — they start from different premises about whether
+        the caller already has capital. Only the ratio is asserted, since that is
+        the part the two share.
+        """
         for eps in self.EPS_VALUES:
             state = canonical_physical_state(eps)
             i_new = infrastructure_eoh(
@@ -326,7 +364,16 @@ class TestBackwardCompat:
                 capital_age_ratio=state["capital_age_ratio"],
                 epsilon=eps,
             )
-            assert i_new == pytest.approx(i_old, rel=1e-9), f"ε={eps}"
+            # the legacy path carries the caller's baseline; the arc does not
+            assert i_old > i_new or eps == 0.0
+            if eps > 0.0:
+                ratio = i_new / i_old
+                expected = (1.0 + 2.0) * eps / (1.0 + 2.0 * eps)
+                assert ratio == pytest.approx(expected, rel=1e-9), f"ε={eps}"
+        # at ε=0 the arc has no apparatus at all
+        assert infrastructure_eoh(
+            canonical_physical_state(0.0)["capital_stock_teh"],
+            capital_age_ratio=0.3) == 0.0
 
     def test_ecological_eoh_compat(self):
         for eps in self.EPS_VALUES:

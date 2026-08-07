@@ -10,6 +10,8 @@ import math
 import pytest
 
 from hours_eoh.core.eoh_generation import (
+    personal_base_for,
+    knowledge_eoh_breakdown,
     personal_eoh,
     infrastructure_eoh,
     ecological_eoh,
@@ -489,3 +491,246 @@ def test_thermal_obligation_arc_coherent():
     for eps in (0.0, 0.40, 0.90, 0.99):
         v = ecological_eoh(0.70, eps, thermal_obligation=1_789_175.0)
         assert v > 0.0 and math.isfinite(v)
+
+
+# ---------------------------------------------------------------------------
+# Domain balance — the denominator problem (docs/parameter_provenance.md)
+#
+# These pin a property of the CALIBRATION SET, not of any one function: personal
+# EOH dominates the total so completely that ε is ~95% a personal-domain number,
+# and the ecological/knowledge domains cannot move it. They are written to FAIL
+# if the domain bases are ever put on a commensurable footing — that is the
+# point. If one breaks, the fix is to update the doc's table, not the assertion.
+# ---------------------------------------------------------------------------
+
+DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
+
+
+@pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+def test_domain_balance_personal_dominates_across_the_arc(eps):
+    d = total_eoh(epsilon=eps)
+    share = d["personal"] / d["total"]
+    assert 0.86 <= share <= 0.96, (
+        f"personal share {share:.3f} at ε={eps} — domain balance has changed; "
+        "update docs/parameter_provenance.md §'Domain balance'"
+    )
+
+
+def test_domain_balance_small_domains_are_rounding_error():
+    """Ecological and knowledge together are under 0.1% of total EOH."""
+    d = total_eoh(epsilon=0.40)
+    minor = (d["ecological"] + d["knowledge"]) / d["total"]
+    assert minor < 0.001
+
+
+def test_domain_balance_ecological_is_sub_hour_per_person():
+    """0.71 h/person·yr — the absolute-vs-relative scale defect, made visible."""
+    pop = 1_000_000.0
+    d = total_eoh(epsilon=0.40, population=pop)
+    assert d["ecological"] / pop < 1.0
+    assert d["personal"] / pop > 1_400.0
+
+
+def test_domain_balance_epsilon_is_insensitive_to_the_small_domains():
+    """A 100× ecological base barely moves the denominator ε is divided by.
+
+    This is why measured work on the small domains cannot be quoted as moving ε.
+    """
+    base = total_eoh(epsilon=0.40)["total"]
+    inflated = total_eoh(epsilon=0.40, ecological_base=500_000.0 * 100)["total"]
+    assert (inflated - base) / base < 0.05
+
+
+def test_domain_balance_thermal_obligation_enters_at_one_part_in_a_thousand():
+    """The measured planetary obligation against what the model already books.
+
+    thermal_flow at ε=0.40 (research/thermal_solvency) is ~1.79M h/yr for 1M
+    people. Against personal EOH it is negligible — so the fiscal layer's "38×
+    margin" verdict passes because the obligation is small, not because the
+    fisc is strong.
+    """
+    flow = 1_789_175.0
+    d = total_eoh(epsilon=0.40, thermal_obligation=flow)
+    assert flow / d["total"] < 0.0015
+    assert d["ecological"] / d["personal"] < 0.002
+
+
+# ---------------------------------------------------------------------------
+# Block I — the standards split (2026-08-06)
+#
+# One constant was doing three jobs. STANDARD (survival vs sufficiency) and
+# DELIVERY (autarky vs collective) are orthogonal; these pin the standard axis.
+# The delivery axis arrives with abatement in Block II.
+# ---------------------------------------------------------------------------
+
+class TestPersonalStandards:
+
+    def test_three_standards_are_ordered(self):
+        assert (personal_base_for("survival")
+                < personal_base_for("collapsed")
+                < personal_base_for("sufficiency"))
+
+    def test_survival_is_inside_the_autarky_feasibility_bound(self):
+        """S_a is HARD-bounded: a survival standard above labour supply is extinction.
+
+        Bound is (L − R)/w = 627 per-equivalent on the repo's own constants. 600
+        is set independently and CHECKED here rather than pinned to the bound —
+        a constant that cannot fail its own test says nothing.
+        """
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        c = feasibility_check(adult_capacity_h_yr=2000.0, adult_share=0.5,
+                              epsilon=0.0,
+                              personal_base=personal_base_for("survival"))
+        assert c["feasible"] is True
+        assert personal_base_for("survival") < c["implied_base_ceiling"]
+
+    def test_sufficiency_is_allowed_to_exceed_supply(self):
+        """F_a exceeding autarky supply is the POINT, not a defect — that gap is
+        why collectives form."""
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        c = feasibility_check(adult_capacity_h_yr=2000.0, adult_share=0.5,
+                              epsilon=0.0,
+                              personal_base=personal_base_for("sufficiency"))
+        assert c["feasible"] is False
+
+    def test_unknown_standard_rejected(self):
+        with pytest.raises(ValueError):
+            personal_base_for("comfortable")
+
+    def test_personal_eoh_honours_the_standard(self):
+        pop = 1_000_000.0
+        for s in ("survival", "collapsed", "sufficiency"):
+            assert personal_eoh(pop, standard=s) == pytest.approx(
+                personal_eoh(pop, base_rate=personal_base_for(s)))
+
+    def test_standard_overrides_base_rate_and_says_so(self):
+        pop = 1_000_000.0
+        assert personal_eoh(pop, base_rate=99.0, standard="survival") == pytest.approx(
+            personal_eoh(pop, standard="survival"))
+
+    def test_default_is_unchanged_by_the_split(self):
+        """Block I moves NO numbers — it separates concepts only."""
+        pop = 1_000_000.0
+        assert personal_eoh(pop) == pytest.approx(personal_eoh(pop, standard="collapsed"))
+        assert total_eoh(epsilon=0.40)["total"] == pytest.approx(
+            total_eoh(epsilon=0.40, personal_standard="collapsed")["total"])
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_total_eoh_standard_arc_coherent(self, eps):
+        for s in ("survival", "collapsed", "sufficiency"):
+            d = total_eoh(epsilon=eps, personal_standard=s)
+            assert d["total"] > 0.0 and math.isfinite(d["total"])
+        assert (total_eoh(epsilon=eps, personal_standard="survival")["total"]
+                < total_eoh(epsilon=eps, personal_standard="sufficiency")["total"])
+
+
+class TestKnowledgeSplit:
+
+    def test_components_sum_to_total(self):
+        for cpu in (1.0, 2.44, 9.821):
+            r = knowledge_eoh_breakdown(4.6, complexity_per_unit=cpu)
+            assert (r["civilisational"] + r["apparatus"]
+                    == pytest.approx(r["total"]))
+
+    def test_no_apparatus_at_zero_automation(self):
+        """cpu(0) = 1.0, so the whole domain is civilisational at ε=0."""
+        r = knowledge_eoh_breakdown(1.0, epsilon=0.0)
+        assert r["apparatus"] == pytest.approx(0.0)
+        assert r["apparatus_fraction"] == pytest.approx(0.0)
+
+    def test_apparatus_share_rises_with_complexity(self):
+        shares = [knowledge_eoh_breakdown(4.6, complexity_per_unit=c)["apparatus_fraction"]
+                  for c in (1.0, 1.36, 2.44, 5.41, 9.821)]
+        assert shares == sorted(shares)
+        assert shares[-1] == pytest.approx(0.898, abs=0.005)
+
+    def test_split_derives_from_the_existing_form_not_a_new_constant(self):
+        """apparatus_fraction = 1 − 1/cpu, so no constant was introduced."""
+        for cpu in (1.5, 3.0, 8.0):
+            r = knowledge_eoh_breakdown(4.6, complexity_per_unit=cpu)
+            assert r["apparatus_fraction"] == pytest.approx(1.0 - 1.0 / cpu)
+
+    def test_explicit_override_is_honoured(self):
+        r = knowledge_eoh_breakdown(4.6, complexity_per_unit=2.44,
+                                    apparatus_fraction=0.25)
+        assert r["apparatus_fraction"] == 0.25
+        assert r["apparatus"] == pytest.approx(r["total"] * 0.25)
+
+    def test_override_validated(self):
+        with pytest.raises(ValueError):
+            knowledge_eoh_breakdown(4.6, apparatus_fraction=1.5)
+
+    def test_total_matches_knowledge_eoh(self):
+        from hours_eoh.core.eoh_generation import knowledge_eoh
+        r = knowledge_eoh_breakdown(4.6, complexity_per_unit=2.44)
+        assert r["total"] == pytest.approx(knowledge_eoh(4.6, complexity_per_unit=2.44))
+
+
+# ---------------------------------------------------------------------------
+# Block III — the accounting basis
+#
+# Infrastructure and the APPARATUS share of knowledge are INTERMEDIATE: the cost
+# of the service apparatus, not obligations a civilisation owes. Counting them in
+# the total is the same error as adding intermediate consumption to GDP.
+# ---------------------------------------------------------------------------
+
+class TestAccountingBasis:
+
+    def test_gross_is_the_default_and_unchanged(self):
+        d = total_eoh(epsilon=0.40)
+        assert d["total"] == pytest.approx(d["total_gross"])
+        assert d["total_gross"] == pytest.approx(
+            d["personal"] + d["infrastructure"] + d["ecological"] + d["knowledge"])
+
+    def test_final_excludes_the_apparatus(self):
+        d = total_eoh(epsilon=0.40, basis="final")
+        assert d["total"] == pytest.approx(d["total_base"])
+        assert d["total"] < d["total_gross"]
+
+    def test_base_plus_overhead_reconstructs_gross(self):
+        for eps in [0.0, 0.40, 0.90, 0.99]:
+            d = total_eoh(epsilon=eps)
+            assert d["total_base"] + d["total_overhead"] == pytest.approx(
+                d["total_gross"])
+
+    def test_overhead_is_infrastructure_plus_apparatus_knowledge(self):
+        d = total_eoh(epsilon=0.40)
+        assert d["total_overhead"] == pytest.approx(
+            d["infrastructure"] + d["knowledge_apparatus"])
+
+    def test_base_is_personal_ecological_and_civilisational_knowledge(self):
+        d = total_eoh(epsilon=0.40)
+        assert d["total_base"] == pytest.approx(
+            d["personal"] + d["ecological"] + d["knowledge_civilisational"])
+
+    def test_knowledge_split_is_a_partition(self):
+        for eps in [0.0, 0.40, 0.99]:
+            d = total_eoh(epsilon=eps)
+            assert (d["knowledge_apparatus"] + d["knowledge_civilisational"]
+                    == pytest.approx(d["knowledge"]))
+
+    def test_final_total_is_near_constant_across_the_arc(self):
+        """The conservation claim: obligation is population × per-person, and
+        the apparatus built to SERVE it is not additional obligation.
+
+        Not exactly flat — the elderly fraction drifts and the civilisational
+        corpus grows — but 0.4% against the gross basis's 10%.
+        """
+        finals = [total_eoh(epsilon=e, basis="final")["total"]
+                  for e in (0.0, 0.40, 0.99)]
+        grosses = [total_eoh(epsilon=e)["total"] for e in (0.0, 0.40, 0.99)]
+        final_drift = finals[-1] / finals[0] - 1.0
+        gross_drift = grosses[-1] / grosses[0] - 1.0
+        assert final_drift < 0.01
+        assert gross_drift > 0.09
+        assert final_drift < gross_drift / 10.0
+
+    def test_all_values_remain_numeric(self):
+        """Regression: a str in the dict broke isfinite checks downstream."""
+        import math as _m
+        for v in total_eoh(epsilon=0.40).values():
+            assert isinstance(v, (int, float)) and _m.isfinite(v)
+
+    def test_bad_basis_rejected(self):
+        with pytest.raises(ValueError, match="basis"):
+            total_eoh(epsilon=0.40, basis="net")

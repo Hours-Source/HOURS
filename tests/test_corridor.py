@@ -15,7 +15,13 @@ import pytest
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.research.corridor import (
     survival_floor_epsilon,
+    survival_inventory,
+    survival_floor,
+    overbuild_floor,
+    Floor,
     contestability_ceiling,
+    contestability_ceiling_bare_chi,
+    contestability_axes,
     thermal_ceiling,
     corridor,
     corridor_stability,
@@ -224,3 +230,113 @@ def test_stability_narrowing():
 def test_stability_rejects_empty():
     with pytest.raises(ValueError):
         corridor_stability([])
+
+
+# ---------------------------------------------------------------------------
+# The survival-floor correction (Block I, 2026-08-06)
+#
+# ε_suff was being computed from an inventory at the OPERATING personal standard
+# — a sufficiency-shaped number — and reported as a survival floor. At the
+# survival standard the floor is 0: subsistence survives without automation.
+# ---------------------------------------------------------------------------
+
+def test_survival_floor_is_zero_at_the_survival_standard():
+    """The correction. Subsistence survives with no automation, as it did."""
+    assert survival_floor_epsilon(survival_inventory(epsilon=0.0), L_AVAIL) == 0.0
+
+
+def test_the_three_standards_give_three_different_floors():
+    """All three are meaningful; only the first is a survival floor."""
+    from hours_eoh.core.eoh_generation import total_eoh as _t
+    surv = survival_floor_epsilon(survival_inventory(epsilon=0.0), L_AVAIL)
+    oper = survival_floor_epsilon(_t(epsilon=0.0), L_AVAIL)
+    suff = survival_floor_epsilon(
+        _t(epsilon=0.0, personal_standard="sufficiency"), L_AVAIL)
+    assert surv == 0.0
+    assert oper == pytest.approx(0.306, abs=0.005)
+    assert suff == pytest.approx(0.530, abs=0.005)
+    assert surv < oper < suff
+
+
+@pytest.mark.parametrize("eps", ARC)
+def test_survival_floor_stays_zero_across_the_arc(eps):
+    """Automation only ever relieves the survival floor; it never creates one."""
+    assert survival_floor_epsilon(survival_inventory(epsilon=eps), L_AVAIL) == 0.0
+
+
+def test_survival_inventory_rejects_a_conflicting_standard():
+    with pytest.raises(TypeError):
+        survival_inventory(personal_standard="sufficiency")
+
+
+def test_corridor_opens_fully_on_the_survival_floor():
+    """With ε_suff = 0 and nothing binding above, the band is the whole arc."""
+    es = survival_floor_epsilon(survival_inventory(epsilon=0.40), L_AVAIL)
+    rep = corridor(es, [contestability_ceiling(POP),
+                        thermal_ceiling(1.86e10, 2.5e9, epsilon=0.40)])
+    assert rep["epsilon_suff"] == 0.0
+    assert rep["width"] == pytest.approx(1.0)
+    assert rep["success"] is True
+
+
+# ---------------------------------------------------------------------------
+# Block III — two lower bounds, not one
+#
+# A collective can be infeasible for two independent reasons: it cannot survive,
+# or it is not worth being in. The band's floor is the max over both.
+# ---------------------------------------------------------------------------
+
+class TestTwoFloors:
+
+    def test_scalar_floor_is_backward_compatible(self):
+        rep = corridor(0.3, [_ceiling("thermal", None, False)])
+        assert rep["epsilon_suff"] == pytest.approx(0.3)
+        assert rep["binding_floor"] == "survival"
+
+    def test_no_binding_floor_reports_none(self):
+        rep = corridor([survival_floor(survival_inventory(epsilon=0.40), L_AVAIL)],
+                       [_ceiling("thermal", None, False)])
+        assert rep["epsilon_suff"] == 0.0
+        assert rep["binding_floor"] is None
+
+    def test_modest_apparatus_does_not_bind(self):
+        f = overbuild_floor(1.9e9, POP)
+        assert f["binding"] is False
+        assert f["epsilon_floor"] == 0.0
+        assert "pays at any" in f["status"]
+
+    def test_huge_apparatus_binds_the_floor(self):
+        f = overbuild_floor(1.0e11, POP)
+        assert f["binding"] is True
+        assert 0.0 < f["epsilon_floor"] < 1.0
+        assert "worth being in only at" in f["status"]
+
+    def test_binding_floor_is_the_max(self):
+        surv = Floor(name="survival", epsilon_floor=0.20, binding=True, status="x")
+        over = Floor(name="overbuild", epsilon_floor=0.55, binding=True, status="y")
+        rep = corridor([surv, over], [_ceiling("thermal", None, False)])
+        assert rep["epsilon_suff"] == pytest.approx(0.55)
+        assert rep["binding_floor"] == "overbuild"
+
+    def test_overbuild_can_close_a_corridor_survival_would_not(self):
+        """The new failure mode: not 'we would die' but 'we are better off apart'."""
+        surv = Floor(name="survival", epsilon_floor=0.0, binding=False, status="x")
+        over = overbuild_floor(1.0e11, POP)
+        rep = corridor([surv, over], [_ceiling("contestability", 0.30, True)])
+        assert rep["feasible"] is False
+        assert rep["binding_floor"] == "overbuild"
+        assert "overbuild floor exceeds" in rep["note"]
+
+    def test_floors_are_echoed_for_audit(self):
+        floors = [survival_floor(survival_inventory(epsilon=0.40), L_AVAIL),
+                  overbuild_floor(1.9e9, POP)]
+        rep = corridor(floors, [_ceiling("thermal", None, False)])
+        assert [f["name"] for f in rep["floors"]] == ["survival", "overbuild"]
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_arc_coherent_with_both_floors(self, eps):
+        floors = [survival_floor(survival_inventory(epsilon=eps), L_AVAIL),
+                  overbuild_floor(1.9e9, POP)]
+        rep = corridor(floors, [contestability_ceiling(POP)])
+        assert 0.0 <= rep["epsilon_suff"] <= 1.0
+        assert rep["success"] is True

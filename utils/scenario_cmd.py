@@ -66,6 +66,8 @@ import json
 import csv
 import sys
 
+from hours_eoh.data import H_REF
+from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 
 _SCENARIOS: dict[str, str] = {
@@ -188,6 +190,31 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--use-category", default="residential_primary",
                        dest="use_category", choices=_USE_CATEGORIES,
                        help="Land use category (GUF scenarios; default: residential_primary)")
+
+    # Autarky / overbuild
+    run_p.add_argument("--capital-stock", type=float, default=1.9e9,
+                       dest="capital_stock", metavar="TEH",
+                       help="Apparatus capital stock in TEH (overbuild; default: 1.9e9 "
+                            "= 1,900 TEH/capita at 1M population)")
+
+    # Feasibility ceiling
+    run_p.add_argument("--adult-capacity", type=float, default=None,
+                       dest="adult_capacity", metavar="H",
+                       help=f"Adult annual labor capacity, h/yr (feasibility; "
+                            f"default: sweep the subsistence band, or {H_REF} for a "
+                            f"single case)")
+    run_p.add_argument("--adult-share", type=float, default=None,
+                       dest="adult_share", metavar="F",
+                       help="Adult share of population (feasibility; default: the "
+                            "AGE_GROUPS working_age fraction, 0.60)")
+
+    # Thermal obligation
+    run_p.add_argument("--thermal-obligation", type=float,
+                       default=REFERENCE_THERMAL_FLOW_EOH,
+                       dest="thermal_obligation", metavar="EOH",
+                       help=f"Annual planetary radiative obligation in EOH-hours "
+                            f"(thermal_load; default: {REFERENCE_THERMAL_FLOW_EOH:,.0f} "
+                            f"— the ε=0.40 reference for 1M people)")
 
     run_p.set_defaults(func=_run)
 

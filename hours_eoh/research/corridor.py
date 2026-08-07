@@ -61,6 +61,50 @@ _ARC = tuple(i / 100 for i in range(100))  # 0.00 … 0.99
 # Lower bound — survival floor ε_suff (E22)
 # ---------------------------------------------------------------------------
 
+def survival_inventory(
+    population: float = 1_000_000.0,
+    **kwargs: float,
+) -> dict[str, float]:
+    """
+    An EOH inventory taken at the SURVIVAL standard — the correct input to
+    `survival_floor_epsilon`.
+
+    Why this exists (2026-08-06). ε_suff was being computed from an inventory at
+    the *operating* personal standard, which is a sufficiency-shaped number. That
+    is a category error: it asks "how much automation is needed before nobody
+    goes without a decent life", and then reports the answer as a survival floor.
+    Run at the survival standard (S_a = 600 per working-age-equivalent) the floor
+    is ε_suff = 0 — subsistence survives with no automation, which is what the
+    historical record shows.
+
+    The corrected reading of the two numbers together: **subsistence can survive
+    but cannot reach sufficiency without automation.** The gap between them is
+    what a collective exists to close, not evidence that the model is broken.
+
+    units: hours/year per domain.
+    ε-behavior: pass `epsilon=` through kwargs for the canonical inventory at
+    that ε; the survival standard itself is ε-invariant.
+
+    Args:
+        population: Total population.
+        **kwargs: Forwarded to `core.eoh_generation.total_eoh` (epsilon,
+            capital_stock, ecosystem_health, …). `personal_standard` is set here
+            and must not be passed.
+
+    Returns:
+        The `total_eoh` dict with personal taken at the survival standard.
+
+    Raises:
+        TypeError: if `personal_standard` is supplied by the caller.
+    """
+    if "personal_standard" in kwargs:
+        raise TypeError(
+            "survival_inventory sets personal_standard='survival'; do not pass it"
+        )
+    from hours_eoh.core.eoh_generation import total_eoh
+    return total_eoh(population=population, personal_standard="survival", **kwargs)  # type: ignore[arg-type]
+
+
 def survival_floor_epsilon(
     eoh_by_domain: dict[str, float],
     available_labor_eoh: float,
@@ -69,6 +113,18 @@ def survival_floor_epsilon(
     """
     E22 — the survival floor ε_suff: the minimum machine-fulfillment share needed
     to cover survival EOH beyond what available human labor can do.
+
+    IMPORTANT — which inventory you pass decides what this measures. Build it
+    with `survival_inventory()` so the personal domain is taken at the SURVIVAL
+    standard. Passing an inventory at the operating (abatement-collapsed) or
+    sufficiency standard makes this report a SUFFICIENCY floor under a survival
+    name, which is the category error this signature note exists to prevent:
+
+        survival standard   S_a = 600   →  ε_suff = 0.00   (subsistence survives)
+        operating           1000        →  ε_suff = 0.31
+        sufficiency         F_a = 1500  →  ε_suff = 0.53
+
+    All three are meaningful; only the first is a survival floor.
 
     Governing equation:
         ε_suff = max(0, [ EOH_surv − L_avail ] / EOH_total)
@@ -360,8 +416,74 @@ def measured_thermal_ceiling(
 # The corridor
 # ---------------------------------------------------------------------------
 
+class Floor(TypedDict):
+    name: str
+    epsilon_floor: float    # ε at/below which this bound is violated
+    binding: bool           # does it constrain within [0, 0.99]?
+    status: str
+
+
+def overbuild_floor(
+    capital_stock_teh: float,
+    population: float = 1_000_000.0,
+    **kwargs: float,
+) -> Floor:
+    """
+    The overbuild floor — the lowest ε at which the collective is worth being in.
+
+    Below it the apparatus demands more hours of its members than autarky would
+    (`(1−ε)·total(K) ≥ B₀`), and the collective should dissolve rather than
+    operate. That makes it a genuine LOWER bound on the corridor, alongside the
+    survival floor, and a second way a corridor can close: not "we cannot
+    survive", but "we would be better off apart".
+
+    Non-binding (floor 0.0) whenever the OBLIGATION test already passes — an
+    apparatus that removes more obligation than it creates is worth being in at
+    every ε, with nothing for automation to rescue.
+
+    units: dimensionless ε.
+    ε-behavior: the floor is a property of the apparatus, not of the operating ε;
+    it is the ε that apparatus *requires*.
+
+    Args:
+        capital_stock_teh: Apparatus capital (TEH).
+        population: Total population.
+        **kwargs: Forwarded to core.autarky.overbuild_check.
+
+    Returns:
+        Floor named "overbuild".
+
+    Reference: core/autarky.py; docs/parameter_provenance.md §"Abatement".
+    """
+    from hours_eoh.core.autarky import break_even_epsilon, overbuild_check
+    e = break_even_epsilon(capital_stock_teh, population, **kwargs)
+    check = overbuild_check(capital_stock_teh, population, epsilon=0.0, **kwargs)  # type: ignore[arg-type]
+    if e <= 0.0:
+        return Floor(name="overbuild", epsilon_floor=0.0, binding=False,
+                     status=f"apparatus pays at any ε ({check['verdict']})")
+    return Floor(name="overbuild", epsilon_floor=e, binding=True,
+                 status=f"worth being in only at ε ≥ {e:.2f} — below it the "
+                        f"apparatus costs members more hours than autarky")
+
+
+def survival_floor(
+    eoh_by_domain: dict[str, float],
+    available_labor_eoh: float,
+    survival_domains: tuple[str, ...] = DEFAULT_SURVIVAL_DOMAINS,
+) -> Floor:
+    """`survival_floor_epsilon` in Floor form, for composing with other bounds."""
+    e = survival_floor_epsilon(eoh_by_domain, available_labor_eoh, survival_domains)
+    if e <= 0.0:
+        return Floor(name="survival", epsilon_floor=0.0, binding=False,
+                     status="human labour covers survival at ε = 0")
+    return Floor(name="survival", epsilon_floor=e, binding=True,
+                 status=f"survival requires ε ≥ {e:.2f}")
+
+
 class CorridorReport(TypedDict):
-    epsilon_suff: float               # lower bound (survival floor)
+    epsilon_suff: float               # lower bound (the binding floor)
+    binding_floor: str | None         # which floor sets it; None = nothing binds
+    floors: list[Floor]
     epsilon_max: float                # upper bound (tightest binding ceiling, or 1.0 aspirational)
     width: float                      # ε_max − ε_suff
     feasible: bool                    # width ≥ 0
@@ -373,11 +495,11 @@ class CorridorReport(TypedDict):
 
 
 def corridor(
-    epsilon_suff: float,
+    epsilon_suff: float | list[Floor],
     ceilings: list[Ceiling],
 ) -> CorridorReport:
     """
-    Compose the survival floor and the invariant ceilings into a feasible band.
+    Compose the lower bounds and the invariant ceilings into a feasible band.
 
     ε_max is the tightest binding ceiling; if none binds within the arc, ε_max is
     1.0 and the band is open to the aspirational target (with thermal noted as
@@ -387,13 +509,42 @@ def corridor(
     when it is feasible (positive width) and the sufficiency floor is reachable
     (ε_suff < 1). Reaching ε = 1 is aspirational, not the success criterion.
 
+    TWO LOWER BOUNDS (Block III, 2026-08-06). The band's floor used to be the
+    survival floor alone. It is now the MAX over every supplied floor, because a
+    collective can be infeasible for two independent reasons:
+
+        survival    ε_suff      below it the population cannot meet its
+                                obligation at all
+        overbuild   ε_breakeven below it the apparatus costs members more hours
+                                than autarky would — they should disperse, not
+                                because they would die but because the collective
+                                is not worth being in
+
     Args:
-        epsilon_suff: the survival floor (from survival_floor_epsilon()).
+        epsilon_suff: EITHER a bare float (the survival floor, backward
+            compatible) OR a list of Floor. When a list, the binding floor is
+            the largest and is named in the report.
         ceilings: the upper-bound invariants (contestability, thermal, …).
 
     Returns:
         CorridorReport.
     """
+    if isinstance(epsilon_suff, (int, float)):
+        floors: list[Floor] = [Floor(name="survival", epsilon_floor=float(epsilon_suff),
+                                     binding=float(epsilon_suff) > 0.0,
+                                     status="supplied as a scalar")]
+    else:
+        floors = list(epsilon_suff)
+    binding_floors = [f for f in floors if f["binding"]]
+    if binding_floors:
+        tightest_floor = max(binding_floors, key=lambda f: f["epsilon_floor"])
+        eps_floor = tightest_floor["epsilon_floor"]
+        floor_name: str | None = tightest_floor["name"]
+    else:
+        eps_floor = 0.0
+        floor_name = None
+    epsilon_suff = eps_floor
+
     binding = [c for c in ceilings if c["binding"] and c["epsilon_ceiling"] is not None]
     if binding:
         tightest = min(binding, key=lambda c: c["epsilon_ceiling"])  # type: ignore[arg-type,return-value]
@@ -409,8 +560,8 @@ def corridor(
     success = feasible and sufficiency_met
 
     if not feasible:
-        note = ("corridor closed: the survival floor exceeds the tightest ceiling — "
-                "no ε meets survival without breaching an invariant")
+        note = (f"corridor closed: the {floor_name or 'survival'} floor exceeds the "
+                f"tightest ceiling — no ε satisfies both")
     elif binding_name is None:
         note = ("open corridor: no invariant binds within the arc; ε_max is "
                 "aspirational (thermal advisory — not proven open, needs measured ι)")
@@ -419,6 +570,8 @@ def corridor(
 
     return CorridorReport(
         epsilon_suff=epsilon_suff,
+        binding_floor=floor_name,
+        floors=floors,
         epsilon_max=eps_max,
         width=width,
         feasible=feasible,

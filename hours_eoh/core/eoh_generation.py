@@ -27,6 +27,9 @@ import math
 
 from hours_eoh.data import (
     AGE_GROUPS, ESSENTIAL_DOMAINS,
+    PERSONAL_EOH_BASE, PERSONAL_EOH_SURVIVAL, PERSONAL_EOH_SUFFICIENCY,
+    ECOLOGICAL_BASE_RATE, KNOWLEDGE_EOH_BASE,
+    PERSONAL_EOH_COMPONENTS, ABATEMENT_HALF_CAPITAL_TEH,
     CANONICAL_CAPITAL_GROWTH_SLOPE,
     CANONICAL_MONITORING_CAPABILITY_BASE,
     CANONICAL_MONITORING_CAPABILITY_SLOPE,
@@ -62,14 +65,188 @@ def _resolve_monitoring_capability(
 
 
 # ---------------------------------------------------------------------------
-# Personal EOH
+# Personal EOH — the standards selector
 # ---------------------------------------------------------------------------
+
+#: The three values `PERSONAL_EOH_BASE` was doing the work of. See the STANDARDS
+#: SPLIT block in data.py for why they are distinct.
+PERSONAL_STANDARDS: dict[str, float] = {
+    "survival":    PERSONAL_EOH_SURVIVAL,     # S_a — autarky-referenced, hard-bounded
+    "sufficiency": PERSONAL_EOH_SUFFICIENCY,  # F_a — autarky-referenced, may exceed supply
+    "collapsed":   PERSONAL_EOH_BASE,         # F_a × (1 − a(K)) placeholder; the default
+}
+
+
+def personal_base_for(standard: str) -> float:
+    """
+    The per-working-age-equivalent obligation for a named standard.
+
+    Governing distinction (data.py §"THE STANDARDS SPLIT"):
+
+        "survival"     S_a  what must be met or people die. AUTARKY-referenced
+                            and HARD-bounded: S_a ≤ (L − R)/w, because a survival
+                            standard exceeding labour supply means extinction.
+        "sufficiency"  F_a  what a decent life costs, AUTARKY-referenced. Allowed
+                            to exceed labour supply — that gap is why collectives
+                            form, not a defect.
+        "collapsed"    the abatement-collapsed operating value used by the
+                            generation default until Block II builds a(K).
+
+    Why "collapsed" is the default and not "sufficiency": the operating value is
+    F_a × (1 − a(K)), and a(K) does not exist yet. Defaulting to F_a would assert
+    zero abatement — that infrastructure never reduces the obligation, only who
+    serves it — which is precisely the simplification the abatement work exists
+    to remove.
+
+    units: hours/year per working-age-equivalent.
+    ε-behavior: none — these are standards, not trajectories. The ε-dependence
+    arrives with abatement.
+
+    Args:
+        standard: "survival" | "sufficiency" | "collapsed".
+
+    Returns:
+        The base rate in h/yr per working-age-equivalent.
+
+    Raises:
+        ValueError: on an unknown standard.
+
+    Worked example: `personal_base_for("survival")` = 600, which at the shipped
+    age weighting w = 1.475 is 885 h/person·yr — inside the 924 h/person·yr
+    autarky supply, so ε_suff = 0 and subsistence survives without automation.
+    """
+    if standard not in PERSONAL_STANDARDS:
+        raise ValueError(
+            f"standard must be one of {sorted(PERSONAL_STANDARDS)}, got {standard!r}"
+        )
+    return PERSONAL_STANDARDS[standard]
+
+
+def max_abatement() -> float:
+    """
+    a_max — the ceiling on how much of the personal obligation infrastructure can
+    ever remove. DERIVED, not chosen:
+
+        a_max = Σ_component  share · abatability
+
+    over `PERSONAL_EOH_COMPONENTS`. At shipped values a_max = 0.4483, and the
+    55.2% that survives is **84.4% care** — the anti-correlation the block
+    predicts, falling out of the weights rather than being asserted.
+
+    units: dimensionless ∈ [0, 1].
+    """
+    return sum(c["share"] * c["abatability"] for c in PERSONAL_EOH_COMPONENTS.values())
+
+
+def abatement_fraction(
+    capital_per_capita_teh: float,
+    half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,
+    a_max: float | None = None,
+) -> float:
+    """
+    a(K) — the fraction of the personal obligation that infrastructure REMOVES.
+
+    Governing equation (hyperbolic saturation):
+
+        a(K) = a_max · K / (K + K_half)
+
+        a(0)   = 0        no apparatus, no abatement — autarky by definition
+        a(K_half) = a_max/2
+        a(∞)   = a_max    bounded by what is physically abatable, not by capital
+
+    This is the mechanism the model was missing. Before it, personal EOH was flat
+    across the entire arc and infrastructure only changed WHO served the
+    obligation. Physically, a tap replaces water hauling and sanitation cuts the
+    disease burden that drives care hours — the obligation itself falls.
+
+    Saturating rather than linear because the components run out: once the water
+    is piped there is no more hauling to remove, and the residual is care, which
+    barely abates at all.
+
+    units: dimensionless ∈ [0, a_max]. K in TEH per capita.
+    ε-behavior: no ε appears. Abatement is a function of the CAPITAL STOCK, not
+    of the automation score — which is what lets it be composed with ε rather
+    than double-counting against it. ε says who serves the remaining obligation;
+    a(K) says how much obligation remains.
+
+    Args:
+        capital_per_capita_teh: K, capital stock per capita (≥ 0).
+        half_capital: K_half (> 0). The CHOSEN pace constant — see data.py.
+        a_max: Ceiling override. None (default) derives it from the components.
+
+    Returns:
+        a(K) ∈ [0, a_max].
+
+    Raises:
+        ValueError: on negative capital, non-positive half_capital, or an a_max
+            outside [0, 1].
+
+    Worked example: at the standard-tier inventory (~1,900 TEH/capita) and
+    K_half = 1,000, a = 0.4483 × 0.655 = 0.294 — so sufficiency-under-collective
+    is 1,500 × (1 − 0.294) = 1,059 h/yr per working-age-equivalent against the
+    autarky 1,500.
+    """
+    if capital_per_capita_teh < 0.0:
+        raise ValueError(
+            f"capital_per_capita_teh must be ≥ 0, got {capital_per_capita_teh}"
+        )
+    if half_capital <= 0.0:
+        raise ValueError(f"half_capital must be > 0, got {half_capital}")
+    cap = max_abatement() if a_max is None else a_max
+    if not 0.0 <= cap <= 1.0:
+        raise ValueError(f"a_max must be in [0, 1], got {cap}")
+    k = capital_per_capita_teh
+    return cap * k / (k + half_capital)
+
+
+def abated_personal_base(
+    capital_per_capita_teh: float,
+    standard: str = "sufficiency",
+    half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,
+) -> float:
+    """
+    B(K) = X_a × (1 − a(K)) — the autarky-referenced standard, abated by capital.
+
+    This is the quantity `PERSONAL_EOH_BASE` stands in for. Once abatement is
+    adopted as the default generation path, the collapsed placeholder retires and
+    the operating value is computed here instead of asserted.
+
+    units: hours/year per working-age-equivalent.
+    ε-behavior: none directly — see `abatement_fraction` on why abatement is
+    capital-driven rather than ε-driven.
+
+    Args:
+        capital_per_capita_teh: K, capital stock per capita.
+        standard: Which autarky-referenced standard to abate — "sufficiency"
+            (default, F_a) or "survival" (S_a). "collapsed" is rejected: it is
+            already an abated value, so abating it again double-counts.
+        half_capital: K_half.
+
+    Returns:
+        The abated base in h/yr per working-age-equivalent.
+
+    Raises:
+        ValueError: if standard is "collapsed" or unknown.
+
+    Worked example: F_a = 1,500 at K = 1,900 TEH/capita → 1,059. Compare the
+    shipped collapsed placeholder of 1,000, which the mechanism now replaces
+    with something that has an economy behind it.
+    """
+    if standard == "collapsed":
+        raise ValueError(
+            "'collapsed' is already an abated value — abating it double-counts. "
+            "Use 'sufficiency' (F_a) or 'survival' (S_a)."
+        )
+    base = personal_base_for(standard)
+    return base * (1.0 - abatement_fraction(capital_per_capita_teh, half_capital))
+
 
 def personal_eoh(
     population: float,
     age_distribution: dict[str, float] | None = None,
     epsilon: float | None = None,
-    base_rate: float = 1500.0,
+    base_rate: float = PERSONAL_EOH_BASE,
+    standard: str | None = None,
 ) -> float:
     """
     Total personal EOH generated by the population.
@@ -93,14 +270,34 @@ def personal_eoh(
                  age_distribution is None, fills in the canonical age distribution
                  for that ε. Does not otherwise affect the physics.
         base_rate: Personal EOH per working-age-equivalent person per year (hours).
-                   Default: 1500 h/yr — food, shelter, healthcare, sanitation.
+                   Default: PERSONAL_EOH_BASE (1000 h/yr) — the abatement-collapsed
+                   operating value. Ignored when `standard` is given.
+        standard: OPTIONAL named standard — "survival" | "sufficiency" |
+                  "collapsed" — which overrides `base_rate` via
+                  `personal_base_for()`. None (default) uses `base_rate` as
+                  passed, so every existing caller is unaffected.
+
+                  The two are mutually exclusive by intent: `base_rate` is for a
+                  caller that has its own number, `standard` for one that wants
+                  the framework's. Passing both is not an error; `standard` wins,
+                  and that is stated rather than silently resolved.
 
     Returns:
         Total personal EOH (hours/year) — the demand signal, not the supply.
 
+    Worked example (1M people, shipped age weighting w = 1.475):
+        standard="survival"     →   885M h/yr   (885 h/person·yr)
+        standard="collapsed"    → 1,475M h/yr   (1,475)
+        standard="sufficiency"  → 2,213M h/yr   (2,213)
+    The survival figure fits inside an autarky labour supply of ~924 h/person·yr;
+    the sufficiency figure does not, and is not meant to.
+
     Reference: Mission Statement §"Personal EOH — the entropy of human bodies";
-    §"Biology does not change with automation."
+    §"Biology does not change with automation." Standards split: data.py
+    §"THE STANDARDS SPLIT".
     """
+    if standard is not None:
+        base_rate = personal_base_for(standard)
     if age_distribution is None:
         if epsilon is not None:
             from hours_eoh.core.trajectory import canonical_age_distribution
@@ -344,7 +541,7 @@ def infrastructure_eoh_breakdown(
 def ecological_eoh(
     ecosystem_health: float,
     epsilon: float | None = None,
-    base_rate: float = 500_000.0,
+    base_rate: float = ECOLOGICAL_BASE_RATE,
     threshold: float = 0.40,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
@@ -500,6 +697,95 @@ def knowledge_eoh(
     return base_rate * effective_kbs * cpu * skill_decay_rate
 
 
+def knowledge_eoh_breakdown(
+    knowledge_base_size: float,
+    skill_decay_rate: float = 0.10,
+    epsilon: float | None = None,
+    base_rate: float = KNOWLEDGE_EOH_BASE,
+    epsilon_exponent: float = 2.0,
+    complexity_per_unit: float | None = None,
+    apparatus_fraction: float | None = None,
+) -> dict:
+    """
+    Split knowledge EOH into CIVILISATIONAL and APPARATUS components.
+
+    Governing decomposition:
+
+        K_total          = base · kbs · cpu · decay
+        K_civilisational = base · kbs · cpu(0) · decay      [cpu(0) ≡ 1.0]
+        K_apparatus      = K_total − K_civilisational
+        apparatus_fraction = 1 − cpu(0)/cpu = 1 − 1/cpu
+
+    NO NEW CONSTANT IS INTRODUCED, and that is the point. The split falls out of
+    the existing functional form and its existing rationale: `knowledge_base_size`
+    is the corpus a civilisation must renew whatever its capital — language,
+    medicine, law, craft — while `complexity_per_unit` is documented as
+    automation-driven ("each increment of automation creates more complex
+    knowledge infrastructure to maintain"). So the ε-invariant floor is
+    civilisational and everything the complexity term adds is apparatus: the cost
+    of knowing how to run the machines.
+
+    Across the canonical arc the apparatus share runs 0% at ε=0 to 89.8% at
+    ε=0.99, which is the physically expected direction.
+
+    Why this matters beyond bookkeeping: the apparatus component belongs in the
+    collective's OVERHEAD (with infrastructure) for the overbuild test, while the
+    civilisational component is a standing obligation like personal or ecological
+    EOH. Charging the whole domain to either side misstates the overhead ratio.
+
+    HONEST SCALE CAVEAT: at shipped calibration knowledge EOH is ~0.005% of total
+    EOH (docs/parameter_provenance.md §"Domain balance"), so this split is
+    structurally right and numerically inconsequential until the domain bases are
+    put on a commensurable footing. Do not quote the apparatus share as if it
+    moved anything today.
+
+    units: hours/year; `apparatus_fraction` dimensionless ∈ [0, 1].
+    ε-behavior: apparatus_fraction rises monotonically with ε and is 0 at ε=0.
+
+    Args:
+        knowledge_base_size: Corpus size relative to the ε=0 reference.
+        skill_decay_rate: Annual renewal fraction.
+        epsilon: Optional backward-compat canonical lookup.
+        base_rate: Knowledge EOH at the reference state.
+        epsilon_exponent: Complexity growth exponent.
+        complexity_per_unit: Measured complexity; overrides the ε-derived value.
+        apparatus_fraction: OPTIONAL explicit override of the derived split, for
+            a caller who rejects the cpu-is-apparatus reading. None (default)
+            derives it.
+
+    Returns:
+        dict: {"civilisational", "apparatus", "total", "apparatus_fraction"}.
+
+    Raises:
+        ValueError: if apparatus_fraction is given and outside [0, 1].
+
+    Worked example (canonical arc at ε = 0.40, kbs = 4.6, cpu = 2.44):
+        total 112,240 h/yr → civilisational 46,000, apparatus 66,240, share 59.0%.
+    """
+    if apparatus_fraction is not None and not 0.0 <= apparatus_fraction <= 1.0:
+        raise ValueError(
+            f"apparatus_fraction must be in [0, 1], got {apparatus_fraction}"
+        )
+    total = knowledge_eoh(knowledge_base_size, skill_decay_rate, epsilon,
+                          base_rate, epsilon_exponent, complexity_per_unit)
+    if apparatus_fraction is None:
+        # cpu as actually used by knowledge_eoh, so the split cannot drift from it
+        if epsilon is not None:
+            cpu = (complexity_per_unit if complexity_per_unit is not None
+                   else 1.0 + (epsilon ** epsilon_exponent)
+                   * CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE)
+        else:
+            cpu = complexity_per_unit if complexity_per_unit is not None else 1.0
+        apparatus_fraction = 0.0 if cpu <= 0.0 else max(0.0, 1.0 - 1.0 / cpu)
+    apparatus = total * apparatus_fraction
+    return {
+        "civilisational":     total - apparatus,
+        "apparatus":          apparatus,
+        "total":              total,
+        "apparatus_fraction": apparatus_fraction,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Total EOH Aggregate
 # ---------------------------------------------------------------------------
@@ -526,7 +812,7 @@ def effective_capital_from_stock(capital_stock: float, epsilon: float) -> float:
 def ecological_eoh_breakdown(
     ecosystem_health: float,
     epsilon: float | None = None,
-    base_rate: float = 500_000.0,
+    base_rate: float = ECOLOGICAL_BASE_RATE,
     threshold: float = 0.40,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
@@ -609,11 +895,12 @@ def total_eoh(
     knowledge_complexity: float = 1.0,
     skill_decay_rate: float = 0.10,
     # Per-domain base rates — allow override for calibration sweeps
-    personal_base: float = 1500.0,
+    personal_base: float = PERSONAL_EOH_BASE,
+    personal_standard: str | None = None,
     infra_maint_rate: float = 0.025,
     ecological_base: float = 500_000.0,
     ecological_threshold: float = 0.40,
-    knowledge_base: float = 100_000.0,
+    knowledge_base: float = KNOWLEDGE_EOH_BASE,
     knowledge_exponent: float = 2.0,
     capital_eoh_eliminated: float = 0.0,
     capital_personal_eoh_fulfilled: float = 0.0,
@@ -623,6 +910,7 @@ def total_eoh(
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
     thermal_obligation: float = 0.0,
+    basis: str = "gross",
 ) -> dict[str, float]:
     """
     Aggregate EOH across all four domains.
@@ -711,7 +999,8 @@ def total_eoh(
 
     Reference: Mission Statement §"Entropy Obligation Hours — Accounting Framework"
     """
-    p = personal_eoh(population, age_distribution, epsilon, personal_base)
+    p = personal_eoh(population, age_distribution, epsilon, personal_base,
+                     standard=personal_standard)
     i = infrastructure_eoh(capital_stock, capital_age_ratio, epsilon,
                            infra_maint_rate, 2.0) + infrastructure_compounding_eoh
     e = ecological_eoh(ecosystem_health, epsilon, ecological_base,
@@ -738,12 +1027,37 @@ def total_eoh(
             e = max(0.0, e * reduction_factor)
             k = max(0.0, k * reduction_factor)
 
+    if basis not in ("gross", "final"):
+        raise ValueError(f"basis must be 'gross' or 'final', got {basis!r}")
+
+    # BASIS (Block III). Infrastructure and the APPARATUS share of knowledge are
+    # INTERMEDIATE — the cost of the service apparatus, not obligations a
+    # civilisation owes. Counting them in the total is the same error as adding
+    # intermediate consumption to GDP. `final` reports what is actually owed;
+    # `gross` (default, unchanged) reports owed + the apparatus that serves it.
+    k_split = knowledge_eoh_breakdown(
+        knowledge_base_size=knowledge_complexity if knowledge_complexity_per_unit is None
+        else knowledge_complexity,
+        complexity_per_unit=knowledge_complexity_per_unit,
+        epsilon=epsilon if knowledge_complexity_per_unit is None else None,
+    )
+    app_share = k_split["apparatus_fraction"]
+    k_apparatus = k * app_share
+    k_civil = k - k_apparatus
+    base_eoh = p + e + k_civil
+    overhead_eoh = i + k_apparatus
+
     return {
         "personal":               p,
         "infrastructure":         i,
         "ecological":             e,
         "knowledge":              k,
-        "total":                  p + i + e + k,
+        "total":                  (base_eoh + overhead_eoh) if basis == "gross" else base_eoh,
+        "total_gross":            p + i + e + k,
+        "total_base":             base_eoh,
+        "total_overhead":         overhead_eoh,
+        "knowledge_apparatus":    k_apparatus,
+        "knowledge_civilisational": k_civil,
         "capital_eoh_eliminated":         capital_eoh_eliminated,
         "capital_personal_eoh_fulfilled":  capital_personal_eoh_fulfilled,
         "infrastructure_compounding_eoh":  infrastructure_compounding_eoh,
