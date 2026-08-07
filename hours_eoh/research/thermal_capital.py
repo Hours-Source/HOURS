@@ -37,7 +37,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from hours_eoh.core.civilization import machine_eoh_from_capital
+from hours_eoh.core.civilization import civilization_epsilon, machine_eoh_from_capital
 from hours_eoh.data import (
     CAPITAL_MACHINE_PROFILES,
     INFRA_MAINT_RATE,
@@ -174,11 +174,61 @@ def collective_thermal_from_capital(
     )
 
 
+def epsilon_current_from_inventory(
+    capital_desc: dict,
+    population: float,
+) -> float:
+    """
+    ε_current DERIVED from the same capital inventory that produces Φ — the
+    sanctioned way to obtain the ε a thermal ceiling is quoted at.
+
+        capital inventory ──► machine_eoh_from_capital ──► ε   (core.civilization)
+                         └──► machine_dissipation_from_capital ──► Φ
+
+    Why this function exists. The thermal ceiling is ε_max = ε_current · H, so it
+    is LINEAR in ε_current — and ε_current shipped as `THERMAL_EPS_CURRENT`, a
+    CHOSEN Tier D constant (0.40, "the arc midpoint"). That contradicts the
+    framework's own invariant that ε is a score the economy produces, not an
+    input, and per handoff 2.0 §10.2 the sensitivity to it exceeds the ΔT_lo
+    sensitivity the document foregrounds. Wherever an inventory exists, ε should
+    come from `core.civilization.civilization_epsilon` — which remains the only
+    thing in the repo permitted to say what ε is — and not from a constant.
+
+    Scope limit, stated plainly: this closes the loop for a COLLECTIVE, which is
+    where the binding thermal signal lives anyway (F11). It does NOT close it for
+    the global ε_max, because no measured world capital inventory in TEH exists;
+    swapping the chosen 0.40 for a chosen world capital mix would move the
+    arbitrariness rather than remove it. At global scale quote H instead
+    (`thermal_path_c.headroom_multiple`), which has no ε in it at all.
+
+    units: dimensionless ε ∈ [0, 1].
+    ε-behavior: output IS ε; monotone in capital scale, saturating at 1.
+
+    Args:
+        capital_desc: {type_name: spec} over CAPITAL_MACHINE_PROFILES.
+        population: Total population (> 0).
+
+    Returns:
+        Derived ε ∈ [0, 1].
+
+    Worked example: the reference mix at ~6,300 TEH/capita derives ε ≈ 0.40 —
+    the same number the constant asserts, now with an economy behind it.
+
+    Reference: handoff 2.0 §10.2 option C; research/epsilon_inverse.py for the
+    inverse direction (which capital stock yields a target ε).
+    """
+    if population <= 0.0:
+        raise ValueError(f"population must be positive, got {population}")
+    return float(civilization_epsilon(
+        {"population": population, "capital": capital_desc}
+    )["epsilon"])
+
+
 def capital_thermal_ceiling(
     capital_desc: dict,
     population: float,
     land_m2: float,
-    epsilon_current: float,
+    epsilon_current: float | None = None,
     grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
     delta_t_lo: float = 3.0,
     basis: ForcingBasis = "net_erf",
@@ -187,11 +237,33 @@ def capital_thermal_ceiling(
     The corridor's thermal ceiling computed bottom-up from the collective's
     capital (vs the Path C top-down version). Binds at ε_current when the capital
     stock puts the collective in Contact (U ≥ 1). Thin bridge to the corridor.
+
+    ε_current now DEFAULTS TO DERIVED (2026-08-05): pass None — the default — and
+    ε is computed from the same `capital_desc` via
+    `epsilon_current_from_inventory()`, so one inventory sets both the ceiling's
+    dissipation and the ε it is quoted at. Passing an explicit float overrides
+    the derivation and is retained for backward compatibility and for asking
+    counterfactual questions ("what if this collective were at ε = 0.6?").
+
+    Args:
+        capital_desc: {type_name: spec} over CAPITAL_MACHINE_PROFILES.
+        population: Total population.
+        land_m2: Claimed land area (> 0).
+        epsilon_current: None (default) → derive from the inventory. A float
+            overrides the derivation.
+        grid_kappa: Net thermal addition of the serving grid.
+        delta_t_lo: Habitability threshold (K) — the dominant Tier D input.
+        basis: Forcing basis for the budget.
+
+    Returns:
+        Ceiling named "thermal_measured". Binding (at ε_current) iff U ≥ 1.
     """
     st = collective_thermal_from_capital(
         capital_desc, population, land_m2, grid_kappa, delta_t_lo, basis,
     )
-    return measured_thermal_ceiling(st["utilization"], epsilon_current)
+    eps = (epsilon_current_from_inventory(capital_desc, population)
+           if epsilon_current is None else epsilon_current)
+    return measured_thermal_ceiling(st["utilization"], eps)
 
 
 # ---------------------------------------------------------------------------

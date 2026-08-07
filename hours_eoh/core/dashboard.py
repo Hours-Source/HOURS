@@ -404,6 +404,7 @@ def system_dashboard(
     div_rate: float = DIV_RATE,
     # Contestability (reconciliation §8) — computed by the caller
     chi: float | None = None,
+    exit_financeable: bool | None = None,
 ) -> dict:
     """
     Full system health dashboard — all four conditions plus health indicators.
@@ -412,13 +413,27 @@ def system_dashboard(
     (Phase 5.2), and fiscal health (Phase 5.3) into a single structural
     integrity report. The overall status is the worst of all individual statuses.
 
-    Contestability: the χ margin (reconciliation §8) lives in research/ and
-    core/ cannot import it (layer rules), so the caller computes
-    contestability_margin() and passes chi in as a plain float. When provided,
-    χ < CONTESTABILITY_CHI_CRIT (1.0) raises a RED flag — exit is nominal, the
-    invariant is breached — and χ < CONTESTABILITY_CHI_WARN (1.2) a YELLOW.
-    When None (default), contestability is not assessed and behavior is
-    unchanged.
+    Contestability lives in research/ and core/ cannot import it (layer rules),
+    so the caller computes the verdict and passes it in as a plain value.
+
+    Two inputs, and which one you pass decides what is being asserted:
+
+    - `exit_financeable` (PREFERRED, §8.9): the adopted three-channel invariant
+      from research/recalibration.exit_financing()["exit_financeable"]. When
+      supplied it GOVERNS the contestability status — False raises the RED flag,
+      True is GREEN — and χ, if also supplied, is demoted to a YELLOW advisory.
+    - `chi` (SUPERSEDED, §8 as originally written): χ = P/K_entry from
+      research/contestability.contestability_margin(). Retained for callers that
+      predate §8.9 and as a stricter stress: it asks whether ONE YEAR of income
+      covers the whole founding stock, which is the RC4 flow/stock mismatch that
+      §8.9 retired. When it is the only input supplied, the pre-§8.9 behavior is
+      unchanged (χ < 1 → RED, χ < 1.2 → YELLOW).
+
+    A failing χ alongside a financeable exit is the EXPECTED reading at shipped
+    defaults, not a breach — which is why passing χ alone now understates the
+    system's contestability.
+
+    When both are None (default), contestability is not assessed.
 
     Args:
         epsilon: Automation level.
@@ -447,8 +462,12 @@ def system_dashboard(
         suff_levy_rate: Levy rate on labor income.
         dep_rate: Trust annual depreciation rate.
         div_rate: Dividend fraction of depreciation.
-        chi: Contestability margin χ = P/K_entry, computed by the caller via
-            research/contestability.contestability_margin(). None = not assessed.
+        chi: SUPERSEDED contestability margin χ = P/K_entry, computed by the
+            caller via research/contestability.contestability_margin().
+            None = not supplied.
+        exit_financeable: The adopted §8.9 invariant, from the caller's
+            research/recalibration.exit_financing(). Governs the contestability
+            status when supplied. None = not supplied.
 
     Returns:
         dict: {
@@ -535,9 +554,33 @@ def system_dashboard(
         elif status == "YELLOW":
             yellow_flags.append(f"Fiscal — {indicator}: YELLOW")
 
-    # Contestability (reconciliation §8): χ < 1 means exit is nominal — the
-    # invariant the whole arc must preserve is breached.
-    if chi is None:
+    # Contestability (reconciliation §8, amended §8.9 2026-08-05).
+    #
+    # The ADOPTED invariant is three-channel exit financeability; χ = P/K_entry is
+    # the retired flow/stock test kept as a stricter stress. So when the caller
+    # supplies `exit_financeable`, it GOVERNS the status and χ is demoted to a
+    # YELLOW advisory — a failing χ alongside a financeable exit is the expected
+    # reading, not a breach. When the caller supplies only χ (the pre-§8.9 call
+    # shape), behavior is unchanged.
+    if exit_financeable is False:
+        contestability_status = "RED"
+        red_flags.append(
+            "Contestability — exit not financeable through any channel (§8.9 invariant breached)"
+        )
+        if chi is not None and chi < CONTESTABILITY_CHI_CRIT:
+            yellow_flags.append(
+                f"Contestability — χ = {chi:.3f} < {CONTESTABILITY_CHI_CRIT} "
+                f"(superseded stress, consistent with the breach)"
+            )
+    elif exit_financeable is True:
+        contestability_status = "GREEN"
+        if chi is not None and chi < CONTESTABILITY_CHI_CRIT:
+            yellow_flags.append(
+                f"Contestability — exit financeable, but the superseded χ = {chi:.3f} "
+                f"< {CONTESTABILITY_CHI_CRIT}: exit is not self-financeable from one "
+                f"year's income alone"
+            )
+    elif chi is None:
         contestability_status = "NOT_ASSESSED"
     elif chi < CONTESTABILITY_CHI_CRIT:
         contestability_status = "RED"
@@ -567,6 +610,7 @@ def system_dashboard(
         "eoh_health":           eoh_h,
         "fiscal_health":        fis_h,
         "contestability_chi":   chi,
+        "contestability_exit_financeable": exit_financeable,
         "contestability_status": contestability_status,
         "conditions_all_pass":  conditions_pass,
         "overall_status":       overall_status,

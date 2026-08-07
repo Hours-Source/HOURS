@@ -11,6 +11,13 @@ Mission Statement references throughout — see inline comments.
 # Age groups: personal EOH weights
 # Mission Statement: §"Humans as capital stock" — newborns and elderly
 # generate more personal EOH than working-age adults.
+#
+# Tags (2026-08-05 four-tag migration): eoh_weight is CHOSEN — the DIRECTION
+# (infants and elderly draw more caregiver labour) is structural, the 3.0/2.5
+# magnitudes are asserted. fraction is CHOSEN (an OECD-shaped default).
+# Epistemic pointers: ATUS "caring for and helping household children/adults"
+# hours per care-recipient by age, plus NHATS/HRS for assistance to older adults;
+# national census / UN WPP for the fractions.
 # ---------------------------------------------------------------------------
 AGE_GROUPS: dict[str, dict] = {
     "infant":      {"range": (0, 5),    "fraction": 0.07, "eoh_weight": 3.0},
@@ -390,10 +397,19 @@ INFRA_TREATMENT_HOURS_GOOD: float = 8.0    # hours/unit/year, good condition
 INFRA_TREATMENT_HOURS_FAIR: float = 20.0   # hours/unit/year, fair condition
 INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 
-ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health
-ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike
-KNOWLEDGE_EOH_BASE: float  = 100_000.0  # baseline knowledge EOH at ε=0
-KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε
+# SCALE WARNING (2026-08-05): ECOLOGICAL_BASE_RATE is documented as a RELATIVE
+# anchor ("does not represent an absolute ecosystem-specific count") but is summed
+# with absolute counts in total_eoh() and then divided into ε. At defaults it
+# contributes 0.03% of total EOH, and KNOWLEDGE_EOH_BASE 0.005%. Consequence: the
+# thermal obligation lands at ~1.8 h/person·yr and the ecological domain cannot
+# move ε. Do not quote either domain's SHARE of total EOH until both are on an
+# absolute footing. Epistemic pointers: a stewardship-hours census (agency FTEs
+# per hectare / GUF parcel inventory × measured crew-hours); occupational
+# training-and-CPD hours from the O*NET/BLS spine already ingested.
+ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
+ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
+KNOWLEDGE_EOH_BASE: float  = 100_000.0  # baseline knowledge EOH at ε=0. CHOSEN — resolves_by: occupational CPD hours
+KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε. physics (superlinear) / CHOSEN (exponent)
 
 # ---------------------------------------------------------------------------
 # Reference hours

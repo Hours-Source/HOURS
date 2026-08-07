@@ -493,3 +493,55 @@ class TestSystemDashboardContestability:
             kwargs = _normal_dashboard_kwargs(eps)
             result = system_dashboard(**kwargs, chi=0.2)
             assert result["overall_status"] == "RED", f"χ=0.2 must be RED at ε={eps}"
+
+
+# ---------------------------------------------------------------------------
+# TestSystemDashboardExitFinanceable — the adopted §8.9 invariant (2026-08-05)
+#
+# `exit_financeable` governs when supplied; χ is demoted to advisory. The
+# pre-§8.9 call shape (χ alone) keeps its old behavior, which the class above
+# still pins.
+# ---------------------------------------------------------------------------
+
+class TestSystemDashboardExitFinanceable:
+
+    def test_financeable_governs_over_a_failing_chi(self):
+        """The migration's whole point: χ<1 with exit financeable is not a breach."""
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=0.5, exit_financeable=True)
+        assert result["contestability_status"] == "GREEN"
+        assert not any("Contestability" in f for f in result["red_flags"])
+        assert any("superseded" in f for f in result["yellow_flags"])
+
+    def test_not_financeable_is_red_regardless_of_chi(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=5.0, exit_financeable=False)
+        assert result["contestability_status"] == "RED"
+        assert any("§8.9 invariant breached" in f for f in result["red_flags"])
+        assert result["overall_status"] == "RED"
+
+    def test_financeable_with_healthy_chi_raises_nothing(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=1.5, exit_financeable=True)
+        assert result["contestability_status"] == "GREEN"
+        assert not any("Contestability" in f for f in result["yellow_flags"])
+
+    def test_both_verdicts_echoed(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=0.75, exit_financeable=True)
+        assert result["contestability_chi"] == pytest.approx(0.75)
+        assert result["contestability_exit_financeable"] is True
+
+    def test_omitting_it_preserves_pre_8_9_behavior(self):
+        kwargs = _normal_dashboard_kwargs(0.40)
+        result = system_dashboard(**kwargs, chi=0.5)
+        assert result["contestability_status"] == "RED"
+        assert result["contestability_exit_financeable"] is None
+
+    def test_arc_coherent_at_key_epsilons(self):
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            kwargs = _normal_dashboard_kwargs(eps)
+            ok = system_dashboard(**kwargs, chi=0.2, exit_financeable=True)
+            bad = system_dashboard(**kwargs, chi=0.2, exit_financeable=False)
+            assert ok["contestability_status"] == "GREEN", f"at ε={eps}"
+            assert bad["contestability_status"] == "RED", f"at ε={eps}"

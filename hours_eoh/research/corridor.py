@@ -14,8 +14,9 @@ The corridor is the region where the framework's invariants hold simultaneously:
       ε_suff  survival floor (E22): the minimum automation needed to meet
               survival EOH given available human labor — the LOWER bound.
       ε_max   the tightest binding ceiling among the framework's invariants —
-              contestability (χ ≥ 1), thermal (advisory today), and any other
-              ceiling that plugs in (fiscal solvency, ecological). The UPPER bound.
+              contestability (exit financeable, §8.9), thermal (advisory today),
+              and any other ceiling that plugs in (fiscal solvency, ecological).
+              The UPPER bound.
 
 Most of this is already computed — the dashboard checks Conditions I–IV, χ, and
 solvency. This module UNIFIES those into an explicit band and adds the missing
@@ -24,6 +25,16 @@ lower bound (ε_suff) plus a stability-over-horizon test.
 Readiness is honest: ε_suff and the contestability ceiling are computable now;
 the thermal ceiling is INCONCLUSIVE at P0 (research/thermal.py) and enters as a
 non-binding, advisory ceiling until measured ι (handoff §13.1 path C) lands.
+
+CONTESTABILITY AXIS MIGRATION (2026-08-05). This module previously took its
+contestability ceiling from the bare margin χ = P/K_entry, which §8.9 had
+already superseded — so the recorded "corridor CLOSED at defaults" finding was
+produced by a retired invariant. `contestability_ceiling()` now runs the adopted
+three-channel financeability test; the bare-χ form survives, explicitly labelled,
+as `contestability_ceiling_bare_chi()`. At defaults the two DISAGREE (bare-χ
+binds at ε ≈ 0.24, the adopted test does not bind at all), and
+`contestability_axes()` exists to report that disagreement rather than bury it.
+The closed-corridor result stands only as a statement about the stricter test.
 
 Layer: research/ — composes research/thermal + research/contestability + core
 inventory; experimental until the API stabilizes (same discipline as those two).
@@ -37,6 +48,7 @@ from typing import Callable, TypedDict
 
 from hours_eoh.data import CONTESTABILITY_CHI_CRIT
 from hours_eoh.research.contestability import contestability_margin
+from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
 
 # Survival-critical EOH domains for ε_suff. Personal EOH is the biological
@@ -109,14 +121,102 @@ class Ceiling(TypedDict):
 
 def contestability_ceiling(
     population: float,
+    regime: str = "increasing_returns",
+    phi_policy: str = "dilution",
+    arc: tuple[float, ...] = _ARC,
+) -> Ceiling:
+    """
+    The contestability ceiling on the ADOPTED §8.9 invariant: the lowest ε at
+    which exit stops being financeable through any of the three channels.
+
+    Governing condition (research/recalibration.exit_financing):
+
+        exit_financeable(ε) ⇔ t_exit_self(ε) ≤ horizon  OR  entry_capacity(ε) ≥ 1
+
+    where t_exit_self = max(t_labor, t_capital) is time-to-finance-exit and
+    entry_capacity is the commons' underwriting capacity for a founding cohort.
+    The ceiling is the first ε on the arc at which neither channel carries; if
+    every ε is financeable the ceiling is non-binding.
+
+    This REPLACES the bare-χ axis for corridor use. χ = P/K_entry demanded that
+    one year of income cover the whole founding stock — a flow/stock mismatch
+    (RC4) superseded by §8.9. The retired test is retained as
+    `contestability_ceiling_bare_chi()`, which is strictly stricter; where the
+    two disagree, that disagreement is a reportable fact and not a bug (see
+    `contestability_axes()`).
+
+    Note the signature difference from the bare-χ form, and it is substantive:
+    there is no `trust_balance` argument. Under §8.9 the commons' capital stock
+    is DERIVED from φ(ε)·K(ε) under the charter policy rather than supplied as a
+    free parameter, so a thin-trust input can no longer be posed independently
+    of the charter that would have produced it.
+
+    units: dimensionless ε. ε-behavior: scans the whole arc [0, 0.99]; at
+    defaults the channel arcs labor → underwritten → self and nothing binds.
+
+    Args:
+        population: Total population.
+        regime: K_entry regime ("increasing_returns" adversarial default).
+        phi_policy: Charter policy — "dilution" (default) | "target" | "escalated".
+        arc: ε values to scan.
+
+    Returns:
+        Ceiling named "contestability".
+
+    Worked example (defaults, adversarial regime): ε=0 finances by labor
+    (t=1.8 yr), ε≈0.1–0.2 by commons underwriting, ε≥0.4 self-finances
+    (t≈2.9 yr at ε=0.99) → non-binding across the arc.
+
+    Reference: notes/contestability-closure-proposal.md §8.9, §8.9b.
+    """
+    for eps in arc:
+        fin = exit_financing(eps, population=population, regime=regime,
+                             phi_policy=phi_policy)
+        if not fin["exit_financeable"]:
+            return Ceiling(
+                name="contestability", epsilon_ceiling=eps, binding=True,
+                status=f"exit not financeable at ε ≥ {eps:.2f} "
+                       f"(neither self-financing nor commons underwriting carries)",
+            )
+    return Ceiling(name="contestability", epsilon_ceiling=None, binding=False,
+                   status="exit financeable across the arc (§8.9 three-channel test)")
+
+
+def contestability_ceiling_bare_chi(
+    population: float,
     trust_balance: float,
     regime: str = "increasing_returns",
     arc: tuple[float, ...] = _ARC,
 ) -> Ceiling:
     """
-    The contestability ceiling: the lowest ε at which χ falls below the critical
-    margin (exit stops being substantive). χ is monotone-decreasing in ε, so the
-    first crossing is the ceiling. Non-binding when χ stays ≥ 1 across the arc.
+    SUPERSEDED (§8.9, 2026-07-26) — the bare-χ contestability ceiling, retained
+    as the STRICTER adversarial test and as a regression anchor.
+
+        χ(ε) = P(ε) / K_entry(ε) ,   ceiling = first ε with χ < CHI_CRIT
+
+    Why it was retired: χ compares a per-year FLOW (the portable endowment P) to
+    a one-time STOCK (the founding cost K_entry), so it demands that a single
+    year's income cover an entire collective's founding capital. That is the RC4
+    flow/stock defect; §8.9 replaced it with time-to-finance-exit plus an
+    accumulating capital account.
+
+    Why it is kept: it is a genuine upper-bound stress — a collective that
+    passes bare-χ needs no underwriting and no vesting period at all. Read it as
+    "exit is financeable from one year of income alone", not as the invariant.
+
+    Do NOT use this as the corridor's contestability axis; use
+    `contestability_ceiling()`. Callers wanting the comparison should use
+    `contestability_axes()`, which reports both and flags disagreement.
+
+    Args:
+        population: Total population.
+        trust_balance: Trust corpus (TEH) — a free parameter here, which is
+            itself part of why the test was retired (§8.9 derives it from φ·K).
+        regime: K_entry regime.
+        arc: ε values to scan.
+
+    Returns:
+        Ceiling named "contestability_bare_chi".
     """
     ceiling: float | None = None
     for eps in arc:
@@ -125,10 +225,62 @@ def contestability_ceiling(
             ceiling = eps
             break
     if ceiling is None:
-        return Ceiling(name="contestability", epsilon_ceiling=None, binding=False,
-                       status=f"χ ≥ {CONTESTABILITY_CHI_CRIT:g} across the arc")
-    return Ceiling(name="contestability", epsilon_ceiling=ceiling, binding=True,
-                   status=f"χ < {CONTESTABILITY_CHI_CRIT:g} at ε ≥ {ceiling:.2f}")
+        return Ceiling(name="contestability_bare_chi", epsilon_ceiling=None, binding=False,
+                       status=f"[SUPERSEDED axis] χ ≥ {CONTESTABILITY_CHI_CRIT:g} across the arc")
+    return Ceiling(name="contestability_bare_chi", epsilon_ceiling=ceiling, binding=True,
+                   status=f"[SUPERSEDED axis] χ < {CONTESTABILITY_CHI_CRIT:g} at ε ≥ {ceiling:.2f}")
+
+
+class AxesComparison(TypedDict):
+    adopted: Ceiling            # §8.9 three-channel financeability
+    bare_chi: Ceiling           # retired flow/stock χ
+    agree: bool                 # do both axes give the same binding verdict?
+    note: str
+
+
+def contestability_axes(
+    population: float,
+    trust_balance: float,
+    regime: str = "increasing_returns",
+    phi_policy: str = "dilution",
+    arc: tuple[float, ...] = _ARC,
+) -> AxesComparison:
+    """
+    Report BOTH contestability axes side by side and flag disagreement.
+
+    This exists because the disagreement is itself the finding. Before this was
+    wired, the corridor ran on the retired bare-χ axis and reported a closed
+    corridor at defaults; on the adopted §8.9 axis nothing binds. Publishing one
+    number without the other hides which invariant produced the verdict.
+
+    Args:
+        population: Total population.
+        trust_balance: Trust corpus for the bare-χ arm only.
+        regime: K_entry regime.
+        phi_policy: Charter policy for the adopted arm.
+        arc: ε values to scan.
+
+    Returns:
+        AxesComparison. `agree` is False whenever the two axes differ on whether
+        contestability binds at all — the case that must be reported, not
+        averaged.
+    """
+    adopted = contestability_ceiling(population, regime=regime,
+                                     phi_policy=phi_policy, arc=arc)
+    bare = contestability_ceiling_bare_chi(population, trust_balance,
+                                           regime=regime, arc=arc)
+    agree = adopted["binding"] == bare["binding"]
+    if agree:
+        note = "both axes agree on whether contestability binds"
+    elif bare["binding"]:
+        note = (f"AXES DISAGREE: the retired bare-χ test binds at "
+                f"ε ≥ {bare['epsilon_ceiling']:.2f} while the adopted §8.9 "
+                f"three-channel test does not bind. The adopted axis governs; "
+                f"the bare-χ figure is the one-year-of-income stress, not the invariant.")
+    else:
+        note = ("AXES DISAGREE: the adopted §8.9 test binds where bare-χ does not — "
+                "investigate, this direction is not expected (bare-χ is stricter).")
+    return AxesComparison(adopted=adopted, bare_chi=bare, agree=agree, note=note)
 
 
 def thermal_ceiling(

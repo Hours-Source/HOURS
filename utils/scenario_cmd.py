@@ -22,6 +22,18 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
   GUF stress scenarios:
     guf_integration  guf_writedown  guf_sweep
 
+  Measured inputs (the measurement spine):
+    measured_sim  multiplier_sensitivity  infra_floor
+
+  Thermal obligation carried in the ledger:
+    thermal_load
+
+  Autarky reference / overbuild:
+    overbuild
+
+  Feasibility ceiling:
+    feasibility
+
 Key options (not all apply to every scenario):
   --epsilon ε                  Automation level (default: 0.40)
   --population N               Population (default: 1 000 000)
@@ -42,6 +54,10 @@ Key options (not all apply to every scenario):
   --location-value F           Parcel LVI for GUF scenarios (default: 0.629)
   --use-category CAT           Land use category for GUF scenarios
   --restoration-rate F         Ecological restoration rate (default: 0.05)
+  --thermal-obligation EOH     Planetary radiative obligation (thermal_load)
+  --capital-stock TEH          Apparatus capital (overbuild)
+  --adult-capacity H           Adult annual labour capacity (feasibility)
+  --adult-share F              Adult share of population (feasibility)
 """
 
 from __future__ import annotations
@@ -75,6 +91,16 @@ _SCENARIOS: dict[str, str] = {
     "guf_integration":     "guf_fiscal_integration() — GUF revenue vs. levy deficit  [--area-slu, --location-value, --use-category]",
     "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone]",
     "guf_sweep":           "guf_revenue_sweep() — GUF across the Ψ(ε) bell curve",
+    # -- measured inputs (the measurement spine) --
+    "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
+    "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
+    "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
+    # -- thermal obligation carried in the ledger --
+    "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
+    # -- autarky / overbuild --
+    "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon]",
+    # -- feasibility --
+    "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
 }
 
 _USE_CATEGORIES = [
@@ -364,5 +390,85 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "guf_sweep":
         from hours_eoh.scenarios.guf_stress import guf_revenue_sweep
         return guf_revenue_sweep()
+
+    # -- measured inputs ------------------------------------------------------
+
+    if name == "measured_sim":
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.scenarios.measured import run_measured_simulation
+        state = make_economy_state(epsilon=epsilon, population=population)
+        return run_measured_simulation(state, n_periods=args.periods)
+
+    if name == "multiplier_sensitivity":
+        from hours_eoh.scenarios.multiplier_sensitivity import sensitivity_report
+        return sensitivity_report()
+
+    if name == "infra_floor":
+        from hours_eoh.scenarios.infrastructure_floor import doctrine_floor_invariance
+        return doctrine_floor_invariance()
+
+    # -- thermal obligation ---------------------------------------------------
+
+    if name == "overbuild":
+        from hours_eoh.core.autarky import (
+            autarky_reference, break_even_epsilon, overbuild_check, payback,
+        )
+        k = args.capital_stock
+        c = overbuild_check(k, population, epsilon=epsilon)
+        pb = payback(k, population, epsilon=epsilon)
+        out: dict = {kk: v for kk, v in c.items()}
+        out["break_even_epsilon"] = break_even_epsilon(k, population)
+        out["payback_years"] = pb["payback_years"]
+        out["payback_verdict"] = pb["verdict"]
+        # a sweep so the interior optimum is visible, not just the point verdict
+        rows = []
+        for kpc in (0.0, 250.0, 1_000.0, 4_145.0, 20_000.0, 100_000.0):
+            cc = overbuild_check(kpc * population, population, epsilon=epsilon)
+            rows.append({
+                "K_per_capita": kpc,
+                "abatement": round(cc["abatement"], 4),
+                "obligation_pc": round(cc["obligation_with_apparatus"] / population, 1),
+                "overhead_pc": round(cc["overhead"] / population, 1),
+                "total_pc": round(cc["total"] / population, 1),
+                "net_vs_autarky_pc": round(cc["net_vs_autarky"] / population, 1),
+                "verdict": cc["verdict"],
+            })
+        out["summary_table"] = rows
+        return out
+
+    if name == "feasibility":
+        from hours_eoh.scenarios.feasibility import (
+            feasibility_check, over_determination_report,
+        )
+        r = over_determination_report()
+        out: dict = {k: v for k, v in r.items()
+                     if k not in ("subsistence_cases", "self_consistency")}
+        out["ceiling_band"] = str(tuple(round(x) for x in r["ceiling_band"]))
+        # self-consistency arm first — it needs no external data
+        for k, v in r["self_consistency"].items():
+            out[f"self_{k}"] = v
+        if args.adult_capacity is not None or args.adult_share is not None:
+            c = feasibility_check(
+                adult_capacity_h_yr=args.adult_capacity or float(H_REF),
+                adult_share=args.adult_share,
+                epsilon=epsilon,
+            )
+            out["summary_table"] = [dict(c)]
+        else:
+            out["summary_table"] = [dict(c) for c in r["subsistence_cases"]]
+        return out
+
+    if name == "thermal_load":
+        from hours_eoh.scenarios.thermal_load import thermal_load_verdict
+        v = thermal_load_verdict(
+            thermal_obligation=args.thermal_obligation,
+            population=population,
+        )
+        # Reshape at the CLI boundary: the display layer renders "summary_table"
+        # as the period table with the scalars printed above it.
+        out = {k: val for k, val in v.items() if k != "rows"}
+        out["coverage_below_one_at"] = str(v["coverage_below_one_at"])
+        out["summary_table"] = v["rows"]
+        return out
 
     raise ValueError(f"Unknown scenario: {name}")

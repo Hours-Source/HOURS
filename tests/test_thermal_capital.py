@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import pytest
 
-from hours_eoh.core.civilization import machine_eoh_from_capital
+from hours_eoh.core.civilization import civilization_epsilon, machine_eoh_from_capital
 from hours_eoh.data import CAPITAL_MACHINE_PROFILES
 from hours_eoh.research.thermal_capital import (
     machine_dissipation_from_capital,
     collective_thermal_from_capital,
     capital_thermal_ceiling,
+    epsilon_current_from_inventory,
 )
 from hours_eoh.research.corridor import corridor
 
@@ -131,6 +132,69 @@ def test_capital_thermal_ceiling_open_when_large():
     rep = corridor(0.40, [c])
     assert rep["feasible"] is True
     assert rep["success"] is True
+
+
+# ---------------------------------------------------------------------------
+# ε_current derived from the inventory (handoff 2.0 §10.2 option C)
+# ---------------------------------------------------------------------------
+
+def test_epsilon_current_derived_from_inventory():
+    eps = epsilon_current_from_inventory(ALL_STANDARD, POP)
+    assert 0.0 <= eps <= 1.0
+    # and it agrees with the one thing allowed to say what ε is
+    assert eps == pytest.approx(
+        civilization_epsilon({"population": POP, "capital": ALL_STANDARD})["epsilon"]
+    )
+
+
+def test_epsilon_current_rises_with_capital():
+    lean = {k: "basic" for k in ALL_STANDARD}
+    rich = {k: "advanced" for k in ALL_STANDARD}
+    assert (epsilon_current_from_inventory(lean, POP)
+            < epsilon_current_from_inventory(rich, POP))
+
+
+def test_epsilon_current_rejects_bad_population():
+    with pytest.raises(ValueError):
+        epsilon_current_from_inventory(ALL_STANDARD, 0.0)
+
+
+def test_ceiling_derives_epsilon_by_default():
+    """Default (None) derives ε from the same inventory that produced Φ."""
+    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
+    assert derived["binding"] is True
+    assert derived["epsilon_ceiling"] == pytest.approx(
+        epsilon_current_from_inventory(ALL_STANDARD, POP)
+    )
+
+
+def test_explicit_epsilon_overrides_the_derivation():
+    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
+    forced = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8,
+                                     epsilon_current=0.40)
+    assert forced["epsilon_ceiling"] == pytest.approx(0.40)
+    assert derived["epsilon_ceiling"] != pytest.approx(0.40)
+
+
+def test_same_dissipation_different_inventory_gives_different_ceiling():
+    """The point of deriving ε: the ceiling is a property of the economy.
+
+    Two inventories can sit at the same utilization while differing in ε, so a
+    ceiling quoted at a single CHOSEN ε_current reports one number for both.
+    """
+    lean = {k: "basic" for k in ALL_STANDARD}
+    a = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
+    b = capital_thermal_ceiling(lean, POP, land_m2=7.3e8)
+    assert a["binding"] and b["binding"]
+    assert a["epsilon_ceiling"] != pytest.approx(b["epsilon_ceiling"])
+
+
+@pytest.mark.parametrize("tier", ["basic", "standard", "advanced"])
+def test_derived_ceiling_coherent_across_capital_tiers(tier):
+    mix = {k: tier for k in ALL_STANDARD}
+    c = capital_thermal_ceiling(mix, POP, land_m2=7.3e8)
+    eps = c["epsilon_ceiling"]
+    assert eps is not None and 0.0 <= eps <= 0.99
 
 
 # ---------------------------------------------------------------------------

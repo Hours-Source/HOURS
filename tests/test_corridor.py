@@ -68,17 +68,56 @@ def test_survival_floor_widening_domains_raises_it():
 # ceilings
 # ---------------------------------------------------------------------------
 
-def test_contestability_ceiling_nonbinding_when_well_capitalized():
-    c = contestability_ceiling(POP, 5.0e11, regime="increasing_returns")
+def test_adopted_contestability_ceiling_nonbinding_at_defaults():
+    # §8.9 three-channel test: exit is financeable at every ε in the adversarial
+    # regime, so contestability does not bound the corridor at defaults.
+    c = contestability_ceiling(POP, regime="increasing_returns")
+    assert c["name"] == "contestability"
     assert c["binding"] is False
     assert c["epsilon_ceiling"] is None
 
 
-def test_contestability_ceiling_binds_when_thin_trust():
-    c = contestability_ceiling(POP, 5.0e10, regime="increasing_returns")
+@pytest.mark.parametrize("policy", ["dilution", "target"])
+def test_adopted_contestability_ceiling_across_charter_policies(policy):
+    c = contestability_ceiling(POP, regime="increasing_returns", phi_policy=policy)
+    assert c["binding"] is False
+
+
+def test_bare_chi_ceiling_nonbinding_when_well_capitalized():
+    c = contestability_ceiling_bare_chi(POP, 5.0e11, regime="increasing_returns")
+    assert c["binding"] is False
+    assert c["epsilon_ceiling"] is None
+    assert "SUPERSEDED" in c["status"]
+
+
+def test_bare_chi_ceiling_binds_when_thin_trust():
+    c = contestability_ceiling_bare_chi(POP, 5.0e10, regime="increasing_returns")
+    assert c["name"] == "contestability_bare_chi"
     assert c["binding"] is True
     assert c["epsilon_ceiling"] is not None
     assert 0.0 <= c["epsilon_ceiling"] <= 0.99
+
+
+def test_axes_disagree_at_thin_trust_and_the_adopted_axis_governs():
+    """The migration finding, pinned.
+
+    The retired bare-χ axis binds at thin trust; the adopted §8.9 axis does not
+    bind at all. The recorded "corridor CLOSED at defaults" result came from the
+    former. If this test ever starts passing with agree=True, the disagreement
+    has been resolved and the corridor docs need re-reading.
+    """
+    cmp = contestability_axes(POP, 5.0e10, regime="increasing_returns")
+    assert cmp["bare_chi"]["binding"] is True
+    assert cmp["adopted"]["binding"] is False
+    assert cmp["agree"] is False
+    assert "AXES DISAGREE" in cmp["note"]
+
+
+def test_axes_agree_when_well_capitalized():
+    cmp = contestability_axes(POP, 5.0e11, regime="increasing_returns")
+    assert cmp["agree"] is True
+    assert cmp["adopted"]["binding"] is False
+    assert cmp["bare_chi"]["binding"] is False
 
 
 def test_thermal_ceiling_advisory_at_p0():
@@ -114,7 +153,10 @@ def test_corridor_bounded_by_tightest_ceiling():
 
 
 def test_corridor_closed_when_floor_exceeds_ceiling():
-    # the honest adversarial finding: survival floor above the contestability ceiling
+    # A closed corridor is a reportable result, not a bug: the survival floor sits
+    # above the tightest ceiling, so no ε satisfies both. Composition-level test —
+    # the ceiling is supplied, not derived, precisely because which contestability
+    # axis produced it is the caller's decision (see the axes tests above).
     rep = corridor(0.52, [_ceiling("contestability", 0.29, True)])
     assert rep["feasible"] is False
     assert rep["success"] is False
@@ -129,14 +171,27 @@ def test_corridor_success_does_not_require_epsilon_1():
     assert rep["success"] is True
 
 
-def test_corridor_end_to_end_regimes():
+def test_corridor_end_to_end_on_the_adopted_axis():
+    """End-to-end on the axis that governs: the corridor is OPEN at defaults."""
     es = survival_floor_epsilon(total_eoh(epsilon=0.40), L_AVAIL)
     t = thermal_ceiling(1.86e10, 2.5e9, epsilon=0.40)
-    # adversarial: thin trust → closed
-    adv = corridor(es, [contestability_ceiling(POP, 5.0e10), t])
+    rep = corridor(es, [contestability_ceiling(POP), t])
+    assert rep["feasible"] is True
+    assert rep["success"] is True
+    assert rep["binding_ceiling"] is None
+
+
+def test_corridor_end_to_end_on_the_superseded_axis_still_closes():
+    """The retired axis, run deliberately: thin trust still closes the corridor.
+
+    Kept as the regression anchor for the pre-migration result so the earlier
+    finding stays reproducible and attributable to the test that produced it.
+    """
+    es = survival_floor_epsilon(total_eoh(epsilon=0.40), L_AVAIL)
+    t = thermal_ceiling(1.86e10, 2.5e9, epsilon=0.40)
+    adv = corridor(es, [contestability_ceiling_bare_chi(POP, 5.0e10), t])
     assert adv["feasible"] is False
-    # well-capitalized: open, success
-    good = corridor(es, [contestability_ceiling(POP, 5.0e11), t])
+    good = corridor(es, [contestability_ceiling_bare_chi(POP, 5.0e11), t])
     assert good["success"] is True
 
 

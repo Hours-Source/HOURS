@@ -304,3 +304,40 @@ def test_note_leads_with_the_measured_quantity():
     note = global_ceiling(3.0)["note"]
     assert "MEASURED" in note and "H =" in note
     assert "CHOSEN" in note
+
+
+# ---------------------------------------------------------------------------
+# the ε_current sensitivity band — the chosen constant travels with the figure
+# ---------------------------------------------------------------------------
+
+def test_epsilon_max_band_brackets_the_point_estimate():
+    g = global_ceiling(3.0, eps_current=0.40, eps_current_band=(0.20, 0.60))
+    lo, hi = g["epsilon_max_band"]
+    assert lo < g["epsilon_max"] < hi
+    # ε_max is linear in ε_current, so the band edges are exactly H × edges
+    assert lo == pytest.approx(g["headroom_multiple"] * 0.20)
+    assert hi == pytest.approx(g["headroom_multiple"] * 0.60)
+
+
+def test_band_reports_binding_at_the_low_edge():
+    """At ΔT_lo = 3.0 K the ceiling is non-binding at 0.40 but binds by ε≈0.185.
+
+    This is the sensitivity §10.2 says exceeds the ΔT_lo sensitivity: the
+    headline "non-binding" is a statement about the chosen constant.
+    """
+    g = global_ceiling(3.0, eps_current=0.40, eps_current_band=(0.10, 0.60))
+    assert g["binds_below_1"] is False
+    assert g["binds_within_band"] is True
+    assert "BINDING at the low edge" in g["note"]
+
+
+def test_band_not_binding_when_whole_band_clears():
+    g = global_ceiling(3.0, eps_current=0.40, eps_current_band=(0.50, 0.60))
+    assert g["binds_within_band"] is False
+    assert "BINDING at the low edge" not in g["note"]
+
+
+def test_band_rejects_malformed_range():
+    for bad in [(0.0, 0.5), (0.6, 0.2), (0.2, 1.0)]:
+        with pytest.raises(ValueError):
+            global_ceiling(3.0, eps_current_band=bad)
