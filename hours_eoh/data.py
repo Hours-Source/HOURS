@@ -11,6 +11,13 @@ Mission Statement references throughout — see inline comments.
 # Age groups: personal EOH weights
 # Mission Statement: §"Humans as capital stock" — newborns and elderly
 # generate more personal EOH than working-age adults.
+#
+# Tags (2026-08-05 four-tag migration): eoh_weight is CHOSEN — the DIRECTION
+# (infants and elderly draw more caregiver labour) is structural, the 3.0/2.5
+# magnitudes are asserted. fraction is CHOSEN (an OECD-shaped default).
+# Epistemic pointers: ATUS "caring for and helping household children/adults"
+# hours per care-recipient by age, plus NHATS/HRS for assistance to older adults;
+# national census / UN WPP for the fractions.
 # ---------------------------------------------------------------------------
 AGE_GROUPS: dict[str, dict] = {
     "infant":      {"range": (0, 5),    "fraction": 0.07, "eoh_weight": 3.0},
@@ -364,10 +371,139 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 
 # ---------------------------------------------------------------------------
 # EOH base rates (per-capita or per-unit at reference conditions)
+#
+# DOMAIN BALANCE (measured 2026-08-05, docs/parameter_provenance.md §"Domain
+# balance"): at defaults the personal domain is 91–97% of total_eoh() at EVERY
+# ε; ecological is 0.71 h/person·yr and knowledge 0.01–0.97. ε = machine/total is
+# therefore ~95% a personal-domain number, and PERSONAL_EOH_BASE is the single
+# most leveraged constant in the model. Retagged CHOSEN in the same pass — it is
+# an arithmetic sum of four desk estimates (208 + 156 + 208 + 936), not a
+# structural claim about entropy. Epistemic pointer: BLS American Time Use
+# Survey, which measures all four components directly and is not yet used
+# anywhere in this repo.
+#
 # ---------------------------------------------------------------------------
-PERSONAL_EOH_BASE: float   = 1500.0     # hours/year per working-age-equivalent
-INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year
-INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life
+# THE STANDARDS SPLIT (Block I, 2026-08-06). One constant was doing three jobs.
+#
+# Two ORTHOGONAL axes were conflated in a single `PERSONAL_EOH_BASE`:
+#
+#                        autarky delivery      collective delivery
+#   survival standard          S_a                    S_c
+#   sufficiency standard       F_a                    F_c
+#
+# STANDARD is what is owed (staying alive vs living decently). DELIVERY is what
+# it costs to discharge it (alone vs through a collective's apparatus). They are
+# independent, and abatement — infrastructure REDUCING the obligation, not merely
+# serving it — is the map from the left column to the right.
+#
+# Both standards below are AUTARKY-REFERENCED (X_a): what the obligation costs a
+# person handling their own, with no collective apparatus. That is the reference
+# the overbuild test compares against, and it is why F_a is allowed to exceed the
+# labour supply — the gap between what sufficiency costs alone and what a
+# population can supply alone is precisely why collectives form.
+#
+# S_a IS HARD-BOUNDED, F_a IS NOT. A survival standard exceeding labour supply
+# means extinction, so S_a ≤ (L − R)/w = 627 per-equivalent against this file's
+# own H_REF × workforce_fraction. 600 sits just inside it and is set
+# INDEPENDENTLY rather than pinned to the bound, so scenarios/feasibility.py can
+# still CHECK it — a constant that cannot fail its own test says nothing.
+#
+# This split corrects a category error: the earlier finding that "ε = 0 is not a
+# feasible state" applied a SURVIVAL feasibility test to a SUFFICIENCY number. At
+# S_a = 600, ε_suff = 0 — subsistence survives with no automation, as it did. The
+# true statement is that subsistence can survive but cannot reach SUFFICIENCY
+# without automation.
+# ---------------------------------------------------------------------------
+PERSONAL_EOH_SURVIVAL: float    = 600.0   # S_a — autarky-referenced survival standard.
+                                          # CHOSEN. Bounded above by (L−R)/w = 627; checked,
+                                          # not pinned. resolves_by: minimum-subsistence
+                                          # time-allocation studies (the components that
+                                          # kill you if unmet: food, water, shelter, warmth).
+PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficiency standard.
+                                          # CHOSEN. The original desk estimate, re-read
+                                          # correctly: it was never a survival figure.
+                                          # Cross-checks: the identity route gives
+                                          # F_c(modern) = 390–926, implying 38–74% abatement,
+                                          # and "all needs met" needs 30% at ε=0.99 — mid-band.
+                                          # resolves_by: cross-cultural time allocation at a
+                                          # stated adequacy standard, + the identity route.
+
+# ---------------------------------------------------------------------------
+# PERSONAL_EOH_BASE — the ABATEMENT-COLLAPSED operating value.
+#
+# Until abatement a(K) exists (Block II), one number has to stand in for
+# F_a × (1 − a(K)) at an unstated point on the arc. 1000 is that placeholder, and
+# it is coherent as one: 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range
+# between the 10% that "all needs met" requires at ε = 0.40 and the 38–74% the
+# identity route implies at modern capital.
+#
+# Repriced 1500 → 1000 on 2026-08-06 (author decision) to the high end of the
+# then-available evidence, on the asymmetric-loss argument: setting it too low
+# hides a real shortfall (model reports feasible, capital under-built, deficit
+# paid in unserved obligation), too high only over-builds capital.
+#
+# Block I deliberately does NOT move this to 1500. The standards above are
+# declared and usable, but the generation default is unchanged, because it is
+# abatement — not the standards split — that determines the operating value. When
+# Block II lands, this constant is replaced by F_a × (1 − a(K)) and retired.
+#
+# STILL CHOSEN. resolves_by: the capital-inventory + time-use identity, NOT
+# time-use data alone — see the circularity section in
+# docs/parameter_provenance.md.
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# ABATEMENT (Block II, 2026-08-06) — infrastructure REDUCES the obligation,
+# it does not only serve it.
+#
+# The model previously had SUBSTITUTION only: personal EOH is flat across the
+# whole arc (1475 → 1480) and ε merely splits who serves it. That is physically
+# wrong. PERSONAL_EOH_BASE's own components are infrastructure-dependent — a
+# serviced dwelling needs less upkeep than a mud hut, a tap replaces water
+# hauling, and sanitation cuts the disease burden that drives care hours.
+#
+#     B(K) = F_a × (1 − a(K))        a(K) = a_max · K / (K + K_half)
+#
+# a(0) = 0 and a(∞) = a_max. a_max is NOT a free parameter — it is derived from
+# the per-component abatability ceilings below, weighted by the component shares,
+# which are themselves the original desk estimate's own four terms
+# (208 / 156 / 208 / 936 over 1508).
+#
+# THE STRUCTURAL PREDICTION, encoded here and TESTED rather than assumed:
+# abatability and sufficiency are ANTI-CORRELATED. What infrastructure can remove
+# is the survival-shaped work — hauling water, gathering fuel, preparing food.
+# What it cannot remove is CARE: a child needs human attention, which is the
+# Baumol case. So the residual personal obligation as ε → 1 should be almost
+# entirely care, and a_max is bounded well below 1 by care's 62% share.
+# ---------------------------------------------------------------------------
+PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
+    # share:       fraction of the personal obligation (from the desk estimate)
+    # abatability: the ceiling — the most of this component infrastructure can
+    #              ever remove. CHOSEN, each with an epistemic pointer.
+    "nutrition": {"share": 208.0 / 1508.0, "abatability": 0.85},
+    #   resolves_by: food-system time-use across development levels (subsistence
+    #   cultivation + processing vs a distribution network). Highly abatable.
+    "shelter":   {"share": 156.0 / 1508.0, "abatability": 0.90},
+    #   resolves_by: WHO/UNICEF JMP water-and-sanitation access studies, which
+    #   measure hauling-time reduction directly. The most abatable component.
+    "health":    {"share": 208.0 / 1508.0, "abatability": 0.60},
+    #   resolves_by: GBD disease burden attributable to WASH, converted to care
+    #   hours avoided. Partly abatable — prevention scales, treatment less so.
+    "care":      {"share": 936.0 / 1508.0, "abatability": 0.25},
+    #   resolves_by: childcare/eldercare time-use across development levels.
+    #   LEAST abatable and the largest share — this is what bounds a_max.
+}
+
+ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
+#   K_half — capital per capita at which HALF of the abatable obligation is
+#   abated. CHOSEN, and the least-grounded constant in this block: it sets the
+#   PACE of abatement along the arc, not its ceiling. resolves_by: the identity
+#   route run at two or more capital levels — B(K) measured at matched
+#   (inventory, time-use) pairs pins both a_max and K_half at once. Report the
+#   sensitivity with any abatement figure until it does.
+
+PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent. CHOSEN — resolves_by: capital-inventory + time-use identity
+INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year. CHOSEN — a point inside the OECD 2–4% band
+INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life. physics (convexity) / CHOSEN (the 2.0)
 
 # ---------------------------------------------------------------------------
 # Infrastructure — task-normative statutory floor (B+D design, currency-free)
@@ -390,10 +526,141 @@ INFRA_TREATMENT_HOURS_GOOD: float = 8.0    # hours/unit/year, good condition
 INFRA_TREATMENT_HOURS_FAIR: float = 20.0   # hours/unit/year, fair condition
 INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 
-ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health
-ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike
-KNOWLEDGE_EOH_BASE: float  = 100_000.0  # baseline knowledge EOH at ε=0
-KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε
+# SCALE WARNING (2026-08-05): ECOLOGICAL_BASE_RATE is documented as a RELATIVE
+# anchor ("does not represent an absolute ecosystem-specific count") but is summed
+# with absolute counts in total_eoh() and then divided into ε. At defaults it
+# contributes 0.03% of total EOH, and KNOWLEDGE_EOH_BASE 0.005%. Consequence: the
+# thermal obligation lands at ~1.8 h/person·yr and the ecological domain cannot
+# move ε. Do not quote either domain's SHARE of total EOH until both are on an
+# absolute footing. Epistemic pointers: a stewardship-hours census (agency FTEs
+# per hectare / GUF parcel inventory × measured crew-hours); occupational
+# training-and-CPD hours from the O*NET/BLS spine already ingested.
+ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
+ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
+# --- KNOWLEDGE_EOH_BASE — ADOPTED FROM MEASUREMENT (Block K-IV, 2026-08-08) ---
+#
+# Was 100_000.0, CHOSEN, with the epistemic pointer "occupational CPD hours".
+# That pointer is now redeemed: the O*NET 30.3 / BLS spine already shipped in
+# `reference/data/` carries the input, and `reference/onet_knowledge.py` recovers
+# it by inverting the documented log-minmax normalization of `f_training`.
+#
+#   embodied training stock   11,001.3 h/worker      (751 occ, 157.79 M employment)
+#   per head of population     5,501.0 h/person      (E/P = 0.500, registry route)
+#   de-anchored to ε=0        ÷ kbs(0.40)·cpu(0.40) = 11.224
+#   →  KNOWLEDGE_EOH_BASE      4.901074e8 h at KNOWLEDGE_REFERENCE_POPULATION
+#
+# Tag: **derived-then-FROZEN** — the repo's existing label for a derived value
+# pinned at a reference epoch so it stays comparable across data vintages.
+# Re-deriving per vintage would reintroduce the circularity the multiplier's
+# frozen bounds exist to break. `tests/test_knowledge_base.py` asserts the frozen
+# value still matches the live derivation, so a registry refresh fails loudly
+# rather than drifting silently.
+#
+# THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. The registry
+# describes a modern, already-automated workforce, so the stock must be
+# de-anchored at a reference automation level ε_ref. Across ε_ref ∈ [0.2, 0.6]
+# the constant moves **7.13×**, against only 1.20× from the per-capita route.
+# ε_ref = 0.40 is used here: it is the repo's standing reference AND is
+# independently corroborated at 0.391 by the labour-residual route
+# (notes/knowledge-eoh-closure.md §6). Callers who reject it should sweep
+# `scenarios/knowledge_base.knowledge_base_band()` rather than edit this line.
+#
+# resolves_by (to leave derived-then-FROZEN): an O*NET/BLS vintage refresh moves
+# it mechanically; the ANCHOR resolves by a defensible ε_ref, for which the
+# capital-inventory route is currently unusable (see the note's Finding A).
+KNOWLEDGE_EOH_BASE: float  = 490_107_421.43  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref=0.40)
+KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε. physics (superlinear) / CHOSEN (exponent)
+
+# --- Knowledge domain: stock/flow semantics and reference population (Block K-I) --
+#
+# UNITS CORRECTION (2026-08-08). KNOWLEDGE_EOH_BASE was documented as a FLOW
+# ("baseline knowledge EOH at ε=0, hours/year") but knowledge_eoh() computes
+#     base × kbs × cpu × skill_decay
+# so at the ε=0 reference it returns base × 0.10 = 10,000, not 100,000. The
+# constant was never the answer; it operates as a STOCK of embodied knowledge
+# hours, with skill_decay_rate as the annual renewal fraction. The docstrings
+# now say so. No value changed — this is a labelling correction, and it is the
+# reason the O*NET route fits: that data supplies exactly a training STOCK and
+# a renewal RATE. See notes/knowledge-eoh-closure.md.
+#
+# KNOWLEDGE_REFERENCE_POPULATION exists because knowledge EOH was
+# population-INVARIANT: the same absolute number was returned at 1M and at 300M
+# population, so the domain's share of total EOH fell as 1/population while
+# every other domain scaled. The base is now explicitly "stock at the reference
+# population" and knowledge_eoh() scales linearly off it. 1e6 is the repo-wide
+# default population, so this reproduces prior output exactly at the default.
+# Tag: convention (a stated denominator, not a claim about the world).
+KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population KNOWLEDGE_EOH_BASE is quoted at
+
+# The annual renewal fraction applied to the knowledge stock. Previously an
+# anonymous literal (0.10) in three call sites and in params.py, violating the
+# no-anonymous-constants invariant; naming it is a prerequisite for splitting it.
+# CHOSEN, and it is CONFLATING TWO RATES that Block K-III separates:
+#   transmission — stock ÷ working life ≈ 1/40, the cost of re-creating training
+#                  as cohorts retire (knowledge dies with people)
+#   CPD          — recurring hours a WORKING practitioner spends staying current
+# At 0.10 the shipped value implies a 10-year half-life on ACQUISITION stock —
+# a physician re-doing medical school every decade — which is why it cannot be
+# either rate alone. resolves_by: transmission from cohort turnover (entry-to-
+# retirement); CPD from Eurostat CVTS (paid training hours per employee), the
+# only public series that measures the recurring term directly. O*NET cannot
+# give CPD: it measures the stock to reach competency, not the flow to hold it.
+# DEPRECATED as of Block K-IV (2026-08-08) — retained, not deleted, per the
+# additive-not-destructive rule. Nothing defaults to it any more; the default
+# renewal rate is SKILL_TRANSMISSION_RATE below. Kept because it is the value
+# every pre-K-IV result in this repo was produced at, so reproducing an old
+# figure means passing it explicitly rather than guessing what it was.
+# It is NOT a renewal rate: see the credibility check under the split.
+SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHOSEN — conflated; see skill_renewal_rate()
+
+# --- Block K-III: the renewal rate, split ----------------------------------
+#
+# The two rates SKILL_DECAY_RATE was conflating, now set INDEPENDENTLY and
+# checked rather than pinned to reproduce it. Their sum is 0.0277, against the
+# shipped 0.10. That gap is a FINDING, not an error to reconcile away:
+#
+#   measured stock                       11,001 h/worker  (reference/onet_knowledge)
+#   at d = 0.10   →  1,100 h/worker·yr  =  55.0% of the H_REF 2,000 h work-year
+#   at d = 0.0277 →    305 h/worker·yr  =  15.2%
+#
+# A renewal rate of 0.10 asserts that every worker spends more than half of
+# every working year, forever, re-acquiring knowledge they already have. No
+# time-use or training series reports anything close. The shipped value was
+# never a renewal rate; it was a placeholder that no measurement had reached.
+#
+# ADOPTED IN BLOCK K-IV (2026-08-08): the default renewal rate is now
+# SKILL_TRANSMISSION_RATE, the LOWER of the two credible doctrines and the only
+# one containing no CHOSEN component — transmission is derived from the working
+# life, whereas CPD is a judgement call awaiting Eurostat CVTS.
+#
+# CPD IS EXCLUDED FROM THE DEFAULT, NOT DENIED. SKILL_CPD_RATE remains defined
+# and `skill_renewal_rate()` still returns the sum; a caller who wants the fuller
+# obligation passes it. The adopted default therefore UNDERSTATES the renewal
+# obligation by ~10.8%, deliberately, so that no CHOSEN number rides in the
+# shipped arc. This is the same posture the thermal layer takes when it withholds
+# a budget whose sign is undetermined: prefer the defensible understatement to
+# the unbacked completion.
+# `core.eoh_generation.skill_renewal_rate()` reports both components and the gap.
+
+# TRANSMISSION — the stock is re-created as cohorts retire. Knowledge dies with
+# people; this is the entropy the domain measures, and the framing the author
+# accepted 2026-08-08. DERIVED: 1 / working life, with the horizon below.
+# The horizon is the only input, and it is weakly held: halving or doubling it
+# moves transmission 2× against ε_ref's 7.13× lever on the base.
+SKILL_WORKING_LIFE_YEARS: float = 40.0   # years entry→retirement. CHOSEN — resolves_by: BLS Employee Tenure / cohort exit rates
+SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0.025
+
+# CPD — recurring hours a WORKING practitioner spends staying current. This is
+# the term O*NET structurally cannot supply: it measures the hours to REACH
+# competency, never the hours to HOLD it. Set from the licensure/continuing-
+# education scale (US state boards typically mandate 20–50 h per two-year
+# cycle → 10–25 h/yr for licensed occupations, which are ~a quarter of
+# employment; Eurostat CVTS reports ~25 h per participating employee·yr at
+# ~40% participation). ~30 h/worker·yr economy-wide against an 11,001 h stock
+# gives 0.0027. CHOSEN, and the least-grounded number in Block K-III.
+# resolves_by: Eurostat CVTS (paid training hours per employee, all sectors) —
+# the single public series that measures this term directly.
+SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continuing practice. CHOSEN
 
 # ---------------------------------------------------------------------------
 # Reference hours
@@ -447,7 +714,9 @@ DIV_RATE:                     float = 0.40              # fraction of depreciati
 MEANINGFUL_ACTIVITY_TEH_BASE: float = 120.0            # discretionary spending bonus at ε=0 (TEH/yr)
 MEANINGFUL_ACTIVITY_TEH_SCALE: float = 1.5              # quadratic ε-growth factor; bonus = base×(1+scale×ε²)
 CAPITAL_STOCK_DEFAULT:        float = 2_000_000_000.0   # default capital stock for scenario functions
-BASKET_EOH_CONTENT:           float = 1500.0            # personal EOH hours satisfied per sufficiency basket (= PERSONAL_EOH_BASE)
+BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours satisfied per sufficiency basket — DEFINED as = PERSONAL_EOH_BASE
+                                                         # (was a literal 1500.0 duplicating it; bound to the constant 2026-08-06 so the
+                                                         # two cannot drift apart under repricing — one basket covers one person-year)
 
 # ---------------------------------------------------------------------------
 # Human capital biological constants (population.py + capital.py)

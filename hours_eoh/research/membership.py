@@ -242,6 +242,18 @@ def contestability_audit(
                 f"but entry_capacity={entry_capacity:.1f} ≥ 1: exit is "
                 "commons-financed, not self-financed — substantive only "
                 "while the underwriting policy holds (§8.8)")
+        elif not underwriting_policy:
+            # entry_capacity may well be ≥ 1 here; what is absent is a POLICY
+            # to deploy it. Saying "the commons cannot finance it" in that case
+            # is false — the distinction matters because the two have different
+            # remedies (raise the commons vs adopt the §8.8 M2 power).
+            _escalate("CRIT",
+                f"chi_marginal={chi_marginal:.3f} < {CONTESTABILITY_CHI_CRIT} "
+                f"and no underwriting policy is in force (entry_capacity="
+                f"{entry_capacity:.3f} is unused): under these terms the "
+                "tenure-0 member cannot fund exit — the invariant is breached "
+                "(§9-item-7). Adopting the §8.8 M2 underwriting power would "
+                "downgrade this to WARN.")
         else:
             _escalate("CRIT",
                 f"chi_marginal={chi_marginal:.3f} < {CONTESTABILITY_CHI_CRIT} "

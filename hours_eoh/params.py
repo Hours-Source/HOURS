@@ -20,7 +20,7 @@ from typing import Any
 from hours_eoh.data import (
     PERSONAL_EOH_BASE, INFRA_MAINT_RATE, INFRA_AGE_FACTOR_MAX,
     ECOLOGICAL_BASE_RATE, ECOLOGICAL_THRESHOLD,
-    KNOWLEDGE_EOH_BASE, KNOWLEDGE_EPS_EXPONENT,
+    KNOWLEDGE_EOH_BASE, KNOWLEDGE_EPS_EXPONENT, SKILL_TRANSMISSION_RATE,
     M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX,
     CARE_SIGMOID_DEFAULTS, H_REF, H_MIN,
     CAPITAL_FAILURE_RATE,
@@ -57,7 +57,7 @@ EOH_DEFAULTS: dict[str, Any] = {
 
     # --- Knowledge EOH domain ---
     "knowledge_complexity":      1.0,              # relative scale of knowledge base
-    "skill_decay_rate":          0.10,             # fraction of skills renewed/year
+    "skill_decay_rate":          SKILL_TRANSMISSION_RATE,  # K-IV: cohort-turnover renewal; SKILL_DECAY_RATE deprecated
     "knowledge_eoh_base":        KNOWLEDGE_EOH_BASE,
     "knowledge_eps_exponent":    KNOWLEDGE_EPS_EXPONENT,
 

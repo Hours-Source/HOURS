@@ -97,7 +97,8 @@ Add `--no-color` to any command to strip ANSI output for piping or logging.
 | Command | What it does |
 |---------|-------------|
 | `arc` | Sweep ε from 0 to 0.99 — EOH by domain, registration share, TEH created, basket price, fiscal solvency |
-| `dashboard` | Color-coded system health snapshot: Conditions I–IV, EOH health, fiscal health |
+| `arc --domain-shares` | The same sweep as SHARES of total EOH — the denominator check (personal is 91–97% at every ε) |
+| `dashboard` | Color-coded system health snapshot: Conditions I–IV, EOH health, fiscal health, contestability |
 | `params show` | Print all EohParams values; overridden keys are marked |
 | `params set KEY VALUE` | Persist a parameter change with downstream impact preview at ε = 0 / 0.40 / 0.99 |
 | `params set KEY VALUE --dry-run` | Preview the delta without persisting |
@@ -111,6 +112,12 @@ Add `--no-color` to any command to strip ANSI output for piping or logging.
 | `sensitivity delta` | ε-delta sensitivity at a single point |
 | `guf calculate` | Compute Ground Use Fee for a parcel |
 | `guf trust` | Compute GUF trust inflow from a list of revenues |
+| `multiplier` | Four-factor multiplier breakdown and arc sweep |
+| `contestability` | Contestability arc table, stress sweep, audit, recalibration, formation (§8–§8.9c) |
+| `coasean` | [EXPERIMENTAL] N-collective federation mechanics (§§6–7) |
+| `thermal` | [EXPERIMENTAL] Planetary radiative capacity: overage, determinacy map, ceilings |
+| `corridor band` | [EXPERIMENTAL] The stability corridor [ε_suff, ε_max] and which invariant binds it |
+| `corridor axes` | [EXPERIMENTAL] Both contestability axes side by side — the adopted §8.9 test and the superseded bare-χ |
 
 Most commands support `--format table|csv|json`. CSV and JSON are useful for piping results into analysis tools.
 
@@ -190,6 +197,12 @@ $ python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 
 | `maintenance_crisis` | Compounding deferred infrastructure backlog |
 | `care_delay` | Lag in care EOH admission to the collective ledger |
 | `recovery` | Maintenance backlog paydown arc |
+| `measured_sim` | Simulation with Condition II sourced from the measured O\*NET/BLS registry |
+| `multiplier_sensitivity` | Multiplier robustness under weight perturbation and Monte Carlo |
+| `infra_floor` | Currency-free statutory floor vs the monetized path (doctrine invariance) |
+| `thermal_load` | Carry the planetary radiative obligation in the ledger and report what it moves |
+
+`scenario list` prints the full set with their options.
 
 ### Parameter persistence
 

@@ -105,12 +105,26 @@ def canonical_physical_state(epsilon: float) -> dict:
 
     Governing equations (CANONICAL_* constants from data.py):
 
-        capital_stock_teh      = 2.0B × (1 + 2ε)            [TEH]
+        capital_stock_teh      = 2.0B × 3 × ε                [TEH]  — zero at ε=0
         capital_age_ratio      = 0.30 + 0.20ε                [0→1]
         ecosystem_health       = max(0.01, 0.90 − 0.20ε)    [0→1]
         monitoring_capability  = 0.50 + 0.50ε                [0→1]
         knowledge_base_size    = 1.0 + 9ε                    [relative]
         knowledge_complexity_per_unit = 1.0 + ε² × 9        [factor ≥ 1]
+
+    CAPITAL AT ε=0 IS ZERO (Block III, 2026-08-06). The path was
+    2.0B × (1 + 2ε), which asserted 2,000 TEH/capita of built apparatus at
+    "subsistence" — a collective with substantial infrastructure and no
+    automation to justify it. That contradicts ε's own definition (zero machine
+    capital ⇒ ε = 0, which `civilization_epsilon` already honours) and it made
+    the autarky comparison report the canonical arc as OVERBUILT at the origin
+    for a reason that was an artifact of this line.
+
+    The ε=1 ENDPOINT IS PRESERVED: the path is now 2.0B × (1 + slope) × ε, so
+    capital at ε=1 is still 3× the base and only the intercept moved. At ε=0.99
+    the stock reads 5,940 TEH/capita against the previous 5,960 — the upper arc
+    is materially unchanged, which is why this cost 4 tests rather than the whole
+    suite.
 
     As ε rises from 0 to 1, capital stock grows (automation requires investment),
     ecosystem health degrades slightly (productivity pressure on natural systems),
@@ -147,7 +161,7 @@ def canonical_physical_state(epsilon: float) -> dict:
     """
     eps = max(0.0, min(1.0, epsilon))
     return {
-        "capital_stock_teh":     CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE * eps),
+        "capital_stock_teh":     CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE) * eps,
         "capital_age_ratio":     0.30 + CANONICAL_CAPITAL_AGE_DRIFT * eps,
         "ecosystem_health":      max(0.01, CANONICAL_ECOSYSTEM_HEALTH_BASE + CANONICAL_ECOSYSTEM_HEALTH_DRIFT * eps),
         "monitoring_capability": CANONICAL_MONITORING_CAPABILITY_BASE + CANONICAL_MONITORING_CAPABILITY_SLOPE * eps,
@@ -225,7 +239,17 @@ def effective_capital_from_epsilon(capital_stock_at_eps0: float, epsilon: float)
     """
     Canonical capital stock at automation level ε from the ε=0 baseline.
 
-    Equivalent to canonical_physical_state(ε)["capital_stock_teh"] scaled to
+    NOT equivalent to canonical_physical_state(ε)["capital_stock_teh"] since
+    Block III (2026-08-06), and the difference is semantic, not a drift:
+
+      - `canonical_physical_state(ε)` is the ARC's capital AT ε, and is ZERO at
+        ε = 0 because subsistence has no collective apparatus.
+      - this function scales a CALLER-SUPPLIED ε=0 baseline. The caller is
+        asserting that stock exists at ε = 0, so zeroing it would destroy their
+        input rather than model anything.
+
+    Use `canonical_physical_state` for the arc; use this only when you hold a
+    baseline of your own. Scaled to
     a custom ε=0 baseline rather than CAPITAL_STOCK_DEFAULT.
 
     Use this when calling infrastructure_eoh() in a cross-sectional context

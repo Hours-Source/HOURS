@@ -121,6 +121,7 @@ def automation_failure_shock(
     know_eoh  = knowledge_eoh(
         knowledge_base_size,
         complexity_per_unit=_state["knowledge_complexity_per_unit"],
+        population=population,
     )
     tot_eoh = pers_eoh + infra_eoh + eco_eoh + know_eoh
 

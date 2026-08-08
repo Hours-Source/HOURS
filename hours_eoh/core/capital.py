@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.data import (
-    AGE_GROUPS, HUMAN_CAPITAL_NATURAL_DECAY,
+    AGE_GROUPS, HUMAN_CAPITAL_NATURAL_DECAY, PERSONAL_EOH_BASE,
     INFANT_EOH_EPSILON_FACTOR, MATURATION_AUTO_LEVERAGE,
     ANNUAL_DEATH_RATE, ESTATE_INHERITANCE_FRACTION,
     ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
@@ -448,7 +448,7 @@ def birth_event(
     population: float,
     eoh_ledger_total: float,
     epsilon: float = 0.40,
-    personal_eoh_base: float = 1500.0,
+    personal_eoh_base: float = PERSONAL_EOH_BASE,
 ) -> dict:
     """
     Register a new member in the collective. Maximum personal EOH; zero capacity.

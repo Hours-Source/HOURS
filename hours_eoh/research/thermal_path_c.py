@@ -463,7 +463,10 @@ class GlobalCeilingReport(TypedDict):
     utilization: float | None
     epsilon_max: float | None         # = H · ε_current, so it inherits a CHOSEN constant
     eps_current: float
+    eps_current_band: tuple[float, float]        # the sweep the band below was taken over
+    epsilon_max_band: tuple[float, float] | None # ε_max at the band edges — travels with the figure
     binds_below_1: bool
+    binds_within_band: bool           # does ε_max fall below 1 anywhere in the band?
     note: str
 
 
@@ -508,6 +511,7 @@ def global_ceiling(
     r: float = THERMAL_COMMONS_RESERVE,
     lam: float = THERMAL_LAMBDA_FEEDBACK,
     a_earth: float = 5.101e14,
+    eps_current_band: tuple[float, float] = (0.20, 0.60),
 ) -> GlobalCeilingReport:
     """
     The measured global ε_max via Eq. C1 (F1). Comes back NON-BINDING at current
@@ -520,12 +524,28 @@ def global_ceiling(
 
     ε_max is also directly proportional to `eps_current`, a CHOSEN Tier D
     constant (0.40 = arc midpoint). At eps_current = 0.20 the same budget gives
-    ε_max = 1.09 — essentially binding now. Report the sensitivity with the
-    value; it is larger than the ΔT_lo sensitivity the handoff foregrounds.
+    ε_max = 1.09 — essentially binding now. That sensitivity is larger than the
+    ΔT_lo sensitivity the handoff foregrounds, so it is no longer left to the
+    reader: `epsilon_max_band` reports ε_max at the edges of `eps_current_band`
+    and `binds_within_band` says whether the ceiling binds ANYWHERE in it. A
+    figure quoted from this function carries its own sensitivity (handoff 2.0
+    §10.2 option B).
+
+    Why the band and not a derived ε (option C): deriving ε requires a capital
+    inventory, and no measured WORLD inventory in TEH exists. Substituting a
+    chosen world capital mix for a chosen ε moves the arbitrariness instead of
+    removing it. Option C is available and wired where an inventory DOES exist —
+    at collective scale, see research.thermal_capital.epsilon_current_from_inventory.
+    At global scale the honest headline is H, which contains no ε at all.
 
     Reported as conditional, not a current constraint. For the binding instrument
     use collective_utilization() (F11); the global aggregate is uninformative.
     """
+    lo, hi = eps_current_band
+    if not 0.0 < lo <= hi < 1.0:
+        raise ValueError(
+            f"eps_current_band must satisfy 0 < lo ≤ hi < 1, got {eps_current_band}"
+        )
     phi = world_dissipation()
     f_th = lam * delta_t_lo - _forcing_value(basis)
     allocated = (1.0 - r) * max(0.0, f_th) * a_earth
@@ -533,6 +553,15 @@ def global_ceiling(
     eps_max = measured_epsilon_max(allocated, phi, eps_current)
     u = phi / allocated if allocated > 0.0 else None
     binds = eps_max is not None and eps_max < 1.0
+
+    band_lo = measured_epsilon_max(allocated, phi, lo)
+    band_hi = measured_epsilon_max(allocated, phi, hi)
+    band: tuple[float, float] | None = (
+        (band_lo, band_hi) if band_lo is not None and band_hi is not None else None
+    )
+    # ε_max is increasing in ε_current, so the low edge is the binding-most case.
+    binds_in_band = band is not None and band[0] < 1.0
+
     if allocated <= 0.0:
         note = "unbudgeted at this ΔT_lo/basis — GHG forcing has consumed the allowance (F3)"
     elif binds:
@@ -543,10 +572,16 @@ def global_ceiling(
                 f"= {eps_max:.3g} at the CHOSEN ε_current = {eps_current}, so the ceiling "
                 f"binds at {eps_max:.2g}× present Φ — quote H, not ε_max, where the chosen "
                 f"constant would travel with the claim")
+        if band is not None:
+            note += (f". Sensitivity: over ε_current ∈ [{lo:g}, {hi:g}], ε_max spans "
+                     f"[{band[0]:.3g}, {band[1]:.3g}]"
+                     + (" — BINDING at the low edge" if binds_in_band else ""))
     return GlobalCeilingReport(
         delta_t_lo=delta_t_lo, basis=basis, phi_w=phi,
         allocated_budget_w=allocated, headroom_multiple=h, utilization=u,
-        epsilon_max=eps_max, eps_current=eps_current, binds_below_1=binds, note=note,
+        epsilon_max=eps_max, eps_current=eps_current,
+        eps_current_band=eps_current_band, epsilon_max_band=band,
+        binds_below_1=binds, binds_within_band=binds_in_band, note=note,
     )
 
 

@@ -15,7 +15,7 @@ from typing import Any
 
 from hours_eoh.data import (
     AGE_GROUPS,
-    ECOLOGICAL_BASE_RATE,
+    ECOLOGICAL_BASE_RATE, SKILL_DECAY_RATE,
     TRUST_BASE_TEH,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CAPITAL_STOCK_DEFAULT,
@@ -93,7 +93,8 @@ def epsilon_sweep(
         pers_eoh  = personal_eoh(population, age_distribution, eps)
         infra_eoh = infrastructure_eoh(capital_stock_teh, capital_age_ratio, eps)
         eco_eoh   = ecological_eoh(ecosystem_health, eps, base_rate=ECOLOGICAL_BASE_RATE)
-        know_eoh  = knowledge_eoh(knowledge_base_size, 0.10, eps)
+        know_eoh  = knowledge_eoh(knowledge_base_size, SKILL_DECAY_RATE, eps,
+                                  population=population)
         tot_eoh   = pers_eoh + infra_eoh + eco_eoh + know_eoh
 
         bp  = basket_price(eps, floor_teh)

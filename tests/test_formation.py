@@ -94,10 +94,36 @@ class TestNullAnchor:
     def test_reproduces_canonical_pace(self):
         # s pinned to 0 (no charter): full private funding, and the sim must
         # reproduce the canonical ~50-year arc (0.95/0.02 = 47.5 yr).
+        #
+        # Asserted as a band, and the LEAD is a documented consequence rather
+        # than noise. Two repricings have now moved it, both through the same
+        # channel and in the same direction:
+        #   PERSONAL_EOH_BASE 1500 → 1000 (2026-08-06): 47.5 → 46 yr
+        #   KNOWLEDGE_EOH_BASE adopted   (K-IV, 2026-08-08): 46 → 37 yr
+        # K-IV works the OPPOSITE way round from the first. It GREW total EOH
+        # (+12% at mid-arc, +70% at ε=0.99, as knowledge becomes the largest
+        # non-personal domain), which grows machine output Y = ε·total_eoh —
+        # the levy base, the dividend base AND the investment base. More
+        # investable output builds capacity faster, and that outruns the larger
+        # denominator ε is divided by. Not a change in physical pace: the model
+        # now says a knowledge-heavy economy finances its own automation faster.
         v = formation_verdict(formation_feedback_simulation(
             n_years=60, charter_share_override=0.0))
-        assert v["years_to_eps_95"] == 47
-        assert abs(v["delay_years"]) < 1.0
+        assert 35 <= v["years_to_eps_95"] <= 40
+
+        # THE NULL ANCHOR NO LONGER REPRODUCES THE CANONICAL PACE, and that is
+        # reported rather than absorbed by widening the band. `delay_years` is
+        # measured against RECAL_EPSILON_RATE_PER_YEAR = 0.02/yr (47.5 yr to
+        # ε = 0.95); the derived path now completes in 37, a LEAD of ~10.5 yr.
+        #
+        # The anchor's job was to show that the formation feedback machinery
+        # adds no distortion of its own — it still does that (share-priority
+        # matches this null path). What it can no longer do is double as a
+        # check that the derived path agrees with the canonical rate constant.
+        # Those two have come apart, and the open question belongs to the
+        # canonical constant, not to this module: 0.02/yr was calibrated when
+        # total EOH was ~12% smaller at mid-arc and 70% smaller at the top.
+        assert v["delay_years"] == pytest.approx(-10.5, abs=1.5)
         assert not v["stalled"]
         assert v["invariant_holds"]
 
@@ -172,16 +198,22 @@ class TestSharePriority:
         # residual the charter share scares off.
         v = formation_verdict(formation_feedback_simulation(
             n_years=60, priority="share"))
-        assert v["years_to_eps_95"] == 47
+        # 37 yr post-K-IV (was 46). See TestNullAnchor for the mechanism; the
+        # POINT of this test — share-priority costs the arc nothing in TIME
+        # relative to the null anchor — is unchanged and is what is asserted.
+        assert 35 <= v["years_to_eps_95"] <= 40
         assert v["invariant_holds"]
         assert not v["stalled"]
 
     def test_dividend_pays_the_price_mid_arc(self):
-        # Feedback-consistent D ≈ 113 at ε ≈ 0.41 (static §8.9b gross: 302).
+        # Feedback-consistent D ≈ 63 at ε ≈ 0.43. History: ≈113 at
+        # PERSONAL_EOH_BASE 1500, ≈50 after that reprice, ≈63 after K-IV grew
+        # machine output. The POINT of the test — the feedback-consistent
+        # dividend is a FRACTION of the static §8.9b gross — holds throughout.
         rows = formation_feedback_simulation(n_years=60, priority="share")
         r20 = rows[20]
-        assert r20["eps_actual"] == pytest.approx(0.406, abs=0.01)
-        assert r20["dividend_per_capita"] == pytest.approx(113.0, abs=15.0)
+        assert r20["eps_actual"] == pytest.approx(0.430, abs=0.01)
+        assert r20["dividend_per_capita"] == pytest.approx(63.0, abs=15.0)
 
     def test_cap_region_funding_hole_is_commons_funded(self):
         # Where s = 1 private supply is zero and the commons pays for all
@@ -194,17 +226,39 @@ class TestSharePriority:
             assert r["supply_fraction"] == 0.0
             assert r["commons_funded"] > 0.0
 
-    def test_underwriting_carries_the_arc(self):
-        # Under the feedback-consistent dividend, self-financing arrives
-        # only at ε ≈ 0.86 (static §8.9b claimed 0.30): the underwritten
-        # channel dominates the transition.
+    def test_underwriting_carries_all_but_the_very_top_of_the_arc(self):
+        """
+        FINDING PARTLY REVERSED BY BLOCK K-IV — read the history before quoting.
+
+        The commons carries exit for effectively the whole transition, but the
+        self-financing channel is no longer permanently shut.
+
+          §8.9b static model      self-financing from ε ≈ 0.30
+          §8.9c feedback model    ε ≈ 0.86
+          PERSONAL_EOH_BASE 1000  NEVER opens inside the horizon (2026-08-06)
+          KNOWLEDGE_EOH_BASE      opens at ε ≈ 0.99 (K-IV, 2026-08-08)
+
+        K-IV grew machine output (+70% at ε = 0.99, knowledge becoming the
+        largest non-personal domain), and the dividend rides that base — so it
+        finally clears the self-financing threshold, but only at the very top.
+
+        The substantive claim is UNCHANGED and should be stated the same way:
+        across the whole transition contestability is commons-financed, and a
+        member's own dividend does not fund exit until the arc is essentially
+        complete. Do not quote 0.30 or 0.86; 0.99 is not a transition figure.
+        """
         rows = formation_feedback_simulation(n_years=60, priority="share")
         mid = [r for r in rows if 0.1 <= r["eps_actual"] <= 0.85]
         assert all(r["channel"] == "underwritten" for r in mid)
-        first_self = next(r for r in rows if r["channel"] == "self"
-                          and r["eps_actual"] > 0.0)
-        assert first_self["eps_actual"] == pytest.approx(0.86, abs=0.03)
-        assert rows[-1]["channel"] == "self"
+
+        self_rows = [r for r in rows if r["channel"] == "self"]
+        assert self_rows, "K-IV opened this channel; if it shuts again, re-read the history above"
+        assert min(r["eps_actual"] for r in self_rows) > 0.95, (
+            "self-financing must remain an end-of-arc phenomenon, not a "
+            "transition one — that is the claim the comms wording rests on"
+        )
+        # the invariant itself is never breached
+        assert not any(r["channel"] == "none" for r in rows)
 
     def test_estate_conversion_visible_post_arc(self):
         # After ε plateaus, τ keeps rising via the D5-extension escheat —
@@ -221,7 +275,9 @@ class TestDividendPriority:
         v = formation_verdict(formation_feedback_simulation(
             n_years=120, priority="dividend"))
         assert v["years_to_eps_95"] is None
-        assert v["terminal_eps"] == pytest.approx(0.601, abs=0.02)
+        # 0.631 post-K-IV (was 0.601): the larger machine-output base lifts even
+        # the crawling dividend-first path. It still never completes.
+        assert v["terminal_eps"] == pytest.approx(0.631, abs=0.02)
         assert not v["stalled"]  # crawl, not stall — worth distinguishing
 
     def test_commons_never_funds_formation(self):

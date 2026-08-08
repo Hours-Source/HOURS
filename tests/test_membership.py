@@ -26,15 +26,35 @@ _POP = 1_000_000.0
 _TRUST = TRUST_BASE_TEH
 _COMMONS = 1e9  # non-empty commons so benign terms are not WARNed for backing
 
+# Repricing PERSONAL_EOH_BASE 1500 → 1000 (2026-08-06) cut the sufficiency floor,
+# and the floor IS the tenure-0 member's whole portable endowment (their dividend
+# is unvested). So bare χ_marginal now sits below 1 across the entire arc, and the
+# terms tests below would all read CRIT from the baseline rather than from the
+# terms they are meant to isolate. They therefore run with the §8.8 M2
+# underwriting power in force — the configuration the framework adopted — which
+# makes the baseline WARN and lets a terms escalation to CRIT stay visible.
+# `TestRepriceBaseline` below pins the baseline itself.
+_UW = dict(commons_balance=_COMMONS, underwriting_policy=True)
+
 
 class TestContestabilityAudit:
 
-    def test_benign_terms_pass_ok_at_low_eps(self):
-        """Canonical terms at ε=0 with a backed floor: no warnings at all."""
-        result = contestability_audit({}, 0.0, commons_balance=_COMMONS)
-        assert result["audit_status"] == "OK"
+    def test_benign_terms_are_warn_not_crit_after_the_reprice(self):
+        """Canonical terms at ε=0 with a backed floor and the M2 power in force.
+
+        Was OK at PERSONAL_EOH_BASE = 1500. At 1000 the sufficiency floor — the
+        tenure-0 member's entire portable endowment — no longer covers K_entry,
+        so bare χ_marginal breaches and the commons carries the exit instead.
+        That is a WARN by design (§8.8): financeable, but by federation policy
+        rather than by arithmetic in the member's own hands. The TERMS are still
+        clean; nothing here is a terms warning.
+        """
+        result = contestability_audit({}, 0.0, **_UW)
+        assert result["audit_status"] == "WARN"
         assert result["passes"] is True
-        assert result["warnings"] == []
+        assert any("commons-financed" in w for w in result["warnings"])
+        for term in ("vesting_years", "exit_notice", "compulsion", "honeypot"):
+            assert not any(term in w for w in result["warnings"])
 
     def test_admission_cost_enters_k_entry(self):
         admission = 500.0
@@ -54,48 +74,56 @@ class TestContestabilityAudit:
 
     def test_long_vesting_warns(self):
         result = contestability_audit(
-            {"vesting_years": 12.0}, 0.0, commons_balance=_COMMONS)
+            {"vesting_years": 12.0}, 0.0, **_UW)
         assert result["audit_status"] == "WARN"
         assert any("vesting_years" in w for w in result["warnings"])
 
     def test_exit_notice_warn_then_crit(self):
         warn = contestability_audit(
-            {"exit_notice_years": 1.5}, 0.0, commons_balance=_COMMONS)
+            {"exit_notice_years": 1.5}, 0.0, **_UW)
         assert warn["audit_status"] == "WARN"
         crit = contestability_audit(
-            {"exit_notice_years": 4.0}, 0.0, commons_balance=_COMMONS)
+            {"exit_notice_years": 4.0}, 0.0, **_UW)
         assert crit["audit_status"] == "CRIT"
         assert crit["passes"] is False
 
     def test_minimum_hours_warn_then_crit(self):
         warn_hours = MEMBERSHIP_MIN_HOURS_WARN_FRACTION * PERSONAL_EOH_BASE + 50.0
         warn = contestability_audit(
-            {"minimum_hours_annual": warn_hours}, 0.0, commons_balance=_COMMONS)
+            {"minimum_hours_annual": warn_hours}, 0.0, **_UW)
         assert warn["audit_status"] == "WARN"
         crit_hours = MEMBERSHIP_MIN_HOURS_CRIT_FRACTION * PERSONAL_EOH_BASE
         crit = contestability_audit(
-            {"minimum_hours_annual": crit_hours}, 0.0, commons_balance=_COMMONS)
+            {"minimum_hours_annual": crit_hours}, 0.0, **_UW)
         assert crit["audit_status"] == "CRIT"
         assert any("compulsion" in w for w in crit["warnings"])
 
     def test_dividend_retention_warns(self):
         result = contestability_audit(
-            {"dividend_policy_fraction": 0.10}, 0.0, commons_balance=_COMMONS)
+            {"dividend_policy_fraction": 0.10}, 0.0, **_UW)
         assert result["audit_status"] == "WARN"
         assert any("honeypot" in w for w in result["warnings"])
         # Retention also scales the vested member's χ down.
-        full = contestability_audit({}, 0.0, commons_balance=_COMMONS)
+        full = contestability_audit({}, 0.0, **_UW)
         assert result["chi_vested"] < full["chi_vested"]
 
     def test_empty_commons_warns(self):
-        result = contestability_audit({}, 0.0, commons_balance=0.0)
-        assert result["audit_status"] == "WARN"
+        result = contestability_audit({}, 0.0, commons_balance=0.0,
+                                      underwriting_policy=True)
+        assert result["audit_status"] in ("WARN", "CRIT")
         assert any("commons" in w for w in result["warnings"])
 
-    def test_nonempty_commons_reports_coverage_without_warning(self):
-        result = contestability_audit({}, 0.0, commons_balance=_COMMONS)
+    def test_nonempty_commons_reports_coverage_without_backing_warning(self):
+        """Coverage is reported, never escalated — it is a scenario judgment.
+
+        The commons-FINANCED-exit warning is a different thing and is expected
+        here (see test_benign_terms_pass_ok...); what must be absent is a warning
+        that the floor is UNBACKED.
+        """
+        result = contestability_audit({}, 0.0, **_UW)
         assert result["commons_floor_coverage"] > 0.0
-        assert not any("commons" in w for w in result["warnings"])
+        assert not any("unbacked" in w or "commons_balance" in w
+                       for w in result["warnings"])
 
     def test_invalid_inputs_raise(self):
         with pytest.raises(ValueError, match="vesting_years"):
@@ -201,3 +229,47 @@ class TestAuditClosureFlags:
             assert result["passes"] is True, (
                 f"funded commons + closure flags must keep terms passable "
                 f"at ε={eps}")
+
+
+# ---------------------------------------------------------------------------
+# The reprice baseline (2026-08-06) — a real coupling, not a test artifact
+# ---------------------------------------------------------------------------
+
+class TestRepriceBaseline:
+    """PERSONAL_EOH_BASE is not only the ε denominator — it is the floor that
+    FUNDS exit.
+
+    The sufficiency floor is proportional to the personal EOH base, and for a
+    tenure-0 member (dividend unvested) that floor is their entire portable
+    endowment P. So repricing the base DOWN cuts the endowment, and bare
+    χ_marginal = P/K_entry falls below 1 across the whole arc. Worth pinning
+    because it is easy to reprice the denominator without noticing it moved the
+    guarantee too.
+    """
+
+    def test_marginal_member_breaches_bare_chi_across_the_arc(self):
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            r = contestability_audit({}, eps, commons_balance=_COMMONS,
+                                     underwriting_policy=True)
+            assert r["chi_marginal"] < CONTESTABILITY_CHI_CRIT, f"at ε={eps}"
+
+    def test_the_adopted_invariant_still_holds_across_the_arc(self):
+        """The axis that governs is unaffected: exit stays financeable.
+
+        χ is the SUPERSEDED flow/stock test (§8.9). The reprice moves it and does
+        NOT move the adopted three-channel invariant — which is the whole reason
+        the axis was migrated.
+        """
+        from hours_eoh.research.recalibration import exit_financing
+        for eps in (0.0, 0.20, 0.40, 0.80, 0.99):
+            assert exit_financing(eps)["exit_financeable"] is True, f"at ε={eps}"
+
+    def test_no_underwriting_policy_message_names_the_right_remedy(self):
+        """Regression: the CRIT text used to claim the commons could not finance
+        the exit even when capacity was ample and only the POLICY was absent."""
+        r = contestability_audit({}, 0.0, commons_balance=_COMMONS,
+                                 underwriting_policy=False)
+        assert r["audit_status"] == "CRIT"
+        assert r["entry_capacity"] > 1.0
+        assert any("no underwriting policy is in force" in w
+                   for w in r["warnings"])

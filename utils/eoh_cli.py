@@ -14,6 +14,7 @@ Commands:
   contestability  Contestability invariant arc table and stress sweep (§8)
   coasean         [EXPERIMENTAL] Coasean collective federation (§§6–7)
   thermal         [EXPERIMENTAL] Planetary radiative capacity: overage, ceilings
+  corridor        [EXPERIMENTAL] Stability corridor [ε_suff, ε_max] and ceilings
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ import utils.multiplier_cmd as multiplier_cmd
 import utils.contestability_cmd as contestability_cmd
 import utils.coasean_cmd as coasean_cmd
 import utils.thermal_cmd as thermal_cmd
+import utils.corridor_cmd as corridor_cmd
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -63,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     contestability_cmd.build_parser(sub)
     coasean_cmd.build_parser(sub)
     thermal_cmd.build_parser(sub)
+    corridor_cmd.build_parser(sub)
 
     return parser
 

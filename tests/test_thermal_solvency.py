@@ -132,9 +132,12 @@ def test_labour_is_nowhere_near_binding():
 
 def test_backward_query_finds_a_finite_breaking_point():
     b = breaking_labor_intensity()
-    assert b["breaking_value"] == pytest.approx(22.9, rel=0.05)
+    # 22.9 before the PERSONAL_EOH_BASE reprice; 40.5 after — a smaller
+    # ecological/personal ratio means labour intensity has further to travel
+    # before it breaks the gate, so the verdict got MORE robust, not less.
+    assert b["breaking_value"] == pytest.approx(40.5, rel=0.05)
     assert b["shipped_value"] == CDR_LABOR_HOURS_PER_TONNE
-    assert b["margin"] == pytest.approx(38.0, rel=0.05)
+    assert b["margin"] == pytest.approx(67.6, rel=0.05)
     assert b["verdict"] == "robust"
 
 
