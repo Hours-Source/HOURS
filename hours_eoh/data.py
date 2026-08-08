@@ -537,8 +537,130 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 # training-and-CPD hours from the O*NET/BLS spine already ingested.
 ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
 ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
-KNOWLEDGE_EOH_BASE: float  = 100_000.0  # baseline knowledge EOH at ε=0. CHOSEN — resolves_by: occupational CPD hours
+# --- KNOWLEDGE_EOH_BASE — ADOPTED FROM MEASUREMENT (Block K-IV, 2026-08-08) ---
+#
+# Was 100_000.0, CHOSEN, with the epistemic pointer "occupational CPD hours".
+# That pointer is now redeemed: the O*NET 30.3 / BLS spine already shipped in
+# `reference/data/` carries the input, and `reference/onet_knowledge.py` recovers
+# it by inverting the documented log-minmax normalization of `f_training`.
+#
+#   embodied training stock   11,001.3 h/worker      (751 occ, 157.79 M employment)
+#   per head of population     5,501.0 h/person      (E/P = 0.500, registry route)
+#   de-anchored to ε=0        ÷ kbs(0.40)·cpu(0.40) = 11.224
+#   →  KNOWLEDGE_EOH_BASE      4.901074e8 h at KNOWLEDGE_REFERENCE_POPULATION
+#
+# Tag: **derived-then-FROZEN** — the repo's existing label for a derived value
+# pinned at a reference epoch so it stays comparable across data vintages.
+# Re-deriving per vintage would reintroduce the circularity the multiplier's
+# frozen bounds exist to break. `tests/test_knowledge_base.py` asserts the frozen
+# value still matches the live derivation, so a registry refresh fails loudly
+# rather than drifting silently.
+#
+# THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. The registry
+# describes a modern, already-automated workforce, so the stock must be
+# de-anchored at a reference automation level ε_ref. Across ε_ref ∈ [0.2, 0.6]
+# the constant moves **7.13×**, against only 1.20× from the per-capita route.
+# ε_ref = 0.40 is used here: it is the repo's standing reference AND is
+# independently corroborated at 0.391 by the labour-residual route
+# (notes/knowledge-eoh-closure.md §6). Callers who reject it should sweep
+# `scenarios/knowledge_base.knowledge_base_band()` rather than edit this line.
+#
+# resolves_by (to leave derived-then-FROZEN): an O*NET/BLS vintage refresh moves
+# it mechanically; the ANCHOR resolves by a defensible ε_ref, for which the
+# capital-inventory route is currently unusable (see the note's Finding A).
+KNOWLEDGE_EOH_BASE: float  = 490_107_421.43  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref=0.40)
 KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε. physics (superlinear) / CHOSEN (exponent)
+
+# --- Knowledge domain: stock/flow semantics and reference population (Block K-I) --
+#
+# UNITS CORRECTION (2026-08-08). KNOWLEDGE_EOH_BASE was documented as a FLOW
+# ("baseline knowledge EOH at ε=0, hours/year") but knowledge_eoh() computes
+#     base × kbs × cpu × skill_decay
+# so at the ε=0 reference it returns base × 0.10 = 10,000, not 100,000. The
+# constant was never the answer; it operates as a STOCK of embodied knowledge
+# hours, with skill_decay_rate as the annual renewal fraction. The docstrings
+# now say so. No value changed — this is a labelling correction, and it is the
+# reason the O*NET route fits: that data supplies exactly a training STOCK and
+# a renewal RATE. See notes/knowledge-eoh-closure.md.
+#
+# KNOWLEDGE_REFERENCE_POPULATION exists because knowledge EOH was
+# population-INVARIANT: the same absolute number was returned at 1M and at 300M
+# population, so the domain's share of total EOH fell as 1/population while
+# every other domain scaled. The base is now explicitly "stock at the reference
+# population" and knowledge_eoh() scales linearly off it. 1e6 is the repo-wide
+# default population, so this reproduces prior output exactly at the default.
+# Tag: convention (a stated denominator, not a claim about the world).
+KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population KNOWLEDGE_EOH_BASE is quoted at
+
+# The annual renewal fraction applied to the knowledge stock. Previously an
+# anonymous literal (0.10) in three call sites and in params.py, violating the
+# no-anonymous-constants invariant; naming it is a prerequisite for splitting it.
+# CHOSEN, and it is CONFLATING TWO RATES that Block K-III separates:
+#   transmission — stock ÷ working life ≈ 1/40, the cost of re-creating training
+#                  as cohorts retire (knowledge dies with people)
+#   CPD          — recurring hours a WORKING practitioner spends staying current
+# At 0.10 the shipped value implies a 10-year half-life on ACQUISITION stock —
+# a physician re-doing medical school every decade — which is why it cannot be
+# either rate alone. resolves_by: transmission from cohort turnover (entry-to-
+# retirement); CPD from Eurostat CVTS (paid training hours per employee), the
+# only public series that measures the recurring term directly. O*NET cannot
+# give CPD: it measures the stock to reach competency, not the flow to hold it.
+# DEPRECATED as of Block K-IV (2026-08-08) — retained, not deleted, per the
+# additive-not-destructive rule. Nothing defaults to it any more; the default
+# renewal rate is SKILL_TRANSMISSION_RATE below. Kept because it is the value
+# every pre-K-IV result in this repo was produced at, so reproducing an old
+# figure means passing it explicitly rather than guessing what it was.
+# It is NOT a renewal rate: see the credibility check under the split.
+SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHOSEN — conflated; see skill_renewal_rate()
+
+# --- Block K-III: the renewal rate, split ----------------------------------
+#
+# The two rates SKILL_DECAY_RATE was conflating, now set INDEPENDENTLY and
+# checked rather than pinned to reproduce it. Their sum is 0.0277, against the
+# shipped 0.10. That gap is a FINDING, not an error to reconcile away:
+#
+#   measured stock                       11,001 h/worker  (reference/onet_knowledge)
+#   at d = 0.10   →  1,100 h/worker·yr  =  55.0% of the H_REF 2,000 h work-year
+#   at d = 0.0277 →    305 h/worker·yr  =  15.2%
+#
+# A renewal rate of 0.10 asserts that every worker spends more than half of
+# every working year, forever, re-acquiring knowledge they already have. No
+# time-use or training series reports anything close. The shipped value was
+# never a renewal rate; it was a placeholder that no measurement had reached.
+#
+# ADOPTED IN BLOCK K-IV (2026-08-08): the default renewal rate is now
+# SKILL_TRANSMISSION_RATE, the LOWER of the two credible doctrines and the only
+# one containing no CHOSEN component — transmission is derived from the working
+# life, whereas CPD is a judgement call awaiting Eurostat CVTS.
+#
+# CPD IS EXCLUDED FROM THE DEFAULT, NOT DENIED. SKILL_CPD_RATE remains defined
+# and `skill_renewal_rate()` still returns the sum; a caller who wants the fuller
+# obligation passes it. The adopted default therefore UNDERSTATES the renewal
+# obligation by ~10.8%, deliberately, so that no CHOSEN number rides in the
+# shipped arc. This is the same posture the thermal layer takes when it withholds
+# a budget whose sign is undetermined: prefer the defensible understatement to
+# the unbacked completion.
+# `core.eoh_generation.skill_renewal_rate()` reports both components and the gap.
+
+# TRANSMISSION — the stock is re-created as cohorts retire. Knowledge dies with
+# people; this is the entropy the domain measures, and the framing the author
+# accepted 2026-08-08. DERIVED: 1 / working life, with the horizon below.
+# The horizon is the only input, and it is weakly held: halving or doubling it
+# moves transmission 2× against ε_ref's 7.13× lever on the base.
+SKILL_WORKING_LIFE_YEARS: float = 40.0   # years entry→retirement. CHOSEN — resolves_by: BLS Employee Tenure / cohort exit rates
+SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0.025
+
+# CPD — recurring hours a WORKING practitioner spends staying current. This is
+# the term O*NET structurally cannot supply: it measures the hours to REACH
+# competency, never the hours to HOLD it. Set from the licensure/continuing-
+# education scale (US state boards typically mandate 20–50 h per two-year
+# cycle → 10–25 h/yr for licensed occupations, which are ~a quarter of
+# employment; Eurostat CVTS reports ~25 h per participating employee·yr at
+# ~40% participation). ~30 h/worker·yr economy-wide against an 11,001 h stock
+# gives 0.0027. CHOSEN, and the least-grounded number in Block K-III.
+# resolves_by: Eurostat CVTS (paid training hours per employee, all sectors) —
+# the single public series that measures this term directly.
+SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continuing practice. CHOSEN
 
 # ---------------------------------------------------------------------------
 # Reference hours

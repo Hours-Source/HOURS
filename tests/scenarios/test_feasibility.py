@@ -96,9 +96,12 @@ def test_epsilon_zero_is_infeasible_on_the_repos_own_constants():
 def test_implied_ceiling_is_far_below_the_shipped_base():
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.5,
                           epsilon=0.0)
-    # The ceiling is a property of the SUPPLY side and did not move: 627.
-    # The overshoot did — 2.39× → 1.60×.
-    assert c["implied_base_ceiling"] == pytest.approx(626.6, rel=0.01)
+    # The ceiling is (L − R)/w. The SUPPLY term L has never moved; R, the
+    # non-personal requirement, grew when Block K-IV put knowledge on its
+    # measured footing, so the ceiling fell 626.6 → 618.3. Small, and in the
+    # tightening direction: a bigger apparatus obligation leaves less labour
+    # for the biological one.
+    assert c["implied_base_ceiling"] == pytest.approx(618.3, rel=0.01)
     assert c["base_overshoot"] > 1.5
 
 
@@ -121,19 +124,26 @@ def test_report_flags_over_determination():
 # the subsistence sweep — generous at the top end, still infeasible
 # ---------------------------------------------------------------------------
 
-def test_subsistence_sweep_is_marginal_at_best():
-    """After the reprice, exactly one sweep case clears — and barely.
+def test_subsistence_sweep_has_no_feasible_case():
+    """
+    NO case in the sweep clears, and Block K-IV closed the one that did.
 
-    At PERSONAL_EOH_BASE = 1500 no case in the sweep was feasible. At 1000 the
-    single most generous case (2,600 h/yr adult capacity at a 0.60 adult share,
-    a capacity ABOVE the modern full-time reference) clears with ratio 0.99.
-    Every other case still fails. "Marginal at the most generous corner" is the
-    honest reading, not "feasible".
+    History, because the sign of each move matters:
+      PERSONAL_EOH_BASE 1500   no case feasible
+      repriced to 1000         exactly one clears, ratio 0.99, at 2,600 h/yr
+                               adult capacity — ABOVE the modern full-time
+                               reference — and a 0.60 adult share
+      KNOWLEDGE_EOH_BASE       that case now reads 1.0019 and fails
+
+    The margin was always inside the noise of its own inputs; growing a
+    non-personal domain by a few per cent was enough to close it. The honest
+    reading was "marginal at the most generous corner" and is now simply
+    "infeasible everywhere in the sweep".
     """
     r = over_determination_report()
     feasible = [c for c in r["subsistence_cases"] if c["feasible"]]
-    assert len(feasible) == 1
-    assert feasible[0]["demand_supply_ratio"] == pytest.approx(0.99, abs=0.02)
+    assert not feasible
+    assert r["best_ratio"] == pytest.approx(1.002, abs=0.01)
     assert r["worst_ratio"] > 2.0
 
 
@@ -156,7 +166,9 @@ def test_implied_ceiling_band_brackets_the_user_estimate():
     """
     r = over_determination_report()
     lo, hi = r["ceiling_band"]
-    assert 390.0 < lo < 450.0
+    # 387.8–998.0 post-K-IV (was 390–1006): the whole band shifted down ~0.8%
+    # as the non-personal requirement grew. The conclusion is unchanged.
+    assert 380.0 < lo < 450.0
     assert 950.0 < hi < 1050.0
     # per-capita form, which is what the hand estimate produces
     assert 1400.0 < hi * age_weight_mean() < 1550.0
@@ -235,8 +247,12 @@ def test_closed_form_understates_the_crossover():
     naive = 1.0 - d0["supply_per_capita"] / d0["total_demand_per_capita"]
     actual = feasible_epsilon(2000.0, 0.5)
     assert actual > naive
-    assert naive == pytest.approx(0.355, abs=0.005)
-    assert actual == pytest.approx(0.379, abs=0.005)
+    # K-IV WIDENED this gap from 0.024 to 0.080, strengthening the test's point:
+    # knowledge EOH is now a materially ε-growing term, so treating the
+    # inventory as fixed understates the crossover by more than it used to.
+    assert naive == pytest.approx(0.360, abs=0.005)
+    assert actual == pytest.approx(0.441, abs=0.005)
+    assert actual - naive > 0.05
 
 
 def test_feasible_epsilon_returns_zero_when_already_feasible():
@@ -256,7 +272,12 @@ def test_feasible_epsilon_agrees_with_the_corridor_survival_floor():
     ours = feasible_epsilon(2000.0, 0.5)
     assert corridor_floor > 0.0
     assert corridor_floor < ours
-    assert ours - corridor_floor < 0.10
+    # The gap widened 0.08 → 0.137 with Block K-IV, and necessarily so: the
+    # corridor floor is scoped to the PERSONAL domain alone, while this module
+    # is total-demand, and K-IV grew a NON-personal domain. The two instruments
+    # measure different things and should diverge exactly here. Both still say
+    # the same thing — subsistence needs automation.
+    assert ours - corridor_floor < 0.20
 
 
 def test_rejects_bad_epsilon_and_population():
@@ -276,7 +297,10 @@ def test_identity_recovers_the_base_from_M_and_H():
     """B = (M + H − R)/w, with M B-free and H measured. No circularity."""
     r = identify_base(machine_eoh_per_capita=265.6,
                       observed_human_hours_per_capita=613.2)
-    assert r["implied_base"] == pytest.approx(544.0, abs=2.0)
+    # 536.2 post-K-IV (was 544.0): R rises, so B = (M + H − R)/w falls. Still
+    # comfortably inside the independent supply-ceiling band, which is the
+    # point of the two-instrument agreement.
+    assert r["implied_base"] == pytest.approx(536.2, abs=2.0)
     assert r["implied_epsilon"] == pytest.approx(0.302, abs=0.005)
 
 

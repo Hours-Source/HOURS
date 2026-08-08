@@ -23,7 +23,13 @@ from hours_eoh.core.eoh_generation import (
     epsilon_delta_sensitivity,
     eoh_to_essential_domains,
 )
-from hours_eoh.data import ESSENTIAL_DOMAINS
+from hours_eoh.data import (
+    ESSENTIAL_DOMAINS,
+    KNOWLEDGE_EOH_BASE,
+    KNOWLEDGE_REFERENCE_POPULATION,
+    SKILL_DECAY_RATE,
+    SKILL_TRANSMISSION_RATE,
+)
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 POP = 1_000_000
@@ -140,6 +146,104 @@ class TestKnowledgeEoh:
             result = knowledge_eoh(1.0, epsilon=eps)
             assert math.isfinite(result), f"knowledge_eoh must be finite at ε={eps}"
             assert result > 0
+
+
+class TestKnowledgePopulationScaling:
+    """
+    Block K-I: knowledge EOH was population-INVARIANT — the same absolute number
+    at 1M and at 300M — so the domain's share of total EOH fell as 1/population
+    while every other domain scaled. These tests pin the fix AND pin that the
+    fix moved no numbers at the default population.
+    """
+
+    def test_default_population_arc_is_pinned(self):
+        """
+        Post-K-IV values at the reference population. K-I deliberately moved
+        NOTHING here (10,000 / 112,240 / 973,251.19); Block K-IV then adopted
+        the measured base and the transmission renewal rate, moving every point
+        by a uniform 1,225× (base ×4,901, rate ÷4).
+        """
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.2252686e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.3752414e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.1924941e9, rel=1e-6)
+
+    def test_adoption_moved_every_arc_point_by_the_same_factor(self):
+        """The adoption rescales; it does not reshape. Guards against a base
+        change silently altering the arc's SHAPE as well as its level."""
+        for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1225.27, rel=1e-3)
+
+    def test_scales_linearly_with_population(self):
+        base = knowledge_eoh(1.0, epsilon=0.40)
+        for factor in (0.5, 2.0, 300.0):
+            scaled = knowledge_eoh(
+                1.0, epsilon=0.40,
+                population=KNOWLEDGE_REFERENCE_POPULATION * factor,
+            )
+            assert scaled == pytest.approx(base * factor)
+
+    def test_per_capita_is_population_invariant_across_arc(self):
+        """The property that was broken: h/person/yr must not depend on N."""
+        for eps in KEY_EPSILONS:
+            per_capita = {
+                pop: total_eoh(epsilon=eps, population=pop)["knowledge"] / pop
+                for pop in (1e6, 2e6, 3e8)
+            }
+            values = list(per_capita.values())
+            assert values[0] == pytest.approx(values[1]), (
+                f"knowledge h/person/yr must not vary with population at ε={eps}; "
+                f"got {per_capita}"
+            )
+            assert values[0] == pytest.approx(values[2])
+
+    def test_zero_population_yields_zero_obligation(self):
+        assert knowledge_eoh(1.0, epsilon=0.40, population=0.0) == 0.0
+
+    def test_negative_population_rejected(self):
+        with pytest.raises(ValueError, match="population must be non-negative"):
+            knowledge_eoh(1.0, epsilon=0.40, population=-1.0)
+
+    def test_breakdown_forwards_population(self):
+        """The civilisational/apparatus SPLIT is a ratio — invariant — but the
+        components must scale."""
+        one = knowledge_eoh_breakdown(1.0, epsilon=0.40)
+        two = knowledge_eoh_breakdown(
+            1.0, epsilon=0.40,
+            population=KNOWLEDGE_REFERENCE_POPULATION * 2.0,
+        )
+        assert two["total"] == pytest.approx(one["total"] * 2.0)
+        assert two["apparatus"] == pytest.approx(one["apparatus"] * 2.0)
+        assert two["apparatus_fraction"] == pytest.approx(one["apparatus_fraction"])
+
+
+class TestKnowledgeStockFlowSemantics:
+    """
+    Block K-I: `base_rate` is a STOCK, not the annual figure. Pinned because the
+    O*NET closure route (Block K-II) depends on this reading — it supplies a
+    training stock and a renewal rate, which is the same shape.
+    """
+
+    def test_base_rate_is_not_the_epsilon_zero_answer(self):
+        """The mislabel that motivated the correction: base != K(0)."""
+        k0 = knowledge_eoh(1.0, epsilon=0.0)
+        assert k0 != pytest.approx(KNOWLEDGE_EOH_BASE)
+        assert k0 == pytest.approx(KNOWLEDGE_EOH_BASE * SKILL_TRANSMISSION_RATE)
+
+    def test_obligation_is_linear_in_the_renewal_rate(self):
+        """Stock × rate: doubling the renewal rate doubles the annual flow."""
+        single = knowledge_eoh(1.0, SKILL_TRANSMISSION_RATE, epsilon=0.40)
+        double = knowledge_eoh(1.0, SKILL_TRANSMISSION_RATE * 2.0, epsilon=0.40)
+        assert double == pytest.approx(single * 2.0)
+
+    def test_default_rate_is_bound_not_literal(self):
+        """Repricing hazard: the default must track the named constant, and
+        must be the ADOPTED rate rather than the deprecated placeholder."""
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(
+            knowledge_eoh(1.0, SKILL_TRANSMISSION_RATE, epsilon=0.40)
+        )
+        assert knowledge_eoh(1.0, epsilon=0.40) != pytest.approx(
+            knowledge_eoh(1.0, SKILL_DECAY_RATE, epsilon=0.40)
+        )
 
 
 # ===========================================================================
@@ -506,21 +610,51 @@ def test_thermal_obligation_arc_coherent():
 DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 
 
+# BLOCK K-IV MOVED THESE. Before adoption personal ran 86–96% at every ε and the
+# two small domains together were a rounding error. Putting knowledge on the
+# measured O*NET footing cut personal's share at the top of the arc almost in
+# half. The defect is PARTLY closed: personal still dominates the low arc, where
+# there is no apparatus for knowledge to attach to, and ecological is untouched.
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.943, 0.40: 0.844, 0.90: 0.566, 0.99: 0.511}
+
+
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
-def test_domain_balance_personal_dominates_across_the_arc(eps):
+def test_domain_balance_personal_share_across_the_arc(eps):
     d = total_eoh(epsilon=eps)
     share = d["personal"] / d["total"]
-    assert 0.86 <= share <= 0.96, (
+    assert share == pytest.approx(_PERSONAL_SHARE_EXPECTED[eps], abs=0.01), (
         f"personal share {share:.3f} at ε={eps} — domain balance has changed; "
         "update docs/parameter_provenance.md §'Domain balance'"
     )
 
 
-def test_domain_balance_small_domains_are_rounding_error():
-    """Ecological and knowledge together are under 0.1% of total EOH."""
+def test_domain_balance_personal_still_dominates_the_low_arc():
+    """K-IV did NOT fix domain balance — it closed one of the two small domains.
+    At ε=0 there is no apparatus, so knowledge cannot attach and personal is
+    still 94%. The remaining lever is the ecological base, plus ATUS on the
+    personal numerator itself."""
+    d = total_eoh(epsilon=0.0)
+    assert d["personal"] / d["total"] > 0.90
+
+
+def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
+    """THE K-IV RESULT. Pre-adoption the two small domains were <0.1% of total
+    EOH at ε=0.40; knowledge alone now carries ~8%, and by ε=0.99 it is the
+    largest non-personal domain. This is the behaviour knowledge_eoh's own
+    reference text has always asserted and never delivered."""
+    mid = total_eoh(epsilon=0.40)
+    assert mid["knowledge"] / mid["total"] > 0.05
+
+    top = total_eoh(epsilon=0.99)
+    assert top["knowledge"] > top["infrastructure"]
+    assert top["knowledge"] / top["total"] == pytest.approx(0.412, abs=0.01)
+
+
+def test_domain_balance_ecological_is_still_the_open_defect():
+    """Ecological was NOT touched by K-IV and remains ~0.04% of total. Named so
+    the closed domain is not mistaken for a closed defect."""
     d = total_eoh(epsilon=0.40)
-    minor = (d["ecological"] + d["knowledge"]) / d["total"]
-    assert minor < 0.001
+    assert d["ecological"] / d["total"] < 0.001
 
 
 def test_domain_balance_ecological_is_sub_hour_per_person():
@@ -709,21 +843,53 @@ class TestAccountingBasis:
             assert (d["knowledge_apparatus"] + d["knowledge_civilisational"]
                     == pytest.approx(d["knowledge"]))
 
-    def test_final_total_is_near_constant_across_the_arc(self):
-        """The conservation claim: obligation is population × per-person, and
-        the apparatus built to SERVE it is not additional obligation.
+    def test_final_basis_drifts_less_than_gross_but_no_longer_near_constant(self):
+        """
+        CONSERVATION RESULT DOWNGRADED BY BLOCK K-IV — recorded, not retuned.
 
-        Not exactly flat — the elderly fraction drifts and the civilisational
-        corpus grows — but 0.4% against the gross basis's 10%.
+        Pre-adoption the final basis drifted +0.35% across the arc against the
+        gross basis's +10%, and that near-flatness was quoted as the payoff of
+        the Block I–III thread: obligation is population × per-person, and the
+        apparatus built to SERVE it is not additional obligation.
+
+        It now drifts **+7.7%** (1,488 → 1,602 h/person·yr). The direction still
+        holds — final drifts far less than gross, which has itself widened to
+        +85% — but "near-constant" is no longer supportable.
+
+        THE CAUSE IS STRUCTURAL, NOT A CALIBRATION ARTIFACT. The final basis
+        includes `knowledge_civilisational`, which is base·kbs(ε)·cpu(0)·d, and
+        kbs = 1 + slope·ε shares `CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE` with
+        cpu. So the component the Block I split labels *civilisational* — "the
+        corpus renewed whatever the capital" — is itself ε-driven, growing 9.91×
+        across the arc. The label implies an ε-invariant floor; the code has
+        never computed one.
+
+        Pre-K-IV this was invisible because knowledge was 0.005% of total EOH.
+        The honest reading: **the near-conservation result was an artifact of
+        the knowledge domain being negligible.** Whether the civilisational
+        corpus should be ε-invariant is a theory question (author sign-off), not
+        something to fix by moving a threshold here.
         """
         finals = [total_eoh(epsilon=e, basis="final")["total"]
                   for e in (0.0, 0.40, 0.99)]
         grosses = [total_eoh(epsilon=e)["total"] for e in (0.0, 0.40, 0.99)]
         final_drift = finals[-1] / finals[0] - 1.0
         gross_drift = grosses[-1] / grosses[0] - 1.0
-        assert final_drift < 0.01
+
+        assert final_drift == pytest.approx(0.077, abs=0.005)
         assert gross_drift > 0.09
-        assert final_drift < gross_drift / 10.0
+        assert final_drift < gross_drift / 5.0
+
+    def test_civilisational_knowledge_is_not_epsilon_invariant(self):
+        """Pins the cause of the above, so it cannot be rediscovered as a
+        mystery. If the corpus is ever made ε-invariant this fails and the
+        conservation result should be re-examined at the same time."""
+        lo = total_eoh(epsilon=0.0)["knowledge_civilisational"]
+        hi = total_eoh(epsilon=0.99)["knowledge_civilisational"]
+        assert hi / lo == pytest.approx(9.91, rel=1e-2), (
+            "civilisational knowledge tracks kbs = 1 + slope·ε, sharing the "
+            "automation slope with the apparatus term it is contrasted against"
+        )
 
     def test_all_values_remain_numeric(self):
         """Regression: a str in the dict broke isfinite checks downstream."""

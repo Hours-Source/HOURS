@@ -41,11 +41,19 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                    help="Annual planetary radiative-capacity obligation (h/yr) to "
                         "carry as the fourth ecological term. Default 0.0 (off). "
                         "~1.79e6 for 1M people at ε=0.40 per research/thermal_solvency")
+    p.add_argument("--knowledge-epsilon-ref", type=float, default=None,
+                   dest="knowledge_epsilon_ref", metavar="EPS",
+                   help="Re-derive KNOWLEDGE_EOH_BASE at this reference "
+                        "automation level instead of the frozen ε_ref = 0.40, "
+                        "and run the arc with it. THE DOMINANT UNCERTAINTY in "
+                        "the knowledge domain: 7.13x across [0.2, 0.6]. "
+                        "See notes/knowledge-eoh-closure.md §4")
     p.set_defaults(func=run)
 
 
 def _sweep(n_points: int, population: float, trust_balance: float,
-           thermal_obligation: float = 0.0) -> list[dict]:
+           thermal_obligation: float = 0.0,
+           knowledge_base: float | None = None) -> list[dict]:
     results = []
     for i in range(n_points):
         eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
@@ -56,8 +64,19 @@ def _sweep(n_points: int, population: float, trust_balance: float,
             ecosystem_health=state["ecosystem_health"],
             monitoring_capability=state["monitoring_capability"],
             age_distribution=state["age_distribution"],
-            knowledge_base=state["knowledge_base_size"],
+            # BUG FIX (Block K-IV, 2026-08-08): this was
+            #     knowledge_base=state["knowledge_base_size"]
+            # which put the corpus SIZE (kbs, 1.0 → 9.91) into the base-RATE
+            # slot while `knowledge_complexity` — the actual kbs argument —
+            # stayed at its 1.0 default. The arc's knowledge column was
+            # therefore under-reported by a factor of KNOWLEDGE_EOH_BASE for
+            # the whole life of the command, and the column never responded to
+            # the constant at all. Two same-prefixed parameter names, one
+            # keyword apart.
+            knowledge_complexity=state["knowledge_base_size"],
             knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+            **({"knowledge_base": knowledge_base}
+               if knowledge_base is not None else {}),
             population=population,
             thermal_obligation=thermal_obligation,
         )
@@ -100,9 +119,13 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     """Each domain as a share of total EOH, plus per-capita hours.
 
     The denominator check. ε = machine_EOH / total_EOH, so whichever domain
-    dominates total_EOH effectively sets ε — and at shipped calibration that is
-    the personal domain, at 87–96% across the whole arc. Printed as shares
-    because the absolute columns make the imbalance easy to miss.
+    dominates total_EOH effectively sets ε.
+
+    Block K-IV (2026-08-08) moved this materially: personal ran 87–96% across
+    the whole arc before knowledge was put on its measured O*NET footing, and
+    now runs 94% → 51%. The defect is PARTLY closed — personal still dominates
+    the low arc, where there is no apparatus for knowledge to attach to, and
+    the ecological domain is untouched at ~0.04%.
     """
     headers = ["ε", "personal%", "infra%", "eco%", "know%",
                "eco h/p·yr", "know h/p·yr", "personal h/p·yr"]
@@ -122,15 +145,24 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     print(table(headers, rows))
     print()
     print(bold("Domain balance: "), end="")
-    print("personal EOH is 87–96% of the total at every ε, so ε is dominated by "
-          "the personal domain.\nThe ecological and knowledge domains are "
-          "sub-hour per person per year and cannot move it.\nSee "
-          "docs/parameter_provenance.md §'Domain balance — the denominator problem'.")
+    print("personal EOH runs ~94% at ε=0 falling to ~51% at ε=0.99. Block K-IV "
+          "put knowledge on\nits measured O*NET/BLS footing, which closed one of "
+          "the two small domains — knowledge is\nnow the largest non-personal "
+          "domain at the top of the arc. The ECOLOGICAL domain is still\n~0.04% "
+          "and sub-hour per person per year: that half of the defect is open.\n"
+          "See docs/parameter_provenance.md §'Domain balance — the denominator problem'.")
 
 
 def run(args: argparse.Namespace) -> None:
+    eps_ref = getattr(args, "knowledge_epsilon_ref", None)
+    knowledge_base = None
+    if eps_ref is not None:
+        from hours_eoh.scenarios.knowledge_base import knowledge_base_from_registry
+        knowledge_base = knowledge_base_from_registry(eps_ref)["base_rate"]
+
     rows_data = _sweep(args.points, args.population, args.trust_balance,
-                       getattr(args, "thermal_obligation", 0.0))
+                       getattr(args, "thermal_obligation", 0.0),
+                       knowledge_base)
 
     if args.fmt == "json":
         print(json.dumps(rows_data, indent=2))
@@ -165,6 +197,12 @@ def run(args: argparse.Namespace) -> None:
             "Y" if r["solvent"] else "N",
         ])
     print(table(headers, rows))
+    if eps_ref is not None and knowledge_base is not None:
+        print()
+        print(f"KNOWLEDGE_EOH_BASE re-derived at ε_ref = {eps_ref:.2f}: "
+              f"{knowledge_base:.4e} (frozen default is ε_ref = 0.40). "
+              f"This is the arc's dominant knowledge-domain lever — 7.13× "
+              f"across ε_ref ∈ [0.2, 0.6].")
     if getattr(args, "thermal_obligation", 0.0) > 0.0:
         print()
         print(f"Carrying a thermal obligation of "

@@ -566,17 +566,56 @@ proves floor_spread = 1.000). 4-tag scheme with epistemic pointers:
 
 | Parameter | Default | Units | Kind | `resolves_by` (epistemic pointer) |
 |---|---|---|---|---|
-| `KNOWLEDGE_EOH_BASE` | 100,000 | h/yr (at knowledge_base_size=1.0, skill_decay=0.10, complexity=1.0) | **CHOSEN** | Training/CPD hours from occupational records — the same O\*NET/BLS training spine the multiplier already ingests would give an economy-wide knowledge-maintenance total. At ε=0.40 canonical arc (kbs=4.6, complexity=2.44, decay=0.10): ≈ 112K h/yr, i.e. 0.005% of total EOH. Same scale warning as the ecological domain. |
+| `KNOWLEDGE_EOH_BASE` | **490,107,421** (was 100,000) | hours — an embodied **STOCK** at `KNOWLEDGE_REFERENCE_POPULATION` | **derived-then-FROZEN** | **Closed 2026-08-08 (Block K-IV).** The pointer above named O\*NET/BLS training hours, and the registry already carried them: `f_training` is tagged "log-minmax of measured hours", so `hours = exp(lo + f·(hi−lo))` inverts it exactly. Employment-weighted mean **11,001 h/worker** over 751 occupations / 157.79 M employment → 5,501 h/person at E/P = 0.500 → ÷ kbs(0.40)·cpu(0.40) = 11.224. Frozen at O\*NET 30.3 / BLS epoch 2026-07-29, ε_ref = 0.40. `tests/test_knowledge_base.py` asserts the frozen value still matches the live derivation. **Residual uncertainty is the ANCHOR, not the measurement**: 7.13× across ε_ref ∈ [0.2, 0.6] vs 1.20× from the per-capita route. Sweep with `arc --knowledge-epsilon-ref`. |
+| `KNOWLEDGE_REFERENCE_POPULATION` | 1,000,000 | persons | `convention` | The population `KNOWLEDGE_EOH_BASE` is quoted at. Exists because knowledge EOH was population-INVARIANT before Block K-I — the same absolute figure at 1M and 300M, so the domain's share fell as 1/population while every other domain scaled. A stated denominator, not a claim about the world. |
+| `SKILL_TRANSMISSION_RATE` | 0.025 | 1/yr | `derived` | 1 / `SKILL_WORKING_LIFE_YEARS`. The stock is re-created as cohorts retire — knowledge dies with people, which is the entropy this domain measures (framing accepted by the author 2026-08-08). **The adopted default renewal rate.** |
+| `SKILL_WORKING_LIFE_YEARS` | 40 | years | **CHOSEN** | BLS Employee Tenure / cohort exit rates. Weakly held but low-leverage: halving or doubling it moves transmission 2× against ε_ref's 7.13× lever. |
+| `SKILL_CPD_RATE` | 0.0027 | 1/yr | **CHOSEN** | **Eurostat CVTS** (paid training hours per employee, all sectors) — the only public series that measures the recurring term directly. O\*NET structurally cannot: it measures the hours to REACH competency, never the hours to HOLD it. ~30 h/worker·yr against the 11,001 h stock. **Excluded from the shipped default** (see below), so no CHOSEN number rides in the adopted arc. |
 | `KNOWLEDGE_EPS_EXPONENT` | 2.0 | dimensionless power | `physics` (superlinear form) / **CHOSEN** (exponent = 2) | That knowledge-maintenance complexity grows superlinearly in automation is the structural claim. The exponent's *value* is asserted; a complexity metric tracked against a measured automation index over time would fit it. |
-| `skill_decay_rate` (param) | 0.10 | fraction of skills / year | **CHOSEN** | Measured skill-obsolescence / recertification rates by sector. Rationale for the default: technical-skill half-life ≈ 7 years (0.10/yr ≈ ln 2 / 7). |
+| `skill_decay_rate` (param) | **0.025** (was 0.10) | fraction of the knowledge stock / year | `derived` (bound to `SKILL_TRANSMISSION_RATE`) | **Split and repriced 2026-08-08 (Blocks K-III/K-IV).** `SKILL_DECAY_RATE` = 0.10 was conflating two orthogonal rates: transmission (cohort turnover, derivable) and CPD (staying current, not in O\*NET). Set independently, they sum to **0.0277 against the shipped 0.10** — and against the measured 11,001 h/worker stock, 0.10 implies **1,100 h/worker·yr = 55% of the `H_REF` 2,000 h work-year, every year, forever**. No time-use or training series supports it; the shipped value was never a renewal rate. The author's decision (2026-08-08) was to adopt **the lower rate**: transmission alone, the only doctrine containing no CHOSEN component. This deliberately **understates** the renewal obligation by ~10.8% rather than let a judgement call ride in the shipped arc. |
+| `SKILL_DECAY_RATE` | 0.10 | 1/yr | **DEPRECATED** (was CHOSEN) | Retained, not deleted — every pre-K-IV figure in this repo was produced at it, so reproducing one means passing it explicitly. Nothing defaults to it. |
 
 ---
 
 ## Domain balance — the denominator problem
 
-*Added 2026-08-05. This is a property of the calibration set, not of any one
-constant, and it conditions how every measured result in this repo should be
-read.*
+*Added 2026-08-05. Updated 2026-08-08 after Block K-IV. This is a property of
+the calibration set, not of any one constant, and it conditions how every
+measured result in this repo should be read.*
+
+> **PARTLY CLOSED (Block K-IV, 2026-08-08).** Putting `KNOWLEDGE_EOH_BASE` on
+> its measured O\*NET/BLS footing cut the personal share from a flat 87–96%
+> across the whole arc to **94.3% → 51.1%**, and knowledge is now the largest
+> non-personal domain at the top. The table below is the POST-adoption picture;
+> the pre-adoption figures are kept in the second table for comparison.
+>
+> **What is still open.** `ECOLOGICAL_BASE_RATE` was untouched and the
+> ecological domain is still ~0.04% of total EOH at 0.71 h/person·yr — the
+> "relative anchor summed with absolute counts" defect is unresolved. And
+> personal still dominates the LOW arc (94% at ε=0), where there is no
+> apparatus for knowledge to attach to, so `PERSONAL_EOH_BASE` and ATUS still
+> own the denominator there. **Two of the three original consequences stand**:
+> ε remains a personal-domain number at low ε, and the thermal obligation is
+> still ~0.1% of the ledger.
+>
+> Reproduce with `python3 utils/eoh_cli.py arc --domain-shares`.
+
+### Post-K-IV (current)
+
+| Domain | ε = 0 | ε = 0.40 | ε = 0.99 |
+|---|---|---|---|
+| personal | 94.3% | 84.4% | 51.1% |
+| infrastructure | 4.8% | 7.7% | 7.7% |
+| knowledge | 0.8% | **7.9%** | **41.2%** |
+| ecological | <0.1% | <0.1% | <0.1% |
+
+*A CLI bug was fixed alongside: `arc` passed the corpus size `kbs` into the
+base-RATE slot (`knowledge_base=`) while the actual kbs argument
+(`knowledge_complexity=`) stayed at its 1.0 default, so the arc's knowledge
+column had been under-reported by a factor of `KNOWLEDGE_EOH_BASE` for the whole
+life of the command and never responded to the constant at all.*
+
+### Pre-K-IV (retained for comparison)
 
 ε is defined as machine-fulfilled EOH over total EOH. Running `total_eoh()` at
 defaults for a population of 1M:

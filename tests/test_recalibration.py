@@ -96,10 +96,14 @@ class TestPhiActual:
         assert not r["cap_binding"]
 
     def test_dilution_cap_binds_high_eps(self):
-        # The honest cost of never forcing sales: φ caps at ≈ 0.66 vs 0.99.
+        # The honest cost of never forcing sales: φ caps below the target.
+        # K-IV moved the cap UP, 0.66 → 0.754: the larger machine-output base
+        # means more NEW capital is commissioned per period, and the commons'
+        # share attaches to new capital, so the no-forced-sales ceiling rises.
+        # φ → 1 still survives only asymptotically.
         r = phi_actual(0.99, "dilution")
         assert r["cap_binding"]
-        assert 0.6 < r["phi"] < 0.7
+        assert 0.73 < r["phi"] < 0.78
         assert r["phi_target"] > 0.98
 
     def test_dilution_non_decreasing(self):
@@ -255,17 +259,33 @@ class TestCommonsIncomeStatement:
             eps, phi_policy="target")["dividend_per_capita"]
         assert d_charter >= d_purchase
 
-    def test_doctrine_dividend_smaller_at_the_cap(self):
-        # The honest cost at high ε: the purchase model's 1,287 needs forced
-        # sales; the charter's ≈ 1,092 does not. (Both fell ~31% with the
-        # PERSONAL_EOH_BASE reprice; the RATIO — the price of no forced sales —
-        # is what this test is about and it is unchanged at ≈ 15%.)
+    def test_doctrine_dividend_no_longer_costs_anything_at_the_cap(self):
+        """
+        FINDING REVERSED BY BLOCK K-IV — the price of no forced sales is gone.
+
+        Previously the charter/dilution doctrine paid a visible price at the top
+        of the arc: ≈1,092 against the purchase model's ≈1,287, roughly 15%
+        less, and that gap was quoted as the honest cost of never forcing a
+        sale. It has closed and inverted — dilution now pays MORE at every ε,
+        including 2,162 vs 1,986 at ε = 0.99.
+
+        Mechanism: K-IV grew machine output (+70% at ε = 0.99), so more new
+        capital is commissioned each period. The commons' share attaches to NEW
+        capital under dilution, lifting its φ cap 0.66 → 0.754, while the
+        purchase model still spends commons income ACQUIRING capital, which is
+        deducted before the dividend.
+
+        Comms consequence: do not quote "the charter costs ~15% of the
+        dividend". At this calibration it costs nothing, and the argument for
+        the purchase model is now only that it reaches a higher φ.
+        """
         d_charter = commons_income_statement(
             0.99, phi_policy="dilution")["dividend_per_capita"]
         d_purchase = commons_income_statement(
             0.99, phi_policy="target")["dividend_per_capita"]
-        assert d_charter < d_purchase
-        assert d_charter > 1_000.0
+        assert d_charter > d_purchase
+        assert d_charter / d_purchase == pytest.approx(1.089, abs=0.02)
+        assert d_charter > 2_000.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
         # §8.9a honest finding: dφ/dε outruns tiny machine output early.
@@ -292,7 +312,13 @@ class TestCommonsIncomeStatement:
         # never a sale (point level ignores the slow estate flow).
         for eps in KEY_EPS:
             r = commons_income_statement(eps, phi_policy="dilution")
-            assert r["private_capital_delta_per_year"] >= -1e-6
+            delta = r["private_capital_delta_per_year"]
+            scale = max(abs(r["machine_output"]), 1.0)
+            # Relative tolerance: the flat region is exactly flat in intent, and
+            # the residual is float noise on a ~1e8-1e10 magnitude. An absolute
+            # 1e-6 bound was tighter than double precision allows once K-IV grew
+            # the capital base.
+            assert delta >= -1e-9 * scale
 
     def test_absolute_delta_reported(self):
         # The B-reporting fix: absolute TEH/yr alongside the rate.
@@ -589,11 +615,15 @@ class TestRecalibratedArc:
         # phi_policy="target" reproduces the published §8.9a numbers.
         rows = recalibrated_arc(21, phi_policy="target")
         last = rows[-1]
+        # φ is capital-structure only and is UNMOVED by K-IV — the anchor's
+        # structural half still holds exactly. The dividend rides machine
+        # output, so it moved with it: 1,286.55 → 1,985.89 (+54%), and
+        # self-financing arrives earlier, ε 0.792 → 0.693.
         assert last["phi"] == pytest.approx(0.9865338, rel=1e-5)
-        assert last["dividend_per_capita"] == pytest.approx(1286.55, rel=1e-4)
+        assert last["dividend_per_capita"] == pytest.approx(1985.89, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
-        assert rows[first_self]["epsilon"] == pytest.approx(0.792, abs=0.001)
+        assert rows[first_self]["epsilon"] == pytest.approx(0.693, abs=0.001)
         assert not any(r["acquisition_feasible"] for r in rows if r["epsilon"] < 0.15)
 
     def test_point_arc_consistency_dilution(self):

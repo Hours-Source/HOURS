@@ -23,7 +23,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
     guf_integration  guf_writedown  guf_sweep
 
   Measured inputs (the measurement spine):
-    measured_sim  multiplier_sensitivity  infra_floor
+    measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -58,6 +58,8 @@ Key options (not all apply to every scenario):
   --capital-stock TEH          Apparatus capital (overbuild)
   --adult-capacity H           Adult annual labour capacity (feasibility)
   --adult-share F              Adult share of population (feasibility)
+  --epsilon-ref ε              Anchoring ε for the measured O*NET workforce
+                               (knowledge_base; default: 0.40)
 """
 
 from __future__ import annotations
@@ -97,6 +99,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
+    "knowledge_base":      "knowledge_base_band() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock; REPORTING ONLY  [--epsilon-ref]",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
@@ -215,6 +218,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        help=f"Annual planetary radiative obligation in EOH-hours "
                             f"(thermal_load; default: {REFERENCE_THERMAL_FLOW_EOH:,.0f} "
                             f"— the ε=0.40 reference for 1M people)")
+
+    run_p.add_argument("--epsilon-ref", type=float, default=0.40,
+                       dest="epsilon_ref", metavar="EPS",
+                       help="Reference automation level the measured O*NET "
+                            "workforce is anchored at (knowledge_base; default: "
+                            "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
+                            "[0.2, 0.6]; the band is reported regardless")
 
     run_p.set_defaults(func=_run)
 
@@ -433,6 +443,48 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "infra_floor":
         from hours_eoh.scenarios.infrastructure_floor import doctrine_floor_invariance
         return doctrine_floor_invariance()
+
+    if name == "knowledge_base":
+        from hours_eoh.scenarios.knowledge_base import (
+            domain_share_projection, knowledge_base_band,
+            renewal_doctrine_comparison, workforce_training_stock,
+        )
+        band = knowledge_base_band()
+        stock = workforce_training_stock()
+        proj = domain_share_projection(epsilon_ref=args.epsilon_ref)
+        doc = renewal_doctrine_comparison(epsilon_ref=args.epsilon_ref)
+        kb_out: dict = {
+            "measured_mean_hours_per_worker": stock["mean_hours_per_worker"],
+            "covered_employment":             stock["covered_employment"],
+            "winsorized_per_tail":            stock["n_winsorized_low"],
+            "embodied_stock_per_capita":      doc["embodied_stock_per_capita"],
+            "shipped_base_rate":              band["shipped_base_rate"],
+            "base_rate_low":                  band["base_rate_low"],
+            "base_rate_high":                 band["base_rate_high"],
+            "epsilon_ref_spread":             band["epsilon_ref_spread"],
+            "route_spread":                   band["route_spread"],
+            "dominant_uncertainty":           band["dominant_uncertainty"],
+            "note":                           band["note"],
+        }
+        for row in band["rows"]:
+            key = f"base@eps_ref={row['epsilon_ref']:.2f}_{row['route']}"
+            kb_out[key] = row["base_rate"]
+        for dname, dd in doc["doctrines"].items():
+            kb_out[f"renewal_rate_{dname}"] = dd["renewal_rate"]
+            kb_out[f"h_per_worker_yr_{dname}"] = dd["hours_per_worker_year"]
+            kb_out[f"work_year_share_{dname}"] = dd["work_year_share"]
+            kb_out[f"credible_{dname}"] = dd["credible"]
+        kb_out["renewal_verdict"] = doc["verdict"]
+        kb_out["projection_decay"] = proj["decay"]
+        for row in proj["rows"]:
+            kb_out[f"projected_knowledge_h_pc@eps={row['epsilon']:.2f}"] = \
+                row["knowledge_h_per_capita"]
+            kb_out[f"projected_personal_share@eps={row['epsilon']:.2f}"] = \
+                row["personal_share"]
+            kb_out[f"projected_knowledge_share@eps={row['epsilon']:.2f}"] = \
+                row["knowledge_share"]
+        kb_out["projection_note"] = proj["note"]
+        return kb_out
 
     # -- thermal obligation ---------------------------------------------------
 

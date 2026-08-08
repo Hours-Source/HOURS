@@ -36,6 +36,8 @@ from hours_eoh.data import (
     CANONICAL_KNOWLEDGE_COMPLEXITY_EXP,
     CANONICAL_ECOSYSTEM_HEALTH_BASE,
     CANONICAL_ECOSYSTEM_HEALTH_DRIFT,
+    KNOWLEDGE_EOH_BASE,
+    SKILL_TRANSMISSION_RATE,
 )
 
 
@@ -274,17 +276,18 @@ class TestPhysicalStateAPI:
 
     def test_knowledge_eoh_no_epsilon(self):
         # Without epsilon, complexity_per_unit defaults to 1.0
-        result = knowledge_eoh(knowledge_base_size=5.0, skill_decay_rate=0.10)
-        assert result == pytest.approx(100_000.0 * 5.0 * 1.0 * 0.10)
+        result = knowledge_eoh(knowledge_base_size=5.0,
+                               skill_decay_rate=SKILL_TRANSMISSION_RATE)
+        assert result == pytest.approx(KNOWLEDGE_EOH_BASE * 5.0 * 1.0 * SKILL_TRANSMISSION_RATE)
 
     def test_knowledge_eoh_explicit_complexity(self):
         # Explicit complexity_per_unit used directly
         result = knowledge_eoh(
             knowledge_base_size=5.0,
-            skill_decay_rate=0.10,
+            skill_decay_rate=SKILL_TRANSMISSION_RATE,
             complexity_per_unit=3.0,
         )
-        assert result == pytest.approx(100_000.0 * 5.0 * 3.0 * 0.10)
+        assert result == pytest.approx(KNOWLEDGE_EOH_BASE * 5.0 * 3.0 * SKILL_TRANSMISSION_RATE)
 
     def test_total_eoh_no_epsilon(self):
         result = total_eoh(

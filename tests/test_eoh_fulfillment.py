@@ -282,10 +282,42 @@ class TestEohToTehPipeline:
         result = eoh_to_teh_pipeline(epsilon=0.10)
         pers   = result["registration_by_domain"]["personal"]
         non_p  = result["registration_by_domain"]["non_personal"]
-        assert non_p > pers + 0.20, (
-            f"Non-personal ({non_p:.3f}) should be much higher than personal "
+        assert non_p > pers + 0.10, (
+            f"Non-personal ({non_p:.3f}) should be materially higher than personal "
             f"({pers:.3f}) at ε=0.10"
         )
+
+    def test_knowledge_drags_the_non_personal_registration_composite(self):
+        """
+        BLOCK K-IV CONSEQUENCE, and the mission statement predicted it: "admitting
+        knowledge EOH to the collective ledger will require careful consideration."
+
+        `non_personal` is a composite weighted by human EOH volume across
+        infrastructure + ecological + knowledge, and knowledge carries its own,
+        much harder, verification-difficulty sigmoid. Pre-K-IV knowledge was
+        0.005% of EOH so its low registration was invisible; now it is ~8% at
+        mid-arc and ~41% at the top, and it pulls the composite well below the
+        labour-registration curve.
+
+        Consequence for the ledger: less EOH is admitted, so less TEH is minted.
+        That is the correct behaviour — labour whose output cannot be verified
+        should not mint currency — but it is a real change in fiscal output and
+        is pinned here so it is not mistaken for a regression.
+        """
+        from hours_eoh.core.registration import (
+            knowledge_eoh_registration_share, total_registration_share,
+        )
+        for eps in (0.40, 0.99):
+            composite = eoh_to_teh_pipeline(
+                epsilon=eps)["registration_by_domain"]["non_personal"]
+            assert knowledge_eoh_registration_share(eps) < composite < \
+                total_registration_share(eps), (
+                "the composite must sit between the hard knowledge sigmoid and "
+                "the easier labour-registration curve it is blended with"
+            )
+        mid = eoh_to_teh_pipeline(
+            epsilon=0.40)["registration_by_domain"]["non_personal"]
+        assert mid == pytest.approx(0.234, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""
