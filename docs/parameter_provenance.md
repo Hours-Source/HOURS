@@ -68,13 +68,41 @@ per the additive-not-destructive rule: it is the value every earlier result was
 produced at. It owes no `resolves_by`, `band` or `decided_by`, because those
 obligations exist so a *live* value can be improved.
 
-A retired constant must not still be read on the operative path — `core/`,
-`land/` or `scenarios/`. `research/` may keep a superseded arm, which is what
-that layer is for. Only **two** constants qualify (`CONTESTABILITY_PHI_FLOOR` and
-`CONTESTABILITY_PHI_EXPONENT`, both research-only); `DEFAULT_SEGMENTS` and
-`SKILL_DECAY_RATE` were checked against the same rule and stay in the debt count,
-because `core/multipliers.py` and `core/eoh_generation.py` respectively still
-read them.
+**Retirement is verified, not asserted.** `test_retired_constants_have_no_operative_consumers`
+checks that nothing in `core/`, `land/` or `scenarios/` still reads it —
+`research/` may keep a superseded arm, which is what that layer is for. The check
+earned its place immediately: it falsified **two of the four** retirement claims
+made when it was written. `DEFAULT_SEGMENTS` was still the live default in
+`core/multipliers.py:82` and `core/dashboard.py:493`, and `SKILL_DECAY_RATE` was
+still read by `core/eoh_generation.py`. Both went back into the debt count rather
+than the check being loosened. Only **two** constants qualify, both research-only.
+
+## Checking the guides
+
+`docs/parameter_provenance.md` is safe by construction — its tables are generated
+from `data.py`. **`docs/guides/` is not.** It is hand-written prose, it is the
+first thing an outside analyst reads, and nothing checked it until 2026-08-09,
+when `docs/guides/implementation_guide.md` was found to be advertising
+`PERSONAL_EOH_BASE = 1500` after the reprice to 1000, listing six constants as
+"physics" to be left at their defaults when **none of them is physics**, pointing
+institutions at a deprecated parameter, and calling `contestability_margin()` —
+the bare χ that §8.9 superseded — in its worked example.
+
+Four checks now run over every file in `docs/guides/`:
+
+| Check | Catches |
+|---|---|
+| `test_guides_do_not_quote_stale_constant_values` | any `NAME = number` claim that contradicts `data.py` |
+| `test_guides_do_not_use_the_retired_tag_vocabulary` | teaching the retired binary Physics/Calibration scheme |
+| `test_guides_do_not_name_constants_that_no_longer_exist` | a backticked constant that is not in `data.py` |
+| `test_there_are_guides_to_check` | the glob silently matching nothing |
+
+**What this does not close.** The value check is value-equality, so it sees a
+constant repriced while the sentence naming it stays put — the drift that
+actually happened. It cannot see a *derived product* restated in prose (as
+`docs/parameter_provenance.md` handles with a curated stale-figure test), nor a
+narrative paragraph that goes stale in a way no field captures. That residual is
+a human problem, and saying so is better than implying otherwise.
 
 > **Why `CHOSEN` was split (author decision 2026-08-09).** One tag was covering
 > three different epistemic states, and lumping them distorted the picture in both

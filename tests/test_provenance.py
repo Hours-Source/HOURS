@@ -837,3 +837,98 @@ def test_superseded_by_accepts_a_module_path():
         "ALPHA: float = 1.0\n"
     )
     assert not pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+
+
+def test_retired_constants_have_no_operative_consumers(scanned):
+    """`retired` is verified, not asserted.
+
+    A constant excluded from the debt count on the grounds that it governs no
+    current output must actually govern none. This check falsified two of the
+    four retirement claims made on 2026-08-09 — `DEFAULT_SEGMENTS` was the live
+    default in `core/multipliers.py`, and `SKILL_DECAY_RATE` was still read by
+    `core/eoh_generation.py` — and both were returned to the debt count rather
+    than the check being loosened.
+    """
+    for r in scanned.records:
+        if not r.retired:
+            continue
+        hits = pv.operative_consumers(r.name)
+        assert not hits, (
+            f"{r.name} is marked superseded_by {r.superseded_by!r} but "
+            f"{', '.join(pv.OPERATIVE_LAYERS)} still read it at "
+            f"{', '.join(hits[:5])}. Either rewire those callers to the "
+            "replacement, or drop superseded_by and count it as debt."
+        )
+
+
+# --- the guides -------------------------------------------------------------
+#
+# `docs/parameter_provenance.md` is safe by construction: its tables are
+# GENERATED from data.py. `docs/guides/` is not — it is hand-written prose, it
+# is the first thing an outside analyst reads, and until 2026-08-09 it advertised
+# `PERSONAL_EOH_BASE = 1500` three days after the reprice to 1000, told
+# institutions to keep six constants at their defaults as "physics" when only two
+# constants in the whole repo are physics, and pointed them at a deprecated
+# parameter. None of that was catchable by the existing gate, because the
+# existing gate never looked outside data.py.
+
+
+def _guide_docs():
+    return sorted(pv.GUIDES_DIR.glob("*.md"))
+
+
+def test_there_are_guides_to_check():
+    """Guard the guard: an empty glob must not read as a pass."""
+    assert _guide_docs(), f"no guides found under {pv.GUIDES_DIR}"
+
+
+@pytest.mark.parametrize("path", _guide_docs(), ids=lambda p: p.name)
+def test_guides_do_not_quote_stale_constant_values(path, scanned):
+    """Every `NAME = number` claim in a guide must match data.py.
+
+    This is a value-equality check, so it sees the class of drift that actually
+    happened — a constant repriced in data.py while the sentence naming it in a
+    guide stayed put. It cannot see a derived product restated in prose; that
+    residual is covered for the provenance doc by the curated stale-figure test
+    above, and remains a human problem here, which the guides say plainly.
+    """
+    stale = pv.stale_doc_claims(path.read_text(encoding="utf-8"), scanned)
+    assert not stale, f"{path.name} quotes stale value(s): " + "; ".join(stale)
+
+
+@pytest.mark.parametrize("path", _guide_docs(), ids=lambda p: p.name)
+def test_guides_do_not_use_the_retired_tag_vocabulary(path):
+    """The binary Physics|Calibration scheme is retired; guides must not teach it.
+
+    It is not a cosmetic rename. That scheme is what let six constitutional
+    commitments and desk estimates be filed as "physics" and handed to an
+    analyst as things not to touch.
+    """
+    text = path.read_text(encoding="utf-8")
+    banned = {
+        "physics/calibration split": "the retired binary scheme",
+        "physics parameters)": "presents a tag as a class of parameter",
+        "calibration parameters)": "presents a tag as a class of parameter",
+    }
+    found = [f"{s!r} ({why})" for s, why in banned.items() if s in text.lower()]
+    assert not found, f"{path.name} uses retired provenance vocabulary: " + "; ".join(found)
+
+
+@pytest.mark.parametrize("path", _guide_docs(), ids=lambda p: p.name)
+def test_guides_do_not_name_constants_that_no_longer_exist(path, scanned):
+    """A guide pointing at a deleted or renamed constant sends an analyst nowhere."""
+    text = path.read_text(encoding="utf-8")
+    known = set(scanned.by_name)
+    # Only backticked ALL-CAPS identifiers, so prose words and headings are safe.
+    named = set(re.findall(r"`([A-Z][A-Z0-9_]{4,})`", text))
+    # Names that look like constants but belong to other namespaces.
+    exempt = {"AGE_GROUPS_DEFAULT", "TEH", "EOH", "GUF", "NLSA", "ATUS", "CHOSEN"}
+    missing = sorted(
+        n for n in named - known - exempt
+        # A trailing underscore is a PREFIX reference ("prefixed `CANONICAL_`"),
+        # not a claim that a constant by that name exists.
+        if "_" in n and not n.endswith("_")
+    )
+    assert not missing, (
+        f"{path.name} names constant(s) not in data.py: {', '.join(missing)}"
+    )

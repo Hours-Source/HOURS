@@ -855,6 +855,105 @@ def doc_table(records: Iterable[Record]) -> str:
     return "\n".join(out)
 
 
+# --- claims made about constants outside data.py ----------------------------
+
+PACKAGE_ROOT = DATA_PY.parent
+GUIDES_DIR = PROVENANCE_DOC.parent / "guides"
+
+#: A constant named in prose with a value attached: ``PERSONAL_EOH_BASE = 1500``,
+#: ``TRUST_BASE_TEH = 35B``, ``DEP_RATE ≈ 0.045``. Backticks and markdown
+#: emphasis around the name are tolerated because that is how docs write it.
+_DOC_CLAIM = re.compile(
+    r"`?\*{0,2}([A-Z][A-Z0-9_]{3,})\*{0,2}`?\s*(?:=|≈|:)\s*"
+    r"([0-9][0-9_,]*(?:\.[0-9]+)?)\s*([BMk])?\b"
+)
+
+_SUFFIX = {"B": 1e9, "M": 1e6, "k": 1e3}
+
+
+def doc_constant_claims(text: str) -> list[tuple[str, float, str]]:
+    """Every ``NAME = number`` claim in a prose document.
+
+    Returns ``(name, parsed_value, as_written)``. Names not defined in
+    ``data.py`` are the caller's problem to filter — a doc may legitimately
+    name a params key or a local variable.
+    """
+    out: list[tuple[str, float, str]] = []
+    for m in _DOC_CLAIM.finditer(text):
+        raw = m.group(2).replace(",", "").replace("_", "")
+        try:
+            value = float(raw)
+        except ValueError:  # pragma: no cover - regex guarantees a number
+            continue
+        if m.group(3):
+            value *= _SUFFIX[m.group(3)]
+        out.append((m.group(1), value, m.group(0).strip()))
+    return out
+
+
+def stale_doc_claims(
+    text: str, scanned: Scan, *, rel_tol: float = 1e-9
+) -> list[str]:
+    """Claims in ``text`` that contradict the value ``data.py`` actually holds.
+
+    This is the check the generated-table machinery cannot make. Tables are
+    rendered from the source and so are current by construction; hand-written
+    prose that names a constant and quotes a number is where drift hides — it
+    is exactly how the implementation guide came to advertise
+    ``PERSONAL_EOH_BASE = 1500`` for three days after the reprice to 1000.
+    """
+    values = scanned.by_name
+    bad: list[str] = []
+    for name, claimed, written in doc_constant_claims(text):
+        record = values.get(name)
+        if record is None:
+            continue
+        try:
+            actual = float(record.value)
+        except ValueError:
+            continue  # a dict/list constant: no scalar claim to check
+        if actual == claimed:
+            continue
+        if actual and abs(actual - claimed) <= rel_tol * abs(actual):
+            continue
+        bad.append(f"{written!r} but data.py has {name} = {record.value}")
+    return bad
+
+
+#: Layers whose code is an operative path. ``research/`` is excluded on purpose:
+#: keeping a superseded arm callable, next to the adopted one, is what that layer
+#: is for (``contestability_ceiling_bare_chi`` is the standing precedent).
+OPERATIVE_LAYERS: tuple[str, ...] = ("core", "land", "scenarios")
+
+
+def operative_consumers(name: str, root: Path | None = None) -> list[str]:
+    """Operative-layer lines that read ``name``, as ``path:line``.
+
+    Holds ``superseded_by`` to its word. A retired constant that ``core/`` still
+    reads is not retired — it is a second, older parameter running in parallel
+    with its replacement, which is strictly worse than never having split it.
+
+    Scoped to ``OPERATIVE_LAYERS`` rather than the whole package because the
+    honest claim is layer-shaped: nothing on the stable path may depend on a
+    value the framework has moved off, while ``research/`` may keep the old arm
+    to report the disagreement.
+    """
+    base = root or PACKAGE_ROOT.parent
+    pattern = re.compile(rf"\b{re.escape(name)}\b")
+    hits: list[str] = []
+    for layer in OPERATIVE_LAYERS:
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            for n, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1
+            ):
+                code = line.split("#", 1)[0]
+                if pattern.search(code):
+                    hits.append(f"{path.relative_to(base)}:{n}")
+    return hits
+
+
 # --- doc region rewriting ---------------------------------------------------
 
 _CLOSE = "<!-- /provenance:table -->"
