@@ -514,7 +514,8 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "personal_floor":
         from hours_eoh.scenarios.personal_floor import (
-            floor_arc, floor_vs_constants, identity_report, observed_hours,
+            climate_conditioning, floor_arc, floor_vs_constants, identity_report,
+            observed_hours,
         )
         report = identity_report(year=args.atus_year, epsilon=epsilon,
                                  convention=args.convention)
@@ -539,6 +540,16 @@ def _dispatch(args: argparse.Namespace) -> object:
         for cname, value in constants["constants_per_capita"].items():
             pf_out[f"{cname}_per_capita"] = value
             pf_out[f"floor_share_of_{cname}"] = constants["floor_share_of"][cname]
+        # The climate caveat travels WITH the number, not in a docstring: the one
+        # priced component is a rainfed tropical smallholder measurement.
+        climate = climate_conditioning()
+        pf_out["priced_and_climate_conditioned"] = ", ".join(
+            climate["priced_and_climate_conditioned"]) or "none"
+        pf_out["agro_ecology_of_measurement"] = climate["agro_ecology_of_measurement"]
+        pf_out["transfer_bias_sign"] = (
+            "undetermined" if climate["transfer_bias_sign"] is None else
+            climate["transfer_bias_sign"])
+        pf_out["climate_verdict"] = climate["verdict"]
         pf_out["verdict"] = constants["verdict"]
         pf_out["note"] = report["note"]
         return pf_out

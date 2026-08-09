@@ -65,8 +65,13 @@ from hours_eoh.data import (
 )
 from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.personal_basket import (
+    CLIMATE_CONDITIONING,
+    CLIMATE_NOTES,
     FULL_BASKET,
+    LSMS_AGRO_ECOLOGY,
+    LSMS_COUNTRIES,
     NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
+    NUTRITION_TRANSFER_BIAS_SIGN,
 )
 from hours_eoh.scenarios.feasibility import age_weight_mean
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:
@@ -264,5 +269,57 @@ def floor_vs_constants(epsilon: float = 0.0, basket: list[dict] | None = None) -
             "the desk estimate's own weights — and falsifies nothing yet; it is a "
             "strict lower bound and the constants sit above it, which is the only "
             "ordering compatible with that coverage"
+        ),
+    }
+
+
+def climate_conditioning(basket: list[dict] | None = None) -> dict:
+    """
+    Where latitude enters the floor, per component — the caveat that must travel
+    with any figure this module returns.
+
+    The basket's quantity / hours_per_unit split already separates what is OWED
+    from what delivery COSTS, and climate lands almost entirely in the second.
+    This reports which kind each component is, and flags the priced ones —
+    because a costed component carries its measurement's climate with it, and an
+    uncosted one does not yet carry anything.
+
+    units: none — provenance, not a quantity.
+
+    ε-behavior: none. Climate conditioning is a property of the measurement and
+    of the physical requirement, not of the automation level.
+
+    Worked example: at the shipped basket exactly one component is priced,
+    `nutrition_production`, and it is `delivery`-conditioned — 331 h/person·yr is
+    a rainfed tropical smallholder figure and does not transfer to a boreal
+    collective without restratification. `transfer_bias_sign` is None because the
+    direction is genuinely undetermined, not because it is unknown to the caller.
+    """
+    components = basket if basket is not None else FULL_BASKET
+    rows = []
+    for component in components:
+        name = component["component"]
+        rows.append({
+            "component": name,
+            "priced": component["hours_per_unit"] is not None,
+            "conditioning": CLIMATE_CONDITIONING.get(name, "unstated"),
+            "note": CLIMATE_NOTES.get(name, ""),
+        })
+    priced_conditioned = [
+        r["component"] for r in rows
+        if r["priced"] and r["conditioning"] in ("delivery", "quantity_is_climate")
+    ]
+    return {
+        "rows": rows,
+        "agro_ecology_of_measurement": LSMS_AGRO_ECOLOGY,
+        "countries": LSMS_COUNTRIES,
+        "priced_and_climate_conditioned": priced_conditioned,
+        "transfer_bias_sign": NUTRITION_TRANSFER_BIAS_SIGN,
+        "verdict": (
+            f"{len(priced_conditioned)} of the priced components carry their "
+            f"measurement's climate. The floor is quotable for "
+            f"{LSMS_AGRO_ECOLOGY.split(' — ')[0]} and is out of scope elsewhere "
+            f"until restratified; the direction of the error is undetermined, so "
+            f"it is not asserted."
         ),
     }

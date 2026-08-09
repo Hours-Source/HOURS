@@ -74,6 +74,33 @@ separately, unreachable kept distinct from zero.
 Care is therefore declared with a quantity and NO delivery productivity, exactly
 like the other uncosted components. Naming it does not price it.
 
+CLIMATE — WHERE LATITUDE ENTERS
+--------------------------------
+Climate mostly changes what delivery COSTS, not what is OWED, and the basket's
+quantity / hours_per_unit split already separates the two. `CLIMATE_CONDITIONING`
+records which kind each component is.
+
+The consequence for the one number this module actually has: **331 h/person·yr
+is a rainfed tropical smallholder figure**, measured in seven Sub-Saharan
+countries with no irrigation and no frost-limited season. Applied to a boreal
+collective it is not conservative, it is out of scope — growing-season length
+alone changes the calculation, before storage and preservation labour is counted.
+The two-route convergence (331 vs 306, 7.6% apart) is evidence about the kcal
+chain and NOT about climate generality: both routes come from the same seven
+countries, so the climate uncertainty sits outside that spread, unquantified.
+
+The direction of the transfer bias is deliberately not asserted
+(`NUTRITION_TRANSFER_BIAS_SIGN = None`): shorter seasons and winter storage push
+hours per kcal up, deeper temperate soils and lower pest pressure push them down,
+and nothing here adjudicates.
+
+Two components are exceptions worth knowing. **Thermal** is the one place climate
+is the QUANTITY rather than the cost — degree-days are the requirement — which is
+why the personal obligation cannot be a global scalar once that term is costed.
+**Care** is climate-invariant in both quantity and delivery: a dependent needs the
+same attention at any latitude. That is the same structural fact Block II records
+as care's low abatability, reached from a different direction.
+
 Layer rule: `reference/` imports nothing from the package — these are data, and
 any layer may read them.
 
@@ -127,8 +154,26 @@ CARE_PERSON_YEARS: float = 1.0
 # Delivery productivity — measured where it has been measured
 # ---------------------------------------------------------------------------
 
+#: The seven LSMS-ISA countries behind every nutrition figure in this module.
+#: ALL Sub-Saharan; none temperate, none boreal, none irrigated (the unassisted
+#: stratum excludes irrigation by construction, so this is RAINFED cultivation).
+LSMS_COUNTRIES: tuple[str, ...] = (
+    "Ethiopia", "Malawi", "Mali", "Niger", "Nigeria", "Tanzania", "Uganda",
+)
+
+#: The agro-ecology the measured delivery productivity belongs to. Stated as a
+#: constant rather than a docstring aside because it BOUNDS the number's scope:
+#: `NUTRITION_HOURS_PER_KCAL` is not a global constant, it is the delivery
+#: productivity of rainfed smallholder cultivation in these zones.
+LSMS_AGRO_ECOLOGY: str = (
+    "rainfed tropical and sub-tropical Sub-Saharan Africa — Sahelian (Mali, "
+    "Niger), tropical highland (Ethiopia, Uganda) and tropical savanna "
+    "(Malawi, Nigeria, Tanzania); single or bimodal rainfed growing seasons, "
+    "no irrigation, no frost-limited season"
+)
+
 #: LSMS-ISA unassisted stratum, median-of-ratios across 7 countries.
-#: kcal produced per labour-DAY. MEASURED.
+#: kcal produced per labour-DAY. MEASURED — in the agro-ecology above.
 LSMS_KCAL_PER_LABOUR_DAY: float = 13907.0
 
 #: Hours per labour-day. CALIBRATED, not assumed: plot-level `total_labor_days`
@@ -145,6 +190,12 @@ NUTRITION_HOURS_PER_KCAL: float = 1.0 / LSMS_KCAL_PER_LABOUR_HOUR
 #: than asserted: observed family crop labour of 167 h/household-member/yr at a
 #: median crop self-sufficiency of 0.55 scales to ~306 h/person/yr, against the
 #: 331 the kcal route gives. Two routes, one shared variable, 6% apart.
+#:
+#: WHAT THE CONVERGENCE DOES NOT SHOW. Both routes are computed from the SAME
+#: seven countries, so their agreement is evidence about the kcal chain and says
+#: nothing whatever about whether 331 h transfers to another agro-ecology. The
+#: climate uncertainty is NOT inside the 7.6% spread; it is unquantified and
+#: sits outside it.
 NUTRITION_CROSSCHECK_HOURS_PER_YEAR: float = 306.0
 
 #: The automation level below which the health basket has no delivery path.
@@ -324,3 +375,85 @@ ENTITLEMENT_AUGMENTATION: list[dict] = [
 #: The whole basket. Note that `coverage` over this list is dominated by what is
 #: unmeasured — which is the honest reading of the parameter's current state.
 FULL_BASKET: list[dict] = SURVIVAL_CORE + ENTITLEMENT_AUGMENTATION
+
+# ---------------------------------------------------------------------------
+# Climate conditioning — where latitude enters, per component
+# ---------------------------------------------------------------------------
+
+#: How climate bears on each component. Four kinds, and the distinction is the
+#: point: climate mostly changes what delivery COSTS, not what is OWED.
+#:
+#:   quantity_is_climate  the requirement IS a climate variable
+#:   delivery             the quantity is climate-invariant; the hours to
+#:                        deliver it are not
+#:   quantity_weak        the quantity moves with climate, but second-order
+#:   none                 neither the quantity nor its delivery depends on it
+CLIMATE_CONDITIONING: dict[str, str] = {
+    "nutrition_production": "delivery",
+    "nutrition_processing": "delivery",
+    "water": "delivery",
+    "shelter": "delivery",
+    "thermal": "quantity_is_climate",
+    "sanitation": "delivery",
+    "care": "none",
+    "health": "delivery",
+}
+
+#: Per-component detail, for the caveat that has to travel with any figure.
+CLIMATE_NOTES: dict[str, str] = {
+    "nutrition_production": (
+        f"THE ONLY PRICED COMPONENT, AND IT IS CLIMATE-SPECIFIC. Measured in "
+        f"{LSMS_AGRO_ECOLOGY}. Growing-season length, harvests per year, "
+        f"frost-free days, crop mix and the storage/preservation labour needed "
+        f"to bridge a non-growing season all differ outside those zones. The "
+        f"figure does not transfer without restratification by agro-ecological "
+        f"zone."
+    ),
+    "nutrition_processing": (
+        "Fuel gathering and cooking scale with fuel availability and with how "
+        "much of the diet must be stored and preserved rather than eaten fresh "
+        "— both climate-driven."
+    ),
+    "water": (
+        "Hauling distance and seasonal availability are climate-driven; the "
+        "litres owed are only weakly so (heat raises requirement modestly)."
+    ),
+    "shelter": (
+        "Materials, insulation and the maintenance interval against weathering "
+        "differ by climate; the m² owed do not."
+    ),
+    "thermal": (
+        "THE ONE COMPONENT WHERE CLIMATE IS THE QUANTITY. Degree-days ARE the "
+        "requirement, so this term is latitude-indexed by construction and "
+        "cannot be a global scalar. The shipped 2,500 is a stated temperate "
+        "baseline, never costed."
+    ),
+    "sanitation": (
+        "Ground conditions, freeze depth and water availability change what "
+        "safe disposal costs; the service-year owed is invariant."
+    ),
+    "care": (
+        "CLIMATE-INVARIANT IN BOTH QUANTITY AND DELIVERY. A dependent needs "
+        "the same human attention at any latitude, and attention has no "
+        "climate-dependent delivery cost. Care is the largest component and "
+        "the only one for which this is true — which is the same structural "
+        "fact Block II records as its low abatability (the Baumol case), "
+        "arriving from a different direction."
+    ),
+    "health": (
+        "Disease burden is strongly climate-linked (vector range, seasonality), "
+        "so the intervention schedule and its delivery cost both shift; the "
+        "step-in threshold does not."
+    ),
+}
+
+#: The direction of the transfer bias is NOT determined by this data, and is
+#: deliberately not asserted — the repo's standing posture where a sign is
+#: undetermined. Two mechanisms run opposite: toward higher latitude a shorter
+#: single season and the storage labour to bridge winter push hours per kcal UP,
+#: while deeper temperate soils and lower pest and disease pressure push them
+#: DOWN. Nothing in the LSMS stratum adjudicates between them.
+#: resolves_by: restratification by agro-ecological zone, or a comparable
+#: time-allocation measurement in a temperate or boreal subsistence setting
+#: (the handoff's ethnographic time-allocation budgets).
+NUTRITION_TRANSFER_BIAS_SIGN: None = None

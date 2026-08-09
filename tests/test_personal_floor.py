@@ -24,18 +24,24 @@ from hours_eoh.data import (
 )
 from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.personal_basket import (
+    CLIMATE_CONDITIONING,
+    CLIMATE_NOTES,
     DIET_KCAL_PER_YEAR,
     ENTITLEMENT_AUGMENTATION,
     FULL_BASKET,
     HEALTH_MIN_EPSILON,
+    LSMS_AGRO_ECOLOGY,
+    LSMS_COUNTRIES,
     LSMS_KCAL_PER_LABOUR_HOUR,
     NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
     NUTRITION_HOURS_PER_KCAL,
+    NUTRITION_TRANSFER_BIAS_SIGN,
     SURVIVAL_CORE,
     _share,
 )
 from hours_eoh.scenarios.personal_floor import (
     OBSERVED_CONVENTIONS,
+    climate_conditioning,
     REFERENCE_POPULATION_US,
     floor_arc,
     floor_vs_constants,
@@ -474,3 +480,74 @@ class TestPIChangesNothing:
         assert personal_eoh(population=1e6, epsilon=0.0) == pytest.approx(
             1.475e9, rel=1e-6
         )
+
+
+class TestClimateProvenance:
+    """
+    The one priced number in the basket is a rainfed tropical smallholder
+    figure. These guard that the scope is STATED — a measurement whose
+    conditioning is undocumented gets quoted out of scope, which is how a
+    calibration becomes a claim it cannot support.
+    """
+
+    def test_the_measurement_names_its_countries(self):
+        assert len(LSMS_COUNTRIES) == 7
+        assert "Ethiopia" in LSMS_COUNTRIES and "Niger" in LSMS_COUNTRIES
+
+    def test_the_agro_ecology_is_stated_and_says_rainfed(self):
+        assert "rainfed" in LSMS_AGRO_ECOLOGY.lower()
+        assert "no irrigation" in LSMS_AGRO_ECOLOGY.lower()
+
+    def test_every_component_declares_how_climate_enters(self):
+        for component in FULL_BASKET:
+            name = component["component"]
+            assert name in CLIMATE_CONDITIONING, f"{name} has no climate conditioning"
+            assert CLIMATE_CONDITIONING[name] in (
+                "quantity_is_climate", "delivery", "quantity_weak", "none"
+            )
+            assert CLIMATE_NOTES.get(name), f"{name} has no climate note"
+
+    def test_thermal_is_the_one_place_climate_is_the_quantity(self):
+        quantity_kind = [
+            name for name, kind in CLIMATE_CONDITIONING.items()
+            if kind == "quantity_is_climate"
+        ]
+        assert quantity_kind == ["thermal"]
+
+    def test_care_is_climate_invariant(self):
+        """
+        The largest component is the only one climate does not touch — a
+        dependent needs the same attention at any latitude. Same structural fact
+        as Block II's low abatability for care, reached from another direction.
+        """
+        assert CLIMATE_CONDITIONING["care"] == "none"
+        invariant = [n for n, k in CLIMATE_CONDITIONING.items() if k == "none"]
+        assert invariant == ["care"]
+
+    def test_the_priced_component_is_flagged_as_carrying_its_climate(self):
+        report = climate_conditioning()
+        assert report["priced_and_climate_conditioned"] == ["nutrition_production"]
+
+    def test_transfer_bias_sign_is_withheld(self):
+        """
+        NOT unknown to the caller — genuinely undetermined by the data. Shorter
+        seasons push hours per kcal up, better temperate soils push them down,
+        and the LSMS stratum adjudicates neither. Asserting a direction here
+        would be the kind of claim the thermal layer refuses to make about an
+        undetermined budget sign.
+        """
+        assert NUTRITION_TRANSFER_BIAS_SIGN is None
+        assert climate_conditioning()["transfer_bias_sign"] is None
+
+    def test_convergence_is_not_evidence_of_climate_generality(self):
+        """
+        Both nutrition routes come from the same seven countries, so their 7.6%
+        agreement bounds the kcal chain and says nothing about transfer. The
+        climate uncertainty sits OUTSIDE that spread.
+        """
+        kcal_route = DIET_KCAL_PER_YEAR * NUTRITION_HOURS_PER_KCAL
+        spread = abs(kcal_route - NUTRITION_CROSSCHECK_HOURS_PER_YEAR) / kcal_route
+        assert spread < 0.10
+        # Both routes are priced off the same seven countries, so the tight
+        # spread cannot be read as climate generality.
+        assert climate_conditioning()["countries"] == LSMS_COUNTRIES
