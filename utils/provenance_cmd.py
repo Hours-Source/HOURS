@@ -85,11 +85,35 @@ def _check(args: argparse.Namespace) -> None:
                 [[t, str(n), f"{100.0 * n / tagged:.1f}%"] for t, n in counts.items()],
                 indent=2,
             ))
-            chosen = counts.get("CHOSEN", 0)
-            if chosen:
-                print(dim(f"  CHOSEN is the honest debt: {chosen} constants "
-                          f"({100.0 * chosen / tagged:.1f}%) await measurement, "
-                          f"each naming what would settle it."))
+
+        d = pv.debt_summary(scanned)
+        if d.total:
+            def row(label: str, n: int, meaning: str) -> list[str]:
+                return [label, str(n), f"{d.share(n):.1f}%", meaning]
+
+            print()
+            print(bold("Where the model stands"))
+            print(table(
+                ["", "count", "share", "what it means"],
+                [
+                    row("grounded", d.grounded,
+                        "structural, measured, derived, or a stated convention"),
+                    row("bounded", d.bounded,
+                        "picked inside a measured band — the band is the evidence"),
+                    row("placeholder", d.placeholder,
+                        "no measurement behind it at all — THE DEBT"),
+                    row("normative", d.normative,
+                        "a decision; no dataset retires it"),
+                ],
+                indent=2,
+            ))
+            print(dim(f"  Debt = bounded + placeholder = {d.debt} "
+                      f"({d.share(d.debt):.1f}%). The {d.normative} normative "
+                      "constants are NOT debt — they are commitments, and "
+                      "counting them as unmeasured would be a category error."))
+            if d.err_directions:
+                dirs = ", ".join(f"{k} {v}" for k, v in d.err_directions.items())
+                print(dim(f"  Bounded picks err: {dirs}"))
 
         blocks = scanned.blocks()
         if blocks:

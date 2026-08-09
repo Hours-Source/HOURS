@@ -9,19 +9,33 @@ shipped audit CSV and as the generated tables in
 
 The tag scheme is defined in ``docs/parameter_provenance.md`` §"The tag scheme":
 
-    physics    a structural claim about how entropy works
-    measured   read from an external empirical source
-    derived    computed from measured inputs by a stated formula
-    CHOSEN     set by judgement, not yet backed by measurement
+    physics      a structural claim about how entropy works
+    measured     read from an external empirical source
+    derived      computed from measured inputs by a stated formula
+    bounded      picked inside a MEASURED band — the band is evidence, the point
+                 is not. Must state its ``band`` and which way it ``errs``.
+    placeholder  no measurement stands behind it at all. The real debt.
+    normative    a decision, not measurable even in principle. Must state
+                 ``decided_by``, and may NOT claim a ``resolves_by``.
 
 plus two working sub-labels, ``derived-then-FROZEN`` (a derived value pinned at a
 reference epoch so it stays comparable across data vintages) and ``convention``
 (a stated denominator, not a claim about the world).
 
+The ``bounded`` / ``placeholder`` / ``normative`` split replaced a single
+``CHOSEN`` tag (author decision 2026-08-09). One tag was covering three different
+epistemic states, and lumping them distorted the picture in both directions: it
+made the calibration set look like 83% guesswork while *hiding* which constants
+are the actual debts. Worse, it filed charter decisions under "awaiting
+measurement" — a category error, since no dataset will ever settle what fraction
+of an estate should pass to heirs. ``normative`` therefore takes ``decided_by``
+and is forbidden a ``resolves_by``: the forbidding is the point.
+
 ``tier`` (A–D) is a *confidence sub-qualifier*, not a rival scheme: the thermal
-block already writes "measured (Tier A)". It is valid only on ``measured`` and
-``CHOSEN`` — a ``physics`` claim is not more or less well-sourced, it is
-structural or it is wrong.
+block already writes "measured (Tier A)". It is valid only where there is a source
+to grade — ``measured``, ``bounded`` and ``placeholder``. A ``physics`` claim is
+not more or less well-sourced, it is structural or it is wrong; and a ``normative``
+decision has no source at all.
 
 Inline format
 -------------
@@ -73,24 +87,61 @@ from typing import Any, Iterable, Mapping, Sequence
 
 # --- the scheme -------------------------------------------------------------
 
-#: The four tags. Anything else is a scheme violation, not a new category.
-TAGS: frozenset[str] = frozenset({"physics", "measured", "derived", "CHOSEN"})
+#: The six tags. Anything else is a scheme violation, not a new category.
+TAGS: frozenset[str] = frozenset(
+    {"physics", "measured", "derived", "bounded", "placeholder", "normative"}
+)
 
 #: Declared working sub-labels (docs/parameter_provenance.md §"The tag scheme").
 SUB_LABELS: frozenset[str] = frozenset({"derived-then-FROZEN", "convention"})
 
 VALID_TAGS: frozenset[str] = TAGS | SUB_LABELS
 
+#: Retired tags, kept named so the error message can say what to use instead.
+RETIRED_TAGS: dict[str, str] = {
+    "CHOSEN": "bounded (inside a measured band), placeholder (no measurement) or "
+              "normative (a decision, not measurable)",
+    "Physics": "physics",
+    "Calibration": "bounded, placeholder or normative",
+    "Physics-adjacent": "physics, or normative if it is a commitment",
+}
+
 #: Confidence sub-qualifier, valid only where a source can be more or less good.
 TIERS: frozenset[str] = frozenset({"A", "B", "C", "D"})
-TIER_ELIGIBLE_TAGS: frozenset[str] = frozenset({"measured", "CHOSEN"})
+TIER_ELIGIBLE_TAGS: frozenset[str] = frozenset(
+    {"measured", "bounded", "placeholder"}
+)
 
-#: Tags whose whole point is that no measurement stands behind the value yet, so
-#: the scheme requires each to name the evidence that would move it.
-NEEDS_POINTER: frozenset[str] = frozenset({"CHOSEN"})
+#: Tags that must name the evidence which would settle the value.
+NEEDS_POINTER: frozenset[str] = frozenset({"bounded", "placeholder"})
+
+#: A bounded value's band IS its evidence, and the direction it errs in is what
+#: several of this framework's most leveraged picks rest on ("erring high is the
+#: mortality-minimising error"). Both are required so a bounded constant with no
+#: stated band cannot masquerade as better-founded than a placeholder.
+NEEDS_BAND: frozenset[str] = frozenset({"bounded"})
+
+#: A decision is accountable to whoever made it, not to a future dataset.
+NEEDS_DECIDER: frozenset[str] = frozenset({"normative"})
+
+#: Claiming a measurement would settle a charter decision is the category error
+#: this split exists to correct, so the field is refused rather than ignored.
+FORBIDS_POINTER: frozenset[str] = frozenset({"normative"})
+
+#: Leading token of ``errs:`` — which way the pick is wrong if it is wrong.
+#: WITHHELD is a real epistemic state here, not an escape hatch: the thermal layer
+#: already refuses to publish a budget whose sign is undetermined.
+ERR_DIRECTIONS: frozenset[str] = frozenset({"HIGH", "LOW", "NEITHER", "WITHHELD"})
 
 FIELDS: frozenset[str] = frozenset(
-    {"tag", "units", "tier", "form", "resolves_by", "family", "note"}
+    {
+        "tag", "units", "tier", "form", "family", "note",
+        "resolves_by",   # bounded / placeholder: what would settle it
+        "band",          # bounded: the measured range it was picked inside
+        "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
+        "decided_by",    # normative: who or what decides it
+        "precedent",     # normative: an external analogue that informs, not settles
+    }
 )
 
 UNSECTIONED = "(unsectioned)"
@@ -137,6 +188,10 @@ class TagBlock:
     tier: str = ""
     form: str = ""
     resolves_by: str = ""
+    band: str = ""
+    errs: str = ""
+    decided_by: str = ""
+    precedent: str = ""
     family: str = ""
     note: str = ""
 
@@ -152,11 +207,21 @@ class Record:
     tier: str
     form: str
     resolves_by: str
+    band: str
+    errs: str
+    decided_by: str
+    precedent: str
     note: str
     block: str
     line: int
     #: Name of the glob this record inherited its block from, "" if its own.
     family: str = ""
+
+    @property
+    def err_direction(self) -> str:
+        """Leading token of ``errs``, or "" — which way the pick is wrong."""
+        head = self.errs.split(".", 1)[0].split()[0] if self.errs.strip() else ""
+        return head.strip(".,:").upper() if head else ""
 
 
 @dataclass
@@ -234,6 +299,10 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             tier=fields.get("tier", ""),
             form=fields.get("form", ""),
             resolves_by=fields.get("resolves_by", ""),
+            band=fields.get("band", ""),
+            errs=fields.get("errs", ""),
+            decided_by=fields.get("decided_by", ""),
+            precedent=fields.get("precedent", ""),
             family=fields.get("family", ""),
             note=fields.get("note", ""),
         ),
@@ -330,6 +399,10 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         tier=source_block.tier,
                         form=source_block.form,
                         resolves_by=source_block.resolves_by,
+                        band=source_block.band,
+                        errs=source_block.errs,
+                        decided_by=source_block.decided_by,
+                        precedent=source_block.precedent,
                         note=source_block.note,
                         block=block_name,
                         line=i + 1,
@@ -406,18 +479,68 @@ def problems(scanned: Scan) -> list[str]:
 
     for r in scanned.records:
         where = f"{r.name} (data.py:{r.line})"
-        if r.tag not in VALID_TAGS:
+
+        if r.tag in RETIRED_TAGS:
+            found.append(
+                f"{where}: tag '{r.tag}' is RETIRED — use "
+                f"{RETIRED_TAGS[r.tag]}."
+            )
+        elif r.tag not in VALID_TAGS:
             found.append(
                 f"{where}: tag '{r.tag}' is not in the scheme "
                 f"({', '.join(sorted(VALID_TAGS))})."
             )
+
         if not r.units:
             found.append(f"{where}: no units declared.")
+
         if r.tag in NEEDS_POINTER and not r.resolves_by:
             found.append(
-                f"{where}: tag is {r.tag} but no resolves_by — the scheme requires "
-                "every CHOSEN constant to name the evidence that would move it."
+                f"{where}: tag is '{r.tag}' but no resolves_by — a value no "
+                "measurement stands behind must name the evidence that would "
+                "settle it."
             )
+
+        if r.tag in NEEDS_BAND:
+            if not r.band:
+                found.append(
+                    f"{where}: tag is 'bounded' but no band — a bounded value's "
+                    "band IS its evidence. Without one it is a placeholder "
+                    "claiming to be better founded than it is."
+                )
+            if not r.errs:
+                found.append(
+                    f"{where}: tag is 'bounded' but no errs — state which way the "
+                    "pick is wrong if it is wrong, and why that is the safe "
+                    f"direction. Start with one of {', '.join(sorted(ERR_DIRECTIONS))}."
+                )
+            elif r.err_direction not in ERR_DIRECTIONS:
+                found.append(
+                    f"{where}: errs starts with '{r.err_direction}', not one of "
+                    f"{', '.join(sorted(ERR_DIRECTIONS))}."
+                )
+
+        if r.tag in NEEDS_DECIDER and not r.decided_by:
+            found.append(
+                f"{where}: tag is 'normative' but no decided_by — a decision is "
+                "accountable to whoever makes it."
+            )
+
+        if r.tag in FORBIDS_POINTER and r.resolves_by:
+            found.append(
+                f"{where}: tag is 'normative' but it claims a resolves_by. No "
+                "dataset settles a decision — that category error is what the "
+                "normative tag exists to correct. Use decided_by, or precedent "
+                "for an external analogue that informs without settling."
+            )
+
+        if r.band and r.tag not in NEEDS_BAND:
+            found.append(
+                f"{where}: band declared on a '{r.tag}' constant — a band means "
+                "the value was picked inside measured bounds, which is what "
+                "'bounded' marks."
+            )
+
         if r.tier:
             if r.tier not in TIERS:
                 found.append(
@@ -431,6 +554,51 @@ def problems(scanned: Scan) -> list[str]:
                 )
 
     return found
+
+
+@dataclass(frozen=True)
+class DebtSummary:
+    """What is grounded, what is owed, and what is a decision.
+
+    The point of the bounded/placeholder/normative split. ``normative`` constants
+    are deliberately NOT counted as debt — they are commitments, and no measurement
+    retires them, so counting them as unmeasured overstates the model's ignorance
+    while understating which constants actually need work.
+    """
+
+    total: int
+    grounded: int
+    bounded: int
+    placeholder: int
+    normative: int
+    err_directions: dict[str, int]
+
+    @property
+    def debt(self) -> int:
+        return self.bounded + self.placeholder
+
+    def share(self, n: int) -> float:
+        return 100.0 * n / self.total if self.total else 0.0
+
+
+def debt_summary(scanned: Scan) -> DebtSummary:
+    counts = tag_counts(scanned)
+    directions: dict[str, int] = {}
+    for r in scanned.records:
+        if r.tag == "bounded":
+            directions[r.err_direction] = directions.get(r.err_direction, 0) + 1
+    return DebtSummary(
+        total=len(scanned.records),
+        grounded=sum(
+            counts.get(t, 0)
+            for t in ("physics", "measured", "derived",
+                      "derived-then-FROZEN", "convention")
+        ),
+        bounded=counts.get("bounded", 0),
+        placeholder=counts.get("placeholder", 0),
+        normative=counts.get("normative", 0),
+        err_directions=dict(sorted(directions.items())),
+    )
 
 
 def coverage(scanned: Scan, source: str | None = None) -> tuple[int, int]:
@@ -456,7 +624,11 @@ CSV_COLUMNS = (
     "tier",
     "form",
     "block",
+    "band",
+    "errs",
     "resolves_by",
+    "decided_by",
+    "precedent",
     "note",
 )
 
@@ -482,7 +654,11 @@ def audit_csv(scanned: Scan) -> str:
                 r.tier,
                 r.form,
                 r.block,
+                r.band,
+                r.errs,
                 r.resolves_by,
+                r.decided_by,
+                r.precedent,
                 r.note,
             ]
         )
@@ -500,7 +676,7 @@ def doc_table(records: Iterable[Record]) -> str:
     if not rows:
         return "_No constants in this block._"
     out = [
-        "| Parameter | Default | Units | Tag | `resolves_by` (epistemic pointer) |",
+        "| Parameter | Default | Units | Tag | What would settle it |",
         "|---|---|---|---|---|",
     ]
     for r in rows:
@@ -509,12 +685,32 @@ def doc_table(records: Iterable[Record]) -> str:
             tag = f"{tag} (Tier {r.tier})"
         if r.form:
             tag = f"{tag}<br>form: {_cell(r.form)}"
-        pointer = r.resolves_by or ("n/a — structural" if r.tag == "physics" else "—")
+
+        # A normative constant is answerable to a decider, not to a dataset. Saying
+        # so in the table is the whole point of separating the tags.
+        parts: list[str] = []
+        if r.tag == "normative":
+            parts.append(f"**decided by** {_cell(r.decided_by)}")
+            if r.precedent:
+                parts.append(f"precedent: {_cell(r.precedent)}")
+            parts.append("_no measurement settles this_")
+        else:
+            if r.band:
+                parts.append(f"**band** {_cell(r.band)}")
+            if r.errs:
+                parts.append(f"**errs** {_cell(r.errs)}")
+            if r.resolves_by:
+                parts.append(_cell(r.resolves_by))
+            elif r.tag == "physics":
+                parts.append("n/a — structural")
+            elif not parts:
+                parts.append("—")
         if r.note:
-            pointer = f"{pointer}<br>{_cell(r.note)}"
+            parts.append(_cell(r.note))
+
         out.append(
             f"| `{r.name}` | {_cell(r.value)} | {_cell(r.units)} | "
-            f"{_cell(tag)} | {_cell(pointer)} |"
+            f"{_cell(tag)} | {'<br>'.join(parts)} |"
         )
     return "\n".join(out)
 
