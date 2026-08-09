@@ -220,6 +220,14 @@ def per_capita_scale(year: int, total_population: float) -> float:
 
     Worked example: 2025, against a 335e6 total population → 0.8298.
 
+    SERIES TRAP. Holding one `total_population` fixed across survey years is
+    WRONG: population_15_plus runs 225.3M (2003) → 278.0M (2025), so a constant
+    denominator manufactures a spurious +23% trend. It turned a measured −26%
+    into −8% once already. Per-capita conversion is valid at a single year; a
+    historical per-capita series needs a matching total-population series, which
+    this extract does not carry. Report `series()` in its native per-person-15+
+    unit instead.
+
     Raises:
         ValueError: if total_population is not positive.
         KeyError: if the year is not in the extract.

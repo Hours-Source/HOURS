@@ -24,7 +24,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 
   Measured inputs (the measurement spine):
     measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
-    personal_floor
+    personal_floor  food_conservation
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -103,6 +103,7 @@ _SCENARIOS: dict[str, str] = {
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
+    "food_conservation":   "conservation_test() — did automation eliminate food labour, or relocate it? stage by stage  [--atus-year]",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
@@ -553,6 +554,35 @@ def _dispatch(args: argparse.Namespace) -> object:
         pf_out["verdict"] = constants["verdict"]
         pf_out["note"] = report["note"]
         return pf_out
+
+    if name == "food_conservation":
+        from hours_eoh.scenarios.food_conservation import (
+            conservation_test, uncounted_headroom, unpaid_food_series,
+        )
+        r = conservation_test(year=args.atus_year)
+        fc_out: dict = {
+            "year": r["year"],
+            "hours_per_worker_year_derived": r["hours_per_worker_year"],
+        }
+        for stage in r["stages"]:
+            key = stage["stage"]
+            fc_out[f"{key}_lsms"] = (
+                stage["lsms_hours"] if stage["lsms_hours"] is not None else "UNMEASURED")
+            fc_out[f"{key}_us_paid"] = stage["us_paid_hours"]
+            fc_out[f"{key}_us_unpaid"] = stage["us_unpaid_hours"]
+            fc_out[f"{key}_us_total"] = stage["us_total_hours"]
+        fc_out["us_total"] = r["us_total"]
+        fc_out["us_total_is_lower_bound"] = r["us_total_is_lower_bound"]
+        fc_out["lsms_total_measured"] = r["lsms_total_measured"]
+        fc_out["production_ratio"] = r["production_ratio"]
+        series = unpaid_food_series()
+        fc_out["unpaid_preparation_change_2003_2025"] = series["preparation_change"]
+        fc_out["unpaid_provisioning_change_2003_2025"] = series["provisioning_change"]
+        fc_out["headroom_per_1pct_employment"] = \
+            uncounted_headroom(0.01)["hours_per_capita"]
+        fc_out["verdict"] = r["verdict"]
+        fc_out["caveat"] = r["caveat"]
+        return fc_out
 
     # -- thermal obligation ---------------------------------------------------
 
