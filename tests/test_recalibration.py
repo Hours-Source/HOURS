@@ -284,8 +284,14 @@ class TestCommonsIncomeStatement:
         d_purchase = commons_income_statement(
             0.99, phi_policy="target")["dividend_per_capita"]
         assert d_charter > d_purchase
-        assert d_charter / d_purchase == pytest.approx(1.089, abs=0.02)
-        assert d_charter > 2_000.0
+        # 1.089 at the K-IV anchor; 1.050 after the Finding-E re-anchor. The
+        # SIGN is the claim and it is unchanged — dilution still pays MORE than
+        # the purchase model, reversing the pre-K-IV ~15% penalty. The margin
+        # tracks machine output Y = eps*total_eoh, so a 22% smaller knowledge
+        # base narrows it without flipping it.
+        assert d_charter / d_purchase == pytest.approx(1.050, abs=0.02)
+        # Threshold follows the same base: 2,162 at the K-IV anchor, 1,924 now.
+        assert d_charter > 1_900.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
         # §8.9a honest finding: dφ/dε outruns tiny machine output early.
@@ -620,7 +626,9 @@ class TestRecalibratedArc:
         # output, so it moved with it: 1,286.55 → 1,985.89 (+54%), and
         # self-financing arrives earlier, ε 0.792 → 0.693.
         assert last["phi"] == pytest.approx(0.9865338, rel=1e-5)
-        assert last["dividend_per_capita"] == pytest.approx(1985.89, rel=1e-4)
+        # Tracks the levy/dividend base Y = eps*total_eoh, which the Finding-E
+        # re-anchor shrank at the top of the arc (2,896 -> 2,633 h/person.yr).
+        assert last["dividend_per_capita"] == pytest.approx(1831.45, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         assert rows[first_self]["epsilon"] == pytest.approx(0.693, abs=0.001)

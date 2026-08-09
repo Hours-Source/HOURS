@@ -251,7 +251,10 @@ def test_closed_form_understates_the_crossover():
     # knowledge EOH is now a materially ε-growing term, so treating the
     # inventory as fixed understates the crossover by more than it used to.
     assert naive == pytest.approx(0.360, abs=0.005)
-    assert actual == pytest.approx(0.441, abs=0.005)
+    # 0.441 at the K-IV anchor; 0.425 after the Finding-E re-anchor. The CLAIM
+    # is the gap against the naive closed form (0.360), which the smaller
+    # non-personal load narrows without closing.
+    assert actual == pytest.approx(0.425, abs=0.005)
     assert actual - naive > 0.05
 
 

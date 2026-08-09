@@ -86,7 +86,9 @@ def test_personal_dominates_the_low_arc_even_loaded():
             assert r["personal_share_of_total"] > 0.84
 
     top = thermal_load_arc(arc=ARC)[-1]
-    assert top["personal_share_of_total"] == pytest.approx(0.511, abs=0.01)
+    # 0.511 at the K-IV anchor; 0.562 after the Finding-E re-anchor gave back
+    # ~5 points at the top of the arc.
+    assert top["personal_share_of_total"] == pytest.approx(0.562, abs=0.01)
 
 
 def test_verdict_reports_marginal_at_shipped_calibration():

@@ -76,6 +76,7 @@ from hours_eoh.data import (
     KNOWLEDGE_EOH_BASE,
     KNOWLEDGE_REFERENCE_POPULATION,
     SKILL_DECAY_RATE,
+    SKILL_TRANSMISSION_RATE,
 )
 from hours_eoh.reference.onet_knowledge import workforce_training_stock
 
@@ -559,5 +560,213 @@ def domain_share_projection(
             "Projection only — KNOWLEDGE_EOH_BASE is unchanged. Personal EOH "
             "still dominates; this closes one of the two small domains, not the "
             "domain-balance defect."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# The ε_ref fixed point (Finding E, approved 2026-08-09)
+#
+# K-IV derived KNOWLEDGE_EOH_BASE at ε_ref = 0.40 on the strength of the
+# labour-residual route corroborating that anchor — and then the adoption grew
+# total EOH by ~12% at mid-arc, which moves the residual. The corroboration was
+# consumed by the adoption it justified.
+#
+# The defect is not the value, it is the SHAPE of the derivation: a one-shot
+# anchor cannot be self-consistent when the thing it anchors is in the
+# denominator of the thing that checks it. A third one-shot would have the same
+# defect. So solve the loop instead.
+# ---------------------------------------------------------------------------
+
+def labour_residual_epsilon(
+    observed_hours_per_capita: float,
+    knowledge_base: float,
+    population: float = KNOWLEDGE_REFERENCE_POPULATION,
+    tol: float = 1e-6,
+    max_iter: int = 200,
+) -> float | None:
+    """
+    The ε at which the model's own unmet obligation equals the labour supplied.
+
+    Governing equation:
+
+        (1 − ε) · total_eoh(ε, pop) / pop  =  observed_hours_per_capita
+
+    units: dimensionless ε.
+
+    ε-behavior: `(1 − ε) · total_eoh(ε)` is decreasing in ε over [0, 0.99], so
+    the root is unique where it exists. Returns **None** — not a clamped 0 —
+    when the supplied labour exceeds the entire obligation at ε = 0, because
+    "no ε explains this" is a finding and zero is a different claim.
+
+    Worked example: 937.3 h/person·yr of paid US labour against the shipped
+    calibration → ε ≈ 0.470. The same solver on 1,701.1 (paid + unpaid) returns
+    None: supply exceeds the whole obligation by 14% (Finding B).
+
+    Raises:
+        ValueError: if observed_hours_per_capita is negative.
+    """
+    if observed_hours_per_capita < 0.0:
+        raise ValueError(
+            f"observed hours must be non-negative, got {observed_hours_per_capita}"
+        )
+
+    def unmet(epsilon: float) -> float:
+        return (1.0 - epsilon) * _total_eoh_per_capita(epsilon, knowledge_base, population)
+
+    if unmet(0.0) < observed_hours_per_capita:
+        return None
+    lo, hi = 0.0, 0.99
+    if unmet(hi) > observed_hours_per_capita:
+        return hi
+    for _ in range(max_iter):
+        mid = 0.5 * (lo + hi)
+        if unmet(mid) > observed_hours_per_capita:
+            lo = mid
+        else:
+            hi = mid
+        if hi - lo < tol:
+            break
+    return 0.5 * (lo + hi)
+
+
+def _total_eoh_per_capita(
+    epsilon: float,
+    knowledge_base: float,
+    population: float,
+) -> float:
+    """Gross total EOH per capita on the canonical arc at a stated knowledge base."""
+    from hours_eoh.core.eoh_generation import total_eoh
+    from hours_eoh.core.trajectory import canonical_physical_state
+
+    state = canonical_physical_state(epsilon)
+    return total_eoh(
+        population=population,
+        capital_stock=state["capital_stock_teh"],
+        capital_age_ratio=state["capital_age_ratio"],
+        ecosystem_health=state["ecosystem_health"],
+        monitoring_capability=state["monitoring_capability"],
+        age_distribution=state["age_distribution"],
+        knowledge_complexity=state["knowledge_base_size"],
+        knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+        knowledge_base=knowledge_base,
+        skill_decay_rate=SKILL_TRANSMISSION_RATE,
+    )["total"] / population
+
+
+def epsilon_ref_fixed_point(
+    observed_hours_per_capita: float,
+    route: str = _EP_REGISTRY,
+    epsilon_start: float = 0.40,
+    tol: float = 1e-4,
+    max_iter: int = 50,
+) -> dict:
+    """
+    Solve the anchor and the base together, instead of anchoring then checking.
+
+    The loop that K-IV left open:
+
+        base(ε_ref)  ──►  total_eoh  ──►  ε_residual(observed)  ──►  ε_ref …
+
+    Iterated to a fixed point ε* where the anchor the base is derived AT equals
+    the anchor the labour residual IMPLIES given that base. Damped fixed-point
+    iteration; the map is a contraction over the arc's interior because the base
+    falls in ε_ref while the residual rises in the base.
+
+    units: ε dimensionless; base_rate in hours at KNOWLEDGE_REFERENCE_POPULATION.
+
+    ε-behavior: converges from any start in (0, 0.99). Reports `converged` and
+    the iteration count rather than silently returning the last iterate.
+
+    Args:
+        observed_hours_per_capita: measured human labour per capita per year.
+            THE CONVENTION MATTERS — see `scenarios/personal_floor` — and the
+            paid-labour reading is the one self-consistent with
+            `personal_eoh_registration_share(0)` being near-zero.
+        route: per-capita conversion route for the measured stock.
+        epsilon_start: initial anchor. The fixed point does not depend on it;
+            the field is kept so the path can be inspected.
+
+    Returns:
+        dict with `epsilon_fixed_point`, `base_rate`, `shipped_base_rate`,
+        `epsilon_shipped_anchor`, `ratio_to_shipped`, `converged`, `iterations`,
+        `path`, and a `note`.
+
+    Worked example: at 937.3 h/person·yr (US paid labour, 2025) the loop settles
+    away from the shipped 0.40 anchor — the distance IS Finding E, and the base
+    that comes with it is what a self-consistent derivation gives.
+    """
+    epsilon = float(epsilon_start)
+    path: list[dict] = []
+    converged = False
+    base = float(KNOWLEDGE_EOH_BASE)
+    for i in range(max_iter):
+        base = knowledge_base_from_registry(
+            epsilon, route=route, decay=SKILL_TRANSMISSION_RATE
+        )["base_rate"]
+        implied = labour_residual_epsilon(observed_hours_per_capita, base)
+        path.append({
+            "iteration": i,
+            "epsilon_ref": epsilon,
+            "base_rate": base,
+            "epsilon_implied": implied,
+        })
+        if implied is None:
+            return {
+                "epsilon_fixed_point": None,
+                "base_rate": None,
+                "shipped_base_rate": KNOWLEDGE_EOH_BASE,
+                "ratio_to_shipped": None,
+                "is_shipped_anchor": False,
+                "converged": False,
+                "iterations": i + 1,
+                "path": path,
+                "note": (
+                    "no fixed point: the supplied labour exceeds the entire "
+                    "obligation at ε=0, so no anchor explains it. That is "
+                    "Finding B, not a solver failure — the over-determination "
+                    "has to be resolved before this loop means anything."
+                ),
+            }
+        if abs(implied - epsilon) < tol:
+            converged = True
+            epsilon = implied
+            break
+        # Damped: the two directions overshoot each other otherwise.
+        epsilon = 0.5 * (epsilon + implied)
+
+    base = knowledge_base_from_registry(
+        epsilon, route=route, decay=SKILL_TRANSMISSION_RATE
+    )["base_rate"]
+    base = knowledge_base_from_registry(
+        epsilon, route=route, decay=SKILL_TRANSMISSION_RATE
+    )["base_rate"]
+    ratio = base / KNOWLEDGE_EOH_BASE
+    # The shipped constant WAS re-anchored to this fixed point on 2026-08-09, so
+    # at the default inputs `is_shipped_anchor` is True. It stops being true if
+    # the registry vintage moves, if the observed-hours input changes, or if
+    # anything upstream shifts total EOH — which is exactly the drift K-IV's
+    # one-shot anchor could not detect, and the reason this reports rather than
+    # asserts.
+    is_shipped = abs(ratio - 1.0) < 1e-6
+    return {
+        "epsilon_fixed_point": epsilon,
+        "base_rate": base,
+        "shipped_base_rate": KNOWLEDGE_EOH_BASE,
+        "ratio_to_shipped": ratio,
+        "is_shipped_anchor": is_shipped,
+        "converged": converged,
+        "iterations": len(path),
+        "path": path,
+        "note": (
+            f"anchor and base solved together: ε* = {epsilon:.4f}, base "
+            f"{base:.4e}. " + (
+                "The shipped constant IS this fixed point — the derivation is "
+                "self-consistent at these inputs."
+                if is_shipped else
+                f"The shipped constant is {KNOWLEDGE_EOH_BASE:.4e} "
+                f"({ratio:.3f}x off): it is NOT a fixed point of its own "
+                f"derivation, which is the Finding-E defect recurring."
+            )
         ),
     }

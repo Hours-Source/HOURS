@@ -560,15 +560,39 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 # describes a modern, already-automated workforce, so the stock must be
 # de-anchored at a reference automation level ε_ref. Across ε_ref ∈ [0.2, 0.6]
 # the constant moves **7.13×**, against only 1.20× from the per-capita route.
-# ε_ref = 0.40 is used here: it is the repo's standing reference AND is
-# independently corroborated at 0.391 by the labour-residual route
-# (notes/knowledge-eoh-closure.md §6). Callers who reject it should sweep
-# `scenarios/knowledge_base.knowledge_base_band()` rather than edit this line.
+#
+# --- RE-ANCHORED TO THE FIXED POINT (Finding E, author-approved 2026-08-09) ---
+#
+# K-IV used ε_ref = 0.40 partly because the labour-residual route independently
+# corroborated it at 0.391. That corroboration did not survive the adoption it
+# justified: raising the knowledge base grew total EOH ~12% at mid-arc, and the
+# residual solves `(1−ε)·total_eoh(ε) = observed` — so the denominator moved and
+# the residual went to 0.470. **The shipped pair was not a fixed point of its own
+# derivation.**
+#
+# The defect was the SHAPE of the derivation, not the value: a one-shot anchor
+# cannot be self-consistent when the constant it sets sits inside the quantity
+# that checks it. A third one-shot would have the same defect. So the anchor and
+# the base are now solved TOGETHER —
+# `scenarios/knowledge_base.epsilon_ref_fixed_point()` iterates
+# base(ε_ref) → total_eoh → ε_residual → ε_ref to convergence:
+#
+#   ε* = 0.4522   (8 iterations, damped)
+#   base = 3.81963e8   =  0.779 × the K-IV value
+#
+# WHAT THIS DOES NOT FIX, stated plainly: the fixed point is still anchored on
+# 937.3 h/person·yr of US PAID labour (ATUS 2025, `scenarios/personal_floor`).
+# It removes the self-inconsistency, not the US-specificity or the paid-labour
+# convention. The convention is at least coherent with
+# `personal_eoh_registration_share(0)` being near-zero — subsistence labour is
+# off-ledger by design — and the full-labour reading has NO solution at all
+# (supply exceeds the whole obligation; Finding B). That unresolved
+# over-determination is the real limit on this anchor.
 #
 # resolves_by (to leave derived-then-FROZEN): an O*NET/BLS vintage refresh moves
-# it mechanically; the ANCHOR resolves by a defensible ε_ref, for which the
-# capital-inventory route is currently unusable (see the note's Finding A).
-KNOWLEDGE_EOH_BASE: float  = 490_107_421.43  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref=0.40)
+# it mechanically; the ANCHOR now resolves by whatever settles Finding B — the
+# capital-inventory route remains unusable (Finding A).
+KNOWLEDGE_EOH_BASE: float  = 381_962_855.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.4522 fixed point)
 KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε. physics (superlinear) / CHOSEN (exponent)
 
 # --- Knowledge domain: stock/flow semantics and reference population (Block K-I) --

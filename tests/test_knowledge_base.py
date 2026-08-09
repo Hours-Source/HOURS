@@ -35,6 +35,8 @@ from hours_eoh.scenarios.knowledge_base import (
     employment_to_population,
     knowledge_base_band,
     knowledge_base_from_registry,
+    epsilon_ref_fixed_point,
+    labour_residual_epsilon,
     measured_knowledge_flow_per_capita,
     renewal_doctrine_comparison,
 )
@@ -245,9 +247,17 @@ class TestBand:
         THE FREEZE CHECK. KNOWLEDGE_EOH_BASE is derived-then-FROZEN at the
         2026-07-29 epoch. If an O*NET/BLS refresh moves the registry, this fails
         loudly rather than letting the constant drift away from its derivation.
+
+        Re-anchored 2026-08-09 (Finding E): the derivation is checked at the
+        FIXED POINT ε* = 0.4522, not at K-IV's one-shot 0.40, because the 0.40
+        anchor was not a fixed point of its own derivation — adopting the base it
+        produced moved total EOH, which moved the labour residual that had
+        corroborated 0.40 in the first place.
         """
-        live = knowledge_base_from_registry(0.40, route="registry")["base_rate"]
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-9)
+        live = knowledge_base_from_registry(
+            0.4522263193130492, route="registry", decay=SKILL_TRANSMISSION_RATE
+        )["base_rate"]
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
     def test_empty_inputs_rejected(self):
         with pytest.raises(ValueError, match="epsilon_refs must not be empty"):
@@ -423,7 +433,9 @@ class TestKIVAdoption:
 
     def test_constant_is_the_measured_value_not_the_placeholder(self):
         assert KNOWLEDGE_EOH_BASE != 100_000.0
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(4.9010742e8, rel=1e-6)
+        # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40; the
+        # fixed-point re-anchor (Finding E) puts it at 0.779x that.
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(3.8196286e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """
@@ -457,3 +469,104 @@ def _complexity(epsilon: float) -> float:
     """kbs(ε)·cpu(ε) — the decay-free response."""
     return knowledge_eoh(1.0, 1.0, epsilon=epsilon, base_rate=1.0,
                          population=KNOWLEDGE_REFERENCE_POPULATION)
+
+
+# ===========================================================================
+# Finding E — the ε_ref fixed point (approved 2026-08-09)
+# ===========================================================================
+
+class TestLabourResidual:
+
+    def test_paid_labour_gives_the_documented_residual(self):
+        """US 2025 paid labour, 937.3 h/person·yr, against the shipped base."""
+        eps = labour_residual_epsilon(937.3, KNOWLEDGE_EOH_BASE)
+        assert eps == pytest.approx(0.4522, abs=0.005)
+
+    def test_full_labour_has_no_solution(self):
+        """
+        FINDING B, encoded. Paid + unpaid labour (1,701.1 h/person·yr) exceeds
+        the ENTIRE obligation at ε=0, so no ε explains it. The solver must
+        return None rather than clamping to zero — "no anchor fits this" and
+        "the anchor is zero" are different claims.
+        """
+        assert labour_residual_epsilon(1701.1, KNOWLEDGE_EOH_BASE) is None
+
+    def test_residual_is_decreasing_in_observed_hours(self):
+        """More labour supplied ⇒ less must be machine-fulfilled."""
+        low = labour_residual_epsilon(600.0, KNOWLEDGE_EOH_BASE)
+        high = labour_residual_epsilon(1200.0, KNOWLEDGE_EOH_BASE)
+        assert low is not None and high is not None
+        assert low > high
+
+    def test_negative_hours_rejected(self):
+        with pytest.raises(ValueError, match="must be non-negative"):
+            labour_residual_epsilon(-1.0, KNOWLEDGE_EOH_BASE)
+
+
+class TestEpsilonRefFixedPoint:
+
+    def test_converges_to_the_adopted_anchor(self):
+        r = epsilon_ref_fixed_point(937.3)
+        assert r["converged"] is True
+        assert r["epsilon_fixed_point"] == pytest.approx(0.4522, abs=0.001)
+
+    def test_the_fixed_point_reproduces_the_shipped_constant(self):
+        """
+        THE ADOPTION CHECK. The shipped base must BE the fixed point's base —
+        that is what re-anchoring bought, and it is what a future edit to either
+        side would break.
+        """
+        r = epsilon_ref_fixed_point(937.3)
+        assert r["base_rate"] == pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
+
+    def test_it_is_actually_a_fixed_point(self):
+        """The defining property: the anchor it derives AT equals the anchor the
+        labour residual IMPLIES given the base that derivation produces."""
+        r = epsilon_ref_fixed_point(937.3)
+        implied = labour_residual_epsilon(937.3, r["base_rate"])
+        assert implied == pytest.approx(r["epsilon_fixed_point"], abs=1e-3)
+
+    def test_the_k4_anchor_was_not_one(self):
+        """
+        FINDING E, stated as a test. K-IV derived at ε_ref = 0.40 because the
+        labour residual corroborated it at 0.391 — and the adoption then moved
+        the residual to 0.470. A one-shot anchor cannot be self-consistent when
+        the constant it sets sits inside the quantity that checks it.
+        """
+        k4_base = knowledge_base_from_registry(
+            0.40, route="registry", decay=SKILL_TRANSMISSION_RATE
+        )["base_rate"]
+        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.470, abs=0.005)
+        assert k4_base == pytest.approx(4.9010742e8, rel=1e-6)
+
+    def test_independent_of_the_starting_anchor(self):
+        """A fixed point is a property of the map, not of where you start."""
+        results = [
+            epsilon_ref_fixed_point(937.3, epsilon_start=start)["epsilon_fixed_point"]
+            for start in (0.20, 0.40, 0.70)
+        ]
+        for value in results:
+            assert value == pytest.approx(results[0], abs=1e-3)
+
+    def test_re_anchor_reduced_the_base_by_the_documented_factor(self):
+        r = epsilon_ref_fixed_point(937.3)
+        assert r["ratio_to_shipped"] == pytest.approx(1.0, rel=1e-6)
+        assert r["is_shipped_anchor"] is True
+        assert r["base_rate"] / 4.9010742e8 == pytest.approx(0.779, abs=0.005)
+
+    def test_flags_when_the_shipped_constant_stops_being_the_fixed_point(self):
+        """
+        The self-check K-IV lacked. Change the observed-hours input — or let a
+        registry vintage or an upstream total-EOH shift move things — and the
+        shipped constant is no longer the fixed point, and this says so instead
+        of silently reporting a stale anchor.
+        """
+        r = epsilon_ref_fixed_point(800.0)
+        assert r["is_shipped_anchor"] is False
+        assert "NOT a fixed point" in r["note"]
+
+    def test_over_determined_input_reports_finding_b_not_a_failure(self):
+        r = epsilon_ref_fixed_point(1701.1)
+        assert r["epsilon_fixed_point"] is None
+        assert r["converged"] is False
+        assert "Finding B" in r["note"]

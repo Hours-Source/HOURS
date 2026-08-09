@@ -317,7 +317,10 @@ class TestEohToTehPipeline:
             )
         mid = eoh_to_teh_pipeline(
             epsilon=0.40)["registration_by_domain"]["non_personal"]
-        assert mid == pytest.approx(0.234, abs=0.01)
+        # 0.234 at the K-IV anchor; 0.253 after the Finding-E re-anchor —
+        # a smaller knowledge base carries less weight in the volume-weighted
+        # composite, so it drags it down slightly less. Same mechanism.
+        assert mid == pytest.approx(0.253, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""

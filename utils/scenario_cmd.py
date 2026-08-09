@@ -101,7 +101,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
-    "knowledge_base":      "knowledge_base_band() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock; REPORTING ONLY  [--epsilon-ref]",
+    "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
@@ -229,6 +229,12 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
                             "[0.2, 0.6]; the band is reported regardless")
 
+    run_p.add_argument("--observed-hours", type=float, default=937.3,
+                       dest="observed_hours", metavar="H",
+                       help="Measured human labour per capita per year, for the "
+                            "ε_ref fixed point (knowledge_base; default: 937.3 — "
+                            "US 2025 PAID labour. The full-labour reading, 1701.1, "
+                            "has no solution: Finding B)")
     run_p.add_argument("--convention", default="unpaid_core",
                        choices=sorted(OBSERVED_CONVENTIONS),
                        help="Which measured hours count as personal-domain labour "
@@ -459,7 +465,7 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "knowledge_base":
         from hours_eoh.scenarios.knowledge_base import (
-            domain_share_projection, knowledge_base_band,
+            domain_share_projection, epsilon_ref_fixed_point, knowledge_base_band,
             renewal_doctrine_comparison, workforce_training_stock,
         )
         band = knowledge_base_band()
@@ -497,6 +503,13 @@ def _dispatch(args: argparse.Namespace) -> object:
             kb_out[f"projected_knowledge_share@eps={row['epsilon']:.2f}"] = \
                 row["knowledge_share"]
         kb_out["projection_note"] = proj["note"]
+        # Finding E: the anchor and the base solved together, not one then the other.
+        fp = epsilon_ref_fixed_point(args.observed_hours)
+        kb_out["fixed_point_observed_h"] = args.observed_hours
+        kb_out["fixed_point_epsilon_ref"] = fp["epsilon_fixed_point"]
+        kb_out["fixed_point_base_rate"] = fp["base_rate"]
+        kb_out["fixed_point_converged"] = fp["converged"]
+        kb_out["fixed_point_note"] = fp["note"]
         return kb_out
 
     if name == "personal_floor":

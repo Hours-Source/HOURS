@@ -44,6 +44,14 @@ This is a DIFFERENT mechanism from the registration boundary. Registration
 governs what the collective ledger recognises; this governs what the basket
 physically contains.
 
+HEALTH AND CARE ARE ONE OBLIGATION SPLIT BY DELIVERY PATH, not two unrelated
+needs. Care is the part that human attention discharges directly; health is the
+part of the same family that requires apparatus to discharge at all. They appear
+as separate lines at the granularity the delivery question demands — care in the
+survival core, health above a step-in threshold — and not because the underlying
+need divides. A future basket that costs them should expect their quantities to
+be related, and their delivery productivities not to be.
+
 WHY CARE IS IN THE BASKET (author decision, 2026-08-09)
 --------------------------------------------------------
 The basket does not track what things cost. It states EOH DEMAND; the framework
@@ -140,13 +148,33 @@ NUTRITION_HOURS_PER_KCAL: float = 1.0 / LSMS_KCAL_PER_LABOUR_HOUR
 NUTRITION_CROSSCHECK_HOURS_PER_YEAR: float = 306.0
 
 #: The automation level below which the health basket has no delivery path.
-#: CHOSEN, and deliberately conservative — the claim it encodes is only that
-#: SOME automation is required, which the handoff establishes; the exact
-#: threshold is not established by anything. resolves_by: service-specific
-#: delivery-path analysis (what capital a given intervention actually requires).
-#: Nothing in the shipped floor depends on its value, because health is
-#: unmeasured at every ε; it exists so the step-in mechanism is exercised and
-#: visible rather than latent.
+#:
+#: WHY ε AND NOT CAPITAL (author decision, 2026-08-09). The obvious alternative
+#: is to key the step-in on capital per capita, the way `abatement_fraction`
+#: does, which would keep every capital-driven mechanism on one variable. It was
+#: considered and rejected on the substance: the binding condition for a
+#: population to run a health system is not that the capital exists, it is that
+#: there is enough LABOUR SLACK to staff it — and that is what ε measures. A
+#: collective holding the machines with no spare hours does not deliver
+#: healthcare. Capital is necessary and not sufficient; ε is the closer proxy for
+#: the sufficient condition.
+#:
+#: The cost of that choice is stated rather than hidden: this is an ε argument
+#: inside a `core/` generation function, where the repo's convention is that
+#: generation takes physical state and ε belongs to fulfilment. The convention is
+#: right about EOH generation in general and wrong here, because whether an
+#: obligation is DELIVERABLE is a fulfilment question that has to be answered
+#: before the obligation can be costed at all.
+#:
+#: CHOSEN, and deliberately conservative — the claim it encodes is only that SOME
+#: automation is required, which the handoff establishes; the exact threshold is
+#: not established by anything. resolves_by: the labour-slack reading makes this
+#: measurable — the ε at which health-sector staffing becomes supportable given
+#: the population's total labour supply, rather than a capital inventory.
+#:
+#: Nothing in the shipped floor depends on its value, because health is unmeasured
+#: at every ε; it exists so the step-in mechanism is exercised and visible rather
+#: than latent. It becomes load-bearing the moment health is costed.
 HEALTH_MIN_EPSILON: float = 0.10
 
 # ---------------------------------------------------------------------------
