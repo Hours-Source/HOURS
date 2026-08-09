@@ -11,8 +11,16 @@ Modules
 practitioners    Example practitioner/demand histories for scarcity_score()
 workforce        Workforce composition snapshots for population_weighted_mean_multiplier()
 onet_multipliers Measured O*NET/BLS reference multiplier registry (751 occupations)
+onet_knowledge   Measured occupational training hours recovered from that registry
+atus_time_use    Measured US time use 2003–2025 (BLS ATUS)
+personal_basket  The personal obligation pinned to physical quantities
 
-Layer rule: this package imports nothing from hours_eoh core, land, or scenarios.
+The last three are imported by module (`from hours_eoh.reference import
+atus_time_use`) rather than re-exported below, so importing this package stays
+cheap.
+
+Layer rule: this package imports nothing from hours_eoh core, land, scenarios,
+data or params — enforced by tests/test_reference_data.py::TestLayerIsolation.
 """
 
 from hours_eoh.reference.practitioners import (

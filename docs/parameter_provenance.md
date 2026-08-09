@@ -579,15 +579,19 @@ proves floor_spread = 1.000). 4-tag scheme with epistemic pointers:
 
 ## Domain balance — the denominator problem
 
-*Added 2026-08-05. Updated 2026-08-08 after Block K-IV. This is a property of
-the calibration set, not of any one constant, and it conditions how every
-measured result in this repo should be read.*
+*Added 2026-08-05. Updated 2026-08-08 after Block K-IV, and 2026-08-09 after the
+Finding-E re-anchor. This is a property of the calibration set, not of any one
+constant, and it conditions how every measured result in this repo should be
+read.*
 
-> **PARTLY CLOSED (Block K-IV, 2026-08-08).** Putting `KNOWLEDGE_EOH_BASE` on
-> its measured O\*NET/BLS footing cut the personal share from a flat 87–96%
-> across the whole arc to **94.3% → 51.1%**, and knowledge is now the largest
-> non-personal domain at the top. The table below is the POST-adoption picture;
-> the pre-adoption figures are kept in the second table for comparison.
+> **PARTLY CLOSED (Block K-IV, 2026-08-08; re-anchored 2026-08-09).** Putting
+> `KNOWLEDGE_EOH_BASE` on its measured O\*NET/BLS footing cut the personal share
+> from a flat 87–96% across the whole arc to 94.3% → 51.1%, and knowledge became
+> the largest non-personal domain at the top. Re-anchoring the base to the ε_ref
+> FIXED POINT (Finding E — the K-IV anchor was not a fixed point of its own
+> derivation) took 0.779× off the base and gave back ~5 points at the top of the
+> arc: the share now runs **99.3% → 56.2%**. The table below is the current
+> picture; the pre-adoption figures are kept in the second table for comparison.
 >
 > **What is still open.** `ECOLOGICAL_BASE_RATE` was untouched and the
 > ecological domain is still ~0.04% of total EOH at 0.71 h/person·yr — the
@@ -600,14 +604,22 @@ measured result in this repo should be read.*
 >
 > Reproduce with `python3 utils/eoh_cli.py arc --domain-shares`.
 
-### Post-K-IV (current)
+### Current (post-K-IV, re-anchored to the ε_ref fixed point)
+
+Canonical-arc figures, `arc --domain-shares`:
 
 | Domain | ε = 0 | ε = 0.40 | ε = 0.99 |
 |---|---|---|---|
-| personal | 94.3% | 84.4% | 51.1% |
-| infrastructure | 4.8% | 7.7% | 7.7% |
-| knowledge | 0.8% | **7.9%** | **41.2%** |
+| personal | 99.3% | 88.6% | 56.2% |
+| infrastructure | 0.0% | 5.0% | 8.5% |
+| knowledge | 0.6% | **6.4%** | **35.3%** |
 | ecological | <0.1% | <0.1% | <0.1% |
+
+*The ε = 0 column reads 99.3% personal / 0.0% infrastructure because Block III
+set the canonical capital path to zero at the origin — subsistence has no
+apparatus, by ε's own definition. The legacy `total_eoh(epsilon=0)` path scales a
+caller-supplied baseline instead and still shows infrastructure there; both are
+intended and pinned in `test_trajectory.py`.*
 
 *A CLI bug was fixed alongside: `arc` passed the corpus size `kbs` into the
 base-RATE slot (`knowledge_base=`) while the actual kbs argument

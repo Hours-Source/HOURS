@@ -24,6 +24,7 @@ from measurable physical indicators, not from policy or fiscal convenience.
 
 from __future__ import annotations
 import math
+from typing import TypedDict
 
 from hours_eoh.data import (
     AGE_GROUPS, ESSENTIAL_DOMAINS,
@@ -430,6 +431,172 @@ def infrastructure_statutory_floor(asset_census: list[dict]) -> float:
             raise ValueError(f"census bucket {i} has negative count/hours: {bucket!r}")
         total += count * hpu
     return total
+
+
+#: Why a basket component contributes nothing to the floor. These are different
+#: facts about the world and the distinction is the floor's load-bearing one, so
+#: the vocabulary is importable rather than re-typed at each call site.
+REASON_UNMEASURED: str = "unmeasured"            # a path may exist; nobody costed it
+REASON_BELOW_MIN_EPSILON: str = "below_min_epsilon"  # no path at this automation level
+
+
+class PersonalFloor(TypedDict):
+    """The return of personal_statutory_floor(). `coverage` governs the rest."""
+
+    floor_hours: float
+    by_component: dict[str, float]
+    unreachable: list[dict]
+    coverage: float
+    epsilon: float
+
+
+def _basket_coverage(basket: list[dict], priced: dict[str, float]) -> float:
+    """
+    How much of the basket the floor actually covers, by declared share where
+    every component states one and by count otherwise.
+
+    Derived after pricing rather than accumulated during it, so the pricing loop
+    carries no bookkeeping that an early `continue` could skip.
+    """
+    if not basket:
+        return 0.0
+    shares = [component.get("share") for component in basket]
+    if any(share is None for share in shares):
+        return len(priced) / len(basket)
+    total = sum(float(share) for share in shares if share is not None)
+    if total <= 0.0:
+        return len(priced) / len(basket)
+    return sum(
+        float(component["share"]) for component in basket
+        if component["component"] in priced
+    ) / total
+
+
+def personal_statutory_floor(
+    basket: list[dict],
+    epsilon: float = 0.0,
+) -> PersonalFloor:
+    """
+    Task-normative personal EOH floor from a physical needs basket — currency-free,
+    and the twin of infrastructure_statutory_floor().
+
+    Governing equation (per component, then summed):
+
+        floor = Σ_component  quantity_per_person_year · hours_per_unit
+
+    where `quantity` is a physical requirement (kcal, litres, m², degree-days,
+    interventions) and `hours_per_unit` is its inverse delivery productivity —
+    labour-hours per physical unit at a stated delivery path. No money→hours
+    conversion enters, and no observed spending enters. This is the personal
+    domain's answer to the same determinacy problem the infrastructure floor
+    solved: flipping a physical knob moves the floor, flipping an accounting
+    convention does not, because there is none.
+
+    WHY A NORMATIVE FLOOR AND NOT OBSERVED HOURS. Time use measures what a
+    population spends, which is the obligation plus institutionally-induced
+    hours minus obligation gone unserved:
+
+        observed = obligation − deferred + extraction
+
+    One observable, three unknowns. A floor computed from physical quantities at
+    a stated delivery productivity is `obligation` by construction — extraction
+    cannot enter it, because nothing here is derived from what anyone was
+    observed to do or paid.
+
+    UNREACHABLE IS NOT ZERO — the load-bearing behaviour. A component whose
+    `hours_per_unit` is None, or whose `min_epsilon` exceeds the ε asked for, has
+    NO delivery path at that automation level: the quantity is owed and cannot be
+    delivered at any price in unassisted human labour. Q/P is undefined, not
+    large. Such components are returned in `unreachable` — each WITH ITS REASON,
+    because "nobody has measured this yet" and "no human labour can deliver this"
+    are different facts about the world — and are EXCLUDED from `floor_hours`
+    rather than silently contributing zero. A caller that adds `floor_hours` to
+    anything must read `coverage` first.
+
+    units: hours per person per year. ε-behavior: the floor is a STEP function of
+    ε — physical requirements do not depend on the automation level, but which of
+    them have a delivery path does. Components without `min_epsilon` are
+    reachable at every ε including 0.
+
+    Args:
+        basket: list of components, each a dict with keys
+            "component" (str), "quantity_per_person_year" (float ≥ 0),
+            "hours_per_unit" (float ≥ 0, or None for "no delivery path").
+            OPTIONAL: "min_epsilon" (float, default 0.0) — the automation level
+            below which this component has no delivery path, the step-in term for
+            entitlements with no unassisted route; "share" (float) — the
+            component's intended share of the whole basket, used to weight
+            `coverage`; "unit" (str) — documentation only.
+        epsilon: automation level the floor is asked for, ∈ [0, 1].
+
+    Returns:
+        dict: {
+          "floor_hours":   float,  Σ over components WITH a delivery path
+          "by_component":  {name: hours},
+          "unreachable":   [{"component": name, "reason": str}, ...],
+                                   owed, no delivery path at this ε. reason is
+                                   REASON_UNMEASURED (hours_per_unit is None —
+                                   the path may exist, nobody has costed it) or
+                                   REASON_BELOW_MIN_EPSILON (the path does not
+                                   exist at this automation level)
+          "coverage":      float,  share of the basket priced, by "share" if every
+                                   component carries one, else by count
+          "epsilon":       float,
+        }
+
+    Worked example: nutrition alone — 767,025 kcal/person·yr at 2,317.8 kcal per
+    labour-hour (LSMS-ISA unassisted stratum) → 767,025 × 4.3153e-4 = 331.0 h/yr,
+    with health unreachable at ε = 0 and `coverage` reporting how much of the
+    basket that 331.0 actually covers.
+
+    Raises:
+        ValueError: if a component is missing a required key, or carries a
+            negative quantity or hours_per_unit.
+
+    Reference: handoffs/personal_eoh §0.1 (the basket must be pinned to physical
+    quantities or the parameter is unfalsifiable), §0.3 (survival core vs
+    entitlement augmentation — health has no ε=0 delivery path); Mission
+    Statement Guardrail I (physical grounding).
+    """
+    total = 0.0
+    by_component: dict[str, float] = {}
+    unreachable: list[dict] = []
+
+    for i, component in enumerate(basket):
+        try:
+            name = str(component["component"])
+            quantity = float(component["quantity_per_person_year"])
+            raw_hours = component["hours_per_unit"]
+            hours_per_unit = None if raw_hours is None else float(raw_hours)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"basket component {i} needs 'component', 'quantity_per_person_year' "
+                f"and 'hours_per_unit' (None means no delivery path): {component!r}"
+            ) from exc
+        if quantity < 0.0 or (hours_per_unit is not None and hours_per_unit < 0.0):
+            raise ValueError(
+                f"basket component {i} has negative quantity/hours_per_unit: {component!r}"
+            )
+
+        # Order matters: a component below its step-in threshold has no delivery
+        # path at all, which is a stronger statement than "not yet costed".
+        if epsilon < float(component.get("min_epsilon", 0.0)):
+            unreachable.append({"component": name, "reason": REASON_BELOW_MIN_EPSILON})
+            continue
+        if hours_per_unit is None:
+            unreachable.append({"component": name, "reason": REASON_UNMEASURED})
+            continue
+
+        by_component[name] = quantity * hours_per_unit
+        total += by_component[name]
+
+    return PersonalFloor(
+        floor_hours=total,
+        by_component=by_component,
+        unreachable=unreachable,
+        coverage=_basket_coverage(basket, by_component),
+        epsilon=epsilon,
+    )
 
 
 def infrastructure_eoh_breakdown(

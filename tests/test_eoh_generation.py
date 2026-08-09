@@ -158,20 +158,23 @@ class TestKnowledgePopulationScaling:
 
     def test_default_population_arc_is_pinned(self):
         """
-        Post-K-IV values at the reference population. K-I deliberately moved
-        NOTHING here (10,000 / 112,240 / 973,251.19); Block K-IV then adopted
-        the measured base and the transmission renewal rate, moving every point
-        by a uniform 1,225× (base ×4,901, rate ÷4).
+        Values at the reference population, after two adoptions. K-I moved
+        NOTHING here (10,000 / 112,240 / 973,251.19); K-IV adopted the measured
+        base and the transmission renewal rate (uniform 1,225×); the Finding-E
+        re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
+        net 954.91× against pre-K-IV.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.2252686e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.3752414e8, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.1924941e9, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(9.54907138e6, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.07178777e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(9.29364509e8, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
-        change silently altering the arc's SHAPE as well as its level."""
+        change silently altering the arc's SHAPE as well as its level. The
+        factor is 954.91× post-Finding-E (was 1,225.27× at the K-IV anchor);
+        that it stays UNIFORM across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1225.27, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(954.907, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)
@@ -610,12 +613,14 @@ def test_thermal_obligation_arc_coherent():
 DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 
 
-# BLOCK K-IV MOVED THESE. Before adoption personal ran 86–96% at every ε and the
-# two small domains together were a rounding error. Putting knowledge on the
-# measured O*NET footing cut personal's share at the top of the arc almost in
-# half. The defect is PARTLY closed: personal still dominates the low arc, where
+# BLOCK K-IV MOVED THESE, AND THE FINDING-E RE-ANCHOR MOVED THEM BACK A LITTLE.
+# Before K-IV personal ran 86–96% at every ε and the two small domains together
+# were a rounding error. Putting knowledge on the measured O*NET footing cut
+# personal's share at the top of the arc almost in half. Re-anchoring the base
+# to the ε_ref FIXED POINT (0.779× the K-IV value) gives back ~5 points at the
+# top. The defect is PARTLY closed: personal still dominates the low arc, where
 # there is no apparatus for knowledge to attach to, and ecological is untouched.
-_PERSONAL_SHARE_EXPECTED = {0.0: 0.943, 0.40: 0.844, 0.90: 0.566, 0.99: 0.511}
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.945, 0.40: 0.859, 0.90: 0.614, 0.99: 0.562}
 
 
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -647,7 +652,8 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
 
     top = total_eoh(epsilon=0.99)
     assert top["knowledge"] > top["infrastructure"]
-    assert top["knowledge"] / top["total"] == pytest.approx(0.412, abs=0.01)
+    # 0.412 at the K-IV one-shot anchor; 0.353 at the Finding-E fixed point.
+    assert top["knowledge"] / top["total"] == pytest.approx(0.353, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
@@ -852,9 +858,12 @@ class TestAccountingBasis:
         the Block I–III thread: obligation is population × per-person, and the
         apparatus built to SERVE it is not additional obligation.
 
-        It now drifts **+7.7%** (1,488 → 1,602 h/person·yr). The direction still
-        holds — final drifts far less than gross, which has itself widened to
-        +85% — but "near-constant" is no longer supportable.
+        It drifted +7.7% after K-IV and drifts **+6.1%** (1,485 → 1,575
+        h/person·yr) after the Finding-E re-anchor. The direction still holds —
+        final drifts far less than gross — but "near-constant" is no longer
+        supportable, and the re-anchor does not restore it: a 22% smaller
+        knowledge base shrinks the drift proportionally without touching its
+        cause.
 
         THE CAUSE IS STRUCTURAL, NOT A CALIBRATION ARTIFACT. The final basis
         includes `knowledge_civilisational`, which is base·kbs(ε)·cpu(0)·d, and
@@ -876,7 +885,7 @@ class TestAccountingBasis:
         final_drift = finals[-1] / finals[0] - 1.0
         gross_drift = grosses[-1] / grosses[0] - 1.0
 
-        assert final_drift == pytest.approx(0.077, abs=0.005)
+        assert final_drift == pytest.approx(0.061, abs=0.005)
         assert gross_drift > 0.09
         assert final_drift < gross_drift / 5.0
 

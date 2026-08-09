@@ -24,6 +24,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 
   Measured inputs (the measurement spine):
     measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
+    personal_floor
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -69,6 +70,7 @@ import csv
 import sys
 
 from hours_eoh.data import H_REF
+from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 
@@ -99,7 +101,8 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
-    "knowledge_base":      "knowledge_base_band() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock; REPORTING ONLY  [--epsilon-ref]",
+    "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
+    "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
@@ -225,6 +228,22 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             "workforce is anchored at (knowledge_base; default: "
                             "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
                             "[0.2, 0.6]; the band is reported regardless")
+
+    run_p.add_argument("--observed-hours", type=float, default=937.3,
+                       dest="observed_hours", metavar="H",
+                       help="Measured human labour per capita per year, for the "
+                            "ε_ref fixed point (knowledge_base; default: 937.3 — "
+                            "US 2025 PAID labour. The full-labour reading, 1701.1, "
+                            "has no solution: Finding B)")
+    run_p.add_argument("--convention", default="unpaid_core",
+                       choices=sorted(OBSERVED_CONVENTIONS),
+                       help="Which measured hours count as personal-domain labour "
+                            "(personal_floor; default: unpaid_core). A CONVENTION, "
+                            "not a measurement — every option is reported anyway")
+    run_p.add_argument("--atus-year", type=int, default=None, metavar="YYYY",
+                       dest="atus_year",
+                       help="ATUS survey year (personal_floor; default: the latest "
+                            "comparable year. 2020 is excluded — partial collection)")
 
     run_p.set_defaults(func=_run)
 
@@ -446,7 +465,7 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "knowledge_base":
         from hours_eoh.scenarios.knowledge_base import (
-            domain_share_projection, knowledge_base_band,
+            domain_share_projection, epsilon_ref_fixed_point, knowledge_base_band,
             renewal_doctrine_comparison, workforce_training_stock,
         )
         band = knowledge_base_band()
@@ -484,7 +503,56 @@ def _dispatch(args: argparse.Namespace) -> object:
             kb_out[f"projected_knowledge_share@eps={row['epsilon']:.2f}"] = \
                 row["knowledge_share"]
         kb_out["projection_note"] = proj["note"]
+        # Finding E: the anchor and the base solved together, not one then the other.
+        fp = epsilon_ref_fixed_point(args.observed_hours)
+        kb_out["fixed_point_observed_h"] = args.observed_hours
+        kb_out["fixed_point_epsilon_ref"] = fp["epsilon_fixed_point"]
+        kb_out["fixed_point_base_rate"] = fp["base_rate"]
+        kb_out["fixed_point_converged"] = fp["converged"]
+        kb_out["fixed_point_note"] = fp["note"]
         return kb_out
+
+    if name == "personal_floor":
+        from hours_eoh.scenarios.personal_floor import (
+            climate_conditioning, floor_arc, floor_vs_constants, identity_report,
+            observed_hours,
+        )
+        report = identity_report(year=args.atus_year, epsilon=epsilon,
+                                 convention=args.convention)
+        constants = floor_vs_constants(epsilon=epsilon)
+        pf_out: dict = {
+            "year":              report["year"],
+            "convention":        report["convention"],
+            "observed_h_per_capita": report["observed_hours"],
+            "floor_priced":      report["floor_priced"],
+            "basket_coverage":   report["coverage"],
+            "residual":          report["residual"],
+            "residual_terms":    " + ".join(report["residual_terms"]),
+            "identified":        report["identified"],
+        }
+        for row in floor_arc():
+            pf_out[f"floor@eps={row['epsilon']:.2f}"] = row["floor_hours"]
+            pf_out[f"unreachable@eps={row['epsilon']:.2f}"] = len(row["unreachable"])
+        for other in OBSERVED_CONVENTIONS:
+            # report["year"] is the resolved year, so the selected convention's
+            # figure here is the same one the identity above was computed from.
+            pf_out[f"observed_{other}"] = observed_hours(report["year"], other)
+        for cname, value in constants["constants_per_capita"].items():
+            pf_out[f"{cname}_per_capita"] = value
+            pf_out[f"floor_share_of_{cname}"] = constants["floor_share_of"][cname]
+        # The climate caveat travels WITH the number, not in a docstring: the one
+        # priced component is a rainfed tropical smallholder measurement.
+        climate = climate_conditioning()
+        pf_out["priced_and_climate_conditioned"] = ", ".join(
+            climate["priced_and_climate_conditioned"]) or "none"
+        pf_out["agro_ecology_of_measurement"] = climate["agro_ecology_of_measurement"]
+        pf_out["transfer_bias_sign"] = (
+            "undetermined" if climate["transfer_bias_sign"] is None else
+            climate["transfer_bias_sign"])
+        pf_out["climate_verdict"] = climate["verdict"]
+        pf_out["verdict"] = constants["verdict"]
+        pf_out["note"] = report["note"]
+        return pf_out
 
     # -- thermal obligation ---------------------------------------------------
 
