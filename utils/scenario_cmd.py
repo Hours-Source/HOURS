@@ -24,6 +24,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 
   Measured inputs (the measurement spine):
     measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
+    personal_floor
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -69,6 +70,7 @@ import csv
 import sys
 
 from hours_eoh.data import H_REF
+from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 
@@ -100,6 +102,7 @@ _SCENARIOS: dict[str, str] = {
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "knowledge_base":      "knowledge_base_band() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock; REPORTING ONLY  [--epsilon-ref]",
+    "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
@@ -225,6 +228,16 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             "workforce is anchored at (knowledge_base; default: "
                             "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
                             "[0.2, 0.6]; the band is reported regardless")
+
+    run_p.add_argument("--convention", default="unpaid_core",
+                       choices=sorted(OBSERVED_CONVENTIONS),
+                       help="Which measured hours count as personal-domain labour "
+                            "(personal_floor; default: unpaid_core). A CONVENTION, "
+                            "not a measurement — every option is reported anyway")
+    run_p.add_argument("--atus-year", type=int, default=None, metavar="YYYY",
+                       dest="atus_year",
+                       help="ATUS survey year (personal_floor; default: the latest "
+                            "comparable year. 2020 is excluded — partial collection)")
 
     run_p.set_defaults(func=_run)
 
@@ -485,6 +498,37 @@ def _dispatch(args: argparse.Namespace) -> object:
                 row["knowledge_share"]
         kb_out["projection_note"] = proj["note"]
         return kb_out
+
+    if name == "personal_floor":
+        from hours_eoh.scenarios.personal_floor import (
+            floor_arc, floor_vs_constants, identity_report, observed_hours,
+        )
+        report = identity_report(year=args.atus_year, epsilon=epsilon,
+                                 convention=args.convention)
+        constants = floor_vs_constants(epsilon=epsilon)
+        pf_out: dict = {
+            "year":              report["year"],
+            "convention":        report["convention"],
+            "observed_h_per_capita": report["observed_hours"],
+            "floor_priced":      report["floor_priced"],
+            "basket_coverage":   report["coverage"],
+            "residual":          report["residual"],
+            "residual_terms":    " + ".join(report["residual_terms"]),
+            "identified":        report["identified"],
+        }
+        for row in floor_arc():
+            pf_out[f"floor@eps={row['epsilon']:.2f}"] = row["floor_hours"]
+            pf_out[f"unreachable@eps={row['epsilon']:.2f}"] = len(row["unreachable"])
+        for other in OBSERVED_CONVENTIONS:
+            # report["year"] is the resolved year, so the selected convention's
+            # figure here is the same one the identity above was computed from.
+            pf_out[f"observed_{other}"] = observed_hours(report["year"], other)
+        for cname, value in constants["constants_per_capita"].items():
+            pf_out[f"{cname}_per_capita"] = value
+            pf_out[f"floor_share_of_{cname}"] = constants["floor_share_of"][cname]
+        pf_out["verdict"] = constants["verdict"]
+        pf_out["note"] = report["note"]
+        return pf_out
 
     # -- thermal obligation ---------------------------------------------------
 

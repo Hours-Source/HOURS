@@ -168,6 +168,18 @@ class TestWorkforceSnapshots:
 # Layer isolation — reference modules must not import from hours_eoh domain
 # ---------------------------------------------------------------------------
 
+#: Every module in `reference/`. New reference modules go here, not into a
+#: private copy of this check in their own test file.
+REFERENCE_MODULES = [
+    "hours_eoh.reference.practitioners",
+    "hours_eoh.reference.workforce",
+    "hours_eoh.reference.onet_knowledge",
+    "hours_eoh.reference.onet_multipliers",
+    "hours_eoh.reference.atus_time_use",
+    "hours_eoh.reference.personal_basket",
+]
+
+
 class TestLayerIsolation:
 
     def _get_module_imports(self, module_name: str) -> set[str]:
@@ -181,10 +193,15 @@ class TestLayerIsolation:
         return imports
 
     def _has_domain_import(self, imports: set[str]) -> bool:
+        # CLAUDE.md: "reference/ imports nothing from the package". data.py is on
+        # this list deliberately — a reference module that reads a calibration
+        # constant is no longer independent of the thing it calibrates.
         domain_prefixes = (
             "from hours_eoh.core",
             "from hours_eoh.land",
             "from hours_eoh.scenarios",
+            "from hours_eoh.data",
+            "from hours_eoh.params",
             "import hours_eoh.core",
         )
         return any(
@@ -192,14 +209,9 @@ class TestLayerIsolation:
             for imp in imports
         )
 
-    def test_practitioners_no_domain_imports(self):
-        imports = self._get_module_imports("hours_eoh.reference.practitioners")
+    @pytest.mark.parametrize("module_name", REFERENCE_MODULES)
+    def test_no_domain_imports(self, module_name):
+        imports = self._get_module_imports(module_name)
         assert not self._has_domain_import(imports), (
-            "practitioners.py must not import from hours_eoh domain modules"
-        )
-
-    def test_workforce_no_domain_imports(self):
-        imports = self._get_module_imports("hours_eoh.reference.workforce")
-        assert not self._has_domain_import(imports), (
-            "workforce.py must not import from hours_eoh domain modules"
+            f"{module_name} must not import from hours_eoh domain modules"
         )
