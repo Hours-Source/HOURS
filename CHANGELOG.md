@@ -11,6 +11,43 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+**The tag scheme: CHOSEN split into bounded / placeholder / normative (2026-08-09)**
+- One tag was covering three epistemic states. It made the calibration set read as
+  **83% guesswork** while *hiding* which constants are the real debts, and it filed
+  charter decisions under "awaiting measurement" — a category error, since no dataset
+  settles what fraction of an estate should pass to heirs.
+- `bounded` (14) — picked inside a **measured band**; `band:` and `errs:` are required
+  and gated, so "bounded" cannot be a free upgrade over `placeholder`. `errs` opens
+  with HIGH / LOW / NEITHER / **WITHHELD**, the last a real epistemic state here.
+- `placeholder` (106) — nothing constrains it yet. **The actionable debt.**
+- `normative` (60) — a decision. Requires `decided_by:`, may carry `precedent:`, and
+  is **forbidden a `resolves_by:`** — the forbidding is the point.
+- The eight `CANONICAL_*` arc constants became `convention`: an ideal-arc reference
+  *frame*, whose own pointer already read "nothing, and by design".
+- **The honest headline: debt is 52.4%, not 83.3%** — grounded 49 (21.4%), bounded 14
+  (6.1%), placeholder 106 (46.3%), normative 60 (26.2%). `eoh provenance check` now
+  prints this as a "Where the model stands" table via `debt_summary()`.
+- Of the 14 bounded picks **7 err LOW**, and for `DEP_RATE`, `THERMAL_F_GHG` and the
+  `GOVERNANCE_IRR_*` pair low is the *unsafe* direction — it flatters solvency,
+  overstates the thermal allowance, and sets the assessment gate below the
+  conventional κ bar. Each records that on its own line.
+- `CDR_LABOR_HOURS_PER_TONNE` → `measured` (Tier D): one plant's staffing disclosure
+  is a measurement with n=1, and it now matches `GUF_ECO_KAPPA_CARBON`.
+
+**Two constants revalued (2026-08-09, author decisions)**
+- `RECAL_FOUNDING_LABOR_HOURS` **1,000 → 666.67**, and bound to `PERSONAL_EOH_BASE`
+  via the new `RECAL_FOUNDING_FRACTION` = 2/3. The reprice had silently turned
+  "two-thirds of the base" into the whole of it — a founder with nothing left to live
+  on. Blast radius measured: the labour arm lengthens exactly 1.5× (t_labor 1.80 →
+  2.70 yr at ε=0, worst 2.85 across the arc), the three-channel exit invariant holds
+  at every arc point, and the channel order is unchanged. `TestFoundingLabourArm` now
+  anchors the mechanism — nothing had been exercising the labour arm's *timing*, which
+  is why a 1.5× drift was invisible.
+- `GUF_ECO_KAPPA_CARBON` **2.750 → 0.6**, adopting `CDR_LABOR_HOURS_PER_TONNE` as the
+  better-sourced of two figures for the same physical quantity. Bound by test rather
+  than expression (forward reference), so either side moving alone fails. Left open
+  and pinned: whether `CDR_GROSS_REMOVAL_FACTOR` belongs in this path.
+
 **Provenance coverage closed and gated (2026-08-09)**
 - `utils/provenance.py` + `utils/provenance_cmd.py` — inline provenance tag blocks in
   `data.py` are parsed from source, checked against the tag scheme, and rendered as the
@@ -19,19 +56,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `hours_eoh/reference/data/constant_provenance.csv` — **generated**, one row per
   `data.py` constant (value, units, tag, tier, form, block, `resolves_by`, note), so a
   public audit needs no Python. Packaged via the existing `hours_eoh.reference` data glob.
-- All **228** `data.py` constants now carry an inline tag block, up from an effective 3.
+- All **229** `data.py` constants now carry an inline tag block, up from an effective 3.
   101 constants (44%) previously appeared nowhere in the provenance doc, 51 of them the
   entire GUF block. Nine doc tables were still on the retired binary
   `Kind = Physics | Calibration`.
-- `tests/test_provenance.py` — 46 tests. Parser behaviour is pinned against synthetic
+- `tests/test_provenance.py` — 69 tests. Parser behaviour is pinned against synthetic
   source; the **coverage gate** runs against the real `data.py` with **no allowlist**,
-  and fails on an untagged constant, a stale or unmatched tag block, a tag outside the
-  closed vocabulary, a `CHOSEN` constant with no epistemic pointer, missing units, a
-  misapplied tier, a stale audit CSV, stale generated doc tables, or a block with no doc
-  home. Each was verified to bite by breaking it and reverting.
-- `tier` (A–D) formalised as a **sub-qualifier** of `measured`/`CHOSEN` rather than a
-  rival scheme, matching what the thermal layer already wrote. `convention` promoted to a
-  declared sub-label. The ad-hoc `Physics-adjacent` tag is retired.
+  and fails on an untagged constant, a stale or unmatched tag block, a retired or unknown
+  tag, a missing epistemic pointer, a `bounded` constant with no band or no error
+  direction, a `normative` constant with no decider *or* one claiming a `resolves_by`,
+  missing units, a misapplied tier, a stale audit CSV, stale generated doc tables, or a
+  block with no doc home. Each was verified to bite by breaking it and reverting.
+- `tier` (A–D) formalised as a **sub-qualifier** rather than a rival scheme, matching what
+  the thermal layer already wrote; it applies only where there is a source to grade.
+  `convention` promoted to a declared sub-label. The ad-hoc `Physics-adjacent` tag is
+  retired, along with `CHOSEN` itself (see the split above).
 
 ### Changed
 
@@ -43,9 +82,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
   and multiplier governance, none of which had one.
 - **No calibration constant changed.** Verified constant-by-constant against the previous
   commit: 228 compared, 0 value differences.
-- Tag distribution over all 228: `CHOSEN` 190 (83.3%), `measured` 13, `derived` 9,
-  `convention` 8, `derived-then-FROZEN` 6, **`physics` 2**. Applying the scheme's own
-  demanding definition of *physics* honestly leaves `A_EARTH_M2` and `SIGMA_SB`.
+- **Only 2 of 229 constants are `physics`** — applying the scheme's own demanding
+  definition honestly leaves `A_EARTH_M2` and `SIGMA_SB` and nothing else. The 190 that
+  first became `CHOSEN` were then split (see above), because one tag covering three
+  epistemic states was itself obscuring the picture.
 
 ### Fixed
 
@@ -58,9 +98,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
   as 2,213 — both are *products* of `PERSONAL_EOH_BASE` and went stale at the
   1,500 → 1,000 reprice. Now 500 / 1,000 and 1,475. A curated test pins these derived
   products, because no value-equality check can see a number restated in a sentence.
-- `RECAL_FOUNDING_LABOR_HOURS` is documented as "≈ 2/3 of `PERSONAL_EOH_BASE`" but the
-  reprice made it 100% of it. Recorded on the constant; the value is unchanged pending a
-  decision.
+- `RECAL_FOUNDING_LABOR_HOURS` was documented as "≈ 2/3 of `PERSONAL_EOH_BASE`" while the
+  reprice had made it 100% of it. **Decided and fixed** — see "Two constants revalued"
+  above.
 
 ### Findings (reported, not resolved)
 - **NLSA cites this framework's own document.** All 51 GUF constants attribute to "NLSA
@@ -68,7 +108,8 @@ Versions follow [Semantic Versioning](https://semver.org/).
   Equation numbers now appear only under `form:`, never `resolves_by:` — they establish an
   asserted form, not external evidence for a value.
 - **`GUF_ECO_KAPPA_CARBON` (2.750 TEH/tCO₂e) and `CDR_LABOR_HOURS_PER_TONNE` (0.6 h/t)
-  are the same quantity from two layers — a 4.6× disagreement.** Also `DEP_RATE` 0.045 vs
+  were the same quantity from two layers — a 4.58× disagreement, now RECONCILED** (see
+  above). Still open: `DEP_RATE` 0.045 vs
   `FORMATION_DEPRECIATION_RATE` 0.05, and `CONTESTABILITY_CAPITAL_YIELD_RATE` 0.10 vs the
   0.20 derivable from `RECAL_CAPITAL_OUTPUT_RATIO` and `FORMATION_DEPRECIATION_RATE`.
 - **Four constants are calibrated to a target and now say so:** `GUF_USE_*`,
