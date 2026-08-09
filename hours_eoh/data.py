@@ -1519,13 +1519,38 @@ GUF_ECO_KAPPA_WATER_FILTRATION:  float = 1.650   # TEH/ML/yr
 # resolves_by: crew-hours to build and maintain engineered retention of equal
 #   volume, amortized over its design life.
 GUF_ECO_KAPPA_FLOOD_ATTENUATION: float = 0.006   # TEH/m³/yr
-# tag: CHOSEN | units: TEH per tonne CO₂-equivalent per year, at ε=0.40
-# form: NLSA Eq. 14–15.
-# resolves_by: CDR_LABOR_HOURS_PER_TONNE, already in this file at 0.6 h/t from
-#   plant staffing disclosures. This constant is 2.750 — a 4.6× disagreement
-#   between two labour-hours-per-tonne-CO₂ figures in the same repo, on the
-#   same quantity. One of them is wrong and nothing currently reconciles them.
-GUF_ECO_KAPPA_CARBON:            float = 2.750   # TEH/tonne-CO₂eq/yr
+# RECONCILED TO THE THERMAL LAYER (2026-08-09, author decision: the CDR figure is
+# the more data-driven answer and should be used).
+#
+# This was 2.750 against CDR_LABOR_HOURS_PER_TONNE = 0.6 — the SAME physical
+# quantity (labour-hours to remove one tonne of CO₂) reached from the land layer and
+# the thermal layer, 4.58× apart, with nothing reconciling them. The thermal figure
+# is the better-sourced: operator staffing on a ~1 Mt/yr plant, against a midpoint of
+# the NLSA template's own range, which is this framework's document rather than an
+# external source.
+#
+# The units are commensurate. A developed parcel owes replacement of the annual
+# sequestration its ecosystem provided: V tonnes/yr × labour-hours to remove one
+# tonne. 1 TEH is one verified labour-hour, so TEH/tonne·yr and h/tonne are the same
+# number applied to a flow.
+#
+# OPEN, and deliberately NOT decided here: whether CDR_GROSS_REMOVAL_FACTOR (1.8,
+# sink reversal) belongs in this path. It applies when drawing atmospheric
+# concentration DOWN, because ocean and land sinks outgas back; replacing a displaced
+# sink is offsetting a FLOW, which may not incur it. Applying it would give 1.08.
+# Omitting it understates the obligation if it does apply — the wrong direction of
+# error — so it is flagged for the land/thermal reconciliation, not silently settled.
+#
+# Bound by test, not by expression: CDR_LABOR_HOURS_PER_TONNE is defined far below in
+# the thermal block, so a direct reference would be a forward reference.
+# tests/test_land_guf.py::TestCarbonKappaReconciliation holds the two together and
+# fails if either moves alone.
+# tag: measured | tier: D | units: TEH per tonne CO₂-equivalent per year, at ε=0.40
+# form: adopted EQUAL to CDR_LABOR_HOURS_PER_TONNE — labour-hours per tonne removed,
+#   from operator staffing disclosures. Supersedes the NLSA Eq. 14–15 midpoint.
+# resolves_by: operator staffing disclosures, jointly with the thermal layer. Tier D
+#   — one plant, and the sink-reversal question above is unresolved.
+GUF_ECO_KAPPA_CARBON:            float = 0.6     # TEH/tonne-CO₂eq/yr (= CDR_LABOR_HOURS_PER_TONNE)
 # tag: CHOSEN | units: TEH per tonne particulate per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: operating hours for filtration capacity of equal removal rate.
@@ -1988,23 +2013,41 @@ RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
                                          # transition. UNCALIBRATED placeholder — converts per-ε
                                          # capital-acquisition needs into per-year flows; faster arcs
                                          # tighten acquisition feasibility linearly.
-# tag: CHOSEN | units: hours per year
-# form: hours a floor-backed founder can devote to building an alternative
-#   collective (≈2/3 of PERSONAL_EOH_BASE, leaving the rest for personal EOH).
-#   The sufficiency floor is what frees this labour — the floor IS the entry
-#   finance of the low-ε arc, which is the substantive claim.
-# note: it is pinned to a fraction of PERSONAL_EOH_BASE without being bound to
-#   it, so the 2026-08-06 reprice 1500 → 1000 left this at 1,000 — now the
-#   WHOLE base rather than two-thirds of it. The stated rationale and the
-#   value have drifted apart; caught by this migration.
-# resolves_by: UNCALIBRATED placeholder. Time-use data on discretionary hours
-#   available to subsistence-floor recipients would settle it.
-RECAL_FOUNDING_LABOR_HOURS: float = 1_000.0
-                                         # hours/yr a floor-backed founder can devote to building an
-                                         # alternative collective (≈ 2/3 of PERSONAL_EOH_BASE, leaving
-                                         # the rest for personal EOH). The sufficiency floor is what
-                                         # makes this labor available — the floor IS the entry finance
-                                         # of the low-ε arc. UNCALIBRATED placeholder.
+# RECAL_FOUNDING_LABOR_HOURS — REVALUED AND BOUND (2026-08-09, author decision).
+#
+# The rationale was always "≈ 2/3 of PERSONAL_EOH_BASE, leaving the rest for
+# personal EOH": a floor-backed founder can commit two-thirds of their entropy
+# obligation's worth of hours to building an alternative, because the sufficiency
+# floor covers the rest. The 2026-08-06 reprice 1500 → 1000 left the literal at
+# 1,000, silently turning "two-thirds" into the WHOLE base — a founder devoting
+# every hour of their personal obligation to founding, with nothing left to live
+# on. That is not a placeholder drifting; it is the stated mechanism inverted.
+#
+# Now RECAL_FOUNDING_FRACTION × PERSONAL_EOH_BASE = 666.67, and BOUND to the
+# constant rather than restated, so the next reprice carries it automatically.
+# This is the same fix BASKET_EOH_CONTENT received on 2026-08-06 for the same
+# reason. It is the third instance of the pattern, so treat any constant whose
+# docstring says "≈ <fraction> of <other constant>" as a drift waiting to happen.
+# ---------------------------------------------------------------------------
+# tag: CHOSEN | units: fraction of PERSONAL_EOH_BASE
+# form: the share of a person's entropy obligation that a floor-backed founder can
+#   redirect into building an alternative collective. Two-thirds leaves a third for
+#   their own personal EOH, which the sufficiency floor is meanwhile covering.
+# resolves_by: time-use data on discretionary hours available to recipients of an
+#   unconditional floor. The cash-transfer and basic-income literature measures
+#   exactly this — how recipients reallocate time — and would replace the fraction
+#   with an observed one.
+RECAL_FOUNDING_FRACTION: float = 2.0 / 3.0
+# tag: derived | units: hours per year
+# form: RECAL_FOUNDING_FRACTION × PERSONAL_EOH_BASE = 666.67 h/yr. The sufficiency
+#   floor is what frees this labour — the floor IS the entry finance of the low-ε
+#   arc, which is the substantive §8.9 claim.
+# note: was a literal 1,000.0, which the 2026-08-06 reprice orphaned from its own
+#   stated derivation (see the block comment above). Binding it means a future
+#   reprice of PERSONAL_EOH_BASE moves it, as the rationale always implied.
+# resolves_by: n/a — it inherits PERSONAL_EOH_BASE's and RECAL_FOUNDING_FRACTION's
+#   standing, both CHOSEN.
+RECAL_FOUNDING_LABOR_HOURS: float = RECAL_FOUNDING_FRACTION * PERSONAL_EOH_BASE
 # tag: CHOSEN | units: years
 # form: exit must be financeable within one vesting period (=
 #   CONTESTABILITY_VESTING_YEARS): a member who joins can accumulate the means
@@ -2607,10 +2650,11 @@ CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging
 #   above the infrastructure ι floor, as expected: drawdown is
 #   energy-intensive and labour-thin.
 # note: A CANDIDATE FOR THE DOMAIN-BALANCE DEFECT. Either ECOLOGICAL_BASE_RATE
-#   is low by 2–3 orders or this is, or both; nothing in current data settles
-#   it. And note GUF_ECO_KAPPA_CARBON = 2.750 TEH per tonne-CO₂eq is the SAME
-#   quantity reached from the land layer — a 4.6× disagreement inside one
-#   repo, unreconciled.
+#   is low by 2–3 orders or this is, or both; nothing in current data settles it.
+#   GUF_ECO_KAPPA_CARBON reached the SAME quantity from the land layer at 2.750, a
+#   4.58× disagreement inside one repo; it is now bound EQUAL to this constant
+#   (2026-08-09, author decision), so this figure carries both layers and a
+#   staffing refresh moves both. TestCarbonKappaReconciliation enforces it.
 # resolves_by: operator staffing disclosures.
 CDR_LABOR_HOURS_PER_TONNE: float = 0.6 # Labor-hours per tonne removed. Tier D — a ~1 Mt/yr plant
                                        # at ~300 staff × 2000 h. resolves_by: operator staffing

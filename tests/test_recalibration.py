@@ -15,9 +15,12 @@ from hours_eoh.data import (
     ANNUAL_DEATH_RATE,
     CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_PHI_FLOOR,
+    PERSONAL_EOH_BASE,
     RECAL_ACCOUNT_CREDIT_SHARE,
     RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE,
     RECAL_EXIT_HORIZON_YEARS,
+    RECAL_FOUNDING_FRACTION,
+    RECAL_FOUNDING_LABOR_HOURS,
 )
 from hours_eoh.research.contestability import (
     commonized_fraction,
@@ -676,3 +679,81 @@ class TestRecalibratedArc:
     def test_rejects_unknown_policy(self):
         with pytest.raises(ValueError):
             recalibrated_arc(5, phi_policy="seizure")
+
+
+# ---------------------------------------------------------------------------
+# The founding-labour arm — anchored 2026-08-09
+#
+# RECAL_FOUNDING_LABOR_HOURS drifted from its own stated derivation ("≈ 2/3 of
+# PERSONAL_EOH_BASE") when the base was repriced 1500 → 1000 on 2026-08-06: the
+# literal stayed at 1,000 and silently became the WHOLE base, i.e. a founder
+# devoting every hour of their personal obligation to founding with nothing left to
+# live on. Nothing caught it, because no test exercised the labour arm's TIMING —
+# the existing assertions only checked t_exit ≤ the 5-year horizon, and both 1.80
+# and 2.70 years clear that.
+#
+# These tests anchor the mechanism, not just the outcome, so the next reprice either
+# carries the constant or fails here.
+# ---------------------------------------------------------------------------
+
+class TestFoundingLabourArm:
+
+    def test_founding_hours_are_bound_to_the_personal_obligation(self):
+        """The rationale is a FRACTION of the base, so it must be computed from it."""
+        assert RECAL_FOUNDING_LABOR_HOURS == pytest.approx(
+            RECAL_FOUNDING_FRACTION * PERSONAL_EOH_BASE
+        )
+        assert RECAL_FOUNDING_LABOR_HOURS == pytest.approx(666.667, rel=1e-4)
+
+    def test_a_founder_keeps_part_of_their_obligation(self):
+        """The substantive claim: two-thirds redirected, a third left to live on.
+
+        This is what the 1,000 literal violated — at the repriced base it left the
+        founder nothing, which is not a placeholder being imprecise but the stated
+        mechanism inverted.
+        """
+        assert 0.0 < RECAL_FOUNDING_FRACTION < 1.0
+        residual = PERSONAL_EOH_BASE - RECAL_FOUNDING_LABOR_HOURS
+        assert residual > 0.0
+        assert residual == pytest.approx(PERSONAL_EOH_BASE / 3.0)
+
+    def test_labor_arm_scales_inversely_with_founding_hours(self):
+        """The mechanism: fewer hours per year → longer to accumulate the same stock."""
+        slow = exit_financing(0.0, founding_labor_hours=500.0)["t_labor_years"]
+        fast = exit_financing(0.0, founding_labor_hours=1000.0)["t_labor_years"]
+        assert slow == pytest.approx(2.0 * fast)
+
+    def test_the_revalue_lengthened_the_labor_arm_by_exactly_three_halves(self):
+        """1,000 → 666.67 h/yr is a 1.5x slowdown, and it is reported not hidden."""
+        at_old = exit_financing(0.0, founding_labor_hours=1000.0)["t_labor_years"]
+        at_new = exit_financing(0.0)["t_labor_years"]
+        assert at_new == pytest.approx(1.5 * at_old)
+        assert at_old == pytest.approx(1.80, rel=1e-3)
+        assert at_new == pytest.approx(2.70, rel=1e-3)
+
+    def test_the_invariant_survives_the_revalue_at_every_arc_point(self):
+        """The point of measuring the blast radius: nothing breaks, with margin stated.
+
+        Worst labour-arm time across the arc is ~2.85 yr against a 5-yr horizon, so
+        the revalue consumes roughly half the headroom and leaves the three-channel
+        invariant intact.
+        """
+        worst = 0.0
+        for i in range(100):
+            eps = i * 0.01
+            r = exit_financing(eps)
+            assert r["exit_financeable"], f"exit not financeable at eps={eps:.2f}"
+            worst = max(worst, r["t_labor_years"])
+        assert worst < RECAL_EXIT_HORIZON_YEARS
+        assert worst == pytest.approx(2.852, rel=1e-2)
+
+    def test_channel_arc_is_unchanged_by_the_revalue(self):
+        """labor -> underwritten -> self still, in that order."""
+        channels = [exit_financing(i * 0.05)["channel"] for i in range(20)]
+        assert channels[0] == "labor"
+        assert "underwritten" in channels
+        assert channels[-1] == "self"
+        # monotone: once it leaves a channel it does not return
+        assert channels.index("self") > max(
+            i for i, c in enumerate(channels) if c == "underwritten"
+        ) - len(channels)
