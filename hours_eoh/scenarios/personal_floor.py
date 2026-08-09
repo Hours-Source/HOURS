@@ -24,8 +24,8 @@ or paid. That is the same move that closed the infrastructure determinacy gap
 
 WHAT THIS MODULE REPORTS, AND WHAT IT REFUSES TO
 --------------------------------------------------
-The shipped basket prices ONE component of six. So the residual is not
-`extraction − deferred`; it is
+The shipped basket prices ONE component of seven — 6.9% of the obligation by the
+desk estimate's own weights. So the residual is not `extraction − deferred`; it is
 
     observed − floor_priced  =  floor_unpriced  −  deferred  +  extraction
 
@@ -122,8 +122,10 @@ def obligation_floor(
     are step functions of ε as step-in entitlements become deliverable.
 
     Worked example: at ε = 0 the shipped basket returns 330.9 h/person·yr at
-    coverage 0.30 — crop production alone, with processing, water, shelter,
-    thermal and sanitation unpriced and health below its step-in threshold.
+    coverage 0.069 — crop production alone, with processing, water, shelter,
+    thermal, sanitation and CARE unpriced and health below its step-in
+    threshold. Care alone is 62.1% of the obligation, which is most of why the
+    coverage is what it is.
     """
     return personal_statutory_floor(
         basket if basket is not None else FULL_BASKET, epsilon
@@ -187,8 +189,8 @@ def identity_report(
     inherits that, so the whole report is meaningful at every ε.
 
     Worked example: 2025, ε = 0, unpaid_core → observed 763.8, floor_priced
-    330.9 at coverage 0.30, residual 432.9 — of which the largest known term is
-    the 70% of the basket nobody has costed, NOT extraction.
+    330.9 at coverage 0.069, residual 432.9 — of which the largest known term is
+    the 93% of the basket nobody has costed, NOT extraction.
     """
     # Resolve the year ONCE: the year reported and the year measured must be the
     # same one, and two independent defaults are how they stop being.
@@ -222,7 +224,7 @@ def floor_vs_constants(epsilon: float = 0.0, basket: list[dict] | None = None) -
     The floor against the constants it will eventually discipline — reporting only.
 
     Nothing here moves a constant. The comparison exists so the direction of
-    travel is on the record: a floor that already exceeds a standard at 30%
+    travel is on the record: a floor that already exceeds a standard at partial
     coverage has falsified it, and a floor far below one has said nothing yet.
 
     `PERSONAL_EOH_SURVIVAL` and `PERSONAL_EOH_SUFFICIENCY` are quoted per
@@ -258,8 +260,9 @@ def floor_vs_constants(epsilon: float = 0.0, basket: list[dict] | None = None) -
             name: priced / value for name, value in per_capita.items()
         },
         "verdict": (
-            "the floor prices one component of six and falsifies nothing yet; "
-            "it is a strict lower bound and the constants sit above it, which is "
-            "the only ordering compatible with 30% coverage"
+            "the floor prices one component of seven — 6.9% of the obligation by "
+            "the desk estimate's own weights — and falsifies nothing yet; it is a "
+            "strict lower bound and the constants sit above it, which is the only "
+            "ordering compatible with that coverage"
         ),
     }

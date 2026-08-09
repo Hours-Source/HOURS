@@ -32,6 +32,7 @@ from hours_eoh.reference.personal_basket import (
     NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
     NUTRITION_HOURS_PER_KCAL,
     SURVIVAL_CORE,
+    _share,
 )
 from hours_eoh.scenarios.personal_floor import (
     OBSERVED_CONVENTIONS,
@@ -244,6 +245,43 @@ class TestReferenceBasket:
         assert "nutrition_processing" in names
         assert "nutrition_production" in names
 
+    def test_care_is_in_the_survival_core(self):
+        """
+        Care is a requirement of human survival, and TEH is denominated in human
+        labour hours — so human continuation is the precondition for the ledger
+        existing at all. It also has an ε=0 delivery path (humans have always
+        cared for each other unassisted), so it belongs in the core and not among
+        the step-in entitlements.
+        """
+        care = next(c for c in SURVIVAL_CORE if c["component"] == "care")
+        assert care["hours_per_unit"] is None, "naming care must not price it"
+        assert care.get("min_epsilon", 0.0) == 0.0
+        assert care["share"] == pytest.approx(0.6207, abs=0.001)
+
+    def test_shares_mirror_the_data_decomposition(self):
+        """
+        `reference/` may not import the package, so the desk estimate's four
+        terms are restated in the basket. This holds the two copies together —
+        one decomposition of the personal obligation, not two. Before care was
+        added they disagreed and `coverage` was flattered by the absence of the
+        largest term.
+        """
+        from hours_eoh.data import PERSONAL_EOH_COMPONENTS
+
+        for term, spec in PERSONAL_EOH_COMPONENTS.items():
+            assert _share(term) == pytest.approx(spec["share"], rel=1e-12), term
+
+    def test_shares_sum_to_one_over_the_full_basket(self):
+        assert sum(c["share"] for c in FULL_BASKET) == pytest.approx(1.0)
+
+    def test_care_dominates_what_is_unpriced(self):
+        """The coverage number is what it is mostly because of care."""
+        unpriced = sum(
+            c["share"] for c in FULL_BASKET if c["hours_per_unit"] is None
+        )
+        care = next(c for c in FULL_BASKET if c["component"] == "care")["share"]
+        assert care / unpriced > 0.6
+
 
 # ===========================================================================
 # reference/atus_time_use.py — pure measurement
@@ -370,7 +408,7 @@ class TestIdentityReport:
         report = identity_report(2025)
         assert report["observed_hours"] == pytest.approx(763.8, abs=0.5)
         assert report["floor_priced"] == pytest.approx(330.9, abs=0.5)
-        assert report["coverage"] == pytest.approx(0.30, abs=0.01)
+        assert report["coverage"] == pytest.approx(0.069, abs=0.001)
 
     @pytest.mark.parametrize("epsilon", KEY_EPSILONS)
     def test_report_is_meaningful_across_the_arc(self, epsilon):

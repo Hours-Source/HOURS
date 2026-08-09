@@ -44,6 +44,28 @@ This is a DIFFERENT mechanism from the registration boundary. Registration
 governs what the collective ledger recognises; this governs what the basket
 physically contains.
 
+WHY CARE IS IN THE BASKET (author decision, 2026-08-09)
+--------------------------------------------------------
+The basket does not track what things cost. It states EOH DEMAND; the framework
+then measures how much of that demand can be met. On that reading care is not a
+service the obligation might or might not extend to — it is a requirement of
+human survival, and therefore a first-class term.
+
+It is also the term the ledger rests on. TEH is denominated in human labour
+hours, so the continuation of humans is the precondition for the accounting
+system existing at all: a basket that omits care is measuring the obligations of
+a population it has quietly assumed will keep appearing. Care is what makes that
+assumption true, and it is the largest single term in the desk estimate (62.1%).
+
+SCOPE, stated because it is a real limit and not a caveat: this basket is
+human-specific. A framework serving other agents would carry different
+components and different quantities, and nothing here generalises to them. What
+generalises is the structure — demand stated physically, delivery costed
+separately, unreachable kept distinct from zero.
+
+Care is therefore declared with a quantity and NO delivery productivity, exactly
+like the other uncosted components. Naming it does not price it.
+
 Layer rule: `reference/` imports nothing from the package — these are data, and
 any layer may read them.
 
@@ -87,6 +109,12 @@ SANITATION_SERVICE_YEARS: float = 1.0
 #: this module was written to prevent.
 HEALTH_SCHEDULES_PER_YEAR: float = 1.0
 
+#: Care demand: one person-year of a human being alive and in relationship, per
+#: person per year. The quantity is 1.0 by construction — everyone alive needs
+#: caring for, for exactly as long as they are alive — which puts the whole
+#: unknown into the delivery term where it belongs and can be measured.
+CARE_PERSON_YEARS: float = 1.0
+
 # ---------------------------------------------------------------------------
 # Delivery productivity — measured where it has been measured
 # ---------------------------------------------------------------------------
@@ -125,32 +153,48 @@ HEALTH_MIN_EPSILON: float = 0.10
 # The baskets
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Component shares — ONE decomposition, mirrored
+#
+# Shares weight `coverage`, so that the honesty metric is not a bare component
+# count. They are the desk estimate's own four terms, so that this module and
+# `data.PERSONAL_EOH_COMPONENTS` (which sets a_max) measure against the SAME
+# denominator. Before care was added they did not, and `coverage` was flattered
+# by the absence of the largest term.
+#
+# `reference/` may not import the package, so the four numerators are restated
+# here and held to the originals by
+# tests/test_personal_floor.py::test_shares_mirror_the_data_decomposition.
+# ---------------------------------------------------------------------------
+
+#: The desk estimate's four terms, h/person·yr. MIRROR of the shares in
+#: `data.PERSONAL_EOH_COMPONENTS` — change one and the test fails.
+DESK_ESTIMATE_HOURS: dict[str, float] = {
+    "nutrition": 208.0,
+    "shelter": 156.0,
+    "health": 208.0,
+    "care": 936.0,
+}
+_DESK_TOTAL: float = sum(DESK_ESTIMATE_HOURS.values())   # 1508
+
+
+def _share(term: str, split: int = 1) -> float:
+    """The desk-estimate share of one term, divided evenly over `split` lines."""
+    return DESK_ESTIMATE_HOURS[term] / _DESK_TOTAL / split
+
+
 #: Survival core — the components with an ε = 0 delivery path in principle.
-#:
-#: SHARES ARE CHOSEN, and they are NOT the `PERSONAL_EOH_COMPONENTS` weights.
-#: They exist only to weight `coverage`, so that the honesty metric is not a bare
-#: component count. Two things follow and both matter:
-#:
-#:   1. `data.PERSONAL_EOH_COMPONENTS` decomposes the same obligation differently
-#:      — nutrition 0.138 / shelter 0.103 / health 0.138 / **care 0.621** — so
-#:      `coverage` here and `a_max` there are measured against DIFFERENT
-#:      denominators. Do not read one as calibrating the other.
-#:   2. **There is no care line in this basket at all**, and care is the largest
-#:      term in that decomposition and the whole Block II anti-correlation
-#:      finding. Care resists a physical-quantity statement in a way food and
-#:      water do not — "how many hours of attention does a child need" is not a
-#:      kcal figure — which is why it is absent rather than declared. Until it is
-#:      resolved, `coverage` is optimistic: it reports how much of THIS basket is
-#:      priced, not how much of the obligation.
-#:
-#: Reconciling the two decompositions is an open item (notes/personal-eoh-floor.md §4).
+#: The desk estimate's `shelter` term covers the whole serviced-dwelling bundle
+#: (its own pointer is the JMP water-and-sanitation studies), so it is split
+#: evenly across the four lines below that make that bundle explicit. The even
+#: split is CHOSEN; the term total is not.
 SURVIVAL_CORE: list[dict] = [
     {
         "component": "nutrition_production",
         "quantity_per_person_year": DIET_KCAL_PER_YEAR,
         "unit": "kcal",
         "hours_per_unit": NUTRITION_HOURS_PER_KCAL,
-        "share": 0.30,
+        "share": _share("nutrition", 2),
         # MEASURED — LSMS-ISA, 7 countries, unassisted stratum. Every known bias
         # in the estimate runs upward (livestock labour unmeasured, draft animals
         # not in the assist flags, processing excluded), so 331 is a floor on a
@@ -162,7 +206,7 @@ SURVIVAL_CORE: list[dict] = [
         "quantity_per_person_year": DIET_KCAL_PER_YEAR,
         "unit": "kcal",
         "hours_per_unit": None,
-        "share": 0.30,
+        "share": _share("nutrition", 2),
         # THE BINDING UNKNOWN. Threshing, milling, fuel, water for cooking,
         # cooking. Plausibly exceeds production labour in hand-powered systems.
         # resolves_by: ATUS 0202 gives the high-ε end (259.8 h/person15+·yr in
@@ -175,7 +219,7 @@ SURVIVAL_CORE: list[dict] = [
         "quantity_per_person_year": WATER_LITRES_PER_YEAR,
         "unit": "litres",
         "hours_per_unit": None,
-        "share": 0.10,
+        "share": _share("shelter", 4),
         # resolves_by: DHS water-collection time (~90 countries, has trips/day
         # and container volume) in preference to the LSMS WASH modules, which
         # lack both in many waves. The LSMS merge harness is built and dry-run
@@ -188,14 +232,14 @@ SURVIVAL_CORE: list[dict] = [
         "quantity_per_person_year": SHELTER_M2_PER_PERSON,
         "unit": "m2",
         "hours_per_unit": None,
-        "share": 0.10,
+        "share": _share("shelter", 4),
     },
     {
         "component": "thermal",
         "quantity_per_person_year": THERMAL_DEGREE_DAYS_PER_YEAR,
         "unit": "degree_days",
         "hours_per_unit": None,
-        "share": 0.10,
+        "share": _share("shelter", 4),
         # LATITUDE-DEPENDENT. Costing this makes the floor climate-indexed, which
         # is correct and means PERSONAL_EOH_BASE cannot remain a global scalar.
     },
@@ -204,7 +248,35 @@ SURVIVAL_CORE: list[dict] = [
         "quantity_per_person_year": SANITATION_SERVICE_YEARS,
         "unit": "service_years",
         "hours_per_unit": None,
-        "share": 0.10,
+        "share": _share("shelter", 4),
+    },
+    {
+        "component": "care",
+        "quantity_per_person_year": CARE_PERSON_YEARS,
+        "unit": "person_years",
+        "hours_per_unit": None,
+        "share": _share("care"),
+        # THE LARGEST TERM, 62.1% of the desk estimate, and the one the ledger
+        # rests on: TEH is denominated in human labour hours, so human
+        # continuation is the precondition for the accounting system existing.
+        #
+        # It has an ε=0 delivery path — humans have always cared for each other
+        # unassisted — so it belongs in the survival core, not among the step-in
+        # entitlements. What it does NOT have is a costed one.
+        #
+        # resolves_by: cross-cultural time allocation at a stated dependency
+        # structure. Note the shape of the answer: care hours per person-year are
+        # AGE-STRUCTURE-DEPENDENT, so any figure is only meaningful against a
+        # stated age distribution — the same way the thermal term is only
+        # meaningful against stated degree-days. ATUS 03+04 gives 158.9
+        # h/person·yr for the US, but that is an OBSERVED figure at high capital
+        # and primary-activity-only (supervising a child while cooking books as
+        # cooking), so it is both contaminated and a lower bound. It is not
+        # eligible for this slot; see the module docstring.
+        #
+        # Block II predicts this is the term infrastructure cannot remove
+        # (abatability 0.25, the Baumol case), which is why the residual at full
+        # abatement is 84.4% care.
     },
 ]
 
@@ -217,11 +289,7 @@ ENTITLEMENT_AUGMENTATION: list[dict] = [
         "unit": "schedules",
         "hours_per_unit": None,
         "min_epsilon": HEALTH_MIN_EPSILON,
-        "share": 0.0,
-        # share 0.0: health is deliberately outside the survival-core coverage
-        # denominator. Mixing a step-in entitlement into the survival core's
-        # coverage would make the core look less complete than it is for a
-        # reason that has nothing to do with the core.
+        "share": _share("health"),
     },
 ]
 
