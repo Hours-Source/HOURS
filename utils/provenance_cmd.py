@@ -133,8 +133,12 @@ def _check(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     print()
-    print(green("No scheme violations. Every constant carries a tag and units, "
-                "and every CHOSEN constant names its epistemic pointer."))
+    print(green(
+        "No scheme violations. Every constant carries a tag and units; every "
+        "bounded value states its band and which way it errs; every placeholder "
+        "names what would settle it; and every normative constant names its "
+        "decider without pretending a dataset could."
+    ))
 
 
 def _csv(args: argparse.Namespace) -> None:
