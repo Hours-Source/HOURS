@@ -524,18 +524,44 @@ def test_derived_prose_figures_are_the_values_the_doc_prints():
     )
 
 
-def test_doc_does_not_print_the_pre_reprice_derived_figures():
-    """The specific stale figures this migration found, kept out.
+def _doc_live_prose() -> str:
+    """The doc minus its retag logs.
 
-    If PERSONAL_EOH_BASE is repriced again these strings change legitimately —
-    update them here together with the prose, which is the point: the test forces
-    the doc and the constant to move in the same commit.
+    A retag log is a historical record and must be free to quote the value it
+    replaced — that is what makes the retag auditable. Live prose must not. So the
+    stale-figure check reads everything *except* the logs.
     """
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
+    out, skipping = [], False
+    for line in doc.splitlines(keepends=True):
+        if line.startswith("## "):
+            skipping = line.startswith("## Retag log")
+        if not skipping:
+            out.append(line)
+    return "".join(out)
+
+
+def test_retag_logs_are_excluded_from_the_stale_figure_scan():
+    """Guard the guard: if the log headings are renamed, the exclusion must fail loudly."""
+    doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
+    assert "## Retag log" in doc, "no retag log — _doc_live_prose() excludes nothing"
+    assert len(_doc_live_prose()) < len(doc), "exclusion removed nothing"
+
+
+def test_live_prose_does_not_print_the_pre_reprice_derived_figures():
+    """The specific stale figures this migration found, kept out of live prose.
+
+    These are DERIVED PRODUCTS restated in sentences — a value-equality check
+    cannot see them, which is exactly where the reprice drift hid. If
+    `PERSONAL_EOH_BASE` is repriced again these strings change legitimately;
+    update them here together with the prose, which is the point of the test:
+    the doc and the constant have to move in the same commit.
+    """
+    prose = _doc_live_prose()
     stale = {
         "750 h/yr": "membership min-hours WARN at the pre-reprice base",
         "= 2,213 h/yr·person": "per-capita personal EOH at the pre-reprice base",
         "490,107,421": "KNOWLEDGE_EOH_BASE before the ε_ref fixed-point re-anchor",
     }
-    found = [f"{s!r} ({why})" for s, why in stale.items() if s in doc]
-    assert not found, "stale derived figure(s) in the doc: " + "; ".join(found)
+    found = [f"{s!r} ({why})" for s, why in stale.items() if s in prose]
+    assert not found, "stale derived figure(s) in live prose: " + "; ".join(found)

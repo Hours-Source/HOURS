@@ -36,26 +36,63 @@ shrinks over time as measured data replaces guesses**. Four tags:
   measurement that would move it off CHOSEN.** These are the calibration targets
   and the honest debts of the model.
 
-A fifth working label, **derived-then-FROZEN**, marks a derived value pinned at a
-reference epoch so it stays comparable across data vintages (re-deriving it per
-vintage would reintroduce circularity).
+Two working sub-labels sit alongside the four:
 
-> **Migration note (updated 2026-08-05).** The EOH-domain tables have now been
-> migrated off the older binary **Kind = Physics | Calibration**. The migration
-> was not cosmetic: several constants carrying the `Physics` tag turned out to be
-> desk estimates, and under this scheme's own definition — *physics* is "a
-> structural claim about how entropy works… needs a theoretical justification,
-> not a knob" — they are `CHOSEN`. Where a functional FORM is structural but its
-> constant is not, the table says so explicitly (`physics` form / `CHOSEN`
-> value) rather than letting the stronger tag cover both.
+- **derived-then-FROZEN** — a derived value pinned at a reference epoch so it stays
+  comparable across data vintages (re-deriving it per vintage would reintroduce
+  the circularity the freeze exists to break).
+- **convention** — a stated denominator or an adopted external standard, not a
+  claim about the world. `H_REF` = 2,000 h/yr is the clearest case: read as a
+  measurement of hours worked it would be wrong nearly everywhere, but it is not
+  one.
+
+**`tier` (A–D) is a sub-qualifier, not a rival scheme.** The thermal layer already
+wrote "measured (Tier A)"; the tag scheme now formalises that reading. Tier grades
+*how good a source is*, so it applies only to `measured` and `CHOSEN` — a `physics`
+claim has no source to grade, it is structural or it is wrong.
+
+> **Migration note (completed 2026-08-09 — now machine-checked).** All **228**
+> `data.py` constants carry an inline tag block, and `tests/test_provenance.py`
+> fails if that stops being true. The migration off the older binary
+> **Kind = Physics | Calibration** is finished: nine tables were still on it, and
+> the whole 51-constant GUF block was undocumented.
 >
-> The retags are listed in [Retag log](#retag-log-2026-08-05) below. The
-> machine-readable source of truth for the multiplier constants is
-> [`hours_eoh/reference/data/multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv)
-> (column `resolves_by` = the epistemic pointer).
+> The migration was not cosmetic. Several constants carrying `Physics` turned out
+> to be desk estimates or constitutional commitments, and under this scheme's own
+> definition they are `CHOSEN`. **Only 2 of 228 constants are `physics`; 190
+> (83.3%) are `CHOSEN`** — that distribution is the honest state of the
+> calibration set, and it was previously obscured. Where a functional FORM is
+> structural but its constant is not, the `form:` field says so rather than letting
+> the stronger tag cover both.
+>
+> **Tags live inline in `data.py`, immediately above each value** — proximity is
+> what stops coverage regressing, since you cannot add a constant without touching
+> the lines the tag lives on. Every table in this document below a
+> `<!-- provenance:table -->` marker is **generated** from those blocks; the prose
+> around them is hand-written and is where the argument lives. Regenerate with:
+>
+>     python3 utils/eoh_cli.py provenance doc --write
+>     python3 utils/eoh_cli.py provenance csv --write
+>
+> Retags are in [Retag log](#retag-log-2026-08-05) and
+> [Retag log (2026-08-09)](#retag-log-2026-08-09) below.
+
+**Machine-readable sources of truth.** For a public audit that never opens Python:
+[`constant_provenance.csv`](../hours_eoh/reference/data/constant_provenance.csv) —
+one row per `data.py` constant with value, units, tag, tier, form, block,
+`resolves_by` and any note. For the measured multiplier registry:
+[`multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv).
+Both are generated; neither is hand-edited.
 
 Source: `hours_eoh/data.py` and `hours_eoh/params.py`; measured multiplier data
 in `hours_eoh/reference/data/` (O*NET 30.3 / BLS, frozen epoch 2026-07-29).
+
+**Scope of the coverage gate.** It covers module-level constants in `data.py`. Three
+provenance surfaces sit outside it and are marked as such where they appear:
+`EohParams` defaults (`params.py`), the per-occupation multiplier registry, and any
+constant that never made it into `data.py` — of which
+`_ECOLOGICAL_SPIKE_INTENSITY` in `core/eoh_generation.py:47` is the one known case,
+a standing violation of the no-anonymous-constants invariant.
 
 ---
 
@@ -763,6 +800,83 @@ Net effect on the CHOSEN count for the EOH-generation block: 13 constants now
 carry an epistemic pointer where 6 previously claimed structural status. Four of
 the thirteen resolve against one public dataset (ATUS) that the repo does not
 yet use.
+
+---
+
+## Retag log (2026-08-09)
+
+The migration finished: 101 constants that appeared nowhere in this document, and
+nine tables still on the retired binary scheme. No *value* changed — verified
+constant-by-constant against the previous commit, 228 compared, 0 differences.
+
+### Tags that moved
+
+| Parameter(s) | Was | Now | Why |
+|---|---|---|---|
+| `M_BAND_LOW`, `M_BAND_HIGH`, `M_BAND_TARGET`, `M_MAX` | Physics | **CHOSEN** | The justification given was "below 1.8 the differential between labor tiers is too small to reflect real skill differentials" — an argument about fairness and legitimacy, not about entropy. A **constitutional** commitment: the strongest reason to hold it, and no reason to call it physics. |
+| `ALPHA_SCALE` | Physics | **derived** | Genuinely computed as `M_MAX − 1`; it moves when the cap moves. Inherits `M_MAX`'s standing. |
+| `DEP_RATE`, `DIV_RATE` | Physics | **CHOSEN** (`physics` form) | That capital depreciates and that a payout/renewal split exists are structural. 4.5% and 40% are not. |
+| `H_MIN`, `COMPETENCY_THRESHOLD` | Physics | **CHOSEN** | Both are single economy-wide numbers standing in for domain-specific quantities. `COMPETENCY_THRESHOLD`'s three significant figures imply a precision nothing supplies. |
+| `CONTESTABILITY_CHI_CRIT`, `CONTESTABILITY_PHI_FLOOR`, `CONTESTABILITY_K_FLOOR_FRACTION` | Physics | **CHOSEN** | Proposed functional forms, never calibrated — as the block header always said. χ ≥ 1 is definitional, but the invariant it served is superseded by §8.9. |
+| `MEMBERSHIP_MIN_HOURS_CRIT_FRACTION` | *Physics-adjacent* | **CHOSEN** | An ad-hoc fifth tag, now retired. The vocabulary is closed and tested. |
+| all 51 `GUF_*` | (undocumented) | **CHOSEN** | See the NLSA warning below. |
+| `COASEAN_COMMONS_TITHE`, `COASEAN_INDIVISIBLE_RESERVE_FRACTION`, `RECAL_CAPITAL_OUTPUT_RATIO`, `RECAL_ACCOUNT_CREDIT_SHARE` | Calibration | **convention** | Each names a specific external instrument — Italian Law 59/1992's 3% mutual-fund contribution, the statutory ~30% indivisible reserve, Piketty's β, Mondragon's internal capital accounts. Naming a real instrument is stronger than "calibration". |
+| `INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT` | measured | **convention** | 23 CFR 650 is a regulation, not a measurement. It resolves by adopting a different jurisdiction's code, which is a legitimate change rather than a correction. |
+| `H_REF`, `KNOWLEDGE_REFERENCE_POPULATION`, `SECONDS_PER_YEAR` | Calibration / physics | **convention** | Stated denominators. `SECONDS_PER_YEAR` is the Julian year; the choice matters at the fourth significant figure. |
+| `CO2_PPM_TO_GT` | physics | **derived** | Arithmetic from atmospheric mass and molar masses — derivable, but not itself a structural claim. |
+| `SKILL_TRANSMISSION_RATE`, `PP_INDEX_WARN_SLOPE`, `BASKET_EOH_CONTENT`, `RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE`, `MEMBERSHIP_VESTING_WARN_YEARS`, `FORMATION_DEPRECIATION_RATE`, `BASE_LIFETIME_EARNINGS_TEH` | Calibration | **derived** | Each is computed from, or defined equal to, another constant. Three of them (`RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE`, `MEMBERSHIP_VESTING_WARN_YEARS`, `BASE_LIFETIME_EARNINGS_TEH`) restate a literal instead of binding to their source, and should be bound. |
+
+**Net distribution over all 228 constants:** `CHOSEN` 190 (83.3%), `measured` 13,
+`derived` 9, `convention` 8, `derived-then-FROZEN` 6, **`physics` 2**. Two. The
+scheme's own definition of *physics* is demanding, and applying it honestly leaves
+almost nothing: `A_EARTH_M2` and `SIGMA_SB`.
+
+### Drifts this pass found and fixed
+
+| What | Was | Now |
+|---|---|---|
+| `KNOWLEDGE_EOH_BASE` (doc) | 490,107,421 | 381,962,855.27 — stale since the ε_ref fixed-point re-anchor (2026-08-09) |
+| `CARE_SIGMOID_DEFAULTS` (doc) | start_share 0.30, inflection 0.55 | 0.05 / 0.45 — the doc had never matched the code |
+| membership min-hours thresholds (prose) | 750 / 1500 h/yr | 500 / 1,000 — fractions of `PERSONAL_EOH_BASE`, stale since the reprice |
+| per-capita personal EOH (prose) | 1,500 × 1.475 = 2,213 | 1,000 × 1.475 = **1,475** |
+| `RECAL_FOUNDING_LABOR_HOURS` rationale | "≈ 2/3 of `PERSONAL_EOH_BASE`" | it is now **100%** of it; the reprice moved the base and orphaned the rationale |
+
+The last three are *derived products* restated in sentences, which no
+value-equality check can see. That is why the gate includes a curated test over
+exactly those figures — the drift hid where the structured check could not look.
+
+### Findings, reported rather than smoothed
+
+**NLSA cites this framework's own document.** The Ground Use Fee block attributes
+every constant to "NLSA Technical Manual TM-0042, Seventh Edition", and the
+template's own header reads *"Based on NLSA from HOURSFramework"*. It is written in
+the register of an external standard. Those citations establish a functional **form**
+the framework asserts and supply **no external evidence for a value**, so equation
+numbers now appear only under `form:`, never `resolves_by:`. Citing one's own design
+document as a source is precisely the authority-borrowing the scheme exists to
+prevent, and to a reader who has not opened the template it reads as provenance.
+
+**Two constants describe the same physical quantity and disagree 4.6×.**
+`GUF_ECO_KAPPA_CARBON` = 2.750 TEH per tonne-CO₂eq (land layer) against
+`CDR_LABOR_HOURS_PER_TONNE` = 0.6 h per tonne (thermal layer). One is wrong and
+nothing reconciles them. Two further duplications: `DEP_RATE` 0.045 against
+`FORMATION_DEPRECIATION_RATE` 0.05 (both aggregate capital depreciation, the second
+derived from `CAPITAL_MACHINE_PROFILES`), and `CONTESTABILITY_CAPITAL_YIELD_RATE`
+0.10 against the 0.20 implied by `1/RECAL_CAPITAL_OUTPUT_RATIO −
+FORMATION_DEPRECIATION_RATE`.
+
+**Four constants are calibrated to a target, and now say so on their own line:**
+`GUF_USE_*` (scaled ×100 so aggregate GUF matches levy revenue at mid-arc),
+`DEFAULT_SEGMENTS` (segment means set so the weighted mean hits 2.10, the top of the
+band), `TRUST_BASE_TEH` (sized so the dividend covers the obligations it must fund),
+and `CAPITAL_MACHINE_PROFILES` (tiers set to bracket the mid-arc ε they are supposed
+to produce). All four are the `_ECOLOGICAL_SPIKE_INTENSITY` pattern the 2026-08-05
+pass named; they were simply not looked at then.
+
+**`LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration.** It warns when
+the levy covers < 2% of the guarantee, and `SUFF_LEVY_RATE` covers ≈2% at canonical
+defaults. An indicator calibrated to the value it watches will not warn about the
+configuration it was drawn around.
 
 ---
 

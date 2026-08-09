@@ -279,7 +279,7 @@ Full documentation: **[hours-source.github.io/HOURS](https://hours-source.github
 
 - [Theory](https://hours-source.github.io/HOURS/theory/overview/) — Mathematical foundations, ε arc, structural conditions, design principles
 - [Developer Reference](https://hours-source.github.io/HOURS/api/) — Complete API for all modules with worked examples
-- [Parameter Provenance](https://hours-source.github.io/HOURS/parameter_provenance/) — Every EohParams value: default, units, physics vs. calibration, derivation rationale
+- [Parameter Provenance](https://hours-source.github.io/HOURS/parameter_provenance/) — Every one of the 228 `data.py` constants: default, units, four-tag provenance (`physics` / `measured` / `derived` / `CHOSEN`), and for every `CHOSEN` the specific evidence that would settle it. Tables are generated from inline tags in `data.py` and gated by `tests/test_provenance.py`, so coverage cannot regress silently. Machine-readable: [`constant_provenance.csv`](hours_eoh/reference/data/constant_provenance.csv). Run `python3 utils/eoh_cli.py provenance check`.
 - [Implementation Guide](https://hours-source.github.io/HOURS/guides/implementation_guide/) — How to plug your institution's real data into the model
 - [Guides](https://hours-source.github.io/HOURS/guides/quickstart/) — Quick start, CLI reference, extending the library
 - [Architecture Reference](CLAUDE.md) — Module layout, design invariants, layer rules (local)
