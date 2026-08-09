@@ -20,7 +20,7 @@ Mission Statement references throughout — see inline comments.
 # national census / UN WPP for the fractions.
 # ---------------------------------------------------------------------------
 # provenance-block: EOH generation — personal domain
-# tag: CHOSEN | units: relative eoh_weight (working_age = 1.0) and population fractions
+# tag: placeholder | units: relative eoh_weight (working_age = 1.0) and population fractions
 # form: the DIRECTION is structural — infants and elderly draw more caregiver
 #   labour than working-age adults. The 3.0 / 1.5 / 1.0 / 2.5 magnitudes and
 #   the 7/16/60/17 split are not.
@@ -46,7 +46,7 @@ AGE_GROUPS: dict[str, dict] = {
 # fast; ecosystem: slow then spike"
 # ---------------------------------------------------------------------------
 # provenance-block: Capital and asset lifecycle
-# tag: CHOSEN | units: maint_rate fraction of capital/yr; threshold_age years; compound_exp dimensionless
+# tag: placeholder | units: maint_rate fraction of capital/yr; threshold_age years; compound_exp dimensionless
 # form: physics — post-threshold maintenance escalates as a power law rather
 #   than linearly, and the ORDERING across asset classes (software fastest to
 #   fail, stone slowest) is a defensible engineering claim. The exponents are
@@ -94,7 +94,7 @@ ASSET_TYPES: dict[str, dict] = {
 # Mission Statement: §"ε is a physical observable" — this table is the
 # machine-capacity sub-model that makes ε emergent from physical state.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: EOH eliminated per TEH of capital per year; TEH per capita; years; condition ∈ [0,1]
+# tag: placeholder | units: EOH eliminated per TEH of capital per year; TEH per capita; years; condition ∈ [0,1]
 # note: CALIBRATED TO A TARGET, on its own admission — the tiers were set so
 #   that "standard" across all types totals ~2000 TEH/person (matching
 #   CAPITAL_STOCK_DEFAULT) and implies ε ≈ 0.18, with "advanced" implying ε ≈
@@ -265,7 +265,7 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
 # floored at COND_DECAY_FLOOR so end-of-life assets remain operational
 # (full write-down is a separate explicit event via execute_writedown).
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: fraction of condition (slope over full design life; floor level) | family: COND_DECAY_*
+# tag: placeholder | units: fraction of condition (slope over full design life; floor level) | family: COND_DECAY_*
 # form: linear decay to a floor. Physics in one respect — an end-of-life asset
 #   is degraded but still operational, so the floor must be above zero (full
 #   write-down is a separate explicit event via execute_writedown). The
@@ -280,7 +280,7 @@ COND_DECAY_FLOOR: float = 0.30   # minimum condition for an asset still in servi
 # Environmental monitoring saturation constant: at this many TEH per capita
 # of environmental_monitoring capital, monitoring_capability reaches 1.0.
 # Below this, capability scales linearly above CANONICAL_MONITORING_CAPABILITY_BASE.
-# tag: CHOSEN | units: TEH per capita of environmental-monitoring capital
+# tag: placeholder | units: TEH per capita of environmental-monitoring capital
 # resolves_by: an observed relationship between monitoring investment and
 #   detected fraction of ecological deferral. This constant governs how much
 #   deferred ecological EOH is VISIBLE, so it sets what the ledger can see
@@ -295,11 +295,11 @@ ENV_MONITORING_SATURATION_TEH_PER_CAPITA: float = 500.0
 # water, healthcare, manufacturing, and logistics.
 # ---------------------------------------------------------------------------
 # provenance-block: Labor and Condition IV
-# tag: CHOSEN | units: list of domain names
+# tag: normative | units: list of domain names
 # form: physics-adjacent — a civilization does have a set of functions whose
 #   failure is not survivable, so the CATEGORY is structural. Which seven, and
 #   the fact that there are seven, is not.
-# resolves_by: a criticality analysis for the jurisdiction being modelled —
+# decided_by: a criticality analysis for the jurisdiction being modelled —
 #   national critical-infrastructure sector designations are the nearest
 #   external analogue, and they do not agree with each other on the list
 #   either.
@@ -307,7 +307,7 @@ ESSENTIAL_DOMAINS: list[str] = [
     "agriculture", "construction", "energy", "water",
     "healthcare", "manufacturing", "logistics",
 ]
-# tag: CHOSEN | units: fraction of workforce certified per essential domain
+# tag: placeholder | units: fraction of workforce certified per essential domain
 # resolves_by: an observed relationship between practitioner density and
 #   recovery time from a domain outage. The Mission Statement asserts 15.5%;
 #   the three significant figures imply a precision nothing supplies, which is
@@ -316,7 +316,7 @@ ESSENTIAL_DOMAINS: list[str] = [
 COMPETENCY_THRESHOLD: float = 0.155  # 15.5% of workforce, per Mission Statement
 
 # Minimum annual labor obligation supporting Condition IV
-# tag: CHOSEN | units: hours per year
+# tag: placeholder | units: hours per year
 # form: 5 h/wk × 52 wk. Below some floor a practitioner stops maintaining
 #   competency, which is structural; the level is the choice.
 # resolves_by: measured skill-retention against practice hours by domain — the
@@ -324,8 +324,8 @@ COMPETENCY_THRESHOLD: float = 0.155  # 15.5% of workforce, per Mission Statement
 #   this and reports domain-specific thresholds, which is the point: one
 #   economy-wide 260 cannot be right for both a surgeon and a farmhand.
 H_MIN: int = 260  # hours/year
-# tag: CHOSEN | units: fractions of H_MIN, summing to 1.0
-# resolves_by: a charter decision on how the minimum obligation is
+# tag: normative | units: fractions of H_MIN, summing to 1.0
+# decided_by: a charter decision on how the minimum obligation is
 #   apportioned. The three-way split is a policy design; nothing measures it.
 H_MIN_ALLOCATION: dict[str, float] = {
     "competency_rotation": 0.40,  # 40% → essential domain practice
@@ -351,10 +351,10 @@ H_MIN_ALLOCATION: dict[str, float] = {
 # most in need of argument.
 # ---------------------------------------------------------------------------
 # provenance-block: Multipliers — constitutional band (Condition II)
-# tag: CHOSEN | units: dimensionless multiplier | family: M_BAND_*
+# tag: normative | units: dimensionless multiplier | family: M_BAND_*
 # form: physics-adjacent in one respect only — a band must EXIST for Condition
 #   II to be checkable. Where its edges sit is not implied by that.
-# resolves_by: a charter decision on the tolerable spread of labour valuation.
+# decided_by: a charter decision on the tolerable spread of labour valuation.
 #   The measured route now exists and disagrees usefully: the O*NET/BLS
 #   reference multiplier (mult-5.1.0) produces a population-weighted mean from
 #   measured factors, and handoffs/multipliers-v5/FALSIFIABILITY.md records
@@ -365,10 +365,10 @@ H_MIN_ALLOCATION: dict[str, float] = {
 M_BAND_LOW: float = 1.8
 M_BAND_HIGH: float = 2.1
 M_BAND_TARGET: float = 2.1
-# tag: CHOSEN | units: dimensionless multiplier
+# tag: normative | units: dimensionless multiplier
 # form: physics — a hard cap must exist, or TEH accumulation is unbounded in
 #   the tier dimension. Its LEVEL is the choice.
-# resolves_by: a charter decision on maximum permitted labour-valuation
+# decided_by: a charter decision on maximum permitted labour-valuation
 #   inequality. 6.0 is a 6:1 ratio against the floor; that is the substantive
 #   commitment and it should be argued as a distributional limit, not derived.
 M_MAX: float = 6.0
@@ -385,9 +385,9 @@ M_MAX: float = 6.0
 ALPHA_SCALE: float = M_MAX - 1.0          # = 5.0; Σαᵢ = ALPHA_SCALE at full range
 
 # Impact sub-question weights for compute_impact_score(); must sum to 1.0.
-# tag: CHOSEN | units: fraction | family: ALPHA_IMPACT_*
+# tag: normative | units: fraction | family: ALPHA_IMPACT_*
 # form: derived only in that the three weights are constrained to sum to 1.0.
-# resolves_by: nothing measures the relative importance of EOH reduction,
+# decided_by: nothing measures the relative importance of EOH reduction,
 #   domain breadth and reserve capacity against each other — it is a judgement
 #   about what the collective values in a role. Sweep it:
 #   scenarios/multiplier_sensitivity.py already provides the harness, and the
@@ -416,10 +416,10 @@ ALPHA_IMPACT_RESILIENCE_WEIGHT:      float = 0.25  # emergency reserve capacity
 # the freeze exists to break). Mirror of reference/data/multiplier_reference_bounds.json.
 # ---------------------------------------------------------------------------
 # provenance-block: Multipliers — measured geometric map (mult-5.1.0)
-# tag: CHOSEN | units: dimensionless multiplier
+# tag: normative | units: dimensionless multiplier
 # form: the constitutional floor of the geometric map — one hour of the least
 #   demanding registered labour mints exactly one TEH.
-# resolves_by: a charter decision on the floor. It is arguably the framework's
+# decided_by: a charter decision on the floor. It is arguably the framework's
 #   cleanest normative commitment (an hour is an hour at the floor) and needs
 #   no measurement — but it is a commitment, not a measured minimum.
 M_FLOOR:          float = 1.0    # constitutional floor multiplier (measured min)
@@ -444,8 +444,8 @@ M_COMPOSITE_Z_HI: float = 0.7401986094479613   # frozen composite upper bound
 # Frozen factor weights (training, demand, scarcity, impact) — CHOSEN, uncalibrated.
 # Epistemic pointer: no measurement behind the split; sweep ±0.10 each (see
 # scenarios/multiplier_sensitivity.py). Sum to 1.0.
-# tag: CHOSEN | units: fraction
-# resolves_by: no measurement stands behind the split between the four
+# tag: normative | units: fraction
+# decided_by: no measurement stands behind the split between the four
 #   assessment factors — it is what the collective decides a labour-hour's
 #   value turns on. Sweep ±0.10 each; scenarios/multiplier_sensitivity.py runs
 #   it and reports that rank ordering survives while absolute levels do not.
@@ -454,8 +454,8 @@ M_FACTOR_WEIGHTS: tuple[float, float, float, float] = (0.30, 0.25, 0.20, 0.25)
 # Frozen impact sub-domain weights (dependency, substitutability, harm, temporal)
 # — CHOSEN. Used to reconstruct f_impact from the measured i_* sub-components.
 # Sum to 1.0. Impact composite is affine outer-normalized against these bounds.
-# tag: CHOSEN | units: fraction
-# resolves_by: as for M_FACTOR_WEIGHTS — a governance judgement, swept not
+# tag: normative | units: fraction
+# decided_by: as for M_FACTOR_WEIGHTS — a governance judgement, swept not
 #   fitted.
 M_IMPACT_SUBDOMAIN_WEIGHTS: tuple[float, float, float, float] = (0.30, 0.25, 0.25, 0.20)
 # tag: derived-then-FROZEN | units: impact composite score, dimensionless | family: M_IMPACT_COMPOSITE_*
@@ -471,8 +471,8 @@ M_IMPACT_COMPOSITE_HI: float = 0.7519582943881703  # frozen impact-composite upp
 # weighting is a governance judgement, not a measurement; the ε=0.40 anchor
 # equals the frozen M_FACTOR_WEIGHTS by construction. At ε→1 impact dominates
 # (copy/merge limit: only impact survives — see handoffs KNOWN_ISSUES §5).
-# tag: CHOSEN | units: fraction, per ε anchor
-# resolves_by: the ε-dependence of the weighting is a governance judgement,
+# tag: normative | units: fraction, per ε anchor
+# decided_by: the ε-dependence of the weighting is a governance judgement,
 #   not a measurement. The DIRECTION is argued (training matters less as
 #   skills stop being scarce; impact matters more as fewer hours carry more
 #   consequence); the four anchor vectors are illustrative.
@@ -485,13 +485,20 @@ M_EPOCH_WEIGHT_ANCHORS: dict[float, tuple[float, float, float, float]] = {
 
 # Governance assessment thresholds
 # provenance-block: Multiplier governance and anti-gaming safeguards
-# tag: CHOSEN | units: count of assessors
-# resolves_by: a charter decision on panel size. Three is the smallest panel
+# tag: normative | units: count of assessors
+# decided_by: a charter decision on panel size. Three is the smallest panel
 #   that can break a tie, which is an argument rather than a measurement;
 #   sortition literature on minimum panel size for stable outcomes would
 #   strengthen it.
 GOVERNANCE_MIN_ASSESSORS:       int   = 3     # fewer than this triggers a WARN
-# tag: CHOSEN | units: inter-rater reliability coefficient | family: GOVERNANCE_IRR_*
+# tag: bounded | units: inter-rater reliability coefficient | family: GOVERNANCE_IRR_*
+# band: the conventional inter-rater agreement reading — κ ≥ 0.80 good,
+#   0.67–0.80 tentative, below 0.67 unreliable (Krippendorff; Landis–Koch)
+# errs: LOW. Both thresholds sit BELOW the conventional bar — 0.70 WARN
+#   against a 0.80 'good' line, 0.50 CRIT against 0.67 'unreliable' — so the
+#   gate is more permissive than the literature would set it. That is the
+#   unsafe direction for assessment quality, and it should be argued or
+#   tightened.
 # form: the WARN/CRIT pair on assessment agreement.
 # resolves_by: convention exists and is close at hand — these sit near the
 #   established Krippendorff/Cohen κ reading (≥0.80 good, 0.67–0.80 tentative,
@@ -506,7 +513,7 @@ GOVERNANCE_IRR_CRIT_THRESHOLD:  float = 0.50  # inter-rater reliability below �
 # oscillation; supply-response discount prevents over-rewarding roles where
 # raising the multiplier will itself resolve the scarcity."
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: periods
+# tag: placeholder | units: periods
 # form: physics-adjacent — SOME smoothing is structurally required, because
 #   scarcity is endogenous to the multiplier that responds to it and an
 #   unsmoothed feedback oscillates. The window LENGTH is the choice.
@@ -514,7 +521,13 @@ GOVERNANCE_IRR_CRIT_THRESHOLD:  float = 0.50  # inter-rater reliability below �
 #   BLS JOLTS measures exactly this and is not yet ingested; three periods is
 #   the framework's assertion about how long the oscillation is.
 SCARCITY_ROLLING_WINDOW: int = 3        # periods in rolling average
-# tag: CHOSEN | units: years
+# tag: bounded | units: years
+# band: weeks to ~10 years across occupations (O*NET job-zone training times,
+#   already shipped in reference/data/)
+# errs: WITHHELD. A single economy-wide lag cannot err in one direction when
+#   the true quantity is per-occupation and spans two orders of magnitude. 3
+#   years is implausibly uniform, and the honest fix is to make it
+#   per-occupation rather than to move the point.
 # resolves_by: measured time from a wage/valuation signal to a completed
 #   training pipeline, by occupation. Programme lengths are published (O*NET
 #   job-zone training times are already shipped in reference/data/), so this
@@ -522,8 +535,8 @@ SCARCITY_ROLLING_WINDOW: int = 3        # periods in rolling average
 #   years is implausibly uniform across occupations that range from weeks to a
 #   decade.
 SCARCITY_SUPPLY_LAG_YEARS: int = 3      # years for supply to respond to raised multiplier
-# tag: CHOSEN | units: normalized scarcity score ∈ [0,1]
-# resolves_by: a charter decision on when scarcity becomes an emergency worth
+# tag: normative | units: normalized scarcity score ∈ [0,1]
+# decided_by: a charter decision on when scarcity becomes an emergency worth
 #   naming. It gates a label, not an allocation.
 SCARCITY_SEVERE_THRESHOLD: float = 0.80 # above this, flag as SEVERE_SCARCITY
 
@@ -532,7 +545,7 @@ SCARCITY_SEVERE_THRESHOLD: float = 0.80 # above this, flag as SEVERE_SCARCITY
 # Mission Statement: §"Anti-gaming safeguards" — empirical training validation,
 # artificial scarcity detection, sunset reassessment enforcement.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: ratio of mandated to median observed training duration
+# tag: placeholder | units: ratio of mandated to median observed training duration
 # form: the anti-gaming test — a credential mandating far more training than
 #   practitioners actually needed is rent extraction wearing a training claim.
 # resolves_by: the distribution of mandated-vs-actual training ratios across
@@ -540,7 +553,7 @@ SCARCITY_SEVERE_THRESHOLD: float = 0.80 # above this, flag as SEVERE_SCARCITY
 #   would give the empirical spread, and the tolerance should sit at its upper
 #   tail rather than at a round 1.5.
 TRAINING_VALIDATION_TOLERANCE: float = 1.5        # mandated/median ratio ceiling
-# tag: CHOSEN | units: fraction | family: ARTIFICIAL_SCARCITY_*
+# tag: placeholder | units: fraction | family: ARTIFICIAL_SCARCITY_*
 # form: the pass-rate floor and the quality differential that can excuse
 #   falling below it — a gate is artificial unless the failures are really
 #   unqualified.
@@ -550,11 +563,11 @@ TRAINING_VALIDATION_TOLERANCE: float = 1.5        # mandated/median ratio ceilin
 #   cannot be tested — only asserted.
 ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR: float = 0.30 # below this always flagged
 ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD: float = 0.20 # min quality differential to justify low pass rate
-# tag: CHOSEN | units: years
+# tag: normative | units: years
 # form: the sunset clock — a tier assessment that never expires becomes a
 #   property right, which is the failure mode notes/historical-autopsy.md
 #   names.
-# resolves_by: a charter decision on revalidation cadence, with abundant
+# decided_by: a charter decision on revalidation cadence, with abundant
 #   precedent in professional recertification cycles (commonly 2–10 years).
 #   Several other constants are pinned to it (CONTESTABILITY_VESTING_YEARS),
 #   so moving it moves them.
@@ -563,7 +576,7 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 # Default workforce tier segments: (name, fraction, mean_multiplier)
 # Calibrated so weighted mean = 2.10 at ε=0.
 # 0.20×1.20 + 0.50×1.87 + 0.25×2.80 + 0.05×4.50 = 2.100
-# tag: CHOSEN | units: fractions of workforce and dimensionless multipliers
+# tag: placeholder | units: fractions of workforce and dimensionless multipliers
 # note: CALIBRATED TO A TARGET — the segment means were set so the weighted
 #   mean lands on 2.10, the top of the constitutional band, at ε=0. Same class
 #   as the GUF_USE_* rates: a value reverse-engineered from a desired outcome.
@@ -585,7 +598,7 @@ DEFAULT_SEGMENTS: list[dict] = [
 # registration reached before ε reaches 1.0"
 # ---------------------------------------------------------------------------
 # provenance-block: Registration sigmoids
-# tag: CHOSEN | units: start_share/saturation fractions; inflection in ε; rate dimensionless
+# tag: placeholder | units: start_share/saturation fractions; inflection in ε; rate dimensionless
 # form: physics-adjacent in shape only — admission to a collective ledger
 #   plausibly follows slow onset, mid-range acceleration and saturation below
 #   1.0 (some care stays informal at any automation level). Every one of the
@@ -652,7 +665,13 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 # without automation.
 # ---------------------------------------------------------------------------
 # provenance-block: EOH generation — personal domain
-# tag: CHOSEN | units: hours/year per working-age-equivalent
+# tag: bounded | units: hours/year per working-age-equivalent
+# band: hard upper bound (L−R)/w = 627 h/yr per working-age-equivalent, from
+#   this file's own H_REF × workforce fraction. 600 sits just inside it.
+# errs: LOW. Set below the supply bound rather than at it, so it understates
+#   the survival obligation if anything, which keeps ε_suff optimistic.
+#   Deliberate: the bound is CHECKED by scenarios/feasibility.py rather than
+#   pinned, because a constant that cannot fail its own test says nothing.
 # form: S_a — the autarky-referenced SURVIVAL standard. Hard-bounded above by
 #   (L−R)/w = 627: a survival standard exceeding labour supply is extinction.
 #   Set independently and CHECKED rather than pinned to the bound, so
@@ -665,7 +684,15 @@ PERSONAL_EOH_SURVIVAL: float    = 600.0   # S_a — autarky-referenced survival 
                                           # not pinned. resolves_by: minimum-subsistence
                                           # time-allocation studies (the components that
                                           # kill you if unmet: food, water, shelter, warmth).
-# tag: CHOSEN | units: hours/year per working-age-equivalent
+# tag: bounded | units: hours/year per working-age-equivalent
+# band: 390–926 h/yr from the capital-inventory + time-use identity at MODERN
+#   capital — which measures F_c, not F_a, the two reconciled by 38–74%
+#   abatement. Independently, 'all needs met' requires ~30% abatement at
+#   ε=0.99, putting F_a mid-band.
+# errs: HIGH. It is the autarky-referenced standard, so it MAY exceed labour
+#   supply — that gap is why collectives form, not an error. Erring high
+#   overstates what a decent life costs alone, which overstates the case for
+#   collective delivery rather than understating a survival risk.
 # form: F_a — the autarky-referenced SUFFICIENCY standard. MAY exceed labour
 #   supply, and that gap is precisely why collectives form.
 # resolves_by: cross-cultural time allocation at a stated adequacy standard,
@@ -729,7 +756,7 @@ PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficien
 # Baumol case. So the residual personal obligation as ε → 1 should be almost
 # entirely care, and a_max is bounded well below 1 by care's 62% share.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: share = fraction of the personal obligation; abatability = fraction removable
+# tag: placeholder | units: share = fraction of the personal obligation; abatability = fraction removable
 # form: the shares are the original desk estimate's own four terms
 #   (208/156/208/936 over 1508), so they are internally consistent with
 #   PERSONAL_EOH_SUFFICIENCY rather than independent of it. The abatability
@@ -760,7 +787,7 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     #   LEAST abatable and the largest share — this is what bounds a_max.
 }
 
-# tag: CHOSEN | units: TEH of capital per capita
+# tag: placeholder | units: TEH of capital per capita
 # form: K_half in a(K) = a_max · K/(K + K_half). It sets the PACE of abatement
 #   along the arc, not its ceiling.
 # note: THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free
@@ -777,7 +804,16 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   (inventory, time-use) pairs pins both a_max and K_half at once. Report the
 #   sensitivity with any abatement figure until it does.
 
-# tag: CHOSEN | units: hours/year per working-age-equivalent
+# tag: bounded | units: hours/year per working-age-equivalent
+# band: 390–1006 h/yr per working-age-equivalent, from two instruments sharing
+#   no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence
+#   parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M
+#   comes from a capital inventory and is B-FREE.
+# errs: HIGH. Set at the TOP of the band on an asymmetric loss function: too
+#   low hides a real shortfall (the model reports feasible, capital is
+#   under-built, and the deficit is paid in unserved biological obligation),
+#   while too high only over-builds capital. Erring high is the
+#   mortality-minimising error.
 # form: the ABATEMENT-COLLAPSED operating value — one number standing in for
 #   F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3),
 #   and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε =
@@ -800,12 +836,18 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   value.
 PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent. CHOSEN — resolves_by: capital-inventory + time-use identity
 # provenance-block: EOH generation — infrastructure domain
-# tag: CHOSEN | units: fraction of capital stock, as EOH-hours per year
+# tag: bounded | units: fraction of capital stock, as EOH-hours per year
+# band: 0.02–0.04 of capital stock per year (OECD public-capital maintenance
+#   series)
+# errs: NEITHER. 0.025 sits in the lower half of the band. The larger problem
+#   is not the point but the PATH: this constant sits on the monetized route
+#   that scenarios/infrastructure_floor.py shows is doctrine-dominated 10.26×,
+#   so narrowing it inside the band buys very little.
 # resolves_by: it cites a 2–4% band and picks a point inside it. The statutory
 #   floor below is the better instrument and supersedes this in practice — a
 #   physical condition census in crew-hours, with no money→hours step.
 INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year. CHOSEN — a point inside the OECD 2–4% band
-# tag: CHOSEN | units: dimensionless multiplier at end of design life
+# tag: placeholder | units: dimensionless multiplier at end of design life
 # form: physics — maintenance burden really is convex in age. The DOUBLING is
 #   not.
 # resolves_by: measured maintenance hours against age for a single asset
@@ -836,7 +878,7 @@ INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life. physi
 #   the interval is whatever that jurisdiction's code says, and adopting a
 #   different code changes it legitimately.
 INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT: float = 24.0  # 23 CFR 650 routine default
-# tag: CHOSEN | units: labour-hours per asset unit per year | family: INFRA_TREATMENT_HOURS_*
+# tag: placeholder | units: labour-hours per asset unit per year | family: INFRA_TREATMENT_HOURS_*
 # form: task-normative — hours/unit/year = (12 / inspection_interval_months) ×
 #   crew_hours_per_visit, currency-free by construction. This is the measured,
 #   auditable half of infrastructure EOH; discretionary maintenance ambition
@@ -864,7 +906,7 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 # per hectare / GUF parcel inventory × measured crew-hours); occupational
 # training-and-CPD hours from the O*NET/BLS spine already ingested.
 # provenance-block: EOH generation — ecological domain
-# tag: CHOSEN | units: hours/year at pristine ecosystem health (relative anchor)
+# tag: placeholder | units: hours/year at pristine ecosystem health (relative anchor)
 # note: THE DOMAIN-BALANCE DEFECT LIVES HERE. This is documented as a RELATIVE
 #   anchor — "does not represent an absolute ecosystem-specific count" — but
 #   it is SUMMED with absolute counts in total_eoh() and then divided into ε.
@@ -877,7 +919,7 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 # resolves_by: a stewardship-hours census on an absolute footing — agency FTEs
 #   per hectare, or the GUF parcel inventory × measured crew-hours.
 ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
-# tag: CHOSEN | units: ecosystem health index ∈ [0,1]
+# tag: placeholder | units: ecosystem health index ∈ [0,1]
 # form: physics — ecological regime shifts are established, so a threshold
 #   below which burden escalates nonlinearly is structural. Where 0.40 falls
 #   on THIS index is a mapping, not a measurement.
@@ -963,7 +1005,7 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
 KNOWLEDGE_EOH_BASE: float  = 381_962_855.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.4522 fixed point)
-# tag: CHOSEN | units: dimensionless exponent
+# tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
 # resolves_by: measured knowledge-maintenance hours against an automation
@@ -1018,7 +1060,7 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 # every pre-K-IV result in this repo was produced at, so reproducing an old
 # figure means passing it explicitly rather than guessing what it was.
 # It is NOT a renewal rate: see the credibility check under the split.
-# tag: CHOSEN | units: fraction of the knowledge stock renewed per year
+# tag: placeholder | units: fraction of the knowledge stock renewed per year
 # form: DEPRECATED as of Block K-IV — retained, not deleted, per the
 #   additive-not-destructive rule. Nothing defaults to it; the default renewal
 #   rate is SKILL_TRANSMISSION_RATE. Kept because it is the value every
@@ -1069,7 +1111,7 @@ SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHO
 # accepted 2026-08-08. DERIVED: 1 / working life, with the horizon below.
 # The horizon is the only input, and it is weakly held: halving or doubling it
 # moves transmission 2× against ε_ref's 7.13× lever on the base.
-# tag: CHOSEN | units: years, entry to retirement
+# tag: placeholder | units: years, entry to retirement
 # note: the only input to transmission, and weakly held — but halving or
 #   doubling it moves transmission 2×, against ε_ref's 7.13× lever on
 #   KNOWLEDGE_EOH_BASE, so it is not where the uncertainty lives.
@@ -1096,7 +1138,17 @@ SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0
 # gives 0.0027. CHOSEN, and the least-grounded number in Block K-III.
 # resolves_by: Eurostat CVTS (paid training hours per employee, all sectors) —
 # the single public series that measures this term directly.
-# tag: CHOSEN | units: fraction of stock renewed per year by continuing practice
+# tag: bounded | units: fraction of stock renewed per year by continuing practice
+# band: ≈10–30 h/worker·yr economy-wide — US state boards mandate 20–50 h per
+#   two-year cycle for licensed occupations (~a quarter of employment), and
+#   Eurostat CVTS reports ~25 h per participating employee·yr at ~40%
+#   participation. Against the measured 11,001 h/worker stock that is
+#   ≈0.0009–0.0027.
+# errs: LOW. At the top of that band, and then EXCLUDED from the shipped
+#   default anyway, so the adopted renewal rate understates the obligation by
+#   ~10.8% deliberately — the same posture the thermal layer takes when it
+#   withholds a budget whose sign is undetermined: prefer a defensible
+#   understatement to an unbacked completion.
 # form: the recurring hours a WORKING practitioner spends staying current —
 #   the term O*NET structurally cannot supply, because it measures the hours
 #   to REACH competency, never the hours to HOLD it. ~30 h/worker·yr
@@ -1133,14 +1185,14 @@ H_REF: int = 2000  # reference work-year hours per worker
 # simulation.py are named here so they can be swept and audited.
 # ---------------------------------------------------------------------------
 # provenance-block: TEH destruction and ε-scaling
-# tag: CHOSEN | units: fraction of capital stock per year
+# tag: placeholder | units: fraction of capital stock per year
 # form: catastrophic failure beyond recoverability, triggering D1 write-down.
 # resolves_by: observed catastrophic-failure rates by asset class. Insurance
 #   and asset-registry loss data measure this directly; ASSET_TYPES in this
 #   file already carries per-class threshold ages, so a measured pass should
 #   produce a per-class rate rather than one economy-wide 0.5%.
 CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing beyond repair/year
-# tag: CHOSEN | units: fraction of the failure rate removable at ε=1
+# tag: placeholder | units: fraction of the failure rate removable at ε=1
 # form: better monitoring at high ε reduces catastrophic failure —
 #   structurally right in direction (detected degradation is repairable
 #   degradation), asserted in magnitude.
@@ -1149,7 +1201,7 @@ CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing
 #   assumption with ENV_MONITORING_SATURATION_TEH_PER_CAPITA and neither is
 #   measured.
 CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction at ε=1 from better monitoring
-# tag: CHOSEN | units: TEH per period (at the 1M reference population)
+# tag: placeholder | units: TEH per period (at the 1M reference population)
 # form: a numerical guard, not an economic claim — it keeps period labour
 #   income from reaching zero and producing division-by-zero at high ε, which
 #   the ε-coherence rule requires every function to survive.
@@ -1157,7 +1209,7 @@ CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction 
 #   WORKFORCE_FRACTION_MIN × H_REF × the mean multiplier rather than pinned,
 #   which would make the guard consistent with the quantities it guards.
 LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # hard floor on period labor income (100M TEH)
-# tag: CHOSEN | units: fraction of population in the workforce
+# tag: placeholder | units: fraction of population in the workforce
 # form: the minimum workforce retained at any automation level. Structural in
 #   direction — full automation still needs someone, which Condition IV
 #   asserts as distributed competency — and asserted in level.
@@ -1179,7 +1231,13 @@ WORKFORCE_FRACTION_MIN:            float = 0.05           # minimum workforce fr
 # On death, accumulated savings above the personal reserve split into:
 # inherited (circulatory), levied to Trust (circulatory), and written down.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: fraction of population per year
+# tag: bounded | units: fraction of population per year
+# band: ≈0.007–0.011 per year across developed-world crude death rates (UN WPP
+#   / national vital statistics)
+# errs: NEITHER. Near the top of the band, and directly measurable — one of
+#   the cheapest debts in this file to close. The real limit is not the value:
+#   mortality is EXOGENOUS, and nothing links it to the deferred personal-EOH
+#   deficit the fulfillment layer now tracks.
 # form: crude death rate. EXOGENOUS — nothing in the model links mortality to
 #   the deferred personal-EOH deficit that core/eoh_fulfillment.py now tracks,
 #   so a severe unserved survival obligation and this rate are independent.
@@ -1189,21 +1247,21 @@ WORKFORCE_FRACTION_MIN:            float = 0.05           # minimum workforce fr
 #   modelled. 1%/yr is a plausible developed-world crude rate and directly
 #   measurable, making this one of the cheaper CHOSEN debts to close.
 ANNUAL_DEATH_RATE:              float = 0.010  # fraction of population dying per year
-# tag: CHOSEN | units: fraction of the excess above reserve | family: ESTATE_*
+# tag: normative | units: fraction of the excess above reserve | family: ESTATE_*
 # form: the D5 split on death — inherited (circulatory), levied to Trust
 #   (circulatory), and the remainder written down. Note the three shares are a
 #   distributional design, and RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE deliberately
 #   reuses the 0.15 levy fraction so capital estates get the same treatment as
 #   TEH estates rather than a new rule.
-# resolves_by: a charter decision on inheritance. There is no measurement of
+# decided_by: a charter decision on inheritance. There is no measurement of
 #   what fraction of an estate SHOULD pass to heirs; comparative
 #   inheritance-tax schedules give precedent for the range, not the value.
 ESTATE_INHERITANCE_FRACTION:    float = 0.35   # fraction of excess above reserve passed to heirs
 ESTATE_LEVY_FRACTION:           float = 0.15   # fraction of excess levied to Trust (circulatory)
-# tag: CHOSEN | units: years of basket cost
+# tag: normative | units: years of basket cost
 # form: the unconditionally preserved personal reserve — the part of an estate
 #   D5 never touches.
-# resolves_by: a charter decision. It is a commitment about how much security
+# decided_by: a charter decision. It is a commitment about how much security
 #   a person may hold beyond their own lifetime without it being reclaimed.
 ESTATE_PERSONAL_RESERVE_YEARS:  float = 10.0   # years of basket costs preserved unconditionally
 
@@ -1212,11 +1270,11 @@ ESTATE_PERSONAL_RESERVE_YEARS:  float = 10.0   # years of basket costs preserved
 # Excess TEH above the ceiling is committed to capital formation rather than
 # sitting in perpetual savings. Moves TEH from circulation to capital_embodied.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: multiple of base lifetime earnings
+# tag: normative | units: multiple of base lifetime earnings
 # form: the D6 accumulation ceiling above which excess TEH is committed to
 #   capital formation rather than sitting in perpetual savings. Disabled by
 #   default.
-# resolves_by: a charter decision on the maximum permitted accumulation — the
+# decided_by: a charter decision on the maximum permitted accumulation — the
 #   framework's most direct statement about tolerable wealth concentration,
 #   and it belongs in deliberation. Note it interacts with M_MAX: a 6×
 #   multiplier cap and a 3.5× accumulation cap are two different answers to
@@ -1237,7 +1295,7 @@ BASE_LIFETIME_EARNINGS_TEH:      float = 87_360.0  # 2080 TEH/yr × 42-yr career
 # Used in: params.py, fiscal.py, dashboard.py, stress.py, prices.py
 # ---------------------------------------------------------------------------
 # provenance-block: Fiscal architecture
-# tag: CHOSEN | units: fraction of labor income
+# tag: placeholder | units: fraction of labor income
 # resolves_by: min_levy_for_solvency() in core/fiscal.py already derives the
 #   rate the guarantee requires at a given ε, so the honest route is to
 #   REPLACE this default with that derivation rather than measure it. Recorded
@@ -1245,12 +1303,12 @@ BASE_LIFETIME_EARNINGS_TEH:      float = 87_360.0  # 2080 TEH/yr × 42-yr career
 #   TEH guarantee — it does not fund the guarantee and was never sized to; the
 #   Trust dividend does.
 SUFF_LEVY_RATE:               float = 0.0125            # sufficiency levy rate on labor income
-# tag: CHOSEN | units: fraction, per ε unit
-# resolves_by: nothing measures how fast a guarantee floor should shrink as
+# tag: normative | units: fraction, per ε unit
+# decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
 #   transition. Argue it, do not fit it.
 SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarantee floor_fraction shrinks with ε
-# tag: CHOSEN | units: TEH (at the 1M reference population)
+# tag: placeholder | units: TEH (at the 1M reference population)
 # note: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so the
 #   annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
 #   stewardship, ecological and guarantee obligations at mid-arc. Calibrated
@@ -1260,7 +1318,14 @@ SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarante
 #   makes an inventory-first reading possible, and the constant should follow
 #   the inventory rather than the obligation it is required to cover.
 TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); sized for EOH-reimbursement guarantee
-# tag: CHOSEN | units: fraction of Trust per year
+# tag: bounded | units: fraction of Trust per year
+# band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
+#   derived in this file from CAPITAL_MACHINE_PROFILES design lives (≈20 yr →
+#   δ ≈ 1/20) — the same physical quantity reached a second way.
+# errs: LOW. Understating depreciation overstates the Trust's durability and
+#   therefore its dividend, which flatters solvency: the unsafe direction. The
+#   two constants should be reconciled to one derivation rather than left 11%
+#   apart.
 # form: physics — the capital the Trust represents really does deteriorate, so
 #   a depreciation term must exist. The RATE is not structural.
 # resolves_by: a weighted mean design life over the actual capital inventory.
@@ -1269,24 +1334,24 @@ TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at 
 #   depreciation rates, 0.045 and 0.05, on the same physical quantity. They
 #   should be reconciled to one derivation.
 DEP_RATE:                     float = 0.045             # annual trust depreciation rate
-# tag: CHOSEN | units: fraction of annual depreciation
+# tag: normative | units: fraction of annual depreciation
 # form: the dividend/renewal split. That a split exists is structural — pay
 #   out everything and the Trust erodes; retain everything and it never
 #   circulates.
-# resolves_by: a charter decision on the payout ratio. It is the framework's
+# decided_by: a charter decision on the payout ratio. It is the framework's
 #   central distributional lever and belongs in deliberation, not measurement.
 DIV_RATE:                     float = 0.40              # fraction of depreciation paid as dividend
-# tag: CHOSEN | units: TEH per recipient per year (at ε=0) | family: MEANINGFUL_ACTIVITY_TEH_*
+# tag: normative | units: TEH per recipient per year (at ε=0) | family: MEANINGFUL_ACTIVITY_TEH_*
 # form: base × (1 + scale × ε²) — quadratic so non-participants gain real
 #   purchasing power as the labour pool shrinks. Also serves as the
 #   sufficiency basket cost at ε=0, so basket_price(0) = 120 TEH/yr.
-# resolves_by: a charter decision on discretionary provision above biological
+# decided_by: a charter decision on discretionary provision above biological
 #   reimbursement — this is what a collective thinks a life beyond subsistence
 #   costs, which is the same question PERSONAL_EOH_SUFFICIENCY asks in hours.
 #   The two should be reconciled; at present they are set independently.
 MEANINGFUL_ACTIVITY_TEH_BASE: float = 120.0            # discretionary spending bonus at ε=0 (TEH/yr)
 MEANINGFUL_ACTIVITY_TEH_SCALE: float = 1.5              # quadratic ε-growth factor; bonus = base×(1+scale×ε²)
-# tag: CHOSEN | units: TEH (at the 1M reference population)
+# tag: placeholder | units: TEH (at the 1M reference population)
 # resolves_by: a capital inventory for the jurisdiction being modelled, via
 #   research/epsilon_inverse.capital_for_epsilon(). Note this is 2,000
 #   TEH/capita and Block III established that the ε=0 endpoint carries NO
@@ -1309,14 +1374,14 @@ BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours sa
 # Human capital biological constants (population.py + capital.py)
 # ---------------------------------------------------------------------------
 # provenance-block: Human capital and population
-# tag: CHOSEN | units: fraction shift per ε unit
+# tag: placeholder | units: fraction shift per ε unit
 # form: automation improves medicine, so lives lengthen and the elderly
 #   fraction grows. Direction is arguable; the magnitude is asserted, and it
 #   is secondary to the dominant ε effect in the fulfillment split.
 # resolves_by: a longitudinal life-expectancy series against a measured
 #   automation index.
 ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # elderly EOH rises this fraction per ε unit
-# tag: CHOSEN | units: fraction shift per ε unit
+# tag: placeholder | units: fraction shift per ε unit
 # form: infant personal EOH declines with automation — formula feeding,
 #   monitoring and sanitation displace caregiver hours. This is the abatement
 #   claim of Block II applied to one age group, and note it runs OPPOSITE to
@@ -1324,7 +1389,7 @@ ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # elderly EOH rises this fraction pe
 # resolves_by: ATUS childcare hours per child against a capital index, which
 #   is the same cut AGE_GROUPS needs.
 INFANT_EOH_EPSILON_FACTOR:    float = 0.10  # infant personal EOH declines this fraction per ε unit
-# tag: CHOSEN | units: fraction of condition per year | family: HUMAN_CAPITAL_*
+# tag: placeholder | units: fraction of condition per year | family: HUMAN_CAPITAL_*
 # form: annual health-condition decay, higher for the elderly. Direction is
 #   biological; the 3× ratio between them is asserted.
 # resolves_by: measured functional-decline rates by age — NHATS/HRS carry
@@ -1332,7 +1397,7 @@ INFANT_EOH_EPSILON_FACTOR:    float = 0.10  # infant personal EOH declines this 
 #   weights, so one dataset closes both.
 HUMAN_CAPITAL_NATURAL_DECAY:  float = 0.005 # annual condition decay rate, non-elderly
 HUMAN_CAPITAL_ELDERLY_DECAY:  float = 0.015 # annual condition decay rate, elderly
-# tag: CHOSEN | units: dimensionless leverage coefficient per ε unit
+# tag: placeholder | units: dimensionless leverage coefficient per ε unit
 # form: automation amplifies the return on education — leverage = 1 + factor ×
 #   ε.
 # resolves_by: measured returns to schooling against an automation index. The
@@ -1353,7 +1418,7 @@ MATURATION_AUTO_LEVERAGE:     float = 0.30  # automation amplifies education ret
 # this baseline ensures every function is validated across the full arc.
 # ---------------------------------------------------------------------------
 # provenance-block: Canonical trajectory
-# tag: CHOSEN | units: mixed — see each line; slopes are per ε unit, bases are in the governed quantity's own units | family: CANONICAL_*
+# tag: convention | units: mixed — see each line; slopes are per ε unit, bases are in the governed quantity's own units | family: CANONICAL_*
 # form: these define the IDEAL ARC, not a prediction. A real simulation
 #   diverges from it, and divergence is the point of modelling —
 #   canonical_physical_state(ε) exists for arc testing and cross-sectional
@@ -1367,7 +1432,7 @@ MATURATION_AUTO_LEVERAGE:     float = 0.30  # automation amplifies education ret
 #   effective_capital_from_epsilon(base, ε) was NOT changed, because it scales
 #   a caller-supplied ε=0 baseline and zeroing it would destroy the caller's
 #   input.
-# resolves_by: nothing, and by design — an ideal arc is a reference frame, not
+# note: nothing, and by design — an ideal arc is a reference frame, not
 #   a measurement. What CAN be measured is how far an actual trajectory sits
 #   from it, which is what the scenario layer reports. Treat these as the
 #   axis, not the data.
@@ -1404,7 +1469,7 @@ CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of deve
 # Epsilon scaling function Ψ(ε) — global arc multiplier (NLSA Eq. 18)
 # Bell-shaped: near-floor at ε=0 and ε=0.99, peak near ε=0.40.
 # provenance-block: Ground Use Fee (land/guf.py)
-# tag: CHOSEN | units: dimensionless | family: GUF_PSI_*
+# tag: placeholder | units: dimensionless | family: GUF_PSI_*
 # form: NLSA Eq. 18 — the framework's own claim that land's labour-content
 #   cost peaks mid-arc and is low at both extremes.
 # resolves_by: a ground-fee-vs-automation panel across jurisdictions at
@@ -1413,12 +1478,12 @@ CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of deve
 #   does.
 GUF_PSI_A:     float = 0.8   # rise speed from ε=0 (lower a = faster rise)
 GUF_PSI_B:     float = 1.2   # fall speed toward ε=1 (higher b = faster fall)
-# tag: CHOSEN | units: fraction of the reference fee
+# tag: placeholder | units: fraction of the reference fee
 # resolves_by: the lowest ground-use fee observed in a highly-automated
 #   jurisdiction that still levies one. The floor asserts the fee never
 #   reaches zero, which is a policy commitment awaiting an observed analogue.
 GUF_PSI_FLOOR: float = 0.02  # irreducible floor; fee never reaches absolute zero
-# tag: CHOSEN | units: dimensionless
+# tag: placeholder | units: dimensionless
 # form: derived — the normalization that puts Ψ's peak at ≈1.0 given a+b≈2.0.
 #   It is PINNED here rather than computed, so it goes stale if either speed
 #   moves.
@@ -1427,7 +1492,7 @@ GUF_PSI_FLOOR: float = 0.02  # irreducible floor; fee never reaches absolute zer
 GUF_PSI_NORM:  float = 4.0   # normalizing constant; peak ≈ 1.0 when a+b≈2.0
 
 # Labor-content scaling α(ε) — normalized so α(0.40) = 1.0 (NLSA Eq. 19-20)
-# tag: CHOSEN | units: dimensionless | family: GUF_ALPHA_*
+# tag: placeholder | units: dimensionless | family: GUF_ALPHA_*
 # form: NLSA Eq. 19–20 — labour content declines with automation to an
 #   irreducible human-judgment floor.
 # resolves_by: measured labour-hours per parcel-administration task against an
@@ -1437,7 +1502,7 @@ GUF_ALPHA_ZETA:  float = 0.8   # rate of labor-content decline with automation
 GUF_ALPHA_FLOOR: float = 0.05  # irreducible human-judgment fraction at ε→1
 
 # Location Value Index default sub-index weights (NLSA Eq. 3); must sum to 1.0
-# tag: CHOSEN | units: fraction | family: GUF_LVI_W_*
+# tag: placeholder | units: fraction | family: GUF_LVI_W_*
 # form: NLSA Eq. 3 — the four weights are constrained to sum to 1.0. The split
 #   between them is constrained by nothing.
 # resolves_by: a hedonic regression of parcel transaction values on the four
@@ -1454,7 +1519,7 @@ GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 # + 20k commercial parcels) is co-equal with levy revenue at mid-arc (ε≈0.40).
 # At ×100 vs. the original abstract unit values: residential GUF ≈ 9.3M TEH/yr,
 # commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×).
-# tag: CHOSEN | units: TEH per Standard Land Unit per year, at ε=0.40 | family: GUF_USE_*
+# tag: placeholder | units: TEH per Standard Land Unit per year, at ε=0.40 | family: GUF_USE_*
 # form: NLSA Eq. 9 — midpoints of the manual's per-category ranges.
 # note: CALIBRATED TO A TARGET, and retagged on that basis (2026-08-09). These
 #   were scaled ×100 from the template's abstract unit values so that
@@ -1482,26 +1547,26 @@ GUF_USE_INSTITUTIONAL:          float =   1.0
 GUF_USE_CONSERVATION_CREDIT:    float =  -6.0  # negative: credit reduces base fee
 
 # Demand Pressure Modifier parameters (NLSA Eq. 11-13)
-# tag: CHOSEN | units: dimensionless elasticity | family: GUF_DEMAND_ETA_*
+# tag: placeholder | units: dimensionless elasticity | family: GUF_DEMAND_ETA_*
 # form: NLSA Eq. 11–13 — fee sensitivity to occupancy pressure, by land class.
 # resolves_by: measured fee-to-occupancy elasticity by land class — vacancy
 #   and turnover response in a jurisdiction that has actually varied its
 #   ground fees.
 GUF_DEMAND_ETA_RESIDENTIAL: float = 0.15   # sensitivity for residential land
 GUF_DEMAND_ETA_COMMERCIAL:  float = 0.25   # sensitivity for commercial land
-# tag: CHOSEN | units: dimensionless multiplier
+# tag: normative | units: dimensionless multiplier
 # form: NLSA Eq. 11–13 — a constitutional CEILING on D(p), not an estimate of
 #   it.
-# resolves_by: a charter decision, not a measurement. It bounds how far demand
+# decided_by: a charter decision, not a measurement. It bounds how far demand
 #   pressure may lift a fee above its reference; 1.80 is the framework's own
 #   judgement about tolerable variation and should be argued, not fitted.
 GUF_DEMAND_D_MAX:           float = 1.80   # constitutional ceiling on D(p)
 
 # Zone adjustment factor permitted range (NLSA §2.4.1)
-# tag: CHOSEN | units: dimensionless multiplier | family: GUF_ZONE_M*
+# tag: normative | units: dimensionless multiplier | family: GUF_ZONE_M*
 # form: NLSA §2.4.1 — the permitted band for a collective's local zone
 #   adjustment: governance headroom, not an estimated quantity.
-# resolves_by: a charter decision on how much local discretion the schedule
+# decided_by: a charter decision on how much local discretion the schedule
 #   allows. No measurement settles a permitted range — the honest pointer is
 #   the deliberation, and pretending otherwise would be the error.
 GUF_ZONE_MIN: float = 0.80
@@ -1509,12 +1574,12 @@ GUF_ZONE_MAX: float = 1.25
 
 # Ecosystem service replacement cost (κ) reference values at ε=0.40 (NLSA Eq. 14-15)
 # These are κ_s(ε=0.40); the full ε-arc is derived in ecosystem_service_kappa().
-# tag: CHOSEN | units: TEH per megalitre per year, at ε=0.40
+# tag: placeholder | units: TEH per megalitre per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: crew-hours to operate treatment capacity delivering equivalent
 #   filtration — a plant staffing schedule, not a valuation study.
 GUF_ECO_KAPPA_WATER_FILTRATION:  float = 1.650   # TEH/ML/yr
-# tag: CHOSEN | units: TEH per cubic metre of retention per year, at ε=0.40
+# tag: placeholder | units: TEH per cubic metre of retention per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: crew-hours to build and maintain engineered retention of equal
 #   volume, amortized over its design life.
@@ -1551,24 +1616,24 @@ GUF_ECO_KAPPA_FLOOD_ATTENUATION: float = 0.006   # TEH/m³/yr
 # resolves_by: operator staffing disclosures, jointly with the thermal layer. Tier D
 #   — one plant, and the sink-reversal question above is unresolved.
 GUF_ECO_KAPPA_CARBON:            float = 0.6     # TEH/tonne-CO₂eq/yr (= CDR_LABOR_HOURS_PER_TONNE)
-# tag: CHOSEN | units: TEH per tonne particulate per year, at ε=0.40
+# tag: placeholder | units: TEH per tonne particulate per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: operating hours for filtration capacity of equal removal rate.
 GUF_ECO_KAPPA_AIR_QUALITY:       float = 5.500   # TEH/tonne-particulate/yr
-# tag: CHOSEN | units: TEH per hectare-equivalent per year, at ε=0.40
+# tag: placeholder | units: TEH per hectare-equivalent per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: measured hand-pollination labour per hectare, which is the one
 #   service in this table with a directly observed human-substitute cost
 #   (Sichuan pear orchards, Maoxian).
 GUF_ECO_KAPPA_POLLINATION:       float = 1.000   # TEH/ha-equiv/yr
-# tag: CHOSEN | units: TEH per Habitat Quality Unit per year, at ε=0.40
+# tag: placeholder | units: TEH per Habitat Quality Unit per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: nothing yet, and this is the weakest of the seven — a Habitat
 #   Quality Unit is a framework construct, so the pointer has to define the
 #   unit before it can price it. Managed-reserve staffing per unit area is the
 #   nearest observable.
 GUF_ECO_KAPPA_BIODIVERSITY:      float = 0.350   # TEH/HQU/yr
-# tag: CHOSEN | units: TEH per cooling-degree-day per year, at ε=0.40
+# tag: placeholder | units: TEH per cooling-degree-day per year, at ε=0.40
 # form: NLSA Eq. 14–15.
 # resolves_by: operating and maintenance hours for mechanical cooling
 #   delivering the same degree-day offset. Note the thermal layer treats this
@@ -1577,7 +1642,7 @@ GUF_ECO_KAPPA_BIODIVERSITY:      float = 0.350   # TEH/HQU/yr
 GUF_ECO_KAPPA_THERMAL:           float = 0.030   # TEH/cooling-degree-day/yr
 
 # Ecosystem service automation sensitivity β_s — exponent in κ(ε) decay (NLSA Eq. 15)
-# tag: CHOSEN | units: dimensionless exponent | family: GUF_ECO_BETA_*
+# tag: placeholder | units: dimensionless exponent | family: GUF_ECO_BETA_*
 # form: NLSA Eq. 15 — how fast each service's replacement cost falls with
 #   automation. The ORDERING is an argument the framework makes (physical
 #   treatment automates readily; pollination and biodiversity resist it, the
@@ -1596,7 +1661,7 @@ GUF_ECO_BETA_THERMAL:           float = 0.8
 
 # Irreducible human-judgment floor for ecosystem κ — fraction of reference value
 # At post-scarcity, some ecological judgment remains irreducibly human.
-# tag: CHOSEN | units: fraction of the reference κ
+# tag: placeholder | units: fraction of the reference κ
 # resolves_by: the residual human oversight hours in the most automated
 #   environmental-management operation observable. Same structural claim as
 #   GUF_ALPHA_FLOOR and PERSONAL_EOH_COMPONENTS' care abatability ceiling —
@@ -1605,7 +1670,7 @@ GUF_ECO_BETA_THERMAL:           float = 0.8
 GUF_ECO_KAPPA_FLOOR_FRACTION: float = 0.10
 
 # Infrastructure proximity distance-decay rates μ_k (km⁻¹) (NLSA Eq. 16)
-# tag: CHOSEN | units: per kilometre | family: GUF_INFRA_MU_*
+# tag: placeholder | units: per kilometre | family: GUF_INFRA_MU_*
 # form: NLSA Eq. 16 — exponential decay of infrastructure benefit with
 #   distance.
 # resolves_by: measured catchment gradients — transit ridership, utility
@@ -1616,7 +1681,7 @@ GUF_INFRA_MU_UTILITIES:    float = 0.2
 GUF_INFRA_MU_PUBLIC_SPACE: float = 0.8
 
 # Cross-collective infrastructure ownership factor (NLSA Eq. 25b)
-# tag: CHOSEN | units: fraction of infrastructure burden attributed externally
+# tag: placeholder | units: fraction of infrastructure burden attributed externally
 # form: NLSA Eq. 25b.
 # resolves_by: a federation cost-allocation study — the share of a parcel's
 #   infrastructure benefit physically supplied by a neighbouring collective.
@@ -1626,31 +1691,31 @@ GUF_INFRA_MU_PUBLIC_SPACE: float = 0.8
 GUF_CHI_EXTERNAL: float = 0.30
 
 # Review cycle rate cap — max GUF increase per 5-year cycle (NLSA Eq. 21)
-# tag: CHOSEN | units: fraction increase per 5-year review cycle
+# tag: normative | units: fraction increase per 5-year review cycle
 # form: NLSA Eq. 21.
-# resolves_by: a charter decision. A rate cap is a commitment about how fast a
+# decided_by: a charter decision. A rate cap is a commitment about how fast a
 #   leaseholder can be asked to absorb change, which is deliberation, not
 #   measurement. Precedent exists in statutory rent-review caps.
 GUF_REVIEW_CYCLE_CAP: float = 0.10
 
 # Income-linked subsidy thresholds for primary residential parcels (NLSA Eq. 24)
-# tag: CHOSEN | units: fraction | family: GUF_SUBSIDY_*
+# tag: normative | units: fraction | family: GUF_SUBSIDY_*
 # form: NLSA Eq. 24 — a taper from a lower income threshold to a floor rate.
-# resolves_by: a charter decision on the subsidy schedule. Distributional
+# decided_by: a charter decision on the subsidy schedule. Distributional
 #   thresholds are political commitments; the measurable input is the income
 #   distribution they are applied to, not the thresholds themselves.
 GUF_SUBSIDY_LOWER_THRESHOLD: float = 0.40  # below 40% of median → maximum subsidy
 GUF_SUBSIDY_FLOOR_RATE:      float = 0.25  # subsidized leaseholders pay 25% of GUF
-# tag: CHOSEN | units: fraction of income
+# tag: normative | units: fraction of income
 # form: NLSA Eq. 24 — the accessibility test on a primary residence.
-# resolves_by: a charter decision, with a strong external analogue: 25%
+# decided_by: a charter decision, with a strong external analogue: 25%
 #   mirrors the housing-cost-burden convention in national housing statistics
 #   (the US 30% burden threshold is the better-known variant). Adopting a
 #   published threshold explicitly would move this to `convention`.
 GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible primary housing
 
 # Agricultural soil-health credit rate (NLSA Eq. 26); symbol c_soil in equations
-# tag: CHOSEN | units: TEH per Standard Land Unit per unit Soil Health Index gain
+# tag: placeholder | units: TEH per Standard Land Unit per unit Soil Health Index gain
 # form: NLSA Eq. 26.
 # resolves_by: measured labour-hours of soil-building practice (cover
 #   cropping, reduced tillage, amendment) per unit index gain — an agronomic
@@ -1659,7 +1724,7 @@ GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible 
 GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Health Index
 
 # Ecological write-down parameters (NLSA §9)
-# tag: CHOSEN | units: years
+# tag: placeholder | units: years
 # form: NLSA Eq. 28 — Y_r, the design life over which replacement
 #   infrastructure is amortized.
 # resolves_by: engineering design lives for the specific replacement asset
@@ -1667,7 +1732,7 @@ GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Healt
 #   ages for comparable classes, so this one is reconcilable against a table
 #   we ship.
 GUF_WRITEDOWN_AMORTIZATION_YEARS: float = 50.0  # Y_r: replacement infra design life (Eq. 28)
-# tag: CHOSEN | units: fraction of ecological EOH left unfulfilled
+# tag: placeholder | units: fraction of ecological EOH left unfulfilled
 # form: NLSA §9.8 — the preventive monitoring trigger.
 # resolves_by: an observed relationship between deferred stewardship and
 #   ecosystem regime shift. ECOLOGICAL_THRESHOLD in this file makes the same
@@ -1690,33 +1755,33 @@ GUF_EOH_ACCUMULATION_THRESHOLD:   float = 0.30  # 30% unfulfilled ecological EOH
 # rather than picked, that is said on the line.
 # ---------------------------------------------------------------------------
 # provenance-block: Dashboard health thresholds
-# tag: CHOSEN | units: fraction of EOH deferred | family: DEFERRED_RATIO_*
-# resolves_by: an observed relationship between deferral and unrecoverable
+# tag: normative | units: fraction of EOH deferred | family: DEFERRED_RATIO_*
+# decided_by: an observed relationship between deferral and unrecoverable
 #   degradation — the point past which deferred maintenance stops being
 #   catch-up work and becomes replacement. scenarios/recovery.py models the
 #   recovery side, so the crossover is derivable in-model rather than needing
 #   new data.
 DEFERRED_RATIO_WARN:       float = 0.10   # YELLOW: 10% deferred
 DEFERRED_RATIO_CRIT:       float = 0.25   # RED: 25% deferred
-# tag: CHOSEN | units: registration share (fraction of human EOH admitted to the ledger) | family: REGISTRATION_*
-# resolves_by: a charter decision on the minimum ledger coverage that keeps
+# tag: normative | units: registration share (fraction of human EOH admitted to the ledger) | family: REGISTRATION_*
+# decided_by: a charter decision on the minimum ledger coverage that keeps
 #   TEH circulating meaningfully. Note these are ε-INVARIANT while
 #   total_registration_share(ε) is low by design at low ε, so at subsistence
 #   the indicator reads RED for a state the framework considers correct.
 REGISTRATION_WARN:         float = 0.35   # YELLOW below 35%
 REGISTRATION_CRIT:         float = 0.20   # RED below 20%
-# tag: CHOSEN | units: fraction of original EOH added by compounding | family: COMPOUNDING_*
-# resolves_by: the compounding rate at which ASSET_TYPES' power-law escalation
+# tag: normative | units: fraction of original EOH added by compounding | family: COMPOUNDING_*
+# decided_by: the compounding rate at which ASSET_TYPES' power-law escalation
 #   outruns any feasible maintenance response — derivable from that table plus
 #   a labour-supply constraint, so this is a wiring debt rather than a data
 #   debt.
 COMPOUNDING_WARN:          float = 0.20   # YELLOW: compounding adds >20% of original
 COMPOUNDING_CRIT:          float = 0.50   # RED: compounding adds >50% (spiral risk)
-# tag: CHOSEN | units: purchasing-power index (1.0 = parity)
+# tag: normative | units: purchasing-power index (1.0 = parity)
 # form: the threshold is ε-scaled, threshold = 1 + slope × ε, because
 #   purchasing power is expected to RISE across the arc — so a flat 1.05 would
 #   pass trivially at high ε.
-# resolves_by: a charter decision on how much purchasing-power gain the arc is
+# decided_by: a charter decision on how much purchasing-power gain the arc is
 #   expected to deliver before the absence of it counts as a warning.
 PP_INDEX_WARN:             float = 1.05                            # YELLOW threshold at ε=0.40 reference
 # tag: derived | units: purchasing-power index per ε unit
@@ -1724,18 +1789,18 @@ PP_INDEX_WARN:             float = 1.05                            # YELLOW thre
 #   point that makes the threshold 1.0 at ε=0.
 # resolves_by: n/a — it inherits PP_INDEX_WARN's standing by construction.
 PP_INDEX_WARN_SLOPE:       float = (PP_INDEX_WARN - 1.0) / 0.40  # per-ε slope: threshold = 1 + slope×ε
-# tag: CHOSEN | units: fraction of the sufficiency guarantee covered by levy
+# tag: normative | units: fraction of the sufficiency guarantee covered by levy
 # note: set at 2%, and the shipped SUFF_LEVY_RATE covers ≈2% of the guarantee
 #   at canonical defaults — so this indicator is calibrated to sit just at the
 #   value it watches. It will not warn about the configuration it was drawn
 #   around.
-# resolves_by: a charter decision on the minimum share of the guarantee that
+# decided_by: a charter decision on the minimum share of the guarantee that
 #   current labour should fund, rather than the Trust dividend. That is a real
 #   solvency question and deserves a threshold argued independently of the
 #   default.
 LEVY_SUFFICIENCY_WARN:     float = 0.02   # YELLOW if levy covers < 2% of guarantee
-# tag: CHOSEN | units: fraction of care-registration saturation | family: CARE_ADMISSION_*
-# resolves_by: a charter decision on how much care must be on the ledger
+# tag: normative | units: fraction of care-registration saturation | family: CARE_ADMISSION_*
+# decided_by: a charter decision on how much care must be on the ledger
 #   before admission counts as working. The quantity watched resolves with
 #   CARE_SIGMOID_DEFAULTS; the thresholds are the framework's own bar.
 CARE_ADMISSION_GREEN_FRAC: float = 0.20   # care share ≥ 20% of saturation → GREEN
@@ -1746,7 +1811,7 @@ CARE_ADMISSION_YELLOW_FRAC: float = 0.10  # care share ≥ 10% of saturation →
 # Functional forms proposed, not calibrated from data — see research/contestability.py.
 # ---------------------------------------------------------------------------
 # provenance-block: Contestability (reconciliation §8)
-# tag: CHOSEN | units: TEH per person
+# tag: placeholder | units: TEH per person
 # form: K_entry(0) — the founding cost of a viable alternative collective at
 #   ε=0. Set at ≈1.2× the annual sufficiency guarantee per person.
 # resolves_by: observed founding capitalization of real cooperatives and
@@ -1755,7 +1820,7 @@ CARE_ADMISSION_YELLOW_FRAC: float = 0.10  # care share ≥ 10% of saturation →
 #   reserve) both publish enough to bound it, which makes this one of the more
 #   closable debts here.
 CONTESTABILITY_K0_TEH: float = 1_800.0          # founding cost of a viable alternative collective at ε=0 (TEH/person)
-# tag: CHOSEN | units: fraction of K₀ per ε unit
+# tag: placeholder | units: fraction of K₀ per ε unit
 # form: the ADVERSARIAL increasing-returns regime — K_entry rises with
 #   automation because incumbents' capital advantage compounds. Chosen as the
 #   default because it is the hostile case; the replicable regime is the
@@ -1767,24 +1832,24 @@ CONTESTABILITY_K0_TEH: float = 1_800.0          # founding cost of a viable alte
 # resolves_by: measured entry costs in an industry across an automation
 #   transition.
 CONTESTABILITY_K_SLOPE: float = 1.6             # how fast K_entry scales per unit ε
-# tag: CHOSEN | units: fraction of K₀
+# tag: placeholder | units: fraction of K₀
 # form: in the replicable regime K_entry falls, but not to zero — there is
 #   always some minimum founding cost. Structural in that respect, asserted in
 #   level.
 # resolves_by: the cheapest observed viable founding, which is the empirical
 #   floor.
 CONTESTABILITY_K_FLOOR_FRACTION: float = 0.10   # minimum K_entry as fraction of K0 (replicable regime floor)
-# tag: CHOSEN | units: dimensionless χ ratio | family: CONTESTABILITY_CHI_*
+# tag: normative | units: dimensionless χ ratio | family: CONTESTABILITY_CHI_*
 # form: CRIT at 1.00 is definitional, not chosen — χ < 1 means the portable
 #   endowment cannot cover entry, so exit is notional rather than substantive.
 #   WARN at 1.20 is an early-warning margin and is chosen.
-# resolves_by: n/a — SUPERSEDED. §8.9 replaced the ratio with a TIME (t_exit ≤
+# decided_by: n/a — SUPERSEDED. §8.9 replaced the ratio with a TIME (t_exit ≤
 #   one vesting period), because a stock target against a flow yields a time,
 #   not a ratio. core/dashboard.py now demotes χ to a YELLOW advisory when
 #   exit_financeable is supplied.
 CONTESTABILITY_CHI_WARN: float = 1.20           # χ below → YELLOW
 CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant breached)
-# tag: CHOSEN | units: fraction of automation value held in common
+# tag: placeholder | units: fraction of automation value held in common
 # form: φ(0) — even at subsistence some automation value is commonly held (the
 #   Trust baseline).
 # resolves_by: n/a in the adopted model — §8.9b makes φ(ε) emerge from the
@@ -1792,13 +1857,13 @@ CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant br
 #   escalated) rather than from a floor plus a power law. Kept for the
 #   superseded arm.
 CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at ε=0
-# tag: CHOSEN | units: dimensionless power
+# tag: placeholder | units: dimensionless power
 # form: sub-linear growth of commonization early in the arc (ε^1.5 rather than
 #   ε), asserting that political-economy constraints make rapid commonization
 #   hard.
 # resolves_by: n/a — superseded by the charter-formation model, as above.
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
-# tag: CHOSEN | units: fraction per year
+# tag: placeholder | units: fraction per year
 # form: g_priv, the private capital growth rate. The Piketty-inversion
 #   condition requires dτ/dε ≥ 0, i.e. the Trust must grow faster than private
 #   capital.
@@ -1812,7 +1877,7 @@ CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1�
 #   being modelled; Piketty's r series is the standard source and gives 4–5%
 #   historically.
 CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
-# tag: CHOSEN | units: fraction per year
+# tag: placeholder | units: fraction per year
 # form: the annual yield on automated capital, used to compute
 #   automated_output_teh = ε × capital_stock × yield.
 # resolves_by: 1/RECAL_CAPITAL_OUTPUT_RATIO − FORMATION_DEPRECIATION_RATE =
@@ -1820,13 +1885,13 @@ CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth
 #   here. A 2× disagreement between two capital-yield constants in one repo;
 #   they should be reconciled to one derivation.
 CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield rate assumption
-# tag: CHOSEN | units: years of federation tenure
+# tag: normative | units: years of federation tenure
 # form: linear vesting of the Trust dividend. Tenure is FEDERATION-wide
 #   (reconciliation §8.7b): moving between collectives never resets the clock
 #   or forfeits vested balance, and the sufficiency floor never vests at all —
 #   it is membership-independent (§8.1). Matches
 #   TIER_ASSESSMENT_INTERVAL_YEARS.
-# resolves_by: a charter decision. Shorter vesting strengthens the marginal
+# decided_by: a charter decision. Shorter vesting strengthens the marginal
 #   member's exit directly, so this is the cheapest lever on contestability
 #   the framework has — which is exactly why it belongs in deliberation and
 #   not in a data pointer.
@@ -1842,7 +1907,7 @@ CONTESTABILITY_VESTING_YEARS: float = 5.0       # years of FEDERATION tenure for
 # hypotheses pending institutional study.
 # ---------------------------------------------------------------------------
 # provenance-block: Coasean federation (reconciliation §§6–7)
-# tag: CHOSEN | units: number of collectives
+# tag: placeholder | units: number of collectives
 # form: N(0) — the collective count at maximum fragmentation, consolidating
 #   toward N=1 as ε→1 (the existing single-ledger model is that limit case).
 # note: a working hypothesis from reconciliation §6, explicitly NOT derived
@@ -1852,21 +1917,21 @@ CONTESTABILITY_VESTING_YEARS: float = 5.0       # years of FEDERATION tenure for
 # resolves_by: an institutional study of collective scale against coordination
 #   technology — the empirical form of Coase's boundary-of-the-firm question.
 COASEAN_N_MAX: int = 20            # collective count at ε=0 (maximally fragmented)
-# tag: CHOSEN | units: dimensionless exponent
+# tag: placeholder | units: dimensionless exponent
 # form: N(ε) = max(1, round(N_max × (1−ε)^exp)). Linear by default: the count
 #   consolidates in proportion to automation. Higher values front-load
 #   consolidation.
 # resolves_by: as for COASEAN_N_MAX — the same study settles both, and neither
 #   is independently identifiable without it.
 COASEAN_BOUNDARY_EXPONENT: float = 1.0   # exponent in N(ε) = max(1, round(N_max×(1−ε)^exp))
-# tag: CHOSEN | units: fraction of period TEH creation
+# tag: placeholder | units: fraction of period TEH creation
 # form: each collective's inter-collective reserve, consumed by
 #   settlement_check() for imbalance settlement. Analogous to a central-bank
 #   FX reserve ratio.
 # resolves_by: observed reserve ratios in monetary unions and clearing
 #   systems, which is a real and well-documented comparator.
 COASEAN_RESERVE_FRACTION: float = 0.10  # fraction of TEH created held in inter-collective reserve
-# tag: CHOSEN | units: fraction of the debtor collective's reserve
+# tag: placeholder | units: fraction of the debtor collective's reserve
 # form: the bilateral net-flow credit ceiling (the paper's
 #   bilateral-imbalance-ceiling sketch, reconciliation §9-item-4). Within it
 #   trade continues on credit; beyond it settlement from reserve is required.
@@ -1876,7 +1941,7 @@ COASEAN_RESERVE_FRACTION: float = 0.10  # fraction of TEH created held in inter-
 COASEAN_IMBALANCE_CEILING: float = 0.50  # bilateral net-flow ceiling as fraction of the deficit
                                          # collective's reserve; beyond it settlement is required
                                          # (paper's bilateral-imbalance-ceiling sketch, recon. §9-item-4)
-# tag: CHOSEN | units: dimensionless slope
+# tag: placeholder | units: dimensionless slope
 # form: factor = 1/(1 + slope × excess_ratio) — exchange-rate depreciation per
 #   unit of unsettled imbalance beyond the ceiling. Makes over-issuance a
 #   visible exchange rate movement, which is reconciliation §7's
@@ -1932,7 +1997,7 @@ COASEAN_INDIVISIBLE_RESERVE_FRACTION: float = 0.30
 # entry_underwriting + commons dividend). Calibration knobs, not physics —
 # both are uncalibrated research placeholders and say so.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: persons
+# tag: placeholder | units: persons
 # form: the smallest population that can staff a viable alternative collective
 #   — run the four-domain EOH pipeline with a full age distribution and a
 #   governance quorum. Deliberately far below Coasean-efficient scale at any
@@ -1954,13 +2019,13 @@ CONTESTABILITY_MIN_VIABLE_POPULATION: float = 5_000.0
                                          # scale, accepting a coordination-cost disadvantage; requiring
                                          # Coasean-optimal scale would make the entry threat vacuous at
                                          # high ε (the "alternative" would be the whole economy).
-# tag: CHOSEN | units: fraction of the federation commons per period
+# tag: normative | units: fraction of the federation commons per period
 # form: the ceiling on entry underwriting (§8.8 M2). The remainder stays as
 #   the sufficiency-floor backstop (§8.7a) — underwriting must never empty the
 #   fund that backs the floor. Underwritten capital moves commons → new
 #   collective trust, staying commonized and indivisible (§8.7c), never
 #   becoming a personal claim.
-# resolves_by: a charter decision on the split between underwriting and
+# decided_by: a charter decision on the split between underwriting and
 #   backstop. It is a prudential limit, so it resolves by argument — but the
 #   ARGUMENT can be made quantitative: the backstop needs to cover the floor
 #   at the worst modelled drawdown, which is computable from the fiscal layer.
@@ -1998,7 +2063,7 @@ RECAL_CAPITAL_OUTPUT_RATIO: float = 4.0  # ν: capital stock required per unit o
                                          # capital / national income) ≈ 4–6 across observed economies;
                                          # low end chosen as the adversarially-cheap-capital posture
                                          # (smaller K → smaller commons → weaker underwriting arm).
-# tag: CHOSEN | units: ε per year
+# tag: placeholder | units: ε per year
 # form: arc speed dε/dt — a ~50-year subsistence→post-scarcity transition.
 #   Converts per-ε acquisition needs into per-year flows, and faster arcs
 #   tighten acquisition feasibility LINEARLY, so this is a real lever on every
@@ -2029,7 +2094,7 @@ RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
 # reason. It is the third instance of the pattern, so treat any constant whose
 # docstring says "≈ <fraction> of <other constant>" as a drift waiting to happen.
 # ---------------------------------------------------------------------------
-# tag: CHOSEN | units: fraction of PERSONAL_EOH_BASE
+# tag: placeholder | units: fraction of PERSONAL_EOH_BASE
 # form: the share of a person's entropy obligation that a floor-backed founder can
 #   redirect into building an alternative collective. Two-thirds leaves a third for
 #   their own personal EOH, which the sufficiency floor is meanwhile covering.
@@ -2048,14 +2113,14 @@ RECAL_FOUNDING_FRACTION: float = 2.0 / 3.0
 # resolves_by: n/a — it inherits PERSONAL_EOH_BASE's and RECAL_FOUNDING_FRACTION's
 #   standing, both CHOSEN.
 RECAL_FOUNDING_LABOR_HOURS: float = RECAL_FOUNDING_FRACTION * PERSONAL_EOH_BASE
-# tag: CHOSEN | units: years
+# tag: normative | units: years
 # form: exit must be financeable within one vesting period (=
 #   CONTESTABILITY_VESTING_YEARS): a member who joins can accumulate the means
 #   to leave by the time they fully vest. THIS IS THE RC4 FIX — a stock target
 #   (K_entry) against a flow (savable income) yields a TIME, not a ratio, and
 #   the retired χ = P/K_entry demanded the founding stock be covered by ONE
 #   year of flow, which made the invariant nearly unclosable.
-# resolves_by: a charter decision, bound to the vesting period rather than set
+# decided_by: a charter decision, bound to the vesting period rather than set
 #   independently. The substantive commitment is "within one vesting period",
 #   not the number 5 — so this resolves whenever CONTESTABILITY_VESTING_YEARS
 #   does.
@@ -2102,7 +2167,7 @@ RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE: float = 0.15
                                          # commons (= ESTATE_LEVY_FRACTION: capital estates treated
                                          # exactly like TEH estates — the D5 doctrine extended, not
                                          # a new rule). Applies in the dilution/escalated policies.
-# tag: CHOSEN | units: fraction of a capital estate
+# tag: normative | units: fraction of a capital estate
 # form: full generational conversion while a §8.9b charter escalation is
 #   active (Piketty's inheritance-tax instrument). No living holder is ever
 #   divested; conversion happens at mortality speed.
@@ -2110,14 +2175,14 @@ RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE: float = 0.15
 #   death rate, so φ → target is asymptotic over generations and the exit
 #   invariant never depends on reaching it. At canonical defaults the
 #   escalation NEVER fires.
-# resolves_by: a charter decision — the maximum is definitionally 1.0, so the
+# decided_by: a charter decision — the maximum is definitionally 1.0, so the
 #   only question is whether full conversion is the right escalation, not what
 #   number it is.
 RECAL_ESCALATION_ESTATE_SHARE: float = 1.0
                                          # capital-estate escheat share while a charter escalation is
                                          # active: full generational conversion (no living holder is
                                          # ever divested; conversion happens at mortality speed).
-# tag: CHOSEN | units: number of foundings financeable per period
+# tag: normative | units: number of foundings financeable per period
 # form: the underwriting capacity below which the charter escalates (with the
 #   adversarial regime observed) — the commons must always be able to finance
 #   about an order of magnitude more foundings than one, because a commons
@@ -2125,7 +2190,7 @@ RECAL_ESCALATION_ESTATE_SHARE: float = 1.0
 # note: UNCALIBRATED placeholder. At canonical defaults capacity stays
 #   ≈145–280, so the trigger never fires and this constant has never been
 #   exercised by a shipped run.
-# resolves_by: a charter decision on the credible-threat margin.
+# decided_by: a charter decision on the credible-threat margin.
 RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
                                          # entry-underwriting capacity below which the charter
                                          # escalates (with the adversarial regime observed): the
@@ -2154,7 +2219,7 @@ FORMATION_DEPRECIATION_RATE: float = 0.05
                                          # (≈ 20 yr → δ ≈ 1/20); the aggregate counterpart of the
                                          # per-asset lifecycle in core/capital.py. Gross return on
                                          # capital = 1/ν − δ = 0.25 − 0.05 = 0.20 at defaults.
-# tag: CHOSEN | units: net return per year | family: FORMATION_*
+# tag: placeholder | units: net return per year | family: FORMATION_*
 # form: the linear private-supply curve — no formation below the hurdle rate,
 #   all needed formation supplied at or above the full-supply rate,
 #   heterogeneous hurdle rates in between. Implies the incentive-compatible
@@ -2199,17 +2264,17 @@ FORMATION_FULL_SUPPLY_RATE: float = 0.10
 # resolves_by: n/a — inherits CONTESTABILITY_VESTING_YEARS' standing.
 MEMBERSHIP_VESTING_WARN_YEARS: float = 10.0     # vesting beyond 2× CONTESTABILITY_VESTING_YEARS → WARN
                                                 # (dividend held hostage for a decade thins exit)
-# tag: CHOSEN | units: years of exit notice | family: MEMBERSHIP_EXIT_NOTICE_*
+# tag: normative | units: years of exit notice | family: MEMBERSHIP_EXIT_NOTICE_*
 # form: WARN at one year (friction accumulating), CRIT at three. The CRIT is
 #   close to definitional under reconciliation §8.1: exit deferred three years
 #   is nominal, not substantive, so the term itself breaches the invariant
 #   whatever χ reads.
-# resolves_by: a charter decision, with real precedent — cooperative and
+# decided_by: a charter decision, with real precedent — cooperative and
 #   partnership withdrawal-notice periods are documented and would give an
 #   observed distribution to place these against.
 MEMBERSHIP_EXIT_NOTICE_WARN_YEARS: float = 1.0  # exit notice beyond one year → WARN (exit friction)
 MEMBERSHIP_EXIT_NOTICE_CRIT_YEARS: float = 3.0  # beyond three years → CRIT (exit is nominal, not substantive)
-# tag: CHOSEN | units: fraction of PERSONAL_EOH_BASE | family: MEMBERSHIP_MIN_HOURS_*
+# tag: normative | units: fraction of PERSONAL_EOH_BASE | family: MEMBERSHIP_MIN_HOURS_*
 # form: WARN above half the personal entropy load, CRIT at or above the whole
 #   of it. The CRIT is definitional rather than chosen: an obligation equal to
 #   a person's entire entropy load is compulsion, not a membership term
@@ -2220,17 +2285,17 @@ MEMBERSHIP_EXIT_NOTICE_CRIT_YEARS: float = 3.0  # beyond three years → CRIT (e
 #   Caught by this migration and corrected — and the reason the gate now
 #   includes a curated test over prose-restated derived figures, which a
 #   value-equality check cannot see.
-# resolves_by: a charter decision on the maximum obligation membership may
+# decided_by: a charter decision on the maximum obligation membership may
 #   impose.
 MEMBERSHIP_MIN_HOURS_WARN_FRACTION: float = 0.50  # min-hours obligation > 0.50 × PERSONAL_EOH_BASE → WARN
 MEMBERSHIP_MIN_HOURS_CRIT_FRACTION: float = 1.00  # ≥ full personal EOH load → CRIT (membership is compulsion
                                                   # by definition — obligation equals the whole entropy load)
-# tag: CHOSEN | units: fraction of the pro-rata dividend
+# tag: normative | units: fraction of the pro-rata dividend
 # form: distributing less than a quarter of the pro-rata dividend to accounts
 #   → WARN, because retention rebuilds the undistributed-commons honeypot
 #   INSIDE the collective that the indivisible-reserve escheat rule exists to
 #   defuse.
-# resolves_by: a charter decision on minimum distribution.
+# decided_by: a charter decision on minimum distribution.
 MEMBERSHIP_DIVIDEND_POLICY_WARN: float = 0.25   # distributing < 25% of the pro-rata dividend → WARN
                                                 # (retention rebuilds the honeypot inside the collective)
 
@@ -2272,7 +2337,18 @@ SECONDS_PER_YEAR: float = 3.155760e7  # Δt_s for one year (physics)
 
 # Assessed climate inputs — CHOSEN placeholders (Guardrail I: measured, published
 # with uncertainty, never negotiated). Values are for scaffolding only.
-# tag: CHOSEN | tier: C | units: W·m⁻²·K⁻¹
+# tag: bounded | tier: C | units: W·m⁻²·K⁻¹
+# band: 1.2–1.7 W·m⁻²·K⁻¹ — AR6-implied 1.310 at ECS 3.0 K, historical
+#   energy-budget ratio 1.492, and regression 1.693 ± 0.472 over 53 yr, the
+#   last two derived from the shipped IGCC series
+#   (research/thermal_lambda.py).
+# errs: LOW, deliberately the conservative side: a LOWER λ means a SMALLER
+#   budget and a LARGER obligation, so 1.2 is not flattering the framework.
+#   But the band is not the real uncertainty — λ_equilibrium cannot be
+#   assessed from the shipped data at all, because converting historical to
+#   equilibrium needs the pattern effect. Across AR6's likely ECS range the
+#   budget runs from ZERO to ~11× the shipped case; never publish a ψ*-derived
+#   figure without λ and that band.
 # form: the EQUILIBRIUM climate feedback parameter. FRAME DISCIPLINE: it pairs
 #   only with the equilibrium budget λ·ΔT − F. The historical 1.492 pairs with
 #   a transient reading the framework rejects; mixing them inflates the
@@ -2321,7 +2397,14 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate f
                                        # derivable from ERF, EEI and GMST.
                                        # resolves_by: an assessed ECS with uncertainty — an
                                        # EXTERNAL input, not a rearrangement of what we hold.
-# tag: CHOSEN | tier: C | units: W·m⁻²
+# tag: bounded | tier: C | units: W·m⁻²
+# band: 3.0–3.585 W·m⁻², from AR6-order to the measured IGCC 2025a well-mixed
+#   GHG ERF
+# errs: LOW, AND THIS IS THE UNSAFE DIRECTION. Lowering F raises the budget,
+#   so 3.0 against the measured 3.585 overstates the allowance and understates
+#   the obligation. Superseded in practice by THERMAL_F_NET_ERF /
+#   THERMAL_F_WMGHG_ERF (measured, Tier A); this P0 constant is retained only
+#   for the scaffolding bound.
 # form: anthropogenic well-mixed GHG forcing, at the order of AR6. Lowering it
 #   raises the budget, which is finding F3: decarbonization and automation
 #   headroom trade against each other.
@@ -2332,7 +2415,7 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate f
 #   block.
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
-# tag: CHOSEN | tier: D | units: W·m⁻²
+# tag: placeholder | tier: D | units: W·m⁻²
 # form: net anthropogenic albedo forcing. Defaults to ZERO, which is a
 #   placeholder standing in for a quantity that is not zero — land-use albedo
 #   change is a real forcing term (IGCC assesses it at roughly −0.2 W·m⁻²).
@@ -2343,7 +2426,7 @@ THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG 
 #   shipped in reference/data/ for the other forcing constants — reachable
 #   from data in hand.
 THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
-# tag: CHOSEN | tier: D | units: K
+# tag: placeholder | tier: D | units: K
 # form: the assessed habitability threshold.
 # note: THE SINGLE MOST LEVERAGED INPUT IN THE WHOLE THERMAL LAYER. It sets
 #   the overage, the drawdown job and the obligation, and it is the
@@ -2365,11 +2448,11 @@ THERMAL_DT_LO: float = 2.0             # K assessed habitability threshold. **CH
                                        # Assess in land extremes and convert by ÷THERMAL_TXX_PER_GMST
                                        # per C6. Epistemic pointer: a habitability assessment naming
                                        # the variable that actually binds, not a GMST round number.
-# tag: CHOSEN | units: fraction of the thermal budget
+# tag: normative | units: fraction of the thermal budget
 # form: r — the share held in reserve rather than allocated. RATCHETED DOWN
 #   ONLY, which is the governance property that matters more than the level: a
 #   reserve that can be raised again is not a commitment.
-# resolves_by: a charter decision on precautionary margin. No measurement
+# decided_by: a charter decision on precautionary margin. No measurement
 #   settles how much of a planetary budget to leave unspent.
 THERMAL_COMMONS_RESERVE: float = 0.20  # r — fraction of budget held in reserve; ratcheted down only.
 # tag: measured | tier: C | units: W (global total)
@@ -2389,7 +2472,7 @@ THERMAL_ANTHROPOGENIC_DISSIPATION_W: float = 2.0e13  # present Φ_other referenc
 # hour of entropy-obligation-equivalent; the J/EOH mapping is the open quantity.
 # Epistemic pointer: Landauer (knowledge), Carnot/enthalpy minima (infrastructure),
 # caloric + heat-rejection COP (personal) — handoff §7.3 iota_floor().
-# tag: CHOSEN | tier: D | units: joules per EOH fulfilled | family: THERMAL_IOTA_FLOOR_*
+# tag: placeholder | tier: D | units: joules per EOH fulfilled | family: THERMAL_IOTA_FLOOR_*
 # form: the per-domain thermodynamic MINIMUM joules to fulfill one EOH by
 #   machine (E27). Ordering follows the handoff: personal and infrastructure
 #   carry real caloric and enthalpy floors, while knowledge's Landauer floor
@@ -2501,7 +2584,7 @@ CO2_CONCENTRATION_PPM: float = 425.65  # ppm, IGCC 2025a annual mean at 2025. Ti
 # resolves_by: n/a — it follows from atmospheric mass and molar masses.
 CO2_PPM_TO_GT: float = 7.82            # GtCO₂ per ppm. Tier B — atmospheric mass 5.148e18 kg
                                        # × 1e-6 × (44.01/28.96 molar ratio). Derivable, not fitted.
-# tag: CHOSEN | tier: D | units: dimensionless gross/net ratio
+# tag: placeholder | tier: D | units: dimensionless gross/net ratio
 # form: removing CO₂ from the air lets ocean and land sinks OUTGAS back, so
 #   the gross tonnage removed exceeds the concentration drop achieved.
 # note: OMITTING IT WOULD UNDERSTATE THE OBLIGATION ~2× and bias the solvency
@@ -2514,7 +2597,11 @@ CDR_GROSS_REMOVAL_FACTOR: float = 1.8  # Removing CO₂ from the air lets ocean/
                                        # reversibility experiments (Zickfeld et al.). Omitting it
                                        # would understate the obligation ~2× and bias the
                                        # solvency gate toward passing — exactly the wrong error.
-# tag: CHOSEN | tier: C | units: GJ per tonne CO₂ removed
+# tag: bounded | tier: C | units: GJ per tonne CO₂ removed
+# band: 2–6 GJ per tonne CO₂, DAC-order
+# errs: NEITHER. Mid-band, and it does not affect the EOH obligation at all —
+#   the energy term cancels out of it (EOH = gross tonnes ×
+#   labour-hours/tonne), so it drives only the programme's own dissipation.
 # form: DAC-order energy intensity; recalled range 2–6.
 # resolves_by: published plant LCA. Together with CDR_LABOR_HOURS_PER_TONNE
 #   this DERIVES ι_drawdown = (GJ/t)/(h/t) ≈ 6.7e9 J/EOH, so the framework's
@@ -2522,14 +2609,14 @@ CDR_GROSS_REMOVAL_FACTOR: float = 1.8  # Removing CO₂ from the air lets ocean/
 #   placeholder.
 CDR_ENERGY_GJ_PER_TONNE: float = 4.0   # GJ per tonne CO₂ removed. Tier C — DAC-order, recalled
                                        # range 2–6. resolves_by: published plant LCA.
-# tag: CHOSEN | units: years
+# tag: normative | units: years
 # form: the horizon over which the drawdown obligation is discharged. 40 yr
 #   keeps the programme inside a single lifetime of responsibility: the
 #   generation that incurred the debt discharges it, rather than booking the
 #   benefit and willing the work to people who did not choose it.
 # note: A REAL LEVER — the obligation scales as 1/horizon, so 30 yr is 1.33×
 #   the annual load and 100 yr is 0.4×.
-# resolves_by: nothing measurable. This is an ETHICAL choice about who bears
+# decided_by: nothing measurable. This is an ETHICAL choice about who bears
 #   the work, not a technical one, and it should be argued as such — which is
 #   why the pointer says so rather than naming a study that would not settle
 #   it.
@@ -2543,12 +2630,12 @@ THERMAL_PROGRAMME_YEARS: float = 40.0  # Years over which the drawdown obligatio
                                        # pointer: this is an ETHICAL choice about who bears the
                                        # work, not a technical one, and it should be argued as such.
 # provenance-block: Thermal sink — allocation doctrine
-# tag: CHOSEN | units: policy switch — "responsibility"
+# tag: normative | units: policy switch — "responsibility"
 # form: how the global drawdown job is split across collectives.
 #   "responsibility" (cumulative emissions) is chosen over "population"
 #   because a collective cannot burden others with the consequences of choices
 #   it made. See allocation_share().
-# resolves_by: nothing measurable — a governance decision, not physics. Both
+# decided_by: nothing measurable — a governance decision, not physics. Both
 #   options are implemented so the choice is visible and reversible rather
 #   than baked in.
 CDR_ALLOCATION_BASIS: str = "responsibility"  # How the global job is split across collectives.
@@ -2556,7 +2643,7 @@ CDR_ALLOCATION_BASIS: str = "responsibility"  # How the global job is split acro
                                        # "responsibility" (cumulative emissions) over "population"
                                        # because a collective cannot burden others with the
                                        # consequences of choices it made. See allocation_share().
-# tag: CHOSEN | units: policy switch — "incl_luc"
+# tag: normative | units: policy switch — "incl_luc"
 # form: which cumulative-CO₂ measure weights responsibility. "incl_luc"
 #   (fossil + cement + land-use change) is the whole atmospheric burden the
 #   drawdown must remove, and it matches the forcing coefficient, which was
@@ -2567,7 +2654,7 @@ CDR_ALLOCATION_BASIS: str = "responsibility"  # How the global job is split acro
 #   external demand, and the framework cannot yet trade-adjust — OWID
 #   consumption-based emissions begin only in 1990, far too short for a
 #   cumulative measure.
-# resolves_by: consumption-based allocation once trade data supports it.
+# decided_by: consumption-based allocation once trade data supports it.
 #   Recorded for live implementations to settle, not resolved by the model.
 CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure weights
                                        # responsibility: "incl_luc" (fossil + cement +
@@ -2583,7 +2670,7 @@ CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure wei
                                        # yet trade-adjust — OWID consumption-based emissions
                                        # begin only in 1990, far too short for a cumulative
                                        # measure. Sign-off item.
-# tag: CHOSEN | units: policy switch — "clear_sky"
+# tag: normative | units: policy switch — "clear_sky"
 # form: which radiative-efficiency field weights a collective's land
 #   allocation. Clear-sky measures the STRUCTURAL radiative transparency of
 #   the column, which is what "this land's share of the sink" should mean.
@@ -2593,7 +2680,7 @@ CDR_RESPONSIBILITY_BASIS: str = "incl_luc"  # Which cumulative-CO₂ measure wei
 # note: NOT COSMETIC — the two differ by up to 0.27 in η (RMS 0.051, p95
 #   0.085), so all-sky is reported alongside as the physical reality check and
 #   the per-collective gap must stay visible.
-# resolves_by: a governance decision on what the allocation is meant to track.
+# decided_by: a governance decision on what the allocation is meant to track.
 #   The FIELDS themselves are measured (ERA5, 258 collectives); the choice
 #   between them is not.
 ETA_BASIS: str = "clear_sky"           # Which radiative-efficiency field weights a
@@ -2609,17 +2696,17 @@ ETA_BASIS: str = "clear_sky"           # Which radiative-efficiency field weight
                                        # up to 0.27 in η (RMS 0.051, p95 0.085), so all-sky is
                                        # reported alongside as the physical reality check and
                                        # the per-collective gap must stay visible.
-# tag: CHOSEN | units: ERA5 land-sea-mask fraction ∈ [0,1]
+# tag: normative | units: ERA5 land-sea-mask fraction ∈ [0,1]
 # form: lsm ≥ this counts as land (§5 decision 1: territorial sea excluded).
 #   The ERA5 mask is a fraction, so a threshold is required; 0.50 is the
 #   natural midpoint but it IS a threshold on a continuous field, not a
 #   measurement.
-# resolves_by: a governance decision on whether partly-marine cells bear an
+# decided_by: a governance decision on whether partly-marine cells bear an
 #   allocation. The underlying field is measured (ERA5); where the line falls
 #   is not.
 ETA_LAND_MASK_THRESHOLD: float = 0.50  # lsm ≥ this counts as land (§5 decision 1: territorial
                                        # sea excluded). Measured; ERA5 lsm is a fraction.
-# tag: CHOSEN | units: policy switch — "pro_rata"
+# tag: normative | units: policy switch — "pro_rata"
 # form: what happens to emissions belonging to no territory — international
 #   shipping and aviation, 46 GtCO₂ / 2.49% of the cumulative fossil total.
 #   "pro_rata" redistributes across collectives in proportion to existing
@@ -2627,7 +2714,7 @@ ETA_LAND_MASK_THRESHOLD: float = 0.50  # lsm ≥ this counts as land (§5 decisi
 #   bearer: we all inherited the world as it is. "unallocated" leaves the gap
 #   open, which means the commons silently absorbs it — and silence is the
 #   objection.
-# resolves_by: consumption-based allocation once trade data supports it.
+# decided_by: consumption-based allocation once trade data supports it.
 #   OWID's begins in 1990, and 1990-forward is where the framework will start
 #   when it does.
 CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging to no
@@ -2644,7 +2731,7 @@ CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging
                                        # 1990-forward is where the framework will start when
                                        # it does. CHOSEN.
 # provenance-block: Thermal sink — observed climate state
-# tag: CHOSEN | tier: D | units: labour-hours per tonne CO₂ removed
+# tag: measured | tier: D | units: labour-hours per tonne CO₂ removed
 # form: a ~1 Mt/yr plant at ~300 staff × 2000 h. Together with
 #   CDR_ENERGY_GJ_PER_TONNE this DERIVES ι_drawdown ≈ 6.7e9 J/EOH — ~4 orders
 #   above the infrastructure ι floor, as expected: drawdown is
@@ -2692,14 +2779,21 @@ THERMAL_TXX_PER_GMST: float = 1.48     # dTXx/dGMST — land extreme amplificati
                                        # GMST, 1950–2025, n=76, slope 1.483. Per-dataset spread
                                        # 1.33–1.57 is the honest uncertainty. Tier A; Guardrail I
                                        # quantity — refresh annually.
-# tag: CHOSEN | units: utilization fraction
+# tag: placeholder | units: utilization fraction
 # form: the utilization boundary separating the Standing-exposure regime.
 # resolves_by: observed variance in Φ and ψ* — a measured quantity, not a
 #   chosen value, and it should stop being a constant once that variance is
 #   characterized.
 THERMAL_U_FLOOR: float = 0.50          # utilization boundary for Standing-exposure regime. CHOSEN;
                                        # resolves_by: observed variance in Φ and ψ*, not a chosen value.
-# tag: CHOSEN | units: ε (dimensionless automation fraction)
+# tag: bounded | units: ε (dimensionless automation fraction)
+# band: 0.2–0.6, the range global_ceiling() reports ε_max over, so the chosen
+#   point always travels with its sensitivity
+# errs: NEITHER. ε_max is directly PROPORTIONAL to this, so the band matters
+#   more than the point — and the deeper objection is that ε is meant to be an
+#   observable, not an input. Superseded wherever an inventory exists:
+#   thermal_capital.epsilon_current_from_inventory() derives it from the same
+#   capital that produces Φ.
 # form: the framework's current-equilibrium ε for Eq. C1 — set to the arc
 #   midpoint.
 # note: SUPERSEDED WHERE AN INVENTORY EXISTS.
@@ -2741,7 +2835,7 @@ THERMAL_EPS_CURRENT: float = 0.40      # framework current-equilibrium ε for Eq
 # ~2200 W·person⁻¹ net-additive dissipation, NOT fitted.
 # ---------------------------------------------------------------------------
 # provenance-block: Capital thermal profiles (§12.2 dual-output)
-# tag: CHOSEN | tier: D | units: power_intensity W per TEH; embodied_energy J per TEH
+# tag: placeholder | tier: D | units: power_intensity W per TEH; embodied_energy J per TEH
 # form: the two new physical fields per capital type that turn a capital stock
 #   into a thermal load Φ_auto. Kept as a SEPARATE parallel dict rather than
 #   merged into CAPITAL_MACHINE_PROFILES, so the established EOH capital model

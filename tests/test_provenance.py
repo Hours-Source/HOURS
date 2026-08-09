@@ -178,16 +178,172 @@ def test_constants_before_any_directive_are_unsectioned():
 # ---------------------------------------------------------------------------
 
 def test_tag_outside_the_scheme_is_a_violation():
-    src = "# tag: Physics-adjacent | units: fraction\nALPHA: float = 1.0\n"
+    src = "# tag: vibes | units: fraction\nALPHA: float = 1.0\n"
     issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
     assert any("is not in the scheme" in p for p in issues)
 
 
-def test_chosen_without_a_pointer_is_a_violation():
-    """The scheme's central rule: CHOSEN must name what would settle it."""
-    src = "# tag: CHOSEN | units: fraction\nALPHA: float = 1.0\n"
+@pytest.mark.parametrize("retired", sorted(pv.RETIRED_TAGS))
+def test_retired_tags_are_rejected_with_the_replacement_named(retired):
+    """A rejection that does not say what to use instead just gets worked around."""
+    src = f"# tag: {retired} | units: fraction\nALPHA: float = 1.0\n"
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("RETIRED" in p and pv.RETIRED_TAGS[retired] in p for p in issues)
+
+
+def test_placeholder_without_a_pointer_is_a_violation():
+    """A value no measurement stands behind must name what would settle it."""
+    src = "# tag: placeholder | units: fraction\nALPHA: float = 1.0\n"
     issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
     assert any("no resolves_by" in p for p in issues)
+
+
+# --- the bounded / placeholder / normative split ---------------------------
+
+def test_bounded_requires_a_band():
+    """Without a band, 'bounded' is a placeholder claiming to be better founded."""
+    src = ("# tag: bounded | units: fraction\n"
+           "# errs: HIGH. because\n"
+           "# resolves_by: a study\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("no band" in p for p in issues)
+
+
+def test_bounded_requires_a_direction_of_error():
+    src = ("# tag: bounded | units: fraction\n"
+           "# band: 0.5–1.5 (some series)\n"
+           "# resolves_by: a study\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("no errs" in p for p in issues)
+
+
+def test_errs_must_open_with_a_known_direction():
+    src = ("# tag: bounded | units: fraction\n"
+           "# band: 0.5–1.5\n"
+           "# errs: probably a bit off\n"
+           "# resolves_by: a study\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("not one of" in p and "HIGH" in p for p in issues)
+
+
+@pytest.mark.parametrize("direction", sorted(pv.ERR_DIRECTIONS))
+def test_every_declared_direction_is_accepted(direction):
+    src = (f"# tag: bounded | units: fraction\n"
+           f"# band: 0.5–1.5\n"
+           f"# errs: {direction}. and here is why that is the safe side\n"
+           f"# resolves_by: a study\n"
+           f"ALPHA: float = 1.0\n")
+    assert pv.problems(pv.scan(src, {"ALPHA": 1.0})) == []
+
+
+def test_err_direction_is_parsed_off_the_leading_token():
+    src = ("# tag: bounded | units: fraction\n"
+           "# band: 0.5–1.5\n"
+           "# errs: WITHHELD. the sign is undetermined across the band\n"
+           "# resolves_by: a study\n"
+           "ALPHA: float = 1.0\n")
+    rec = pv.scan(src, {"ALPHA": 1.0}).by_name["ALPHA"]
+    assert rec.err_direction == "WITHHELD"
+
+
+def test_band_on_a_non_bounded_tag_is_a_violation():
+    """A band means the value was picked inside measured bounds — that IS bounded."""
+    src = ("# tag: placeholder | units: fraction\n"
+           "# band: 0.5–1.5\n"
+           "# resolves_by: a study\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("band declared on a 'placeholder'" in p for p in issues)
+
+
+def test_normative_requires_a_decider():
+    src = "# tag: normative | units: fraction\nALPHA: float = 1.0\n"
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("no decided_by" in p for p in issues)
+
+
+def test_normative_may_not_claim_a_resolves_by():
+    """THE CATEGORY FIX. No dataset settles what fraction of an estate should
+    pass to heirs; claiming one would settle it is the error the tag corrects."""
+    src = ("# tag: normative | units: fraction\n"
+           "# decided_by: charter\n"
+           "# resolves_by: a study that will never exist\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("claims a resolves_by" in p for p in issues)
+
+
+def test_normative_may_carry_a_precedent_instead():
+    """An external analogue can inform a decision without settling it."""
+    src = ("# tag: normative | units: fraction of income\n"
+           "# decided_by: charter — the accessibility test on a primary residence\n"
+           "# precedent: housing-cost-burden conventions (the US 30% threshold)\n"
+           "ALPHA: float = 0.25\n")
+    scanned = pv.scan(src, {"ALPHA": 0.25})
+    assert pv.problems(scanned) == []
+    assert scanned.by_name["ALPHA"].precedent.startswith("housing-cost-burden")
+
+
+def test_normative_needs_no_pointer_and_no_band():
+    src = ("# tag: normative | units: dimensionless\n"
+           "# decided_by: charter — maximum permitted valuation inequality\n"
+           "ALPHA: float = 6.0\n")
+    assert pv.problems(pv.scan(src, {"ALPHA": 6.0})) == []
+
+
+def test_tier_is_refused_on_normative():
+    """A decision has no source to grade."""
+    src = ("# tag: normative | tier: A | units: dimensionless\n"
+           "# decided_by: charter\n"
+           "ALPHA: float = 1.0\n")
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("qualifies how good a source is" in p for p in issues)
+
+
+def test_tier_is_allowed_on_bounded_and_placeholder():
+    for tag, extra in (
+        ("bounded", "# band: 1–2\n# errs: LOW. safe side\n# resolves_by: x\n"),
+        ("placeholder", "# resolves_by: x\n"),
+    ):
+        src = f"# tag: {tag} | tier: C | units: m\n{extra}ALPHA: float = 1.0\n"
+        assert pv.problems(pv.scan(src, {"ALPHA": 1.0})) == [], tag
+
+
+# --- debt summary ----------------------------------------------------------
+
+def test_debt_summary_excludes_normative_from_the_debt():
+    """The whole point of the split: a commitment is not an unpaid measurement."""
+    src = (
+        "# tag: normative | units: a\n# decided_by: charter\nA: float = 1.0\n"
+        "# tag: placeholder | units: b\n# resolves_by: x\nB: float = 1.0\n"
+        "# tag: bounded | units: c\n# band: 1–2\n# errs: LOW. safe\n"
+        "# resolves_by: x\nC: float = 1.0\n"
+        "# tag: physics | units: d\nD: float = 1.0\n"
+    )
+    d = pv.debt_summary(pv.scan(src, {k: 1.0 for k in "ABCD"}))
+    assert d.total == 4
+    assert d.normative == 1
+    assert d.placeholder == 1
+    assert d.bounded == 1
+    assert d.grounded == 1
+    assert d.debt == 2, "debt is bounded + placeholder only"
+    assert d.share(d.debt) == pytest.approx(50.0)
+
+
+def test_debt_summary_counts_error_directions():
+    src = (
+        "# tag: bounded | units: a\n# band: 1–2\n# errs: HIGH. x\n"
+        "# resolves_by: x\nA: float = 1.0\n"
+        "# tag: bounded | units: b\n# band: 1–2\n# errs: LOW. x\n"
+        "# resolves_by: x\nB: float = 1.0\n"
+        "# tag: bounded | units: c\n# band: 1–2\n# errs: LOW. x\n"
+        "# resolves_by: x\nC: float = 1.0\n"
+    )
+    d = pv.debt_summary(pv.scan(src, {k: 1.0 for k in "ABC"}))
+    assert d.err_directions == {"HIGH": 1, "LOW": 2}
 
 
 def test_physics_needs_no_pointer():
@@ -258,7 +414,7 @@ def test_values_come_from_the_module_not_the_expression():
 def test_audit_csv_has_a_header_and_one_row_per_record():
     src = (
         "# provenance-block: Demo\n"
-        "# tag: CHOSEN | units: fraction\n"
+        "# tag: placeholder | units: fraction\n"
         "# resolves_by: a study\n"
         "ALPHA: float = 0.5\n"
     )
@@ -267,7 +423,33 @@ def test_audit_csv_has_a_header_and_one_row_per_record():
 
     assert lines[0] == ",".join(pv.CSV_COLUMNS)
     assert len(lines) == 2
-    assert lines[1] == "ALPHA,0.5,fraction,CHOSEN,,,Demo,a study,"
+    assert lines[1] == "ALPHA,0.5,fraction,placeholder,,,Demo,,,a study,,,"
+
+
+def test_audit_csv_carries_the_band_and_the_error_direction():
+    """The audit file is the whole point of `band` and `errs` being fields."""
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: bounded | units: h/yr\n"
+        "# band: 390–1006 (two instruments)\n"
+        "# errs: HIGH. erring high is the mortality-minimising error\n"
+        "# resolves_by: the identity route\n"
+        "ALPHA: float = 1000.0\n"
+    )
+    row = pv.audit_csv(pv.scan(src, {"ALPHA": 1000.0})).strip().splitlines()[1]
+    assert "390–1006 (two instruments)" in row
+    assert "mortality-minimising" in row
+
+
+def test_audit_csv_carries_the_decider_for_a_normative_constant():
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: normative | units: dimensionless\n"
+        "# decided_by: charter — maximum permitted valuation inequality\n"
+        "ALPHA: float = 6.0\n"
+    )
+    row = pv.audit_csv(pv.scan(src, {"ALPHA": 6.0})).strip().splitlines()[1]
+    assert "charter" in row
 
 
 def test_doc_table_escapes_pipes_in_prose():
