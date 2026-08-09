@@ -79,7 +79,7 @@ def _check(args: argparse.Namespace) -> None:
         counts = pv.tag_counts(scanned)
         if counts:
             print()
-            print(bold("Tags"))
+            print(bold("Tags") + dim("  (every constant, retired ones included)"))
             print(table(
                 ["tag", "count", "share"],
                 [[t, str(n), f"{100.0 * n / tagged:.1f}%"] for t, n in counts.items()],
@@ -92,7 +92,8 @@ def _check(args: argparse.Namespace) -> None:
                 return [label, str(n), f"{d.share(n):.1f}%", meaning]
 
             print()
-            print(bold("Where the model stands"))
+            print(bold("Where the model stands")
+                  + dim("  (live constants only — a retired value governs nothing)"))
             print(table(
                 ["", "count", "share", "what it means"],
                 [
@@ -104,13 +105,23 @@ def _check(args: argparse.Namespace) -> None:
                         "no measurement behind it at all — THE DEBT"),
                     row("normative", d.normative,
                         "a decision; no dataset retires it"),
+                    row("instance", d.instance,
+                        "YOU supply it — your jurisdiction, not our measurement"),
+                    row("retired", d.retired,
+                        "superseded; governs no current output"),
                 ],
                 indent=2,
             ))
             print(dim(f"  Debt = bounded + placeholder = {d.debt} "
-                      f"({d.share(d.debt):.1f}%). The {d.normative} normative "
-                      "constants are NOT debt — they are commitments, and "
-                      "counting them as unmeasured would be a category error."))
+                      f"({d.share(d.debt):.1f}%) of {d.total}, over {d.live} live "
+                      f"constants. The {d.normative} normative constants are NOT "
+                      "debt — they are commitments, and counting them as "
+                      "unmeasured would be a category error."))
+            if d.instance:
+                print(dim(f"  The {d.instance} instance constants are not this "
+                          "framework's debt either, but their SHIPPED defaults "
+                          "are not evidence: every canonical result here was "
+                          "produced at them. See the `default:` field."))
             if d.err_directions:
                 dirs = ", ".join(f"{k} {v}" for k, v in d.err_directions.items())
                 print(dim(f"  Bounded picks err: {dirs}"))
@@ -136,8 +147,10 @@ def _check(args: argparse.Namespace) -> None:
     print(green(
         "No scheme violations. Every constant carries a tag and units; every "
         "bounded value states its band and which way it errs; every placeholder "
-        "names what would settle it; and every normative constant names its "
-        "decider without pretending a dataset could."
+        "names what would settle it; every normative constant names its decider "
+        "without pretending a dataset could; every instance constant names both "
+        "what you supply and what the shipped default is; and every retired one "
+        "points at a replacement that exists."
     ))
 
 

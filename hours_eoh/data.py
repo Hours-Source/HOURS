@@ -580,11 +580,14 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 # note: CALIBRATED TO A TARGET — the segment means were set so the weighted
 #   mean lands on 2.10, the top of the constitutional band, at ε=0. Same class
 #   as the GUF_USE_* rates: a value reverse-engineered from a desired outcome.
-# resolves_by: SUPERSEDED IN PRACTICE. reference/workforce.py ships measured
-#   workforce composition snapshots and scenarios/measured.py builds segments
-#   from the O*NET/BLS registry (751 occupations, 94.2% of US employment).
-#   This default survives as a self-contained fixture for tests and examples;
-#   prefer the measured path for any reported result.
+# resolves_by: the measured path that should replace it —
+#   hours_eoh.scenarios.measured builds segments from the O*NET/BLS registry
+#   (751 occupations, 94.2% of US employment), and reference/workforce.py ships
+#   measured composition snapshots. NOT retired, and the earlier claim that it
+#   "survives as a self-contained fixture" was an over-claim caught by the
+#   operative-consumer gate on 2026-08-09: it is the live default in
+#   core/multipliers.py:82 and core/dashboard.py:493, so any caller that omits
+#   `segments` is scored against a set calibrated to hit 2.10.
 DEFAULT_SEGMENTS: list[dict] = [
     {"name": "base",     "fraction": 0.20, "mean_mu": 1.20},
     {"name": "standard", "fraction": 0.50, "mean_mu": 1.87},
@@ -1072,9 +1075,12 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   series reports anything close. It was also CONFLATING two rates that Block
 #   K-III separates: transmission (cohort turnover) and CPD (staying current
 #   while working).
-# resolves_by: superseded — see SKILL_TRANSMISSION_RATE and SKILL_CPD_RATE,
-#   whose sum is 0.0277 against this 0.10. That gap is a finding, not an error
-#   to reconcile away.
+# resolves_by: the split that replaced it — SKILL_TRANSMISSION_RATE (cohort
+#   turnover) and SKILL_CPD_RATE (Eurostat CVTS paid training hours), whose sum
+#   is 0.0277 against this 0.10. That gap is a finding, not an error to
+#   reconcile away. Still counted as debt, NOT retired: core/eoh_generation.py
+#   reads it, so it remains on the operative path even though nothing defaults
+#   to it any more.
 SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHOSEN — conflated; see skill_renewal_rate()
 
 # --- Block K-III: the renewal rate, split ----------------------------------
@@ -1295,28 +1301,41 @@ BASE_LIFETIME_EARNINGS_TEH:      float = 87_360.0  # 2080 TEH/yr × 42-yr career
 # Used in: params.py, fiscal.py, dashboard.py, stress.py, prices.py
 # ---------------------------------------------------------------------------
 # provenance-block: Fiscal architecture
-# tag: placeholder | units: fraction of labor income
-# resolves_by: min_levy_for_solvency() in core/fiscal.py already derives the
-#   rate the guarantee requires at a given ε, so the honest route is to
-#   REPLACE this default with that derivation rather than measure it. Recorded
-#   finding: at canonical ε=0.40 this rate raises ≈6.2M TEH/yr against a 307M
-#   TEH guarantee — it does not fund the guarantee and was never sized to; the
-#   Trust dividend does.
+# tag: normative | units: fraction of labor income
+# decided_by: charter. RETAGGED 2026-08-09 from placeholder, after running the
+#   derivation its old pointer named. min_levy_for_solvency() returns
+#   cover_expenditures_rate = None at EVERY ε on the canonical configuration:
+#   the dividend alone runs a surplus (630M TEH against a 397M peak
+#   expenditure at ε=0), so the levy rate REQUIRED for solvency is zero
+#   throughout. This constant is therefore not a mis-calibrated solvency
+#   figure awaiting measurement — it is a redistributive commitment, and
+#   deriving it would set it to 0, which is a different policy rather than a
+#   better calibration.
+# note: at canonical ε=0.40 it raises ≈6.2M TEH/yr against a 307M TEH
+#   guarantee — it does not fund the guarantee and was never sized to; the
+#   Trust dividend does. That is the whole finding, and it is why the solvency
+#   derivation cannot set it. What a charter would weigh instead: the levy's
+#   incidence on labour income at low ε, where labour income is nearly all
+#   income.
 SUFF_LEVY_RATE:               float = 0.0125            # sufficiency levy rate on labor income
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
 #   transition. Argue it, do not fit it.
 SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarantee floor_fraction shrinks with ε
-# tag: placeholder | units: TEH (at the 1M reference population)
-# note: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so the
-#   annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
-#   stewardship, ecological and guarantee obligations at mid-arc. Calibrated
-#   to a target, like GUF_USE_* and DEFAULT_SEGMENTS.
-# resolves_by: a real capital inventory in TEH for the jurisdiction being
-#   modelled. research/epsilon_inverse.capital_for_epsilon() is the tool that
-#   makes an inventory-first reading possible, and the constant should follow
-#   the inventory rather than the obligation it is required to cover.
+# tag: instance | units: TEH (at the 1M reference population)
+# supplied_by: your collective Trust's actual balance, or a capital inventory
+#   in TEH for the jurisdiction being modelled. Intake path:
+#   research/epsilon_inverse.capital_for_epsilon() makes an inventory-first
+#   reading possible; scale by population against the 1M reference. Every
+#   fiscal function takes trust_balance as an argument, so nothing requires
+#   editing this constant — pass your own.
+# default: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so
+#   the annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
+#   stewardship, ecological and guarantee obligations at mid-arc. Calibrated to
+#   a target, like GUF_USE_* and DEFAULT_SEGMENTS. It is the most-consumed
+#   constant in the repo (77 call sites outside data.py), so every canonical
+#   solvency result rests on it and none of them is evidence about YOUR fisc.
 TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); sized for EOH-reimbursement guarantee
 # tag: bounded | units: fraction of Trust per year
 # band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
@@ -1351,12 +1370,15 @@ DIV_RATE:                     float = 0.40              # fraction of depreciati
 #   The two should be reconciled; at present they are set independently.
 MEANINGFUL_ACTIVITY_TEH_BASE: float = 120.0            # discretionary spending bonus at ε=0 (TEH/yr)
 MEANINGFUL_ACTIVITY_TEH_SCALE: float = 1.5              # quadratic ε-growth factor; bonus = base×(1+scale×ε²)
-# tag: placeholder | units: TEH (at the 1M reference population)
-# resolves_by: a capital inventory for the jurisdiction being modelled, via
-#   research/epsilon_inverse.capital_for_epsilon(). Note this is 2,000
-#   TEH/capita and Block III established that the ε=0 endpoint carries NO
-#   apparatus, so this default describes a mid-arc collective, not a
-#   subsistence one — callers supplying it at low ε are asserting capital the
+# tag: instance | units: TEH (at the 1M reference population)
+# supplied_by: your gross fixed capital stock, converted to TEH at the
+#   TEH/currency exchange rate you choose (the model does not determine it).
+#   Intake path: research/epsilon_inverse.capital_for_epsilon() inverts an
+#   ε target into the capital that produces it, so an inventory and an ε can
+#   be checked against each other rather than assumed apart.
+# default: 2,000 TEH/capita, and Block III established that the ε=0 endpoint
+#   carries NO apparatus — so this default describes a MID-ARC collective, not
+#   a subsistence one. Callers passing it at low ε are asserting capital the
 #   arc says is not there.
 CAPITAL_STOCK_DEFAULT:        float = 2_000_000_000.0   # default capital stock for scenario functions
 # tag: derived | units: personal EOH hours per sufficiency basket
@@ -1502,13 +1524,18 @@ GUF_ALPHA_ZETA:  float = 0.8   # rate of labor-content decline with automation
 GUF_ALPHA_FLOOR: float = 0.05  # irreducible human-judgment fraction at ε→1
 
 # Location Value Index default sub-index weights (NLSA Eq. 3); must sum to 1.0
-# tag: placeholder | units: fraction | family: GUF_LVI_W_*
+# tag: instance | units: fraction | family: GUF_LVI_W_*
 # form: NLSA Eq. 3 — the four weights are constrained to sum to 1.0. The split
 #   between them is constrained by nothing.
-# resolves_by: a hedonic regression of parcel transaction values on the four
-#   sub-indices for the jurisdiction being modelled. These weights ARE that
-#   regression's coefficients, so the pointer is a well-defined study rather
-#   than an aspiration — this is the standard land-valuation method.
+# supplied_by: a hedonic regression of parcel transaction values on the four
+#   sub-indices FOR YOUR JURISDICTION. These weights ARE that regression's
+#   coefficients, so this is a well-defined study rather than an aspiration —
+#   it is the standard land-valuation method. Land value is local by
+#   construction: no national or global figure substitutes.
+# default: an even-handed split (0.35/0.30/0.20/0.15) summing to 1.0, standing
+#   in for a regression nobody has run here. The ORDER encodes a claim
+#   (centrality dominates, natural amenity least) that your own regression may
+#   invert.
 GUF_LVI_W_CENTRALITY:      float = 0.35
 GUF_LVI_W_TRANSIT:         float = 0.30
 GUF_LVI_W_SERVICES:        float = 0.20
@@ -1852,8 +1879,8 @@ CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant br
 # tag: placeholder | units: fraction of automation value held in common
 # form: φ(0) — even at subsistence some automation value is commonly held (the
 #   Trust baseline).
-# resolves_by: n/a in the adopted model — §8.9b makes φ(ε) emerge from the
-#   charter formation share under a stated policy (dilution / target /
+# superseded_by: hours_eoh.research.recalibration — §8.9b makes φ(ε) emerge
+#   from the charter formation share under a stated policy (dilution / target /
 #   escalated) rather than from a floor plus a power law. Kept for the
 #   superseded arm.
 CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at ε=0
@@ -1861,9 +1888,10 @@ CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at
 # form: sub-linear growth of commonization early in the arc (ε^1.5 rather than
 #   ε), asserting that political-economy constraints make rapid commonization
 #   hard.
-# resolves_by: n/a — superseded by the charter-formation model, as above.
+# superseded_by: hours_eoh.research.recalibration — the charter-formation
+#   model, as above.
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
-# tag: placeholder | units: fraction per year
+# tag: instance | units: fraction per year
 # form: g_priv, the private capital growth rate. The Piketty-inversion
 #   condition requires dτ/dε ≥ 0, i.e. the Trust must grow faster than private
 #   capital.
@@ -1873,9 +1901,14 @@ CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1�
 #   rather than the levy. §8.9c then found endogenous g_priv turns NEGATIVE
 #   past ε≈0.5, so this fixed 3% is not the operative reading in the adopted
 #   model.
-# resolves_by: real capital returns net of depreciation for the jurisdiction
-#   being modelled; Piketty's r series is the standard source and gives 4–5%
-#   historically.
+# supplied_by: real capital returns net of depreciation for the jurisdiction
+#   being modelled. Piketty's r series is the standard source and gives 4–5%
+#   historically — well above this 3%, so supplying your own makes the
+#   Piketty-inversion condition HARDER to satisfy, not easier.
+# default: 3%/yr, chosen below the historical range. Read the note above first:
+#   §8.9c found endogenous g_priv turns negative past ε≈0.5, so this fixed rate
+#   is not the operative reading in the adopted model and is retained for the
+#   §8.3 comparison.
 CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
 # tag: placeholder | units: fraction per year
 # form: the annual yield on automated capital, used to compute
@@ -2005,10 +2038,15 @@ COASEAN_INDIVISIBLE_RESERVE_FRACTION: float = 0.30
 #   coordination-cost disadvantage. Requiring optimal scale would make the
 #   entry threat vacuous at high ε, because the "alternative" would have to be
 #   the whole economy.
-# resolves_by: derive it from this repo's own machinery rather than measure it
-#   — COMPETENCY_THRESHOLD × ESSENTIAL_DOMAINS with a full age distribution
-#   gives a minimum headcount directly. UNCALIBRATED research placeholder
-#   until that is wired.
+# resolves_by: NOT the derivation this line used to claim. COMPETENCY_THRESHOLD
+#   × len(ESSENTIAL_DOMAINS) = 0.155 × 7 = 1.085 is a fraction GREATER THAN
+#   ONE, so it yields no headcount at all without a further assumption the
+#   repo does not make — namely how many domains one worker may be certified
+#   in at once. Condition IV is a per-domain fraction of the workforce, not a
+#   partition of it. What would settle this: a minimum-certified-count per
+#   domain (an absolute, not a fraction) plus a multi-certification rate,
+#   which core/workforce.competency_reserve() would then close over a full age
+#   distribution. UNCALIBRATED research placeholder; checked 2026-08-09.
 CONTESTABILITY_MIN_VIABLE_POPULATION: float = 5_000.0
                                          # smallest population that can staff a viable alternative
                                          # collective: run the four-domain EOH pipeline (care,
@@ -2068,11 +2106,16 @@ RECAL_CAPITAL_OUTPUT_RATIO: float = 4.0  # ν: capital stock required per unit o
 #   Converts per-ε acquisition needs into per-year flows, and faster arcs
 #   tighten acquisition feasibility LINEARLY, so this is a real lever on every
 #   §8.9 result.
-# resolves_by: UNCALIBRATED placeholder. It could be derived rather than
-#   chosen: research/formation.py already produces a realized pace from
-#   financed capacity (canonical ≈47 yr under the null anchor), so the
-#   endogenous arc speed exists in the repo and this constant should follow
-#   it.
+# resolves_by: UNCALIBRATED placeholder, and the obvious derivation is
+#   CIRCULAR — formation_feedback_simulation() takes epsilon_rate_per_year as
+#   an INPUT to build the target arc it then chases, so reading the realized
+#   pace back out is not independent of the constant being set. Measured
+#   2026-08-09: the null anchor (s≡0) reaches ε=0.99 in 39 yr, implying
+#   0.0254/yr against this 0.02 — a 27% disagreement that the circularity
+#   makes uninterpretable as it stands. What would settle it: a damped
+#   fixed-point solve over (rate, realized pace), the same shape as
+#   scenarios/knowledge_base.epsilon_ref_fixed_point(), which closed exactly
+#   this defect for the ε_ref anchor.
 RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
                                          # arc speed dε/dt: a ~50-year subsistence→post-scarcity
                                          # transition. UNCALIBRATED placeholder — converts per-ε

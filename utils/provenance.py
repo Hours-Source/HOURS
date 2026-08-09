@@ -87,9 +87,19 @@ from typing import Any, Iterable, Mapping, Sequence
 
 # --- the scheme -------------------------------------------------------------
 
-#: The six tags. Anything else is a scheme violation, not a new category.
+#: The seven tags. Anything else is a scheme violation, not a new category.
+#:
+#: ``instance`` was split out of ``placeholder`` (2026-08-09) for the same reason
+#: ``normative`` was: no dataset in this framework's future retires a value that
+#: describes *the jurisdiction being modelled*. A capital inventory is not a
+#: measurement the framework owes — it is the input an institution brings, and
+#: filing it under "unmeasured" both overstates the framework's debt and hides
+#: the intake path from the analyst who has to supply it.
 TAGS: frozenset[str] = frozenset(
-    {"physics", "measured", "derived", "bounded", "placeholder", "normative"}
+    {
+        "physics", "measured", "derived", "bounded",
+        "placeholder", "normative", "instance",
+    }
 )
 
 #: Declared working sub-labels (docs/parameter_provenance.md §"The tag scheme").
@@ -124,9 +134,17 @@ NEEDS_BAND: frozenset[str] = frozenset({"bounded"})
 #: A decision is accountable to whoever made it, not to a future dataset.
 NEEDS_DECIDER: frozenset[str] = frozenset({"normative"})
 
+#: An ``instance`` constant must name what the institution measures AND what the
+#: shipped number is. Both, because the risk of this tag is precisely that it
+#: launders "35B is a desk figure" into "the institution will supply it" — every
+#: canonical result in this repo was produced at the shipped default, and
+#: ``default:`` is where that stays visible.
+NEEDS_SUPPLIER: frozenset[str] = frozenset({"instance"})
+
 #: Claiming a measurement would settle a charter decision is the category error
 #: this split exists to correct, so the field is refused rather than ignored.
-FORBIDS_POINTER: frozenset[str] = frozenset({"normative"})
+#: Same for ``instance``: no dataset settles another jurisdiction's capital stock.
+FORBIDS_POINTER: frozenset[str] = frozenset({"normative", "instance"})
 
 #: Leading token of ``errs:`` — which way the pick is wrong if it is wrong.
 #: WITHHELD is a real epistemic state here, not an escape hatch: the thermal layer
@@ -141,6 +159,9 @@ FIELDS: frozenset[str] = frozenset(
         "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
         "decided_by",    # normative: who or what decides it
         "precedent",     # normative: an external analogue that informs, not settles
+        "supplied_by",   # instance: what the institution measures, and the intake path
+        "default",       # instance: what the SHIPPED number is, and what rests on it
+        "superseded_by", # any tag: the live replacement; marks this one not-live
     }
 )
 
@@ -192,6 +213,9 @@ class TagBlock:
     errs: str = ""
     decided_by: str = ""
     precedent: str = ""
+    supplied_by: str = ""
+    default: str = ""
+    superseded_by: str = ""
     family: str = ""
     note: str = ""
 
@@ -216,12 +240,26 @@ class Record:
     line: int
     #: Name of the glob this record inherited its block from, "" if its own.
     family: str = ""
+    supplied_by: str = ""
+    default: str = ""
+    superseded_by: str = ""
 
     @property
     def err_direction(self) -> str:
         """Leading token of ``errs``, or "" — which way the pick is wrong."""
         head = self.errs.split(".", 1)[0].split()[0] if self.errs.strip() else ""
         return head.strip(".,:").upper() if head else ""
+
+    @property
+    def retired(self) -> bool:
+        """True when a live replacement exists, so this value governs nothing.
+
+        A retired constant is kept, not deleted (the additive-not-destructive
+        rule): it is the value every earlier result in this repo was produced
+        at, so reproducing an old figure means passing it explicitly. It is not
+        debt, because no measurement of it would change any current output.
+        """
+        return bool(self.superseded_by)
 
 
 @dataclass
@@ -303,6 +341,9 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             errs=fields.get("errs", ""),
             decided_by=fields.get("decided_by", ""),
             precedent=fields.get("precedent", ""),
+            supplied_by=fields.get("supplied_by", ""),
+            default=fields.get("default", ""),
+            superseded_by=fields.get("superseded_by", ""),
             family=fields.get("family", ""),
             note=fields.get("note", ""),
         ),
@@ -407,6 +448,9 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         block=block_name,
                         line=i + 1,
                         family=inherited,
+                        supplied_by=source_block.supplied_by,
+                        default=source_block.default,
+                        superseded_by=source_block.superseded_by,
                     )
                 )
             i += 1
@@ -455,6 +499,26 @@ def live_constants(source: str | None = None) -> list[str]:
 # --- the scheme's own rules, as checks --------------------------------------
 
 
+def _replacement_exists(target: str, scanned: Scan) -> bool:
+    """Does ``superseded_by``'s target actually exist?
+
+    A retired constant is usually replaced by another constant, but sometimes by
+    a whole measured pathway (``DEFAULT_SEGMENTS`` → the O*NET/BLS registry), so
+    a dotted module path is accepted too. Checked on the filesystem rather than
+    by importing: this runs inside the gate, and a provenance check must not be
+    able to execute package code as a side effect.
+    """
+    if "." not in target:
+        return target in scanned.by_name
+    parts = target.split(".")
+    root = DATA_PY.parent.parent
+    for k in range(len(parts), 0, -1):
+        stem = root.joinpath(*parts[:k])
+        if stem.with_suffix(".py").is_file() or (stem / "__init__.py").is_file():
+            return True
+    return False
+
+
 def problems(scanned: Scan) -> list[str]:
     """Every way the scan violates the tag scheme, as readable one-liners.
 
@@ -494,14 +558,18 @@ def problems(scanned: Scan) -> list[str]:
         if not r.units:
             found.append(f"{where}: no units declared.")
 
-        if r.tag in NEEDS_POINTER and not r.resolves_by:
+        # A retired constant owes no pointer, band or decider: those obligations
+        # exist so a LIVE value can be improved, and nothing downstream reads
+        # this one. What it does owe — a replacement that exists — is checked
+        # below, unconditionally.
+        if r.tag in NEEDS_POINTER and not r.resolves_by and not r.retired:
             found.append(
                 f"{where}: tag is '{r.tag}' but no resolves_by — a value no "
                 "measurement stands behind must name the evidence that would "
                 "settle it."
             )
 
-        if r.tag in NEEDS_BAND:
+        if r.tag in NEEDS_BAND and not r.retired:
             if not r.band:
                 found.append(
                     f"{where}: tag is 'bounded' but no band — a bounded value's "
@@ -520,19 +588,62 @@ def problems(scanned: Scan) -> list[str]:
                     f"{', '.join(sorted(ERR_DIRECTIONS))}."
                 )
 
-        if r.tag in NEEDS_DECIDER and not r.decided_by:
+        if r.tag in NEEDS_DECIDER and not r.decided_by and not r.retired:
             found.append(
                 f"{where}: tag is 'normative' but no decided_by — a decision is "
                 "accountable to whoever makes it."
             )
 
         if r.tag in FORBIDS_POINTER and r.resolves_by:
-            found.append(
-                f"{where}: tag is 'normative' but it claims a resolves_by. No "
-                "dataset settles a decision — that category error is what the "
-                "normative tag exists to correct. Use decided_by, or precedent "
-                "for an external analogue that informs without settling."
-            )
+            if r.tag == "instance":
+                found.append(
+                    f"{where}: tag is 'instance' but it claims a resolves_by. No "
+                    "dataset settles another jurisdiction's value — this "
+                    "framework never measures it, the deploying institution "
+                    "does. Use supplied_by for what they measure."
+                )
+            else:
+                found.append(
+                    f"{where}: tag is 'normative' but it claims a resolves_by. No "
+                    "dataset settles a decision — that category error is what the "
+                    "normative tag exists to correct. Use decided_by, or precedent "
+                    "for an external analogue that informs without settling."
+                )
+
+        if r.tag in NEEDS_SUPPLIER:
+            if not r.supplied_by:
+                found.append(
+                    f"{where}: tag is 'instance' but no supplied_by — name what "
+                    "the institution measures and the intake path in this repo, "
+                    "or the analyst cannot act on the tag."
+                )
+            if not r.default:
+                found.append(
+                    f"{where}: tag is 'instance' but no default — state what the "
+                    "SHIPPED number represents. Without it the tag launders an "
+                    "unmeasured default into 'the institution will supply it', "
+                    "while every canonical result here was produced at that "
+                    "default."
+                )
+
+        for field_name, value in (("supplied_by", r.supplied_by), ("default", r.default)):
+            if value and r.tag not in NEEDS_SUPPLIER:
+                found.append(
+                    f"{where}: {field_name} declared on a '{r.tag}' constant — "
+                    "that field marks a value the deploying institution supplies, "
+                    "which is what 'instance' tags."
+                )
+
+        if r.superseded_by:
+            target = r.superseded_by.split()[0].rstrip(",;:")
+            if not _replacement_exists(target, scanned):
+                found.append(
+                    f"{where}: superseded_by names '{target}', which is neither "
+                    "a constant in data.py nor a module in this package. A "
+                    "retired constant must point at a live replacement that "
+                    "actually exists, or the pointer rots exactly where nobody "
+                    "is looking."
+                )
 
         if r.band and r.tag not in NEEDS_BAND:
             found.append(
@@ -558,12 +669,18 @@ def problems(scanned: Scan) -> list[str]:
 
 @dataclass(frozen=True)
 class DebtSummary:
-    """What is grounded, what is owed, and what is a decision.
+    """What is grounded, what is owed, what is a decision, and what is an input.
 
     The point of the bounded/placeholder/normative split. ``normative`` constants
     are deliberately NOT counted as debt — they are commitments, and no measurement
     retires them, so counting them as unmeasured overstates the model's ignorance
     while understating which constants actually need work.
+
+    ``instance`` and ``retired`` are excluded on the same reasoning, and the same
+    reasoning bounds the claim: an instance default is not the framework's debt,
+    but it is not evidence either, which is why ``instance_defaults_unmeasured``
+    is reported rather than quietly folded into ``grounded``. A retired constant
+    governs nothing, so measuring it would change no output.
     """
 
     total: int
@@ -571,20 +688,30 @@ class DebtSummary:
     bounded: int
     placeholder: int
     normative: int
+    instance: int
+    retired: int
     err_directions: dict[str, int]
 
     @property
     def debt(self) -> int:
         return self.bounded + self.placeholder
 
+    @property
+    def live(self) -> int:
+        """Constants that govern a current output."""
+        return self.total - self.retired
+
     def share(self, n: int) -> float:
         return 100.0 * n / self.total if self.total else 0.0
 
 
 def debt_summary(scanned: Scan) -> DebtSummary:
-    counts = tag_counts(scanned)
+    live = [r for r in scanned.records if not r.retired]
+    counts: dict[str, int] = {}
+    for r in live:
+        counts[r.tag] = counts.get(r.tag, 0) + 1
     directions: dict[str, int] = {}
-    for r in scanned.records:
+    for r in live:
         if r.tag == "bounded":
             directions[r.err_direction] = directions.get(r.err_direction, 0) + 1
     return DebtSummary(
@@ -597,6 +724,8 @@ def debt_summary(scanned: Scan) -> DebtSummary:
         bounded=counts.get("bounded", 0),
         placeholder=counts.get("placeholder", 0),
         normative=counts.get("normative", 0),
+        instance=counts.get("instance", 0),
+        retired=sum(1 for r in scanned.records if r.retired),
         err_directions=dict(sorted(directions.items())),
     )
 
@@ -629,6 +758,9 @@ CSV_COLUMNS = (
     "resolves_by",
     "decided_by",
     "precedent",
+    "supplied_by",
+    "default",
+    "superseded_by",
     "note",
 )
 
@@ -659,6 +791,9 @@ def audit_csv(scanned: Scan) -> str:
                 r.resolves_by,
                 r.decided_by,
                 r.precedent,
+                r.supplied_by,
+                r.default,
+                r.superseded_by,
                 r.note,
             ]
         )
@@ -694,6 +829,9 @@ def doc_table(records: Iterable[Record]) -> str:
             if r.precedent:
                 parts.append(f"precedent: {_cell(r.precedent)}")
             parts.append("_no measurement settles this_")
+        elif r.tag == "instance":
+            parts.append(f"**you supply** {_cell(r.supplied_by)}")
+            parts.append(f"**shipped default** {_cell(r.default)}")
         else:
             if r.band:
                 parts.append(f"**band** {_cell(r.band)}")
@@ -705,6 +843,8 @@ def doc_table(records: Iterable[Record]) -> str:
                 parts.append("n/a — structural")
             elif not parts:
                 parts.append("—")
+        if r.superseded_by:
+            parts.insert(0, f"**RETIRED** — superseded by {_cell(r.superseded_by)}")
         if r.note:
             parts.append(_cell(r.note))
 

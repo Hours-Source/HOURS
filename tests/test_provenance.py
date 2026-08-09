@@ -18,6 +18,8 @@ Two halves, and the split matters:
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from utils import provenance as pv
@@ -423,7 +425,7 @@ def test_audit_csv_has_a_header_and_one_row_per_record():
 
     assert lines[0] == ",".join(pv.CSV_COLUMNS)
     assert len(lines) == 2
-    assert lines[1] == "ALPHA,0.5,fraction,placeholder,,,Demo,,,a study,,,"
+    assert lines[1] == "ALPHA,0.5,fraction,placeholder,,,Demo,,,a study,,,,,,"
 
 
 def test_audit_csv_carries_the_band_and_the_error_direction():
@@ -587,7 +589,7 @@ def test_every_chosen_constant_names_its_epistemic_pointer(scanned):
     pointer — the specific evidence or measurement that would move it off CHOSEN."
     """
     bare = [r.name for r in scanned.records
-            if r.tag in pv.NEEDS_POINTER and not r.resolves_by]
+            if r.tag in pv.NEEDS_POINTER and not r.resolves_by and not r.retired]
     assert not bare, (
         f"{len(bare)} CHOSEN constant(s) with no resolves_by: {', '.join(bare)}"
     )
@@ -747,3 +749,91 @@ def test_live_prose_does_not_print_the_pre_reprice_derived_figures():
     }
     found = [f"{s!r} ({why})" for s, why in stale.items() if s in prose]
     assert not found, "stale derived figure(s) in live prose: " + "; ".join(found)
+
+
+# --- the instance tag -------------------------------------------------------
+
+
+def test_instance_requires_both_what_you_supply_and_what_shipped():
+    """`instance` must not become a place to hide an unmeasured default.
+
+    The tag's whole risk is that it launders "35B is a desk figure" into "the
+    institution will supply it". `default:` is the field that stops it, so a
+    missing one is a scheme violation, not a style lapse.
+    """
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: instance | units: TEH\n"
+        "# supplied_by: your capital inventory\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("no default" in i for i in issues), issues
+
+    src_no_supplier = (
+        "# provenance-block: Demo\n"
+        "# tag: instance | units: TEH\n"
+        "# default: a desk figure\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src_no_supplier, {"ALPHA": 1.0}))
+    assert any("no supplied_by" in i for i in issues), issues
+
+
+def test_instance_may_not_claim_a_resolves_by():
+    """No dataset this framework could gather settles another jurisdiction's value."""
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: instance | units: TEH\n"
+        "# supplied_by: your capital inventory\n"
+        "# default: a desk figure\n"
+        "# resolves_by: some future study\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("claims a resolves_by" in i for i in issues), issues
+
+
+def test_supplier_fields_are_refused_on_other_tags():
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: TEH\n"
+        "# resolves_by: a study\n"
+        "# supplied_by: your inventory\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("supplied_by declared on a 'placeholder'" in i for i in issues), issues
+
+
+def test_every_instance_constant_names_its_intake_path_and_its_default(scanned):
+    """The real data.py, with no allowlist."""
+    for r in scanned.records:
+        if r.tag == "instance":
+            assert r.supplied_by, f"{r.name}: instance with no supplied_by"
+            assert r.default, f"{r.name}: instance with no default"
+
+
+# --- superseded_by ----------------------------------------------------------
+
+
+def test_superseded_by_must_name_something_that_exists():
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: TEH\n"
+        "# superseded_by: NO_SUCH_CONSTANT\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("neither a constant in data.py nor a module" in i for i in issues), issues
+
+
+def test_superseded_by_accepts_a_module_path():
+    """Sometimes a whole measured pathway replaces a constant, not another constant."""
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: TEH\n"
+        "# superseded_by: hours_eoh.scenarios.measured\n"
+        "ALPHA: float = 1.0\n"
+    )
+    assert not pv.problems(pv.scan(src, {"ALPHA": 1.0}))
