@@ -104,6 +104,7 @@ _SCENARIOS: dict[str, str] = {
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     "food_conservation":   "conservation_test() — did automation eliminate food labour, or relocate it? stage by stage  [--atus-year]",
+    "care_curve":          "implied_weights() — measured personal obligation by age (self-maintenance + care received) vs the shipped AGE_GROUPS weights; REPORTING ONLY",
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
@@ -512,6 +513,43 @@ def _dispatch(args: argparse.Namespace) -> object:
         kb_out["fixed_point_converged"] = fp["converged"]
         kb_out["fixed_point_note"] = fp["note"]
         return kb_out
+
+    if name == "care_curve":
+        from hours_eoh.scenarios.care_curve import (
+            elderly_routes, implied_weights, measured_population_shares, rivalry,
+        )
+        weights = implied_weights()
+        routes = elderly_routes()
+        riv = rivalry()
+        shares = measured_population_shares()
+        cc_out: dict = {
+            "years_pooled":  ", ".join(str(y) for y in weights["years"]),
+            "numeraire":     weights["numeraire"],
+            "rho_active":    riv["active"]["rho"],
+            "rho_passive":   riv["passive"]["rho"],
+            "cost_of_four_active": riv["active"]["cost_of_four"],
+        }
+        for row in weights["rows"]:
+            band = row["band"]
+            cc_out[f"{band}_self_min_day"] = row["self_minutes_per_day"]
+            cc_out[f"{band}_care_min_day"] = row["care_minutes_per_day"]
+            cc_out[f"{band}_implied"] = row["implied_weight"]
+            cc_out[f"{band}_shipped"] = row["shipped_weight"]
+            cc_out[f"{band}_bound"] = row["bound"]
+            cc_out[f"{band}_share_measured"] = shares[band]
+        cc_out["implied_w"] = weights["implied_w"]
+        cc_out["shipped_w"] = weights["shipped_w"]
+        cc_out["elderly_roster_min_day"] = routes["roster_minutes_per_person_day"]
+        cc_out["elderly_module_min_day"] = routes["module_minutes_per_person_day"]
+        cc_out["elderly_route_ratio"] = routes["ratio"]
+        cc_out["note"] = (
+            "REPORTING ONLY. Infant and child totals are LOWER bounds — ATUS "
+            "surveys nobody under 15, so their self-maintenance is unmeasured. "
+            "The elderly band is complete and reads ~41% under the shipped 2.5, "
+            "but ATUS covers the household population only and excludes the "
+            "institutionalised elderly, who need the most care."
+        )
+        return cc_out
 
     if name == "personal_floor":
         from hours_eoh.scenarios.personal_floor import (
