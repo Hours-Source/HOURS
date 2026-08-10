@@ -253,14 +253,21 @@ def test_the_institutional_caveat_is_why_this_is_a_lower_bound():
     measures the monitored person's own movement and physiology rather than
     anyone's care hours.
     """
-    from hours_eoh import data
-    source = data.__file__
-    with open(source, encoding="utf-8") as fh:
-        text = fh.read()
-    assert "HOUSEHOLD population only" in text, (
-        "the institutional caveat left AGE_GROUPS' provenance block"
+    from utils import provenance as pv
+
+    record = pv.load().by_name["AGE_WEIGHT_ELDERLY"]
+    assert record.tag == "measured"
+    assert record.tier == "B", "a survey with a named systematic exclusion is not Tier A"
+    pointer = record.resolves_by
+    assert "households only" in pointer, (
+        "the institutional caveat left AGE_WEIGHT_ELDERLY's provenance block"
     )
-    assert "Payroll-Based Journal" in text, "the route that would close it is unnamed"
+    assert "Payroll-Based Journal" in pointer, (
+        "the route that would close the gap is unnamed"
+    )
+    assert "TIHM" in pointer, (
+        "the route that would NOT close it is unnamed, so someone will try it"
+    )
 
 
 def test_the_two_elderly_routes_disagree_by_an_order_of_magnitude():
@@ -331,3 +338,61 @@ class TestOnlyTheElderlyWeightWasAdopted:
             if "care_demand" in p.read_text(encoding="utf-8")
         ]
         assert not offenders, f"core/ reached for the measurement: {offenders}"
+
+
+# --- the AGE_GROUPS split ---------------------------------------------------
+
+
+class TestAgeGroupsSplit:
+    """One constant carrying four epistemic states, separated 2026-08-10.
+
+    `AGE_GROUPS` was tagged `placeholder` because a single tag reads its
+    weakest element — so a chosen partition, jurisdiction data, a numeraire and
+    two grades of measurement all inherited the tag of the worst one, and a
+    reader learned nothing true about any of them.
+    """
+
+    def test_the_composite_is_byte_identical_to_its_parts(self):
+        """The split is ADDITIVE: it renames nothing and moves no number."""
+        from hours_eoh.data import (
+            AGE_GROUP_FRACTIONS, AGE_GROUP_RANGES, AGE_WEIGHT_CHILD,
+            AGE_WEIGHT_ELDERLY, AGE_WEIGHT_INFANT, AGE_WEIGHT_WORKING_AGE,
+        )
+        weights = {
+            "infant": AGE_WEIGHT_INFANT, "child": AGE_WEIGHT_CHILD,
+            "working_age": AGE_WEIGHT_WORKING_AGE, "elderly": AGE_WEIGHT_ELDERLY,
+        }
+        assert AGE_GROUPS == {
+            name: {"range": AGE_GROUP_RANGES[name],
+                   "fraction": AGE_GROUP_FRACTIONS[name],
+                   "eoh_weight": weights[name]}
+            for name in weights
+        }
+
+    def test_each_part_carries_its_own_epistemic_state(self):
+        """The whole point of the split, asserted against the real data.py."""
+        from utils import provenance as pv
+        tags = {name: rec.tag for name, rec in pv.load().by_name.items()}
+        assert tags["AGE_GROUP_RANGES"] == "convention"      # chosen, not found
+        assert tags["AGE_GROUP_FRACTIONS"] == "instance"     # yours, not ours
+        assert tags["AGE_WEIGHT_WORKING_AGE"] == "convention"  # the numeraire
+        assert tags["AGE_WEIGHT_INFANT"] == "bounded"        # one-sided floor
+        assert tags["AGE_WEIGHT_CHILD"] == "bounded"
+        assert tags["AGE_WEIGHT_ELDERLY"] == "measured"      # both terms present
+        assert tags["AGE_GROUPS"] == "derived"               # the composite
+
+    def test_the_bounded_weights_state_a_one_sided_band(self):
+        """A lower bound is not a band, and pretending otherwise would be worse
+        than leaving them placeholders — so the band says which side is open."""
+        from utils import provenance as pv
+        by_name = pv.load().by_name
+        for name in ("AGE_WEIGHT_INFANT", "AGE_WEIGHT_CHILD"):
+            record = by_name[name]
+            assert "one-sided" in record.band.lower(), name
+            assert record.err_direction == "HIGH", name
+
+    def test_the_fractions_name_the_census_as_the_intake_path(self):
+        from utils import provenance as pv
+        record = pv.load().by_name["AGE_GROUP_FRACTIONS"]
+        assert "census" in record.supplied_by.lower()
+        assert record.default, "an instance default with nothing said about it"

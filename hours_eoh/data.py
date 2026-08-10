@@ -20,48 +20,143 @@ Mission Statement references throughout — see inline comments.
 # national census / UN WPP for the fractions.
 # ---------------------------------------------------------------------------
 # provenance-block: EOH generation — personal domain
-# tag: placeholder | units: relative eoh_weight (working_age = 1.0) and population fractions
-# form: the DIRECTION is structural — infants and elderly draw more caregiver
-#   labour than working-age adults. The magnitudes and the 7/16/60/17 split
-#   are not. MIXED EPISTEMIC STATUS, and the tag reads the weakest element:
-#   working_age = 1.0 is the numeraire (convention); elderly is MEASURED as of
-#   2026-08-10; infant and child are measured LOWER BOUNDS; the fractions
-#   describe a jurisdiction and are properly `instance`. Splitting this
-#   constant along those lines is owed — see resolves_by.
-# note: the age-weighted mean w = Σ(fraction × weight) = 1.3016 is the bridge
-#   from per-working-age-EQUIVALENT to per-capita, and forgetting it is the
-#   age-weight trap scenarios/feasibility.py exists to catch. It was 1.475
-#   until the elderly revalue below.
-# note: ELDERLY REVALUED 2.5 → 1.48 (author decision 2026-08-10) on
-#   scenarios/care_curve.implied_weights(): self-maintenance + care received,
-#   ATUS 2021–25 pooled with Census 2025 denominators, measured 1.4824. It is
-#   the one band where BOTH components are measured. CAVEAT, recorded rather
-#   than resolved: ATUS covers the HOUSEHOLD population only, so the
-#   institutionalised elderly — the highest-care group — are outside the
-#   frame, and 1.48 is therefore a lower bound for the elderly population as a
-#   whole. Accepted on the basis that institutional residence is a minority of
-#   elderly life-years. Infant 3.0 and child 1.5 were NOT changed: they
-#   measure 2.55 and 1.35, but both bands contain ages ATUS does not survey
-#   (under 15), so their self-maintenance is missing and their totals can only
-#   rise — reading just under the shipped values is consistent with them.
-# resolves_by: (a) the institutional gap — CMS Payroll-Based Journal reports
-#   nurse staffing hours per resident-day for every certified US nursing home,
-#   which is care labour per institutional resident directly, and is what
-#   would turn 1.48 from a household-resident reading into a population one.
-#   Recipient-side ACTIVITY monitoring does not substitute: datasets of that
-#   class (e.g. TIHM) measure the monitored person's own movement and
-#   physiology, not anyone's care hours, and are home-based cohorts anyway.
-#   (b) infant and child — self-maintenance below 15, which ATUS cannot
-#   observe because it does not survey children. (c) the fractions — a
-#   national census for the jurisdiction being modelled; the US reading is
-#   shipped in reference/data/census_age_2020_2025.csv and is 6.5/14.5/60.0/18.9,
-#   already 2pp off this default on the elderly band. (d) the constant should
-#   be SPLIT so these four different epistemic states stop sharing one tag.
+# The four constants below were ONE dict until 2026-08-10, tagged `placeholder`
+# because a single tag must read its weakest element. It was carrying four
+# different epistemic states: a chosen partition, jurisdiction data, a
+# numeraire, and two grades of measurement. Splitting them is what lets each
+# one say what it actually is; AGE_GROUPS survives below, assembled, because
+# ~70 call sites read it.
+#
+# The age-weighted mean w = Σ(fraction × weight) = 1.3016 is the bridge from
+# per-working-age-EQUIVALENT to per capita, and forgetting it is the age-weight
+# trap scenarios/feasibility.py exists to catch. It was 1.475 until the elderly
+# revalue of 2026-08-10.
+#
+# tag: convention | units: inclusive age bounds in years
+# form: a partition of a continuum, chosen not found. The 2026-08-10 care
+#   measurement looked for natural breakpoints and there are none: care
+#   received per person declines SMOOTHLY through childhood (113.6 → 70.7 →
+#   36.1 → 9.6 min/day over 0-4/5-9/10-14/15-19) with nothing happening at 5/6
+#   or at 17/18. These bounds are administrative, and the model reads four
+#   steps off a smooth curve.
+# note: the bands are a REPORTING VIEW. Anything sensitive to where the cuts
+#   fall should integrate a demand curve over age instead — see
+#   reference/care_demand.py, which carries the curve these bands approximate.
+AGE_GROUP_RANGES: dict[str, tuple[int, int]] = {
+    "infant":      (0, 5),
+    "child":       (6, 17),
+    "working_age": (18, 64),
+    "elderly":     (65, 100),
+}
+
+# tag: instance | units: fraction of population
+# supplied_by: your census age pyramid, grouped to AGE_GROUP_RANGES. Intake
+#   path: reference/data/census_age_2020_2025.csv ships the US reading by
+#   single year of age, and reference/care_demand.population_shares() groups
+#   any band structure against it. Nothing about YOUR population is derivable
+#   from this framework.
+# default: an OECD-shaped split that happens to fit the US around 2020
+#   (measured 6.98/15.24/60.91/16.87 that year). By 2025 the US had moved to
+#   6.5/14.5/60.0/18.9 — the elderly band is already 2pp off and rising, so
+#   the shipped default is a snapshot, not a standard. Swapping the 2025
+#   reading in moves w by only +0.8%, because the weights dominate.
+AGE_GROUP_FRACTIONS: dict[str, float] = {
+    "infant":      0.07,
+    "child":       0.16,
+    "working_age": 0.60,
+    "elderly":     0.17,
+}
+
+# tag: convention | units: relative personal EOH (dimensionless)
+# form: the NUMERAIRE. Every other weight is expressed against a working-age
+#   adult, so this is 1.0 by definition and carries no evidential content —
+#   measuring it is not a coherent request.
+AGE_WEIGHT_WORKING_AGE: float = 1.0
+
+# tag: bounded | tier: B | units: relative personal EOH (dimensionless)
+# form: personal obligation generated per person of that age, relative to a
+#   working-age adult: (self-maintenance + care received) integrated over the
+#   band and divided by the numeraire band's total.
+# band: ≥ 2.55, one-sided — and the openness is the whole point. Measured
+#   2026-08-10 from ATUS 2021–25 pooled (scenario run care_curve), but ATUS
+#   surveys nobody under 15, so the self-maintenance term is missing for the
+#   ENTIRE infant band. The measurement is a FLOOR that can only rise, never a
+#   point estimate, and calling it a two-sided band would be a worse claim than
+#   leaving the constant a placeholder.
+# errs: HIGH, and high is the safe direction, by the same asymmetric-loss
+#   argument that set PERSONAL_EOH_BASE. A weight set too low understates the
+#   obligation a dependent generates, and the deficit is paid in unserved care
+#   — the model reports feasible while a child goes unattended. Too high only
+#   over-provisions. The shipped 3.0 and 1.5 sit above their measured floors
+#   by 18% and 11%, which is the direction to be wrong in.
+# resolves_by: self-maintenance below age 15, which ATUS cannot observe
+#   because it does not survey children. A time-use survey covering children
+#   (some HETUS members do) would close the band from below and turn these
+#   into point estimates.
+AGE_WEIGHT_INFANT: float = 3.0
+
+# tag: bounded | tier: B | units: relative personal EOH (dimensionless)
+# form: as AGE_WEIGHT_INFANT — (self-maintenance + care received) over ages
+#   6–17, relative to a working-age adult.
+# band: ≥ 1.35, one-sided. Measured 2026-08-10 (ATUS 2021–25 pooled). The band
+#   is one-sided for the same reason as the infant weight, but LESS of this one
+#   is missing: ATUS observes ages 15–17, so the band's self-maintenance term
+#   is partly present (24.5 min/day measured across the band) rather than
+#   wholly absent.
+# errs: HIGH, and high is the safe direction — a weight set too low understates
+#   the obligation a dependent generates and the deficit is paid in unserved
+#   care. The shipped 1.5 sits 11% above its measured floor.
+# resolves_by: self-maintenance for ages 6–14, which ATUS cannot observe. A
+#   time-use survey covering children would close the band from below.
+AGE_WEIGHT_CHILD: float = 1.5
+
+# tag: measured | tier: B | units: relative personal EOH (dimensionless)
+# form: as above — (self-maintenance + care received) over the 65+ band,
+#   relative to working age. The ONE band where both terms are measured:
+#   207.1 min/day self-maintenance + 30.5 care = 237.5 against working age's
+#   160.2, giving 1.4824, adopted at 1.48.
+# note: measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025
+#   denominators (scenario run care_curve), replacing a shipped 2.5 that was
+#   asserted. Bound to the measurement by test rather than by expression —
+#   data.py sits below reference/ and cannot import it — so
+#   test_the_elderly_weight_was_adopted_from_this_measurement fails if either
+#   side moves alone. Tier B, not A: a large national survey, but with a named
+#   systematic exclusion, below.
+# resolves_by: the INSTITUTIONAL population. ATUS covers households only, so
+#   the institutionalised elderly — who need the most care — are outside the
+#   frame entirely, and 1.48 is a lower bound for the elderly population as a
+#   whole. CMS Payroll-Based Journal reports nurse staffing hours per
+#   resident-day for every certified US nursing home and would close it.
+#   Recipient-side ACTIVITY monitoring would NOT: datasets of that class (TIHM
+#   was checked) record the monitored person's own movement and physiology
+#   rather than anyone's care hours, and are home-based cohorts, so they
+#   re-measure the population ATUS already covers.
+AGE_WEIGHT_ELDERLY: float = 1.48
+
+# tag: derived | units: composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants
+# form: assembled from the four constants above, which is the point — this
+#   dict was ONE constant carrying FOUR different epistemic states (a chosen
+#   partition, jurisdiction data, a numeraire, and two grades of measurement)
+#   under a single `placeholder` tag, so the tag necessarily read the weakest
+#   element and told a reader nothing about any of the others.
+# note: retained as the public shape because ~70 call sites read it, and the
+#   split is additive: the assembled value is byte-identical to what the
+#   hand-written dict held. New code should prefer the specific constant it
+#   actually needs — a caller wanting the population split should read
+#   AGE_GROUP_FRACTIONS and see the `instance` tag telling them to supply
+#   their own.
 AGE_GROUPS: dict[str, dict] = {
-    "infant":      {"range": (0, 5),    "fraction": 0.07, "eoh_weight": 3.0},
-    "child":       {"range": (6, 17),   "fraction": 0.16, "eoh_weight": 1.5},
-    "working_age": {"range": (18, 64),  "fraction": 0.60, "eoh_weight": 1.0},
-    "elderly":     {"range": (65, 100), "fraction": 0.17, "eoh_weight": 1.48},
+    name: {
+        "range": AGE_GROUP_RANGES[name],
+        "fraction": AGE_GROUP_FRACTIONS[name],
+        "eoh_weight": weight,
+    }
+    for name, weight in (
+        ("infant", AGE_WEIGHT_INFANT),
+        ("child", AGE_WEIGHT_CHILD),
+        ("working_age", AGE_WEIGHT_WORKING_AGE),
+        ("elderly", AGE_WEIGHT_ELDERLY),
+    )
 }
 
 # ---------------------------------------------------------------------------
