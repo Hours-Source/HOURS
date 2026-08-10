@@ -294,7 +294,9 @@ class TestCommonsIncomeStatement:
         # base narrows it without flipping it.
         assert d_charter / d_purchase == pytest.approx(1.050, abs=0.02)
         # Threshold follows the same base: 2,162 at the K-IV anchor, 1,924 now.
-        assert d_charter > 1_900.0
+        # > 1,900 until the elderly revalue cut total EOH and with it machine
+        # output; 1,797 still clears the purchase-model comparison this guards.
+        assert d_charter > 1_750.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
         # §8.9a honest finding: dφ/dε outruns tiny machine output early.
@@ -631,10 +633,17 @@ class TestRecalibratedArc:
         assert last["phi"] == pytest.approx(0.9865338, rel=1e-5)
         # Tracks the levy/dividend base Y = eps*total_eoh, which the Finding-E
         # re-anchor shrank at the top of the arc (2,896 -> 2,633 h/person.yr).
-        assert last["dividend_per_capita"] == pytest.approx(1831.45, rel=1e-4)
+        # 1831.45 → 1689.87: machine output is ε × total EOH and total EOH fell
+        # 7.7% at ε=0.99 with the elderly revalue.
+        assert last["dividend_per_capita"] == pytest.approx(1689.87, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
-        assert rows[first_self]["epsilon"] == pytest.approx(0.693, abs=0.001)
+        # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing
+        # channel opens LATER because the dividend that funds it is drawn from
+        # machine output (ε × total EOH), and total EOH fell with the personal
+        # domain. The channel ORDER — labour, underwritten, self — is unchanged,
+        # which is what this regression anchor is actually for.
+        assert rows[first_self]["epsilon"] == pytest.approx(0.7425, abs=0.001)
         assert not any(r["acquisition_feasible"] for r in rows if r["epsilon"] < 0.15)
 
     def test_point_arc_consistency_dilution(self):

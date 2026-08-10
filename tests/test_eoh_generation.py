@@ -620,7 +620,12 @@ DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 # to the ε_ref FIXED POINT (0.779× the K-IV value) gives back ~5 points at the
 # top. The defect is PARTLY closed: personal still dominates the low arc, where
 # there is no apparatus for knowledge to attach to, and ecological is untouched.
-_PERSONAL_SHARE_EXPECTED = {0.0: 0.945, 0.40: 0.859, 0.90: 0.614, 0.99: 0.562}
+# Moved by the 2026-08-10 AGE_GROUPS elderly revalue (2.5 → 1.48): w fell
+# 1.475 → 1.3016, so the personal numerator fell 11.76% while the other three
+# domains were untouched. Was {0.0: 0.945, 0.40: 0.859, 0.90: 0.614, 0.99: 0.562}.
+# The DEFECT is unchanged — personal still dominates the low arc, and the
+# revalue narrows the imbalance without addressing its cause.
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.939, 0.40: 0.843, 0.90: 0.583, 0.99: 0.530}
 
 
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -653,7 +658,11 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     top = total_eoh(epsilon=0.99)
     assert top["knowledge"] > top["infrastructure"]
     # 0.412 at the K-IV one-shot anchor; 0.353 at the Finding-E fixed point.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.353, abs=0.01)
+    # 0.353 → 0.3785 with the 2026-08-10 elderly revalue: knowledge did not
+    # grow, personal SHRANK 11.76% and knowledge's share of the smaller total
+    # rose. The claim being tested — knowledge stops being a rounding error at
+    # the top of the arc — is unaffected by which way that happened.
+    assert top["knowledge"] / top["total"] == pytest.approx(0.379, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
@@ -668,7 +677,10 @@ def test_domain_balance_ecological_is_sub_hour_per_person():
     pop = 1_000_000.0
     d = total_eoh(epsilon=0.40, population=pop)
     assert d["ecological"] / pop < 1.0
-    assert d["personal"] / pop > 1_400.0
+    # > 1,400 until the 2026-08-10 elderly revalue took w to 1.3016; the point
+    # of the assertion is the ORDER-OF-MAGNITUDE gap against ecological's
+    # sub-hour figure, which 1,301.6 makes exactly as starkly.
+    assert d["personal"] / pop > 1_250.0
 
 
 def test_domain_balance_epsilon_is_insensitive_to_the_small_domains():

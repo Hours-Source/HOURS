@@ -81,14 +81,17 @@ def test_personal_dominates_the_low_arc_even_loaded():
     """
     for r in thermal_load_arc(arc=ARC):
         assert r["ecological_per_capita"] < 5.0
-        assert r["personal_per_capita"] > 1_400.0
+        # > 1,400 until the elderly revalue took w to 1.3016; the claim under
+        # test is personal DOMINANCE, which 1,301.6 carries just as well.
+        assert r["personal_per_capita"] > 1_250.0
         if r["epsilon"] <= 0.40:
             assert r["personal_share_of_total"] > 0.84
 
     top = thermal_load_arc(arc=ARC)[-1]
     # 0.511 at the K-IV anchor; 0.562 after the Finding-E re-anchor gave back
     # ~5 points at the top of the arc.
-    assert top["personal_share_of_total"] == pytest.approx(0.562, abs=0.01)
+    # 0.562 → 0.530 with the elderly revalue.
+    assert top["personal_share_of_total"] == pytest.approx(0.530, abs=0.01)
 
 
 def test_verdict_reports_marginal_at_shipped_calibration():

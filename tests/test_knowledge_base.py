@@ -279,8 +279,12 @@ class TestDomainShareProjection:
         p = domain_share_projection()
         rows = {r["epsilon"]: r for r in p["rows"]}
         assert rows[0.0]["personal_share"] == pytest.approx(0.943, abs=0.01)
-        assert rows[0.99]["personal_share"] == pytest.approx(0.489, abs=0.01)
-        assert rows[0.99]["knowledge_share"] == pytest.approx(0.437, abs=0.01)
+        # 0.489 → 0.457: personal fell 11.76% with the elderly revalue while the
+        # other domains held, so its share at the top of the arc fell with it.
+        assert rows[0.99]["personal_share"] == pytest.approx(0.457, abs=0.01)
+        # 0.437 → 0.464, the same mechanism seen from the other side: knowledge
+        # did not grow, the total it is a share of shrank.
+        assert rows[0.99]["knowledge_share"] == pytest.approx(0.464, abs=0.01)
 
     def test_delivers_the_behaviour_the_docstring_asserts(self):
         """knowledge_eoh's own reference says human labor at ε→1 is 'almost
@@ -478,9 +482,15 @@ def _complexity(epsilon: float) -> float:
 class TestLabourResidual:
 
     def test_paid_labour_gives_the_documented_residual(self):
-        """US 2025 paid labour, 937.3 h/person·yr, against the shipped base."""
+        """US 2025 paid labour, 937.3 h/person·yr, against the shipped base.
+
+        0.4522 → 0.3596 with the 2026-08-10 AGE_GROUPS elderly revalue. The
+        residual is labour supply MINUS the obligation, so cutting personal
+        demand 11.76% leaves more supply unexplained and a smaller machine
+        share is needed to close it.
+        """
         eps = labour_residual_epsilon(937.3, KNOWLEDGE_EOH_BASE)
-        assert eps == pytest.approx(0.4522, abs=0.005)
+        assert eps == pytest.approx(0.3596, abs=0.005)
 
     def test_full_labour_has_no_solution(self):
         """
@@ -508,16 +518,30 @@ class TestEpsilonRefFixedPoint:
     def test_converges_to_the_adopted_anchor(self):
         r = epsilon_ref_fixed_point(937.3)
         assert r["converged"] is True
-        assert r["epsilon_fixed_point"] == pytest.approx(0.4522, abs=0.001)
+        # 0.4522 → 0.3828 with the 2026-08-10 elderly revalue.
+        assert r["epsilon_fixed_point"] == pytest.approx(0.3828, abs=0.001)
 
-    def test_the_fixed_point_reproduces_the_shipped_constant(self):
+    def test_the_shipped_constant_is_no_longer_the_fixed_point(self):
         """
-        THE ADOPTION CHECK. The shipped base must BE the fixed point's base —
-        that is what re-anchoring bought, and it is what a future edit to either
-        side would break.
+        THE SELF-CHECK FIRING, exactly as it was built to.
+
+        Finding E re-anchored KNOWLEDGE_EOH_BASE so the shipped constant WAS
+        the fixed point of its own derivation. The 2026-08-10 AGE_GROUPS
+        elderly revalue broke that: personal demand fell 11.76%, the labour
+        residual rose, and the fixed point moved to ε* = 0.3828 with a base
+        1.397× the shipped one.
+
+        This is a genuine open item, deliberately NOT closed here. Re-anchoring
+        KNOWLEDGE_EOH_BASE is a second constant decision that would cascade
+        again — knowledge EOH would rise 40% at every ε — and it belongs to the
+        author, not to a test update. What the test pins is that the repo KNOWS
+        it is off its anchor rather than quietly carrying a stale one.
         """
         r = epsilon_ref_fixed_point(937.3)
-        assert r["base_rate"] == pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
+        assert r["is_shipped_anchor"] is False
+        assert r["base_rate"] == pytest.approx(5.3362e8, rel=1e-3)
+        assert r["ratio_to_shipped"] == pytest.approx(1.397, rel=1e-3)
+        assert r["base_rate"] != pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
 
     def test_it_is_actually_a_fixed_point(self):
         """The defining property: the anchor it derives AT equals the anchor the
@@ -536,7 +560,9 @@ class TestEpsilonRefFixedPoint:
         k4_base = knowledge_base_from_registry(
             0.40, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
-        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.470, abs=0.005)
+        # 0.470 at the pre-revalue w; 0.376 now. The ARGUMENT is unchanged and
+        # is in fact reinforced: the anchor moved again, for a third reason.
+        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.376, abs=0.005)
         assert k4_base == pytest.approx(4.9010742e8, rel=1e-6)
 
     def test_independent_of_the_starting_anchor(self):
@@ -548,11 +574,16 @@ class TestEpsilonRefFixedPoint:
         for value in results:
             assert value == pytest.approx(results[0], abs=1e-3)
 
-    def test_re_anchor_reduced_the_base_by_the_documented_factor(self):
+    def test_re_anchor_moved_the_base_by_the_documented_factor(self):
+        """Against the K-IV base, which is the fixed anchor point of comparison.
+
+        0.779× at adoption (2026-08-09); 1.089× after the elderly revalue moved
+        the fixed point again. The shipped constant now sits between the K-IV
+        value and the current fixed point.
+        """
         r = epsilon_ref_fixed_point(937.3)
-        assert r["ratio_to_shipped"] == pytest.approx(1.0, rel=1e-6)
-        assert r["is_shipped_anchor"] is True
-        assert r["base_rate"] / 4.9010742e8 == pytest.approx(0.779, abs=0.005)
+        assert r["base_rate"] / 4.9010742e8 == pytest.approx(1.089, abs=0.005)
+        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(0.779, abs=0.005)
 
     def test_flags_when_the_shipped_constant_stops_being_the_fixed_point(self):
         """

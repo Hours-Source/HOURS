@@ -228,17 +228,39 @@ def test_measured_weights_bracket_the_shipped_infant_and_child_values():
         assert 0.80 < row["ratio"] < 1.0, f"{band}: {row['ratio']}"
 
 
-def test_the_elderly_weight_is_the_one_that_disagrees():
-    """The substantive finding, and the one complete band.
+def test_the_elderly_weight_was_adopted_from_this_measurement():
+    """The one band where both components are measured, and the one that moved.
 
-    Both components are measured for 65+, and the result is ~41% below the
-    shipped 2.5. It is not a lower bound in the same way the child bands are —
-    but ATUS covers the household population only, so the institutionalised
-    elderly, who need the most care, are outside it.
+    Adopted 2.5 → 1.48 on 2026-08-10. The shipped constant is the rounded
+    measurement, so if a later ATUS vintage moves the measured value the two
+    part company here rather than drifting quietly — the bind-by-test pattern
+    `TestCarbonKappaReconciliation` uses, since data.py cannot import a
+    measurement it sits below.
     """
     row = {r["band"]: r for r in care_curve.implied_weights()["rows"]}["elderly"]
     assert row["bound"] == "measured"
-    assert row["ratio"] < 0.7, row["ratio"]
+    assert round(float(row["implied_weight"]), 2) == AGE_GROUPS["elderly"]["eoh_weight"]
+
+
+def test_the_institutional_caveat_is_why_this_is_a_lower_bound():
+    """1.48 is the HOUSEHOLD-RESIDENT reading, and the gap is named not closed.
+
+    ATUS covers the household population only, so the institutionalised
+    elderly — who need the most care — are outside the frame entirely. The
+    adopted weight is therefore a lower bound for the elderly population as a
+    whole. What would close it is CMS Payroll-Based Journal staffing hours per
+    resident-day; what would NOT is recipient-side activity monitoring, which
+    measures the monitored person's own movement and physiology rather than
+    anyone's care hours.
+    """
+    from hours_eoh import data
+    source = data.__file__
+    with open(source, encoding="utf-8") as fh:
+        text = fh.read()
+    assert "HOUSEHOLD population only" in text, (
+        "the institutional caveat left AGE_GROUPS' provenance block"
+    )
+    assert "Payroll-Based Journal" in text, "the route that would close it is unnamed"
 
 
 def test_the_two_elderly_routes_disagree_by_an_order_of_magnitude():
@@ -263,24 +285,45 @@ def test_measured_population_shares_are_close_to_the_shipped_fractions():
         assert abs(measured[band] - group["fraction"]) < 0.03, band
 
 
-class TestCareCurveChangesNothing:
-    """REPORTING ONLY, enforced.
+class TestOnlyTheElderlyWeightWasAdopted:
+    """Exactly one weight moved, and the other three did not.
 
-    Mirrors `TestPIChangesNothing`. The measured weights are 15–41% away from
-    the shipped ones, and `w` multiplies `PERSONAL_EOH_BASE` through the entire
-    model — adopting them is an author decision with a reprice-sized blast
-    radius, not a side effect of shipping the measurement.
+    Infant and child measure 2.55 and 1.35 against shipped 3.0 and 1.5, but
+    both bands contain ages ATUS does not survey, so their totals are lower
+    bounds that can only rise. Adopting a lower bound as a point estimate would
+    revise those weights DOWN on the strength of a measurement that is missing
+    a term — the opposite of what the evidence supports. They stay.
     """
 
-    def test_age_groups_still_carries_the_shipped_weights(self):
-        assert [g["eoh_weight"] for g in AGE_GROUPS.values()] == [3.0, 1.5, 1.0, 2.5]
+    def test_the_unmeasured_bands_did_not_move(self):
+        assert AGE_GROUPS["infant"]["eoh_weight"] == 3.0
+        assert AGE_GROUPS["child"]["eoh_weight"] == 1.5
 
-    def test_the_bridge_is_unmoved(self):
+    def test_working_age_remains_the_numeraire(self):
+        assert AGE_GROUPS["working_age"]["eoh_weight"] == 1.0
+
+    def test_the_bridge_moved_by_the_documented_amount(self):
+        """w 1.475 → 1.3016, −11.76%. Everything downstream of it moved with it."""
         w = sum(g["fraction"] * g["eoh_weight"] for g in AGE_GROUPS.values())
-        assert w == pytest.approx(1.475)
+        assert w == pytest.approx(1.3016)
+        assert w / 1.475 - 1.0 == pytest.approx(-0.1176, abs=5e-5)
+
+    def test_the_fractions_were_not_touched(self):
+        """The weights were revalued; the population split is a separate question.
+
+        Moving both together would make the change in `w` impossible to
+        attribute to either, and the fractions describe a jurisdiction rather
+        than a measurement this framework owes.
+        """
+        assert [g["fraction"] for g in AGE_GROUPS.values()] == [0.07, 0.16, 0.60, 0.17]
 
     def test_no_core_module_imports_the_measurement(self):
-        """The layer rule, and the adoption gate, in one check."""
+        """The layer rule holds even after adoption.
+
+        The VALUE crossed into `data.py`; the measurement module did not. `core/`
+        still reads only `data.py`, so nothing on the stable path depends on a
+        CSV in `reference/`.
+        """
         import pathlib
         core = pathlib.Path(cd.__file__).resolve().parent.parent / "core"
         offenders = [

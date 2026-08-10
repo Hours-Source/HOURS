@@ -135,9 +135,13 @@ def test_backward_query_finds_a_finite_breaking_point():
     # 22.9 before the PERSONAL_EOH_BASE reprice; 40.5 after — a smaller
     # ecological/personal ratio means labour intensity has further to travel
     # before it breaks the gate, so the verdict got MORE robust, not less.
-    assert b["breaking_value"] == pytest.approx(40.5, rel=0.05)
+    # 40.5 → 44.7: the ecological obligation is unchanged but the total EOH it
+    # is measured against shrank, so it takes a larger shock to break solvency.
+    assert b["breaking_value"] == pytest.approx(44.7, rel=0.05)
     assert b["shipped_value"] == CDR_LABOR_HOURS_PER_TONNE
-    assert b["margin"] == pytest.approx(67.6, rel=0.05)
+    # 67.6 → 74.5: the thermal obligation is unchanged but the EOH total it is
+    # measured against shrank, so the margin over it widened.
+    assert b["margin"] == pytest.approx(74.5, rel=0.05)
     assert b["verdict"] == "robust"
 
 

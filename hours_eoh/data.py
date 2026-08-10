@@ -22,22 +22,46 @@ Mission Statement references throughout — see inline comments.
 # provenance-block: EOH generation — personal domain
 # tag: placeholder | units: relative eoh_weight (working_age = 1.0) and population fractions
 # form: the DIRECTION is structural — infants and elderly draw more caregiver
-#   labour than working-age adults. The 3.0 / 1.5 / 1.0 / 2.5 magnitudes and
-#   the 7/16/60/17 split are not.
-# note: the age-weighted mean w = Σ(fraction × weight) = 1.475 is the bridge
+#   labour than working-age adults. The magnitudes and the 7/16/60/17 split
+#   are not. MIXED EPISTEMIC STATUS, and the tag reads the weakest element:
+#   working_age = 1.0 is the numeraire (convention); elderly is MEASURED as of
+#   2026-08-10; infant and child are measured LOWER BOUNDS; the fractions
+#   describe a jurisdiction and are properly `instance`. Splitting this
+#   constant along those lines is owed — see resolves_by.
+# note: the age-weighted mean w = Σ(fraction × weight) = 1.3016 is the bridge
 #   from per-working-age-EQUIVALENT to per-capita, and forgetting it is the
-#   age-weight trap scenarios/feasibility.py exists to catch.
-# resolves_by: ATUS "caring for and helping household children/adults" hours
-#   per care-recipient by recipient age, plus NHATS/HRS for hours of
-#   assistance to older adults with functional limitation; national census or
-#   UN WPP for the fractions. ATUS is now partly ingested
-#   (reference/atus_time_use.py) but has not been cut by care-recipient age,
-#   which is the cut this constant needs.
+#   age-weight trap scenarios/feasibility.py exists to catch. It was 1.475
+#   until the elderly revalue below.
+# note: ELDERLY REVALUED 2.5 → 1.48 (author decision 2026-08-10) on
+#   scenarios/care_curve.implied_weights(): self-maintenance + care received,
+#   ATUS 2021–25 pooled with Census 2025 denominators, measured 1.4824. It is
+#   the one band where BOTH components are measured. CAVEAT, recorded rather
+#   than resolved: ATUS covers the HOUSEHOLD population only, so the
+#   institutionalised elderly — the highest-care group — are outside the
+#   frame, and 1.48 is therefore a lower bound for the elderly population as a
+#   whole. Accepted on the basis that institutional residence is a minority of
+#   elderly life-years. Infant 3.0 and child 1.5 were NOT changed: they
+#   measure 2.55 and 1.35, but both bands contain ages ATUS does not survey
+#   (under 15), so their self-maintenance is missing and their totals can only
+#   rise — reading just under the shipped values is consistent with them.
+# resolves_by: (a) the institutional gap — CMS Payroll-Based Journal reports
+#   nurse staffing hours per resident-day for every certified US nursing home,
+#   which is care labour per institutional resident directly, and is what
+#   would turn 1.48 from a household-resident reading into a population one.
+#   Recipient-side ACTIVITY monitoring does not substitute: datasets of that
+#   class (e.g. TIHM) measure the monitored person's own movement and
+#   physiology, not anyone's care hours, and are home-based cohorts anyway.
+#   (b) infant and child — self-maintenance below 15, which ATUS cannot
+#   observe because it does not survey children. (c) the fractions — a
+#   national census for the jurisdiction being modelled; the US reading is
+#   shipped in reference/data/census_age_2020_2025.csv and is 6.5/14.5/60.0/18.9,
+#   already 2pp off this default on the elderly band. (d) the constant should
+#   be SPLIT so these four different epistemic states stop sharing one tag.
 AGE_GROUPS: dict[str, dict] = {
     "infant":      {"range": (0, 5),    "fraction": 0.07, "eoh_weight": 3.0},
     "child":       {"range": (6, 17),   "fraction": 0.16, "eoh_weight": 1.5},
     "working_age": {"range": (18, 64),  "fraction": 0.60, "eoh_weight": 1.0},
-    "elderly":     {"range": (65, 100), "fraction": 0.17, "eoh_weight": 2.5},
+    "elderly":     {"range": (65, 100), "fraction": 0.17, "eoh_weight": 1.48},
 }
 
 # ---------------------------------------------------------------------------
@@ -829,7 +853,11 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   shortfall (model reports feasible, capital under-built, deficit paid in
 #   unserved biological obligation), too high only over-builds capital. Erring
 #   high is the mortality-minimising error. Per working-age-EQUIVALENT: × w =
-#   1.475 gives the per-capita claim of 1,475 h/person·yr.
+#   1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475
+#   until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was
+#   derived at the OLD w and has not been re-derived; a lower w raises the
+#   supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather
+#   than wrong, and re-deriving it is owed.)
 # resolves_by: the capital-inventory + time-use identity, NOT time-use data
 #   alone — see the circularity section in docs/parameter_provenance.md.
 #   Partial progress: core/eoh_generation.personal_statutory_floor() now
@@ -914,7 +942,7 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 #   anchor — "does not represent an absolute ecosystem-specific count" — but
 #   it is SUMMED with absolute counts in total_eoh() and then divided into ε.
 #   At defaults it contributes 0.03% of total EOH (0.71 h/person·yr against
-#   personal's 2,213), so the ecological domain cannot move ε and the thermal
+#   personal's 1,301.6), so the ecological domain cannot move ε and the thermal
 #   obligation books at ~1.8 h/person·yr. Do not quote this domain's SHARE of
 #   total EOH until it is on an absolute footing. Either this is low by 2–3
 #   orders, or CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data
