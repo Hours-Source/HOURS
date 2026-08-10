@@ -122,10 +122,12 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     dominates total_EOH effectively sets ε.
 
     Block K-IV (2026-08-08) moved this materially: personal ran 87–96% across
-    the whole arc before knowledge was put on its measured O*NET footing, and
-    now runs 94% → 51%. The defect is PARTLY closed — personal still dominates
-    the low arc, where there is no apparatus for knowledge to attach to, and
-    the ecological domain is untouched at ~0.04%.
+    the whole arc before knowledge was put on its measured O*NET footing. After
+    K-IV, the ε_ref fixed-point re-anchor and the 2026-08-10 AGE_GROUPS elderly
+    revalue, it runs 98.9% → 46.1% (re-measured 2026-08-10). The defect is
+    PARTLY closed — personal still dominates the low arc, where there is no
+    apparatus for knowledge to attach to, and the ecological domain is
+    untouched at <0.1%.
     """
     headers = ["ε", "personal%", "infra%", "eco%", "know%",
                "eco h/p·yr", "know h/p·yr", "personal h/p·yr"]
@@ -145,10 +147,10 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     print(table(headers, rows))
     print()
     print(bold("Domain balance: "), end="")
-    print("personal EOH runs ~94% at ε=0 falling to ~51% at ε=0.99. Block K-IV "
+    print("personal EOH runs ~99% at ε=0 falling to ~46% at ε=0.99. Block K-IV "
           "put knowledge on\nits measured O*NET/BLS footing, which closed one of "
-          "the two small domains — knowledge is\nnow the largest non-personal "
-          "domain at the top of the arc. The ECOLOGICAL domain is still\n~0.04% "
+          "the two small domains — knowledge is\nnow CO-EQUAL with personal at "
+          "the top of the arc (~46% each). The ECOLOGICAL domain is\nstill <0.1% "
           "and sub-hour per person per year: that half of the defect is open.\n"
           "See docs/parameter_provenance.md §'Domain balance — the denominator problem'.")
 

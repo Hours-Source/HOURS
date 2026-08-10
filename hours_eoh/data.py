@@ -744,11 +744,16 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 # ---------------------------------------------------------------------------
 # EOH base rates (per-capita or per-unit at reference conditions)
 #
-# DOMAIN BALANCE (measured 2026-08-05, docs/parameter_provenance.md §"Domain
-# balance"): at defaults the personal domain is 91–97% of total_eoh() at EVERY
-# ε; ecological is 0.71 h/person·yr and knowledge 0.01–0.97. ε = machine/total is
-# therefore ~95% a personal-domain number, and PERSONAL_EOH_BASE is the single
-# most leveraged constant in the model. Retagged CHOSEN in the same pass — it is
+# DOMAIN BALANCE (measured 2026-08-05, re-measured 2026-08-10,
+# docs/parameter_provenance.md §"Domain balance"): at defaults the personal
+# domain runs 98.9% of total_eoh() at ε=0, 84.8% at ε=0.40 and 46.1% at ε=0.99.
+# It no longer dominates the WHOLE arc — putting KNOWLEDGE_EOH_BASE on its
+# measured O*NET/BLS footing made knowledge co-equal at the top (46.0% at
+# ε=0.99) — but it still owns the LOW arc, where there is no apparatus for
+# knowledge to attach to. Ecological is untouched at 0.71 h/person·yr (<0.1%),
+# so that half of the defect is open. ε = machine/total is therefore still
+# almost entirely a personal-domain number at low ε, and PERSONAL_EOH_BASE is
+# the single most leveraged constant in the model. Retagged CHOSEN in the same pass — it is
 # an arithmetic sum of four desk estimates (208 + 156 + 208 + 936), not a
 # structural claim about entropy. Epistemic pointer: BLS American Time Use
 # Survey, which measures all four components directly and is not yet used
@@ -942,8 +947,10 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   0.40 and the 38–74% the identity route implies at modern capital. Retired
 #   when abatement becomes the default generation path.
 # note: THE SINGLE MOST LEVERAGED CONSTANT IN THE MODEL. Personal EOH is
-#   91–97% of total EOH at every ε, so this effectively sets the denominator
-#   of ε. Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end
+#   98.9% of total EOH at ε=0, 84.8% at ε=0.40 and 46.1% at ε=0.99 (re-measured
+#   2026-08-10), so this effectively sets the denominator of ε across the low
+#   arc, and still sets half of it at the top.
+#   Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end
 #   of the evidence band, on an asymmetric-loss argument: too low hides a real
 #   shortfall (model reports feasible, capital under-built, deficit paid in
 #   unserved biological obligation), too high only over-builds capital. Erring

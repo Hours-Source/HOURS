@@ -222,10 +222,10 @@ the conventional bar. Each says so on its own line.
 > [Retag log (2026-08-09)](#retag-log-2026-08-09) below.
 
 **Machine-readable sources of truth.** For a public audit that never opens Python:
-[`constant_provenance.csv`](../hours_eoh/reference/data/constant_provenance.csv) —
+[`constant_provenance.csv`](hours_eoh/reference/data/constant_provenance.csv) —
 one row per `data.py` constant with value, units, tag, tier, form, block,
 `resolves_by` and any note. For the measured multiplier registry:
-[`multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv).
+[`multiplier_provenance_v5.csv`](hours_eoh/reference/data/multiplier_provenance_v5.csv).
 Both are generated; neither is hand-edited.
 
 Source: `hours_eoh/data.py` and `hours_eoh/params.py`; measured multiplier data
@@ -242,10 +242,12 @@ a standing violation of the no-anonymous-constants invariant.
 
 ## EOH Generation — Personal Domain
 
-> **This is the highest-leverage block in the model.** Personal EOH is 87–96% of
-> total EOH at every point on the arc (see [Domain balance](#domain-balance--the-denominator-problem)),
-> so `PERSONAL_EOH_BASE` effectively sets the denominator of ε. It carried the
-> `Physics` tag while being a four-line desk estimate.
+> **This is the highest-leverage block in the model.** Personal EOH is 98.9% of
+> total EOH at ε = 0, 84.8% at ε = 0.40 and 46.1% at ε = 0.99 (re-measured
+> 2026-08-10; see [Domain balance](#domain-balance-the-denominator-problem)), so
+> `PERSONAL_EOH_BASE` sets the denominator of ε outright across the low arc and
+> still sets half of it at the top. It carried the `Physics` tag while being a
+> four-line desk estimate.
 >
 > **Repriced 1,500 → 1,000 on 2026-08-06** (author decision) to the high end of
 > the evidence band, on the asymmetric-loss argument below. Still `CHOSEN`.
@@ -264,7 +266,7 @@ a standing violation of the no-anonymous-constants invariant.
 | `PERSONAL_EOH_SUFFICIENCY` | 1500.0 | hours/year per working-age-equivalent | bounded<br>form: F_a — the autarky-referenced SUFFICIENCY standard. MAY exceed labour supply, and that gap is precisely why collectives form. | **band** 390–926 h/yr from the capital-inventory + time-use identity at MODERN capital — which measures F_c, not F_a, the two reconciled by 38–74% abatement. Independently, 'all needs met' requires ~30% abatement at ε=0.99, putting F_a mid-band.<br>**errs** HIGH. It is the autarky-referenced standard, so it MAY exceed labour supply — that gap is why collectives form, not an error. Erring high overstates what a decent life costs alone, which overstates the case for collective delivery rather than understating a survival risk.<br>cross-cultural time allocation at a stated adequacy standard, plus the capital-inventory + time-use identity route. Cross-checks already in hand: the identity route gives F_c(modern) = 390–926, implying 38–74% abatement, and "all needs met" requires ~30% at ε=0.99 — 1500 sits mid-band against both. |
 | `PERSONAL_EOH_COMPONENTS` | <dict: 4 keys> | share = fraction of the personal obligation; abatability = fraction removable | placeholder<br>form: the shares are the original desk estimate's own four terms (208/156/208/936 over 1508), so they are internally consistent with PERSONAL_EOH_SUFFICIENCY rather than independent of it. The abatability ceilings are the per-component most that infrastructure can ever remove, and their ORDERING encodes the block's structural prediction: abatability and sufficiency are ANTI-CORRELATED, because what infrastructure removes is survival-shaped work and what it cannot remove is care (the Baumol case). That prediction is TESTED in TestAntiCorrelationPrediction, not asserted here — changing these weights falsifies it. | per-component pointers are on each line below. a_max = Σ share × abatability = 0.4483 is DERIVED from this table, so it is not a free parameter; the table is where the judgement lives. |
 | `ABATEMENT_HALF_CAPITAL_TEH` | 1000.0 | TEH of capital per capita | placeholder<br>form: K_half in a(K) = a_max · K/(K + K_half). It sets the PACE of abatement along the arc, not its ceiling. | the identity route run at two or more capital levels — B(K) measured at matched (inventory, time-use) pairs pins a_max and K_half together.<br>THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free parameter the block introduced. Report the sensitivity alongside any abatement figure until it is measured. |
-| `PERSONAL_EOH_BASE` | 1000.0 | hours/year per working-age-equivalent | bounded<br>form: the ABATEMENT-COLLAPSED operating value — one number standing in for F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε = 0.40 and the 38–74% the identity route implies at modern capital. Retired when abatement becomes the default generation path. | **band** 390–1006 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M comes from a capital inventory and is B-FREE.<br>**errs** HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>THE SINGLE MOST LEVERAGED CONSTANT IN THE MODEL. Personal EOH is 91–97% of total EOH at every ε, so this effectively sets the denominator of ε. Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end of the evidence band, on an asymmetric-loss argument: too low hides a real shortfall (model reports feasible, capital under-built, deficit paid in unserved biological obligation), too high only over-builds capital. Erring high is the mortality-minimising error. Per working-age-EQUIVALENT: × w = 1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475 until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was derived at the OLD w and has not been re-derived; a lower w raises the supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather than wrong, and re-deriving it is owed.) |
+| `PERSONAL_EOH_BASE` | 1000.0 | hours/year per working-age-equivalent | bounded<br>form: the ABATEMENT-COLLAPSED operating value — one number standing in for F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε = 0.40 and the 38–74% the identity route implies at modern capital. Retired when abatement becomes the default generation path. | **band** 390–1006 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M comes from a capital inventory and is B-FREE.<br>**errs** HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>THE SINGLE MOST LEVERAGED CONSTANT IN THE MODEL. Personal EOH is 98.9% of total EOH at ε=0, 84.8% at ε=0.40 and 46.1% at ε=0.99 (re-measured 2026-08-10), so this effectively sets the denominator of ε across the low arc, and still sets half of it at the top. Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end of the evidence band, on an asymmetric-loss argument: too low hides a real shortfall (model reports feasible, capital under-built, deficit paid in unserved biological obligation), too high only over-builds capital. Erring high is the mortality-minimising error. Per working-age-EQUIVALENT: × w = 1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475 until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was derived at the OLD w and has not been re-derived; a lower w raises the supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather than wrong, and re-deriving it is owed.) |
 <!-- /provenance:table -->
 
 The age-weighted mean w = Σ(fraction × weight) = **1.3016** is the bridge from
@@ -753,7 +755,7 @@ Consequences, in order of how much work they imply:
 `INFRA_MAINT_RATE` sits on the *monetized* path that
 `scenarios/infrastructure_floor.py` shows is doctrine-dominated (10.26× spread);
 the statutory floor below exists to route around it. `CAPITAL_STOCK_DEFAULT` is
-listed under [Fiscal architecture](#fiscal-architecture) — at 2,000 TEH/person it
+listed under [Fiscal architecture](#fiscal-parameters) — at 2,000 TEH/person it
 produces infrastructure EOH ≈ 75M h/yr at mid-life, ≈ 3% of total EOH.
 
 ### Task-normative statutory floor (B+D design — currency-free)
@@ -777,7 +779,7 @@ conventional.
 > ("does not represent an absolute ecosystem-specific count") but is summed with
 > absolute counts in `total_eoh()` and then divided into ε. At defaults it
 > contributes 0.71 h/person·yr against personal's 1,301.6 — 0.05% of total EOH. See
-> [Domain balance](#domain-balance--the-denominator-problem). Until it is put on
+> [Domain balance](#domain-balance-the-denominator-problem). Until it is put on
 > an absolute footing, no result that depends on the ecological domain's *share*
 > of total EOH should be quoted.
 
@@ -860,13 +862,26 @@ read.*
 > derivation) took 0.779× off the base. The 2026-08-10 AGE_GROUPS elderly
 > revalue then cut personal EOH 11.76% and moved the fixed point AGAIN, taking
 > the base up 1.397× to 1.089× the original K-IV value. The share now runs
-> **98.9% → 78.6%**. The table below is the current picture; the pre-adoption
+> **98.9% → 46.1%**. The table below is the current picture; the pre-adoption
 > figures are kept in the second table for comparison.
 >
-> **The two moves pulled in opposite directions and personal's share at ε=0.99
-> ended HIGHER than after K-IV, not lower** (56.2% → 78.6%), because the
-> canonical-arc reading divides by a total that both changes grew or shrank
-> unevenly across the arc. Do not read the trend from either move alone.
+> **CORRECTED 2026-08-10.** This block previously reported the share as
+> 98.9% → **78.6%** and drew a finding from it — that the two moves "pulled in
+> opposite directions" and personal's share at ε = 0.99 "ended HIGHER than after
+> K-IV, not lower (56.2% → 78.6%)". **That was wrong, and so was the finding.**
+> Measured against `arc --domain-shares` at the shipped constants, personal ends
+> at **46.1%**, not 78.6% — *lower* than the 56.2% K-IV left it, not higher. The
+> ε = 0.40 and ε = 0.99 columns of the table below were wrong in the same pass
+> (infrastructure and knowledge were also transposed at the top of the arc). The
+> ε = 0 column was correct throughout. **The two moves compounded in the same
+> direction: both cut personal's share at the top of the arc.**
+>
+> This is worth recording rather than quietly patching. The provenance gate
+> covers tag blocks in `data.py`; it cannot check a hand-written share table in
+> prose, and this section says so a few paragraphs down. Here is that residual
+> producing not a stale number but an **inverted conclusion** — the kind of
+> error the gate was built to make impossible for constants and demonstrably
+> still permits for narrative.
 >
 > **What is still open.** `ECOLOGICAL_BASE_RATE` was untouched and the
 > ecological domain is still ~0.04% of total EOH at 0.71 h/person·yr — the
@@ -881,14 +896,19 @@ read.*
 
 ### Current (post-K-IV, re-anchored twice to the ε_ref fixed point)
 
-Canonical-arc figures, `arc --domain-shares`:
+Canonical-arc figures, re-measured 2026-08-10 from
+`python3 utils/eoh_cli.py --no-color arc --domain-shares --points 100`:
 
 | Domain | ε = 0 | ε = 0.40 | ε = 0.99 |
 |---|---|---|---|
-| personal | 98.9% | 91.8% | 78.6% |
-| infrastructure | 0.0% | 5.8% | 13.4% |
-| knowledge | 1.0% | 2.3% | **7.9%** |
+| personal | 98.9% | 84.8% | 46.1% |
+| infrastructure | 0.0% | 5.4% | 7.9% |
+| knowledge | 1.0% | 9.8% | **46.0%** |
 | ecological | <0.1% | <0.1% | <0.1% |
+
+*At the top of the arc knowledge is now co-equal with personal, not merely "the
+largest non-personal domain": 46.0% against 46.1%. Infrastructure never exceeds
+7.9%.*
 
 *The ε = 0 column reads 98.9% personal / 0.0% infrastructure because Block III
 set the canonical capital path to zero at the origin — subsistence has no
@@ -1517,7 +1537,7 @@ O\*NET 30.3 education+training (T), abilities/skills/work-context burden (D), BL
 openings+growth (S), and O\*NET+BLS impact sub-components (I), over 751 occupations
 and 94.2% of US employment. Loaded via `hours_eoh.reference.onet_multipliers`; their
 provenance is in
-[`multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv).
+[`multiplier_provenance_v5.csv`](hours_eoh/reference/data/multiplier_provenance_v5.csv).
 
 The map that turns them into a multiplier is in `data.py`:
 
@@ -1546,7 +1566,7 @@ constants are in the generated table above (`M_FACTOR_WEIGHTS`,
 `M_EPOCH_WEIGHT_ANCHORS`, `M_IMPACT_SUBDOMAIN_WEIGHTS`). The load-bearing ones
 **outside** `data.py` — registry-level knobs, so outside the coverage gate, with
 sweep ranges in
-[`multiplier_provenance_v5.csv`](../hours_eoh/reference/data/multiplier_provenance_v5.csv):
+[`multiplier_provenance_v5.csv`](hours_eoh/reference/data/multiplier_provenance_v5.csv):
 
 | Parameter | Default | Epistemic pointer (`resolves_by`) |
 |---|---|---|
@@ -1604,7 +1624,7 @@ allowance — an F3 statement about decarbonization, not automation intensity.
 The measurement that resolves the P0 "INCONCLUSIVE" bound into a concrete answer,
 via the operative formula ε_max = ε_current · allocated_budget / Φ_auto (ι and
 EOH_total cancel — no EOH register needed). Measured energy mix, κ table, forcing
-and national records ship in [`reference/data/thermal_path_c.json`](../hours_eoh/reference/data/thermal_path_c.json)
+and national records ship in [`reference/data/thermal_path_c.json`](hours_eoh/reference/data/thermal_path_c.json)
 with per-input provenance tiers (A retrieved / B constant / C training-data-unverified
 / D framework placeholder) — **the weakest data drives the strongest finding, so
 read the tiers before citing.** Structural constants added to `data.py`:
