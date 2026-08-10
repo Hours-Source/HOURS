@@ -697,8 +697,9 @@ def _derived_prose_figures() -> dict[str, float]:
 def test_derived_prose_figures_are_the_values_the_doc_prints():
     """Pins the products the doc restates in prose, so a reprice cannot orphan them."""
     figures = _derived_prose_figures()
-    assert figures["age-weighted mean w"] == pytest.approx(1.475)
-    assert figures["personal EOH per capita"] == pytest.approx(1475.0)
+    # w moved 1.475 → 1.3016 with the AGE_GROUPS elderly revalue (2026-08-10).
+    assert figures["age-weighted mean w"] == pytest.approx(1.3016)
+    assert figures["personal EOH per capita"] == pytest.approx(1301.6)
     assert figures["membership min-hours WARN"] == pytest.approx(500.0)
     assert figures["membership min-hours CRIT"] == pytest.approx(1000.0)
     # 2 × CONTESTABILITY_VESTING_YEARS, per the constant's own stated derivation

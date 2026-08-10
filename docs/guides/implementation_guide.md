@@ -21,7 +21,7 @@ represents and where to find it in real-world data:
 | `capital_age_ratio` | float | [0, 1] | National accounts: average age of fixed assets / average design life (or use 0.5 as default if unavailable) |
 | `ecosystem_health` | float | [0, 1] | Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine |
 | `monitoring_capability` | float | [0, 1] | Fraction of deferred ecological EOH your monitoring systems can detect; proxy with your ecological data coverage fraction |
-| `age_distribution` | dict | fractions summing to 1.0 | Census age pyramid, grouped into infant/child/working_age/elderly buckets matching `AGE_GROUPS` |
+| `age_distribution` | dict | fractions summing to 1.0 | Census age pyramid, grouped into the buckets in `AGE_GROUP_RANGES`; see `AGE_GROUP_FRACTIONS` |
 | `knowledge_base_size` | float | relative (1.0 = ε=0 reference) | Harder to measure; use national R&D stock relative to a subsistence baseline, or leave at canonical default |
 
 **Converting capital stock to TEH**: if you have capital stock in dollars, divide by
@@ -78,6 +78,11 @@ every canonical result in this repo was produced at them.
   depreciation. Piketty's r gives 4–5%, above this default.
 - **`GUF_LVI_W_*`** — land-value sub-index weights. Land value is local by
   construction; these come from a hedonic regression on *your* parcel data.
+- **`AGE_GROUP_FRACTIONS`** — your census age pyramid, grouped to
+  `AGE_GROUP_RANGES`. The shipped 7/16/60/17 is an OECD-shaped split that fits
+  the US around 2020; by 2025 the US itself had moved to 6.5/14.5/60.0/18.9.
+  `reference/care_demand.population_shares()` groups any band structure against
+  the shipped census extract.
 
 ### Then: what to decide rather than measure
 
@@ -95,9 +100,14 @@ retires them, and treating them as calibration knobs is a category error:
 
 Ranked by how much of the model they move, not by how wrong they are:
 
-- **`AGE_GROUPS`** — 54 call sites. The `fraction` values are your census age
-  pyramid and you should replace them. The `eoh_weight` values are the
-  framework's debt, not yours (they await ATUS care-hours by recipient).
+- **`AGE_WEIGHT_INFANT` / `AGE_WEIGHT_CHILD`** — `bounded`, and the band is
+  ONE-SIDED. Measured at ≥ 2.55 and ≥ 1.35 against shipped 3.0 and 1.5, but
+  ATUS surveys nobody under 15, so the self-maintenance term is missing and
+  those floors can only rise. Leave them unless you have a time-use survey that
+  covers children. They err HIGH, which is the safe direction: too low
+  understates what a dependent needs and the deficit is paid in unserved care.
+  (`AGE_WEIGHT_ELDERLY` is `measured` — 1.48, from ATUS + Census — and
+  `AGE_WEIGHT_WORKING_AGE` is the numeraire, 1.0 by definition.)
 - **`ECOLOGICAL_BASE_RATE = 500000.0`** — replace with your stewardship-hours
   census, but read §6 first: this constant is entangled with an open structural
   defect, and changing it alone will not fix what it looks like it should.
@@ -161,7 +171,7 @@ eoh = total_eoh(
 Check plausibility: personal EOH should be roughly `PERSONAL_EOH_BASE × population
 × 1.475`, where 1.475 is the age-weighted mean at default demographics. If it's
 wildly off, check that your `age_distribution` fractions sum to 1.0 and match the
-`AGE_GROUPS` keys.
+`AGE_GROUP_RANGES` keys.
 
 **Which standard are you asking for?** `PERSONAL_EOH_BASE` is the operating value
 between two others: `PERSONAL_EOH_SURVIVAL` (600, what it takes not to die) and

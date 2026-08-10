@@ -32,8 +32,12 @@ HONEST LIMITS — read before citing any figure from here
    silently.
 3. **PRIMARY ACTIVITIES ONLY.** A diary records one activity at a time, so
    simultaneous work is undercounted — supervising a child while cooking books as
-   cooking. Secondary childcare is a separate ATUS field this extract does not
-   carry, and it is large. Every care figure here is therefore a LOWER BOUND.
+   cooking. Secondary childcare is a separate ATUS field THIS extract does not
+   carry, and it is large: measured against the same file it runs about 4× the
+   primary care time. Every care figure here is therefore a LOWER BOUND.
+   `reference/care_demand.py` carries it, cut by recipient age, along with the
+   eldercare module — use that module for anything about care, and this one for
+   anything about activities.
 4. **OBSERVED HOURS ARE NOT AN OBLIGATION.** This is the load-bearing limit.
    What a population spends is what it spends; the entropy obligation is a
    different quantity, related by

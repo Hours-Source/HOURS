@@ -1,0 +1,5 @@
+reason,activities,weighted_minutes,note
+no_roster_match,1960,589802787769.9,tier1 03 care where no person present matched the roster
+non_household,38092,11304865008448.5,"tier1 04 care — recipient is not on the household roster by construction, so their age is unknowable from these files"
+secondary_off_roster_children,0,1556537540707.1,"TRTCCTOT_LN minus TRTOHH_LN — secondary childcare for children not on this household's roster, so outside the curve's denominator"
+no_lineno,79705,,who-rows recording presence with TULINENO = -1

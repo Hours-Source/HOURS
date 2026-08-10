@@ -20,24 +20,143 @@ Mission Statement references throughout — see inline comments.
 # national census / UN WPP for the fractions.
 # ---------------------------------------------------------------------------
 # provenance-block: EOH generation — personal domain
-# tag: placeholder | units: relative eoh_weight (working_age = 1.0) and population fractions
-# form: the DIRECTION is structural — infants and elderly draw more caregiver
-#   labour than working-age adults. The 3.0 / 1.5 / 1.0 / 2.5 magnitudes and
-#   the 7/16/60/17 split are not.
-# note: the age-weighted mean w = Σ(fraction × weight) = 1.475 is the bridge
-#   from per-working-age-EQUIVALENT to per-capita, and forgetting it is the
-#   age-weight trap scenarios/feasibility.py exists to catch.
-# resolves_by: ATUS "caring for and helping household children/adults" hours
-#   per care-recipient by recipient age, plus NHATS/HRS for hours of
-#   assistance to older adults with functional limitation; national census or
-#   UN WPP for the fractions. ATUS is now partly ingested
-#   (reference/atus_time_use.py) but has not been cut by care-recipient age,
-#   which is the cut this constant needs.
+# The four constants below were ONE dict until 2026-08-10, tagged `placeholder`
+# because a single tag must read its weakest element. It was carrying four
+# different epistemic states: a chosen partition, jurisdiction data, a
+# numeraire, and two grades of measurement. Splitting them is what lets each
+# one say what it actually is; AGE_GROUPS survives below, assembled, because
+# ~70 call sites read it.
+#
+# The age-weighted mean w = Σ(fraction × weight) = 1.3016 is the bridge from
+# per-working-age-EQUIVALENT to per capita, and forgetting it is the age-weight
+# trap scenarios/feasibility.py exists to catch. It was 1.475 until the elderly
+# revalue of 2026-08-10.
+#
+# tag: convention | units: inclusive age bounds in years
+# form: a partition of a continuum, chosen not found. The 2026-08-10 care
+#   measurement looked for natural breakpoints and there are none: care
+#   received per person declines SMOOTHLY through childhood (113.6 → 70.7 →
+#   36.1 → 9.6 min/day over 0-4/5-9/10-14/15-19) with nothing happening at 5/6
+#   or at 17/18. These bounds are administrative, and the model reads four
+#   steps off a smooth curve.
+# note: the bands are a REPORTING VIEW. Anything sensitive to where the cuts
+#   fall should integrate a demand curve over age instead — see
+#   reference/care_demand.py, which carries the curve these bands approximate.
+AGE_GROUP_RANGES: dict[str, tuple[int, int]] = {
+    "infant":      (0, 5),
+    "child":       (6, 17),
+    "working_age": (18, 64),
+    "elderly":     (65, 100),
+}
+
+# tag: instance | units: fraction of population
+# supplied_by: your census age pyramid, grouped to AGE_GROUP_RANGES. Intake
+#   path: reference/data/census_age_2020_2025.csv ships the US reading by
+#   single year of age, and reference/care_demand.population_shares() groups
+#   any band structure against it. Nothing about YOUR population is derivable
+#   from this framework.
+# default: an OECD-shaped split that happens to fit the US around 2020
+#   (measured 6.98/15.24/60.91/16.87 that year). By 2025 the US had moved to
+#   6.5/14.5/60.0/18.9 — the elderly band is already 2pp off and rising, so
+#   the shipped default is a snapshot, not a standard. Swapping the 2025
+#   reading in moves w by only +0.8%, because the weights dominate.
+AGE_GROUP_FRACTIONS: dict[str, float] = {
+    "infant":      0.07,
+    "child":       0.16,
+    "working_age": 0.60,
+    "elderly":     0.17,
+}
+
+# tag: convention | units: relative personal EOH (dimensionless)
+# form: the NUMERAIRE. Every other weight is expressed against a working-age
+#   adult, so this is 1.0 by definition and carries no evidential content —
+#   measuring it is not a coherent request.
+AGE_WEIGHT_WORKING_AGE: float = 1.0
+
+# tag: bounded | tier: B | units: relative personal EOH (dimensionless)
+# form: personal obligation generated per person of that age, relative to a
+#   working-age adult: (self-maintenance + care received) integrated over the
+#   band and divided by the numeraire band's total.
+# band: ≥ 2.55, one-sided — and the openness is the whole point. Measured
+#   2026-08-10 from ATUS 2021–25 pooled (scenario run care_curve), but ATUS
+#   surveys nobody under 15, so the self-maintenance term is missing for the
+#   ENTIRE infant band. The measurement is a FLOOR that can only rise, never a
+#   point estimate, and calling it a two-sided band would be a worse claim than
+#   leaving the constant a placeholder.
+# errs: HIGH, and high is the safe direction, by the same asymmetric-loss
+#   argument that set PERSONAL_EOH_BASE. A weight set too low understates the
+#   obligation a dependent generates, and the deficit is paid in unserved care
+#   — the model reports feasible while a child goes unattended. Too high only
+#   over-provisions. The shipped 3.0 and 1.5 sit above their measured floors
+#   by 18% and 11%, which is the direction to be wrong in.
+# resolves_by: self-maintenance below age 15, which ATUS cannot observe
+#   because it does not survey children. A time-use survey covering children
+#   (some HETUS members do) would close the band from below and turn these
+#   into point estimates.
+AGE_WEIGHT_INFANT: float = 3.0
+
+# tag: bounded | tier: B | units: relative personal EOH (dimensionless)
+# form: as AGE_WEIGHT_INFANT — (self-maintenance + care received) over ages
+#   6–17, relative to a working-age adult.
+# band: ≥ 1.35, one-sided. Measured 2026-08-10 (ATUS 2021–25 pooled). The band
+#   is one-sided for the same reason as the infant weight, but LESS of this one
+#   is missing: ATUS observes ages 15–17, so the band's self-maintenance term
+#   is partly present (24.5 min/day measured across the band) rather than
+#   wholly absent.
+# errs: HIGH, and high is the safe direction — a weight set too low understates
+#   the obligation a dependent generates and the deficit is paid in unserved
+#   care. The shipped 1.5 sits 11% above its measured floor.
+# resolves_by: self-maintenance for ages 6–14, which ATUS cannot observe. A
+#   time-use survey covering children would close the band from below.
+AGE_WEIGHT_CHILD: float = 1.5
+
+# tag: measured | tier: B | units: relative personal EOH (dimensionless)
+# form: as above — (self-maintenance + care received) over the 65+ band,
+#   relative to working age. The ONE band where both terms are measured:
+#   207.1 min/day self-maintenance + 30.5 care = 237.5 against working age's
+#   160.2, giving 1.4824, adopted at 1.48.
+# note: measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025
+#   denominators (scenario run care_curve), replacing a shipped 2.5 that was
+#   asserted. Bound to the measurement by test rather than by expression —
+#   data.py sits below reference/ and cannot import it — so
+#   test_the_elderly_weight_was_adopted_from_this_measurement fails if either
+#   side moves alone. Tier B, not A: a large national survey, but with a named
+#   systematic exclusion, below.
+# resolves_by: the INSTITUTIONAL population. ATUS covers households only, so
+#   the institutionalised elderly — who need the most care — are outside the
+#   frame entirely, and 1.48 is a lower bound for the elderly population as a
+#   whole. CMS Payroll-Based Journal reports nurse staffing hours per
+#   resident-day for every certified US nursing home and would close it.
+#   Recipient-side ACTIVITY monitoring would NOT: datasets of that class (TIHM
+#   was checked) record the monitored person's own movement and physiology
+#   rather than anyone's care hours, and are home-based cohorts, so they
+#   re-measure the population ATUS already covers.
+AGE_WEIGHT_ELDERLY: float = 1.48
+
+# tag: derived | units: composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants
+# form: assembled from the four constants above, which is the point — this
+#   dict was ONE constant carrying FOUR different epistemic states (a chosen
+#   partition, jurisdiction data, a numeraire, and two grades of measurement)
+#   under a single `placeholder` tag, so the tag necessarily read the weakest
+#   element and told a reader nothing about any of the others.
+# note: retained as the public shape because ~70 call sites read it, and the
+#   split is additive: the assembled value is byte-identical to what the
+#   hand-written dict held. New code should prefer the specific constant it
+#   actually needs — a caller wanting the population split should read
+#   AGE_GROUP_FRACTIONS and see the `instance` tag telling them to supply
+#   their own.
 AGE_GROUPS: dict[str, dict] = {
-    "infant":      {"range": (0, 5),    "fraction": 0.07, "eoh_weight": 3.0},
-    "child":       {"range": (6, 17),   "fraction": 0.16, "eoh_weight": 1.5},
-    "working_age": {"range": (18, 64),  "fraction": 0.60, "eoh_weight": 1.0},
-    "elderly":     {"range": (65, 100), "fraction": 0.17, "eoh_weight": 2.5},
+    name: {
+        "range": AGE_GROUP_RANGES[name],
+        "fraction": AGE_GROUP_FRACTIONS[name],
+        "eoh_weight": weight,
+    }
+    for name, weight in (
+        ("infant", AGE_WEIGHT_INFANT),
+        ("child", AGE_WEIGHT_CHILD),
+        ("working_age", AGE_WEIGHT_WORKING_AGE),
+        ("elderly", AGE_WEIGHT_ELDERLY),
+    )
 }
 
 # ---------------------------------------------------------------------------
@@ -829,7 +948,11 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   shortfall (model reports feasible, capital under-built, deficit paid in
 #   unserved biological obligation), too high only over-builds capital. Erring
 #   high is the mortality-minimising error. Per working-age-EQUIVALENT: × w =
-#   1.475 gives the per-capita claim of 1,475 h/person·yr.
+#   1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475
+#   until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was
+#   derived at the OLD w and has not been re-derived; a lower w raises the
+#   supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather
+#   than wrong, and re-deriving it is owed.)
 # resolves_by: the capital-inventory + time-use identity, NOT time-use data
 #   alone — see the circularity section in docs/parameter_provenance.md.
 #   Partial progress: core/eoh_generation.personal_statutory_floor() now
@@ -914,7 +1037,7 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 #   anchor — "does not represent an absolute ecosystem-specific count" — but
 #   it is SUMMED with absolute counts in total_eoh() and then divided into ε.
 #   At defaults it contributes 0.03% of total EOH (0.71 h/person·yr against
-#   personal's 2,213), so the ecological domain cannot move ε and the thermal
+#   personal's 1,301.6), so the ecological domain cannot move ε and the thermal
 #   obligation books at ~1.8 h/person·yr. Do not quote this domain's SHARE of
 #   total EOH until it is on an absolute footing. Either this is low by 2–3
 #   orders, or CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data
@@ -972,6 +1095,35 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   ε* = 0.4522   (8 iterations, damped)
 #   base = 3.81963e8   =  0.779 × the K-IV value
 #
+# --- RE-ANCHORED AGAIN (2026-08-10), AND THE PATTERN IS THE POINT ---
+#
+# The AGE_GROUPS elderly revalue (2.5 → 1.48) cut w 11.76%, which cut personal
+# EOH, which cut total_eoh, which raised the labour residual — and the fixed
+# point moved a third time, to ε* = 0.3828 and base 5.33621e8 (1.397× the
+# Finding-E value, 1.089× K-IV). `is_shipped_anchor` went False and the suite
+# said so, which is exactly the self-check Finding E installed.
+#
+# WHAT THE THIRD RECURRENCE TEACHES, and it is not "re-anchor harder": this
+# constant is defined by a fixed-point condition over `total_eoh`, so it is
+# conditional on EVERY constant entering that total — not just on the O*NET
+# vintage the freeze was designed to protect against. The cause this time was
+# an age weight, a different domain entirely. So "derived-then-FROZEN" is
+# carrying two different kinds of staleness under one label:
+#
+#   external churn  a registry refresh. The freeze SHOULD absorb this — that is
+#                   what it is for, and re-deriving per vintage would restore
+#                   the circularity the multiplier's frozen bounds exist to break.
+#   internal drift  a constant inside total_eoh moves. The freeze should NOT
+#                   absorb this: the derivation's own inputs changed, so the
+#                   derived value is simply wrong until it follows.
+#
+# The value therefore FOLLOWS internal drift and is FROZEN against external
+# churn. `test_the_fixed_point_reproduces_the_shipped_constant` is the coupling
+# detector for the first kind: it fires whenever anything upstream of total_eoh
+# moves, and that firing is the feature, not a maintenance cost. Expect it to
+# fire again — the domain-balance fix and the abatement default will both trip
+# it, and both should.
+#
 # WHAT THIS DOES NOT FIX, stated plainly: the fixed point is still anchored on
 # 937.3 h/person·yr of US PAID labour (ATUS 2025, `scenarios/personal_floor`).
 # It removes the self-inconsistency, not the US-specificity or the paid-labour
@@ -991,10 +1143,13 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   f_training: 11,001.3 h/worker embodied training stock over 751 occupations
 #   → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷
 #   kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε*
-#   = 0.4522 (scenarios/knowledge_base.epsilon_ref_fixed_point, 8 damped
+#   = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped
 #   iterations), because a one-shot anchor cannot be self-consistent when the
-#   constant it sets sits inside the quantity that checks it. Frozen at the
-#   reference epoch so it stays comparable across data vintages.
+#   constant it sets sits inside the quantity that checks it. FROZEN against
+#   data-vintage churn; it FOLLOWS internal drift, because a change to any
+#   constant inside total_eoh changes the derivation's own inputs. Re-anchored
+#   2026-08-09 (Finding E, ε* 0.4522) and 2026-08-10 (the AGE_GROUPS elderly
+#   revalue, ε* 0.3828).
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
@@ -1007,7 +1162,7 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 381_962_855.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.4522 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 533_620_818.74  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.3828 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.

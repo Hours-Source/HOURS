@@ -432,7 +432,8 @@ class TestIdentityReport:
 class TestFloorVsConstants:
 
     def test_age_weight_comes_from_the_shared_bridge(self):
-        assert floor_vs_constants()["age_weight"] == pytest.approx(1.475)
+        # 1.475 → 1.3016 with the 2026-08-10 AGE_GROUPS elderly revalue.
+        assert floor_vs_constants()["age_weight"] == pytest.approx(1.3016)
 
     def test_floor_sits_below_every_standard(self):
         """The only ordering compatible with 30% coverage."""
@@ -476,9 +477,12 @@ class TestPIChangesNothing:
         """`personal_eoh` must still run off the constants, not off the basket."""
         from hours_eoh.core.eoh_generation import personal_eoh
 
-        # 1,475 h/person·yr × 1e6 people — the constants path, untouched by P-I.
+        # 1,301.6 h/person·yr × 1e6 people — the constants path, untouched by
+        # P-I. It moved from 1,475 with the 2026-08-10 AGE_GROUPS elderly
+        # revalue, which is a CONSTANTS change; the basket still feeds nothing,
+        # which is what this test is for.
         assert personal_eoh(population=1e6, epsilon=0.0) == pytest.approx(
-            1.475e9, rel=1e-6
+            1.3016e9, rel=1e-6
         )
 
 

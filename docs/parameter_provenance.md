@@ -253,18 +253,29 @@ a standing violation of the no-anonymous-constants invariant.
 <!-- provenance:table "EOH generation — personal domain" -->
 | Parameter | Default | Units | Tag | What would settle it |
 |---|---|---|---|---|
-| `AGE_GROUPS` | <dict: 4 keys> | relative eoh_weight (working_age = 1.0) and population fractions | placeholder<br>form: the DIRECTION is structural — infants and elderly draw more caregiver labour than working-age adults. The 3.0 / 1.5 / 1.0 / 2.5 magnitudes and the 7/16/60/17 split are not. | ATUS "caring for and helping household children/adults" hours per care-recipient by recipient age, plus NHATS/HRS for hours of assistance to older adults with functional limitation; national census or UN WPP for the fractions. ATUS is now partly ingested (reference/atus_time_use.py) but has not been cut by care-recipient age, which is the cut this constant needs.<br>the age-weighted mean w = Σ(fraction × weight) = 1.475 is the bridge from per-working-age-EQUIVALENT to per-capita, and forgetting it is the age-weight trap scenarios/feasibility.py exists to catch. |
+| `AGE_GROUP_RANGES` | <dict: 4 keys> | inclusive age bounds in years | convention<br>form: a partition of a continuum, chosen not found. The 2026-08-10 care measurement looked for natural breakpoints and there are none: care received per person declines SMOOTHLY through childhood (113.6 → 70.7 → 36.1 → 9.6 min/day over 0-4/5-9/10-14/15-19) with nothing happening at 5/6 or at 17/18. These bounds are administrative, and the model reads four steps off a smooth curve. | —<br>the bands are a REPORTING VIEW. Anything sensitive to where the cuts fall should integrate a demand curve over age instead — see reference/care_demand.py, which carries the curve these bands approximate. |
+| `AGE_GROUP_FRACTIONS` | {'infant': 0.07, 'child': 0.16, 'working_age': 0.6, 'elderly': 0.17} | fraction of population | instance | **you supply** your census age pyramid, grouped to AGE_GROUP_RANGES. Intake path: reference/data/census_age_2020_2025.csv ships the US reading by single year of age, and reference/care_demand.population_shares() groups any band structure against it. Nothing about YOUR population is derivable from this framework.<br>**shipped default** an OECD-shaped split that happens to fit the US around 2020 (measured 6.98/15.24/60.91/16.87 that year). By 2025 the US had moved to 6.5/14.5/60.0/18.9 — the elderly band is already 2pp off and rising, so the shipped default is a snapshot, not a standard. Swapping the 2025 reading in moves w by only +0.8%, because the weights dominate. |
+| `AGE_WEIGHT_WORKING_AGE` | 1.0 | relative personal EOH (dimensionless) | convention<br>form: the NUMERAIRE. Every other weight is expressed against a working-age adult, so this is 1.0 by definition and carries no evidential content — measuring it is not a coherent request. | — |
+| `AGE_WEIGHT_INFANT` | 3.0 | relative personal EOH (dimensionless) | bounded (Tier B)<br>form: personal obligation generated per person of that age, relative to a working-age adult: (self-maintenance + care received) integrated over the band and divided by the numeraire band's total. | **band** ≥ 2.55, one-sided — and the openness is the whole point. Measured 2026-08-10 from ATUS 2021–25 pooled (scenario run care_curve), but ATUS surveys nobody under 15, so the self-maintenance term is missing for the ENTIRE infant band. The measurement is a FLOOR that can only rise, never a point estimate, and calling it a two-sided band would be a worse claim than leaving the constant a placeholder.<br>**errs** HIGH, and high is the safe direction, by the same asymmetric-loss argument that set PERSONAL_EOH_BASE. A weight set too low understates the obligation a dependent generates, and the deficit is paid in unserved care — the model reports feasible while a child goes unattended. Too high only over-provisions. The shipped 3.0 and 1.5 sit above their measured floors by 18% and 11%, which is the direction to be wrong in.<br>self-maintenance below age 15, which ATUS cannot observe because it does not survey children. A time-use survey covering children (some HETUS members do) would close the band from below and turn these into point estimates. |
+| `AGE_WEIGHT_CHILD` | 1.5 | relative personal EOH (dimensionless) | bounded (Tier B)<br>form: as AGE_WEIGHT_INFANT — (self-maintenance + care received) over ages 6–17, relative to a working-age adult. | **band** ≥ 1.35, one-sided. Measured 2026-08-10 (ATUS 2021–25 pooled). The band is one-sided for the same reason as the infant weight, but LESS of this one is missing: ATUS observes ages 15–17, so the band's self-maintenance term is partly present (24.5 min/day measured across the band) rather than wholly absent.<br>**errs** HIGH, and high is the safe direction — a weight set too low understates the obligation a dependent generates and the deficit is paid in unserved care. The shipped 1.5 sits 11% above its measured floor.<br>self-maintenance for ages 6–14, which ATUS cannot observe. A time-use survey covering children would close the band from below. |
+| `AGE_WEIGHT_ELDERLY` | 1.48 | relative personal EOH (dimensionless) | measured (Tier B)<br>form: as above — (self-maintenance + care received) over the 65+ band, relative to working age. The ONE band where both terms are measured: 207.1 min/day self-maintenance + 30.5 care = 237.5 against working age's 160.2, giving 1.4824, adopted at 1.48. | the INSTITUTIONAL population. ATUS covers households only, so the institutionalised elderly — who need the most care — are outside the frame entirely, and 1.48 is a lower bound for the elderly population as a whole. CMS Payroll-Based Journal reports nurse staffing hours per resident-day for every certified US nursing home and would close it. Recipient-side ACTIVITY monitoring would NOT: datasets of that class (TIHM was checked) record the monitored person's own movement and physiology rather than anyone's care hours, and are home-based cohorts, so they re-measure the population ATUS already covers.<br>measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025 denominators (scenario run care_curve), replacing a shipped 2.5 that was asserted. Bound to the measurement by test rather than by expression — data.py sits below reference/ and cannot import it — so test_the_elderly_weight_was_adopted_from_this_measurement fails if either side moves alone. Tier B, not A: a large national survey, but with a named systematic exclusion, below. |
+| `AGE_GROUPS` | <dict: 4 keys> | composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants | derived<br>form: assembled from the four constants above, which is the point — this dict was ONE constant carrying FOUR different epistemic states (a chosen partition, jurisdiction data, a numeraire, and two grades of measurement) under a single `placeholder` tag, so the tag necessarily read the weakest element and told a reader nothing about any of the others. | —<br>retained as the public shape because ~70 call sites read it, and the split is additive: the assembled value is byte-identical to what the hand-written dict held. New code should prefer the specific constant it actually needs — a caller wanting the population split should read AGE_GROUP_FRACTIONS and see the `instance` tag telling them to supply their own. |
 | `PERSONAL_EOH_SURVIVAL` | 600.0 | hours/year per working-age-equivalent | bounded<br>form: S_a — the autarky-referenced SURVIVAL standard. Hard-bounded above by (L−R)/w = 627: a survival standard exceeding labour supply is extinction. Set independently and CHECKED rather than pinned to the bound, so scenarios/feasibility.py can still fail it — a constant that cannot fail its own test says nothing. | **band** hard upper bound (L−R)/w = 627 h/yr per working-age-equivalent, from this file's own H_REF × workforce fraction. 600 sits just inside it.<br>**errs** LOW. Set below the supply bound rather than at it, so it understates the survival obligation if anything, which keeps ε_suff optimistic. Deliberate: the bound is CHECKED by scenarios/feasibility.py rather than pinned, because a constant that cannot fail its own test says nothing.<br>minimum-subsistence time-allocation studies covering only the components that kill you if unmet — food, water, shelter, warmth. |
 | `PERSONAL_EOH_SUFFICIENCY` | 1500.0 | hours/year per working-age-equivalent | bounded<br>form: F_a — the autarky-referenced SUFFICIENCY standard. MAY exceed labour supply, and that gap is precisely why collectives form. | **band** 390–926 h/yr from the capital-inventory + time-use identity at MODERN capital — which measures F_c, not F_a, the two reconciled by 38–74% abatement. Independently, 'all needs met' requires ~30% abatement at ε=0.99, putting F_a mid-band.<br>**errs** HIGH. It is the autarky-referenced standard, so it MAY exceed labour supply — that gap is why collectives form, not an error. Erring high overstates what a decent life costs alone, which overstates the case for collective delivery rather than understating a survival risk.<br>cross-cultural time allocation at a stated adequacy standard, plus the capital-inventory + time-use identity route. Cross-checks already in hand: the identity route gives F_c(modern) = 390–926, implying 38–74% abatement, and "all needs met" requires ~30% at ε=0.99 — 1500 sits mid-band against both. |
 | `PERSONAL_EOH_COMPONENTS` | <dict: 4 keys> | share = fraction of the personal obligation; abatability = fraction removable | placeholder<br>form: the shares are the original desk estimate's own four terms (208/156/208/936 over 1508), so they are internally consistent with PERSONAL_EOH_SUFFICIENCY rather than independent of it. The abatability ceilings are the per-component most that infrastructure can ever remove, and their ORDERING encodes the block's structural prediction: abatability and sufficiency are ANTI-CORRELATED, because what infrastructure removes is survival-shaped work and what it cannot remove is care (the Baumol case). That prediction is TESTED in TestAntiCorrelationPrediction, not asserted here — changing these weights falsifies it. | per-component pointers are on each line below. a_max = Σ share × abatability = 0.4483 is DERIVED from this table, so it is not a free parameter; the table is where the judgement lives. |
 | `ABATEMENT_HALF_CAPITAL_TEH` | 1000.0 | TEH of capital per capita | placeholder<br>form: K_half in a(K) = a_max · K/(K + K_half). It sets the PACE of abatement along the arc, not its ceiling. | the identity route run at two or more capital levels — B(K) measured at matched (inventory, time-use) pairs pins a_max and K_half together.<br>THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free parameter the block introduced. Report the sensitivity alongside any abatement figure until it is measured. |
-| `PERSONAL_EOH_BASE` | 1000.0 | hours/year per working-age-equivalent | bounded<br>form: the ABATEMENT-COLLAPSED operating value — one number standing in for F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε = 0.40 and the 38–74% the identity route implies at modern capital. Retired when abatement becomes the default generation path. | **band** 390–1006 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M comes from a capital inventory and is B-FREE.<br>**errs** HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>THE SINGLE MOST LEVERAGED CONSTANT IN THE MODEL. Personal EOH is 91–97% of total EOH at every ε, so this effectively sets the denominator of ε. Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end of the evidence band, on an asymmetric-loss argument: too low hides a real shortfall (model reports feasible, capital under-built, deficit paid in unserved biological obligation), too high only over-builds capital. Erring high is the mortality-minimising error. Per working-age-EQUIVALENT: × w = 1.475 gives the per-capita claim of 1,475 h/person·yr. |
+| `PERSONAL_EOH_BASE` | 1000.0 | hours/year per working-age-equivalent | bounded<br>form: the ABATEMENT-COLLAPSED operating value — one number standing in for F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε = 0.40 and the 38–74% the identity route implies at modern capital. Retired when abatement becomes the default generation path. | **band** 390–1006 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M comes from a capital inventory and is B-FREE.<br>**errs** HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>THE SINGLE MOST LEVERAGED CONSTANT IN THE MODEL. Personal EOH is 91–97% of total EOH at every ε, so this effectively sets the denominator of ε. Repriced 1500 → 1000 on 2026-08-06 (author decision) to the HIGH end of the evidence band, on an asymmetric-loss argument: too low hides a real shortfall (model reports feasible, capital under-built, deficit paid in unserved biological obligation), too high only over-builds capital. Erring high is the mortality-minimising error. Per working-age-EQUIVALENT: × w = 1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475 until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was derived at the OLD w and has not been re-derived; a lower w raises the supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather than wrong, and re-deriving it is owed.) |
 <!-- /provenance:table -->
 
-The age-weighted mean w = Σ(fraction × weight) = **1.475** is the bridge from
+The age-weighted mean w = Σ(fraction × weight) = **1.3016** is the bridge from
 per-working-age-*equivalent* to per capita, so `PERSONAL_EOH_BASE` = 1,000 is a
-per-capita claim of **1,475 h/person·yr**. Forgetting that weight is the age-weight
+per-capita claim of **1,301.6 h/person·yr**. Forgetting that weight is the age-weight
 trap `scenarios/feasibility.py` exists to catch.
+
+w was **1.475** until 2026-08-10, when the `AGE_GROUPS` elderly weight was
+revalued 2.5 → 1.48 on measurement (`scenario run care_curve`). Figures computed
+at the old w are marked as such where they survive below; anything quoting 1.475
+or 2,213 h/person·yr without that marking is stale.
 
 **Derivation of the shipped 1,500** (retained so the retag is auditable): food
 preparation and nutrition ~4 h/wk = 208 h/yr; shelter maintenance and sanitation
@@ -400,11 +411,19 @@ Abatement **saturates** while overhead does not, so:
 
 | K/capita | a(K) | B(K) | overhead | total | net vs autarky | verdict |
 |---|---|---|---|---|---|---|
-| 0 | 0.000 | 2,213 | 0 | 2,213 | 0 | **neutral** |
-| 1,000 | 0.224 | 1,717 | 38 | 1,755 | +458 | pays |
-| 4,145 | 0.361 | 1,414 | 155 | 1,570 | **+644 (optimum)** | pays |
-| 25,448 | 0.431 | — | — | — | **0** | neutral |
-| >25,448 | → 0.448 | — | grows linearly | — | negative | **overbuilt** |
+| 0 | 0.000 | 1,953 | 0 | 1,953 | 0 | **neutral** |
+| 250 | 0.090 | 1,778 | 9 | 1,787 | +166 | pays |
+| 1,000 | 0.224 | 1,516 | 38 | 1,553 | +400 | pays |
+| 4,145 | 0.361 | 1,248 | 155 | 1,403 | **+550 (optimum)** | pays |
+| 20,000 | 0.427 | 1,120 | 750 | 1,870 | +84 | pays |
+| 100,000 | 0.444 | 1,087 | 3,750 | 4,837 | −2,884 | **overbuilt** |
+
+Regenerate with `eoh scenario run overbuild`. These moved with the 2026-08-10
+elderly revalue — the autarky reference is `PERSONAL_EOH_SUFFICIENCY × w`, so a
+lower w lowers the bar the apparatus has to clear, and the net gain at the
+optimum fell from +644 to +550 h/person·yr. **The shape did not change**: there
+is still an interior optimum near 4,145 TEH/capita and still a size past which
+apparatus is pure overhead.
 
 There is an optimum apparatus size (~4,145 TEH/capita) and a size beyond which
 more apparatus is pure overhead (~6.1× the optimum). The boundary at K=0 is
@@ -522,15 +541,25 @@ carries any of them. That gives a hard ceiling computable from constants the rep
 already ships:
 
     supply  L = c · a                    c = adult capacity h/yr, a = adult share
-    demand  D(ε) = (1 − ε)·[w·B + R]     w = 1.475, B = PERSONAL_EOH_BASE
+    demand  D(ε) = (1 − ε)·[w·B + R]     w = 1.3016 (was 1.475), B = PERSONAL_EOH_BASE
     feasible ⇔ D ≤ L   ⇒   B ≤ (L/(1−ε) − R) / w
 
+> **Read this passage as of its date.** It is the finding that produced the
+> 1,500 → 1,000 reprice, stated at the constants of the time: base 1,500 and
+> w = 1.475. Both have since moved (the base on 2026-08-06, w on 2026-08-10),
+> so the *numbers* below are historical. The *argument* is not, and it is why
+> `scenarios/feasibility.py` exists.
+
 **The constant is not 1,500 per capita.** It is 1,500 per working-age-*equivalent*,
-and the age weighting w = Σ(fraction × eoh_weight) = 1.475 makes the per-capita
+and the age weighting w = Σ(fraction × eoh_weight) = 1.475 made the per-capita
 claim **2,213 h/person·yr**. Because the extra weight on infants (3.0×) and
-elderly (2.5×) is *caregiver* labour, all 2,213 hours must still be supplied by
-adults — the weighting raises demand without raising supply. Any feasibility test
-run against the 1,500 figure understates the gap by 1.475×.
+elderly (then 2.5×) is *caregiver* labour, all 2,213 hours still had to be supplied
+by adults — the weighting raises demand without raising supply. Any feasibility test
+run against the 1,500 figure understated the gap by 1.475×.
+
+At today's constants the same identity gives 1,000 × 1.3016 = **1,301.6
+h/person·yr**, and the lower w *loosens* the ceiling, since it appears in the
+denominator of B ≤ (L−R)/w.
 
 **Self-consistency arm — no external data required.** Using only `H_REF` = 2,000
 and `workforce_fraction` = 0.5 (the same 1e9-for-1M figure the corridor tests
@@ -747,7 +776,7 @@ conventional.
 > **Scale warning.** `ECOLOGICAL_BASE_RATE` is documented as a *relative* anchor
 > ("does not represent an absolute ecosystem-specific count") but is summed with
 > absolute counts in `total_eoh()` and then divided into ε. At defaults it
-> contributes 0.71 h/person·yr against personal's 2,213 — 0.03% of total EOH. See
+> contributes 0.71 h/person·yr against personal's 1,301.6 — 0.05% of total EOH. See
 > [Domain balance](#domain-balance--the-denominator-problem). Until it is put on
 > an absolute footing, no result that depends on the ecological domain's *share*
 > of total EOH should be quoted.
@@ -755,7 +784,7 @@ conventional.
 <!-- provenance:table "EOH generation — ecological domain" -->
 | Parameter | Default | Units | Tag | What would settle it |
 |---|---|---|---|---|
-| `ECOLOGICAL_BASE_RATE` | 500000.0 | hours/year at pristine ecosystem health (relative anchor) | placeholder | a stewardship-hours census on an absolute footing — agency FTEs per hectare, or the GUF parcel inventory × measured crew-hours.<br>THE DOMAIN-BALANCE DEFECT LIVES HERE. This is documented as a RELATIVE anchor — "does not represent an absolute ecosystem-specific count" — but it is SUMMED with absolute counts in total_eoh() and then divided into ε. At defaults it contributes 0.03% of total EOH (0.71 h/person·yr against personal's 2,213), so the ecological domain cannot move ε and the thermal obligation books at ~1.8 h/person·yr. Do not quote this domain's SHARE of total EOH until it is on an absolute footing. Either this is low by 2–3 orders, or CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data settles it. |
+| `ECOLOGICAL_BASE_RATE` | 500000.0 | hours/year at pristine ecosystem health (relative anchor) | placeholder | a stewardship-hours census on an absolute footing — agency FTEs per hectare, or the GUF parcel inventory × measured crew-hours.<br>THE DOMAIN-BALANCE DEFECT LIVES HERE. This is documented as a RELATIVE anchor — "does not represent an absolute ecosystem-specific count" — but it is SUMMED with absolute counts in total_eoh() and then divided into ε. At defaults it contributes 0.03% of total EOH (0.71 h/person·yr against personal's 1,301.6), so the ecological domain cannot move ε and the thermal obligation books at ~1.8 h/person·yr. Do not quote this domain's SHARE of total EOH until it is on an absolute footing. Either this is low by 2–3 orders, or CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data settles it. |
 | `ECOLOGICAL_THRESHOLD` | 0.4 | ecosystem health index ∈ [0,1] | placeholder<br>form: physics — ecological regime shifts are established, so a threshold below which burden escalates nonlinearly is structural. Where 0.40 falls on THIS index is a mapping, not a measurement. | an ecological time series relating a defined health index to observed regime shift. GUF_EOH_ACCUMULATION_THRESHOLD makes the same class of claim on the deferral rate rather than the state; both resolve from one series. |
 <!-- /provenance:table -->
 
@@ -779,7 +808,7 @@ constant the generated tables cannot see.
 <!-- provenance:table "EOH generation — knowledge domain" -->
 | Parameter | Default | Units | Tag | What would settle it |
 |---|---|---|---|---|
-| `KNOWLEDGE_EOH_BASE` | 381962855.27 | embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION | derived-then-FROZEN<br>form: recovered from the O*NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε* = 0.4522 (scenarios/knowledge_base.epsilon_ref_fixed_point, 8 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. Frozen at the reference epoch so it stays comparable across data vintages. | an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting. |
+| `KNOWLEDGE_EOH_BASE` | 533620818.74 | embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION | derived-then-FROZEN<br>form: recovered from the O*NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε* = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. FROZEN against data-vintage churn; it FOLLOWS internal drift, because a change to any constant inside total_eoh changes the derivation's own inputs. Re-anchored 2026-08-09 (Finding E, ε* 0.4522) and 2026-08-10 (the AGE_GROUPS elderly revalue, ε* 0.3828). | an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting. |
 | `KNOWLEDGE_EPS_EXPONENT` | 2.0 | dimensionless exponent | placeholder<br>form: physics — knowledge EOH grows superlinearly with ε, because complexity compounds. The exponent is asserted. | measured knowledge-maintenance hours against an automation index at three or more points, which is what distinguishes an exponent from a slope. |
 | `KNOWLEDGE_REFERENCE_POPULATION` | 1000000.0 | persons | convention<br>form: a stated denominator, not a claim about the world — the population KNOWLEDGE_EOH_BASE is quoted at. It exists because knowledge EOH was population-INVARIANT: the same absolute number came back at 1M and at 300M, so the domain's share of total EOH fell as 1/population while every other domain scaled. 1e6 is the repo-wide default population, so this reproduces prior output exactly at the default. | n/a — a convention is settled by declaring it, which this does. |
 | `SKILL_DECAY_RATE` | 0.1 | fraction of the knowledge stock renewed per year | placeholder<br>form: DEPRECATED as of Block K-IV — retained, not deleted, per the additive-not-destructive rule. Nothing defaults to it; the default renewal rate is SKILL_TRANSMISSION_RATE. Kept because it is the value every pre-K-IV result in this repo was produced at, so reproducing an old figure means passing it explicitly rather than guessing what it was. | the split that replaced it — SKILL_TRANSMISSION_RATE (cohort turnover) and SKILL_CPD_RATE (Eurostat CVTS paid training hours), whose sum is 0.0277 against this 0.10. That gap is a finding, not an error to reconcile away. Still counted as debt, NOT retired: core/eoh_generation.py reads it, so it remains on the operative path even though nothing defaults to it any more.<br>IT WAS NEVER A RENEWAL RATE. At 0.10 against the measured 11,001 h/worker stock it implies 1,100 h/worker·yr — 55% of the H_REF work-year spent forever re-acquiring knowledge already held. No time-use or training series reports anything close. It was also CONFLATING two rates that Block K-III separates: transmission (cohort turnover) and CPD (staying current while working). |
@@ -828,14 +857,21 @@ read.*
 > from a flat 87–96% across the whole arc to 94.3% → 51.1%, and knowledge became
 > the largest non-personal domain at the top. Re-anchoring the base to the ε_ref
 > FIXED POINT (Finding E — the K-IV anchor was not a fixed point of its own
-> derivation) took 0.779× off the base and gave back ~5 points at the top of the
-> arc: the share now runs **99.3% → 56.2%**. The table below is the current
-> picture; the pre-adoption figures are kept in the second table for comparison.
+> derivation) took 0.779× off the base. The 2026-08-10 AGE_GROUPS elderly
+> revalue then cut personal EOH 11.76% and moved the fixed point AGAIN, taking
+> the base up 1.397× to 1.089× the original K-IV value. The share now runs
+> **98.9% → 78.6%**. The table below is the current picture; the pre-adoption
+> figures are kept in the second table for comparison.
+>
+> **The two moves pulled in opposite directions and personal's share at ε=0.99
+> ended HIGHER than after K-IV, not lower** (56.2% → 78.6%), because the
+> canonical-arc reading divides by a total that both changes grew or shrank
+> unevenly across the arc. Do not read the trend from either move alone.
 >
 > **What is still open.** `ECOLOGICAL_BASE_RATE` was untouched and the
 > ecological domain is still ~0.04% of total EOH at 0.71 h/person·yr — the
 > "relative anchor summed with absolute counts" defect is unresolved. And
-> personal still dominates the LOW arc (94% at ε=0), where there is no
+> personal still dominates the LOW arc (98.9% at ε=0), where there is no
 > apparatus for knowledge to attach to, so `PERSONAL_EOH_BASE` and ATUS still
 > own the denominator there. **Two of the three original consequences stand**:
 > ε remains a personal-domain number at low ε, and the thermal obligation is
@@ -843,18 +879,18 @@ read.*
 >
 > Reproduce with `python3 utils/eoh_cli.py arc --domain-shares`.
 
-### Current (post-K-IV, re-anchored to the ε_ref fixed point)
+### Current (post-K-IV, re-anchored twice to the ε_ref fixed point)
 
 Canonical-arc figures, `arc --domain-shares`:
 
 | Domain | ε = 0 | ε = 0.40 | ε = 0.99 |
 |---|---|---|---|
-| personal | 99.3% | 88.6% | 56.2% |
-| infrastructure | 0.0% | 5.0% | 8.5% |
-| knowledge | 0.6% | **6.4%** | **35.3%** |
+| personal | 98.9% | 91.8% | 78.6% |
+| infrastructure | 0.0% | 5.8% | 13.4% |
+| knowledge | 1.0% | 2.3% | **7.9%** |
 | ecological | <0.1% | <0.1% | <0.1% |
 
-*The ε = 0 column reads 99.3% personal / 0.0% infrastructure because Block III
+*The ε = 0 column reads 98.9% personal / 0.0% infrastructure because Block III
 set the canonical capital path to zero at the origin — subsistence has no
 apparatus, by ε's own definition. The legacy `total_eoh(epsilon=0)` path scales a
 caller-supplied baseline instead and still shows infrastructure there; both are
@@ -999,7 +1035,7 @@ almost nothing: `A_EARTH_M2` and `SIGMA_SB`.
 
 | What | Was | Now |
 |---|---|---|
-| `KNOWLEDGE_EOH_BASE` (doc) | 490,107,421 | 381,962,855.27 — stale since the ε_ref fixed-point re-anchor (2026-08-09) |
+| `KNOWLEDGE_EOH_BASE` (doc) | 490,107,421 | 533,620,818.74 — re-anchored twice: the ε_ref fixed point (2026-08-09) then the AGE_GROUPS elderly revalue (2026-08-10) |
 | `CARE_SIGMOID_DEFAULTS` (doc) | start_share 0.30, inflection 0.55 | 0.05 / 0.45 — the doc had never matched the code |
 | membership min-hours thresholds (prose) | 750 / 1500 h/yr | 500 / 1,000 — fractions of `PERSONAL_EOH_BASE`, stale since the reprice |
 | per-capita personal EOH (prose) | 1,500 × 1.475 = 2,213 | 1,000 × 1.475 = **1,475** |
