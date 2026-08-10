@@ -1284,6 +1284,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="2. Which parameters to calibrate vs. keep at defaults">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#start-here-the-constants-that-are-yours-not-ours" class="md-nav__link">
+    <span class="md-ellipsis">
+      Start here: the constants that are yours, not ours
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#then-what-to-decide-rather-than-measure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then: what to decide rather than measure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#then-the-placeholders-worth-your-attention" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then: the placeholders worth your attention
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1522,6 +1555,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="2. Which parameters to calibrate vs. keep at defaults">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#start-here-the-constants-that-are-yours-not-ours" class="md-nav__link">
+    <span class="md-ellipsis">
+      Start here: the constants that are yours, not ours
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#then-what-to-decide-rather-than-measure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then: what to decide rather than measure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#then-the-placeholders-worth-your-attention" class="md-nav__link">
+    <span class="md-ellipsis">
+      Then: the placeholders worth your attention
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1692,7 +1758,7 @@ represents and where to find it in real-world data:</p>
 <td><code>age_distribution</code></td>
 <td>dict</td>
 <td>fractions summing to 1.0</td>
-<td>Census age pyramid, grouped into infant/child/working_age/elderly buckets matching <code>AGE_GROUPS</code></td>
+<td>Census age pyramid, grouped into the buckets in <code>AGE_GROUP_RANGES</code>; see <code>AGE_GROUP_FRACTIONS</code></td>
 </tr>
 <tr>
 <td><code>knowledge_base_size</code></td>
@@ -1708,21 +1774,124 @@ The model is denominated in TEH, not dollars; the exchange rate is an input, not
 something the model determines.</p>
 <hr />
 <h2 id="2-which-parameters-to-calibrate-vs-keep-at-defaults">2. Which parameters to calibrate vs. keep at defaults<a class="headerlink" href="#2-which-parameters-to-calibrate-vs-keep-at-defaults" title="Permanent link">&para;</a></h2>
-<p><strong>The physics/calibration split</strong> (see full table in <code>docs/parameter_provenance.md</code>):</p>
-<p><strong>Keep at defaults (physics parameters)</strong>:
-- <code>PERSONAL_EOH_BASE = 1500</code> — the biological entropy burden per person is a physical claim
-- <code>ECOLOGICAL_THRESHOLD = 0.40</code> — the tipping-point threshold for ecosystem collapse
-- <code>M_BAND_LOW / M_BAND_HIGH = 1.8 / 2.1</code> — constitutional multiplier band
-- <code>DEP_RATE = 0.045</code>, <code>DIV_RATE = 0.40</code> — Trust capital dynamics</p>
-<p><strong>Change these to fit your data (calibration parameters)</strong>:
-- <code>ECOLOGICAL_BASE_RATE = 500,000</code> → replace with your measured ecosystem stewardship cost
-- <code>TRUST_BASE_TEH = 35B</code> → scale to your population (default is per 1M people)
-- <code>SUFF_LEVY_RATE = 0.0125</code> → calibrate to fiscal solvency requirements
-- <code>AGE_GROUPS</code> fractions → replace with your census age pyramid
-- <code>skill_decay_rate = 0.10</code> → replace with measured sector-specific skill obsolescence</p>
-<p><strong>Rule of thumb</strong>: if changing the parameter changes what the model <em>claims</em> about
-physics (entropy, biology, tipping points), it's physics. If it changes the
-calibration to your jurisdiction, it's a calibration knob.</p>
+<p>Every constant in <code>data.py</code> carries an inline provenance tag saying what kind of
+claim its value makes. That tag, not intuition, tells you what to do with it.
+Run <code>eoh provenance check</code> for the current counts, or read
+<code>hours_eoh/reference/data/constant_provenance.csv</code> for all 229 with their
+evidence. Both are generated from <code>data.py</code>, so neither can drift from it.</p>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>What it means</th>
+<th>What you should do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>physics</code></td>
+<td>Structural — a constant of nature</td>
+<td>Keep. There are exactly <strong>two</strong>: <code>A_EARTH_M2</code>, <code>SIGMA_SB</code></td>
+</tr>
+<tr>
+<td><code>measured</code> / <code>derived</code></td>
+<td>Sourced, or computed from sourced inputs</td>
+<td>Keep unless you have better local data; check the source suits your jurisdiction</td>
+</tr>
+<tr>
+<td><code>convention</code></td>
+<td>A declared reference frame, not a claim</td>
+<td>Keep. Changing it changes what the numbers <em>mean</em></td>
+</tr>
+<tr>
+<td><code>normative</code></td>
+<td>A <strong>decision</strong>. No dataset settles it</td>
+<td><strong>Decide it yourself.</strong> This is a charter question, not a calibration</td>
+</tr>
+<tr>
+<td><code>bounded</code></td>
+<td>Picked inside a measured band</td>
+<td>Re-pick inside the band if you have local evidence. Read <code>errs:</code> — it says which way the pick is wrong and whether that direction is safe</td>
+</tr>
+<tr>
+<td><code>placeholder</code></td>
+<td>Nothing constrains it</td>
+<td>Replace where you can. Read <code>resolves_by:</code> for what would settle it</td>
+</tr>
+<tr>
+<td><code>instance</code></td>
+<td><strong>Yours to supply</strong> — describes your jurisdiction</td>
+<td>Supply it. The shipped number is a reference default, not evidence</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The single most important correction to make if you have read an older
+version of this guide.</strong> It sorted constants into two bins, physics versus
+calibration, and listed
+<code>PERSONAL_EOH_BASE</code>, <code>ECOLOGICAL_THRESHOLD</code>, <code>M_BAND_LOW</code>/<code>M_BAND_HIGH</code>,
+<code>DEP_RATE</code> and <code>DIV_RATE</code> as physics to be left alone. <strong>None of them is
+physics.</strong> Two are constitutional commitments (<code>M_BAND_*</code>, <code>DIV_RATE</code>), two are
+desk estimates picked inside a band (<code>PERSONAL_EOH_BASE</code>, <code>DEP_RATE</code>), and one
+is an unconstrained placeholder (<code>ECOLOGICAL_THRESHOLD</code>). "Physics" was being
+used to mean "we are confident", which is precisely the wrong thing to tell an
+analyst deciding what not to touch.</p>
+</blockquote>
+<h3 id="start-here-the-constants-that-are-yours-not-ours">Start here: the constants that are yours, not ours<a class="headerlink" href="#start-here-the-constants-that-are-yours-not-ours" title="Permanent link">&para;</a></h3>
+<p>These carry the <code>instance</code> tag. Nothing about your jurisdiction can be measured
+by this framework, so the shipped values are placeholders for <em>your</em> data — and
+every canonical result in this repo was produced at them.</p>
+<ul>
+<li><strong><code>TRUST_BASE_TEH = 35000000000.0</code></strong> — the most-consumed constant in the repo
+  (77 call sites). Sized <em>backwards</em>: chosen so the dividend covers the
+  obligations it must fund. Supply your Trust's real balance. Every fiscal
+  function takes <code>trust_balance</code> as an argument, so you need not edit the
+  constant — pass your own.</li>
+<li><strong><code>CAPITAL_STOCK_DEFAULT = 2000000000.0</code></strong> — your gross fixed capital stock in
+  TEH. Note it is 2,000 TEH/capita, which describes a <em>mid-arc</em> collective; at
+  low ε you would be asserting capital the arc says is not there.</li>
+<li><strong><code>CONTESTABILITY_G_PRIV = 0.03</code></strong> — your real capital return net of
+  depreciation. Piketty's r gives 4–5%, above this default.</li>
+<li><strong><code>GUF_LVI_W_*</code></strong> — land-value sub-index weights. Land value is local by
+  construction; these come from a hedonic regression on <em>your</em> parcel data.</li>
+<li><strong><code>AGE_GROUP_FRACTIONS</code></strong> — your census age pyramid, grouped to
+  <code>AGE_GROUP_RANGES</code>. The shipped 7/16/60/17 is an OECD-shaped split that fits
+  the US around 2020; by 2025 the US itself had moved to 6.5/14.5/60.0/18.9.
+  <code>reference/care_demand.population_shares()</code> groups any band structure against
+  the shipped census extract.</li>
+</ul>
+<h3 id="then-what-to-decide-rather-than-measure">Then: what to decide rather than measure<a class="headerlink" href="#then-what-to-decide-rather-than-measure" title="Permanent link">&para;</a></h3>
+<p>The <code>normative</code> constants are commitments your charter makes. No amount of data
+retires them, and treating them as calibration knobs is a category error:</p>
+<ul>
+<li><code>M_BAND_LOW = 1.8</code> / <code>M_BAND_HIGH = 2.1</code> — the constitutional multiplier band</li>
+<li><code>DIV_RATE = 0.4</code> — the share of depreciation paid out as dividend</li>
+<li><code>SUFF_LEVY_RATE = 0.0125</code> — a redistributive commitment. Worth knowing:
+  <code>min_levy_for_solvency()</code> returns <strong>zero at every ε</strong> on the canonical
+  configuration, because the dividend alone runs a surplus. This rate is not
+  sized for solvency and never was; the Trust dividend funds the guarantee.</li>
+</ul>
+<h3 id="then-the-placeholders-worth-your-attention">Then: the placeholders worth your attention<a class="headerlink" href="#then-the-placeholders-worth-your-attention" title="Permanent link">&para;</a></h3>
+<p>Ranked by how much of the model they move, not by how wrong they are:</p>
+<ul>
+<li><strong><code>AGE_WEIGHT_INFANT</code> / <code>AGE_WEIGHT_CHILD</code></strong> — <code>bounded</code>, and the band is
+  ONE-SIDED. Measured at ≥ 2.55 and ≥ 1.35 against shipped 3.0 and 1.5, but
+  ATUS surveys nobody under 15, so the self-maintenance term is missing and
+  those floors can only rise. Leave them unless you have a time-use survey that
+  covers children. They err HIGH, which is the safe direction: too low
+  understates what a dependent needs and the deficit is paid in unserved care.
+  (<code>AGE_WEIGHT_ELDERLY</code> is <code>measured</code> — 1.48, from ATUS + Census — and
+  <code>AGE_WEIGHT_WORKING_AGE</code> is the numeraire, 1.0 by definition.)</li>
+<li><strong><code>ECOLOGICAL_BASE_RATE = 500000.0</code></strong> — replace with your stewardship-hours
+  census, but read §6 first: this constant is entangled with an open structural
+  defect, and changing it alone will not fix what it looks like it should.</li>
+<li><strong><code>CAPITAL_MACHINE_PROFILES</code></strong> — the tiers behind <code>civilization_epsilon()</code>
+  (Step 3). Calibrated to bracket the mid-arc ε they are meant to produce.</li>
+</ul>
+<p><strong>Rule of thumb</strong>: ask <em>what would change this number?</em> If the answer is a
+dataset, it is <code>measured</code>/<code>bounded</code>/<code>placeholder</code> and you calibrate it. If the
+answer is "your jurisdiction", it is <code>instance</code> and you supply it. If the answer
+is "a vote", it is <code>normative</code> and you decide it.</p>
 <hr />
 <h2 id="3-calibration-walkthrough-step-by-step">3. Calibration walkthrough — step by step<a class="headerlink" href="#3-calibration-walkthrough-step-by-step" title="Permanent link">&para;</a></h2>
 <h3 id="step-1-establish-a-baseline">Step 1: Establish a baseline<a class="headerlink" href="#step-1-establish-a-baseline" title="Permanent link">&para;</a></h3>
@@ -1730,18 +1899,19 @@ calibration to your jurisdiction, it's a calibration knob.</p>
 a civilization at 40% automation. Compare it to your actual data:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">canonical</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># {&#39;capital_stock_teh&#39;: 3_600_000_000, &#39;ecosystem_health&#39;: 0.82, ...}</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Your actual data:</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">your_state</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">:</span> <span class="n">your_capital_stock_in_teh</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">,</span>             <span class="c1"># from national accounts</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="s2">&quot;ecosystem_health&quot;</span><span class="p">:</span>  <span class="mf">0.68</span><span class="p">,</span>             <span class="c1"># from ESI/BII index</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="s2">&quot;monitoring_capability&quot;</span><span class="p">:</span> <span class="mf">0.55</span><span class="p">,</span>         <span class="c1"># from ecological data coverage</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">&quot;knowledge_base_size&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span>            <span class="c1"># relative to subsistence baseline</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span>  <span class="c1"># estimated</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="s2">&quot;age_distribution&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;infant&quot;</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span> <span class="s2">&quot;child&quot;</span><span class="p">:</span> <span class="mf">0.18</span><span class="p">,</span> <span class="s2">&quot;working_age&quot;</span><span class="p">:</span> <span class="mf">0.62</span><span class="p">,</span> <span class="s2">&quot;elderly&quot;</span><span class="p">:</span> <span class="mf">0.14</span><span class="p">},</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># {&#39;capital_stock_teh&#39;: 2_400_000_000, &#39;capital_age_ratio&#39;: 0.38,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">#  &#39;ecosystem_health&#39;: 0.82, &#39;monitoring_capability&#39;: 0.70, ...}</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Your actual data:</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">your_state</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">:</span> <span class="n">your_capital_stock_in_teh</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">,</span>             <span class="c1"># from national accounts</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="s2">&quot;ecosystem_health&quot;</span><span class="p">:</span>  <span class="mf">0.68</span><span class="p">,</span>             <span class="c1"># from ESI/BII index</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">&quot;monitoring_capability&quot;</span><span class="p">:</span> <span class="mf">0.55</span><span class="p">,</span>         <span class="c1"># from ecological data coverage</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">&quot;knowledge_base_size&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span>            <span class="c1"># relative to subsistence baseline</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span>  <span class="c1"># estimated</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="s2">&quot;age_distribution&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;infant&quot;</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span> <span class="s2">&quot;child&quot;</span><span class="p">:</span> <span class="mf">0.18</span><span class="p">,</span> <span class="s2">&quot;working_age&quot;</span><span class="p">:</span> <span class="mf">0.62</span><span class="p">,</span> <span class="s2">&quot;elderly&quot;</span><span class="p">:</span> <span class="mf">0.14</span><span class="p">},</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>The divergence from canonical is the point — it tells you how your trajectory
 differs from the ideal arc.</p>
@@ -1758,12 +1928,20 @@ differs from the ideal arc.</p>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">],</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1"># eoh[&quot;total&quot;] = your jurisdiction&#39;s total entropy obligation (h/yr)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># eoh[&quot;personal&quot;] = biological burden (should be ~1,500 × population × 1.475)</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># eoh[&quot;personal&quot;] = biological burden (≈ 1,000 × population × 1.475)</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># eoh[&quot;infrastructure&quot;] = capital stock maintenance burden</span>
 </span></code></pre></div>
-<p>Check plausibility: personal EOH should be roughly <code>1,500 × population × 1.475</code>
-(age-weighted mean = 1.475 at default demographics). If it's wildly off, check
-that your <code>age_distribution</code> fractions sum to 1.0 and match the <code>AGE_GROUPS</code> keys.</p>
+<p>Check plausibility: personal EOH should be roughly <code>PERSONAL_EOH_BASE × population
+× 1.475</code>, where 1.475 is the age-weighted mean at default demographics. If it's
+wildly off, check that your <code>age_distribution</code> fractions sum to 1.0 and match the
+<code>AGE_GROUP_RANGES</code> keys.</p>
+<p><strong>Which standard are you asking for?</strong> <code>PERSONAL_EOH_BASE</code> is the operating value
+between two others: <code>PERSONAL_EOH_SURVIVAL</code> (600, what it takes not to die) and
+<code>PERSONAL_EOH_SUFFICIENCY</code> (1500, what it takes to live well), both referenced to
+autarky. Pass <code>personal_standard=</code> to <code>total_eoh()</code> to choose. This matters more
+than it looks: a feasibility test run at the sufficiency standard and reported as
+a survival result is the specific error this repo made and corrected — subsistence
+<em>can</em> survive, it just cannot reach sufficiency without automation.</p>
 <h3 id="step-3-choose-your">Step 3: Choose your ε<a class="headerlink" href="#step-3-choose-your" title="Permanent link">&para;</a></h3>
 <p>ε is the fraction of EOH fulfilled by machines. At present (2024), most developed
 economies are at ε ≈ 0.15–0.35: automation handles transport, manufacturing, and
@@ -1840,7 +2018,7 @@ uncertainty.</p>
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.contestability</span><span class="w"> </span><span class="kn">import</span> <span class="n">contestability_margin</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.recalibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">exit_financing</span>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># --- Your data ---</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">population</span>         <span class="o">=</span> <span class="mi">5_000_000</span>     <span class="c1"># 5M people</span>
@@ -1880,8 +2058,8 @@ uncertainty.</p>
 </span><span id="__span-6-45"><a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
 </span><span id="__span-6-46"><a id="__codelineno-6-46" name="__codelineno-6-46" href="#__codelineno-6-46"></a><span class="p">)</span>
 </span><span id="__span-6-47"><a id="__codelineno-6-47" name="__codelineno-6-47" href="#__codelineno-6-47"></a>
-</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a><span class="c1"># --- Run contestability check ---</span>
-</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a><span class="n">chi</span> <span class="o">=</span> <span class="n">contestability_margin</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="p">,</span> <span class="n">trust_balance</span><span class="p">)</span>
+</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a><span class="c1"># --- Run contestability check (the ADOPTED §8.9 test) ---</span>
+</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a><span class="n">exit_fin</span> <span class="o">=</span> <span class="n">exit_financing</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">)</span>
 </span><span id="__span-6-50"><a id="__codelineno-6-50" name="__codelineno-6-50" href="#__codelineno-6-50"></a>
 </span><span id="__span-6-51"><a id="__codelineno-6-51" name="__codelineno-6-51" href="#__codelineno-6-51"></a><span class="c1"># --- Interpret ---</span>
 </span><span id="__span-6-52"><a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total EOH demand:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">&#39;total_eoh&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr&quot;</span><span class="p">)</span>
@@ -1889,8 +2067,17 @@ uncertainty.</p>
 </span><span id="__span-6-54"><a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TEH created:       </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">&#39;teh_created&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B TEH/yr&quot;</span><span class="p">)</span>
 </span><span id="__span-6-55"><a id="__codelineno-6-55" name="__codelineno-6-55" href="#__codelineno-6-55"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fiscal solvent:    </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;solvent&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span id="__span-6-56"><a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trust end:         </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;trust&#39;</span><span class="p">][</span><span class="s1">&#39;trust_end&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">B TEH&quot;</span><span class="p">)</span>
-</span><span id="__span-6-57"><a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Contestability χ:  </span><span class="si">{</span><span class="n">chi</span><span class="p">[</span><span class="s1">&#39;chi&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  (</span><span class="si">{</span><span class="s1">&#39;OK&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">chi</span><span class="p">[</span><span class="s1">&#39;passes&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;BREACH&#39;</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</span><span id="__span-6-57"><a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exit financeable:  </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;exit_financeable&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">  &quot;</span>
+</span><span id="__span-6-58"><a id="__codelineno-6-58" name="__codelineno-6-58" href="#__codelineno-6-58"></a>      <span class="sa">f</span><span class="s2">&quot;via </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">  (t_exit </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;t_labor_years&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> yr)&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<blockquote>
+<p><strong>Do not use <code>contestability_margin()</code> (the bare χ = P/K_entry) for a reported
+result.</strong> §8.9 superseded it with the three-channel time-to-finance-exit test
+above, and the difference is not academic: the repo's own recorded finding that
+"the corridor is CLOSED at defaults" was produced by the retired invariant, and
+the adopted test reopens it. The bare form is kept, callable, so the
+disagreement can be reproduced on demand — not because it is still the test.</p>
+</blockquote>
 <hr />
 <h2 id="5-interpreting-outputs">5. Interpreting outputs<a class="headerlink" href="#5-interpreting-outputs" title="Permanent link">&para;</a></h2>
 <p><strong><code>fiscal_snapshot()["solvent"] = False</code></strong>
@@ -1901,12 +2088,18 @@ find the minimum trust balance for solvency at your ε.</p>
 <p><strong><code>trust["trust_stable"] = False</code></strong> (even when solvent)
 Trust is eroding — expenditures exceed inflows. Long-run: Trust will deplete.
 Action: raise levy or build reserves now while the economy is labor-intensive.</p>
-<p><strong><code>contestability_margin()["passes"] = False</code> (χ &lt; 1)</strong>
-The portable endowment P is less than the cost of founding a competing collective.
-Exit from the collective is notional, not substantive. Action: grow Trust
-(increasing P) or reduce barriers to collective formation (lowering K_entry).
-This is the adversarial finding under increasing_returns — it requires structural
-commonization, not just levy adjustments.</p>
+<p><strong><code>exit_financing()["exit_financeable"] = False</code></strong>
+No channel finances a member out within one vesting period, so exit from the
+collective is notional rather than substantive. Check <code>channel</code> to see which arm
+was closest: <code>labor</code> carries the low arc, <code>underwritten</code> the mid-arc trough, and
+<code>self</code> (dividend savings) the high end. Action: structural commonization — raise
+the charter formation share φ, or seed the commons for entry underwriting. Levy
+adjustments alone do not fix it; that is the §8.3 adversarial finding.</p>
+<p><strong><code>contestability_margin()["passes"] = False</code> (bare χ &lt; 1)</strong> — <em>superseded.</em>
+Kept as a documented negative result. It reads RED across the whole arc at
+current defaults because the sufficiency floor fell with the <code>PERSONAL_EOH_BASE</code>
+reprice, and for a tenure-0 member that floor <em>is</em> the entire portable endowment.
+Treat it as an advisory, not a verdict.</p>
 <p><strong><code>condition_ii["status"] = "FAIL"</code></strong> (multiplier band breach)
 The mean multiplier has drifted outside [1.8, 2.1]. Run <code>eoh dashboard</code> to see
 direction. If above band: assessors are systematically over-scoring; trigger
@@ -1916,18 +2109,30 @@ adversarial review. If below band: skill investment is insufficient.</p>
 <p>What the model <strong>cannot</strong> tell you:</p>
 <ul>
 <li>
-<p><strong>Individual tenure-vesting</strong>: the contestability model uses population-average
-  portable endowment P. A late entrant to the collective has less vested capital
-  than a founding member. The model does not yet track individual tenure — all
-  per-capita figures are averages. This is documented in
-  <code>research/contestability.py</code> as an open gap.</p>
+<p><strong>Domain balance — read this before you trust any ε</strong>: personal EOH is
+  <strong>99.3% of total EOH at ε=0, falling to 62.5% at ε=0.89</strong>, while ecological EOH
+  books at <strong>0.56–0.69 h/person·yr — 0.0% of the total at every ε</strong>. Since
+  ε = machine EOH / total EOH, your ε is overwhelmingly a personal-domain number,
+  and your ecological and thermal obligations will round to nothing in its
+  denominator. Run <code>eoh arc --domain-shares</code> to see it. The root cause is
+  declared but unresolved: <code>ECOLOGICAL_BASE_RATE</code> is documented as a <em>relative</em>
+  anchor and is summed with absolute counts, so replacing it with your own
+  measured stewardship cost will not by itself fix the imbalance. Either the
+  ecological and knowledge bases are low by 2–3 orders of magnitude, or
+  <code>CDR_LABOR_HOURS_PER_TONNE</code> is, or both. <strong>Nothing in current data settles it.</strong></p>
 </li>
 <li>
-<p><strong>Between-collective exchange rates</strong>: the current implementation is a single
-  collective (the N=1 limit). Multi-collective dynamics, inter-collective FX
-  rates, and relative inflation between collectives are modeled in
-  <code>research/contestability.py</code> only as scalar χ — the Polycentric/Coasean
-  scaffolding (Workstream D) is still in-progress.</p>
+<p><strong>Individual tenure-vesting</strong>: the contestability model uses population-average
+  portable endowment P. A late entrant to the collective has less vested capital
+  than a founding member. Federation-wide tenure is tracked in
+  <code>research/membership.py</code>, but per-capita figures elsewhere remain averages.</p>
+</li>
+<li>
+<p><strong>Between-collective exchange rates</strong>: the shipped single-ledger model is the
+  N=1 limit. <code>research/coasean.py</code> implements the N-collective federation with
+  pairwise exchange rates, trust dynamics and settlement rules (§§6–7), anchored
+  by a regression test reproducing single-ledger results exactly at N=1. It is
+  research-tier: the API is not stable.</p>
 </li>
 <li>
 <p><strong>Desire economy</strong>: the model covers entropy obligations (biological, physical,
@@ -1936,10 +2141,24 @@ adversarial review. If below band: skill investment is insufficient.</p>
   captures the floor basket; above-floor pricing is left to collective discovery.</p>
 </li>
 <li>
-<p><strong>Calibration confidence</strong>: most parameters are calibrated to reasonable
-  structural priors, not fitted to historical data. The framework shows the
-  direction and qualitative shape of the arc, not point forecasts. Use it for
-  structural analysis, not projection.</p>
+<p><strong>Calibration confidence — the honest headline</strong>: of 229 constants, <strong>49
+  (21.4%) are grounded</strong>, 14 are bounded picks, <strong>94 (41.0%) are placeholders
+  with no measurement behind them at all</strong>, 61 are normative decisions, 7 are
+  yours to supply, and 2 are retired. Measurement debt is <strong>47.2%</strong>, and the
+  actionable part is the placeholders. The framework shows the direction and
+  qualitative shape of the arc, not point forecasts — use it for structural
+  analysis, not projection. Run <code>eoh provenance check</code> for the live figures;
+  do not quote these from memory.</p>
+</li>
+<li>
+<p><strong>Four constants are calibrated to a target and say so</strong>: <code>GUF_USE_*</code> (scaled
+  so aggregate GUF matches levy revenue at mid-arc), <code>DEFAULT_SEGMENTS</code> (means
+  set so the weighted mean hits 2.10, the band top — and it is the live default
+  in <code>core/multipliers.py</code>, so any call omitting <code>segments</code> inherits it),
+  <code>TRUST_BASE_TEH</code> (sized to cover the obligations it funds), and
+  <code>CAPITAL_MACHINE_PROFILES</code> (tiers set to bracket the ε they are meant to
+  produce). A result that depends on one of these is not independent evidence
+  for it.</p>
 </li>
 <li>
 <p><strong>Objectivity vs. transparency</strong>: the price computed by the model is the

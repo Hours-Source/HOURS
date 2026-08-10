@@ -539,6 +539,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Personal EOH">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#survival-core-and-entitlement-augmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Survival core and entitlement augmentation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1444,6 +1459,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Personal EOH">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#survival-core-and-entitlement-augmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Survival core and entitlement augmentation
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1512,7 +1542,18 @@
 <li>At ε = 0: This domain consumes nearly all labor; nearly all of it is private and off-ledger.</li>
 <li>At ε = 1: Personal EOH is fully on the collective ledger and entirely fulfilled by automated systems.</li>
 </ul>
-<p><strong>Code:</strong> <code>hours_eoh/core/eoh_generation.py</code> → <code>personal_eoh()</code></p>
+<h3 id="survival-core-and-entitlement-augmentation">Survival core and entitlement augmentation<a class="headerlink" href="#survival-core-and-entitlement-augmentation" title="Permanent link">&para;</a></h3>
+<p><em>Adopted 2026-08-09. Supersedes the treatment of personal EOH as a single ε-invariant quantity scaled down by automation.</em></p>
+<p>The domain does not have one uniform delivery story. It splits by <strong>whether the obligation can be discharged by unassisted human labor at all</strong>:</p>
+<ul>
+<li><strong>Survival core</strong> — food, water, shelter, warmth, sanitation, and care. Every one of these has an ε = 0 delivery path by construction: humans have fed, sheltered and cared for each other with no apparatus for as long as there have been humans. Automation makes these <em>cheaper</em>; it is not what makes them <em>possible</em>.</li>
+<li><strong>Entitlement augmentation</strong> — healthcare, and anything else with no unassisted route. No quantity of human labor delivers a caesarean or an antibiotic. <code>Q_health / P_health(0)</code> is <strong>undefined, not large</strong>: the denominator is zero, so the obligation is owed and undeliverable rather than expensive.</li>
+</ul>
+<p>The consequence is structural, not presentational: <strong>personal EOH cannot be a single ε-invariant constant scaled down by automation</strong>, because part of it does not exist as a deliverable obligation until an apparatus does. Entitlement terms enter as a <strong>step-in</strong> above a delivery threshold, not as a constant multiplied by (1 − ε).</p>
+<p><strong>Health and care are the same obligation split by delivery path,</strong> not two unrelated needs. Care is the part that human attention discharges directly; health is the part of the same family that requires apparatus to discharge at all. They are separated in the basket at the granularity the delivery question demands, not because the underlying need divides.</p>
+<p><strong>What the threshold means.</strong> The step-in is expressed in ε rather than in capital stock deliberately. The binding condition for a population to run a health system is not that the capital exists — it is that there is <strong>enough labor slack to staff it</strong>, which is what ε measures. A collective with the machines and no spare hours does not deliver healthcare. Capital is necessary and not sufficient; ε is the closer proxy for the sufficient condition.</p>
+<p><strong>This is a different mechanism from registration.</strong> Registration governs what the collective <em>ledger recognizes</em>. This governs what the basket <em>physically contains</em>.</p>
+<p><strong>Code:</strong> <code>hours_eoh/core/eoh_generation.py</code> → <code>personal_eoh()</code>, <code>personal_statutory_floor()</code>; <code>hours_eoh/reference/personal_basket.py</code> → <code>SURVIVAL_CORE</code>, <code>ENTITLEMENT_AUGMENTATION</code></p>
 <hr />
 <h2 id="infrastructure-eoh">Infrastructure EOH<a class="headerlink" href="#infrastructure-eoh" title="Permanent link">&para;</a></h2>
 <p>The entropy of built systems. Buildings, roads, bridges, power grids, water systems, communication networks.</p>
