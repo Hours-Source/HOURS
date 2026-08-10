@@ -15,7 +15,7 @@ from typing import Any
 
 from hours_eoh.data import (
     AGE_GROUPS,
-    ECOLOGICAL_BASE_RATE, SKILL_DECAY_RATE,
+    ECOLOGICAL_BASE_RATE, SKILL_TRANSMISSION_RATE,
     TRUST_BASE_TEH,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CAPITAL_STOCK_DEFAULT,
@@ -93,7 +93,13 @@ def epsilon_sweep(
         pers_eoh  = personal_eoh(population, age_distribution, eps)
         infra_eoh = infrastructure_eoh(capital_stock_teh, capital_age_ratio, eps)
         eco_eoh   = ecological_eoh(ecosystem_health, eps, base_rate=ECOLOGICAL_BASE_RATE)
-        know_eoh  = knowledge_eoh(knowledge_base_size, SKILL_DECAY_RATE, eps,
+        # SKILL_TRANSMISSION_RATE, not the deprecated SKILL_DECAY_RATE this
+        # module used until 2026-08-09. params.py moved its `skill_decay_rate`
+        # default to the transmission rate at Block K-IV; sweep.py bypasses
+        # params and so was left as the last live caller of the pre-K-IV value,
+        # scoring knowledge EOH 4.00× high (knowledge_eoh is linear in the
+        # rate) against every other path in the repo.
+        know_eoh  = knowledge_eoh(knowledge_base_size, SKILL_TRANSMISSION_RATE, eps,
                                   population=population)
         tot_eoh   = pers_eoh + infra_eoh + eco_eoh + know_eoh
 

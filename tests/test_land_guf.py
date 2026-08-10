@@ -897,3 +897,63 @@ class TestEohAccumulationWarning:
         for key in ("ratio", "threshold", "warning", "unfulfilled_eoh",
                     "total_eoh", "accelerated_rho_review", "ecology_fund_priority"):
             assert key in result
+
+
+# ---------------------------------------------------------------------------
+# Cross-layer reconciliation: the carbon replacement cost
+#
+# GUF_ECO_KAPPA_CARBON (land layer) and CDR_LABOR_HOURS_PER_TONNE (thermal layer)
+# are the SAME physical quantity — labour-hours to remove one tonne of CO₂ — and
+# they disagreed 4.58× (2.750 vs 0.6) until 2026-08-09, when the author adopted the
+# thermal figure as the better-sourced of the two.
+#
+# They cannot be bound by expression: CDR_LABOR_HOURS_PER_TONNE is defined far below
+# the GUF block in data.py, so a reference would be forward. This test IS the
+# binding, and it is stronger than an assignment would be because it fails whichever
+# side moves alone.
+# ---------------------------------------------------------------------------
+
+class TestCarbonKappaReconciliation:
+
+    def test_carbon_kappa_equals_the_thermal_labor_intensity(self):
+        from hours_eoh.data import CDR_LABOR_HOURS_PER_TONNE, GUF_ECO_KAPPA_CARBON
+        assert GUF_ECO_KAPPA_CARBON == pytest.approx(CDR_LABOR_HOURS_PER_TONNE), (
+            "GUF_ECO_KAPPA_CARBON and CDR_LABOR_HOURS_PER_TONNE are the same "
+            "quantity (labour-hours per tonne CO₂). They were reconciled on "
+            "2026-08-09 by adopting the thermal figure. If a staffing refresh moves "
+            "one, move both — or record why the land layer's replacement cost should "
+            "differ from the removal cost."
+        )
+
+    def test_units_are_commensurate_on_a_flow(self):
+        """κ is per tonne per YEAR; the CDR figure is per tonne. The bridge is that
+        replacing a displaced sink means removing its annual uptake every year, so
+        the per-tonne labour cost carries straight over to the flow."""
+        from hours_eoh.data import GUF_ECO_KAPPA_CARBON
+        annual_uptake_tonnes = 12.0
+        # One year of replacement labour for a parcel's displaced sequestration.
+        assert (annual_uptake_tonnes * GUF_ECO_KAPPA_CARBON
+                == pytest.approx(7.2))
+
+    def test_sink_reversal_is_not_applied_and_that_is_recorded(self):
+        """CDR_GROSS_REMOVAL_FACTOR is deliberately NOT in this path.
+
+        Sink reversal applies when drawing atmospheric concentration DOWN; replacing
+        a displaced sink offsets a FLOW, which may not incur it. Applying it would
+        give 1.08. The question is open, and omitting it understates the obligation
+        if it does apply — the wrong direction of error — so the omission is pinned
+        here rather than left as an unexamined default.
+        """
+        from hours_eoh.data import (CDR_GROSS_REMOVAL_FACTOR,
+                                    CDR_LABOR_HOURS_PER_TONNE,
+                                    GUF_ECO_KAPPA_CARBON)
+        assert GUF_ECO_KAPPA_CARBON != pytest.approx(
+            CDR_LABOR_HOURS_PER_TONNE * CDR_GROSS_REMOVAL_FACTOR
+        ), "sink reversal now applied — update the open question in data.py"
+
+    def test_the_reconciliation_moved_the_land_figure_down(self):
+        """Direction matters: the land layer previously charged 4.58× too much."""
+        from hours_eoh.data import GUF_ECO_KAPPA_CARBON
+        previous = 2.750
+        assert GUF_ECO_KAPPA_CARBON < previous
+        assert previous / GUF_ECO_KAPPA_CARBON == pytest.approx(4.5833, rel=1e-3)

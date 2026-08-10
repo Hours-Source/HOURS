@@ -11,6 +11,120 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+**The tag scheme: CHOSEN split into bounded / placeholder / normative (2026-08-09)**
+- One tag was covering three epistemic states. It made the calibration set read as
+  **83% guesswork** while *hiding* which constants are the real debts, and it filed
+  charter decisions under "awaiting measurement" — a category error, since no dataset
+  settles what fraction of an estate should pass to heirs.
+- `bounded` (14) — picked inside a **measured band**; `band:` and `errs:` are required
+  and gated, so "bounded" cannot be a free upgrade over `placeholder`. `errs` opens
+  with HIGH / LOW / NEITHER / **WITHHELD**, the last a real epistemic state here.
+- `placeholder` (106) — nothing constrains it yet. **The actionable debt.**
+- `normative` (60) — a decision. Requires `decided_by:`, may carry `precedent:`, and
+  is **forbidden a `resolves_by:`** — the forbidding is the point.
+- The eight `CANONICAL_*` arc constants became `convention`: an ideal-arc reference
+  *frame*, whose own pointer already read "nothing, and by design".
+- **The honest headline: debt is 52.4%, not 83.3%** — grounded 49 (21.4%), bounded 14
+  (6.1%), placeholder 106 (46.3%), normative 60 (26.2%). `eoh provenance check` now
+  prints this as a "Where the model stands" table via `debt_summary()`.
+- Of the 14 bounded picks **7 err LOW**, and for `DEP_RATE`, `THERMAL_F_GHG` and the
+  `GOVERNANCE_IRR_*` pair low is the *unsafe* direction — it flatters solvency,
+  overstates the thermal allowance, and sets the assessment gate below the
+  conventional κ bar. Each records that on its own line.
+- `CDR_LABOR_HOURS_PER_TONNE` → `measured` (Tier D): one plant's staffing disclosure
+  is a measurement with n=1, and it now matches `GUF_ECO_KAPPA_CARBON`.
+
+**Two constants revalued (2026-08-09, author decisions)**
+- `RECAL_FOUNDING_LABOR_HOURS` **1,000 → 666.67**, and bound to `PERSONAL_EOH_BASE`
+  via the new `RECAL_FOUNDING_FRACTION` = 2/3. The reprice had silently turned
+  "two-thirds of the base" into the whole of it — a founder with nothing left to live
+  on. Blast radius measured: the labour arm lengthens exactly 1.5× (t_labor 1.80 →
+  2.70 yr at ε=0, worst 2.85 across the arc), the three-channel exit invariant holds
+  at every arc point, and the channel order is unchanged. `TestFoundingLabourArm` now
+  anchors the mechanism — nothing had been exercising the labour arm's *timing*, which
+  is why a 1.5× drift was invisible.
+- `GUF_ECO_KAPPA_CARBON` **2.750 → 0.6**, adopting `CDR_LABOR_HOURS_PER_TONNE` as the
+  better-sourced of two figures for the same physical quantity. Bound by test rather
+  than expression (forward reference), so either side moving alone fails. Left open
+  and pinned: whether `CDR_GROSS_REMOVAL_FACTOR` belongs in this path.
+
+**Provenance coverage closed and gated (2026-08-09)**
+- `utils/provenance.py` + `utils/provenance_cmd.py` — inline provenance tag blocks in
+  `data.py` are parsed from source, checked against the tag scheme, and rendered as the
+  shipped audit CSV and the generated tables in `docs/parameter_provenance.md`.
+  CLI: `eoh provenance check | csv | table | doc`.
+- `hours_eoh/reference/data/constant_provenance.csv` — **generated**, one row per
+  `data.py` constant (value, units, tag, tier, form, block, `resolves_by`, note), so a
+  public audit needs no Python. Packaged via the existing `hours_eoh.reference` data glob.
+- All **229** `data.py` constants now carry an inline tag block, up from an effective 3.
+  101 constants (44%) previously appeared nowhere in the provenance doc, 51 of them the
+  entire GUF block. Nine doc tables were still on the retired binary
+  `Kind = Physics | Calibration`.
+- `tests/test_provenance.py` — 69 tests. Parser behaviour is pinned against synthetic
+  source; the **coverage gate** runs against the real `data.py` with **no allowlist**,
+  and fails on an untagged constant, a stale or unmatched tag block, a retired or unknown
+  tag, a missing epistemic pointer, a `bounded` constant with no band or no error
+  direction, a `normative` constant with no decider *or* one claiming a `resolves_by`,
+  missing units, a misapplied tier, a stale audit CSV, stale generated doc tables, or a
+  block with no doc home. Each was verified to bite by breaking it and reverting.
+- `tier` (A–D) formalised as a **sub-qualifier** rather than a rival scheme, matching what
+  the thermal layer already wrote; it applies only where there is a source to grade.
+  `convention` promoted to a declared sub-label. The ad-hoc `Physics-adjacent` tag is
+  retired, along with `CHOSEN` itself (see the split above).
+
+### Changed
+
+**Provenance doc: tables generated, prose hand-written**
+- Every constant table in `docs/parameter_provenance.md` now sits inside a
+  `<!-- provenance:table -->` region rendered from `data.py`. The prose around them — where
+  the epistemic argument lives — is untouched and stays hand-written. New sections for
+  Ground Use Fee, dashboard thresholds, capital lifecycle, TEH destruction, human capital
+  and multiplier governance, none of which had one.
+- **No calibration constant changed.** Verified constant-by-constant against the previous
+  commit: 228 compared, 0 value differences.
+- **Only 2 of 229 constants are `physics`** — applying the scheme's own demanding
+  definition honestly leaves `A_EARTH_M2` and `SIGMA_SB` and nothing else. The 190 that
+  first became `CHOSEN` were then split (see above), because one tag covering three
+  epistemic states was itself obscuring the picture.
+
+### Fixed
+
+**Four documentation drifts, found by the migration**
+- `KNOWLEDGE_EOH_BASE` — doc said 490,107,421; the shipped value has been
+  381,962,855.27 since the ε_ref fixed-point re-anchor.
+- `CARE_SIGMOID_DEFAULTS` — doc said start_share 0.30 / inflection 0.55 against the
+  shipped 0.05 / 0.45; it had never matched the code.
+- Membership min-hours thresholds printed as 750 / 1500 h/yr and per-capita personal EOH
+  as 2,213 — both are *products* of `PERSONAL_EOH_BASE` and went stale at the
+  1,500 → 1,000 reprice. Now 500 / 1,000 and 1,475. A curated test pins these derived
+  products, because no value-equality check can see a number restated in a sentence.
+- `RECAL_FOUNDING_LABOR_HOURS` was documented as "≈ 2/3 of `PERSONAL_EOH_BASE`" while the
+  reprice had made it 100% of it. **Decided and fixed** — see "Two constants revalued"
+  above.
+
+### Findings (reported, not resolved)
+- **NLSA cites this framework's own document.** All 51 GUF constants attribute to "NLSA
+  Technical Manual TM-0042", whose own header reads *"Based on NLSA from HOURSFramework"*.
+  Equation numbers now appear only under `form:`, never `resolves_by:` — they establish an
+  asserted form, not external evidence for a value.
+- **`GUF_ECO_KAPPA_CARBON` (2.750 TEH/tCO₂e) and `CDR_LABOR_HOURS_PER_TONNE` (0.6 h/t)
+  were the same quantity from two layers — a 4.58× disagreement, now RECONCILED** (see
+  above). Still open: `DEP_RATE` 0.045 vs
+  `FORMATION_DEPRECIATION_RATE` 0.05, and `CONTESTABILITY_CAPITAL_YIELD_RATE` 0.10 vs the
+  0.20 derivable from `RECAL_CAPITAL_OUTPUT_RATIO` and `FORMATION_DEPRECIATION_RATE`.
+- **Four constants are calibrated to a target and now say so:** `GUF_USE_*`,
+  `DEFAULT_SEGMENTS`, `TRUST_BASE_TEH`, `CAPITAL_MACHINE_PROFILES` — the
+  `_ECOLOGICAL_SPIKE_INTENSITY` pattern the 2026-08-05 pass named but did not sweep for.
+- **`LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration**: it warns below 2%
+  guarantee coverage, and `SUFF_LEVY_RATE` delivers ≈2% at canonical defaults.
+- **`_ECOLOGICAL_SPIKE_INTENSITY` lives in `core/eoh_generation.py`, not `data.py`**, so
+  the gate cannot see a constant the retag log covers — a standing violation of the
+  no-anonymous-constants invariant.
+- Residual the gate does **not** close: free prose can still go stale. The curated
+  derived-product test covers where the reprice drift actually hid; a narrative paragraph
+  that goes stale in a way no field captures remains a human problem, and saying so is
+  better than implying the test closes it.
+
 **Federation contestability closure (reconciliation §8.7 — research tier)**
 - `research/coasean.py` Phase 4 — two-tier Trust: `merge_collectives()` and
   `split_collective()` boundary events with indivisible-reserve escheat (§8.7c) and

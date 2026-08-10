@@ -33,24 +33,81 @@ something the model determines.
 
 ## 2. Which parameters to calibrate vs. keep at defaults
 
-**The physics/calibration split** (see full table in `docs/parameter_provenance.md`):
+Every constant in `data.py` carries an inline provenance tag saying what kind of
+claim its value makes. That tag, not intuition, tells you what to do with it.
+Run `eoh provenance check` for the current counts, or read
+`hours_eoh/reference/data/constant_provenance.csv` for all 229 with their
+evidence. Both are generated from `data.py`, so neither can drift from it.
 
-**Keep at defaults (physics parameters)**:
-- `PERSONAL_EOH_BASE = 1500` — the biological entropy burden per person is a physical claim
-- `ECOLOGICAL_THRESHOLD = 0.40` — the tipping-point threshold for ecosystem collapse
-- `M_BAND_LOW / M_BAND_HIGH = 1.8 / 2.1` — constitutional multiplier band
-- `DEP_RATE = 0.045`, `DIV_RATE = 0.40` — Trust capital dynamics
+| Tag | What it means | What you should do |
+|---|---|---|
+| `physics` | Structural — a constant of nature | Keep. There are exactly **two**: `A_EARTH_M2`, `SIGMA_SB` |
+| `measured` / `derived` | Sourced, or computed from sourced inputs | Keep unless you have better local data; check the source suits your jurisdiction |
+| `convention` | A declared reference frame, not a claim | Keep. Changing it changes what the numbers *mean* |
+| `normative` | A **decision**. No dataset settles it | **Decide it yourself.** This is a charter question, not a calibration |
+| `bounded` | Picked inside a measured band | Re-pick inside the band if you have local evidence. Read `errs:` — it says which way the pick is wrong and whether that direction is safe |
+| `placeholder` | Nothing constrains it | Replace where you can. Read `resolves_by:` for what would settle it |
+| `instance` | **Yours to supply** — describes your jurisdiction | Supply it. The shipped number is a reference default, not evidence |
 
-**Change these to fit your data (calibration parameters)**:
-- `ECOLOGICAL_BASE_RATE = 500,000` → replace with your measured ecosystem stewardship cost
-- `TRUST_BASE_TEH = 35B` → scale to your population (default is per 1M people)
-- `SUFF_LEVY_RATE = 0.0125` → calibrate to fiscal solvency requirements
-- `AGE_GROUPS` fractions → replace with your census age pyramid
-- `skill_decay_rate = 0.10` → replace with measured sector-specific skill obsolescence
+> **The single most important correction to make if you have read an older
+> version of this guide.** It sorted constants into two bins, physics versus
+> calibration, and listed
+> `PERSONAL_EOH_BASE`, `ECOLOGICAL_THRESHOLD`, `M_BAND_LOW`/`M_BAND_HIGH`,
+> `DEP_RATE` and `DIV_RATE` as physics to be left alone. **None of them is
+> physics.** Two are constitutional commitments (`M_BAND_*`, `DIV_RATE`), two are
+> desk estimates picked inside a band (`PERSONAL_EOH_BASE`, `DEP_RATE`), and one
+> is an unconstrained placeholder (`ECOLOGICAL_THRESHOLD`). "Physics" was being
+> used to mean "we are confident", which is precisely the wrong thing to tell an
+> analyst deciding what not to touch.
 
-**Rule of thumb**: if changing the parameter changes what the model *claims* about
-physics (entropy, biology, tipping points), it's physics. If it changes the
-calibration to your jurisdiction, it's a calibration knob.
+### Start here: the constants that are yours, not ours
+
+These carry the `instance` tag. Nothing about your jurisdiction can be measured
+by this framework, so the shipped values are placeholders for *your* data — and
+every canonical result in this repo was produced at them.
+
+- **`TRUST_BASE_TEH = 35000000000.0`** — the most-consumed constant in the repo
+  (77 call sites). Sized *backwards*: chosen so the dividend covers the
+  obligations it must fund. Supply your Trust's real balance. Every fiscal
+  function takes `trust_balance` as an argument, so you need not edit the
+  constant — pass your own.
+- **`CAPITAL_STOCK_DEFAULT = 2000000000.0`** — your gross fixed capital stock in
+  TEH. Note it is 2,000 TEH/capita, which describes a *mid-arc* collective; at
+  low ε you would be asserting capital the arc says is not there.
+- **`CONTESTABILITY_G_PRIV = 0.03`** — your real capital return net of
+  depreciation. Piketty's r gives 4–5%, above this default.
+- **`GUF_LVI_W_*`** — land-value sub-index weights. Land value is local by
+  construction; these come from a hedonic regression on *your* parcel data.
+
+### Then: what to decide rather than measure
+
+The `normative` constants are commitments your charter makes. No amount of data
+retires them, and treating them as calibration knobs is a category error:
+
+- `M_BAND_LOW = 1.8` / `M_BAND_HIGH = 2.1` — the constitutional multiplier band
+- `DIV_RATE = 0.4` — the share of depreciation paid out as dividend
+- `SUFF_LEVY_RATE = 0.0125` — a redistributive commitment. Worth knowing:
+  `min_levy_for_solvency()` returns **zero at every ε** on the canonical
+  configuration, because the dividend alone runs a surplus. This rate is not
+  sized for solvency and never was; the Trust dividend funds the guarantee.
+
+### Then: the placeholders worth your attention
+
+Ranked by how much of the model they move, not by how wrong they are:
+
+- **`AGE_GROUPS`** — 54 call sites. The `fraction` values are your census age
+  pyramid and you should replace them. The `eoh_weight` values are the
+  framework's debt, not yours (they await ATUS care-hours by recipient).
+- **`ECOLOGICAL_BASE_RATE = 500000.0`** — replace with your stewardship-hours
+  census, but read §6 first: this constant is entangled with an open structural
+  defect, and changing it alone will not fix what it looks like it should.
+- **`CAPITAL_MACHINE_PROFILES`** — the tiers behind `civilization_epsilon()`
+  (Step 3). Calibrated to bracket the mid-arc ε they are meant to produce.
+
+**Rule of thumb**: ask *what would change this number?* If the answer is a
+dataset, it is `measured`/`bounded`/`placeholder` and you calibrate it. If the
+answer is "your jurisdiction", it is `instance` and you supply it. If the answer
+is "a vote", it is `normative` and you decide it.
 
 ---
 
@@ -64,7 +121,8 @@ a civilization at 40% automation. Compare it to your actual data:
 ```python
 from hours_eoh.core.trajectory import canonical_physical_state
 canonical = canonical_physical_state(0.40)
-# {'capital_stock_teh': 3_600_000_000, 'ecosystem_health': 0.82, ...}
+# {'capital_stock_teh': 2_400_000_000, 'capital_age_ratio': 0.38,
+#  'ecosystem_health': 0.82, 'monitoring_capability': 0.70, ...}
 
 # Your actual data:
 your_state = {
@@ -96,13 +154,22 @@ eoh = total_eoh(
     knowledge_complexity_per_unit=your_state["knowledge_complexity_per_unit"],
 )
 # eoh["total"] = your jurisdiction's total entropy obligation (h/yr)
-# eoh["personal"] = biological burden (should be ~1,500 × population × 1.475)
+# eoh["personal"] = biological burden (≈ 1,000 × population × 1.475)
 # eoh["infrastructure"] = capital stock maintenance burden
 ```
 
-Check plausibility: personal EOH should be roughly `1,500 × population × 1.475`
-(age-weighted mean = 1.475 at default demographics). If it's wildly off, check
-that your `age_distribution` fractions sum to 1.0 and match the `AGE_GROUPS` keys.
+Check plausibility: personal EOH should be roughly `PERSONAL_EOH_BASE × population
+× 1.475`, where 1.475 is the age-weighted mean at default demographics. If it's
+wildly off, check that your `age_distribution` fractions sum to 1.0 and match the
+`AGE_GROUPS` keys.
+
+**Which standard are you asking for?** `PERSONAL_EOH_BASE` is the operating value
+between two others: `PERSONAL_EOH_SURVIVAL` (600, what it takes not to die) and
+`PERSONAL_EOH_SUFFICIENCY` (1500, what it takes to live well), both referenced to
+autarky. Pass `personal_standard=` to `total_eoh()` to choose. This matters more
+than it looks: a feasibility test run at the sufficiency standard and reported as
+a survival result is the specific error this repo made and corrected — subsistence
+*can* survive, it just cannot reach sufficiency without automation.
 
 ### Step 3: Choose your ε
 
@@ -200,7 +267,7 @@ with real inputs and interpret the outputs.
 
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.research.contestability import contestability_margin
+from hours_eoh.research.recalibration import exit_financing
 
 # --- Your data ---
 population         = 5_000_000     # 5M people
@@ -240,8 +307,8 @@ snap = fiscal_snapshot(
     ecosystem_health=ecosystem_health,
 )
 
-# --- Run contestability check ---
-chi = contestability_margin(epsilon, population, trust_balance)
+# --- Run contestability check (the ADOPTED §8.9 test) ---
+exit_fin = exit_financing(epsilon, population=population)
 
 # --- Interpret ---
 print(f"Total EOH demand:  {pipe['total_eoh']/1e9:.2f}B h/yr")
@@ -249,8 +316,16 @@ print(f"Human EOH burden:  {pipe['human_eoh']/1e9:.2f}B h/yr  (= total × (1−�
 print(f"TEH created:       {pipe['teh_created']/1e9:.2f}B TEH/yr")
 print(f"Fiscal solvent:    {snap['solvent']}")
 print(f"Trust end:         {snap['trust']['trust_end']/1e9:.1f}B TEH")
-print(f"Contestability χ:  {chi['chi']:.3f}  ({'OK' if chi['passes'] else 'BREACH'})")
+print(f"Exit financeable:  {exit_fin['exit_financeable']}  "
+      f"via {exit_fin['channel']}  (t_exit {exit_fin['t_labor_years']:.2f} yr)")
 ```
+
+> **Do not use `contestability_margin()` (the bare χ = P/K_entry) for a reported
+> result.** §8.9 superseded it with the three-channel time-to-finance-exit test
+> above, and the difference is not academic: the repo's own recorded finding that
+> "the corridor is CLOSED at defaults" was produced by the retired invariant, and
+> the adopted test reopens it. The bare form is kept, callable, so the
+> disagreement can be reproduced on demand — not because it is still the test.
 
 ---
 
@@ -266,12 +341,19 @@ find the minimum trust balance for solvency at your ε.
 Trust is eroding — expenditures exceed inflows. Long-run: Trust will deplete.
 Action: raise levy or build reserves now while the economy is labor-intensive.
 
-**`contestability_margin()["passes"] = False` (χ < 1)**
-The portable endowment P is less than the cost of founding a competing collective.
-Exit from the collective is notional, not substantive. Action: grow Trust
-(increasing P) or reduce barriers to collective formation (lowering K_entry).
-This is the adversarial finding under increasing_returns — it requires structural
-commonization, not just levy adjustments.
+**`exit_financing()["exit_financeable"] = False`**
+No channel finances a member out within one vesting period, so exit from the
+collective is notional rather than substantive. Check `channel` to see which arm
+was closest: `labor` carries the low arc, `underwritten` the mid-arc trough, and
+`self` (dividend savings) the high end. Action: structural commonization — raise
+the charter formation share φ, or seed the commons for entry underwriting. Levy
+adjustments alone do not fix it; that is the §8.3 adversarial finding.
+
+**`contestability_margin()["passes"] = False` (bare χ < 1)** — *superseded.*
+Kept as a documented negative result. It reads RED across the whole arc at
+current defaults because the sufficiency floor fell with the `PERSONAL_EOH_BASE`
+reprice, and for a tenure-0 member that floor *is* the entire portable endowment.
+Treat it as an advisory, not a verdict.
 
 **`condition_ii["status"] = "FAIL"`** (multiplier band breach)
 The mean multiplier has drifted outside [1.8, 2.1]. Run `eoh dashboard` to see
@@ -284,27 +366,51 @@ adversarial review. If below band: skill investment is insufficient.
 
 What the model **cannot** tell you:
 
+- **Domain balance — read this before you trust any ε**: personal EOH is
+  **99.3% of total EOH at ε=0, falling to 62.5% at ε=0.89**, while ecological EOH
+  books at **0.56–0.69 h/person·yr — 0.0% of the total at every ε**. Since
+  ε = machine EOH / total EOH, your ε is overwhelmingly a personal-domain number,
+  and your ecological and thermal obligations will round to nothing in its
+  denominator. Run `eoh arc --domain-shares` to see it. The root cause is
+  declared but unresolved: `ECOLOGICAL_BASE_RATE` is documented as a *relative*
+  anchor and is summed with absolute counts, so replacing it with your own
+  measured stewardship cost will not by itself fix the imbalance. Either the
+  ecological and knowledge bases are low by 2–3 orders of magnitude, or
+  `CDR_LABOR_HOURS_PER_TONNE` is, or both. **Nothing in current data settles it.**
+
 - **Individual tenure-vesting**: the contestability model uses population-average
   portable endowment P. A late entrant to the collective has less vested capital
-  than a founding member. The model does not yet track individual tenure — all
-  per-capita figures are averages. This is documented in
-  `research/contestability.py` as an open gap.
+  than a founding member. Federation-wide tenure is tracked in
+  `research/membership.py`, but per-capita figures elsewhere remain averages.
 
-- **Between-collective exchange rates**: the current implementation is a single
-  collective (the N=1 limit). Multi-collective dynamics, inter-collective FX
-  rates, and relative inflation between collectives are modeled in
-  `research/contestability.py` only as scalar χ — the Polycentric/Coasean
-  scaffolding (Workstream D) is still in-progress.
+- **Between-collective exchange rates**: the shipped single-ledger model is the
+  N=1 limit. `research/coasean.py` implements the N-collective federation with
+  pairwise exchange rates, trust dynamics and settlement rules (§§6–7), anchored
+  by a regression test reproducing single-ledger results exactly at N=1. It is
+  research-tier: the API is not stable.
 
 - **Desire economy**: the model covers entropy obligations (biological, physical,
   ecological, knowledge). It does not model the desire economy — discretionary
   consumption choices above the sufficiency floor. The `basket_price()` function
   captures the floor basket; above-floor pricing is left to collective discovery.
 
-- **Calibration confidence**: most parameters are calibrated to reasonable
-  structural priors, not fitted to historical data. The framework shows the
-  direction and qualitative shape of the arc, not point forecasts. Use it for
-  structural analysis, not projection.
+- **Calibration confidence — the honest headline**: of 229 constants, **49
+  (21.4%) are grounded**, 14 are bounded picks, **94 (41.0%) are placeholders
+  with no measurement behind them at all**, 61 are normative decisions, 7 are
+  yours to supply, and 2 are retired. Measurement debt is **47.2%**, and the
+  actionable part is the placeholders. The framework shows the direction and
+  qualitative shape of the arc, not point forecasts — use it for structural
+  analysis, not projection. Run `eoh provenance check` for the live figures;
+  do not quote these from memory.
+
+- **Four constants are calibrated to a target and say so**: `GUF_USE_*` (scaled
+  so aggregate GUF matches levy revenue at mid-arc), `DEFAULT_SEGMENTS` (means
+  set so the weighted mean hits 2.10, the band top — and it is the live default
+  in `core/multipliers.py`, so any call omitting `segments` inherits it),
+  `TRUST_BASE_TEH` (sized to cover the obligations it funds), and
+  `CAPITAL_MACHINE_PROFILES` (tiers set to bracket the ε they are meant to
+  produce). A result that depends on one of these is not independent evidence
+  for it.
 
 - **Objectivity vs. transparency**: the price computed by the model is the
   *floor price* — the minimum guaranteed by the TEH ledger. Actual market prices
