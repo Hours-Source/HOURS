@@ -1000,6 +1000,35 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   ε* = 0.4522   (8 iterations, damped)
 #   base = 3.81963e8   =  0.779 × the K-IV value
 #
+# --- RE-ANCHORED AGAIN (2026-08-10), AND THE PATTERN IS THE POINT ---
+#
+# The AGE_GROUPS elderly revalue (2.5 → 1.48) cut w 11.76%, which cut personal
+# EOH, which cut total_eoh, which raised the labour residual — and the fixed
+# point moved a third time, to ε* = 0.3828 and base 5.33621e8 (1.397× the
+# Finding-E value, 1.089× K-IV). `is_shipped_anchor` went False and the suite
+# said so, which is exactly the self-check Finding E installed.
+#
+# WHAT THE THIRD RECURRENCE TEACHES, and it is not "re-anchor harder": this
+# constant is defined by a fixed-point condition over `total_eoh`, so it is
+# conditional on EVERY constant entering that total — not just on the O*NET
+# vintage the freeze was designed to protect against. The cause this time was
+# an age weight, a different domain entirely. So "derived-then-FROZEN" is
+# carrying two different kinds of staleness under one label:
+#
+#   external churn  a registry refresh. The freeze SHOULD absorb this — that is
+#                   what it is for, and re-deriving per vintage would restore
+#                   the circularity the multiplier's frozen bounds exist to break.
+#   internal drift  a constant inside total_eoh moves. The freeze should NOT
+#                   absorb this: the derivation's own inputs changed, so the
+#                   derived value is simply wrong until it follows.
+#
+# The value therefore FOLLOWS internal drift and is FROZEN against external
+# churn. `test_the_fixed_point_reproduces_the_shipped_constant` is the coupling
+# detector for the first kind: it fires whenever anything upstream of total_eoh
+# moves, and that firing is the feature, not a maintenance cost. Expect it to
+# fire again — the domain-balance fix and the abatement default will both trip
+# it, and both should.
+#
 # WHAT THIS DOES NOT FIX, stated plainly: the fixed point is still anchored on
 # 937.3 h/person·yr of US PAID labour (ATUS 2025, `scenarios/personal_floor`).
 # It removes the self-inconsistency, not the US-specificity or the paid-labour
@@ -1019,10 +1048,13 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   f_training: 11,001.3 h/worker embodied training stock over 751 occupations
 #   → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷
 #   kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε*
-#   = 0.4522 (scenarios/knowledge_base.epsilon_ref_fixed_point, 8 damped
+#   = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped
 #   iterations), because a one-shot anchor cannot be self-consistent when the
-#   constant it sets sits inside the quantity that checks it. Frozen at the
-#   reference epoch so it stays comparable across data vintages.
+#   constant it sets sits inside the quantity that checks it. FROZEN against
+#   data-vintage churn; it FOLLOWS internal drift, because a change to any
+#   constant inside total_eoh changes the derivation's own inputs. Re-anchored
+#   2026-08-09 (Finding E, ε* 0.4522) and 2026-08-10 (the AGE_GROUPS elderly
+#   revalue, ε* 0.3828).
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
@@ -1035,7 +1067,7 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 381_962_855.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.4522 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 533_620_818.74  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.3828 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.

@@ -802,7 +802,7 @@ constant the generated tables cannot see.
 <!-- provenance:table "EOH generation — knowledge domain" -->
 | Parameter | Default | Units | Tag | What would settle it |
 |---|---|---|---|---|
-| `KNOWLEDGE_EOH_BASE` | 381962855.27 | embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION | derived-then-FROZEN<br>form: recovered from the O*NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε* = 0.4522 (scenarios/knowledge_base.epsilon_ref_fixed_point, 8 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. Frozen at the reference epoch so it stays comparable across data vintages. | an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting. |
+| `KNOWLEDGE_EOH_BASE` | 533620818.74 | embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION | derived-then-FROZEN<br>form: recovered from the O*NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε*)·cpu(ε*). Anchor and base are solved TOGETHER at the fixed point ε* = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. FROZEN against data-vintage churn; it FOLLOWS internal drift, because a change to any constant inside total_eoh changes the derivation's own inputs. Re-anchored 2026-08-09 (Finding E, ε* 0.4522) and 2026-08-10 (the AGE_GROUPS elderly revalue, ε* 0.3828). | an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting. |
 | `KNOWLEDGE_EPS_EXPONENT` | 2.0 | dimensionless exponent | placeholder<br>form: physics — knowledge EOH grows superlinearly with ε, because complexity compounds. The exponent is asserted. | measured knowledge-maintenance hours against an automation index at three or more points, which is what distinguishes an exponent from a slope. |
 | `KNOWLEDGE_REFERENCE_POPULATION` | 1000000.0 | persons | convention<br>form: a stated denominator, not a claim about the world — the population KNOWLEDGE_EOH_BASE is quoted at. It exists because knowledge EOH was population-INVARIANT: the same absolute number came back at 1M and at 300M, so the domain's share of total EOH fell as 1/population while every other domain scaled. 1e6 is the repo-wide default population, so this reproduces prior output exactly at the default. | n/a — a convention is settled by declaring it, which this does. |
 | `SKILL_DECAY_RATE` | 0.1 | fraction of the knowledge stock renewed per year | placeholder<br>form: DEPRECATED as of Block K-IV — retained, not deleted, per the additive-not-destructive rule. Nothing defaults to it; the default renewal rate is SKILL_TRANSMISSION_RATE. Kept because it is the value every pre-K-IV result in this repo was produced at, so reproducing an old figure means passing it explicitly rather than guessing what it was. | the split that replaced it — SKILL_TRANSMISSION_RATE (cohort turnover) and SKILL_CPD_RATE (Eurostat CVTS paid training hours), whose sum is 0.0277 against this 0.10. That gap is a finding, not an error to reconcile away. Still counted as debt, NOT retired: core/eoh_generation.py reads it, so it remains on the operative path even though nothing defaults to it any more.<br>IT WAS NEVER A RENEWAL RATE. At 0.10 against the measured 11,001 h/worker stock it implies 1,100 h/worker·yr — 55% of the H_REF work-year spent forever re-acquiring knowledge already held. No time-use or training series reports anything close. It was also CONFLATING two rates that Block K-III separates: transmission (cohort turnover) and CPD (staying current while working). |
@@ -851,14 +851,21 @@ read.*
 > from a flat 87–96% across the whole arc to 94.3% → 51.1%, and knowledge became
 > the largest non-personal domain at the top. Re-anchoring the base to the ε_ref
 > FIXED POINT (Finding E — the K-IV anchor was not a fixed point of its own
-> derivation) took 0.779× off the base and gave back ~5 points at the top of the
-> arc: the share now runs **99.3% → 56.2%**. The table below is the current
-> picture; the pre-adoption figures are kept in the second table for comparison.
+> derivation) took 0.779× off the base. The 2026-08-10 AGE_GROUPS elderly
+> revalue then cut personal EOH 11.76% and moved the fixed point AGAIN, taking
+> the base up 1.397× to 1.089× the original K-IV value. The share now runs
+> **98.9% → 78.6%**. The table below is the current picture; the pre-adoption
+> figures are kept in the second table for comparison.
+>
+> **The two moves pulled in opposite directions and personal's share at ε=0.99
+> ended HIGHER than after K-IV, not lower** (56.2% → 78.6%), because the
+> canonical-arc reading divides by a total that both changes grew or shrank
+> unevenly across the arc. Do not read the trend from either move alone.
 >
 > **What is still open.** `ECOLOGICAL_BASE_RATE` was untouched and the
 > ecological domain is still ~0.04% of total EOH at 0.71 h/person·yr — the
 > "relative anchor summed with absolute counts" defect is unresolved. And
-> personal still dominates the LOW arc (94% at ε=0), where there is no
+> personal still dominates the LOW arc (98.9% at ε=0), where there is no
 > apparatus for knowledge to attach to, so `PERSONAL_EOH_BASE` and ATUS still
 > own the denominator there. **Two of the three original consequences stand**:
 > ε remains a personal-domain number at low ε, and the thermal obligation is
@@ -866,18 +873,18 @@ read.*
 >
 > Reproduce with `python3 utils/eoh_cli.py arc --domain-shares`.
 
-### Current (post-K-IV, re-anchored to the ε_ref fixed point)
+### Current (post-K-IV, re-anchored twice to the ε_ref fixed point)
 
 Canonical-arc figures, `arc --domain-shares`:
 
 | Domain | ε = 0 | ε = 0.40 | ε = 0.99 |
 |---|---|---|---|
-| personal | 99.3% | 88.6% | 56.2% |
-| infrastructure | 0.0% | 5.0% | 8.5% |
-| knowledge | 0.6% | **6.4%** | **35.3%** |
+| personal | 98.9% | 91.8% | 78.6% |
+| infrastructure | 0.0% | 5.8% | 13.4% |
+| knowledge | 1.0% | 2.3% | **7.9%** |
 | ecological | <0.1% | <0.1% | <0.1% |
 
-*The ε = 0 column reads 99.3% personal / 0.0% infrastructure because Block III
+*The ε = 0 column reads 98.9% personal / 0.0% infrastructure because Block III
 set the canonical capital path to zero at the origin — subsistence has no
 apparatus, by ε's own definition. The legacy `total_eoh(epsilon=0)` path scales a
 caller-supplied baseline instead and still shows infrastructure there; both are
@@ -1022,7 +1029,7 @@ almost nothing: `A_EARTH_M2` and `SIGMA_SB`.
 
 | What | Was | Now |
 |---|---|---|
-| `KNOWLEDGE_EOH_BASE` (doc) | 490,107,421 | 381,962,855.27 — stale since the ε_ref fixed-point re-anchor (2026-08-09) |
+| `KNOWLEDGE_EOH_BASE` (doc) | 490,107,421 | 533,620,818.74 — re-anchored twice: the ε_ref fixed point (2026-08-09) then the AGE_GROUPS elderly revalue (2026-08-10) |
 | `CARE_SIGMOID_DEFAULTS` (doc) | start_share 0.30, inflection 0.55 | 0.05 / 0.45 — the doc had never matched the code |
 | membership min-hours thresholds (prose) | 750 / 1500 h/yr | 500 / 1,000 — fractions of `PERSONAL_EOH_BASE`, stale since the reprice |
 | per-capita personal EOH (prose) | 1,500 × 1.475 = 2,213 | 1,000 × 1.475 = **1,475** |

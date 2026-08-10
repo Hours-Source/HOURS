@@ -320,7 +320,9 @@ class TestEohToTehPipeline:
         # 0.234 at the K-IV anchor; 0.253 after the Finding-E re-anchor —
         # a smaller knowledge base carries less weight in the volume-weighted
         # composite, so it drags it down slightly less. Same mechanism.
-        assert mid == pytest.approx(0.253, abs=0.01)
+        # 0.253 → 0.228 with the 2026-08-10 knowledge re-anchor: the registration
+        # composite is weighted by domain EOH and knowledge grew 1.397×.
+        assert mid == pytest.approx(0.228, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""

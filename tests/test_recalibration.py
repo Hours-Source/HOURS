@@ -292,7 +292,10 @@ class TestCommonsIncomeStatement:
         # the purchase model, reversing the pre-K-IV ~15% penalty. The margin
         # tracks machine output Y = eps*total_eoh, so a 22% smaller knowledge
         # base narrows it without flipping it.
-        assert d_charter / d_purchase == pytest.approx(1.050, abs=0.02)
+        # 1.050 → 1.118 after the knowledge re-anchor grew total EOH at high ε and
+        # with it machine output. THE SIGN IS THE CLAIM and it is unchanged:
+        # dilution still pays MORE than the purchase model.
+        assert d_charter / d_purchase == pytest.approx(1.118, abs=0.02)
         # Threshold follows the same base: 2,162 at the K-IV anchor, 1,924 now.
         # > 1,900 until the elderly revalue cut total EOH and with it machine
         # output; 1,797 still clears the purchase-model comparison this guards.
@@ -635,7 +638,7 @@ class TestRecalibratedArc:
         # re-anchor shrank at the top of the arc (2,896 -> 2,633 h/person.yr).
         # 1831.45 → 1689.87: machine output is ε × total EOH and total EOH fell
         # 7.7% at ε=0.99 with the elderly revalue.
-        assert last["dividend_per_capita"] == pytest.approx(1689.87, rel=1e-4)
+        assert last["dividend_per_capita"] == pytest.approx(1906.45, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing

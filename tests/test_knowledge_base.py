@@ -248,14 +248,16 @@ class TestBand:
         2026-07-29 epoch. If an O*NET/BLS refresh moves the registry, this fails
         loudly rather than letting the constant drift away from its derivation.
 
-        Re-anchored 2026-08-09 (Finding E): the derivation is checked at the
-        FIXED POINT ε* = 0.4522, not at K-IV's one-shot 0.40, because the 0.40
-        anchor was not a fixed point of its own derivation — adopting the base it
-        produced moved total EOH, which moved the labour residual that had
-        corroborated 0.40 in the first place.
+        Re-anchored 2026-08-09 (Finding E) and again 2026-08-10: the derivation
+        is checked at the FIXED POINT ε* = 0.3828, not at K-IV's one-shot 0.40,
+        because a one-shot anchor is not a fixed point of its own derivation —
+        adopting the base it produces moves total EOH, which moves the labour
+        residual that corroborated the anchor in the first place. The second
+        re-anchor was triggered from OUTSIDE the knowledge domain, by the
+        AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.4522263193130492, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.3828218221664429, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -437,9 +439,10 @@ class TestKIVAdoption:
 
     def test_constant_is_the_measured_value_not_the_placeholder(self):
         assert KNOWLEDGE_EOH_BASE != 100_000.0
-        # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40; the
-        # fixed-point re-anchor (Finding E) puts it at 0.779x that.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(3.8196286e8, rel=1e-6)
+        # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40. Finding E
+        # cut it to 0.779× that; the 2026-08-10 elderly revalue moved the fixed
+        # point again and put it at 1.089×, back above the K-IV figure.
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.3362082e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """
@@ -484,13 +487,12 @@ class TestLabourResidual:
     def test_paid_labour_gives_the_documented_residual(self):
         """US 2025 paid labour, 937.3 h/person·yr, against the shipped base.
 
-        0.4522 → 0.3596 with the 2026-08-10 AGE_GROUPS elderly revalue. The
-        residual is labour supply MINUS the obligation, so cutting personal
-        demand 11.76% leaves more supply unexplained and a smaller machine
-        share is needed to close it.
+        0.4522 → 0.3828 after the 2026-08-10 elderly revalue and the knowledge
+        re-anchor that followed it. At the fixed point this equals ε*, which is
+        what makes it a fixed point.
         """
         eps = labour_residual_epsilon(937.3, KNOWLEDGE_EOH_BASE)
-        assert eps == pytest.approx(0.3596, abs=0.005)
+        assert eps == pytest.approx(0.3828, abs=0.005)
 
     def test_full_labour_has_no_solution(self):
         """
@@ -521,27 +523,27 @@ class TestEpsilonRefFixedPoint:
         # 0.4522 → 0.3828 with the 2026-08-10 elderly revalue.
         assert r["epsilon_fixed_point"] == pytest.approx(0.3828, abs=0.001)
 
-    def test_the_shipped_constant_is_no_longer_the_fixed_point(self):
+    def test_the_fixed_point_reproduces_the_shipped_constant(self):
         """
-        THE SELF-CHECK FIRING, exactly as it was built to.
+        THE ADOPTION CHECK, and the repo's coupling detector.
 
-        Finding E re-anchored KNOWLEDGE_EOH_BASE so the shipped constant WAS
-        the fixed point of its own derivation. The 2026-08-10 AGE_GROUPS
-        elderly revalue broke that: personal demand fell 11.76%, the labour
-        residual rose, and the fixed point moved to ε* = 0.3828 with a base
-        1.397× the shipped one.
+        The shipped base must BE the fixed point's base. It has now been
+        re-anchored twice — Finding E (2026-08-09, ε* 0.4522) and the AGE_GROUPS
+        elderly revalue (2026-08-10, ε* 0.3828) — and the second re-anchor is
+        the more instructive one, because its cause was a constant in a
+        DIFFERENT DOMAIN.
 
-        This is a genuine open item, deliberately NOT closed here. Re-anchoring
-        KNOWLEDGE_EOH_BASE is a second constant decision that would cascade
-        again — knowledge EOH would rise 40% at every ε — and it belongs to the
-        author, not to a test update. What the test pins is that the repo KNOWS
-        it is off its anchor rather than quietly carrying a stale one.
+        This constant is defined by a fixed-point condition over `total_eoh`,
+        so it is conditional on every constant entering that total. This test
+        therefore fires whenever anything upstream moves, and that firing is
+        the FEATURE: it is the only thing standing between the repo and a
+        silently stale derived constant. Expect it to fire again when domain
+        balance is fixed and when abatement becomes the default generation
+        path. Both should trip it; neither should be worked around.
         """
         r = epsilon_ref_fixed_point(937.3)
-        assert r["is_shipped_anchor"] is False
-        assert r["base_rate"] == pytest.approx(5.3362e8, rel=1e-3)
-        assert r["ratio_to_shipped"] == pytest.approx(1.397, rel=1e-3)
-        assert r["base_rate"] != pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
+        assert r["base_rate"] == pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
+        assert r["is_shipped_anchor"] is True
 
     def test_it_is_actually_a_fixed_point(self):
         """The defining property: the anchor it derives AT equals the anchor the
@@ -575,15 +577,16 @@ class TestEpsilonRefFixedPoint:
             assert value == pytest.approx(results[0], abs=1e-3)
 
     def test_re_anchor_moved_the_base_by_the_documented_factor(self):
-        """Against the K-IV base, which is the fixed anchor point of comparison.
+        """Against the K-IV base, the fixed point of comparison across re-anchors.
 
-        0.779× at adoption (2026-08-09); 1.089× after the elderly revalue moved
-        the fixed point again. The shipped constant now sits between the K-IV
-        value and the current fixed point.
+        0.779× at the Finding-E adoption (2026-08-09); 1.089× after the elderly
+        revalue moved the fixed point again (2026-08-10). The base has now
+        crossed ABOVE the K-IV value it was first cut below — the anchor is a
+        genuinely moving quantity, not a one-time correction.
         """
         r = epsilon_ref_fixed_point(937.3)
         assert r["base_rate"] / 4.9010742e8 == pytest.approx(1.089, abs=0.005)
-        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(0.779, abs=0.005)
+        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(1.089, abs=0.005)
 
     def test_flags_when_the_shipped_constant_stops_being_the_fixed_point(self):
         """

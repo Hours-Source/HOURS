@@ -164,9 +164,9 @@ class TestKnowledgePopulationScaling:
         re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
         net 954.91× against pre-K-IV.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(9.54907138e6, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.07178777e8, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(9.29364509e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.33405205e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.49734002e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.29836774e9, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -174,7 +174,7 @@ class TestKnowledgePopulationScaling:
         factor is 954.91× post-Finding-E (was 1,225.27× at the K-IV anchor);
         that it stays UNIFORM across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(954.907, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1334.052, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)
@@ -625,7 +625,7 @@ DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 # domains were untouched. Was {0.0: 0.945, 0.40: 0.859, 0.90: 0.614, 0.99: 0.562}.
 # The DEFECT is unchanged — personal still dominates the low arc, and the
 # revalue narrows the imbalance without addressing its cause.
-_PERSONAL_SHARE_EXPECTED = {0.0: 0.939, 0.40: 0.843, 0.90: 0.583, 0.99: 0.530}
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.936, 0.40: 0.820, 0.90: 0.517, 0.99: 0.461}
 
 
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -662,7 +662,7 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     # grow, personal SHRANK 11.76% and knowledge's share of the smaller total
     # rose. The claim being tested — knowledge stops being a rounding error at
     # the top of the arc — is unaffected by which way that happened.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.379, abs=0.01)
+    assert top["knowledge"] / top["total"] == pytest.approx(0.460, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
@@ -897,7 +897,9 @@ class TestAccountingBasis:
         final_drift = finals[-1] / finals[0] - 1.0
         gross_drift = grosses[-1] / grosses[0] - 1.0
 
-        assert final_drift == pytest.approx(0.061, abs=0.005)
+        # +6.1% → +9.0%: the final basis excludes apparatus knowledge but keeps the
+        # CIVILISATIONAL corpus, which the re-anchor grew 1.397× along with the rest.
+        assert final_drift == pytest.approx(0.090, abs=0.005)
         assert gross_drift > 0.09
         assert final_drift < gross_drift / 5.0
 
