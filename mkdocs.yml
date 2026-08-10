@@ -12,6 +12,13 @@ strict: true
 docs_dir: docs
 site_dir: site
 
+# Serves the generated audit artifacts (constant_provenance.csv and friends)
+# from their real home in hours_eoh/reference/data/ rather than a forked copy
+# under docs/. Required for the links in parameter_provenance.md to resolve
+# under strict mode. See hooks/docs_data_files.py.
+hooks:
+  - hooks/docs_data_files.py
+
 theme:
   name: material
   palette:
