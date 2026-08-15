@@ -79,6 +79,7 @@ nav:
 
   - Theory:
     - Overview: theory/overview.md
+    - Prior Art and Limitations: theory/prior_art.md
     - The ε Arc: theory/epsilon_arc.md
     - Four Entropy Domains: theory/four_domains.md
     - Three Economies: theory/three_economies.md

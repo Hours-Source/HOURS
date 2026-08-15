@@ -24,7 +24,8 @@ and derivation rationale.
 
 The goal is that **every constant carries a provenance tag, that the tag says what
 KIND of thing the value is, and that the set awaiting measurement shrinks over
-time**. Seven tags:
+time**. Seven tags, plus two sub-labels — nine values in all, and the vocabulary
+is closed and enforced (`utils/provenance.py: VALID_TAGS`). The seven tags:
 
 - **physics** — a structural claim about how entropy works. Changing it changes the
   model's claim about the world; needs a theoretical justification, not a knob.
@@ -43,6 +44,18 @@ time**. Seven tags:
   institution supplies it and this framework never measures it. Must state
   `supplied_by` (what they measure, and the intake path here) **and** `default`
   (what the shipped number is), and **may not claim a `resolves_by`**.
+
+And two **sub-labels**. These are not rival tags — they qualify how a value was
+arrived at, and `provenance check` reports them in the same table, which is why
+the count there reads nine rather than seven:
+
+- **derived-then-FROZEN** — a `derived` value pinned at a reference epoch so it
+  stays comparable across data vintages. It moves only when the epoch is
+  deliberately re-cut, not when a source refreshes underneath it.
+- **convention** — a stated denominator or reference frame, not a claim about the
+  world. The eight `CANONICAL_*` constants carry it: the canonical arc is an
+  ideal-arc *reference*, and calling it `measured` or `placeholder` would both be
+  category errors.
 
 > **Why `instance` was split out of `placeholder` (2026-08-09).** Same category
 > error as `normative`, in a different direction. `TRUST_BASE_TEH` and
