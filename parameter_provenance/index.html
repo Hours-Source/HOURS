@@ -463,6 +463,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../theory/prior_art/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Prior Art and Limitations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -2654,7 +2675,8 @@ recorded for live implementations to settle, not resolved by the model.</p>
 <h2 id="the-tag-scheme">The tag scheme<a class="headerlink" href="#the-tag-scheme" title="Permanent link">&para;</a></h2>
 <p>The goal is that <strong>every constant carries a provenance tag, that the tag says what
 KIND of thing the value is, and that the set awaiting measurement shrinks over
-time</strong>. Seven tags:</p>
+time</strong>. Seven tags, plus two sub-labels — nine values in all, and the vocabulary
+is closed and enforced (<code>utils/provenance.py: VALID_TAGS</code>). The seven tags:</p>
 <ul>
 <li><strong>physics</strong> — a structural claim about how entropy works. Changing it changes the
   model's claim about the world; needs a theoretical justification, not a knob.</li>
@@ -2673,6 +2695,18 @@ time</strong>. Seven tags:</p>
   institution supplies it and this framework never measures it. Must state
   <code>supplied_by</code> (what they measure, and the intake path here) <strong>and</strong> <code>default</code>
   (what the shipped number is), and <strong>may not claim a <code>resolves_by</code></strong>.</li>
+</ul>
+<p>And two <strong>sub-labels</strong>. These are not rival tags — they qualify how a value was
+arrived at, and <code>provenance check</code> reports them in the same table, which is why
+the count there reads nine rather than seven:</p>
+<ul>
+<li><strong>derived-then-FROZEN</strong> — a <code>derived</code> value pinned at a reference epoch so it
+  stays comparable across data vintages. It moves only when the epoch is
+  deliberately re-cut, not when a source refreshes underneath it.</li>
+<li><strong>convention</strong> — a stated denominator or reference frame, not a claim about the
+  world. The eight <code>CANONICAL_*</code> constants carry it: the canonical arc is an
+  ideal-arc <em>reference</em>, and calling it <code>measured</code> or <code>placeholder</code> would both be
+  category errors.</li>
 </ul>
 <blockquote>
 <p><strong>Why <code>instance</code> was split out of <code>placeholder</code> (2026-08-09).</strong> Same category
