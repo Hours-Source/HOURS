@@ -1043,15 +1043,39 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 # note: THE DOMAIN-BALANCE DEFECT LIVES HERE. This is documented as a RELATIVE
 #   anchor — "does not represent an absolute ecosystem-specific count" — but
 #   it is SUMMED with absolute counts in total_eoh() and then divided into ε.
-#   At defaults it contributes 0.03% of total EOH (0.71 h/person·yr against
+#   At defaults it contributes 0.04% of total EOH (0.61 h/person·yr against
 #   personal's 1,301.6), so the ecological domain cannot move ε and the thermal
 #   obligation books at ~1.8 h/person·yr. Do not quote this domain's SHARE of
-#   total EOH until it is on an absolute footing. Either this is low by 2–3
-#   orders, or CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data
-#   settles it.
+#   total EOH until it is on an absolute footing.
+#   THE GAP IS NOW MEASURED, not just asserted (2026-08-15,
+#   scenarios/ecological_floor.py). Inverting the question — what stewardship
+#   intensity would a given EOH share require? — the anchor implies 0.37
+#   labour-hours per hectare per year across ALL land, every biome and condition
+#   class including cropland. Reaching a 5% share of total EOH needs 48.9
+#   h/ha·yr, a factor of 132x; a 1% share needs 9.4, a factor of 25x. So "low by
+#   2-3 orders" is not merely plausible, it is what the arithmetic requires.
+#   This still does NOT settle the level — no stewardship-hours census exists in
+#   this repo, and choosing a value to produce a target share would be the
+#   fitted-residual error the personal floor refuses. It states what a census
+#   would have to find. Run `eoh scenario run ecological_floor`.
 # resolves_by: a stewardship-hours census on an absolute footing — agency FTEs
-#   per hectare, or the GUF parcel inventory × measured crew-hours.
+#   per hectare, or the GUF parcel inventory × measured crew-hours. The intake
+#   path now exists: core/eoh_generation.ecological_statutory_floor() takes the
+#   census in physical units and excludes unpriced parcels rather than costing
+#   them at zero, and scenarios/ecological_floor.floor_from_census() reports the
+#   ratio against this anchor, which is the falsification.
 ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
+# tag: instance | units: hectares of land per person
+# supplied_by: the land area your collective is responsible for stewarding,
+#   divided by its population. Intake path: the GUF parcel inventory
+#   (land/collective.py) already carries area per parcel, so a collective that
+#   has run its GUF assessment has this figure without new survey work.
+# default: global land area excluding Antarctica (~1.34e10 ha) over a world
+#   population of ~8.1e9. A planetary average is the WRONG number for any actual
+#   collective — stewardship land per person varies by more than an order of
+#   magnitude between a city and a rangeland — and it is here only so
+#   scenarios/ecological_floor.py can state the inversion at a stated scale.
+LAND_HECTARES_PER_CAPITA: float = 1.65  # ha/person — the stewardship denominator
 # tag: placeholder | units: ecosystem health index ∈ [0,1]
 # form: physics — ecological regime shifts are established, so a threshold
 #   below which burden escalates nonlinearly is structural. Where 0.40 falls
@@ -1243,6 +1267,18 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   reconcile away. Still counted as debt, NOT retired: core/eoh_generation.py
 #   reads it, so it remains on the operative path even though nothing defaults
 #   to it any more.
+#   2026-08-15: THE LAST OPERATIVE DEFAULT IS NOW GONE. core/eoh_fulfillment
+#   .eoh_to_teh_pipeline was passing a bare 0.10 literal — an unbound COPY of
+#   this value, not a read of it — straight into total_eoh(), overriding the
+#   SKILL_TRANSMISSION_RATE default that knowledge_eoh() had already adopted.
+#   The pipeline was computing knowledge EOH 4× the direct path. That literal is
+#   now bound, so nothing computes anything from this constant; it survives only
+#   as the comparison BASELINE in knowledge_eoh_renewal_split() and the
+#   knowledge_base doctrine table. It still cannot be tagged `retired`, because
+#   the retirement gate scopes to core/land/scenarios and both of those readers
+#   are operative-layer — correctly: a retired constant core/ still reads is a
+#   second, older parameter running in parallel. Retiring it means moving the
+#   comparison out of core/, which is a tidy, not a calibration change.
 SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHOSEN — conflated; see skill_renewal_rate()
 
 # --- Block K-III: the renewal rate, split ----------------------------------
@@ -2072,14 +2108,34 @@ CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1�
 #   is not the operative reading in the adopted model and is retained for the
 #   §8.3 comparison.
 CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth rate per unit ε
-# tag: placeholder | units: fraction per year
-# form: the annual yield on automated capital, used to compute
-#   automated_output_teh = ε × capital_stock × yield.
-# resolves_by: 1/RECAL_CAPITAL_OUTPUT_RATIO − FORMATION_DEPRECIATION_RATE =
-#   0.20 is the same quantity derived elsewhere in this file, against 0.10
-#   here. A 2× disagreement between two capital-yield constants in one repo;
-#   they should be reconciled to one derivation.
-CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.10 # automated-capital annual yield rate assumption
+# tag: derived | units: fraction per year
+# form: gross return on automated capital, 1/ν − δ =
+#   1/RECAL_CAPITAL_OUTPUT_RATIO − FORMATION_DEPRECIATION_RATE = 0.25 − 0.05.
+#   Used as automated_output_teh = ε × capital_stock × yield. The same identity
+#   is already written out in FORMATION_DEPRECIATION_RATE's own block.
+#
+#   RECONCILED 2026-08-15 (0.10 → 0.20). The repo held two capital-yield figures
+#   2× apart; this one was the unexamined side. Measured blast radius before the
+#   change: NONE — the full suite passed except the provenance regeneration gate,
+#   nothing in recalibrated_arc moved, and machine_output_teh was unchanged
+#   because the §8.8 M3 replacement uses ε·total_eoh instead. Two of its three
+#   consumers (min_levy_for_pi, levy_schedule_for_chi) are SUPERSEDED by §8.9 and
+#   the third is research-tier and unpinned. It was 2× wrong and its wrongness
+#   never mattered, which is the finding.
+#
+#   BOUND BY TEST, NOT BY EXPRESSION — both inputs are defined BELOW this line,
+#   so a reference would be forward. Same treatment as GUF_ECO_KAPPA_CARBON;
+#   tests/test_recalibration.py::TestCapitalYieldIdentity fails if either side
+#   moves alone.
+#
+#   THIS ADDS NO EVIDENCE, AND SAYS SO. ν is `convention` and δ is `derived` from
+#   CAPITAL_MACHINE_PROFILES, which is a `placeholder` — so the identity is
+#   anchored only TRANSITIVELY, and a `derived` tag here inherits a placeholder
+#   two steps down. What the change buys is one fewer independent unknown and the
+#   removal of a 2× internal contradiction, not a better-grounded number. See
+#   notes/placeholder-inversion-audit.md on the transitive form of the
+#   anti-circularity rule.
+CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.20 # automated-capital annual yield rate = 1/ν − δ
 # tag: normative | units: years of federation tenure
 # form: linear vesting of the Trust dividend. Tenure is FEDERATION-wide
 #   (reconciliation §8.7b): moving between collectives never resets the clock

@@ -322,7 +322,19 @@ class TestEohToTehPipeline:
         # composite, so it drags it down slightly less. Same mechanism.
         # 0.253 → 0.228 with the 2026-08-10 knowledge re-anchor: the registration
         # composite is weighted by domain EOH and knowledge grew 1.397×.
-        assert mid == pytest.approx(0.228, abs=0.01)
+        #
+        # 0.228 → 0.358 on 2026-08-15 (author sign-off), and this one is a BUG
+        # FIX rather than a recalibration. This pipeline was passing a bare 0.10
+        # literal for skill_decay_rate into total_eoh(), overriding that
+        # function's own SKILL_TRANSMISSION_RATE (0.025) default, which Block
+        # K-III had already adopted. Knowledge EOH inside the pipeline was
+        # therefore 4× the value total_eoh() computes when called directly — the
+        # `arc` table printed its knowledge column from one path and teh_created
+        # from the other. Binding the literal shrinks knowledge 4× in the
+        # volume-weighted composite, so it drags LESS and the composite rises
+        # toward the labour curve. The mechanism this test documents is
+        # unchanged; only knowledge's weight in it moved.
+        assert mid == pytest.approx(0.358, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""

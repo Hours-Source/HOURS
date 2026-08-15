@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   deploy:
@@ -29,3 +30,49 @@ jobs:
 
       - name: Build and deploy
         run: mkdocs gh-deploy --force --clean
+
+      # A failed deploy is otherwise INAUDIBLE: the site simply stops advancing
+      # while main keeps moving, and nothing says so. That is how the published
+      # docs went 82 commits stale (2026-07-30 → 2026-08-10). CI now builds the
+      # docs strictly so this should never fire — if it does, something got past
+      # that check and the freeze must not be silent a second time.
+      #
+      # Reuses one open issue rather than filing a new one per failed run.
+      - name: Report a failed deploy
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Docs deploy is failing — the published site is frozen';
+            const url = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+                        `/actions/runs/${context.runId}`;
+            const body =
+              `The \`Deploy docs\` workflow failed, so **wiki.hoursframework.org is no ` +
+              `longer tracking \`main\`** and will stay frozen until this is fixed.\n\n` +
+              `Failed run: ${url}\nCommit: \`${context.sha}\`\n\n` +
+              `Most likely cause: \`mkdocs build --strict\` aborted on an unresolvable ` +
+              `link. Reproduce locally with \`mkdocs build --strict\`.`;
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Still failing.\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }

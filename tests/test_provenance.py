@@ -752,6 +752,92 @@ def test_live_prose_does_not_print_the_pre_reprice_derived_figures():
     assert not found, "stale derived figure(s) in live prose: " + "; ".join(found)
 
 
+def _domain_shares_at(epsilons: tuple[float, ...]) -> dict[float, dict[str, float]]:
+    """Domain shares of total EOH, via the same path `arc --domain-shares` prints.
+
+    Deliberately reuses ``utils.arc_cmd._sweep`` rather than recomputing. A second
+    implementation here could drift from the CLI, and then the test would be
+    checking the doc against a third number nobody sees.
+    """
+    from utils.arc_cmd import _sweep
+    from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+
+    population = 1_000_000.0
+    rows = _sweep(100, population, TRUST_BASE_TEH)
+    del CAPITAL_STOCK_DEFAULT  # documented as the sweep's own default
+
+    out: dict[float, dict[str, float]] = {}
+    for target in epsilons:
+        row = min(rows, key=lambda r: abs(r["epsilon"] - target))
+        total = row["total_eoh"] or 1.0
+        out[target] = {
+            "personal": row["personal_eoh"] / total,
+            "infrastructure": row["infra_eoh"] / total,
+            "knowledge": row["knowledge_eoh"] / total,
+            "ecological": row["eco_eoh"] / total,
+        }
+    return out
+
+
+def test_domain_balance_table_restates_the_shares_the_model_computes():
+    """The doc's Current table must equal what `arc --domain-shares` prints.
+
+    THIS IS THE TEST THAT WAS MISSING. On 2026-08-10 the table's ε=0.40 and
+    ε=0.99 columns were wrong (infrastructure and knowledge were also transposed
+    at the top of the arc), and the paragraph above it drew a FINDING from the
+    error — that the two moves "pulled in opposite directions" and personal's
+    share ended HIGHER at ε=0.99. It ended lower. Both moves cut it.
+
+    A value-equality check over `data.py` cannot see this: the shares are not
+    constants, they are computed products restated in a hand-written markdown
+    table. That is the residual the coverage gate explicitly does not close, and
+    here it produced an inverted conclusion rather than a stale number.
+
+    Tolerance is 1 percentage point — the doc quotes to 0.1pp, and this test
+    exists to catch a table that is wrong, not one rounded differently.
+    """
+    doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
+
+    marker = "### Current (post-K-IV, re-anchored twice to the ε_ref fixed point)"
+    assert marker in doc, (
+        "the Current domain-balance section was renamed — this test no longer "
+        "checks anything, so update the marker deliberately"
+    )
+    section = doc.split(marker, 1)[1].split("### ", 1)[0]
+
+    stated: dict[str, list[float]] = {}
+    for line in section.splitlines():
+        cells = [c.strip().strip("*").strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 4 and cells[0] in {
+            "personal", "infrastructure", "knowledge", "ecological"
+        }:
+            stated[cells[0]] = [
+                float("nan") if c.startswith("<") else float(c.rstrip("%"))
+                for c in cells[1:]
+            ]
+
+    assert set(stated) == {"personal", "infrastructure", "knowledge", "ecological"}, (
+        f"could not parse the Current table; got rows {sorted(stated)}"
+    )
+
+    computed = _domain_shares_at((0.0, 0.40, 0.99))
+    for domain, values in stated.items():
+        for col, target in enumerate((0.0, 0.40, 0.99)):
+            claimed = values[col]
+            actual = computed[target][domain] * 100.0
+            if claimed != claimed:  # "<0.1" cell — assert only that it IS small
+                assert actual < 0.1, (
+                    f"{domain} at ε={target} is {actual:.2f}%, but the doc says <0.1%"
+                )
+                continue
+            assert abs(claimed - actual) <= 1.0, (
+                f"{domain} at ε={target}: doc says {claimed:.1f}%, model computes "
+                f"{actual:.1f}%. Re-run `eoh arc --domain-shares --points 100` and "
+                f"update the table AND the prose above it — the prose draws a "
+                f"conclusion from these numbers."
+            )
+
+
 # --- the instance tag -------------------------------------------------------
 
 

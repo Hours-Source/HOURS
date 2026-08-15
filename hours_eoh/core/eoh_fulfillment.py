@@ -19,7 +19,9 @@ Mission Statement: §"EOH as demand signal", §"The dual ledger",
 from __future__ import annotations
 
 from hours_eoh.data import (
+    CAPITAL_STOCK_DEFAULT,
     CAPITAL_WRITEDOWN_MONITORING_SLOPE,
+    SKILL_TRANSMISSION_RATE,
 )
 
 
@@ -413,12 +415,21 @@ def eoh_to_teh_pipeline(
     epsilon: float,
     population: float = 1_000_000.0,
     age_distribution: dict | None = None,
-    capital_stock: float = 2_000_000_000.0,
+    capital_stock: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float = 1.0,
-    skill_decay_rate: float = 0.10,
+    # BOUND 2026-08-15 (author sign-off), was a bare `0.10` literal.
+    # `knowledge_eoh` migrated to SKILL_TRANSMISSION_RATE (0.025) in Block K-III,
+    # but this literal did not follow it and was passed straight into total_eoh(),
+    # OVERRIDING that default. The same repricing hazard as the `= 1500.0`
+    # defaults: a constant that does not propagate is not a single source of
+    # truth. Two paths therefore computed knowledge EOH 4× apart, and the `arc`
+    # table printed its knowledge/total columns from one and teh_created from the
+    # other. Binding it moves pipeline total 2.38× and teh_created 2.16× at
+    # ε=0.99 — see notes/placeholder-inversion-audit.md.
+    skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
     capital_eoh_eliminated: float = 0.0,
     capital_personal_eoh_fulfilled: float = 0.0,
     infrastructure_compounding_eoh: float = 0.0,

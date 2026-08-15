@@ -24,7 +24,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 
   Measured inputs (the measurement spine):
     measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
-    personal_floor  food_conservation
+    personal_floor  food_conservation  ecological_floor
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -72,6 +72,7 @@ import sys
 from hours_eoh.data import H_REF
 from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
+from hours_eoh.data import LAND_HECTARES_PER_CAPITA
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 
 _SCENARIOS: dict[str, str] = {
@@ -101,6 +102,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
+    "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     "food_conservation":   "conservation_test() — did automation eliminate food labour, or relocate it? stage by stage  [--atus-year]",
@@ -139,6 +141,12 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        help="Automation level (default: 0.40)")
     run_p.add_argument("--population", type=float, default=1_000_000.0,
                        help="Population (default: 1 000 000)")
+    run_p.add_argument("--hectares-per-capita", type=float,
+                       default=LAND_HECTARES_PER_CAPITA, metavar="HA",
+                       help=(f"Stewarded land per person, ha (ecological_floor; "
+                             f"default: {LAND_HECTARES_PER_CAPITA} — a PLANETARY "
+                             f"average, wrong for any actual collective; supply "
+                             f"your own)"))
 
     # Trajectory params
     run_p.add_argument("--periods", type=int, default=20,
@@ -464,6 +472,29 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "infra_floor":
         from hours_eoh.scenarios.infrastructure_floor import doctrine_floor_invariance
         return doctrine_floor_invariance()
+
+    if name == "ecological_floor":
+        from hours_eoh.scenarios.ecological_floor import domain_balance_report
+        rep = domain_balance_report(
+            epsilon=args.epsilon,
+            hectares_per_capita=args.hectares_per_capita,
+        )
+        cur = rep["current"]
+        eco_out: dict = {
+            "epsilon": rep["epsilon"],
+            "hectares_per_capita": rep["hectares_per_capita"],
+            "ecological_share": cur["ecological_share"],
+            "ecological_h_per_capita": cur["ecological_h_per_capita"],
+            "implied_hours_per_hectare_year": cur["hours_per_hectare_year"],
+        }
+        for row in rep["requirements"]:
+            key = f"required_h_per_ha_at_{row['target_share'] * 100:.0f}pc_share"
+            eco_out[key] = row["required_hours_per_hectare_year"]
+            eco_out[f"shortfall_factor_at_{row['target_share'] * 100:.0f}pc"] = (
+                row["shortfall_factor"]
+            )
+        eco_out["verdict"] = rep["verdict"]
+        return eco_out
 
     if name == "knowledge_base":
         from hours_eoh.scenarios.knowledge_base import (

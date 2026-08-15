@@ -48,3 +48,31 @@ jobs:
 
       - name: Run mypy
         run: python -m mypy hours_eoh/
+
+  docs:
+    name: Docs build (strict)
+    runs-on: ubuntu-latest
+
+    # WHY THIS JOB EXISTS. deploy.yml runs `mkdocs gh-deploy` on push to main
+    # with `strict: true`, so any unresolvable link ABORTS the deploy — and a
+    # strict-mode abort looks exactly like "nothing to do". Between 2026-07-30
+    # and 2026-08-10 that silently froze the published site 82 commits behind
+    # main while every other check stayed green.
+    #
+    # Building here means the breakage fails on the PR that introduces it,
+    # instead of being discovered by a reader months later.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install doc dependencies
+        run: pip install -e ".[docs]"
+
+      - name: Build docs strictly
+        run: mkdocs build --strict

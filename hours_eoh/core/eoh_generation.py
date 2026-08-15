@@ -29,7 +29,8 @@ from typing import TypedDict
 from hours_eoh.data import (
     AGE_GROUPS, ESSENTIAL_DOMAINS,
     PERSONAL_EOH_BASE, PERSONAL_EOH_SURVIVAL, PERSONAL_EOH_SUFFICIENCY,
-    ECOLOGICAL_BASE_RATE, KNOWLEDGE_EOH_BASE,
+    CAPITAL_STOCK_DEFAULT, ECOLOGICAL_BASE_RATE, ECOLOGICAL_THRESHOLD,
+    INFRA_MAINT_RATE, KNOWLEDGE_EOH_BASE,
     KNOWLEDGE_EPS_EXPONENT, KNOWLEDGE_REFERENCE_POPULATION, SKILL_DECAY_RATE,
     SKILL_TRANSMISSION_RATE, SKILL_CPD_RATE,
     PERSONAL_EOH_COMPONENTS, ABATEMENT_HALF_CAPITAL_TEH,
@@ -440,6 +441,125 @@ REASON_UNMEASURED: str = "unmeasured"            # a path may exist; nobody cost
 REASON_BELOW_MIN_EPSILON: str = "below_min_epsilon"  # no path at this automation level
 
 
+def ecological_statutory_floor(land_census: list[dict]) -> dict:
+    """
+    Task-normative ecological EOH floor from a physical land census — currency-free.
+
+    Governing equation:
+
+        floor = Σ_parcel  area_hectares · hours_per_hectare_year
+
+    The third and last of the currency-free floors, after
+    `infrastructure_statutory_floor` (condition census × treatment hours) and
+    `personal_statutory_floor` (physical basket × delivery productivity). Same
+    determinacy property: flipping a physical knob moves this floor, flipping an
+    accounting convention does not, because there is none.
+
+    WHY THIS EXISTS — THE DOMAIN-BALANCE DEFECT
+    -------------------------------------------
+    `ECOLOGICAL_BASE_RATE` is documented as a RELATIVE anchor — it "does not
+    represent an absolute ecosystem-specific count" — but `total_eoh()` sums it
+    with absolute counts and then divides the result into ε. At defaults the
+    ecological domain lands at **0.6 h/person·yr, under 0.1% of total EOH**, so
+    it cannot move ε and the thermal obligation it carries books at roughly one
+    part in a thousand of the ledger.
+
+    This function is the absolute footing that constant's `resolves_by` names. It
+    does NOT set the number: no stewardship-hours census exists in this repo, and
+    inventing one would be the fitted-residual error the personal floor was built
+    to avoid. What it does is make the domain **measurable**, so that a census —
+    agency FTEs per hectare, or the GUF parcel inventory × measured crew-hours —
+    can retire the anchor when one arrives.
+
+    UNPRICED IS EXCLUDED, NOT ZERO. A parcel whose `hours_per_hectare_year` is
+    None has no costed stewardship path; it is owed and unquantified. Such
+    parcels are returned in `unpriced` WITH their area, and excluded from
+    `floor_hours` rather than contributing zero — the same load-bearing behaviour
+    as the personal floor, for the same reason. `coverage` is the fraction of
+    censused AREA that is priced, and a caller adding `floor_hours` to anything
+    must read it first.
+
+    units: hours/year (absolute, not per capita — divide by population yourself).
+    ε-behavior: none. Stewardship burden is a property of the land and its
+    condition, not of the automation level; ε enters fulfilment, not this
+    generation floor.
+
+    Worked example (a 1M-person collective, 1.86 ha/person of land):
+        [{"biome": "cropland",  "area_hectares": 5.0e5, "hours_per_hectare_year": 12.0},
+         {"biome": "managed_forest", "area_hectares": 4.0e5, "hours_per_hectare_year": 1.5},
+         {"biome": "wilderness", "area_hectares": 9.6e5, "hours_per_hectare_year": None}]
+        floor_hours = 5.0e5·12.0 + 4.0e5·1.5 = 6.6e6 h/yr
+        coverage    = 9.0e5 / 1.86e6 = 0.484
+        → 6.6 h/person·yr over the priced 48.4% of area, against the relative
+          anchor's 0.6 h/person·yr over ALL of it. The gap is the finding.
+
+    Args:
+        land_census: list of parcels, each a dict with keys
+            "area_hectares" (float ≥ 0) and "hours_per_hectare_year"
+            (float ≥ 0, or None for "no costed stewardship path").
+            OPTIONAL: "biome" (str) — carried through to the returned records
+            so an unpriced parcel can be named in a report.
+
+    Returns:
+        dict with keys:
+            "floor_hours"   float  — Σ over PRICED parcels only (hours/year)
+            "area_total"    float  — all censused area (hectares)
+            "area_priced"   float  — area with a costed path (hectares)
+            "coverage"      float  — area_priced / area_total, 0.0 if no area
+            "unpriced"      list   — [{"biome", "area_hectares"}, ...]
+            "mean_hours_per_hectare" float — floor_hours / area_priced, 0.0 if none
+
+    Raises:
+        ValueError: if a parcel is missing "area_hectares", or any area or
+            hours value is negative.
+
+    Reference: reconciliation §9 (domain balance); the infrastructure floor's
+    determinacy result (scenarios/infrastructure_floor.py, doctrine spread 1.000).
+    """
+    floor_hours = 0.0
+    area_total = 0.0
+    area_priced = 0.0
+    unpriced: list[dict] = []
+
+    for i, parcel in enumerate(land_census):
+        try:
+            area = float(parcel["area_hectares"])
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                f"land census parcel {i} needs 'area_hectares': {parcel!r}"
+            ) from exc
+        if area < 0.0:
+            raise ValueError(f"land census parcel {i} has negative area: {parcel!r}")
+
+        area_total += area
+        hph = parcel.get("hours_per_hectare_year")
+
+        if hph is None:
+            unpriced.append({
+                "biome": parcel.get("biome", f"parcel_{i}"),
+                "area_hectares": area,
+            })
+            continue
+
+        hph = float(hph)
+        if hph < 0.0:
+            raise ValueError(f"land census parcel {i} has negative hours: {parcel!r}")
+
+        floor_hours += area * hph
+        area_priced += area
+
+    return {
+        "floor_hours": floor_hours,
+        "area_total": area_total,
+        "area_priced": area_priced,
+        "coverage": (area_priced / area_total) if area_total > 0.0 else 0.0,
+        "unpriced": unpriced,
+        "mean_hours_per_hectare": (
+            floor_hours / area_priced if area_priced > 0.0 else 0.0
+        ),
+    }
+
+
 class PersonalFloor(TypedDict):
     """The return of personal_statutory_floor(). `coverage` governs the rest."""
 
@@ -711,7 +831,7 @@ def ecological_eoh(
     ecosystem_health: float,
     epsilon: float | None = None,
     base_rate: float = ECOLOGICAL_BASE_RATE,
-    threshold: float = 0.40,
+    threshold: float = ECOLOGICAL_THRESHOLD,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
     thermal_obligation: float = 0.0,
@@ -1104,7 +1224,7 @@ def ecological_eoh_breakdown(
     ecosystem_health: float,
     epsilon: float | None = None,
     base_rate: float = ECOLOGICAL_BASE_RATE,
-    threshold: float = 0.40,
+    threshold: float = ECOLOGICAL_THRESHOLD,
     deferred: float = 0.0,
     monitoring_capability: float | None = None,
     thermal_obligation: float = 0.0,
@@ -1179,7 +1299,7 @@ def total_eoh(
     epsilon: float | None = None,
     population: float = 1_000_000.0,
     age_distribution: dict[str, float] | None = None,
-    capital_stock: float = 2_000_000_000.0,
+    capital_stock: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
@@ -1188,8 +1308,8 @@ def total_eoh(
     # Per-domain base rates — allow override for calibration sweeps
     personal_base: float = PERSONAL_EOH_BASE,
     personal_standard: str | None = None,
-    infra_maint_rate: float = 0.025,
-    ecological_base: float = 500_000.0,
+    infra_maint_rate: float = INFRA_MAINT_RATE,
+    ecological_base: float = ECOLOGICAL_BASE_RATE,
     ecological_threshold: float = 0.40,
     knowledge_base: float = KNOWLEDGE_EOH_BASE,
     knowledge_exponent: float = KNOWLEDGE_EPS_EXPONENT,
@@ -1507,7 +1627,7 @@ def epsilon_delta_sensitivity(
     base_epsilon: float,
     delta_epsilon: float,
     population: float = 1_000_000.0,
-    capital_stock: float = 2_000_000_000.0,
+    capital_stock: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     knowledge_complexity: float = 1.0,

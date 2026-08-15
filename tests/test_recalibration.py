@@ -114,6 +114,76 @@ class TestPhiActual:
                 for e in [0.0, 0.2, 0.4, 0.6, 0.8, 0.99]]
         assert all(b >= a - 1e-12 for a, b in zip(phis, phis[1:]))
 
+    def test_capital_yield_is_the_gross_return_identity(self):
+        """CONTESTABILITY_CAPITAL_YIELD_RATE = 1/ν − δ, held against drift.
+
+        Bound by test rather than expression because both inputs are defined
+        BELOW it in data.py — a reference would be forward. Same treatment as
+        GUF_ECO_KAPPA_CARBON / CDR_LABOR_HOURS_PER_TONNE.
+
+        The repo shipped 0.10 against an identity giving 0.20 for the same
+        quantity, and nothing detected it: two of the three consumers are
+        SUPERSEDED by §8.9 and the third is research-tier and unpinned. This test
+        is the detector that was missing. It fails if EITHER side moves alone.
+        """
+        from hours_eoh.data import (
+            CONTESTABILITY_CAPITAL_YIELD_RATE,
+            FORMATION_DEPRECIATION_RATE,
+            RECAL_CAPITAL_OUTPUT_RATIO,
+        )
+        identity = 1.0 / RECAL_CAPITAL_OUTPUT_RATIO - FORMATION_DEPRECIATION_RATE
+        assert CONTESTABILITY_CAPITAL_YIELD_RATE == pytest.approx(identity), (
+            "the capital-yield constant and the 1/ν − δ identity have diverged; "
+            "reconcile them to one derivation rather than shipping both"
+        )
+
+    def test_dilution_pays_MORE_than_target_despite_the_smaller_share(self):
+        """The doctrine trade-off, pinned by its SIGN — which has already flipped once.
+
+        §8.9b recorded the cost of no-forced-sales as a dividend "≈13% below the
+        purchase model". At the constants of 2026-08-15 the ordering is the other
+        way: dilution pays ≈13% ABOVE target at ε=0.99 (2,155 vs 1,906). Same
+        magnitude, inverted sign, and it holds from ε≈0.05 to the top of the arc.
+
+        The mechanism is not subtle once looked at. Target buys its share, so
+        acquisition consumes commons income before anything is distributed;
+        dilution's share attaches to NEW capital at commissioning and costs
+        nothing, so its whole income is distributable. Target ends with the
+        larger base (φ 0.987 vs 0.771) and the smaller payout.
+
+            dilution  income 2.155e9, reinvestment 0        → 2,154.6 / capita
+            target    income 2.758e9, reinvestment 8.517e8  → 1,906.4 / capita
+
+        Nothing pinned this. TestPhiActual pins the φ ordering, which never
+        moved, while the DIVIDEND ordering — the thing the doctrine argument
+        actually turns on — flipped silently when PERSONAL_EOH_BASE, the
+        knowledge re-anchor and AGE_GROUPS moved the machine-output base.
+
+        This test asserts the sign, not the levels: the levels are calibration
+        and will move again. If it fails, the doctrine claim in
+        notes/contestability-closure-proposal.md §8.9b needs rewriting, which is
+        the point.
+        """
+        d = recalibrated_arc(phi_policy="dilution")
+        t = recalibrated_arc(phi_policy="target")
+
+        top_d, top_t = d[-1], t[-1]
+
+        # The share ordering is the one that did NOT flip.
+        assert top_d["phi"] < top_t["phi"], "dilution must still cap below target"
+
+        # The dividend ordering is the one that did.
+        assert top_d["dividend_per_capita"] > top_t["dividend_per_capita"]
+
+        # And the mechanism: target pays for its share, dilution does not.
+        assert top_t["reinvestment"] > 0.0
+        assert top_d["reinvestment"] == pytest.approx(0.0)
+
+        # Holds across the arc, not only at the endpoint.
+        upper = [(a, b) for a, b in zip(d, t) if a["epsilon"] >= 0.10]
+        assert all(a["dividend_per_capita"] >= b["dividend_per_capita"]
+                   for a, b in upper)
+
     def test_escalated_point_level_equals_dilution(self):
         # Escalation mechanics are path-dependent (recalibrated_arc);
         # the point function documents the static approximation.

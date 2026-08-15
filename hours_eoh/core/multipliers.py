@@ -6,9 +6,36 @@ The underlying math is identical; the framing updates. The multiplier now
 explicitly measures entropy-reduction leverage: how many EOH does one hour
 of this person's labor address across any of the four domains?
 
+THE MULTIPLIER SETS THE FLOOR WAGE RATE, NOT THE UNIVERSAL PRICE
+----------------------------------------------------------------
+This is the price-as-floor reframing (reconciliation §3, workstream C, author
+sign-off 2026-08-15) and it changes what this module is answerable for.
+
+The multiplier prices the base rate at which the collective guarantees to pay
+for fulfilling a registered entropy obligation. It does NOT set the economy-wide
+price of that labor; discovery does, above the floor, via the `market_premium`
+seam in core/prices.floor_price().
+
+Why this matters more than a docstring usually does: the skill differential is
+the wound that killed Owen's National Equitable Labour Exchange in 1834, and the
+limit time banking survives by refusing to touch (docs/theory/prior_art.md).
+Owen's promoters had to set THE price of a skilled hour against an unskilled one
+and could not. This module does not carry that burden. A floor need only be
+FAIR ENOUGH — wrong by a little means someone is briefly underpaid at the floor
+and takes the premium instead, not that the economy misprices the trade. Much of
+the measurement burden the working paper's §4.2 assumed dissolves with it.
+
 Condition II: The population-weighted average multiplier must remain within
 the band [1.8, 2.1] with a target of 2.1. Individual multipliers may extend
 to M_MAX=6.0 for rare specializations.
+
+That band is a CONSTITUTIONAL commitment, not a measurement — `M_BAND_LOW`,
+`M_BAND_HIGH`, `M_BAND_TARGET` and `M_MAX` are all tagged `normative` in data.py,
+with `decided_by` naming a charter rather than a `resolves_by` naming evidence.
+They previously claimed `Physics`, justified by an argument about fairness
+between labor tiers, which is an argument about legitimacy and not about entropy.
+The strongest reason to hold the band is that it was decided; there is no reason
+to call it physics.
 
 Mission Statement: §"Condition II — Multiplier Band", §"Principle 4 — The
 multiplier measures entropy-reduction leverage", §"The four-factor assessment

@@ -242,6 +242,7 @@ $ python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 
 | `measured_sim` | Simulation with Condition II sourced from the measured O\*NET/BLS registry |
 | `multiplier_sensitivity` | Multiplier robustness under weight perturbation and Monte Carlo |
 | `infra_floor` | Currency-free statutory floor vs the monetized path (doctrine invariance) |
+| `ecological_floor` | The ecological anchor inverted — what stewardship intensity a given EOH share demands |
 | `knowledge_base` | `KNOWLEDGE_EOH_BASE` from the measured O\*NET training stock, and its ε_ref fixed point |
 | `personal_floor` | Task-normative personal floor vs measured ATUS hours — REPORTING ONLY |
 | `food_conservation` | Did automation eliminate food labour, or relocate it? Stage by stage |
