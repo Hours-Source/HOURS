@@ -101,8 +101,14 @@ def epsilon_scaling(epsilon: float) -> float:
 
     Boundary guarantees:
       Ψ(0)    ≈ GUF_PSI_FLOOR  (= 0.02)
-      Ψ(0.40) ≈ 1.04           (near-unity; calibration reference point)
-      Ψ(0.99) ≈ 0.036          (< 0.05 × Ψ(0.40); post-scarcity floor satisfied)
+      Ψ(0.40) =  1.00          (the peak, exactly; ε* = a/(a+b) = 0.40)
+      Ψ(0.99) ≈ 0.035          (< 0.05 × Ψ(0.40); post-scarcity floor satisfied)
+
+    The peak was 1.061 until 2026-08-15: GUF_PSI_NORM was PINNED at 4.0 while
+    claiming to normalize the curve to 1.0. It is now derived from a, b and the
+    floor, so it tracks them. The fee curve fell ≈5.7% across the productive arc
+    and no test noticed — tests/land/test_calibration.py::TestPsiNormalization
+    is the pin that was missing.
 
     Args:
         epsilon: Automation level [0.0, 0.99].

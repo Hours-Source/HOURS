@@ -57,6 +57,43 @@ the count there reads nine rather than seven:
   ideal-arc *reference*, and calling it `measured` or `placeholder` would both be
   category errors.
 
+### `band_from:` — claiming an anchored derivation, and the transitive gate
+
+Three operations can settle a constant, not two: **measure it** (`measured`),
+**decide it** (`normative`), or **derive a constraint from the model's own
+structure plus other constants**. The scheme named the results of the third but
+never the operation — even though the two best-grounded constants here got their
+bands that way. `PERSONAL_EOH_BASE`'s band is `(L−R)/w` and `(M+H−R)/w`, neither
+a direct measurement of B; `AGE_WEIGHT_INFANT`'s is a one-sided `≥ 2.55`.
+
+**`band_from:` names the constants such a derivation rests on, and it is
+gated.** No named ancestor may be a `placeholder` — **transitively**. A band
+resting on an unmeasured input launders a guess into evidence.
+
+**The one-level check is not enough, and that is not hypothetical.** `derived`
+inherits its authority from what lies beneath it, so a `derived` input can bottom
+out on a placeholder two or three steps down. Both anchored-inversion candidates
+examined on 2026-08-15 had exactly that shape:
+
+```
+CONTESTABILITY_CAPITAL_YIELD_RATE
+  ← FORMATION_DEPRECIATION_RATE   (derived)
+    ← CAPITAL_MACHINE_PROFILES    (PLACEHOLDER)
+
+ECOLOGICAL_BASE_RATE  ← the thermal drawdown chain
+    ← CDR_GROSS_REMOVAL_FACTOR    (PLACEHOLDER)
+```
+
+A one-level check passes both. Hand-tracing caught them, and the gate is that
+trace in code.
+
+**`band_from:` is opt-in, and its absence is not a gap.** It means *"I claim this
+derivation is anchored."* A constant genuinely derived from a placeholder should
+say so in `form:`/`resolves_by:` and omit the field — which is what
+`FORMATION_DEPRECIATION_RATE` already does (*"it inherits CAPITAL_MACHINE_PROFILES'
+standing, which is CHOSEN"*). No constant in `data.py` currently claims an
+anchored band, and that is the honest position rather than an omission.
+
 > **Why `instance` was split out of `placeholder` (2026-08-09).** Same category
 > error as `normative`, in a different direction. `TRUST_BASE_TEH` and
 > `CAPITAL_STOCK_DEFAULT` are the two most-consumed constants in the repo — 77 and
@@ -1283,7 +1320,7 @@ anonymous literals in `eoh_fulfillment.py` and `simulation.py`.
 |---|---|---|---|---|
 | `CAPITAL_FAILURE_RATE` | 0.005 | fraction of capital stock per year | placeholder<br>form: catastrophic failure beyond recoverability, triggering D1 write-down. | observed catastrophic-failure rates by asset class. Insurance and asset-registry loss data measure this directly; ASSET_TYPES in this file already carries per-class threshold ages, so a measured pass should produce a per-class rate rather than one economy-wide 0.5%. |
 | `CAPITAL_WRITEDOWN_MONITORING_SLOPE` | 0.3 | fraction of the failure rate removable at ε=1 | placeholder<br>form: better monitoring at high ε reduces catastrophic failure — structurally right in direction (detected degradation is repairable degradation), asserted in magnitude. | measured failure-rate reduction attributable to condition monitoring. Note this shares the framework's monitoring-eyesight assumption with ENV_MONITORING_SATURATION_TEH_PER_CAPITA and neither is measured. |
-| `LABOR_INCOME_MIN_TEH` | 100000000.0 | TEH per period (at the 1M reference population) | placeholder<br>form: a numerical guard, not an economic claim — it keeps period labour income from reaching zero and producing division-by-zero at high ε, which the ε-coherence rule requires every function to survive. | n/a as a floor; it should ideally be derived from WORKFORCE_FRACTION_MIN × H_REF × the mean multiplier rather than pinned, which would make the guard consistent with the quantities it guards. |
+| `LABOR_INCOME_MIN_TEH` | 100000000.0 | TEH per period (at the 1M reference population) | convention<br>form: a numerical guard, not an economic claim — it keeps period labour income from reaching zero and producing division-by-zero at high ε, which the ε-coherence rule requires every function to survive. | — |
 | `WORKFORCE_FRACTION_MIN` | 0.05 | fraction of population in the workforce | placeholder<br>form: the minimum workforce retained at any automation level. Structural in direction — full automation still needs someone, which Condition IV asserts as distributed competency — and asserted in level. | the minimum staffing that holds ESSENTIAL_DOMAINS above COMPETENCY_THRESHOLD; that makes it derivable from two other constants in this file rather than independent, and it is currently set independently of both. |
 | `ANNUAL_DEATH_RATE` | 0.01 | fraction of population per year | bounded<br>form: crude death rate. EXOGENOUS — nothing in the model links mortality to the deferred personal-EOH deficit that core/eoh_fulfillment.py now tracks, so a severe unserved survival obligation and this rate are independent. That is a known limit, stated because the deficit reports HOURS, not outcomes. | **band** ≈0.007–0.011 per year across developed-world crude death rates (UN WPP / national vital statistics)<br>**errs** NEITHER. Near the top of the band, and directly measurable — one of the cheapest debts in this file to close. The real limit is not the value: mortality is EXOGENOUS, and nothing links it to the deferred personal-EOH deficit the fulfillment layer now tracks.<br>national vital statistics or UN WPP for the jurisdiction being modelled. 1%/yr is a plausible developed-world crude rate and directly measurable, making this one of the cheaper CHOSEN debts to close. |
 | `ESTATE_INHERITANCE_FRACTION` | 0.35 | fraction of the excess above reserve | normative<br>form: the D5 split on death — inherited (circulatory), levied to Trust (circulatory), and the remainder written down. Note the three shares are a distributional design, and RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE deliberately reuses the 0.15 levy fraction so capital estates get the same treatment as TEH estates rather than a new rule. | **decided by** a charter decision on inheritance. There is no measurement of what fraction of an estate SHOULD pass to heirs; comparative inheritance-tax schedules give precedent for the range, not the value.<br>_no measurement settles this_ |
@@ -1379,7 +1416,7 @@ absent from this document.
 | `GUF_PSI_A` | 0.8 | dimensionless | placeholder<br>form: NLSA Eq. 18 — the framework's own claim that land's labour-content cost peaks mid-arc and is low at both extremes. | a ground-fee-vs-automation panel across jurisdictions at differing automation levels. Nothing in the repo constrains the rise and fall speeds independently of one another, so sweep them jointly until it does. |
 | `GUF_PSI_B` | 1.2 | dimensionless | placeholder<br>form: NLSA Eq. 18 — the framework's own claim that land's labour-content cost peaks mid-arc and is low at both extremes. | a ground-fee-vs-automation panel across jurisdictions at differing automation levels. Nothing in the repo constrains the rise and fall speeds independently of one another, so sweep them jointly until it does. |
 | `GUF_PSI_FLOOR` | 0.02 | fraction of the reference fee | placeholder | the lowest ground-use fee observed in a highly-automated jurisdiction that still levies one. The floor asserts the fee never reaches zero, which is a policy commitment awaiting an observed analogue. |
-| `GUF_PSI_NORM` | 4.0 | dimensionless | placeholder<br>form: derived — the normalization that puts Ψ's peak at ≈1.0 given a+b≈2.0. It is PINNED here rather than computed, so it goes stale if either speed moves. | computing it from GUF_PSI_A/GUF_PSI_B instead of pinning it. The debt here is in the wiring, not in the data — no measurement is owed. |
+| `GUF_PSI_NORM` | 3.76527397188 | dimensionless | derived<br>form: the normalization that puts Ψ's peak at exactly 1.0. Ψ(ε) = N·ε^a·(1−ε)^b + floor peaks at ε* = a/(a+b), so N = (1 − floor) / (ε*^a · (1−ε*)^b). It now MOVES when a, b or the floor move, which is the whole point — it was pinned, and a pinned normalization of two live parameters is a stale value waiting to happen. | — |
 | `GUF_ALPHA_ZETA` | 0.8 | dimensionless | placeholder<br>form: NLSA Eq. 19–20 — labour content declines with automation to an irreducible human-judgment floor. | measured labour-hours per parcel-administration task against an automation index. The O*NET/BLS spine already shipped in reference/data/ covers the occupations but has never been cut to land administration. |
 | `GUF_ALPHA_FLOOR` | 0.05 | dimensionless | placeholder<br>form: NLSA Eq. 19–20 — labour content declines with automation to an irreducible human-judgment floor. | measured labour-hours per parcel-administration task against an automation index. The O*NET/BLS spine already shipped in reference/data/ covers the occupations but has never been cut to land administration. |
 | `GUF_LVI_W_CENTRALITY` | 0.35 | fraction | instance<br>form: NLSA Eq. 3 — the four weights are constrained to sum to 1.0. The split between them is constrained by nothing. | **you supply** a hedonic regression of parcel transaction values on the four sub-indices FOR YOUR JURISDICTION. These weights ARE that regression's coefficients, so this is a well-defined study rather than an aspiration — it is the standard land-valuation method. Land value is local by construction: no national or global figure substitutes.<br>**shipped default** an even-handed split (0.35/0.30/0.20/0.15) summing to 1.0, standing in for a regression nobody has run here. The ORDER encodes a claim (centrality dominates, natural amenity least) that your own regression may invert. |

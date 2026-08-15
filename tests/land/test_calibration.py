@@ -163,3 +163,45 @@ def test_lvi_sensitivity_variant_keys(lvi_parcels):
     for key in ("weights", "guf_aggregate", "guf_net_inflow", "guf_by_parcel_mean",
                 "guf_by_parcel_std", "psi"):
         assert key in v
+
+
+class TestPsiNormalization:
+    """The GUF fee curve's peak — previously unpinned, and wrong.
+
+    `GUF_PSI_NORM` was pinned at 4.0 while its own `form:` claimed it "puts Ψ's
+    peak at ≈1.0". The actual peak was 1.061. Deriving it moved the whole fee
+    curve −5.7% across the productive arc and NOT ONE TEST FAILED, which is why
+    these exist: a normalization of two live parameters must not be a literal,
+    and the property it normalizes must be asserted somewhere.
+    """
+
+    def test_psi_peaks_at_exactly_one(self):
+        from hours_eoh.data import GUF_PSI_A, GUF_PSI_B
+        from hours_eoh.land.guf import epsilon_scaling
+
+        peak_epsilon = GUF_PSI_A / (GUF_PSI_A + GUF_PSI_B)
+        assert epsilon_scaling(peak_epsilon) == pytest.approx(1.0, abs=1e-9)
+
+    def test_the_peak_is_where_the_kernel_says_it_is(self):
+        """ε* = a/(a+b), checked against a scan rather than assumed."""
+        from hours_eoh.data import GUF_PSI_A, GUF_PSI_B
+        from hours_eoh.land.guf import epsilon_scaling
+
+        scan = [(e / 1000.0, epsilon_scaling(e / 1000.0)) for e in range(1, 1000)]
+        arg_max = max(scan, key=lambda p: p[1])[0]
+        assert arg_max == pytest.approx(
+            GUF_PSI_A / (GUF_PSI_A + GUF_PSI_B), abs=2e-3
+        )
+
+    def test_the_norm_tracks_its_inputs_rather_than_being_pinned(self):
+        """Change a speed and the normalization must follow, or Ψ stops peaking at 1."""
+        from hours_eoh.data import GUF_PSI_FLOOR
+
+        def norm(a: float, b: float) -> float:
+            peak = a / (a + b)
+            return (1.0 - GUF_PSI_FLOOR) / (peak**a * (1.0 - peak) ** b)
+
+        for a, b in ((0.8, 1.2), (1.0, 1.0), (0.5, 1.5)):
+            peak = a / (a + b)
+            psi_peak = norm(a, b) * peak**a * (1.0 - peak) ** b + GUF_PSI_FLOOR
+            assert psi_peak == pytest.approx(1.0, abs=1e-9)

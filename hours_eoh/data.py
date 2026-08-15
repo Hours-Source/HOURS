@@ -1405,13 +1405,24 @@ CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing
 #   assumption with ENV_MONITORING_SATURATION_TEH_PER_CAPITA and neither is
 #   measured.
 CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction at ε=1 from better monitoring
-# tag: placeholder | units: TEH per period (at the 1M reference population)
+# tag: convention | units: TEH per period (at the 1M reference population)
 # form: a numerical guard, not an economic claim — it keeps period labour
 #   income from reaching zero and producing division-by-zero at high ε, which
 #   the ε-coherence rule requires every function to survive.
-# resolves_by: n/a as a floor; it should ideally be derived from
-#   WORKFORCE_FRACTION_MIN × H_REF × the mean multiplier rather than pinned,
-#   which would make the guard consistent with the quantities it guards.
+#
+#   RETAGGED 2026-08-15, was `placeholder` with `resolves_by: n/a`. That was a
+#   contradiction in the scheme's own terms: `placeholder` means measurement is
+#   owed and REQUIRES naming what would settle it, and this constant's own form
+#   says no economic claim is being made. A guard against division by zero is a
+#   stated frame, not a fact about the world — no dataset settles where to put
+#   it, so filing it as measurement debt overstated the framework's ignorance in
+#   exactly the way the `normative` and `instance` splits were made to prevent.
+#
+#   It could still be made CONSISTENT with what it guards — WORKFORCE_FRACTION_MIN
+#   × H_REF × mean multiplier — which is a tidy worth doing, but the chain runs
+#   through WORKFORCE_FRACTION_MIN and COMPETENCY_THRESHOLD, both placeholders,
+#   so deriving it would import unmeasured inputs into a guard that does not need
+#   them. Left as a declared convention rather than dressed as a derivation.
 LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # hard floor on period labor income (100M TEH)
 # tag: placeholder | units: fraction of population in the workforce
 # form: the minimum workforce retained at any automation level. Structural in
@@ -1703,13 +1714,29 @@ GUF_PSI_B:     float = 1.2   # fall speed toward ε=1 (higher b = faster fall)
 #   jurisdiction that still levies one. The floor asserts the fee never
 #   reaches zero, which is a policy commitment awaiting an observed analogue.
 GUF_PSI_FLOOR: float = 0.02  # irreducible floor; fee never reaches absolute zero
-# tag: placeholder | units: dimensionless
-# form: derived — the normalization that puts Ψ's peak at ≈1.0 given a+b≈2.0.
-#   It is PINNED here rather than computed, so it goes stale if either speed
-#   moves.
-# resolves_by: computing it from GUF_PSI_A/GUF_PSI_B instead of pinning it.
-#   The debt here is in the wiring, not in the data — no measurement is owed.
-GUF_PSI_NORM:  float = 4.0   # normalizing constant; peak ≈ 1.0 when a+b≈2.0
+# tag: derived | units: dimensionless
+# form: the normalization that puts Ψ's peak at exactly 1.0. Ψ(ε) =
+#   N·ε^a·(1−ε)^b + floor peaks at ε* = a/(a+b), so N = (1 − floor) / (ε*^a ·
+#   (1−ε*)^b). It now MOVES when a, b or the floor move, which is the whole
+#   point — it was pinned, and a pinned normalization of two live parameters is
+#   a stale value waiting to happen.
+#
+#   COMPUTED 2026-08-15, was pinned at 4.0. Its own form claimed "peak ≈ 1.0";
+#   at 4.0 the actual peak was **1.061**, a 6% overshoot of the constant's
+#   stated purpose. The derived value is 3.765274. Effect on the fee curve is a
+#   near-uniform **−5.7%** across the productive arc (−5.73% at ε=0.20, −5.76%
+#   at 0.40, −5.64% at 0.80), tapering to −2.6% at ε=0.99 where the floor
+#   dominates. NO TEST MOVED, which is the second finding: the peak of the GUF
+#   fee curve was entirely unpinned. tests/land/test_calibration.py now pins it.
+#
+#   No measurement was ever owed here — the debt was in the wiring, and this is
+#   the wiring. It is `derived`, not `bounded`: it inherits GUF_PSI_A and
+#   GUF_PSI_B's standing, and both are placeholders. Deriving it removes a free
+#   parameter and a 6% inconsistency; it does not make the curve better founded.
+GUF_PSI_NORM:  float = (1.0 - GUF_PSI_FLOOR) / (
+    (GUF_PSI_A / (GUF_PSI_A + GUF_PSI_B)) ** GUF_PSI_A
+    * (GUF_PSI_B / (GUF_PSI_A + GUF_PSI_B)) ** GUF_PSI_B
+)  # normalizing constant, DERIVED so Psi's peak is exactly 1.0
 
 # Labor-content scaling α(ε) — normalized so α(0.40) = 1.0 (NLSA Eq. 19-20)
 # tag: placeholder | units: dimensionless | family: GUF_ALPHA_*

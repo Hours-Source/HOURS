@@ -838,6 +838,105 @@ def test_domain_balance_table_restates_the_shares_the_model_computes():
             )
 
 
+# --- band_from: the anchored-inversion gate ---------------------------------
+
+
+def test_band_from_parses_a_comma_list():
+    src = (
+        "# tag: derived | units: fraction\n"
+        "# band_from: ALPHA, BETA\n"
+        "ZETA: float = 1.0\n"
+    )
+    rec = pv.scan(src, {"ZETA": 1.0}).by_name["ZETA"]
+    assert rec.band_from == "ALPHA, BETA"
+
+
+def test_band_from_must_name_real_constants():
+    src = (
+        "# tag: derived | units: fraction\n"
+        "# band_from: NOT_A_CONSTANT\n"
+        "ZETA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ZETA": 1.0}))
+    assert any("not a constant in data.py" in i for i in issues), issues
+
+
+def test_a_band_resting_on_a_placeholder_is_refused():
+    src = (
+        "# tag: placeholder | units: fraction\n"
+        "# resolves_by: a measurement\n"
+        "BOTTOM: float = 3.0\n"
+        "# tag: derived | units: fraction\n"
+        "# band_from: BOTTOM\n"
+        "TOP: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"BOTTOM": 3.0, "TOP": 1.0}))
+    assert any("not anchored" in i and "TOP" in i for i in issues), issues
+
+
+def test_the_ancestry_check_is_TRANSITIVE_not_one_level():
+    """The whole reason this gate exists, and it is not hypothetical.
+
+    `derived` inherits its authority from what is beneath it, so a `derived`
+    input can bottom out on a placeholder two or three steps down. A one-level
+    check sees TOP <- MID (derived) and passes. Both anchored-inversion
+    candidates examined on 2026-08-15 had exactly this shape:
+
+        CONTESTABILITY_CAPITAL_YIELD_RATE <- FORMATION_DEPRECIATION_RATE
+            (derived) <- CAPITAL_MACHINE_PROFILES (PLACEHOLDER)
+
+    Hand-tracing caught them. This is that trace, in code.
+    """
+    src = (
+        "# tag: placeholder | units: fraction\n"
+        "# resolves_by: a measurement\n"
+        "BOTTOM: float = 3.0\n"
+        "# tag: derived | units: fraction\n"
+        "# band_from: BOTTOM\n"
+        "MID: float = 2.0\n"
+        "# tag: derived | units: fraction\n"
+        "# band_from: MID\n"
+        "TOP: float = 1.0\n"
+    )
+    scanned = pv.scan(src, {"BOTTOM": 3.0, "MID": 2.0, "TOP": 1.0})
+
+    # MID is only ONE level from the placeholder — a naive check finds this one.
+    assert pv.unanchored_ancestors("MID", scanned) == ["MID -> BOTTOM"]
+    # TOP is TWO levels away, via a `derived` input. This is the case that matters.
+    assert pv.unanchored_ancestors("TOP", scanned) == ["TOP -> MID -> BOTTOM"]
+
+    issues = pv.problems(scanned)
+    assert any("TOP -> MID -> BOTTOM" in i for i in issues), issues
+
+
+def test_an_anchored_chain_is_accepted():
+    src = (
+        "# tag: measured | tier: A | units: fraction\n"
+        "# resolves_by: a refresh of the source\n"
+        "BOTTOM: float = 3.0\n"
+        "# tag: derived | units: fraction\n"
+        "# band_from: BOTTOM\n"
+        "TOP: float = 1.0\n"
+    )
+    scanned = pv.scan(src, {"BOTTOM": 3.0, "TOP": 1.0})
+    assert pv.unanchored_ancestors("TOP", scanned) == []
+    assert not [i for i in pv.problems(scanned) if "not anchored" in i]
+
+
+def test_ancestry_terminates_on_a_cycle():
+    """A mutual band_from must not recurse forever."""
+    src = (
+        "# tag: derived | units: fraction\n"
+        "# band_from: B\n"
+        "A: float = 1.0\n"
+        "# tag: derived | units: fraction\n"
+        "# band_from: A\n"
+        "B: float = 2.0\n"
+    )
+    scanned = pv.scan(src, {"A": 1.0, "B": 2.0})
+    assert pv.unanchored_ancestors("A", scanned) == []
+
+
 # --- the instance tag -------------------------------------------------------
 
 

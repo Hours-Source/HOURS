@@ -156,6 +156,7 @@ FIELDS: frozenset[str] = frozenset(
         "tag", "units", "tier", "form", "family", "note",
         "resolves_by",   # bounded / placeholder: what would settle it
         "band",          # bounded: the measured range it was picked inside
+        "band_from",     # bounded/derived: the constants an ANCHORED band rests on
         "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
         "decided_by",    # normative: who or what decides it
         "precedent",     # normative: an external analogue that informs, not settles
@@ -210,6 +211,7 @@ class TagBlock:
     form: str = ""
     resolves_by: str = ""
     band: str = ""
+    band_from: str = ""
     errs: str = ""
     decided_by: str = ""
     precedent: str = ""
@@ -243,6 +245,9 @@ class Record:
     supplied_by: str = ""
     default: str = ""
     superseded_by: str = ""
+    #: Constants an ANCHORED band/derivation rests on, comma-separated. Gated:
+    #: no named ancestor may be a placeholder, transitively.
+    band_from: str = ""
 
     @property
     def err_direction(self) -> str:
@@ -338,6 +343,7 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             form=fields.get("form", ""),
             resolves_by=fields.get("resolves_by", ""),
             band=fields.get("band", ""),
+            band_from=fields.get("band_from", ""),
             errs=fields.get("errs", ""),
             decided_by=fields.get("decided_by", ""),
             precedent=fields.get("precedent", ""),
@@ -441,6 +447,7 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         form=source_block.form,
                         resolves_by=source_block.resolves_by,
                         band=source_block.band,
+                        band_from=source_block.band_from,
                         errs=source_block.errs,
                         decided_by=source_block.decided_by,
                         precedent=source_block.precedent,
@@ -519,6 +526,53 @@ def _replacement_exists(target: str, scanned: Scan) -> bool:
     return False
 
 
+
+#: Tags that cannot anchor a derivation. `placeholder` is the debt itself;
+#: `instance` is supplied per-jurisdiction so it anchors nothing general.
+UNANCHORED_TAGS: frozenset[str] = frozenset({"placeholder"})
+
+
+def unanchored_ancestors(
+    name: str, scanned: "Scan", _seen: frozenset[str] | None = None
+) -> list[str]:
+    """Placeholder ancestors of ``name``, following ``band_from`` TRANSITIVELY.
+
+    THE ONE-LEVEL CHECK IS NOT ENOUGH, and this is not hypothetical. ``derived``
+    is defined as inheriting "its authority from the measurements beneath it",
+    so an input tagged ``derived`` can still bottom out on a placeholder two or
+    three steps down. Both anchored-inversion candidates examined on 2026-08-15
+    had exactly that shape:
+
+        CONTESTABILITY_CAPITAL_YIELD_RATE
+          <- FORMATION_DEPRECIATION_RATE  (derived)
+            <- CAPITAL_MACHINE_PROFILES   (PLACEHOLDER)
+
+        ECOLOGICAL_BASE_RATE  <- the thermal drawdown chain
+            <- CDR_GROSS_REMOVAL_FACTOR   (PLACEHOLDER)
+
+    A one-level check passes both. Only walking the chain catches them, and
+    hand-tracing is what caught them the first time — which is the argument for
+    doing it in code.
+
+    Returns the offending chains as "A -> B -> C" strings, empty if anchored.
+    Cycles terminate rather than recurse.
+    """
+    seen = _seen or frozenset()
+    if name in seen:
+        return []
+    rec = scanned.by_name.get(name)
+    if rec is None:
+        return []
+    if rec.tag in UNANCHORED_TAGS:
+        return [name]
+
+    out: list[str] = []
+    for parent in (a.strip() for a in rec.band_from.split(",") if a.strip()):
+        for chain in unanchored_ancestors(parent, scanned, seen | {name}):
+            out.append(f"{name} -> {chain}")
+    return out
+
+
 def problems(scanned: Scan) -> list[str]:
     """Every way the scan violates the tag scheme, as readable one-liners.
 
@@ -532,6 +586,23 @@ def problems(scanned: Scan) -> list[str]:
         found.append(
             f"{name}: no provenance tag block. Add '# tag: …' immediately above it."
         )
+
+    for rec in scanned.records:
+        if not rec.band_from.strip():
+            continue
+        for missing in (a.strip() for a in rec.band_from.split(",") if a.strip()):
+            if missing not in scanned.by_name:
+                found.append(
+                    f"{rec.name}: band_from names '{missing}', which is not a "
+                    f"constant in data.py."
+                )
+        for chain in unanchored_ancestors(rec.name, scanned):
+            found.append(
+                f"{rec.name}: band_from is not anchored — {chain} is a "
+                f"placeholder. A band resting on unmeasured input launders a "
+                f"guess; state the dependency in `form:` instead of claiming a "
+                f"band."
+            )
 
     for orphan in scanned.orphans:
         what = (
