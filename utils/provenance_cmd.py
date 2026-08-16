@@ -118,9 +118,31 @@ def _baseline(args: argparse.Namespace) -> None:
                 verdict,
             ])
         print(table(["read", "position", "label", ""], rows, indent=2))
-        unused = sorted(declared - {r.label for r in reads if r.ok and r.label})
+        unused = sorted(
+            declared - {lab for r in reads if r.ok for lab in r.labels}
+        )
         if unused:
             print(yellow(f"  declared but unused: {', '.join(unused)}"))
+
+        trace = pv.trace_baseline_flow(rec.name, scanned)
+        print()
+        print(
+            "  " + bold("runtime flow") + dim(
+                "  — the static rows above check WHERE each read sits; this"
+                " follows\n  the value through loops and calls, which position"
+                " alone cannot."
+            )
+        )
+        for fn in trace.exercised:
+            print(f"    {green('traced')}  {fn}")
+        for fn in trace.skipped:
+            print(f"    {yellow('skipped')} {fn}  (needs arguments)")
+        for leak in trace.leaks:
+            print(f"    {red('LEAK')}    {leak}")
+        if not trace.exercised and not trace.skipped:
+            print(dim("    no callable reader — nothing to trace"))
+        elif trace.ok:
+            print(dim("    no tainted value surfaced outside a declared label"))
         print(
             dim(
                 "  A retired constant may be shown BESIDE its replacement so the\n"
@@ -200,6 +222,23 @@ def _check(args: argparse.Namespace) -> None:
     scanned = pv.load()
     tagged, total = pv.coverage(scanned)
     issues = pv.problems(scanned)
+
+    # The runtime half of the baseline check. `problems()` stays pure text and
+    # AST — it runs against synthetic sources in tests — so the flow trace,
+    # which has to import and execute, is added here and in the test suite
+    # rather than inside it.
+    for rec in scanned.records:
+        if not rec.baseline_in.strip():
+            continue
+        trace = pv.trace_baseline_flow(rec.name, scanned)
+        for leak in trace.leaks:
+            issues.append(
+                f"{rec.name}: a value derived from it surfaced at {leak}, which "
+                f"carries none of its declared labels. The static check passes "
+                f"reads by POSITION and cannot follow a value once it is bound "
+                f"to a name; this one followed it. Either label the figure or "
+                f"compute it from {rec.superseded_by or 'the replacement'}."
+            )
 
     pct = 100.0 * tagged / total if total else 0.0
     head = f"Provenance coverage: {tagged}/{total} constants tagged ({pct:.1f}%)"

@@ -605,12 +605,21 @@ class BaselineRead:
     line: int
     #: "dict-value" | "f-string" | "labelled-tuple" | "unlabelled" | "computation"
     kind: str
-    #: The literal label the value is reported under, "" when there is none.
-    label: str
+    #: Every literal label on the path out, innermost first. A nested structure
+    #: reports under all of its enclosing keys, so `{"shipped": {"rate": OLD}}`
+    #: carries ("rate", "shipped") and only ONE of them needs declaring — the
+    #: outer key is the honest label, and forcing the inner one to be declared
+    #: would push the vocabulary toward meaningless field names.
+    labels: tuple[str, ...]
+
+    @property
+    def label(self) -> str:
+        """The innermost label, for display."""
+        return self.labels[0] if self.labels else ""
 
     @property
     def ok(self) -> bool:
-        return self.kind in {"dict-value", "f-string", "labelled-tuple"}
+        return self.kind == "f-string" or bool(self.labels)
 
 
 def _parents(tree: ast.AST) -> dict[int, ast.AST]:
@@ -622,50 +631,81 @@ def _parents(tree: ast.AST) -> dict[int, ast.AST]:
     return out
 
 
-def _classify_read(node: ast.AST, parents: dict[int, ast.AST]) -> tuple[str, str]:
-    """Walk up from a read to the construct that consumes it.
+def _classify_read(
+    node: ast.AST, parents: dict[int, ast.AST]
+) -> tuple[str, tuple[str, ...]]:
+    """Walk up from a read, collecting every literal label on the way out.
 
-    Returns ``(kind, label)``. Three shapes count as reporting:
+    Returns ``(kind, labels)``. Three shapes count as reporting:
 
         {"shipped": OLD}                 dict value under a literal key
         f"shipped d={OLD} implies ..."   interpolated into prose
         ("shipped", OLD)                 element of a tuple carrying a label
 
+    THE WALK DOES NOT STOP AT THE FIRST CONTAINER. A nested structure reports
+    under all of its enclosing keys, so ``{"shipped": {"renewal_rate": OLD}}``
+    yields ``("renewal_rate", "shipped")`` and either may be the declared one.
+    Stopping at the innermost key would have forced the declared vocabulary
+    toward field names like ``renewal_rate``, which say nothing about the value
+    being superseded — the opposite of what the label is for.
+
     Everything else is a computation: the value is going somewhere this check
     cannot see, and the whole point of the exemption is that it goes nowhere.
     """
     current: ast.AST = node
+    labels: list[str] = []
+    kind = ""
+
     while True:
         parent = parents.get(id(current))
         if parent is None:
-            return "computation", ""
+            break
 
         if isinstance(parent, ast.JoinedStr):
-            return "f-string", ""
+            kind = kind or "f-string"
+            break
 
         if isinstance(parent, ast.Dict):
-            for key, value in zip(parent.keys, parent.values):
-                if value is current:
-                    if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                        return "dict-value", key.value
-                    return "unlabelled", ""
-            return "computation", ""
+            entry = next(
+                (
+                    key
+                    for key, value in zip(parent.keys, parent.values)
+                    if value is current
+                ),
+                None,
+            )
+            if entry is None:
+                # The read is a dict KEY, not a value — not a reporting slot.
+                break
+            if isinstance(entry, ast.Constant) and isinstance(entry.value, str):
+                labels.append(entry.value)
+                kind = kind or "dict-value"
+            else:
+                kind = kind or "unlabelled"
+            current = parent
+            continue
 
         if isinstance(parent, (ast.Tuple, ast.List)) and current in parent.elts:
-            labels = [
+            siblings = [
                 e.value
                 for e in parent.elts
                 if isinstance(e, ast.Constant) and isinstance(e.value, str)
             ]
-            if labels:
-                return "labelled-tuple", labels[0]
-            return "unlabelled", ""
+            if siblings:
+                labels.append(siblings[0])
+                kind = kind or "labelled-tuple"
+            else:
+                kind = kind or "unlabelled"
+            current = parent
+            continue
 
         if isinstance(parent, _TRANSPARENT):
             current = parent
             continue
 
-        return "computation", ""
+        break
+
+    return (kind or "computation"), tuple(labels)
 
 
 def baseline_reads(name: str, root: Path | None = None) -> list[BaselineRead]:
@@ -722,16 +762,249 @@ def baseline_reads(name: str, root: Path | None = None) -> list[BaselineRead]:
                     continue
                 if not isinstance(node.ctx, ast.Load):
                     continue
-                kind, label = _classify_read(node, parents)
+                kind, labels = _classify_read(node, parents)
                 out.append(
                     BaselineRead(
                         module=str(path.relative_to(base)),
                         line=node.lineno,
                         kind=kind,
-                        label=label,
+                        labels=labels,
                     )
                 )
     return out
+
+
+#: Arithmetic that must carry the taint forward. Comparisons are deliberately
+#: absent: a bool derived from the refuted value is a VERDICT about it
+#: (`credible_shipped: False` is the point of keeping it), not a number
+#: contaminated by it. Strings likewise — an f-string cannot corrupt a figure.
+_TAINT_OPS: tuple[str, ...] = (
+    "add", "radd", "sub", "rsub", "mul", "rmul", "truediv", "rtruediv",
+    "floordiv", "rfloordiv", "pow", "rpow", "mod", "rmod",
+)
+
+
+class Refuted(float):
+    """A float that remembers it came from a retired constant.
+
+    Substituted for the real constant during a flow trace so arithmetic carries
+    a marker the walker can find. Behaves as a float everywhere else, so the
+    code under test cannot tell the difference.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return f"Refuted({float(self)!r})"
+
+
+def _install_taint_ops() -> None:
+    """Give ``Refuted`` propagating arithmetic.
+
+    ``float`` subclasses return plain floats from arithmetic, so without this
+    the taint dies at the first multiplication — which is exactly where the
+    static check already gives up.
+    """
+    def _make(op: str) -> Any:
+        parent = getattr(float, f"__{op}__")
+
+        def wrapped(self: "Refuted", other: Any) -> Any:
+            result = parent(self, other)
+            if result is NotImplemented:
+                return result
+            return Refuted(result)
+
+        wrapped.__name__ = f"__{op}__"
+        return wrapped
+
+    for op in _TAINT_OPS:
+        setattr(Refuted, f"__{op}__", _make(op))
+    for unary in ("neg", "pos", "abs"):
+        parent_un = getattr(float, f"__{unary}__")
+        setattr(
+            Refuted,
+            f"__{unary}__",
+            lambda self, _p=parent_un: Refuted(_p(self)),
+        )
+
+
+_install_taint_ops()
+
+
+def _module_for(rel: str, path: Path) -> Any:
+    """Import ``rel``, insisting it is the file that was scanned.
+
+    Normally this returns the already-imported module out of ``sys.modules``,
+    which is what the patch has to hit — the operative modules did
+    ``from hours_eoh.data import X`` at import time, so patching ``data`` itself
+    would change nothing.
+
+    The identity check is not ceremony. A dotted name resolves against whatever
+    package is already loaded, so a scan rooted somewhere else (a test fixture,
+    a worktree) would silently patch the REAL module and report on code it never
+    read. When the resolved file is not the scanned file, load the scanned file
+    directly instead.
+    """
+    import importlib
+    import importlib.util
+    import sys
+
+    dotted = rel.replace("/", ".").removesuffix(".py")
+    try:
+        module = importlib.import_module(dotted)
+    except ImportError:
+        module = None
+    if module is not None:
+        loaded = getattr(module, "__file__", None)
+        if loaded and Path(loaded).resolve() == path.resolve():
+            return module
+
+    spec = importlib.util.spec_from_file_location(f"_provtrace_{dotted}", path)
+    if spec is None or spec.loader is None:
+        return None
+    loaded_module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = loaded_module
+    try:
+        spec.loader.exec_module(loaded_module)
+    except Exception:  # pragma: no cover - a module that will not import
+        sys.modules.pop(spec.name, None)
+        return None
+    return loaded_module
+
+
+@dataclass(frozen=True)
+class FlowTrace:
+    """What a runtime flow trace of one retired constant found."""
+
+    constant: str
+    #: "module.function" actually called.
+    exercised: list[str]
+    #: Reads the trace could not drive — they need arguments it cannot invent.
+    skipped: list[str]
+    #: "module.function -> a.b.c" where a tainted value surfaced under a path
+    #: carrying none of the declared labels.
+    leaks: list[str]
+
+    @property
+    def ok(self) -> bool:
+        return not self.leaks
+
+
+def _taint_paths(value: Any, trail: tuple[str, ...] = ()) -> list[tuple[str, ...]]:
+    """Every path through ``value`` at which a ``Refuted`` surfaces."""
+    if isinstance(value, Refuted):
+        return [trail]
+    if isinstance(value, Mapping):
+        out: list[tuple[str, ...]] = []
+        for key, item in value.items():
+            out += _taint_paths(item, trail + (str(key),))
+        return out
+    if isinstance(value, (list, tuple, set)):
+        out = []
+        for index, item in enumerate(value):
+            out += _taint_paths(item, trail + (str(index),))
+        return out
+    return []
+
+
+def trace_baseline_flow(
+    name: str, scanned: Scan, root: Path | None = None
+) -> FlowTrace:
+    """Follow a retired constant's value at RUNTIME, through loops and calls.
+
+    WHY THIS EXISTS ALONGSIDE THE STATIC CHECK. ``baseline_reads`` verifies the
+    POSITION of each read and cannot follow the value afterwards, so its one
+    documented gap is the labelled tuple: the label proves attribution at the
+    read, not containment downstream. A loop target bound from
+    ``("shipped", OLD)`` can carry the value into a live figure, and does so
+    undetected — demonstrated deliberately before this was written.
+
+    Closing that statically means intra-procedural taint plus a model of the
+    comparison-table idiom, and still leaves function calls opaque, which is
+    where the interesting arithmetic actually happens
+    (``_unit_response(eps, rate)``).
+
+    So the two checks are complementary rather than redundant, and the division
+    is worth stating plainly:
+
+        static   TOTAL but SHALLOW — all code, position only
+        runtime  DEEP but NARROW  — exact flow, only paths a caller drives
+
+    The constant is swapped for a ``Refuted`` float in every module
+    ``baseline_in:`` names, each reading function that can be called without
+    arguments is called, and the returned structure is walked for survivors. A
+    survivor is a leak unless some key on its path is a declared label.
+
+    Honest limits, both structural:
+      * only reachable functions are exercised; ones needing arguments are
+        REPORTED as skipped rather than silently ignored, because "the trace was
+        clean" must not quietly mean "the trace ran nothing".
+      * bools and strings do not carry taint by design — ``credible_shipped:
+        False`` is a verdict ABOUT the refuted value, which is the whole reason
+        it is still here.
+    """
+    rec = scanned.by_name.get(name)
+    if rec is None:
+        return FlowTrace(name, [], [], [f"{name}: not a constant in data.py"])
+
+    declared = {
+        lab.strip() for lab in rec.baseline_labels.split(",") if lab.strip()
+    }
+    base = root or PACKAGE_ROOT.parent
+    modules = [m.strip() for m in rec.baseline_in.split(",") if m.strip()]
+
+    exercised: list[str] = []
+    skipped: list[str] = []
+    leaks: list[str] = []
+
+    for rel in modules:
+        path = base / rel
+        if not path.is_file():
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        readers = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and not node.name.startswith("_")
+            and any(
+                isinstance(sub, ast.Name)
+                and sub.id == name
+                and isinstance(sub.ctx, ast.Load)
+                for sub in ast.walk(node)
+            )
+        ]
+        if not readers:
+            continue
+
+        module = _module_for(rel, path)
+        if module is None or not hasattr(module, name):
+            continue
+        original = getattr(module, name)
+        setattr(module, name, Refuted(original))
+        try:
+            for node in readers:
+                args = node.args
+                required = len(args.args) - len(args.defaults)
+                if required > 0 or args.posonlyargs:
+                    skipped.append(f"{rel}::{node.name}")
+                    continue
+                func = getattr(module, node.name, None)
+                if func is None:
+                    continue
+                exercised.append(f"{rel}::{node.name}")
+                result = func()
+                for trail in _taint_paths(result):
+                    if declared & set(trail):
+                        continue
+                    leaks.append(
+                        f"{rel}::{node.name} -> "
+                        + (".".join(trail) or "<return value>")
+                    )
+        finally:
+            setattr(module, name, original)
+
+    return FlowTrace(name, exercised, skipped, leaks)
 
 
 def parameter_default_consumers(
@@ -1058,8 +1331,14 @@ def problems(scanned: Scan) -> list[str]:
         allowed = {
             lab.strip() for lab in rec.baseline_labels.split(",") if lab.strip()
         }
-        used = sorted({r.label for r in reads if r.ok and r.label})
-        undeclared_labels = [lab for lab in used if lab not in allowed]
+        used = sorted({lab for r in reads if r.ok for lab in r.labels})
+        undeclared_labels = sorted(
+            {
+                r.label
+                for r in reads
+                if r.ok and r.labels and not (set(r.labels) & allowed)
+            }
+        )
         if undeclared_labels:
             found.append(
                 f"{rec.name}: reported under {', '.join(undeclared_labels)}, "

@@ -1220,6 +1220,177 @@ def test_the_known_limit_is_the_documented_one():
     assert kind == "unlabelled"
 
 
+# --- the runtime flow trace: the half the static check cannot do -------------
+#
+# `baseline_reads` checks WHERE each read sits and stops there — the label proves
+# attribution at the read, not containment downstream. Its one documented gap is
+# the labelled tuple, whose loop target can carry the value into a live figure.
+# The trace substitutes a marked float and follows it through loops AND calls.
+#
+#     static   TOTAL but SHALLOW — all code, position only
+#     runtime  DEEP but NARROW  — exact flow, only paths a caller drives
+
+
+def test_taint_survives_arithmetic():
+    """A plain float subclass loses its identity at the first multiplication —
+    which is precisely where the static check also gives up."""
+    r = pv.Refuted(0.10)
+    assert isinstance(r * 3.0, pv.Refuted)
+    assert isinstance(3.0 * r, pv.Refuted)
+    assert isinstance(1.0 / r, pv.Refuted)
+    assert isinstance(r - 0.01, pv.Refuted)
+    assert isinstance(-r, pv.Refuted)
+    assert r * 2 == pytest.approx(0.20)
+
+
+def test_taint_does_not_spread_to_verdicts_or_prose():
+    """Deliberate: a bool derived from the refuted value is a VERDICT about it,
+    and `credible_shipped: False` is the whole reason it is still here. A
+    string cannot corrupt a figure either."""
+    r = pv.Refuted(0.10)
+    assert isinstance(r > 0.05, bool)
+    assert isinstance(f"{r}", str)
+
+
+def test_taint_paths_finds_survivors_at_depth():
+    r = pv.Refuted(0.10)
+    found = pv._taint_paths(
+        {"a": {"b": [1.0, r]}, "c": 2.0, "d": r}
+    )
+    assert set(found) == {("a", "b", "1"), ("d",)}
+
+
+def test_flow_trace_is_clean_and_actually_ran_something(scanned):
+    """"Clean" must not quietly mean "ran nothing", which is why `exercised` is
+    asserted alongside `leaks`."""
+    trace = pv.trace_baseline_flow("SKILL_DECAY_RATE", scanned)
+    assert trace.ok, trace.leaks
+    assert len(trace.exercised) >= 2, trace.exercised
+    assert not trace.skipped, (
+        f"a reader could not be driven: {trace.skipped}. A skipped reader is "
+        "unchecked flow — give it defaults or trace it explicitly."
+    )
+
+
+def test_the_trace_catches_what_position_alone_cannot(tmp_path, monkeypatch):
+    """THE CASE THIS WAS BUILT FOR, reproduced end to end.
+
+    A read in an ACCEPTED labelled-tuple position whose loop variable carries
+    the value into an undeclared live key. The static classifier passes it —
+    asserted here, so the gap is demonstrated rather than described — and the
+    trace catches it.
+    """
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "hours_eoh" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "leaky.py").write_text(
+        "OLD_RATE = 0.10\n"
+        "def report():\n"
+        "    live = 0.0\n"
+        "    for _label, rate in ((\"shipped\", OLD_RATE),):\n"
+        "        live = 100.0 * rate\n"
+        "    return {\"shipped\": OLD_RATE, \"total\": live}\n",
+        encoding="utf-8",
+    )
+
+    # 1. The static check sees only the two reads, both in reporting positions.
+    reads = pv.baseline_reads("OLD_RATE", root=tmp_path)
+    assert reads and all(r.ok for r in reads), [r.kind for r in reads]
+
+    # 2. The trace follows the loop variable into "total" and refuses it.
+    monkeypatch.syspath_prepend(str(tmp_path))
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: NEW_RATE\n"
+        "# baseline_in: hours_eoh/core/leaky.py\n"
+        "# baseline_labels: shipped\n"
+        "# resolves_by: nothing — it was replaced.\n"
+        "OLD_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "NEW_RATE: float = 0.03\n"
+    )
+    scan = pv.scan(src, {"OLD_RATE": 0.10, "NEW_RATE": 0.03})
+    trace = pv.trace_baseline_flow("OLD_RATE", scan, root=tmp_path)
+    assert not trace.ok
+    assert any("total" in leak for leak in trace.leaks), trace.leaks
+    assert not any("shipped" in leak for leak in trace.leaks), (
+        "the declared label must still be allowed through"
+    )
+
+
+def test_a_reader_needing_arguments_is_reported_not_ignored(tmp_path, monkeypatch):
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "hours_eoh" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "needy.py").write_text(
+        "OLD_RATE = 0.10\n"
+        "def report(required):\n"
+        "    return {'shipped': OLD_RATE * required}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: NEW_RATE\n"
+        "# baseline_in: hours_eoh/core/needy.py\n"
+        "# baseline_labels: shipped\n"
+        "# resolves_by: nothing.\n"
+        "OLD_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "NEW_RATE: float = 0.03\n"
+    )
+    trace = pv.trace_baseline_flow(
+        "OLD_RATE",
+        pv.scan(src, {"OLD_RATE": 0.10, "NEW_RATE": 0.03}),
+        root=tmp_path,
+    )
+    assert trace.skipped == ["hours_eoh/core/needy.py::report"]
+    assert not trace.exercised
+
+
+def test_the_trace_restores_the_constant_afterwards(scanned):
+    """The swap must not leak into the rest of the suite — a `Refuted` left in a
+    module global would silently taint every later test in the session."""
+    import hours_eoh.core.eoh_generation as eg
+
+    before = eg.SKILL_DECAY_RATE
+    pv.trace_baseline_flow("SKILL_DECAY_RATE", scanned)
+    assert eg.SKILL_DECAY_RATE == before
+    assert type(eg.SKILL_DECAY_RATE) is float
+
+
+def test_no_retired_constant_leaks_into_a_live_figure(scanned):
+    """The gate, over every constant claiming the exemption."""
+    for rec in scanned.records:
+        if not rec.baseline_in.strip():
+            continue
+        trace = pv.trace_baseline_flow(rec.name, scanned)
+        assert trace.ok, (
+            f"{rec.name} surfaced under {trace.leaks}, carrying none of its "
+            f"declared labels. Label the figure, or compute it from "
+            f"{rec.superseded_by}."
+        )
+
+
+def test_key_path_lets_an_outer_label_cover_a_nested_field(tmp_path):
+    """`{"shipped": {"renewal_rate": OLD}}` reports under both keys and either
+    may be declared. Stopping at the innermost would force the vocabulary toward
+    field names like `renewal_rate`, which say nothing about being superseded."""
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        'def f(): return {"shipped": {"renewal_rate": OLD_RATE}}\n',
+        encoding="utf-8",
+    )
+    read = pv.baseline_reads("OLD_RATE", root=tmp_path)[0]
+    assert read.ok
+    assert read.labels == ("renewal_rate", "shipped")
+
+
 def test_skill_decay_rate_is_retired_as_a_baseline_and_still_reported(scanned):
     """The live case this mechanism was built for, asserted end to end.
 

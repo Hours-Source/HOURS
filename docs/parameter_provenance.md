@@ -170,14 +170,51 @@ a visible act in a diff rather than an emergent property of Python syntax. A
 declared label nothing uses is also refused: a permission nobody exercises is a
 permission nobody reviews.
 
-**Known limit, stated rather than implied.** The tuple form is accepted on the
-strength of its literal label, and the check does not follow a loop variable
-bound from it. `doctrine_arc`'s `("shipped", SKILL_DECAY_RATE)` row feeds a
-computed series — legitimately, since that series *is* the refuted doctrine and
-is reported under that name. Following the taint through the loop target needs
-dataflow analysis; the label is what keeps the result attributable meanwhile.
+A nested structure reports under **all** its enclosing keys, so
+`{"shipped": {"renewal_rate": OLD}}` carries both and only one needs declaring.
+Stopping at the innermost key would push the vocabulary toward field names like
+`renewal_rate`, which say nothing about a value being superseded.
 
-Inspect any of it with `eoh provenance baseline [CONSTANT]`.
+#### The fourth condition: a runtime flow trace
+
+Conditions 1–3 are static, and static analysis has one gap here that is real
+rather than theoretical. The labelled tuple proves attribution **at the read**,
+not containment downstream: a loop target bound from `("shipped", OLD)` can
+carry the value into a live figure, and did so undetected in a deliberate
+escape written to test exactly that.
+
+Closing it statically means intra-procedural taint plus a model of the
+comparison-table idiom — and would *still* leave function calls opaque, which is
+where the interesting arithmetic happens (`_unit_response(eps, rate)`). So the
+flow is checked by running it instead. `trace_baseline_flow()` substitutes a
+`Refuted` float — a subclass whose arithmetic propagates the marker — into every
+module `baseline_in:` names, calls each reading function that can be driven
+without arguments, and walks the returned structure for survivors. A survivor is
+a leak unless some key on its path is a declared label.
+
+The two halves divide cleanly, and neither subsumes the other:
+
+| | coverage | depth |
+|---|---|---|
+| **static** (`baseline_reads`) | all code | position only |
+| **runtime** (`trace_baseline_flow`) | only paths a caller drives | exact flow, through loops **and** calls |
+
+Three deliberate limits, each stated because a checker whose gaps are
+undocumented reads as stronger than it is:
+
+- **Only reachable functions are exercised.** Readers needing arguments are
+  *reported as skipped*, never silently passed — "the trace was clean" must not
+  be able to mean "the trace ran nothing", so `exercised` is asserted alongside
+  `leaks`.
+- **Bools and strings do not carry taint.** A bool derived from the refuted
+  value is a *verdict about it* — `credible_shipped: False` is the whole reason
+  it is still here — and a string cannot corrupt a figure.
+- **The traced module must be the scanned file.** A dotted name resolves against
+  whatever package is already loaded, so a scan rooted elsewhere would otherwise
+  patch the real module and report on code it never read.
+
+Inspect all of it with `eoh provenance baseline [CONSTANT]`, which prints each
+read's position, label and verdict, then the runtime trace beneath it.
 
 ## Checking the guides
 
