@@ -27,6 +27,7 @@ from hours_eoh.data import (
     SUFF_GUARANTEE_EPS_DECAY,
     INFRA_MAINT_RATE, ECOLOGICAL_BASE_RATE,
     ACCUMULATION_CEILING_MULTIPLIER, BASE_LIFETIME_EARNINGS_TEH,
+    MEAN_MULTIPLIER_REFERENCE,
 )
 from hours_eoh.core.eoh_generation import infrastructure_eoh, ecological_eoh
 from hours_eoh.core.eoh_fulfillment import human_eoh_share
@@ -131,7 +132,7 @@ def stewardship_allocation(
     capital_age_ratio: float,
     epsilon: float,
     available_teh: float,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     infra_maint_rate: float = INFRA_MAINT_RATE,
     infra_eoh_override: float | None = None,
 ) -> dict:
@@ -209,7 +210,7 @@ def ecological_allocation(
     ecosystem_health: float,
     epsilon: float,
     available_teh: float,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     base_rate: float = ECOLOGICAL_BASE_RATE,
     deferred: float = 0.0,
     eco_eoh_override: float | None = None,
@@ -516,7 +517,7 @@ def fiscal_snapshot(
     population: float,
     epsilon: float,
     levy_rates: dict[str, float] | None = None,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     floor_fraction: float = 0.15,

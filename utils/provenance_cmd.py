@@ -65,6 +65,80 @@ def build_parser(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> 
     )
     doc.set_defaults(func=_doc)
 
+    shadow = sub2.add_parser(
+        "shadow",
+        help="Domain constants OUTSIDE data.py — what the coverage figure omits",
+    )
+    shadow.add_argument(
+        "--min-sites", type=int, default=3,
+        help="Report a repeated parameter default at this many sites or more",
+    )
+    shadow.set_defaults(func=_shadow)
+
+
+def _shadow(args: argparse.Namespace) -> None:
+    scanned = pv.load()
+    tagged, total = pv.coverage(scanned)
+    found = pv.shadow_constants()
+    free = [s for s in found if not s.bound]
+    aliases = [s for s in found if s.bound]
+
+    print(bold("Shadow constants — declared outside data.py, so untagged"))
+    print(
+        dim(
+            "  `provenance check` reports coverage over data.py. These are domain\n"
+            "  constants the same layers read, carrying no tag, no resolves_by, and\n"
+            "  appearing in no debt figure. Four known defects came from exactly this."
+        )
+    )
+    by_module: dict[str, list[pv.Shadow]] = {}
+    for s in free:
+        by_module.setdefault(s.module, []).append(s)
+    for module in sorted(by_module, key=lambda m: (-len(by_module[m]), m)):
+        print(f"\n  {module}  ({len(by_module[module])})")
+        for s in by_module[module]:
+            print(f"    :{s.line:<5} {s.name:<44} {s.value}")
+
+    if aliases:
+        print(f"\n  {green('Bound to a data.py constant')} — the intended shape:")
+        for s in aliases:
+            print(f"    {s.module}:{s.line}  {s.name}")
+
+    rows = pv.repeated_default_literals(min_sites=args.min_sites)
+    if rows:
+        print()
+        print(bold("De-facto constants — a literal repeated as the same parameter"))
+        print(
+            dim(
+                "  Nobody declared these, so nothing that looks for constants can see\n"
+                "  them; every caller who omits the argument gets one anyway. This is\n"
+                "  how `= 1500.0` survived the PERSONAL_EOH_BASE reprice in five\n"
+                "  generators at once."
+            )
+        )
+        for name, value, sites in rows:
+            files = len({s.split(":", 1)[0] for s in sites})
+            print(f"    {name:<26} = {value:<14g} {len(sites):>3} sites, "
+                  f"{files:>2} files")
+
+    wider = total + len(free)
+    print()
+    print(bold("The denominator"))
+    print(f"  data.py, tagged and gated      : {tagged}/{total}  "
+          f"{green('100.0%')}")
+    print(f"  shadow constants, untagged     : {len(free)}")
+    print(f"  {'coverage over both':<31}: {tagged}/{wider}  "
+          f"{red(f'{tagged / wider:.1%}') if tagged / wider < 0.9 else ''}")
+    print(
+        dim(
+            "\n  The 100% figure is true and narrower than it reads. Lowering the\n"
+            "  shadow count means moving those constants into data.py with a tag\n"
+            "  block — a migration, not a rename, because each one then has to say\n"
+            "  what would settle it. tests/test_provenance.py ratchets the count so\n"
+            "  it cannot grow in the meantime."
+        )
+    )
+
 
 def _check(args: argparse.Namespace) -> None:
     scanned = pv.load()

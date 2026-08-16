@@ -22,6 +22,7 @@ from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
     CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     SKILL_TRANSMISSION_RATE,
+    MEAN_MULTIPLIER_REFERENCE,
 )
 
 
@@ -106,7 +107,7 @@ def registered_eoh(
 
 def teh_created(
     registered_eoh_hours: float,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> float:
     """
     TEH created when workers fulfill registered EOH at their multiplied tier rates.
@@ -436,7 +437,7 @@ def eoh_to_teh_pipeline(
     competency_gap_factor: float = 0.0,
     registration_share: float | None = None,
     personal_registration_share: float | None = None,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
     thermal_obligation: float = 0.0,

@@ -137,11 +137,22 @@ def test_backward_query_finds_a_finite_breaking_point():
     # before it breaks the gate, so the verdict got MORE robust, not less.
     # 40.5 → 44.7: the ecological obligation is unchanged but the total EOH it
     # is measured against shrank, so it takes a larger shock to break solvency.
-    assert b["breaking_value"] == pytest.approx(44.7, rel=0.05)
+    # 44.7 → 48.2 (2026-08-16): the mean multiplier moved 2.10 → 1.9964 when the
+    # eleven hard-coded `mean_multiplier = 2.10` defaults were bound to the
+    # MEASURED registry mean. A smaller multiplier mints less TEH per registered
+    # hour, so the fisc is tighter and the shock needed to break it is LARGER —
+    # the margin widening here is arithmetic, not an improvement in solvency.
+    #
+    # NOTE what this test is really pinning: it is the ONLY assertion in the
+    # suite that moved when the multiplier that mints all TEH fell 4.9%. The
+    # verdict stays "robust" throughout, and it stays robust because the
+    # ecological obligation is negligible in the ledger — the domain-balance
+    # defect — not because the fisc is strong. That caveat predates this change
+    # and is unaffected by it.
+    assert b["breaking_value"] == pytest.approx(48.2, rel=0.05)
     assert b["shipped_value"] == CDR_LABOR_HOURS_PER_TONNE
-    # 67.6 → 74.5: the thermal obligation is unchanged but the EOH total it is
-    # measured against shrank, so the margin over it widened.
-    assert b["margin"] == pytest.approx(74.5, rel=0.05)
+    # 67.6 → 74.5 → 80.3, same mechanism each time.
+    assert b["margin"] == pytest.approx(80.3, rel=0.05)
     assert b["verdict"] == "robust"
 
 

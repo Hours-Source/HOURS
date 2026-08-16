@@ -18,7 +18,7 @@ the constitution's test bench"
 
 from __future__ import annotations
 
-from hours_eoh.data import M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD
+from hours_eoh.data import M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD, MEAN_MULTIPLIER_REFERENCE
 from hours_eoh.core.multipliers import multiplier_band_check
 
 
@@ -332,7 +332,7 @@ def domain_eoh_coverage(
     reserve_result: dict,
     domain_eoh_demands: dict[str, float],
     epsilon: float = 0.40,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     coverage_warning_threshold: float = 0.80,
 ) -> dict:
     """

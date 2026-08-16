@@ -39,6 +39,7 @@ from hours_eoh.data import (
     CANONICAL_MONITORING_CAPABILITY_SLOPE,
     CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE,
     CANONICAL_KNOWLEDGE_COMPLEXITY_EXP,
+    MEAN_MULTIPLIER_REFERENCE,
 )
 
 
@@ -1631,7 +1632,7 @@ def epsilon_delta_sensitivity(
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     knowledge_complexity: float = 1.0,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> dict:
     """
     How do key EOH/TEH metrics change for a given Δε automation advance?

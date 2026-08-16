@@ -633,6 +633,181 @@ def parameter_default_consumers(
     return sorted(set(hits))
 
 
+#: Numbers that carry no calibration claim — identities, unit conversions, and
+#: the small integers that index, guard or count. Flagging these would bury the
+#: cases that matter under arithmetic.
+_INNOCUOUS: frozenset[float] = frozenset(
+    {0.0, 1.0, 2.0, -1.0, 0.5, 100.0, 3.0, 4.0, 10.0, 12.0, 24.0, 60.0, 1000.0}
+)
+
+
+@dataclass(frozen=True)
+class Shadow:
+    """A domain constant that lives outside ``data.py``."""
+
+    module: str
+    line: int
+    name: str
+    value: str
+    #: True when the value is computed from a name imported from ``data.py`` —
+    #: an alias, which is the FIX for a shadow rather than an instance of one.
+    bound: bool
+
+
+def shadow_constants(root: Path | None = None) -> list[Shadow]:
+    """Module-level numeric constants in operative layers, outside ``data.py``.
+
+    THE COVERAGE FIGURE HAS THE WRONG DENOMINATOR, AND THIS IS WHY.
+    ``eoh provenance check`` reports "236/236 constants tagged (100.0%)", which
+    is true and narrower than it reads: it means 236 constants *in data.py*. A
+    named numeric constant declared anywhere else is in no count this repo
+    publishes, carries no tag, has no ``resolves_by``, and cannot appear in the
+    debt summary — while being read by exactly the same domain logic.
+
+    This is not hypothetical. Every one of these has already cost something:
+
+        TRANSMISSION_WORKING_LIFE_YEARS = 40.0   scenarios/knowledge_base.py
+            A duplicate of SKILL_WORKING_LIFE_YEARS carrying its own copy of the
+            same wrong pointer. When the source was measured at 37.5 the two
+            diverged silently and broke a structural identity by exactly
+            40/37.5. Bound 2026-08-16.
+        _ECOLOGICAL_SPIKE_INTENSITY = 5.0        core/eoh_generation.py
+            Covered by the 2026-08-09 retag log, which the gate could not reach.
+
+    A constant whose expression references a ``data.py`` import is reported with
+    ``bound=True``: that is an alias, the intended shape, and the remedy for the
+    rest.
+
+    Scoped to ``OPERATIVE_LAYERS``. ``reference/`` is excluded because it holds
+    measured data rather than calibration, and ``research/`` because it is
+    explicitly not stable API.
+    """
+    base = root or PACKAGE_ROOT.parent
+    out: list[Shadow] = []
+    for layer in OPERATIVE_LAYERS:
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover
+                continue
+            imported: set[str] = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module and (
+                    "data" in node.module.split(".")
+                ):
+                    imported |= {a.name for a in node.names}
+
+            for node in tree.body:
+                targets: list[ast.expr]
+                value: ast.expr | None
+                if isinstance(node, ast.AnnAssign):
+                    targets, value = [node.target], node.value
+                elif isinstance(node, ast.Assign):
+                    targets, value = list(node.targets), node.value
+                else:
+                    continue
+                if value is None:
+                    continue
+                nums = [
+                    s.value
+                    for s in ast.walk(value)
+                    if isinstance(s, ast.Constant)
+                    and isinstance(s.value, (int, float))
+                    and not isinstance(s.value, bool)
+                    and float(s.value) not in _INNOCUOUS
+                ]
+                if not nums:
+                    continue
+                refs = {
+                    s.id for s in ast.walk(value) if isinstance(s, ast.Name)
+                } & imported
+                for target in targets:
+                    if not isinstance(target, ast.Name):
+                        continue
+                    bare = target.id.lstrip("_")
+                    if not bare.isupper() or len(bare) < 2:
+                        continue
+                    out.append(
+                        Shadow(
+                            module=str(path.relative_to(base)),
+                            line=node.lineno,
+                            name=target.id,
+                            value=", ".join(repr(n) for n in nums[:4]),
+                            bound=bool(refs),
+                        )
+                    )
+    return out
+
+
+def repeated_default_literals(
+    root: Path | None = None, min_sites: int = 3
+) -> list[tuple[str, float, list[str]]]:
+    """Bare numeric defaults repeated under the same parameter name.
+
+    THE SECOND SHADOW CLASS, and the one with no name at all. A literal written
+    into the same parameter of many independent functions is a constant by
+    behaviour — every caller who omits the argument gets it — while being
+    invisible to every tool that looks for constants, because nobody declared
+    one. It is how ``= 1500.0`` survived the ``PERSONAL_EOH_BASE`` reprice in
+    five generators at once, and how ``skill_decay_rate = 0.10`` kept the
+    pipeline running knowledge EOH 4× the direct path.
+
+    Repetition is the filter that makes this usable. Value equality alone
+    returns 230 candidates against ``data.py`` and almost all are coincidence
+    (a 50-year amortization is not a 50-draw Monte Carlo). The same NAME at the
+    same VALUE across separate modules is not coincidence.
+
+    Returns ``(parameter, value, sites)`` sorted by site count, descending.
+    """
+    base = root or PACKAGE_ROOT.parent
+    seen: dict[tuple[str, float], list[str]] = {}
+    for layer in OPERATIVE_LAYERS:
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef)
+                ):
+                    continue
+                args = node.args
+                pairs = (
+                    list(zip(args.args[-len(args.defaults):], args.defaults))
+                    if args.defaults
+                    else []
+                )
+                pairs += [
+                    (a, d)
+                    for a, d in zip(args.kwonlyargs, args.kw_defaults)
+                    if d is not None
+                ]
+                for arg, default in pairs:
+                    if not isinstance(default, ast.Constant):
+                        continue
+                    v = default.value
+                    if not isinstance(v, (int, float)) or isinstance(v, bool):
+                        continue
+                    if float(v) in _INNOCUOUS:
+                        continue
+                    seen.setdefault((arg.arg, float(v)), []).append(
+                        f"{path.relative_to(base)}:{node.lineno}"
+                    )
+    return sorted(
+        (
+            (name, value, sites)
+            for (name, value), sites in seen.items()
+            if len(sites) >= min_sites
+        ),
+        key=lambda row: -len(row[2]),
+    )
+
+
 def problems(scanned: Scan) -> list[str]:
     """Every way the scan violates the tag scheme, as readable one-liners.
 

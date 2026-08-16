@@ -1060,6 +1060,119 @@ def test_skill_decay_rate_is_retired_as_a_baseline_and_still_reported(scanned):
     assert not pv.problems(scanned)
 
 
+# --- shadow constants: what the coverage figure does not count --------------
+#
+# "236/236 constants tagged (100.0%)" means 236 constants IN data.py. A named
+# numeric constant declared anywhere else is in no count this repo publishes,
+# carries no tag and no resolves_by, and cannot appear in the debt summary —
+# while being read by the same domain logic. Four defects have already come
+# from exactly this, and the scan below is what would have found them.
+
+
+def test_shadow_scan_finds_a_module_level_constant(tmp_path):
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        "WORKING_LIFE_YEARS: float = 40.0\n", encoding="utf-8"
+    )
+    found = pv.shadow_constants(root=tmp_path)
+    assert [s.name for s in found] == ["WORKING_LIFE_YEARS"]
+    assert found[0].bound is False
+
+
+def test_an_alias_of_a_data_constant_is_not_a_shadow(tmp_path):
+    """The FIX for a shadow, not an instance of one.
+
+    `TRANSMISSION_WORKING_LIFE_YEARS = SKILL_WORKING_LIFE_YEARS` is exactly
+    what the 2026-08-16 pass did to the constant that broke a structural
+    identity. It must not then be reported as debt.
+    """
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        "from hours_eoh.data import SKILL_WORKING_LIFE_YEARS\n"
+        "LOCAL_ALIAS: float = SKILL_WORKING_LIFE_YEARS * 2.5\n",
+        encoding="utf-8",
+    )
+    found = pv.shadow_constants(root=tmp_path)
+    assert len(found) == 1 and found[0].bound is True
+
+
+def test_shadow_scan_ignores_arithmetic_and_lowercase(tmp_path):
+    """Identities and loop bounds are not calibration; flagging them would bury
+    the cases that matter."""
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        "HALF: float = 0.5\n"
+        "PERCENT: float = 100.0\n"
+        "local_thing = 7.5\n"
+        "_RATE: float = 0.077\n",
+        encoding="utf-8",
+    )
+    assert [s.name for s in pv.shadow_constants(root=tmp_path)] == ["_RATE"]
+
+
+def test_repeated_default_literals_needs_repetition(tmp_path):
+    """Value equality alone is not evidence.
+
+    Matching shadow values against data.py returns ~230 candidates and almost
+    all are coincidence — a 50-year amortization is not a 50-draw Monte Carlo.
+    The same PARAMETER NAME at the same VALUE across separate modules is not.
+    """
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "a.py").write_text("def f(population: float = 1e6): ...\n", encoding="utf-8")
+    (pkg / "b.py").write_text("def g(population: float = 1e6): ...\n", encoding="utf-8")
+    (pkg / "c.py").write_text(
+        "def h(population: float = 1e6): ...\n"
+        "def j(lonely: float = 4.2): ...\n",
+        encoding="utf-8",
+    )
+    rows = pv.repeated_default_literals(root=tmp_path, min_sites=3)
+    assert [(r[0], r[1]) for r in rows] == [("population", 1e6)]
+    assert len(rows[0][2]) == 3
+
+
+def test_shadow_constant_count_does_not_grow(scanned):
+    """A RATCHET, not a gate, and the difference is deliberate.
+
+    76 shadow constants existed when the scan was written, so an unconditional
+    gate would have failed the build on pre-existing honest states — the same
+    reason `band_from:` shipped opt-in. What must not happen is the number
+    going UP: every new one is a fresh copy of a value whose source is
+    elsewhere, which is the failure mode all four known instances share.
+
+    Lowering this number is the migration; it should be lowered deliberately,
+    with the constants moved into data.py and tagged, not by loosening the scan.
+    """
+    free = [s for s in pv.shadow_constants() if not s.bound]
+    assert len(free) <= 76, (
+        f"{len(free)} shadow constants, was 76. New ones: a domain constant "
+        f"declared outside data.py carries no tag, no resolves_by, and appears "
+        f"in no coverage or debt figure this repo publishes. Put it in data.py "
+        f"with a tag block, or bind it to the constant it duplicates."
+    )
+
+
+def test_the_published_coverage_figure_has_a_narrower_denominator(scanned):
+    """States the thing the headline does not.
+
+    `eoh provenance check` reports 100% coverage truthfully and narrowly. This
+    records the wider denominator so the two cannot drift apart silently, and
+    so nobody quotes 100% without knowing what it counts.
+    """
+    tagged, total = pv.coverage(scanned)
+    assert tagged == total, "data.py coverage is the claim that IS 100%"
+    free = [s for s in pv.shadow_constants() if not s.bound]
+    assert free, "if this is empty the migration is done — update the docs"
+    wider = total / (total + len(free))
+    assert wider < 0.80, (
+        f"true coverage across operative layers is {wider:.1%} "
+        f"({total} tagged / {total + len(free)} domain constants)"
+    )
+
+
 # --- the instance tag -------------------------------------------------------
 
 

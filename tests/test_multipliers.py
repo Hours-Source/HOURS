@@ -57,6 +57,48 @@ class TestMeasuredWorkforceIsTheDefault:
             1.9964, abs=0.001
         )
 
+    def test_measured_mean_is_bound_to_the_registry(self):
+        """MEAN_MULTIPLIER_REFERENCE is bound by TEST, not by expression.
+
+        `data.py` sits below `reference/` and cannot import it — the same
+        constraint `AGE_WEIGHT_ELDERLY` and `GUF_ECO_KAPPA_CARBON` are bound
+        under. So this fails whichever side moves alone: an O*NET/BLS vintage
+        refresh that changes the registry mean, or an edit to the constant that
+        is not backed by one.
+
+        It matters more than a usual freeze check because this constant is now
+        the default `mean_multiplier` in eleven core functions — the EOH→TEH
+        pipeline, teh_created, three fiscal functions, both price functions,
+        the simulation engine and condition_ii. It is the rate at which all TEH
+        is minted.
+        """
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+        from hours_eoh.reference.onet_multipliers import registry_segments
+
+        assert MEAN_MULTIPLIER_REFERENCE == pytest.approx(
+            population_weighted_mean_multiplier(registry_segments()), rel=1e-12
+        )
+
+    def test_the_operating_mean_is_not_the_band_target(self):
+        """The check and the thing checked must not be the same number.
+
+        Until 2026-08-16 eleven core functions defaulted to a bare 2.10 — which
+        is M_BAND_TARGET, a NORMATIVE charter decision, standing in for the
+        measured rate at which TEH is minted. Condition II then verified a
+        measured economy against a target it had been seeded with.
+
+        The two are now distinct, and this test exists to keep them that way.
+        If a future edit makes them equal again it is either a coincidence worth
+        stating explicitly or the same error returning.
+        """
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE, M_BAND_TARGET
+
+        assert MEAN_MULTIPLIER_REFERENCE != M_BAND_TARGET
+        assert MEAN_MULTIPLIER_REFERENCE < M_BAND_TARGET, (
+            "the measured workforce sits BELOW the charter target — if this "
+            "flips, Condition II's headroom argument needs rewriting"
+        )
+
     def test_the_measured_mean_is_inside_the_band_on_its_own_evidence(self):
         """`in_band: True` meant strictly less before this change than after.
 

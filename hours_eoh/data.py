@@ -484,6 +484,45 @@ H_MIN_ALLOCATION: dict[str, float] = {
 M_BAND_LOW: float = 1.8
 M_BAND_HIGH: float = 2.1
 M_BAND_TARGET: float = 2.1
+
+# THE OPERATING MEAN IS NOT THE BAND TARGET, AND CONFLATING THEM WAS THE SAME
+# ERROR AS DEFAULT_SEGMENTS (2026-08-16). Eleven core functions — the EOH→TEH
+# pipeline, teh_created, three fiscal functions, both price functions, the
+# simulation engine, condition_ii and a scenario — carried
+# `mean_multiplier: float = 2.10` as a bare literal. That is M_BAND_TARGET, a
+# NORMATIVE charter decision, doing duty as the rate at which TEH is actually
+# minted. Checking a measured economy against a target it was seeded with is
+# not a check.
+#
+# The shadow scan found these: they were invisible to the provenance gate
+# because a repeated parameter default is a constant by behaviour and a literal
+# by declaration, so nothing that looks for constants could see them. Same class
+# as `= 1500.0` in the EOH generators and `skill_decay_rate = 0.10` in the
+# pipeline.
+#
+# HONEST SEQUENCE: until 2026-08-16 these literals AGREED with
+# population_weighted_mean_multiplier(), because that returned the synthetic
+# DEFAULT_SEGMENTS mean, also 2.10. Retiring DEFAULT_SEGMENTS in favour of the
+# measured registry made the two disagree. This constant closes the gap the
+# same change opened, and the ordering matters: the divergence was created by
+# improving one path and is fixed by moving the other, not by reverting.
+# tag: measured | tier: B | units: dimensionless multiplier
+# form: the employment-weighted mean of the O*NET 30.3/BLS reference registry —
+#   751 occupations, 94.2% of US employment, one weight per occupation
+#   (reference.onet_multipliers.registry_segments). Bound by TEST, not by
+#   expression: data.py sits below reference/ and cannot import it, the same
+#   constraint AGE_WEIGHT_ELDERLY and GUF_ECO_KAPPA_CARBON are bound under.
+#   TestMeasuredMeanIsBoundToTheRegistry fails whichever side moves alone.
+# note: TIER B — the registry is a large, well-sourced measurement, but it is US
+#   employment, and handoffs/multipliers-v5/FALSIFIABILITY.md records that the
+#   BAND pass is a construction artifact of the normalization (±2.8× across
+#   normalizations). So this value is evidence about the workforce and is NOT
+#   evidence that the band is right; it lands inside [1.8, 2.1] on its own
+#   terms, which is a result rather than a construction, and that is the whole
+#   of what it establishes.
+# resolves_by: an O*NET/BLS vintage refresh moves it mechanically; a non-US
+#   occupational registry would test whether 1.9964 travels.
+MEAN_MULTIPLIER_REFERENCE: float = 1.9964197854540455
 # tag: normative | units: dimensionless multiplier
 # form: physics — a hard cap must exist, or TEH accumulation is unbounded in
 #   the tier dimension. Its LEVEL is the choice.

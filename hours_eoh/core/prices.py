@@ -34,7 +34,7 @@ same nominal TEH buys more"; §"teh_price" in Phase 3.2 requirements.
 from __future__ import annotations
 import math
 
-from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT
+from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEAN_MULTIPLIER_REFERENCE
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ def domain_scarcity_multiplier(
 def teh_price(
     human_labor_hours_at_eps0: float,
     epsilon: float = 0.40,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     goods_price_floor: float = GOODS_PRICE_FLOOR,
     scarcity_factor: float = 1.0,
 ) -> float:
@@ -155,7 +155,7 @@ def teh_price(
 
 def teh_price_trajectory(
     human_labor_hours_at_eps0: float,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     n_points: int = 20,
 ) -> list[dict]:
     """

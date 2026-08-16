@@ -36,6 +36,7 @@ from hours_eoh.data import (
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
+    MEAN_MULTIPLIER_REFERENCE,
 )
 
 
@@ -161,7 +162,7 @@ def simulate_period(
     deferred_eco_growth_rate: float = 0.05,        # deferred EOH growth if ecosystem degraded
     # EOH / fiscal parameters
     levy_rates: dict[str, float] | None = None,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     floor_fraction: float = 0.15,

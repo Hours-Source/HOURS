@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     COMPOUNDING_CRIT,
+    MEAN_MULTIPLIER_REFERENCE,
 )
 from hours_eoh.core.eoh_dynamics import eoh_compounding
 from hours_eoh.core.registration import care_registration_share
@@ -147,7 +148,7 @@ def care_registration_delay(
     epsilon: float,
     delay_epsilon: float = 0.10,
     population: float = 1_000_000.0,
-    mean_multiplier: float = 2.10,
+    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> dict:
     """
     Simulate care admission lagging behind ε progression.
