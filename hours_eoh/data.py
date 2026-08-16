@@ -1320,6 +1320,7 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   while working).
 # superseded_by: SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE
 # baseline_in: hours_eoh/core/eoh_generation.py, hours_eoh/scenarios/knowledge_base.py
+# baseline_labels: shipped, ratio_to_shipped, shipped_over_split
 # resolves_by: nothing. It is not awaiting a measurement; the measurement
 #   happened and replaced it. The split that did so is SKILL_TRANSMISSION_RATE
 #   (cohort turnover, now measured) and SKILL_CPD_RATE (Eurostat CVTS paid

@@ -125,7 +125,59 @@ earned its place immediately: it falsified **two of the four** retirement claims
 made when it was written. `DEFAULT_SEGMENTS` was still the live default in
 `core/multipliers.py:82` and `core/dashboard.py:493`, and `SKILL_DECAY_RATE` was
 still read by `core/eoh_generation.py`. Both went back into the debt count rather
-than the check being loosened. Only **two** constants qualify, both research-only.
+than the check being loosened.
+
+### `baseline_in:` / `baseline_labels:` — the refuted value, kept visible
+
+The no-readers rule asks *"is it mentioned?"*, and that conflates two things:
+
+```python
+decay: float = SKILL_DECAY_RATE     # a second parameter, running in parallel
+"shipped": SKILL_DECAY_RATE         # the refuted value, printed beside its
+                                    # replacement so the gap stays visible
+```
+
+Only the first is what retirement exists to prevent. The second is a documented
+negative result, and this framework depends on keeping several: `scenario run
+knowledge_base` prints `credible_shipped: False` **because** the refuted 0.10 is
+still there to compare against, and `in_band: True` became falsifiable only when
+the synthetic `DEFAULT_SEGMENTS` survived alongside the measured registry. A rule
+whose remedy is *move the code to `research/`* would strip that out — and would
+make the gate satisfiable by relocation, which measures where code lives rather
+than what governs output.
+
+So the exemption is declared and then **checked, in three conditions**:
+
+1. **`baseline_in:` names every operative reader.** An undeclared reader is how a
+   value creeps back onto a computing path under cover of a claim made about
+   other modules.
+2. **It may never be a parameter default**, anywhere, verified by `ast` in
+   `parameter_default_consumers()`. A default is exactly how a superseded value
+   keeps governing output after everyone stops thinking about it — the
+   `decay=SKILL_DECAY_RATE` and `skill_decay_rate=0.10` defects were both this.
+   This condition cannot be waived.
+3. **Every read must be in a reporting position, under a declared label.** Shape:
+   a dict value under a literal key, an f-string, or a tuple carrying a label.
+   Arithmetic on the way is fine — a ratio against the refuted value is still a
+   comparison — but a function call is not, because that is a handoff the
+   analysis cannot follow. Label: the literal must appear in `baseline_labels:`.
+
+**Condition 3's second half exists because the first half failed its own bite
+test.** Shape alone accepts *any* dict value, and nearly every function here
+returns a dict — so a retired constant multiplied into a live figure under the
+key `"total"` passed cleanly. Requiring the label to be declared makes adding one
+a visible act in a diff rather than an emergent property of Python syntax. A
+declared label nothing uses is also refused: a permission nobody exercises is a
+permission nobody reviews.
+
+**Known limit, stated rather than implied.** The tuple form is accepted on the
+strength of its literal label, and the check does not follow a loop variable
+bound from it. `doctrine_arc`'s `("shipped", SKILL_DECAY_RATE)` row feeds a
+computed series — legitimately, since that series *is* the refuted doctrine and
+is reported under that name. Following the taint through the loop target needs
+dataflow analysis; the label is what keeps the result attributable meanwhile.
+
+Inspect any of it with `eoh provenance baseline [CONSTANT]`.
 
 ## Checking the guides
 

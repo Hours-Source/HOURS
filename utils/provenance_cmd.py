@@ -75,6 +75,62 @@ def build_parser(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> 
     )
     shadow.set_defaults(func=_shadow)
 
+    bl = sub2.add_parser(
+        "baseline",
+        help="Where retired constants are still read, and under what label",
+    )
+    bl.add_argument(
+        "constant", nargs="?",
+        help="Constant name; omit for every constant declaring baseline_in",
+    )
+    bl.set_defaults(func=_baseline)
+
+
+def _baseline(args: argparse.Namespace) -> None:
+    scanned = pv.load()
+    records = [
+        r for r in scanned.records
+        if r.baseline_in.strip()
+        and (args.constant is None or r.name == args.constant)
+    ]
+    if not records:
+        target = args.constant or "any constant"
+        print(yellow(f"no baseline_in declaration for {target}."))
+        return
+
+    for rec in records:
+        print(bold(rec.name))
+        print(dim(f"  superseded_by: {rec.superseded_by}"))
+        declared = {
+            lab.strip() for lab in rec.baseline_labels.split(",") if lab.strip()
+        }
+        reads = pv.baseline_reads(rec.name)
+        rows = []
+        for read in sorted(reads, key=lambda r: (r.module, r.line)):
+            if not read.ok:
+                verdict = red("NOT REPORTING")
+            elif read.label and read.label not in declared:
+                verdict = red("UNDECLARED LABEL")
+            else:
+                verdict = green("ok")
+            rows.append([
+                f"{read.module}:{read.line}", read.kind, read.label or "—",
+                verdict,
+            ])
+        print(table(["read", "position", "label", ""], rows, indent=2))
+        unused = sorted(declared - {r.label for r in reads if r.ok and r.label})
+        if unused:
+            print(yellow(f"  declared but unused: {', '.join(unused)}"))
+        print(
+            dim(
+                "  A retired constant may be shown BESIDE its replacement so the\n"
+                "  disagreement stays visible. Shape is checked (dict value under a\n"
+                "  literal key, f-string, or label-carrying tuple) AND the label must\n"
+                "  be declared — landing in a dict is not evidence of being a\n"
+                "  comparison, since almost every function here returns one."
+            )
+        )
+
 
 def _shadow(args: argparse.Namespace) -> None:
     scanned = pv.load()

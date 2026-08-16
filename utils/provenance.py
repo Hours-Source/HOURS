@@ -159,6 +159,7 @@ FIELDS: frozenset[str] = frozenset(
         "band",          # bounded: the measured range it was picked inside
         "band_from",     # bounded/derived: the constants an ANCHORED band rests on
         "baseline_in",   # retired: modules that may still read it as a REFUTED baseline
+        "baseline_labels",  # retired: the keys/labels those reads may be reported under
         "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
         "decided_by",    # normative: who or what decides it
         "precedent",     # normative: an external analogue that informs, not settles
@@ -215,6 +216,7 @@ class TagBlock:
     band: str = ""
     band_from: str = ""
     baseline_in: str = ""
+    baseline_labels: str = ""
     errs: str = ""
     decided_by: str = ""
     precedent: str = ""
@@ -254,6 +256,9 @@ class Record:
     #: Modules that may still read a RETIRED constant as a refuted baseline,
     #: comma-separated repo-relative paths. Gated: see ``problems``.
     baseline_in: str = ""
+    #: The dict keys / tuple labels those reads may be reported under. Gated:
+    #: a read landing under any other label is contaminating a live figure.
+    baseline_labels: str = ""
 
     @property
     def err_direction(self) -> str:
@@ -351,6 +356,7 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             band=fields.get("band", ""),
             band_from=fields.get("band_from", ""),
             baseline_in=fields.get("baseline_in", ""),
+            baseline_labels=fields.get("baseline_labels", ""),
             errs=fields.get("errs", ""),
             decided_by=fields.get("decided_by", ""),
             precedent=fields.get("precedent", ""),
@@ -456,6 +462,7 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         band=source_block.band,
                         band_from=source_block.band_from,
                         baseline_in=source_block.baseline_in,
+                        baseline_labels=source_block.baseline_labels,
                         errs=source_block.errs,
                         decided_by=source_block.decided_by,
                         precedent=source_block.precedent,
@@ -578,6 +585,152 @@ def unanchored_ancestors(
     for parent in (a.strip() for a in rec.band_from.split(",") if a.strip()):
         for chain in unanchored_ancestors(parent, scanned, seen | {name}):
             out.append(f"{name} -> {chain}")
+    return out
+
+
+#: Node types a read may pass THROUGH on its way to a reporting position.
+#: Arithmetic and conditionals are fine — ``total / OLD`` is still a comparison.
+#: ``ast.Call`` is deliberately absent: handing the value to a function is a
+#: handoff this check cannot follow, so it is refused rather than assumed safe.
+_TRANSPARENT: tuple[type[ast.AST], ...] = (
+    ast.BinOp, ast.UnaryOp, ast.IfExp, ast.Compare, ast.BoolOp, ast.FormattedValue,
+)
+
+
+@dataclass(frozen=True)
+class BaselineRead:
+    """One read of a retired constant, and whether it is a reporting position."""
+
+    module: str
+    line: int
+    #: "dict-value" | "f-string" | "labelled-tuple" | "unlabelled" | "computation"
+    kind: str
+    #: The literal label the value is reported under, "" when there is none.
+    label: str
+
+    @property
+    def ok(self) -> bool:
+        return self.kind in {"dict-value", "f-string", "labelled-tuple"}
+
+
+def _parents(tree: ast.AST) -> dict[int, ast.AST]:
+    """id(node) -> parent, for walking upward from a read."""
+    out: dict[int, ast.AST] = {}
+    for parent in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent):
+            out[id(child)] = parent
+    return out
+
+
+def _classify_read(node: ast.AST, parents: dict[int, ast.AST]) -> tuple[str, str]:
+    """Walk up from a read to the construct that consumes it.
+
+    Returns ``(kind, label)``. Three shapes count as reporting:
+
+        {"shipped": OLD}                 dict value under a literal key
+        f"shipped d={OLD} implies ..."   interpolated into prose
+        ("shipped", OLD)                 element of a tuple carrying a label
+
+    Everything else is a computation: the value is going somewhere this check
+    cannot see, and the whole point of the exemption is that it goes nowhere.
+    """
+    current: ast.AST = node
+    while True:
+        parent = parents.get(id(current))
+        if parent is None:
+            return "computation", ""
+
+        if isinstance(parent, ast.JoinedStr):
+            return "f-string", ""
+
+        if isinstance(parent, ast.Dict):
+            for key, value in zip(parent.keys, parent.values):
+                if value is current:
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                        return "dict-value", key.value
+                    return "unlabelled", ""
+            return "computation", ""
+
+        if isinstance(parent, (ast.Tuple, ast.List)) and current in parent.elts:
+            labels = [
+                e.value
+                for e in parent.elts
+                if isinstance(e, ast.Constant) and isinstance(e.value, str)
+            ]
+            if labels:
+                return "labelled-tuple", labels[0]
+            return "unlabelled", ""
+
+        if isinstance(parent, _TRANSPARENT):
+            current = parent
+            continue
+
+        return "computation", ""
+
+
+def baseline_reads(name: str, root: Path | None = None) -> list[BaselineRead]:
+    """Every operative read of ``name``, classified by reporting position.
+
+    THE TIGHTENING FROM "NO PARAMETER DEFAULTS" TO "REPORTING POSITIONS ONLY".
+
+    ``baseline_in:`` lets a RETIRED constant keep being read, on the claim that
+    what remains is the refuted value printed beside its replacement so the
+    disagreement stays visible. The first version of the gate verified only that
+    the constant was never a parameter default. That named the most common
+    failure precisely — a caller who passes nothing gets the superseded value —
+    but it left the positive claim *declared rather than checked*: a retired
+    constant could still sit in the middle of an expression feeding a live
+    return, and nothing would notice.
+
+    This checks the claim, in two conditions that ``problems()`` applies
+    together. SHAPE, here: the value must land in a construct that labels it —
+    a dict entry under a literal key, an f-string, or a tuple carrying a string
+    alongside it. Arithmetic on the way is fine, since a ratio against the
+    refuted value is still a comparison, but a function call is not, because
+    that is a handoff this analysis cannot follow.
+
+    LABEL, in ``problems()``: the literal that shape produces must appear in the
+    constant's ``baseline_labels:``. Shape alone is not enough and the first
+    version of this check proved it by failing its own bite test — nearly every
+    function in this package returns a dict, so a retired constant sitting under
+    the key ``"total"`` satisfied "lands under a literal key" while
+    contaminating a live figure. Requiring the label to be declared makes adding
+    one a visible act in a diff rather than an emergent property of Python
+    syntax.
+
+    KNOWN LIMIT, stated rather than papered over. The tuple form is accepted on
+    the strength of its literal label, and the check does not follow a loop
+    variable bound from it. In ``doctrine_arc`` the row ``("shipped", OLD)``
+    feeds a computed series — legitimately, since that series IS the refuted
+    doctrine and is reported under that name. Following the taint through the
+    loop target would need dataflow analysis; the label is what keeps the result
+    attributable in the meantime, and it is checked to exist.
+    """
+    base = root or PACKAGE_ROOT.parent
+    out: list[BaselineRead] = []
+    for layer in OPERATIVE_LAYERS:
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover
+                continue
+            parents = _parents(tree)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Name) or node.id != name:
+                    continue
+                if not isinstance(node.ctx, ast.Load):
+                    continue
+                kind, label = _classify_read(node, parents)
+                out.append(
+                    BaselineRead(
+                        module=str(path.relative_to(base)),
+                        line=node.lineno,
+                        kind=kind,
+                        label=label,
+                    )
+                )
     return out
 
 
@@ -881,6 +1034,47 @@ def problems(scanned: Scan) -> list[str]:
                 f", which read it. Every operative reader of a retired constant "
                 f"must be named, so the exemption stays as narrow as the "
                 f"comparison it is granted for."
+            )
+
+        # The claim itself, checked rather than taken on trust. TWO conditions,
+        # and the second was added after the first failed its own bite test:
+        # "lands under a literal key" accepts ANY dict value, and nearly every
+        # function in this package returns a dict — so a retired constant could
+        # contaminate a live figure under the key "total" and pass.
+        reads = baseline_reads(rec.name)
+        for read in reads:
+            if read.ok:
+                continue
+            found.append(
+                f"{rec.name}: read at {read.module}:{read.line} is not a "
+                f"reporting position ({read.kind}). A retired constant may be "
+                f"shown BESIDE its replacement — as a dict value under a "
+                f"literal key, inside an f-string, or paired with a label in a "
+                f"tuple — so the disagreement stays visible and attributable. "
+                f"Anywhere else it is governing output again. Use "
+                f"{rec.superseded_by or 'the replacement'}, or label this read."
+            )
+
+        allowed = {
+            lab.strip() for lab in rec.baseline_labels.split(",") if lab.strip()
+        }
+        used = sorted({r.label for r in reads if r.ok and r.label})
+        undeclared_labels = [lab for lab in used if lab not in allowed]
+        if undeclared_labels:
+            found.append(
+                f"{rec.name}: reported under {', '.join(undeclared_labels)}, "
+                f"which baseline_labels does not declare. Landing in a dict is "
+                f"not evidence of being a comparison — almost every function "
+                f"here returns one. The label has to SAY the value is the "
+                f"superseded one, and adding a new one has to be a visible act. "
+                f"Declare it, or use {rec.superseded_by or 'the replacement'}."
+            )
+        stale = sorted(allowed - set(used))
+        if stale:
+            found.append(
+                f"{rec.name}: baseline_labels declares {', '.join(stale)}, which "
+                f"nothing reports it under. A permission nobody exercises is a "
+                f"permission nobody reviews — drop it."
             )
 
     for orphan in scanned.orphans:

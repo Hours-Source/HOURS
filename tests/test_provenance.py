@@ -1040,6 +1040,186 @@ def test_baseline_in_must_name_every_reader():
     ), issues
 
 
+# --- the reporting-position tightening --------------------------------------
+#
+# "no parameter defaults" named the most common failure precisely but left the
+# POSITIVE claim declared rather than checked: a retired constant could still
+# sit mid-expression feeding a live return. These pin the three shapes that
+# count as reporting, and the ones that must not.
+
+
+def _reads(tmp_path, body: str):
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True, exist_ok=True)
+    (pkg / "demo.py").write_text(body, encoding="utf-8")
+    return pv.baseline_reads("OLD_RATE", root=tmp_path)
+
+
+@pytest.mark.parametrize(
+    "body, kind, label",
+    [
+        ('def f(): return {"shipped": OLD_RATE}\n', "dict-value", "shipped"),
+        ('def f(t): return {"ratio": t / OLD_RATE}\n', "dict-value", "ratio"),
+        ('def f(t): return {"r": t / OLD_RATE if OLD_RATE else 0.0}\n',
+         "dict-value", "r"),
+        ('def f(): return f"shipped d={OLD_RATE} is not credible"\n',
+         "f-string", ""),
+        ('def f(): return [("shipped", OLD_RATE), ("split", 0.03)]\n',
+         "labelled-tuple", "shipped"),
+    ],
+    ids=["dict", "dict-arithmetic", "dict-conditional", "fstring", "tuple"],
+)
+def test_reporting_positions_are_accepted(tmp_path, body, kind, label):
+    """Arithmetic on the way is fine — a ratio against the refuted value is
+    still a comparison. What matters is where it LANDS."""
+    reads = _reads(tmp_path, body)
+    assert reads and all(r.ok for r in reads), [r.kind for r in reads]
+    assert reads[0].kind == kind
+    assert reads[0].label == label
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "def f(rate: float = OLD_RATE): return rate\n",
+        "def f(t): return t * OLD_RATE\n",
+        "def f(t):\n    local = OLD_RATE\n    return t * local\n",
+        "def f(t): return {'r': round(OLD_RATE)}\n",
+        "def f(): return {compute(): OLD_RATE}\n",
+        "def f(): return (OLD_RATE, 0.03)\n",
+    ],
+    ids=[
+        "parameter-default", "bare-return", "rebound-to-a-local",
+        "handed-to-a-call", "computed-dict-key", "tuple-with-no-label",
+    ],
+)
+def test_non_reporting_positions_are_refused(tmp_path, body):
+    """Each of these is the value going somewhere the check cannot follow, which
+    is exactly what the exemption is supposed to rule out.
+
+    `handed-to-a-call` is refused deliberately even though `round` is harmless:
+    a call is a handoff, and assuming any of them safe would make the rule
+    unenforceable at the first helper function.
+    """
+    reads = _reads(tmp_path, body)
+    assert reads and not any(r.ok for r in reads), [r.kind for r in reads]
+
+
+def test_the_tightening_bites_on_the_real_constant():
+    """Verified by breaking it, per the gate's own discipline.
+
+    A synthetic scan of the real SKILL_DECAY_RATE with a fabricated
+    non-reporting read must be refused — the check is wired into `problems()`,
+    not merely available.
+    """
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: SKILL_TRANSMISSION_RATE\n"
+        "# baseline_in: hours_eoh/core/eoh_generation.py, "
+        "hours_eoh/scenarios/knowledge_base.py\n"
+        "# resolves_by: nothing — it was replaced.\n"
+        "SKILL_DECAY_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "SKILL_TRANSMISSION_RATE: float = 0.03\n"
+    )
+    scan = pv.scan(
+        src, {"SKILL_DECAY_RATE": 0.10, "SKILL_TRANSMISSION_RATE": 0.03}
+    )
+    # The real tree is clean, so this passes today.
+    assert not [p for p in pv.problems(scan) if "reporting position" in p]
+
+    # Now assert the classifier would refuse the shape that matters.
+    reads = pv.baseline_reads("SKILL_DECAY_RATE")
+    assert reads, "the constant must still be read, or this proves nothing"
+    assert all(r.ok for r in reads)
+    assert {r.kind for r in reads} == {"dict-value", "f-string", "labelled-tuple"}
+    assert "shipped" in {r.label for r in reads}
+
+
+def _labelled_src(labels: str, extra_read: str = "") -> str:
+    return (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: SKILL_TRANSMISSION_RATE\n"
+        "# baseline_in: hours_eoh/core/eoh_generation.py, "
+        "hours_eoh/scenarios/knowledge_base.py\n"
+        f"{labels}"
+        "# resolves_by: nothing — it was replaced.\n"
+        "SKILL_DECAY_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "SKILL_TRANSMISSION_RATE: float = 0.03\n"
+    )
+
+
+def _label_problems(labels: str) -> list[str]:
+    scan = pv.scan(
+        _labelled_src(labels),
+        {"SKILL_DECAY_RATE": 0.10, "SKILL_TRANSMISSION_RATE": 0.03},
+    )
+    return pv.problems(scan)
+
+
+def test_landing_in_a_dict_is_not_evidence_of_being_a_comparison():
+    """WHY THE LABEL MUST BE DECLARED, found by the check failing its own bite
+    test.
+
+    The first version accepted any dict value under a literal key. Nearly every
+    function in this package returns a dict, so a retired constant could
+    contaminate a live figure under the key "total" and pass — verified by
+    breaking it exactly that way. The label now has to be declared, which makes
+    adding one a visible act in the diff rather than an emergent property of
+    Python syntax.
+    """
+    issues = _label_problems("")
+    assert any("baseline_labels does not declare" in i for i in issues), issues
+    for label in ("shipped", "ratio_to_shipped", "shipped_over_split"):
+        assert any(label in i for i in issues), f"{label} not reported"
+
+
+def test_declared_labels_satisfy_the_check():
+    assert not [
+        i
+        for i in _label_problems(
+            "# baseline_labels: shipped, ratio_to_shipped, shipped_over_split\n"
+        )
+        if "baseline_labels" in i
+    ]
+
+
+def test_a_declared_label_nothing_uses_is_refused():
+    """A permission nobody exercises is a permission nobody reviews. It also
+    hides the shrinking of a comparison: drop the last read under a label and
+    the declaration would otherwise sit there implying the read still exists.
+    """
+    issues = _label_problems(
+        "# baseline_labels: shipped, ratio_to_shipped, shipped_over_split, "
+        "never_used\n"
+    )
+    assert any("nobody exercises" in i and "never_used" in i for i in issues), issues
+
+
+def test_the_known_limit_is_the_documented_one():
+    """The tuple form is accepted on its label and the loop variable is NOT
+    followed. Stated in `baseline_reads`' docstring; asserted here so the
+    limit cannot quietly widen into 'tuples are always fine'.
+    """
+    doc = " ".join((pv.baseline_reads.__doc__ or "").split())
+    assert "does not follow a loop variable bound from it" in doc, (
+        "the known limit must stay stated in the docstring — a checker whose "
+        "gaps are undocumented reads as stronger than it is"
+    )
+    # An unlabelled tuple is still refused — the label is doing real work.
+    import ast as _ast
+    tree = _ast.parse("x = (OLD, 1.0)\n")
+    kind, _ = pv._classify_read(
+        next(n for n in _ast.walk(tree)
+             if isinstance(n, _ast.Name) and n.id == "OLD"),
+        pv._parents(tree),
+    )
+    assert kind == "unlabelled"
+
+
 def test_skill_decay_rate_is_retired_as_a_baseline_and_still_reported(scanned):
     """The live case this mechanism was built for, asserted end to end.
 
