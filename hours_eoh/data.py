@@ -699,14 +699,28 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 # note: CALIBRATED TO A TARGET — the segment means were set so the weighted
 #   mean lands on 2.10, the top of the constitutional band, at ε=0. Same class
 #   as the GUF_USE_* rates: a value reverse-engineered from a desired outcome.
-# resolves_by: the measured path that should replace it —
-#   hours_eoh.scenarios.measured builds segments from the O*NET/BLS registry
-#   (751 occupations, 94.2% of US employment), and reference/workforce.py ships
-#   measured composition snapshots. NOT retired, and the earlier claim that it
-#   "survives as a self-contained fixture" was an over-claim caught by the
-#   operative-consumer gate on 2026-08-09: it is the live default in
-#   core/multipliers.py:82 and core/dashboard.py:493, so any caller that omits
-#   `segments` is scored against a set calibrated to hit 2.10.
+#   ON THE THIRD MODULE NAMED IN baseline_in: scenarios/measured.py names this
+#   constant in module prose only, never in code. `operative_consumers` matches
+#   source TEXT, so it over-counts — the safe direction for a gate, so the
+#   module is declared rather than the matcher loosened. It earned its keep
+#   immediately: it caught that measured.py's layer paragraph still asserted
+#   "DEFAULT_SEGMENTS remains the core default" after that stopped being true.
+# superseded_by: hours_eoh.reference.onet_multipliers.registry_segments
+# baseline_in: hours_eoh/core/multipliers.py, hours_eoh/core/dashboard.py, hours_eoh/scenarios/measured.py
+# resolves_by: nothing further — the measured path replaced it 2026-08-16.
+#   `registry_segments()` (O*NET 30.3/BLS, 751 occupations, 94.2% of US
+#   employment) is now the default in core/multipliers.py and core/dashboard.py;
+#   this list survives only as the synthetic comparison, reachable by passing it
+#   explicitly.
+#   WHAT THE SWAP FOUND: the default mean moved 2.100 -> 1.9964 (-4.93%) and
+#   NOT ONE TEST FAILED. The Condition II baseline — the quantity this whole
+#   block exists to govern — was entirely unpinned, exactly as GUF_PSI_NORM's
+#   fee-curve peak was. TestMeasuredWorkforceIsTheDefault is now that pin.
+#   The measured mean sits INSIDE [1.8, 2.1] on its own evidence, where the
+#   synthetic set sat exactly ON the 2.10 ceiling because it was built to. A
+#   default calibrated to the target it is checked against cannot test anything,
+#   which is why "in_band: True" meant strictly less before this change than
+#   after it.
 DEFAULT_SEGMENTS: list[dict] = [
     {"name": "base",     "fraction": 0.20, "mean_mu": 1.20},
     {"name": "standard", "fraction": 0.50, "mean_mu": 1.87},
@@ -1179,8 +1193,12 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   constant it sets sits inside the quantity that checks it. FROZEN against
 #   data-vintage churn; it FOLLOWS internal drift, because a change to any
 #   constant inside total_eoh changes the derivation's own inputs. Re-anchored
-#   2026-08-09 (Finding E, ε* 0.4522) and 2026-08-10 (the AGE_GROUPS elderly
-#   revalue, ε* 0.3828).
+#   2026-08-09 (Finding E, ε* 0.4522), 2026-08-10 (the AGE_GROUPS elderly
+#   revalue, ε* 0.3828) and 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at
+#   37.5, ε* 0.38689). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST
+#   REASSURING: a 6.7% rise in the renewal rate moved this constant by −2.0%,
+#   because the fixed point absorbs most of it. The coupling is real and it is
+#   damped, which is the property a one-shot anchor could not demonstrate.
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
@@ -1193,7 +1211,7 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 533_620_818.74  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.3828 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 522_918_893.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.38689 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -1261,25 +1279,32 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   series reports anything close. It was also CONFLATING two rates that Block
 #   K-III separates: transmission (cohort turnover) and CPD (staying current
 #   while working).
-# resolves_by: the split that replaced it — SKILL_TRANSMISSION_RATE (cohort
-#   turnover) and SKILL_CPD_RATE (Eurostat CVTS paid training hours), whose sum
-#   is 0.0277 against this 0.10. That gap is a finding, not an error to
-#   reconcile away. Still counted as debt, NOT retired: core/eoh_generation.py
-#   reads it, so it remains on the operative path even though nothing defaults
-#   to it any more.
-#   2026-08-15: THE LAST OPERATIVE DEFAULT IS NOW GONE. core/eoh_fulfillment
+# superseded_by: SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE
+# baseline_in: hours_eoh/core/eoh_generation.py, hours_eoh/scenarios/knowledge_base.py
+# resolves_by: nothing. It is not awaiting a measurement; the measurement
+#   happened and replaced it. The split that did so is SKILL_TRANSMISSION_RATE
+#   (cohort turnover, now measured) and SKILL_CPD_RATE (Eurostat CVTS paid
+#   training hours), whose sum is 0.0294 against this 0.10. That gap is a
+#   finding, not an error to reconcile away.
+#   2026-08-15: THE LAST COMPUTING PATH WENT. core/eoh_fulfillment
 #   .eoh_to_teh_pipeline was passing a bare 0.10 literal — an unbound COPY of
 #   this value, not a read of it — straight into total_eoh(), overriding the
 #   SKILL_TRANSMISSION_RATE default that knowledge_eoh() had already adopted.
-#   The pipeline was computing knowledge EOH 4× the direct path. That literal is
-#   now bound, so nothing computes anything from this constant; it survives only
-#   as the comparison BASELINE in knowledge_eoh_renewal_split() and the
-#   knowledge_base doctrine table. It still cannot be tagged `retired`, because
-#   the retirement gate scopes to core/land/scenarios and both of those readers
-#   are operative-layer — correctly: a retired constant core/ still reads is a
-#   second, older parameter running in parallel. Retiring it means moving the
-#   comparison out of core/, which is a tidy, not a calibration change.
-SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHOSEN — conflated; see skill_renewal_rate()
+#   The pipeline was computing knowledge EOH 4× the direct path.
+#   2026-08-16: RETIRED, and the gate had to learn a distinction first. The
+#   last PARAMETER DEFAULT was `decay=` on knowledge_base_from_registry, which
+#   set the reported arc level under the refuted doctrine; it now points at
+#   SKILL_TRANSMISSION_RATE. What remains is four reads in two modules, all of
+#   the same shape — this value printed BESIDE the split so the disagreement
+#   stays visible. That is a documented negative result, not a second parameter
+#   running in parallel, and the old gate could not tell the two apart because
+#   it asked "is it mentioned?". `baseline_in:` states the claim, and
+#   `problems()` checks it: every reader named, and — the condition that cannot
+#   be waived — no parameter default anywhere, verified by AST rather than by
+#   regex. Retiring it this way keeps the credibility finding on the CLI
+#   (`scenario run knowledge_base`) instead of exiling it to research/ to make
+#   a counter go down.
+SKILL_DECAY_RATE: float = 0.10  # RETIRED (pre-K-IV default) — kept as the refuted baseline; see skill_renewal_rate()
 
 # --- Block K-III: the renewal rate, split ----------------------------------
 #
@@ -1313,24 +1338,58 @@ SKILL_DECAY_RATE: float = 0.10  # DEPRECATED placeholder (pre-K-IV default). CHO
 # TRANSMISSION — the stock is re-created as cohorts retire. Knowledge dies with
 # people; this is the entropy the domain measures, and the framing the author
 # accepted 2026-08-08. DERIVED: 1 / working life, with the horizon below.
-# The horizon is the only input, and it is weakly held: halving or doubling it
-# moves transmission 2× against ε_ref's 7.13× lever on the base.
-# tag: placeholder | units: years, entry to retirement
-# note: the only input to transmission, and weakly held — but halving or
-#   doubling it moves transmission 2×, against ε_ref's 7.13× lever on
-#   KNOWLEDGE_EOH_BASE, so it is not where the uncertainty lives.
-# resolves_by: BLS Employee Tenure, or cohort exit rates from the labour
-#   force.
-SKILL_WORKING_LIFE_YEARS: float = 40.0   # years entry→retirement. CHOSEN — resolves_by: BLS Employee Tenure / cohort exit rates
+#
+# MEASURED 2026-08-16, AND THE POINTER IT REPLACED NAMED THE WRONG INSTRUMENT.
+# This constant read `resolves_by: BLS Employee Tenure, or cohort exit rates
+# from the labour force` — two pointers, and only the second one measures this
+# quantity. BLS Employee Tenure is median years with the CURRENT EMPLOYER: 3.9
+# years in January 2024. Binding to it would have set transmission to 1/3.9 =
+# 0.256, which is 2.6× the very rate Block K-III refuted as not credible, and
+# wrong in mechanism as well as magnitude — changing employer does not destroy
+# what you know. Knowledge dies when people leave the LABOUR FORCE, not when
+# they leave a job. A `resolves_by` is a lead, and this one had to be read
+# before it could be followed.
+# tag: measured | tier: B | units: years, entry to retirement
+# form: Eurostat `lfsi_dwl_a`, "duration of working life" — the average number
+#   of years a person aged 15 is expected to remain in the labour force
+#   (employed or unemployed), computed from life expectancy and age-specific
+#   participation rates. That IS the cohort-exit construction this constant
+#   needs, published annually. EU 2025: 37.5 years overall, 39.5 men, 35.4
+#   women. The EU aggregate is adopted rather than either sex-specific figure.
+# note: TIER B, NOT A, FOR A NAMED REASON: the series is EU-27, while the
+#   knowledge domain's ε_ref anchor is US paid labour (937.3 h/person·yr). No
+#   current US equivalent exists to reconcile it against — BLS ceased
+#   publishing worklife tables, and the last (Smith 1986) rests on 1979–80
+#   labour-force behaviour, which is older than the gap it would close. The
+#   jurisdiction mismatch is therefore unavoidable rather than a shortcut, and
+#   it is the whole of the Tier B reservation. Direction is not withheld: EU
+#   participation among older workers runs below the US, so 37.5 is more likely
+#   an UNDERSTATEMENT of a US working life, which makes transmission an
+#   OVERSTATEMENT — the conservative side, since it raises the renewal
+#   obligation rather than flattering it.
+# resolves_by: a US duration-of-working-life series on the Eurostat
+#   construction — age-specific participation rates against a current life
+#   table. CPS and NCHS both publish the inputs; nobody publishes the product.
+SKILL_WORKING_LIFE_YEARS: float = 37.5   # years entry→retirement. Eurostat lfsi_dwl_a, EU 2025
 # tag: derived | units: fraction of the knowledge stock renewed per year
-# form: 1 / SKILL_WORKING_LIFE_YEARS = 0.025. Transmission is the stock being
+# form: 1 / SKILL_WORKING_LIFE_YEARS = 0.02667. Transmission is the stock being
 #   re-created as cohorts retire — knowledge dies with people, which is the
 #   entropy this domain measures (framing accepted by the author 2026-08-08).
 #   Adopted as the default renewal rate in Block K-IV because it is the LOWER
 #   of the two credible doctrines and the only one containing no CHOSEN
 #   component.
-# resolves_by: n/a — it inherits SKILL_WORKING_LIFE_YEARS's standing.
-SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0.025
+# band_from: SKILL_WORKING_LIFE_YEARS
+# note: THE FIRST ANCHORED DERIVATION IN THE FILE. Until 2026-08-16 this was
+#   `derived` from a `placeholder`, which the chain audit found by tracing the
+#   graph rather than reading one level — and it mattered more than the tag
+#   suggested, because the working life has ZERO direct consumers in
+#   core/land/scenarios and reached 14 call sites only through this constant.
+#   Every blast-radius scan that looks at code read it as inert. Now that the
+#   parent is measured, `band_from` can be claimed and the transitive gate
+#   (utils/provenance.unanchored_ancestors) verifies it.
+# resolves_by: n/a — it inherits SKILL_WORKING_LIFE_YEARS's standing, which is
+#   now a measurement rather than a choice.
+SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0.02667
 
 # CPD — recurring hours a WORKING practitioner spends staying current. This is
 # the term O*NET structurally cannot supply: it measures the hours to REACH

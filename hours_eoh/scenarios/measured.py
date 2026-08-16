@@ -9,10 +9,22 @@ sweeping the automation arc can draw a MEASURED, ε-coherent mean multiplier eac
 period instead of a hand-set constant. At ε=0.40 the repriced mean equals the
 frozen registry mean (≈ 1.9964) by construction.
 
-Layer: scenarios/ imports core/ and reference/ — never the reverse. The measured
-data is injected HERE, at the boundary; core/ stays pure (it never imports
-reference/). This is the deliberate design: DEFAULT_SEGMENTS remains the core
-default, and callers opt into measured data through this bridge.
+Layer: scenarios/ imports core/ and reference/ — never the reverse.
+
+SUPERSEDED 2026-08-16, and this paragraph used to say the opposite. It read
+"core/ stays pure (it never imports reference/) ... DEFAULT_SEGMENTS remains the
+core default, and callers opt into measured data through this bridge". That is
+no longer true and the arrangement it described was the problem: opting IN to
+measurement means the default stays synthetic, so every caller who omitted
+`segments` was scored against four tiers calibrated to land on 2.10.
+
+`core/multipliers.py` and `core/dashboard.py` now default to
+`reference.onet_multipliers.registry_segments()` directly. core/ importing
+reference/ is permitted by the layer rules — reference/ is pure data that cannot
+import back — and this is the first place core/ uses it. This module remains the
+bridge for the ε-REPRICED registry, which is its distinctive job: the core
+default is the frozen ε=0.40 cross-section, while `measured_segments(ε)` and
+`measured_mean_multiplier(ε)` reprice all 751 occupations to an arbitrary ε.
 
 ε-coherence: `measured_mean_multiplier(ε)` and `measured_segments(ε)` are valid
 across ε ∈ [0, 0.99]; the mean stays within the Condition II band on the arc.

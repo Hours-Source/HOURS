@@ -148,9 +148,9 @@ class TestPerCapitaRoutes:
 
     def test_measured_flow_matches_the_worked_example(self):
         flow = measured_knowledge_flow_per_capita("registry")
-        assert flow["flow_per_capita_h_yr"] == pytest.approx(137.5, rel=1e-2)
+        assert flow["flow_per_capita_h_yr"] == pytest.approx(146.7, rel=1e-2)
         assert measured_knowledge_flow_per_capita("repo")["flow_per_capita_h_yr"] \
-            == pytest.approx(165.0, rel=1e-2)
+            == pytest.approx(176.0, rel=1e-2)
 
     def test_non_positive_working_life_rejected(self):
         with pytest.raises(ValueError, match="working_life_years must be positive"):
@@ -193,10 +193,15 @@ class TestBackDerivation:
 
     def test_arc_figures_by_doctrine_at_the_default_anchor(self):
         """
-        Both doctrines pinned, so the renewal rate's leverage is explicit. The
-        transmission figures are K-II's and must not have moved; the default
-        figures are 4x higher purely because SKILL_DECAY_RATE is 4x the
-        measurable rate.
+        Both doctrines pinned, so the renewal rate's leverage stays explicit.
+
+        THE REFUTED DOCTRINE IS NOW PASSED, NOT DEFAULTED TO (2026-08-16).
+        `decay=` used to default to SKILL_DECAY_RATE, so `knowledge_h_per_capita`
+        reported the arc under the rate this module's own doctrine table calls
+        not credible — a reader taking the default got the refuted level. The
+        default is the adopted transmission rate; reproducing the old figures
+        means naming the old rate, which is the whole discipline the deprecation
+        was supposed to enforce.
         """
         d = knowledge_base_from_registry(0.40)
         base = d["base_rate"]
@@ -204,14 +209,23 @@ class TestBackDerivation:
         def arc(rate: float, eps: float) -> float:
             return base * _complexity(eps) * rate / KNOWLEDGE_REFERENCE_POPULATION
 
-        assert arc(SKILL_TRANSMISSION_RATE, 0.0) == pytest.approx(12.3, rel=2e-2)
-        assert arc(SKILL_TRANSMISSION_RATE, 0.40) == pytest.approx(137.5, rel=1e-2)
-        assert arc(SKILL_TRANSMISSION_RATE, 0.99) == pytest.approx(1192.0, rel=1e-2)
+        assert arc(SKILL_TRANSMISSION_RATE, 0.0) == pytest.approx(13.07, rel=2e-2)
+        assert arc(SKILL_TRANSMISSION_RATE, 0.40) == pytest.approx(146.7, rel=1e-2)
+        assert arc(SKILL_TRANSMISSION_RATE, 0.99) == pytest.approx(1272.0, rel=1e-2)
 
+        # The default now IS the transmission doctrine.
         k = d["knowledge_h_per_capita"]
-        assert k[0.0] == pytest.approx(49.0, rel=2e-2)
-        assert k[0.40] == pytest.approx(550.1, rel=1e-2)
-        assert k[0.99] == pytest.approx(4770.0, rel=1e-2)
+        assert k[0.0] == pytest.approx(13.07, rel=2e-2)
+        assert k[0.40] == pytest.approx(146.7, rel=1e-2)
+        assert k[0.99] == pytest.approx(1272.0, rel=1e-2)
+
+        # The refuted doctrine, reachable only by asking for it. 3.75x the
+        # transmission arc, which is 0.10 / 0.02667 — the gap Block K-III found.
+        refuted = knowledge_base_from_registry(0.40, decay=SKILL_DECAY_RATE)
+        assert refuted["knowledge_h_per_capita"][0.40] == pytest.approx(550.1, rel=1e-2)
+        assert refuted["base_rate"] == pytest.approx(base, rel=1e-12), (
+            "base_rate is decay-free; only the reported arc level moves"
+        )
 
     def test_finite_across_the_arc(self):
         for eps_ref in (0.0, 0.40, 0.90, 0.99):
@@ -257,7 +271,7 @@ class TestBand:
         AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.3828218221664429, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.38688539028167723, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -281,12 +295,15 @@ class TestDomainShareProjection:
         p = domain_share_projection()
         rows = {r["epsilon"]: r for r in p["rows"]}
         assert rows[0.0]["personal_share"] == pytest.approx(0.943, abs=0.01)
-        # 0.489 → 0.457: personal fell 11.76% with the elderly revalue while the
-        # other domains held, so its share at the top of the arc fell with it.
-        assert rows[0.99]["personal_share"] == pytest.approx(0.457, abs=0.01)
-        # 0.437 → 0.464, the same mechanism seen from the other side: knowledge
-        # did not grow, the total it is a share of shrank.
-        assert rows[0.99]["knowledge_share"] == pytest.approx(0.464, abs=0.01)
+        # 0.489 → 0.457 with the elderly revalue, → 0.445 once the working life
+        # was measured. Personal has not moved in either case: the renewal rate
+        # rose 6.7%, so KNOWLEDGE grew and took share from everything else.
+        assert rows[0.99]["personal_share"] == pytest.approx(0.445, abs=0.01)
+        # 0.437 → 0.464 → 0.479, the same mechanism from the other side. Note
+        # the two re-anchors act in OPPOSITE directions on the total: the
+        # elderly revalue shrank the total knowledge is a share of, while the
+        # working life grew knowledge itself.
+        assert rows[0.99]["knowledge_share"] == pytest.approx(0.479, abs=0.01)
 
     def test_delivers_the_behaviour_the_docstring_asserts(self):
         """knowledge_eoh's own reference says human labor at ε→1 is 'almost
@@ -325,7 +342,7 @@ class TestRenewalRateSplit:
     def test_transmission_is_derived_from_working_life(self):
         """Derived, not chosen: it is 1/working_life and nothing else."""
         assert SKILL_TRANSMISSION_RATE == pytest.approx(1.0 / SKILL_WORKING_LIFE_YEARS)
-        assert skill_renewal_rate()["transmission"] == pytest.approx(0.025)
+        assert skill_renewal_rate()["transmission"] == pytest.approx(0.026667, rel=1e-4)
 
     def test_split_does_not_reproduce_the_shipped_rate(self):
         """
@@ -335,11 +352,11 @@ class TestRenewalRateSplit:
         becomes visible instead of silent.
         """
         s = skill_renewal_rate()
-        assert s["total"] == pytest.approx(0.0277)
+        assert s["total"] == pytest.approx(0.029367, rel=1e-4)
         assert s["total"] != pytest.approx(SKILL_DECAY_RATE, rel=0.5), (
             "components must NOT be tuned to reproduce the shipped placeholder"
         )
-        assert s["ratio_to_shipped"] == pytest.approx(0.277, rel=1e-3)
+        assert s["ratio_to_shipped"] == pytest.approx(0.2937, rel=1e-3)
 
     def test_measurable_component_dominates(self):
         """Transmission (derivable) is ~90% of the total; CPD (not in O*NET,
@@ -382,7 +399,7 @@ class TestRenewalDoctrineComparison:
 
     def test_shipped_is_roughly_four_times_the_components(self):
         r = renewal_doctrine_comparison()
-        assert r["shipped_over_split"] == pytest.approx(3.61, rel=2e-2)
+        assert r["shipped_over_split"] == pytest.approx(3.405, rel=2e-2)
 
     def test_transmission_doctrine_reproduces_the_k2_arc(self):
         """
@@ -390,9 +407,9 @@ class TestRenewalDoctrineComparison:
         decay-free base fix must leave it exactly where it was.
         """
         k = renewal_doctrine_comparison()["doctrines"]["transmission"]["knowledge_h_per_capita"]
-        assert k[0.0] == pytest.approx(12.3, rel=2e-2)
-        assert k[0.40] == pytest.approx(137.5, rel=1e-2)
-        assert k[0.99] == pytest.approx(1192.0, rel=1e-2)
+        assert k[0.0] == pytest.approx(13.07, rel=2e-2)
+        assert k[0.40] == pytest.approx(146.7, rel=1e-2)
+        assert k[0.99] == pytest.approx(1272.0, rel=1e-2)
 
     def test_arc_is_linear_in_the_renewal_rate(self):
         """base_rate is now the STOCK, so the arc scales with d exactly."""
@@ -442,7 +459,7 @@ class TestKIVAdoption:
         # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40. Finding E
         # cut it to 0.779× that; the 2026-08-10 elderly revalue moved the fixed
         # point again and put it at 1.089×, back above the K-IV figure.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.3362082e8, rel=1e-6)
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.2291889e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """
@@ -521,7 +538,7 @@ class TestEpsilonRefFixedPoint:
         r = epsilon_ref_fixed_point(937.3)
         assert r["converged"] is True
         # 0.4522 → 0.3828 with the 2026-08-10 elderly revalue.
-        assert r["epsilon_fixed_point"] == pytest.approx(0.3828, abs=0.001)
+        assert r["epsilon_fixed_point"] == pytest.approx(0.38689, abs=0.001)
 
     def test_the_fixed_point_reproduces_the_shipped_constant(self):
         """
@@ -562,9 +579,11 @@ class TestEpsilonRefFixedPoint:
         k4_base = knowledge_base_from_registry(
             0.40, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
-        # 0.470 at the pre-revalue w; 0.376 now. The ARGUMENT is unchanged and
-        # is in fact reinforced: the anchor moved again, for a third reason.
-        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.376, abs=0.005)
+        # 0.470 at the pre-revalue w; 0.376 after it; 0.381 with the working life
+        # measured. The ARGUMENT is unchanged and is reinforced each time: the
+        # anchor has now moved for a FOURTH reason, none of them a knowledge-
+        # domain decision.
+        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.381, abs=0.005)
         assert k4_base == pytest.approx(4.9010742e8, rel=1e-6)
 
     def test_independent_of_the_starting_anchor(self):
@@ -580,13 +599,16 @@ class TestEpsilonRefFixedPoint:
         """Against the K-IV base, the fixed point of comparison across re-anchors.
 
         0.779× at the Finding-E adoption (2026-08-09); 1.089× after the elderly
-        revalue moved the fixed point again (2026-08-10). The base has now
-        crossed ABOVE the K-IV value it was first cut below — the anchor is a
-        genuinely moving quantity, not a one-time correction.
+        revalue moved the fixed point again (2026-08-10); 1.067× once
+        SKILL_WORKING_LIFE_YEARS was measured (2026-08-16). The base has
+        crossed ABOVE the K-IV value it was first cut below and then partly
+        back toward it — the anchor is a genuinely moving quantity, not a
+        one-time correction, and none of the three moves originated in the
+        knowledge domain.
         """
         r = epsilon_ref_fixed_point(937.3)
-        assert r["base_rate"] / 4.9010742e8 == pytest.approx(1.089, abs=0.005)
-        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(1.089, abs=0.005)
+        assert r["base_rate"] / 4.9010742e8 == pytest.approx(1.067, abs=0.005)
+        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(1.067, abs=0.005)
 
     def test_flags_when_the_shipped_constant_stops_being_the_fixed_point(self):
         """

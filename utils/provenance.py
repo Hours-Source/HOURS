@@ -77,6 +77,7 @@ their expression.
 
 from __future__ import annotations
 
+import ast
 import csv
 import fnmatch
 import io
@@ -157,6 +158,7 @@ FIELDS: frozenset[str] = frozenset(
         "resolves_by",   # bounded / placeholder: what would settle it
         "band",          # bounded: the measured range it was picked inside
         "band_from",     # bounded/derived: the constants an ANCHORED band rests on
+        "baseline_in",   # retired: modules that may still read it as a REFUTED baseline
         "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
         "decided_by",    # normative: who or what decides it
         "precedent",     # normative: an external analogue that informs, not settles
@@ -212,6 +214,7 @@ class TagBlock:
     resolves_by: str = ""
     band: str = ""
     band_from: str = ""
+    baseline_in: str = ""
     errs: str = ""
     decided_by: str = ""
     precedent: str = ""
@@ -248,6 +251,9 @@ class Record:
     #: Constants an ANCHORED band/derivation rests on, comma-separated. Gated:
     #: no named ancestor may be a placeholder, transitively.
     band_from: str = ""
+    #: Modules that may still read a RETIRED constant as a refuted baseline,
+    #: comma-separated repo-relative paths. Gated: see ``problems``.
+    baseline_in: str = ""
 
     @property
     def err_direction(self) -> str:
@@ -344,6 +350,7 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             resolves_by=fields.get("resolves_by", ""),
             band=fields.get("band", ""),
             band_from=fields.get("band_from", ""),
+            baseline_in=fields.get("baseline_in", ""),
             errs=fields.get("errs", ""),
             decided_by=fields.get("decided_by", ""),
             precedent=fields.get("precedent", ""),
@@ -448,6 +455,7 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         resolves_by=source_block.resolves_by,
                         band=source_block.band,
                         band_from=source_block.band_from,
+                        baseline_in=source_block.baseline_in,
                         errs=source_block.errs,
                         decided_by=source_block.decided_by,
                         precedent=source_block.precedent,
@@ -573,6 +581,58 @@ def unanchored_ancestors(
     return out
 
 
+def parameter_default_consumers(
+    name: str, root: Path | None = None
+) -> list[str]:
+    """Operative-layer functions that take ``name`` as a PARAMETER DEFAULT.
+
+    This is the precise form of the thing the retirement gate is actually
+    worried about. ``operative_consumers`` answers "is it mentioned?", which
+    conflates two very different reads:
+
+        decay: float = SKILL_DECAY_RATE      <- a second parameter, running in
+                                                parallel with its replacement
+        "shipped": SKILL_DECAY_RATE          <- the refuted baseline, reported
+                                                so the disagreement stays visible
+
+    The first is the failure mode ``superseded_by`` exists to prevent: a caller
+    who passes nothing silently gets the old value. The second is a documented
+    negative result, and the repo keeps several on purpose
+    (``contestability_ceiling_bare_chi`` is the standing precedent).
+
+    Parsed with ``ast`` rather than matched with a regex, because this is the
+    check a ``baseline_in:`` claim is allowed to bypass — so it has to be one
+    that cannot be dodged by reformatting the line.
+    """
+    base = root or PACKAGE_ROOT.parent
+    hits: list[str] = []
+    for layer in OPERATIVE_LAYERS:
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover - repo does not ship these
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(
+                    node, (ast.FunctionDef, ast.AsyncFunctionDef)
+                ):
+                    continue
+                args = node.args
+                defaults = list(args.defaults) + [
+                    d for d in args.kw_defaults if d is not None
+                ]
+                for default in defaults:
+                    for sub in ast.walk(default):
+                        if isinstance(sub, ast.Name) and sub.id == name:
+                            hits.append(
+                                f"{path.relative_to(base)}:{node.lineno}"
+                                f" ({node.name})"
+                            )
+    return sorted(set(hits))
+
+
 def problems(scanned: Scan) -> list[str]:
     """Every way the scan violates the tag scheme, as readable one-liners.
 
@@ -602,6 +662,50 @@ def problems(scanned: Scan) -> list[str]:
                 f"placeholder. A band resting on unmeasured input launders a "
                 f"guess; state the dependency in `form:` instead of claiming a "
                 f"band."
+            )
+
+    # `baseline_in:` — a RETIRED constant that operative code still reads as the
+    # refuted comparison. Three conditions, and the middle one is the whole
+    # point: a baseline claim buys exemption from "no readers", never from "no
+    # parameter defaults", because a default is exactly how an old value keeps
+    # governing output after everyone stops thinking about it.
+    for rec in scanned.records:
+        declared = [m.strip() for m in rec.baseline_in.split(",") if m.strip()]
+        if declared and not rec.retired:
+            found.append(
+                f"{rec.name}: declares baseline_in but is not retired. The "
+                f"field exempts a SUPERSEDED constant from the no-readers "
+                f"rule; on a live one it claims nothing. Add superseded_by, or "
+                f"drop the field."
+            )
+            continue
+        if not declared:
+            continue
+
+        defaults = parameter_default_consumers(rec.name)
+        if defaults:
+            found.append(
+                f"{rec.name}: baseline_in claims it is only a refuted "
+                f"baseline, but it is a PARAMETER DEFAULT at "
+                f"{', '.join(defaults[:5])}. A caller who passes nothing gets "
+                f"the superseded value — that is a second parameter running in "
+                f"parallel, which is what retirement is supposed to end. Point "
+                f"the default at the replacement."
+            )
+
+        undeclared = sorted(
+            {
+                hit.split(":", 1)[0]
+                for hit in operative_consumers(rec.name)
+            }
+            - set(declared)
+        )
+        if undeclared:
+            found.append(
+                f"{rec.name}: baseline_in does not cover {', '.join(undeclared)}"
+                f", which read it. Every operative reader of a retired constant "
+                f"must be named, so the exemption stays as narrow as the "
+                f"comparison it is granted for."
             )
 
     for orphan in scanned.orphans:

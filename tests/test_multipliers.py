@@ -33,10 +33,58 @@ from hours_eoh.data import (
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 
 
+class TestMeasuredWorkforceIsTheDefault:
+    """THE PIN THAT WAS MISSING, and its absence is the finding.
+
+    Swapping the default workforce from the synthetic `DEFAULT_SEGMENTS` to the
+    measured O*NET/BLS registry moved the Condition II mean 2.100 → 1.9964
+    (−4.93%) and **the full suite stayed green**. The quantity the multiplier
+    block exists to govern was pinned nowhere — the same shape as the
+    `GUF_PSI_NORM` fee-curve peak, found the same way, a week apart.
+
+    Two things are asserted, and the second is the one that matters:
+    the level, so the swap cannot silently reverse; and that the measured mean
+    sits inside the band on its OWN evidence rather than on the band's.
+    """
+
+    def test_default_is_the_measured_registry_not_the_synthetic_tiers(self):
+        from hours_eoh.reference.onet_multipliers import registry_segments
+
+        assert population_weighted_mean_multiplier() == pytest.approx(
+            population_weighted_mean_multiplier(registry_segments()), rel=1e-12
+        )
+        assert population_weighted_mean_multiplier() == pytest.approx(
+            1.9964, abs=0.001
+        )
+
+    def test_the_measured_mean_is_inside_the_band_on_its_own_evidence(self):
+        """`in_band: True` meant strictly less before this change than after.
+
+        DEFAULT_SEGMENTS' means were reverse-engineered so the weighted mean
+        landed on 2.10 — the band's own ceiling — so the check could not fail
+        and told you nothing. The measured mean is not built from the band and
+        lands 0.104 BELOW the target, inside [1.8, 2.1] because the measured
+        workforce happens to be, which is a result rather than a construction.
+        """
+        measured = population_weighted_mean_multiplier()
+        check = multiplier_band_check(measured)
+        assert check["in_band"] is True
+        assert check["mean_multiplier"] < M_BAND_HIGH, (
+            "measured mean must sit strictly inside the band, not on its ceiling"
+        )
+        assert population_weighted_mean_multiplier(DEFAULT_SEGMENTS) == \
+            pytest.approx(M_BAND_HIGH, abs=1e-9), (
+                "the synthetic set sat exactly ON the ceiling — that is what "
+                "'calibrated to a target' means, and why it is now superseded"
+            )
+
+
 class TestMultiplierSystem:
 
-    def test_default_segments_mean_equals_target(self):
-        """Multiplier band holds at ε=0 with default segments."""
+    def test_synthetic_segments_still_reproduce_their_calibrated_mean(self):
+        """DEFAULT_SEGMENTS is retired, not deleted: it is the comparison the
+        measured default is measured against, and reproducing a pre-2026-08-16
+        figure means passing it explicitly."""
         mean = population_weighted_mean_multiplier(DEFAULT_SEGMENTS)
         assert mean == pytest.approx(2.10, abs=0.01), (
             f"Default segments should produce mean ≈ 2.10, got {mean:.4f}"

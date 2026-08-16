@@ -45,6 +45,24 @@ across all three layers without structural change."
 
 from __future__ import annotations
 
+from hours_eoh.reference.onet_multipliers import registry_segments
+
+# THE DEFAULT WORKFORCE IS MEASURED, NOT CALIBRATED (2026-08-16). This was
+# data.DEFAULT_SEGMENTS — four synthetic tiers whose means were set so the
+# weighted mean landed on 2.10, the TOP of the constitutional band. A default
+# reverse-engineered from the target it is checked against cannot test anything,
+# and any caller omitting `segments` was scored against it.
+#
+# registry_segments() is the O*NET 30.3/BLS registry: 751 occupations, 94.2% of
+# US employment, one segment per occupation weighted by employment. It gives
+# 1.9964 — inside [1.8, 2.1] on its own evidence rather than pinned to the
+# ceiling by construction.
+#
+# LAYER NOTE: core/ imports reference/ here, which is permitted ("reference/
+# imports nothing from the package — pure data; any layer may import from it")
+# and is the first time core/ exercises it. reference/ holds no domain logic and
+# cannot import back, so the dependency stays acyclic.
+
 from typing import TypedDict
 
 from hours_eoh.data import (
@@ -106,7 +124,7 @@ def population_weighted_mean_multiplier(
     target of 2.1."
     """
     if segments is None:
-        segments = DEFAULT_SEGMENTS
+        segments = registry_segments()
 
     total_fraction = sum(s["fraction"] for s in segments)
     if total_fraction == 0:

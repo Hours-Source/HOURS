@@ -798,7 +798,7 @@ def test_domain_balance_table_restates_the_shares_the_model_computes():
     """
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
 
-    marker = "### Current (post-K-IV, re-anchored twice to the ε_ref fixed point)"
+    marker = "### Current (post-K-IV, re-anchored three times to the ε_ref fixed point)"
     assert marker in doc, (
         "the Current domain-balance section was renamed — this test no longer "
         "checks anything, so update the marker deliberately"
@@ -937,6 +937,129 @@ def test_ancestry_terminates_on_a_cycle():
     assert pv.unanchored_ancestors("A", scanned) == []
 
 
+# --- baseline_in: the refuted-baseline exemption ----------------------------
+#
+# The retirement gate asked "does operative code mention it?", which conflated a
+# second parameter running in parallel with a refuted value printed BESIDE its
+# replacement so the disagreement stays visible. `SKILL_DECAY_RATE` is the
+# second kind and was stuck in the debt count for it; `contestability_ceiling_
+# bare_chi` is the same shape one layer over. The exemption is deliberately
+# narrow — see `test_a_baseline_claim_does_not_excuse_a_parameter_default`,
+# which is the condition that makes this a distinction rather than a loophole.
+
+
+def _baseline_src(extra: str = "") -> str:
+    return (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: NEW_RATE\n"
+        f"{extra}"
+        "# resolves_by: nothing — it was replaced.\n"
+        "OLD_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "NEW_RATE: float = 0.03\n"
+    )
+
+
+def test_baseline_in_parses_a_module_list():
+    src = _baseline_src("# baseline_in: hours_eoh/core/demo.py, hours_eoh/scenarios/demo.py\n")
+    rec = pv.scan(src, {"OLD_RATE": 0.10, "NEW_RATE": 0.03}).by_name["OLD_RATE"]
+    assert rec.baseline_in == "hours_eoh/core/demo.py, hours_eoh/scenarios/demo.py"
+    assert rec.retired is True
+
+
+def test_baseline_in_on_a_live_constant_is_refused():
+    """The field exempts a SUPERSEDED constant. On a live one it claims nothing,
+    and silently ignoring it would let a reader think a check had been made."""
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# baseline_in: hours_eoh/core/demo.py\n"
+        "# resolves_by: a measurement\n"
+        "ALPHA: float = 1.0\n"
+    )
+    issues = pv.problems(pv.scan(src, {"ALPHA": 1.0}))
+    assert any("is not retired" in i for i in issues), issues
+
+
+def test_a_baseline_claim_does_not_excuse_a_parameter_default(tmp_path):
+    """THE CONDITION THAT KEEPS THIS FROM BEING A LOOPHOLE.
+
+    A default is precisely how a superseded value keeps governing output after
+    everyone has stopped thinking about it — the `decay=SKILL_DECAY_RATE` and
+    `skill_decay_rate=0.10` defects were both exactly this. So `baseline_in`
+    buys exemption from "no readers" and never from "no parameter defaults".
+    """
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        "OLD_RATE = 0.10\n"
+        "def f(rate: float = OLD_RATE) -> float:\n"
+        "    return rate\n",
+        encoding="utf-8",
+    )
+    hits = pv.parameter_default_consumers("OLD_RATE", root=tmp_path)
+    assert hits and "demo.py" in hits[0] and "(f)" in hits[0]
+
+
+def test_a_reported_baseline_is_not_a_parameter_default(tmp_path):
+    """The other side of the same distinction: mentioned, but not defaulted to."""
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text(
+        "OLD_RATE = 0.10\n"
+        "def f(rate: float = 0.03) -> dict:\n"
+        "    return {'shipped': OLD_RATE, 'ratio': rate / OLD_RATE}\n",
+        encoding="utf-8",
+    )
+    assert pv.parameter_default_consumers("OLD_RATE", root=tmp_path) == []
+    assert pv.operative_consumers("OLD_RATE", root=tmp_path)
+
+
+def test_baseline_in_must_name_every_reader():
+    """An undeclared reader is the case the exemption must not silently cover:
+    it is how a value creeps back onto a computing path under cover of a claim
+    made about two other modules."""
+    # Uses the REAL constant name, because `problems()` resolves readers
+    # against the real package — which is the whole point of the check.
+    src = (
+        "# provenance-block: Demo\n"
+        "# tag: placeholder | units: fraction\n"
+        "# superseded_by: SKILL_TRANSMISSION_RATE\n"
+        "# baseline_in: hours_eoh/core/eoh_generation.py\n"
+        "# resolves_by: nothing — it was replaced.\n"
+        "SKILL_DECAY_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "SKILL_TRANSMISSION_RATE: float = 0.03\n"
+    )
+    issues = pv.problems(
+        pv.scan(src, {"SKILL_DECAY_RATE": 0.10, "SKILL_TRANSMISSION_RATE": 0.03})
+    )
+    assert any(
+        "does not cover" in i and "knowledge_base.py" in i for i in issues
+    ), issues
+
+
+def test_skill_decay_rate_is_retired_as_a_baseline_and_still_reported(scanned):
+    """The live case this mechanism was built for, asserted end to end.
+
+    `SKILL_DECAY_RATE` is the pre-K-IV renewal rate the repo refuted: 0.10
+    against a measured split of 0.0294. It is retired, it governs nothing, and
+    `scenario run knowledge_base` still prints it beside the split — which is
+    the point. If it ever becomes a parameter default again, `problems()`
+    fails; if a third module starts reading it, `problems()` fails.
+    """
+    rec = scanned.by_name["SKILL_DECAY_RATE"]
+    assert rec.retired is True
+    assert pv.parameter_default_consumers("SKILL_DECAY_RATE") == []
+    readers = {h.split(":", 1)[0] for h in pv.operative_consumers("SKILL_DECAY_RATE")}
+    assert readers == {
+        "hours_eoh/core/eoh_generation.py",
+        "hours_eoh/scenarios/knowledge_base.py",
+    }
+    assert not pv.problems(scanned)
+
+
 # --- the instance tag -------------------------------------------------------
 
 
@@ -1037,6 +1160,11 @@ def test_retired_constants_have_no_operative_consumers(scanned):
     """
     for r in scanned.records:
         if not r.retired:
+            continue
+        if r.baseline_in.strip():
+            # Claimed as a refuted BASELINE, not a live parameter. `problems()`
+            # checks that claim — every reader listed, and no parameter default
+            # anywhere — so re-asserting "no readers" here would contradict it.
             continue
         hits = pv.operative_consumers(r.name)
         assert not hits, (

@@ -25,6 +25,8 @@ Mission Statement: §"Principle 8 — The code is the constitution's test bench"
 """
 
 from __future__ import annotations
+
+from hours_eoh.reference.onet_multipliers import registry_segments
 import math
 
 from hours_eoh.data import (
@@ -490,7 +492,7 @@ def system_dashboard(
     constitution's test bench. All four conditions must show green."
     """
     if segments is None:
-        segments = DEFAULT_SEGMENTS
+        segments = registry_segments()
 
     # Condition I — Ledger Identity
     mean_mu = population_weighted_mean_multiplier(segments)

@@ -77,6 +77,7 @@ from hours_eoh.data import (
     KNOWLEDGE_REFERENCE_POPULATION,
     SKILL_DECAY_RATE,
     SKILL_TRANSMISSION_RATE,
+    SKILL_WORKING_LIFE_YEARS,
 )
 from hours_eoh.reference.onet_knowledge import workforce_training_stock
 
@@ -99,9 +100,24 @@ REFERENCE_POPULATION_US: float = 335_000_000.0
 # Years of working life over which the embodied training stock must be
 # re-created as cohorts turn over. This is the TRANSMISSION rate of Block K-III;
 # it is NOT the shipped SKILL_DECAY_RATE, which additionally carries an
-# unseparated CPD term. CHOSEN — resolves_by: cohort entry-to-retirement from
-# BLS Employee Tenure. Low leverage against the 8.5× ε_ref lever.
-TRANSMISSION_WORKING_LIFE_YEARS: float = 40.0
+# unseparated CPD term.
+#
+# BOUND TO data.SKILL_WORKING_LIFE_YEARS 2026-08-16. It was a duplicate literal
+# 40.0 carrying its own copy of the same WRONG pointer (BLS Employee Tenure
+# measures job tenure, not working life), and it lived HERE rather than in
+# data.py — so the provenance gate, which scans data.py only, could not see it.
+# When the working life was measured at 37.5 the two diverged silently and
+# broke a structural identity: `test_reproduces_the_measured_flow_at_the_anchor`
+# computes the flow at THIS horizon and the base at the data.py rate, and the
+# two came apart by exactly 40/37.5 = 1.0667. The identity test caught it,
+# which is the argument for identity tests over pinned levels — a pin would
+# have been updated and the divergence preserved underneath it.
+#
+# Fourth instance of the pattern (`= 1500.0` in the EOH generators,
+# `skill_decay_rate = 0.10` in the pipeline, `_ECOLOGICAL_SPIKE_INTENSITY` in
+# core/): a domain constant restated as a literal away from its source. The
+# alias is kept so callers and the `working_life_years=` parameter still work.
+TRANSMISSION_WORKING_LIFE_YEARS: float = SKILL_WORKING_LIFE_YEARS
 
 # The two documented employment-to-population routes (§1 of the closure note).
 # Their 1.20× spread is the measurement uncertainty; compare ε_ref's 8.5×.
@@ -235,7 +251,12 @@ def knowledge_base_from_registry(
     epsilon_ref: float,
     route: str = _EP_REGISTRY,
     working_life_years: float = TRANSMISSION_WORKING_LIFE_YEARS,
-    decay: float = SKILL_DECAY_RATE,
+    # ADOPTED DEFAULT (2026-08-16). This was SKILL_DECAY_RATE — the rate this
+    # module's own doctrine table reports as "not credible against the measured
+    # stock". base_rate is decay-free, so the default never touched the derived
+    # constant; it set the REPORTED ARC LEVEL, which is the figure a reader
+    # takes away. The last parameter default on the refuted rate.
+    decay: float = SKILL_TRANSMISSION_RATE,
 ) -> dict:
     """
     Back-derive `KNOWLEDGE_EOH_BASE` from the measured stock at a stated ε_ref.

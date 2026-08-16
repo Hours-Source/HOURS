@@ -164,17 +164,18 @@ class TestKnowledgePopulationScaling:
         re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
         net 954.91× against pre-K-IV.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.33405205e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.49734002e8, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.29836774e9, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.39445038e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.56513111e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.35715049e9, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
         change silently altering the arc's SHAPE as well as its level. The
-        factor is 954.91× post-Finding-E (was 1,225.27× at the K-IV anchor);
-        that it stays UNIFORM across the arc is what this test is for."""
+        factor is 1,394.45× once the working life was measured (954.91×
+        post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
+        across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1334.052, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1394.450, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)
@@ -660,9 +661,12 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     # 0.412 at the K-IV one-shot anchor; 0.353 at the Finding-E fixed point.
     # 0.353 → 0.3785 with the 2026-08-10 elderly revalue: knowledge did not
     # grow, personal SHRANK 11.76% and knowledge's share of the smaller total
-    # rose. The claim being tested — knowledge stops being a rounding error at
-    # the top of the arc — is unaffected by which way that happened.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.460, abs=0.01)
+    # rose. 0.460 → 0.471 with the 2026-08-16 working-life measurement, and
+    # this time by the OTHER mechanism: the renewal rate rose 6.7% so knowledge
+    # itself grew. The claim being tested — knowledge stops being a rounding
+    # error at the top of the arc — is unaffected by which way it happened,
+    # which is why the share is pinned and the cause is recorded in prose.
+    assert top["knowledge"] / top["total"] == pytest.approx(0.471, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
