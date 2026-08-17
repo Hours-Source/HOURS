@@ -1,0 +1,6 @@
+crop,labor_hours_per_acre_low,labor_hours_per_acre_high,harvest_hours_per_acre_low,harvest_hours_per_acre_high,measures,source
+asparagus,5,20,25,300,"crop production labour, horticultural — NOT land stewardship","Penn State Extension, Agricultural Alternatives series, ""Initial Resource Requirements"", retrieved 2026-08-16"
+cantaloupe muskmelon,10,12,,,"crop production labour, horticultural — NOT land stewardship","Penn State Extension, Agricultural Alternatives series, ""Initial Resource Requirements"", retrieved 2026-08-16"
+onion,10,10,200,200,"crop production labour, horticultural — NOT land stewardship","Penn State Extension, Agricultural Alternatives series, ""Initial Resource Requirements"", retrieved 2026-08-16"
+pepper,12,20,125,175,"crop production labour, horticultural — NOT land stewardship","Penn State Extension, Agricultural Alternatives series, ""Initial Resource Requirements"", retrieved 2026-08-16"
+tomato,19,19,,,"crop production labour, horticultural — NOT land stewardship","Penn State Extension, Agricultural Alternatives series, ""Initial Resource Requirements"", retrieved 2026-08-16"

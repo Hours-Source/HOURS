@@ -117,6 +117,7 @@ nav:
     - Implementation Guide: guides/implementation_guide.md
     - Extending the Library: guides/extending.md
     - Running Scenarios: guides/scenarios_howto.md
+    - Ecological Data Sources: guides/ecological_data_sources.md
 
   - Changelog: changelog.md
   - Contributing: contributing.md

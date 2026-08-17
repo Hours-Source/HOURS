@@ -78,6 +78,7 @@ from hours_eoh.data import (
     SKILL_DECAY_RATE,
     SKILL_TRANSMISSION_RATE,
     SKILL_WORKING_LIFE_YEARS,
+    US_REFERENCE_POPULATION,
 )
 from hours_eoh.reference.onet_knowledge import workforce_training_stock
 
@@ -92,10 +93,12 @@ from hours_eoh.reference.onet_knowledge import workforce_training_stock
 # resolves_by: BLS OEWS total employment for the same reference epoch.
 REGISTRY_EMPLOYMENT_COVERAGE: float = 0.942
 
-# Population the registry's employment is drawn against (US, reference epoch
-# 2026-07-29 → 2024 vintage employment weights). CHOSEN —
-# resolves_by: Census Bureau national population estimate for the epoch.
-REFERENCE_POPULATION_US: float = 335_000_000.0
+# Population the registry's employment is drawn against. BOUND to data.py
+# rather than restated: this value also lived in reference/land_stewardship.py
+# under a second name, and one value under two names in two files outside the
+# gate is the shadow-constant pattern. The alias is kept so every existing
+# caller and import is unaffected.
+REFERENCE_POPULATION_US: float = US_REFERENCE_POPULATION
 
 # Years of working life over which the embodied training stock must be
 # re-created as cohorts turn over. This is the TRANSMISSION rate of Block K-III;

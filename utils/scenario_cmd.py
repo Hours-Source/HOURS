@@ -24,7 +24,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 
   Measured inputs (the measurement spine):
     measured_sim  multiplier_sensitivity  infra_floor  knowledge_base
-    personal_floor  food_conservation  ecological_floor
+    personal_floor  food_conservation  ecological_floor  land_stewardship
 
   Thermal obligation carried in the ledger:
     thermal_load
@@ -70,6 +70,13 @@ import csv
 import sys
 
 from hours_eoh.data import H_REF
+from hours_eoh.reference.land_stewardship import (
+    ALLOCATION_POLICIES as _LAND_ALLOCATIONS,
+)
+from hours_eoh.scenarios.land_stewardship import (
+    ADOPTED_SCOPE as _LAND_ADOPTED_SCOPE,
+)
+from hours_eoh.scenarios.land_stewardship import SCOPES as _LAND_SCOPES
 from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
@@ -103,6 +110,7 @@ _SCENARIOS: dict[str, str] = {
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita]",
+    "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
     "food_conservation":   "conservation_test() — did automation eliminate food labour, or relocate it? stage by stage  [--atus-year]",
@@ -254,6 +262,25 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="atus_year",
                        help="ATUS survey year (personal_floor; default: the latest "
                             "comparable year. 2020 is excluded — partial collection)")
+    run_p.add_argument("--scope", default=_LAND_ADOPTED_SCOPE,
+                       choices=list(_LAND_SCOPES),
+                       help="How much urban amenity groundskeeping counts as "
+                            "ecological stewardship (land_stewardship; default: "
+                            "declared, the signed-off weight). 'ecosystem' and "
+                            "'with_amenity' are the corners, 50× apart — both "
+                            "are printed regardless")
+    run_p.add_argument("--allocation", default="held_out",
+                       choices=list(_LAND_ALLOCATIONS),
+                       help="How much of the held-out occupations to bring in "
+                            "(land_stewardship; default: held_out, which errs "
+                            "LOW). 'derived' adds the supervisory chain; 'area' "
+                            "also spreads advisory occupations by land area — "
+                            "the upper corner, neutral but not measured")
+    run_p.add_argument("--amenity-weight", type=float, default=None,
+                       dest="amenity_weight", metavar="W",
+                       help="Fraction of amenity labour counted as stewardship, "
+                            "∈[0,1] (land_stewardship). OVERRIDES --scope; the "
+                            "anchor is crossed at w*=0.0228")
 
     run_p.set_defaults(func=_run)
 
@@ -495,6 +522,89 @@ def _dispatch(args: argparse.Namespace) -> object:
             )
         eco_out["verdict"] = rep["verdict"]
         return eco_out
+
+    if name == "land_stewardship":
+        from hours_eoh.scenarios.land_stewardship import (
+            agency_report,
+            allocation_band,
+            field_capacity_report,
+            amenity_curve,
+            census_report,
+            frame_report,
+            scope_comparison,
+        )
+        rep = census_report(
+            scope=args.scope,
+            allocation=args.allocation,
+            amenity_weight=args.amenity_weight,
+        )
+        cmp = scope_comparison()
+        frame = frame_report()
+        agency = agency_report()
+        fieldcap = field_capacity_report()
+        band = allocation_band(scope=args.scope)
+        curve = amenity_curve(allocation=args.allocation)
+
+        return {
+            "scope": rep["scope"],
+            "allocation": rep["allocation"],
+            "amenity_weight": rep["amenity_weight"],
+            "allocation_band": f"{band['band'][0]:.3f}–{band['band'][1]:.3f} h/ha·yr",
+            "allocation_band_factor": band["band_factor"],
+            "allocation_crosses_anchor": band["crosses_anchor"],
+            "excluded_partial_hours": rep["excluded_partial_hours"],
+            "amenity_weight_at_anchor": curve["anchor_crossing_weight"],
+            "us_hectares_per_capita_frame": frame["us_hectares_per_capita"],
+            "over_landed_vs_global_default": frame["ratio_to_shipped"],
+            "frame_verdict": frame["verdict"],
+            "agency_role_mix_adopted": agency["role_mix_adopted"],
+            "agency_stewardship_h_per_ha": agency["stewardship_hours_per_hectare_year"],
+            "agency_raw_h_per_ha": agency["raw_hours_per_hectare_year"],
+            "agency_raw_overstates_by": agency["raw_overstates_by"],
+            "agency_vs_forest": agency["vs_forest"],
+            "cover_crop_h_per_ha_band": fieldcap["cover_crop_h_per_ha_band"],
+            "cropland_adoption_ceiling_ratio": fieldcap["adoption_ceiling_ratio"],
+            "cropland_priced": fieldcap["cropland_priced"],
+            "agency_verdict": agency["verdict"],
+            "field_capacity_verdict": fieldcap["verdict"],
+            "jurisdiction": rep["jurisdiction"],
+            "hours_per_worker_year": rep["hours_per_worker_year"],
+            "floor_hours": rep["floor_hours"],
+            "coverage": rep["coverage"],
+            "measured_hours_per_hectare": rep["measured_hours_per_hectare"],
+            "anchor_hours_per_hectare": rep["anchor_hours_per_hectare"],
+            "ratio_to_anchor": rep["ratio_to_anchor"],
+            "required_h_per_ha_at_1pc_share": rep["required_h_per_ha_at_1pc_share"],
+            "us_hectares_per_capita": rep["us_hectares_per_capita"],
+            "ecosystem_h_per_ha": (
+                cmp["readings"]["ecosystem"]["measured_hours_per_hectare"]
+            ),
+            "with_amenity_h_per_ha": (
+                cmp["readings"]["with_amenity"]["measured_hours_per_hectare"]
+            ),
+            "scope_spread_factor": cmp["spread_factor"],
+            "held_out_occupations": ", ".join(
+                f"{h['occ6']} {h['title']}" for h in rep["held_out_occupations"]
+            ),
+            "verdict": rep["verdict"],
+            "scope_verdict": cmp["verdict"],
+            "allocation_verdict": band["verdict"],
+            "summary_table": [
+                {
+                    "land_use": r["land_use"],
+                    "Mha": round(r["area_hectares"] / 1e6, 1),
+                    "workers_k": (
+                        "—" if r["workers"] is None else round(r["workers"] / 1e3, 1)
+                    ),
+                    "h_per_ha_yr": (
+                        "— excluded, not zero"
+                        if r["hours_per_hectare_year"] is None
+                        else round(r["hours_per_hectare_year"], 3)
+                    ),
+                }
+                for r in rep["by_class"]
+            ],
+        }
 
     if name == "knowledge_base":
         from hours_eoh.scenarios.knowledge_base import (

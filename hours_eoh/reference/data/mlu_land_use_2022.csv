@@ -1,0 +1,11 @@
+land_use,area_kacres,area_hectares,year,source
+Total cropland,377420,152736455,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Grassland pasture and range,652659,264121727,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Forest-use land (all),617958,250078730,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Land in rural transportation facilities,25575,10349835,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Land in rural parks and wildlife areas,265905,107607936,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Land in defense and industrial areas,25851,10461529,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+"Farmsteads, roads, and miscellaneous farmland",5805,2349200,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Land in urban areas,66178,26781286,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Miscellaneous other land,223793,90565814,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
+Total land,2261144,915052512,2022,"USDA ERS Major Land Uses, U.S. total, released 2026-08-14"
