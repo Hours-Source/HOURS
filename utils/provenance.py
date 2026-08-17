@@ -1091,8 +1091,6 @@ _INNOCUOUS_NAMES: frozenset[str] = frozenset({
     "_EMPLOYMENT_UNITS",         # 1000, thousands -> units
     "SANITATION_SERVICE_YEARS",  # 1.0, one person one year — an identity
     "CARE_PERSON_YEARS",         # 1.0, everyone alive, for as long as they are
-    "_PERS_REG_START",           # 0.0, a zero base
-    "_KNOW_REG_BASE",            # 0.0, a zero base
     "_SEVERITY",                 # ordinal map
     "_INV_SEVERITY",             # ordinal map
     "PASSIVE_MAX_AGE",           # 12, the age ATUS stops collecting passive care
@@ -1100,6 +1098,61 @@ _INNOCUOUS_NAMES: frozenset[str] = frozenset({
                                  # unknown is the schedule's CONTENTS, and the
                                  # basket carries that as hours_per_unit=None
 })
+
+
+def _fully_masked_names(root: Path | None = None) -> set[str]:
+    """Every module-level constant whose literals are all in ``_INNOCUOUS``.
+
+    The raw population the name allowlist carves an exemption out of. Split out
+    so `unused_innocuous_names` can ask the converse question.
+    """
+    base = root or PACKAGE_ROOT.parent
+    found: set[str] = set()
+    for layer in (*OPERATIVE_LAYERS, "reference"):
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover
+                continue
+            for node in tree.body:
+                targets: list[ast.expr]
+                if isinstance(node, ast.AnnAssign):
+                    targets, value = [node.target], node.value
+                elif isinstance(node, ast.Assign):
+                    targets, value = list(node.targets), node.value
+                else:
+                    continue
+                if value is None:
+                    continue
+                nums = [
+                    n.value for n in ast.walk(value)
+                    if isinstance(n, ast.Constant)
+                    and isinstance(n.value, (int, float))
+                    and not isinstance(n.value, bool)
+                ]
+                if not nums or any(float(n) not in _INNOCUOUS for n in nums):
+                    continue
+                if any(isinstance(n, ast.Name) for n in ast.walk(value)):
+                    continue
+                found |= {
+                    t.id for t in targets
+                    if isinstance(t, ast.Name) and t.id.isupper() and len(t.id) > 1
+                }
+    return found
+
+
+def unused_innocuous_names(root: Path | None = None) -> list[str]:
+    """Declared exemptions that no longer exempt anything.
+
+    A name stays in ``_INNOCUOUS_NAMES`` after the constant it covered is
+    migrated, renamed or bound — and a permission nobody exercises is a
+    permission nobody reviews. Two entries went stale within an hour of the
+    allowlist shipping, when `_PERS_REG_START` and `_KNOW_REG_BASE` were bound
+    to ``data.py``, which is how fast this needs checking.
+    """
+    return sorted(_INNOCUOUS_NAMES - _fully_masked_names(root))
 
 
 def masked_constants(root: Path | None = None) -> list[tuple[str, str]]:

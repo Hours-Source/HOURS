@@ -794,6 +794,106 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
     "saturation":   0.95,   # asymptote; never reaches 1.0
 }
 
+# THE OTHER FOUR SIGMOIDS, migrated out of core/registration.py 2026-08-16.
+# They sat as module-level constants in that file, which meant no tag, no
+# resolves_by, and no appearance in any debt figure this repo publishes — while
+# the care sigmoid above, structurally identical, was fully tagged. CLAUDE.md's
+# claim that "no sigmoid parameter is arbitrary — each has a calibration
+# rationale" is now testable against all five rather than one.
+#
+# TWO PARAMETERISATIONS OF ONE CURVE, PRESERVED AS FOUND. Production and
+# stewardship use `base + growth·σ`; personal, knowledge and care use
+# `base + (saturation − base)·σ`. They describe the same family — production's
+# `growth` is the others' `(saturation − base)`, so its implied saturation is
+# 0.99 — but the migration changes no numbers and so changes no algebra. Worth
+# unifying; not worth conflating with a move.
+#
+# tag: placeholder | units: base/growth fractions; inflection in ε; rate dimensionless
+# form: base + growth × logistic(rate × (ε − inflection)). Physics-adjacent in
+#   SHAPE only: admission plausibly follows slow onset then acceleration. The
+#   four numbers are asserted.
+# note: the base carries a written physical argument (min3, resolved) that the
+#   others do not — organised trade and grain accounting exist at subsistence
+#   but are a minority of production labour, giving ~25% total registration at
+#   ε=0 rather than the 70% an earlier value implied.
+# resolves_by: the share of production hours passing through a recorded channel,
+#   against an automation index — the same instrument the care sigmoid needs,
+#   read on a different labour category.
+PRODUCTION_SIGMOID_DEFAULTS: dict[str, float] = {
+    "base":        0.15,   # production floor; ~25% total at ε=0 with the sigmoid
+    "growth":      0.84,   # additional share to gain (total → 0.99)
+    "rate":       20.0,    # fast: near-complete by ε=0.25
+    "inflection":  0.10,   # ε at which production registration rises fastest
+}
+# tag: placeholder | units: base/growth fractions; inflection in ε; rate dimensionless
+# form: base + growth × logistic(rate × (ε − inflection)).
+# note: the rate was RAISED from 6.0 to 10.0 to hold logistic(0) ≈ 0.018, so the
+#   ε=0 value stays near the floor instead of contributing a spurious 8%
+#   baseline. That makes it a tuned value, and until this migration it was
+#   invisible to the shadow-constant scan because 10.0 sits in the
+#   `utils.provenance._INNOCUOUS` set while its two siblings here were counted.
+# resolves_by: the recorded share of communal maintenance labour — shared
+#   wells, paths, drainage — against an automation index.
+STEWARDSHIP_SIGMOID_DEFAULTS: dict[str, float] = {
+    "base":        0.05,   # stewardship floor; ~7% total at ε=0 with the sigmoid
+    "growth":      0.90,   # additional share to gain (total → 0.95)
+    "rate":       10.0,    # steeper than production; logistic(0) ≈ 0.018
+    "inflection":  0.40,   # ε at which stewardship registration rises fastest
+}
+# tag: placeholder | units: start/saturation fractions; inflection in ε; rate dimensionless
+# form: start + (saturation − start) × logistic(rate × (ε − inflection)).
+# note: start is 0.0 by construction — at subsistence, personal needs are met
+#   privately and the collective ledger recognises none of it. The saturation
+#   below 1.0 is a claim that some personal EOH stays private at any automation
+#   level (grief, intimacy), which is a normative reading wearing a placeholder's
+#   tag; it is not something a dataset settles.
+# resolves_by: the share of personal-domain hours delivered through collective
+#   systems against an automation index. `reference/atus_time_use.py` measures
+#   the numerator's high-ε end; the low-ε end needs a low-capital time-use survey.
+PERSONAL_SIGMOID_DEFAULTS: dict[str, float] = {
+    "start_share":  0.0,    # no collective personal EOH fulfilment at ε=0
+    "saturation":   0.95,   # some personal EOH always remains private
+    "rate":         7.0,    # slower than care, faster than stewardship
+    "inflection":   0.65,   # capital systems must mature before fulfilling at scale
+}
+# tag: placeholder | units: base/saturation fractions; inflection in ε; rate dimensionless
+# form: base + (saturation − base) × logistic(rate × (ε − inflection)).
+# note: saturation 0.80 asserts that tacit skill, judgement and creative insight
+#   are never fully admissible however automated verification becomes. The late
+#   inflection asserts that peer review, credentialing and automated audit need
+#   mature automation to operate at scale. Both are arguments, not measurements.
+# resolves_by: the share of knowledge-work hours subject to formal verification
+#   against an automation index — harder than the other four, because the
+#   denominator (what counts as knowledge work) is itself contested.
+KNOWLEDGE_SIGMOID_DEFAULTS: dict[str, float] = {
+    "base":        0.0,    # no formal knowledge verification at subsistence
+    "saturation":  0.80,   # never fully verified — intangible outputs
+    "rate":        5.0,    # slower than care — harder to verify than care labour
+    "inflection":  0.70,   # requires mature automation for verification
+}
+# tag: placeholder | units: shares of total labour, dimensionless; exponent dimensionless
+# form: production declines linearly in ε; care grows as base + growth × ε^exponent
+#   and is capped; stewardship takes the residual. All three are floored.
+# note: NOT a sigmoid — the composite weights that `total_registration_share`
+#   uses to combine the categories. Migrated with them because they share a
+#   consumer and were equally invisible. The care exponent 1.5 is the only shape
+#   parameter here: concave-up, so care's share accelerates rather than rising
+#   linearly, which is the claim that complexity drives care demand faster than
+#   automation displaces production.
+# resolves_by: an occupational time series split into these three categories
+#   against an automation index. The O*NET/BLS registry already carries the
+#   occupational side; the split into production/care/stewardship is a mapping
+#   this repo has not made.
+LABOR_CATEGORY_DEFAULTS: dict[str, float] = {
+    "production_base":   0.45,   # production share at ε=0
+    "production_slope":  0.45,   # production share decline rate with ε
+    "care_base":         0.30,   # care share at ε=0
+    "care_growth":       0.60,   # care share growth amplitude
+    "care_exponent":     1.5,    # concave-up: slow then fast
+    "care_max":          0.85,   # care share ceiling
+    "min_floor":         0.05,   # minimum share for any category
+}
+
 # ---------------------------------------------------------------------------
 # EOH base rates (per-capita or per-unit at reference conditions)
 #

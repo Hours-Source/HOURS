@@ -28,66 +28,56 @@ care registration", §"Two attractors" (ε=0 = subsistence, ε=1 = post-scarcity
 from __future__ import annotations
 import math
 
+from hours_eoh.data import (
+    CARE_SIGMOID_DEFAULTS,
+    KNOWLEDGE_SIGMOID_DEFAULTS,
+    LABOR_CATEGORY_DEFAULTS,
+    PERSONAL_SIGMOID_DEFAULTS,
+    PRODUCTION_SIGMOID_DEFAULTS,
+    STEWARDSHIP_SIGMOID_DEFAULTS,
+)
+
 
 # ---------------------------------------------------------------------------
-# Registration sigmoid calibration constants
+# Registration sigmoid calibration
+#
+# The five sigmoids and the labour-category weights now live in `data.py` under
+# the "Registration sigmoids" provenance block, where they carry tags and a
+# `resolves_by`. They sat here as module constants until 2026-08-16, which meant
+# 21 calibration values governing what the ledger recognises appeared in no debt
+# figure this repo publishes — while the care sigmoid, structurally identical,
+# was fully tagged because it happened to have been given a home.
+#
+# Unpacked into module locals so the formulae below read as they did.
 # ---------------------------------------------------------------------------
-_PROD_REG_BASE:         float = 0.15   # production floor: ~25% at ε=0 with sigmoid contribution.
-# Physical justification (min3 resolved): At ε=0 (subsistence), the collective
-# ledger is minimal. The mission statement is explicit — "the formal monetary
-# economy is small," "TEH barely circulates." Organized trade, fishing guilds,
-# and grain accounting exist in pre-industrial societies, but these represent
-# a minority of total production labor: most food production, foraging, and
-# shelter construction is household-scale and off-ledger. With the sigmoid
-# contribution at ε=0 (~0.10×0.84 ≈ 8%), total production registration at
-# ε=0 ≈ 25% — enough to represent organized market towns and common-pool
-# resource accounting without claiming that 70% of subsistence production is
-# formally tracked. Production is still the first domain admitted and reaches
-# near-full registration by ε=0.25–0.30 (early automation). The old 70% base
-# conflated any collective coordination with formal ledger registration.
-_PROD_REG_GROWTH:       float = 0.84   # additional share to gain (total → 0.99)
-_PROD_REG_SIGMOID_RATE: float = 20.0   # fast: near-complete by ε=0.25
-_PROD_REG_INFLECTION:   float = 0.10   # ε at which production registration rises fastest
 
-_STEW_REG_BASE:         float = 0.05   # stewardship floor: ~7% at ε=0 with sigmoid contribution.
-# Physical justification: at ε=0, built infrastructure is minimal and communal
-# maintenance (shared wells, paths) accounts for only a small fraction of labor.
-# Rate raised from 6.0 to 10.0 so sigmoid(0) ≈ 0.018 — keeping the ε=0 value
-# near the floor rather than contributing a spurious 8% baseline.
-_STEW_REG_GROWTH:       float = 0.90   # additional share to gain (total → 0.95)
-_STEW_REG_SIGMOID_RATE: float = 10.0   # steeper than production; sigmoid(0) ≈ 0.018
-_STEW_REG_INFLECTION:   float = 0.40   # ε at which stewardship registration rises fastest
+_PROD_REG_BASE:         float = PRODUCTION_SIGMOID_DEFAULTS["base"]
+_PROD_REG_GROWTH:       float = PRODUCTION_SIGMOID_DEFAULTS["growth"]
+_PROD_REG_SIGMOID_RATE: float = PRODUCTION_SIGMOID_DEFAULTS["rate"]
+_PROD_REG_INFLECTION:   float = PRODUCTION_SIGMOID_DEFAULTS["inflection"]
 
-# Personal EOH registration constants (R1)
-# At ε=0: near-zero (all personal needs met privately). At ε=1: near full
-# (collective capital systems handle essentially all personal EOH).
-# Inflection at 0.65 because capital systems must be sufficiently mature
-# (mid-to-late automation) before they can reliably fulfill personal EOH at scale.
-_PERS_REG_START:        float = 0.0    # no collective personal EOH fulfillment at ε=0
-_PERS_REG_SATURATION:   float = 0.95   # some personal EOH always remains private (grief, intimacy)
-_PERS_REG_RATE:         float = 7.0    # moderate steepness — slower than care, faster than stewardship
-_PERS_REG_INFLECTION:   float = 0.65   # ε at which personal registration rises fastest
+_STEW_REG_BASE:         float = STEWARDSHIP_SIGMOID_DEFAULTS["base"]
+_STEW_REG_GROWTH:       float = STEWARDSHIP_SIGMOID_DEFAULTS["growth"]
+_STEW_REG_SIGMOID_RATE: float = STEWARDSHIP_SIGMOID_DEFAULTS["rate"]
+_STEW_REG_INFLECTION:   float = STEWARDSHIP_SIGMOID_DEFAULTS["inflection"]
 
-# Knowledge EOH registration constants (M3)
-# Knowledge outputs lack physical indicators — harder to verify than infrastructure
-# (you can inspect a bridge; you cannot easily inspect a research insight).
-# Inflection at ε=0.70: formal verification infrastructure (peer review, credentialing,
-# automated audit) requires mature automation before it can operate at scale.
-# Saturation at 0.80: some knowledge work (tacit skill, judgment, creative insight)
-# is never fully admissible to the collective ledger regardless of automation level.
-_KNOW_REG_BASE:        float = 0.0    # no formal knowledge verification at subsistence
-_KNOW_REG_SATURATION:  float = 0.80   # never fully verified — intangible outputs
-_KNOW_REG_RATE:        float = 5.0    # slower than care — harder to verify than care labor
-_KNOW_REG_INFLECTION:  float = 0.70   # requires mature automation for verification infrastructure
+_PERS_REG_START:        float = PERSONAL_SIGMOID_DEFAULTS["start_share"]
+_PERS_REG_SATURATION:   float = PERSONAL_SIGMOID_DEFAULTS["saturation"]
+_PERS_REG_RATE:         float = PERSONAL_SIGMOID_DEFAULTS["rate"]
+_PERS_REG_INFLECTION:   float = PERSONAL_SIGMOID_DEFAULTS["inflection"]
 
-# Labor category weight model constants
-_LABOR_PROD_BASE:    float = 0.45   # production share at ε=0
-_LABOR_PROD_SLOPE:   float = 0.45   # production share decline rate with ε
-_LABOR_CARE_BASE:    float = 0.30   # care share at ε=0
-_LABOR_CARE_GROWTH:  float = 0.60   # care share growth amplitude
-_LABOR_CARE_EXPONENT: float = 1.5   # care growth shape: concave-up (slow then fast)
-_LABOR_CARE_MAX:     float = 0.85   # care share ceiling
-_LABOR_MIN_FLOOR:    float = 0.05   # minimum share for any labor category
+_KNOW_REG_BASE:         float = KNOWLEDGE_SIGMOID_DEFAULTS["base"]
+_KNOW_REG_SATURATION:   float = KNOWLEDGE_SIGMOID_DEFAULTS["saturation"]
+_KNOW_REG_RATE:         float = KNOWLEDGE_SIGMOID_DEFAULTS["rate"]
+_KNOW_REG_INFLECTION:   float = KNOWLEDGE_SIGMOID_DEFAULTS["inflection"]
+
+_LABOR_PROD_BASE:       float = LABOR_CATEGORY_DEFAULTS["production_base"]
+_LABOR_PROD_SLOPE:      float = LABOR_CATEGORY_DEFAULTS["production_slope"]
+_LABOR_CARE_BASE:       float = LABOR_CATEGORY_DEFAULTS["care_base"]
+_LABOR_CARE_GROWTH:     float = LABOR_CATEGORY_DEFAULTS["care_growth"]
+_LABOR_CARE_EXPONENT:   float = LABOR_CATEGORY_DEFAULTS["care_exponent"]
+_LABOR_CARE_MAX:        float = LABOR_CATEGORY_DEFAULTS["care_max"]
+_LABOR_MIN_FLOOR:       float = LABOR_CATEGORY_DEFAULTS["min_floor"]
 
 
 # ---------------------------------------------------------------------------
@@ -96,10 +86,10 @@ _LABOR_MIN_FLOOR:    float = 0.05   # minimum share for any labor category
 
 def care_registration_share(
     epsilon: float,
-    start_share: float = 0.05,
-    inflection: float = 0.45,
-    rate: float = 8.0,
-    saturation: float = 0.95,
+    start_share: float = CARE_SIGMOID_DEFAULTS["start_share"],
+    inflection: float = CARE_SIGMOID_DEFAULTS["inflection"],
+    rate: float = CARE_SIGMOID_DEFAULTS["rate"],
+    saturation: float = CARE_SIGMOID_DEFAULTS["saturation"],
 ) -> float:
     """
     Fraction of care EOH admitted to the collective ledger at automation level ε.

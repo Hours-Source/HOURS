@@ -1481,6 +1481,22 @@ def test_a_declared_innocuous_name_is_exempt(tmp_path):
     assert pv.shadow_constants(root=tmp_path) == []
 
 
+def test_no_innocuous_exemption_goes_stale():
+    """A declared exemption must still exempt something.
+
+    `_INNOCUOUS_NAMES` entries survive the constants they covered — two went
+    stale within an hour of the allowlist shipping, when `_PERS_REG_START` and
+    `_KNOW_REG_BASE` were bound to `data.py` by the registration migration. A
+    permission nobody exercises is a permission nobody reviews, which is the
+    same reasoning that makes an unused `baseline_labels:` entry a failure.
+    """
+    stale = pv.unused_innocuous_names()
+    assert not stale, (
+        f"declared innocuous but no longer masking anything: {stale}. Remove "
+        "the entry — the constant has been migrated, renamed or bound."
+    )
+
+
 def test_nothing_hides_behind_the_innocuous_filter():
     """Every fully-masked constant is either declared innocuous or counted.
 
@@ -1536,14 +1552,18 @@ def test_shadow_constant_count_does_not_grow(scanned):
     with the constants moved into data.py and tagged, not by loosening the scan.
     """
     free = [s for s in pv.shadow_constants() if not s.bound]
-    # 76 -> 78 on 2026-08-16, and the cause matters: NO new copies appeared.
+    # 78 -> 57 on 2026-08-16: the 21 registration sigmoid and labour-weight
+    # constants moved into data.py. That is the migration this ratchet exists to
+    # encourage, and it is the largest single drop so far.
+    #
+    # 76 -> 78 earlier the same day, and the cause matters: NO new copies appeared.
     # The scan stopped letting an innocuous VALUE hide a constant, so three that
     # were always there became visible — a sigmoid rate, a maturation exponent
     # and a verdict threshold, each with siblings the scan already counted.
     # A rise from honesty is not the failure this ratchet guards against; a rise
     # from a fresh copy is. Distinguish them before raising it again.
-    assert len(free) <= 78, (
-        f"{len(free)} shadow constants, was 78. New ones: a domain constant "
+    assert len(free) <= 57, (
+        f"{len(free)} shadow constants, was 57. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."
@@ -1562,9 +1582,20 @@ def test_the_published_coverage_figure_has_a_narrower_denominator(scanned):
     free = [s for s in pv.shadow_constants() if not s.bound]
     assert free, "if this is empty the migration is done — update the docs"
     wider = total / (total + len(free))
-    assert wider < 0.80, (
+    # 75.7% when this was written; 81.6% after the registration sigmoids moved
+    # into data.py (2026-08-16). The bound tracks the migration rather than
+    # pinning a level: it must stay BELOW 1.0, because reaching 1.0 means the
+    # gap is closed and this test — and the docs that quote the two figures —
+    # need rewriting rather than relaxing.
+    assert wider < 1.0, (
         f"true coverage across operative layers is {wider:.1%} "
-        f"({total} tagged / {total + len(free)} domain constants)"
+        f"({total} tagged / {total + len(free)} domain constants). At 1.0 the "
+        f"migration is complete: retire this test and the narrower/wider "
+        f"distinction in docs/parameter_provenance.md with it."
+    )
+    assert wider > 0.75, (
+        f"true coverage FELL to {wider:.1%} — constants have been added outside "
+        f"data.py faster than they have been migrated in"
     )
 
 

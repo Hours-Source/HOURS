@@ -20,6 +20,7 @@ from hours_eoh.core.registration import (
     knowledge_eoh_registration_share,
     validate_registration_trajectory,
 )
+from hours_eoh.data import CARE_SIGMOID_DEFAULTS
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 
@@ -393,3 +394,88 @@ class TestValidateRegistrationTrajectory:
             path, care_params={"inflection": 0.50, "rate": 10.0}
         )
         assert result["valid"] is True
+
+
+class TestTheSigmoidsAreBoundToDataPy:
+    """The 2026-08-16 migration: 21 constants out of core/registration.py.
+
+    The curves were tested for shape and monotonicity and NOT for level, which
+    is how a migration could have shifted a value silently. These pins are the
+    before/after comparison made permanent.
+    """
+
+    #: ε → (care, production, stewardship, personal, knowledge, total), measured
+    #: on the pre-migration module and reproduced byte-identically after it.
+    EXPECTED = {
+        0.00: (0.073937, 0.250130, 0.066188, 0.009934, 0.023450, 0.151287),
+        0.20: (0.157283, 0.889870, 0.157283, 0.039037, 0.060687, 0.421014),
+        0.40: (0.411181, 0.987923, 0.500000, 0.140645, 0.145940, 0.591612),
+        0.65: (0.798817, 0.989986, 0.881728, 0.475000, 0.350259, 0.847835),
+        0.90: (0.926063, 0.990000, 0.943976, 0.809355, 0.584847, 0.931726),
+        0.99: (0.938187, 0.990000, 0.947541, 0.869525, 0.647999, 0.941713),
+    }
+
+    @pytest.mark.parametrize("epsilon", sorted(EXPECTED))
+    def test_registration_levels_are_unchanged(self, epsilon):
+        got = (
+            care_registration_share(epsilon),
+            production_registration_share(epsilon),
+            stewardship_registration_share(epsilon),
+            personal_eoh_registration_share(epsilon),
+            knowledge_eoh_registration_share(epsilon),
+            total_registration_share(epsilon),
+        )
+        for name, g, e in zip(
+            ("care", "production", "stewardship", "personal", "knowledge", "total"),
+            got, self.EXPECTED[epsilon],
+        ):
+            assert g == pytest.approx(e, abs=1e-6), f"{name} moved at ε={epsilon}"
+
+    def test_labor_weights_are_unchanged(self):
+        for epsilon, expected in (
+            (0.0, (0.4500, 0.3000, 0.2500)),
+            (0.4, (0.2700, 0.4518, 0.2782)),
+            (0.99, (0.0500, 0.8500, 0.1000)),
+        ):
+            w = labor_category_weights(epsilon)
+            got = (w["production"], w["care"], w["stewardship"])
+            assert got == pytest.approx(expected, abs=1e-4)
+
+    def test_care_defaults_are_bound_not_restated(self):
+        """They duplicated `CARE_SIGMOID_DEFAULTS` as bare literals and happened
+        to agree — the `mean_multiplier = 2.10` pattern, which agreed right up
+        until it did not. Now a dict subscript, so divergence is impossible
+        rather than merely tested."""
+        import inspect
+
+        sig = inspect.signature(care_registration_share)
+        for key, value in CARE_SIGMOID_DEFAULTS.items():
+            assert sig.parameters[key].default == value
+
+    def test_every_sigmoid_parameter_comes_from_data_py(self):
+        """No module-level constant in registration.py may hold a bare literal:
+        that is what put 21 calibration values outside every debt figure."""
+        import ast
+        import inspect
+
+        import hours_eoh.core.registration as reg
+
+        tree = ast.parse(inspect.getsource(reg))
+        bare = []
+        for node in tree.body:
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            value = node.value
+            if value is None or any(
+                isinstance(n, ast.Name) for n in ast.walk(value)
+            ):
+                continue
+            if any(
+                isinstance(n, ast.Constant) and isinstance(n.value, (int, float))
+                for n in ast.walk(value)
+            ):
+                targets = (
+                    [node.target] if isinstance(node, ast.AnnAssign) else node.targets
+                )
+                bare += [t.id for t in targets if isinstance(t, ast.Name)]
+        assert not bare, f"bare numeric constants back in registration.py: {bare}"
