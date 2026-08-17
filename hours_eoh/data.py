@@ -1021,6 +1021,78 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this
 #   value.
 PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent. CHOSEN — resolves_by: capital-inventory + time-use identity
+
+# THE BASKET QUANTITIES. What the personal obligation is FOR, in units that
+# cannot be renegotiated. `PERSONAL_EOH_BASE` is unfalsifiable while the basket
+# floats: any observed hours figure can be absorbed by redefining what the hours
+# were buying. These four state the requirement; `reference/personal_basket.py`
+# holds the MEASURED delivery productivities that say what meeting it costs.
+#
+# They lived in that module until 2026-08-16, which put chosen standards in the
+# layer reserved for measured data — and outside the shadow-constant ratchet,
+# since utils.provenance.OPERATIVE_LAYERS omits `reference/`. The split is now
+# epistemic: quantities (chosen) here, productivities (measured) there, and the
+# basket is assembled by a caller that passes these in.
+#
+# tag: convention | units: kilocalories per person per day
+# form: a declared dietary energy reference, not a derived optimum. 2,100
+#   kcal/day is the humanitarian planning standard (Sphere / WHO-FAO-UNU
+#   emergency reference), adopted here because the basket needs a stated figure
+#   and this one is the most widely used.
+# note: THE ONLY BASKET QUANTITY THAT CURRENTLY MOVES A NUMBER. Nutrition
+#   production is the one priced component of seven, so this scales the floor
+#   1:1 — 1,800 kcal/day gives 283.6 h/person·yr, 2,500 gives 394.0, against the
+#   shipped 330.9. The other three quantities multiply into nothing today
+#   because their components carry `hours_per_unit=None`, and are excluded
+#   rather than costed at zero.
+BASKET_DIET_KCAL_PER_DAY: float = 2100.0
+# tag: convention | units: litres per person per day
+# form: the WHO "basic access" service level. A declared adequacy threshold —
+#   the quantity is well-established; the labour to deliver it is not measured
+#   anywhere in this repo.
+# note: DORMANT BUT ARMED. The water component carries `hours_per_unit=None`, so
+#   this multiplies into nothing today and becomes load-bearing the moment
+#   anyone prices water collection. Nothing would announce that transition,
+#   which is the reason it is tagged here rather than left in the basket module.
+BASKET_WATER_LITRES_PER_DAY: float = 50.0
+# tag: convention | units: square metres of dwelling floor area per person
+# form: the UN-Habitat adequacy framing for sufficient living space. A declared
+#   threshold, like the water service level above.
+# note: FOUND BY FIXING THE SCAN, not by reading the module (2026-08-16). It sat
+#   in reference/personal_basket.py alongside the other basket quantities and
+#   appeared in NO shadow-constant count, because 12.0 is in the
+#   `utils.provenance._INNOCUOUS` value set and a constant whose literals are
+#   all innocuous vanished from the scan entirely. Being masked is now a
+#   DECLARED status: see `_INNOCUOUS_NAMES`.
+# note: dormant like water and thermal — the shelter component carries
+#   `hours_per_unit=None`, so this multiplies into nothing today and is excluded
+#   rather than costed at zero.
+BASKET_SHELTER_M2_PER_PERSON: float = 12.0
+# tag: placeholder | units: degree-days per person per year | tier: D
+# form: a temperate baseline, carried so the thermal component appears in the
+#   basket with its unit. It is never costed.
+# note: LATITUDE-DEPENDENT BY CONSTRUCTION, and that is the finding rather than
+#   a caveat: thermal is the one basket component where climate is the QUANTITY
+#   and not merely the delivery cost, so costing it makes the floor
+#   climate-indexed and PERSONAL_EOH_BASE cannot remain a single global scalar.
+# resolves_by: heating and cooling degree-days for the jurisdiction being
+#   modelled, against a stated indoor set-point. This is an instance quantity
+#   wearing a placeholder's clothes until the framework indexes by climate.
+BASKET_THERMAL_DEGREE_DAYS_PER_YEAR: float = 2500.0
+# tag: normative | units: automation level ε ∈ [0, 1]
+# form: NOT a quantity like the three above — a CLASSIFICATION GATE. Below it,
+#   the health component is owed and undeliverable, so the floor reports it as
+#   `below_min_epsilon` rather than `unmeasured`, and excludes it either way.
+#   Unreachable is excluded, not zero: that is the personal floor's central
+#   behaviour and this constant is what exercises it.
+# decided_by: a charter judgement about where a delivery path begins to exist
+#   for interventions no quantity of unassisted human labour delivers — a
+#   caesarean, an antibiotic. No dataset returns this number, because the
+#   question is which interventions the collective commits to counting as owed.
+# precedent: the registration boundary is a different mechanism with the same
+#   shape — what the ledger recognises, versus what the basket physically
+#   contains.
+BASKET_HEALTH_MIN_EPSILON: float = 0.10
 # provenance-block: EOH generation — infrastructure domain
 # tag: bounded | units: fraction of capital stock, as EOH-hours per year
 # band: 0.02–0.04 of capital stock per year (OECD public-capital maintenance

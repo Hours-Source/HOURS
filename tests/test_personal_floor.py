@@ -18,6 +18,11 @@ from hours_eoh.core.eoh_generation import (
     personal_statutory_floor,
 )
 from hours_eoh.data import (
+    BASKET_DIET_KCAL_PER_DAY,
+    BASKET_HEALTH_MIN_EPSILON,
+    BASKET_SHELTER_M2_PER_PERSON,
+    BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+    BASKET_WATER_LITRES_PER_DAY,
     PERSONAL_EOH_BASE,
     PERSONAL_EOH_SUFFICIENCY,
     PERSONAL_EOH_SURVIVAL,
@@ -26,17 +31,16 @@ from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.personal_basket import (
     CLIMATE_CONDITIONING,
     CLIMATE_NOTES,
-    DIET_KCAL_PER_YEAR,
-    ENTITLEMENT_AUGMENTATION,
-    FULL_BASKET,
-    HEALTH_MIN_EPSILON,
     LSMS_AGRO_ECOLOGY,
     LSMS_COUNTRIES,
     LSMS_KCAL_PER_LABOUR_HOUR,
     NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
     NUTRITION_HOURS_PER_KCAL,
     NUTRITION_TRANSFER_BIAS_SIGN,
-    SURVIVAL_CORE,
+    DIET_DAYS_PER_YEAR,
+    entitlement_augmentation,
+    full_basket,
+    survival_core,
     _share,
 )
 from hours_eoh.scenarios.personal_floor import (
@@ -56,6 +60,25 @@ KEY_EPSILONS = (0.0, 0.40, 0.99)
 # ===========================================================================
 # core — the floor itself
 # ===========================================================================
+
+# The shipped basket, assembled once. The quantities moved to `data.py` in the
+# 2026-08-16 migration; the tests below still assert against the same values.
+DIET_KCAL_PER_YEAR = BASKET_DIET_KCAL_PER_DAY * DIET_DAYS_PER_YEAR
+HEALTH_MIN_EPSILON = BASKET_HEALTH_MIN_EPSILON
+SURVIVAL_CORE = survival_core(
+    BASKET_DIET_KCAL_PER_DAY,
+    BASKET_WATER_LITRES_PER_DAY,
+    BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+    BASKET_SHELTER_M2_PER_PERSON,
+)
+ENTITLEMENT_AUGMENTATION = entitlement_augmentation(BASKET_HEALTH_MIN_EPSILON)
+FULL_BASKET = full_basket(
+    BASKET_DIET_KCAL_PER_DAY,
+    BASKET_WATER_LITRES_PER_DAY,
+    BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+    BASKET_SHELTER_M2_PER_PERSON,
+    BASKET_HEALTH_MIN_EPSILON,
+)
 
 class TestFloorArithmetic:
 
@@ -463,6 +486,58 @@ class TestFloorHelpers:
         assert obligation_floor()["floor_hours"] == pytest.approx(
             obligation_floor(FULL_BASKET)["floor_hours"]
         )
+
+
+class TestTheBasketSeam:
+    """The 2026-08-16 migration: chosen quantities in `data.py`, measured
+    delivery productivities in `reference/`, assembled by `scenarios/`."""
+
+    def test_the_migration_moved_no_numbers(self):
+        """The whole point of doing it this way — TestPIChangesNothing's
+        discipline applied to a refactor rather than a finding."""
+        from hours_eoh.scenarios.personal_floor import shipped_basket
+
+        result = personal_statutory_floor(shipped_basket())
+        assert result["floor_hours"] == pytest.approx(330.9232760, abs=1e-6)
+        assert result["coverage"] == pytest.approx(2.0 / 29.0, abs=1e-9)
+
+    def test_the_scenario_assembles_what_the_constants_say(self):
+        from hours_eoh.scenarios.personal_floor import shipped_basket
+
+        assert shipped_basket() == FULL_BASKET
+
+    def test_quantities_are_supplied_not_stored(self):
+        """A different diet standard must produce a different basket — if the
+        quantity were still baked in, this would silently return the shipped
+        figure and the migration would be cosmetic."""
+        hot = full_basket(2500.0, BASKET_WATER_LITRES_PER_DAY,
+                          BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+                          BASKET_SHELTER_M2_PER_PERSON,
+                          BASKET_HEALTH_MIN_EPSILON)
+        shipped = personal_statutory_floor(FULL_BASKET)["floor_hours"]
+        assert personal_statutory_floor(hot)["floor_hours"] > shipped * 1.15
+
+    def test_the_dormant_quantities_move_nothing_yet(self):
+        """Water and thermal carry hours_per_unit=None, so they are EXCLUDED,
+        not costed at zero — changing them must not move the floor. They become
+        load-bearing the moment either component is priced, which is why they
+        are tagged in data.py rather than left where nothing watched them."""
+        odd = full_basket(BASKET_DIET_KCAL_PER_DAY, 500.0, 9000.0, 40.0,
+                          BASKET_HEALTH_MIN_EPSILON)
+        assert personal_statutory_floor(odd)["floor_hours"] == pytest.approx(
+            personal_statutory_floor(FULL_BASKET)["floor_hours"]
+        )
+
+    def test_a_basket_line_with_no_requirement_is_refused(self):
+        for bad in ((0.0, 50.0, 2500.0, 12.0), (2100.0, -1.0, 2500.0, 12.0),
+                    (2100.0, 50.0, 0.0, 12.0), (2100.0, 50.0, 2500.0, 0.0)):
+            with pytest.raises(ValueError, match="must be positive"):
+                survival_core(*bad)
+
+    def test_the_health_gate_is_bounded(self):
+        for bad in (-0.1, 1.5):
+            with pytest.raises(ValueError, match="health_min_epsilon"):
+                entitlement_augmentation(bad)
 
 
 class TestPIChangesNothing:

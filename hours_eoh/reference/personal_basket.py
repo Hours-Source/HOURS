@@ -114,26 +114,13 @@ from __future__ import annotations
 # Physical quantities — the basket, stated in units that cannot drift
 # ---------------------------------------------------------------------------
 
-#: Dietary energy target, kcal/person/day. The handoff's stated food target.
-#: CHOSEN — a standard adult reference intake, not a derived optimum.
-DIET_KCAL_PER_DAY: float = 2100.0
+#: MOVED TO `data.py` 2026-08-16 — the basket QUANTITIES are chosen standards,
+#: not measured data, so they belong with the framework's other parameters and
+#: under the shadow-constant gate. `BASKET_DIET_KCAL_PER_DAY`,
+#: `BASKET_WATER_LITRES_PER_DAY`, `BASKET_THERMAL_DEGREE_DAYS_PER_YEAR` and
+#: `BASKET_HEALTH_MIN_EPSILON` are now supplied by the caller. What stays here
+#: is what this layer is for: the MEASURED delivery productivities.
 DIET_DAYS_PER_YEAR: float = 365.25
-DIET_KCAL_PER_YEAR: float = DIET_KCAL_PER_DAY * DIET_DAYS_PER_YEAR   # 767,025
-
-#: WHO basic-access water, litres/person/day → litres/person/year.
-#: Quantity is well-established; the labour to deliver it is not measured here.
-WATER_LITRES_PER_DAY: float = 50.0
-WATER_LITRES_PER_YEAR: float = WATER_LITRES_PER_DAY * DIET_DAYS_PER_YEAR
-
-#: Adequate dwelling floor area, m² per person (UN-Habitat adequacy framing).
-SHELTER_M2_PER_PERSON: float = 12.0
-
-#: Conditioned-space heating/cooling load, degree-days per year. LATITUDE-
-#: DEPENDENT by construction — this is a stated baseline, not a global constant,
-#: and it is the reason PERSONAL_EOH_BASE cannot be a single global scalar.
-#: 2,500 is a temperate-baseline placeholder carried only so the component
-#: appears in the basket with its unit; it is never costed here.
-THERMAL_DEGREE_DAYS_PER_YEAR: float = 2500.0
 
 #: Sanitation service-years per person: one person, one year of safe disposal.
 SANITATION_SERVICE_YEARS: float = 1.0
@@ -198,36 +185,6 @@ NUTRITION_HOURS_PER_KCAL: float = 1.0 / LSMS_KCAL_PER_LABOUR_HOUR
 #: sits outside it.
 NUTRITION_CROSSCHECK_HOURS_PER_YEAR: float = 306.0
 
-#: The automation level below which the health basket has no delivery path.
-#:
-#: WHY ε AND NOT CAPITAL (author decision, 2026-08-09). The obvious alternative
-#: is to key the step-in on capital per capita, the way `abatement_fraction`
-#: does, which would keep every capital-driven mechanism on one variable. It was
-#: considered and rejected on the substance: the binding condition for a
-#: population to run a health system is not that the capital exists, it is that
-#: there is enough LABOUR SLACK to staff it — and that is what ε measures. A
-#: collective holding the machines with no spare hours does not deliver
-#: healthcare. Capital is necessary and not sufficient; ε is the closer proxy for
-#: the sufficient condition.
-#:
-#: The cost of that choice is stated rather than hidden: this is an ε argument
-#: inside a `core/` generation function, where the repo's convention is that
-#: generation takes physical state and ε belongs to fulfilment. The convention is
-#: right about EOH generation in general and wrong here, because whether an
-#: obligation is DELIVERABLE is a fulfilment question that has to be answered
-#: before the obligation can be costed at all.
-#:
-#: CHOSEN, and deliberately conservative — the claim it encodes is only that SOME
-#: automation is required, which the handoff establishes; the exact threshold is
-#: not established by anything. resolves_by: the labour-slack reading makes this
-#: measurable — the ε at which health-sector staffing becomes supportable given
-#: the population's total labour supply, rather than a capital inventory.
-#:
-#: Nothing in the shipped floor depends on its value, because health is unmeasured
-#: at every ε; it exists so the step-in mechanism is exercised and visible rather
-#: than latent. It becomes load-bearing the moment health is costed.
-HEALTH_MIN_EPSILON: float = 0.10
-
 # ---------------------------------------------------------------------------
 # The baskets
 # ---------------------------------------------------------------------------
@@ -267,10 +224,49 @@ def _share(term: str, split: int = 1) -> float:
 #: (its own pointer is the JMP water-and-sanitation studies), so it is split
 #: evenly across the four lines below that make that bundle explicit. The even
 #: split is CHOSEN; the term total is not.
-SURVIVAL_CORE: list[dict] = [
+def survival_core(
+    diet_kcal_per_day: float,
+    water_litres_per_day: float,
+    thermal_degree_days_per_year: float,
+    shelter_m2_per_person: float,
+) -> list[dict]:
+    """
+    The components with an ε = 0 delivery path in principle.
+
+    QUANTITIES ARE SUPPLIED, NOT STORED. They are chosen standards — a dietary
+    reference intake, a WHO service level, a temperate degree-day baseline — and
+    chosen standards belong in `data.py` with the framework's other parameters,
+    not in the layer reserved for measured data. What this module keeps is the
+    measured half: `NUTRITION_HOURS_PER_KCAL` and the stratum it came from.
+
+    units: quantities per person per year, in each component's own unit.
+
+    Args:
+        diet_kcal_per_day: `data.BASKET_DIET_KCAL_PER_DAY`.
+        water_litres_per_day: `data.BASKET_WATER_LITRES_PER_DAY`.
+        thermal_degree_days_per_year: `data.BASKET_THERMAL_DEGREE_DAYS_PER_YEAR`.
+        shelter_m2_per_person: `data.BASKET_SHELTER_M2_PER_PERSON`.
+
+    Raises:
+        ValueError: on a non-positive quantity — a basket line with no
+            requirement is not a zero requirement, it is a mistake.
+    """
+    for name, q in (
+        ("diet_kcal_per_day", diet_kcal_per_day),
+        ("water_litres_per_day", water_litres_per_day),
+        ("thermal_degree_days_per_year", thermal_degree_days_per_year),
+        ("shelter_m2_per_person", shelter_m2_per_person),
+    ):
+        if q <= 0.0:
+            raise ValueError(f"{name} must be positive, got {q}")
+
+    diet_kcal_per_year = diet_kcal_per_day * DIET_DAYS_PER_YEAR
+    water_litres_per_year = water_litres_per_day * DIET_DAYS_PER_YEAR
+
+    return [
     {
         "component": "nutrition_production",
-        "quantity_per_person_year": DIET_KCAL_PER_YEAR,
+        "quantity_per_person_year": diet_kcal_per_year,
         "unit": "kcal",
         "hours_per_unit": NUTRITION_HOURS_PER_KCAL,
         "share": _share("nutrition", 2),
@@ -282,7 +278,7 @@ SURVIVAL_CORE: list[dict] = [
     },
     {
         "component": "nutrition_processing",
-        "quantity_per_person_year": DIET_KCAL_PER_YEAR,
+        "quantity_per_person_year": diet_kcal_per_year,
         "unit": "kcal",
         "hours_per_unit": None,
         "share": _share("nutrition", 2),
@@ -295,7 +291,7 @@ SURVIVAL_CORE: list[dict] = [
     },
     {
         "component": "water",
-        "quantity_per_person_year": WATER_LITRES_PER_YEAR,
+        "quantity_per_person_year": water_litres_per_year,
         "unit": "litres",
         "hours_per_unit": None,
         "share": _share("shelter", 4),
@@ -308,14 +304,14 @@ SURVIVAL_CORE: list[dict] = [
     },
     {
         "component": "shelter",
-        "quantity_per_person_year": SHELTER_M2_PER_PERSON,
+        "quantity_per_person_year": shelter_m2_per_person,
         "unit": "m2",
         "hours_per_unit": None,
         "share": _share("shelter", 4),
     },
     {
         "component": "thermal",
-        "quantity_per_person_year": THERMAL_DEGREE_DAYS_PER_YEAR,
+        "quantity_per_person_year": thermal_degree_days_per_year,
         "unit": "degree_days",
         "hours_per_unit": None,
         "share": _share("shelter", 4),
@@ -359,22 +355,59 @@ SURVIVAL_CORE: list[dict] = [
     },
 ]
 
-#: Entitlement augmentation — owed, with no unassisted delivery path. Enters as
-#: a step-in term above `min_epsilon`, not as a constant scaled down by ε.
-ENTITLEMENT_AUGMENTATION: list[dict] = [
+def entitlement_augmentation(health_min_epsilon: float) -> list[dict]:
+    """
+    Owed, with no unassisted delivery path — a step-in term above `min_epsilon`.
+
+    `health_min_epsilon` is a CLASSIFICATION GATE rather than a quantity: below
+    it the component is owed and undeliverable, so the floor reports it as
+    `below_min_epsilon` rather than `unmeasured`. Either way it is EXCLUDED, not
+    costed at zero.
+
+    Args:
+        health_min_epsilon: `data.BASKET_HEALTH_MIN_EPSILON`, ∈ [0, 1].
+
+    Raises:
+        ValueError: if the gate is outside [0, 1].
+    """
+    if not 0.0 <= health_min_epsilon <= 1.0:
+        raise ValueError(
+            f"health_min_epsilon must be in [0, 1], got {health_min_epsilon}"
+        )
+    return [
     {
         "component": "health",
         "quantity_per_person_year": HEALTH_SCHEDULES_PER_YEAR,
         "unit": "schedules",
         "hours_per_unit": None,
-        "min_epsilon": HEALTH_MIN_EPSILON,
+        "min_epsilon": health_min_epsilon,
         "share": _share("health"),
     },
 ]
 
-#: The whole basket. Note that `coverage` over this list is dominated by what is
-#: unmeasured — which is the honest reading of the parameter's current state.
-FULL_BASKET: list[dict] = SURVIVAL_CORE + ENTITLEMENT_AUGMENTATION
+def full_basket(
+    diet_kcal_per_day: float,
+    water_litres_per_day: float,
+    thermal_degree_days_per_year: float,
+    shelter_m2_per_person: float,
+    health_min_epsilon: float,
+) -> list[dict]:
+    """
+    The whole basket, survival core plus entitlement augmentation.
+
+    `coverage` over this list is dominated by what is unmeasured — one priced
+    component of seven, 6.9% — which is the honest reading of the parameter's
+    current state and not a defect of the list.
+
+    Every quantity is supplied by the caller from `data.py`; see `survival_core`
+    for why. `scenarios.personal_floor` is the caller in this repo.
+    """
+    return survival_core(
+        diet_kcal_per_day,
+        water_litres_per_day,
+        thermal_degree_days_per_year,
+        shelter_m2_per_person,
+    ) + entitlement_augmentation(health_min_epsilon)
 
 # ---------------------------------------------------------------------------
 # Climate conditioning — where latitude enters, per component

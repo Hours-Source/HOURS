@@ -1062,9 +1062,99 @@ def parameter_default_consumers(
 #: Numbers that carry no calibration claim — identities, unit conversions, and
 #: the small integers that index, guard or count. Flagging these would bury the
 #: cases that matter under arithmetic.
+#:
+#: THE FILTER HID REAL CONSTANTS, and it hid them silently (found 2026-08-16).
+#: A constant whose literals are ALL innocuous vanished from the scan entirely,
+#: so `_STEW_REG_SIGMOID_RATE = 10.0` — deliberately tuned, its own comment
+#: reads "raised from 6.0 to 10.0 so sigmoid(0) ≈ 0.018" — was invisible while
+#: `_STEW_REG_GROWTH = 0.90` and `_STEW_REG_INFLECTION = 0.40`, its two
+#: siblings in the same sigmoid, were both counted. The published "20 shadow
+#: constants in core/registration.py" was an undercount for exactly that reason.
+#: `SHELTER_M2_PER_PERSON = 12.0`, a UN-Habitat adequacy standard, was hidden
+#: the same way.
+#:
+#: The value test is kept, because it is right about most cases. What changes is
+#: that being masked by it is now a DECLARED status rather than an emergent
+#: property of which literal you happened to write: a fully-masked constant must
+#: name itself in `_INNOCUOUS_NAMES` or it counts. Same reasoning as
+#: `baseline_labels:` — a permission should be a visible act in a diff.
 _INNOCUOUS: frozenset[float] = frozenset(
     {0.0, 1.0, 2.0, -1.0, 0.5, 100.0, 3.0, 4.0, 10.0, 12.0, 24.0, 60.0, 1000.0}
 )
+
+#: Constants whose every literal is innocuous AND which genuinely carry no
+#: calibration claim. Each is an identity, a unit conversion, an ordinal map, or
+#: a zero base — things that cannot drift because they are not measurements of
+#: anything. Adding a name here is a claim, and the claim is reviewable.
+_INNOCUOUS_NAMES: frozenset[str] = frozenset({
+    "MINUTES_PER_HOUR",          # 60, definitional
+    "_EMPLOYMENT_UNITS",         # 1000, thousands -> units
+    "SANITATION_SERVICE_YEARS",  # 1.0, one person one year — an identity
+    "CARE_PERSON_YEARS",         # 1.0, everyone alive, for as long as they are
+    "_PERS_REG_START",           # 0.0, a zero base
+    "_KNOW_REG_BASE",            # 0.0, a zero base
+    "_SEVERITY",                 # ordinal map
+    "_INV_SEVERITY",             # ordinal map
+    "PASSIVE_MAX_AGE",           # 12, the age ATUS stops collecting passive care
+    "HEALTH_SCHEDULES_PER_YEAR", # 1.0, one schedule per person-year — the
+                                 # unknown is the schedule's CONTENTS, and the
+                                 # basket carries that as hours_per_unit=None
+})
+
+
+def masked_constants(root: Path | None = None) -> list[tuple[str, str]]:
+    """Named constants the ``_INNOCUOUS`` value filter hides, minus the declared.
+
+    Returns ``(module, name)`` for every module-level constant in the operative
+    layers whose numeric literals are ALL in ``_INNOCUOUS`` and whose name is not
+    in ``_INNOCUOUS_NAMES``. These are invisible to `shadow_constants` purely
+    because of which literal they happen to hold, which is not a property that
+    should decide whether a value is governed.
+
+    Scoped to ``OPERATIVE_LAYERS`` plus ``reference``, deliberately wider than
+    `shadow_constants`: the point is to find what the filter hides ANYWHERE, and
+    two of the four found on introduction were in ``reference/``.
+    """
+    base = root or PACKAGE_ROOT.parent
+    out: list[tuple[str, str]] = []
+    for layer in (*OPERATIVE_LAYERS, "reference"):
+        for path in sorted(base.glob(f"hours_eoh/{layer}/**/*.py")):
+            if path == DATA_PY:
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:  # pragma: no cover
+                continue
+            for node in tree.body:
+                targets: list[ast.expr]
+                if isinstance(node, ast.AnnAssign):
+                    targets, value = [node.target], node.value
+                elif isinstance(node, ast.Assign):
+                    targets, value = list(node.targets), node.value
+                else:
+                    continue
+                if value is None:
+                    continue
+                nums = [
+                    n.value for n in ast.walk(value)
+                    if isinstance(n, ast.Constant)
+                    and isinstance(n.value, (int, float))
+                    and not isinstance(n.value, bool)
+                ]
+                if not nums or any(float(n) not in _INNOCUOUS for n in nums):
+                    continue
+                if any(isinstance(n, ast.Name) for n in ast.walk(value)):
+                    continue  # derived from another constant; not a bare literal
+                for target in targets:
+                    if not isinstance(target, ast.Name):
+                        continue
+                    name = target.id
+                    if not name.isupper() or len(name) < 2:
+                        continue
+                    if name in _INNOCUOUS_NAMES:
+                        continue
+                    out.append((str(path.relative_to(base)), name))
+    return sorted(set(out))
 
 
 @dataclass(frozen=True)
@@ -1142,10 +1232,22 @@ def shadow_constants(root: Path | None = None) -> list[Shadow]:
                     if isinstance(s, ast.Constant)
                     and isinstance(s.value, (int, float))
                     and not isinstance(s.value, bool)
-                    and float(s.value) not in _INNOCUOUS
                 ]
+                # A constant whose literals are ALL innocuous used to vanish
+                # here. It now survives unless its NAME is declared innocuous,
+                # because which literal a value happens to hold is not a
+                # property that should decide whether it is governed.
                 if not nums:
                     continue
+                if all(float(n) in _INNOCUOUS for n in nums):
+                    declared = [
+                        t.id for t in targets
+                        if isinstance(t, ast.Name) and t.id in _INNOCUOUS_NAMES
+                    ]
+                    if declared or any(
+                        isinstance(n, ast.Name) for n in ast.walk(value)
+                    ):
+                        continue
                 refs = {
                     s.id for s in ast.walk(value) if isinstance(s, ast.Name)
                 } & imported

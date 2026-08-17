@@ -59,6 +59,11 @@ from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import PersonalFloor, personal_statutory_floor
 from hours_eoh.data import (
+    BASKET_DIET_KCAL_PER_DAY,
+    BASKET_HEALTH_MIN_EPSILON,
+    BASKET_SHELTER_M2_PER_PERSON,
+    BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+    BASKET_WATER_LITRES_PER_DAY,
     PERSONAL_EOH_BASE,
     PERSONAL_EOH_SUFFICIENCY,
     PERSONAL_EOH_SURVIVAL,
@@ -67,12 +72,29 @@ from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.personal_basket import (
     CLIMATE_CONDITIONING,
     CLIMATE_NOTES,
-    FULL_BASKET,
     LSMS_AGRO_ECOLOGY,
     LSMS_COUNTRIES,
     NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
     NUTRITION_TRANSFER_BIAS_SIGN,
+    full_basket,
 )
+
+
+def shipped_basket() -> list[dict]:
+    """The basket at the shipped quantities — the assembly point.
+
+    `reference/personal_basket.py` holds the MEASURED delivery productivities and
+    takes the CHOSEN quantities as arguments, so somebody has to bring the two
+    halves together. That is this layer's job: `scenarios/` may import both
+    `data.py` and `reference/`, and neither may import the other.
+    """
+    return full_basket(
+        BASKET_DIET_KCAL_PER_DAY,
+        BASKET_WATER_LITRES_PER_DAY,
+        BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+        BASKET_SHELTER_M2_PER_PERSON,
+        BASKET_HEALTH_MIN_EPSILON,
+    )
 from hours_eoh.scenarios.feasibility import age_weight_mean
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:
 # two measured bridges onto the same denominator must be the same number.
@@ -133,7 +155,7 @@ def obligation_floor(
     coverage is what it is.
     """
     return personal_statutory_floor(
-        basket if basket is not None else FULL_BASKET, epsilon
+        basket if basket is not None else shipped_basket(), epsilon
     )
 
 
@@ -295,7 +317,7 @@ def climate_conditioning(basket: list[dict] | None = None) -> dict:
     collective without restratification. `transfer_bias_sign` is None because the
     direction is genuinely undetermined, not because it is unknown to the caller.
     """
-    components = basket if basket is not None else FULL_BASKET
+    components = basket if basket is not None else shipped_basket()
     rows = []
     for component in components:
         name = component["component"]

@@ -176,8 +176,27 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.onet_knowledge",
     "hours_eoh.reference.onet_multipliers",
     "hours_eoh.reference.atus_time_use",
+    "hours_eoh.reference.care_demand",
+    "hours_eoh.reference.land_stewardship",
     "hours_eoh.reference.personal_basket",
 ]
+
+
+def test_every_reference_module_is_on_the_isolation_list():
+    """The list above is hand-maintained, so it can silently fall behind — and
+    did: `care_demand` and `land_stewardship` were both added without being
+    registered, which meant neither was ever checked for domain imports."""
+    import pathlib
+
+    on_disk = {
+        f"hours_eoh.reference.{p.stem}"
+        for p in pathlib.Path("hours_eoh/reference").glob("*.py")
+        if p.stem != "__init__"
+    }
+    assert on_disk == set(REFERENCE_MODULES), (
+        f"unregistered: {sorted(on_disk - set(REFERENCE_MODULES))}; "
+        f"stale: {sorted(set(REFERENCE_MODULES) - on_disk)}"
+    )
 
 
 class TestLayerIsolation:

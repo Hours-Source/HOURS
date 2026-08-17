@@ -1449,9 +1449,16 @@ def test_an_alias_of_a_data_constant_is_not_a_shadow(tmp_path):
     assert len(found) == 1 and found[0].bound is True
 
 
-def test_shadow_scan_ignores_arithmetic_and_lowercase(tmp_path):
-    """Identities and loop bounds are not calibration; flagging them would bury
-    the cases that matter."""
+def test_shadow_scan_ignores_lowercase_but_not_innocuous_values(tmp_path):
+    """Lowercase is not a constant. An innocuous VALUE no longer buys silence.
+
+    This test used to assert that `HALF = 0.5` and `PERCENT = 100.0` were
+    ignored on the strength of their values alone. That rule hid real
+    calibration: `_STEW_REG_SIGMOID_RATE = 10.0` is deliberately tuned — its own
+    comment reads "raised from 6.0 to 10.0" — and vanished from the scan while
+    its two siblings in the same sigmoid were counted. Masking is now a DECLARED
+    status via `_INNOCUOUS_NAMES`, not a property of which literal you wrote.
+    """
     pkg = tmp_path / "hours_eoh" / "core"
     pkg.mkdir(parents=True)
     (pkg / "demo.py").write_text(
@@ -1461,7 +1468,38 @@ def test_shadow_scan_ignores_arithmetic_and_lowercase(tmp_path):
         "_RATE: float = 0.077\n",
         encoding="utf-8",
     )
-    assert [s.name for s in pv.shadow_constants(root=tmp_path)] == ["_RATE"]
+    assert [s.name for s in pv.shadow_constants(root=tmp_path)] == [
+        "HALF", "PERCENT", "_RATE",
+    ]
+
+
+def test_a_declared_innocuous_name_is_exempt(tmp_path):
+    """The escape hatch exists, and using it is a visible act in a diff."""
+    pkg = tmp_path / "hours_eoh" / "core"
+    pkg.mkdir(parents=True)
+    (pkg / "demo.py").write_text("MINUTES_PER_HOUR: float = 60.0\n", encoding="utf-8")
+    assert pv.shadow_constants(root=tmp_path) == []
+
+
+def test_nothing_hides_behind_the_innocuous_filter():
+    """Every fully-masked constant is either declared innocuous or counted.
+
+    `masked_constants()` reports the ones a value filter alone would hide. They
+    must all now appear in the shadow scan, so being cheap to overlook is no
+    longer the same as being ungoverned.
+    """
+    counted = {s.name for s in pv.shadow_constants()}
+    unaccounted = [
+        f"{mod}:{name}" for mod, name in pv.masked_constants()
+        if name not in counted
+    ]
+    assert not unaccounted, (
+        f"masked and ungoverned: {unaccounted}. Three ways out, in order of "
+        "preference: move it into data.py with a tag block; declare the name in "
+        "_INNOCUOUS_NAMES if it is genuinely an identity or a unit conversion; "
+        "or bind it to the constant it duplicates. `reference/` is outside "
+        "OPERATIVE_LAYERS, so a masked constant there has only the first two."
+    )
 
 
 def test_repeated_default_literals_needs_repetition(tmp_path):
@@ -1498,8 +1536,14 @@ def test_shadow_constant_count_does_not_grow(scanned):
     with the constants moved into data.py and tagged, not by loosening the scan.
     """
     free = [s for s in pv.shadow_constants() if not s.bound]
-    assert len(free) <= 76, (
-        f"{len(free)} shadow constants, was 76. New ones: a domain constant "
+    # 76 -> 78 on 2026-08-16, and the cause matters: NO new copies appeared.
+    # The scan stopped letting an innocuous VALUE hide a constant, so three that
+    # were always there became visible — a sigmoid rate, a maturation exponent
+    # and a verdict threshold, each with siblings the scan already counted.
+    # A rise from honesty is not the failure this ratchet guards against; a rise
+    # from a fresh copy is. Distinguish them before raising it again.
+    assert len(free) <= 78, (
+        f"{len(free)} shadow constants, was 78. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."
