@@ -1118,6 +1118,145 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 #   them at zero, and scenarios/ecological_floor.floor_from_census() reports the
 #   ratio against this anchor, which is the falsification.
 ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
+# tag: measured | units: hectares | tier: B
+# form: USDA ERS Major Land Uses, "48 States" total land, 2022 vintage
+#   (released 2026-08-14): 1,891,580 thousand acres x 0.40468564224 ha/acre.
+# note: THE REFERENCE FRAME FOR THE ECOLOGICAL DOMAIN. Stewardship demand is a
+#   property of AREA, so the domain needs an extensive quantity to be keyed to,
+#   and a test frame needs one that is measured rather than assumed. The
+#   contiguous 48 is chosen over the 915,052,512 ha US total because Alaska's
+#   150 Mha is overwhelmingly unmanaged and would dilute every intensity by 16%
+#   for land no stewardship workforce reaches. Paired with US_POPULATION in
+#   reference/land_stewardship.py, it gives 2.285 ha/person against the shipped
+#   global LAND_HECTARES_PER_CAPITA of 1.65 — the US carries 38.5% MORE land
+#   per person than the planetary average, which is the direction that makes
+#   per-capita stewardship burden harder, not easier.
+# resolves_by: nothing — this is a published measurement. It moves only when
+#   ERS revises the series (5-year cycle).
+US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
+# tag: derived | units: labour-hours per hectare per year at pristine health
+# form: ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES. Bound by TEST rather than
+#   expression because ECOLOGICAL_BASE_RATE is defined above and the pairing is
+#   what must not drift; same treatment as GUF_ECO_KAPPA_CARBON.
+# note: THIS IS THE DOMAIN-BALANCE DEFECT, QUANTIFIED. Before this constant
+#   existed, `ecological_eoh` took no area and no population — it returned
+#   base_rate/health and nothing scaled it, making ecological the ONLY domain
+#   with no extensive quantity behind it (personal scales with population,
+#   infrastructure with capital, knowledge with the corpus). Spread over the
+#   land it is nominally the obligation for, the shipped anchor is
+#   6.5317e-4 h/ha/yr — **2.35 SECONDS per hectare per year**.
+#   Introducing it changes NO number: area x intensity reproduces
+#   ECOLOGICAL_BASE_RATE exactly at the reference frame, so this commit fixes
+#   the FORM and leaves the LEVEL for the census to move.
+#   Note this disagrees 464x with `scenarios/ecological_floor
+#   .implied_stewardship_intensity`, which reports 0.37 h/ha/yr — the SAME
+#   anchor over a different area (1e6 people x 1.65 ha). Both are correct and
+#   the disagreement IS the point: an anchor keyed to nothing implies whatever
+#   per-hectare figure the area you supply happens to produce.
+# resolves_by: scenarios/land_stewardship.census_report() — the measured
+#   stewardship-hours census. At the declared amenity weight it reads
+#   0.585 h/ha/yr, ~900x this value, over 30% of censused area.
+ECOLOGICAL_INTENSITY_BASE: float = 6.53171902629151e-04  # h/ha·yr at health=1.0
+# tag: bounded | units: dimensionless fraction of amenity labour | tier: C
+# band: [0.0468, 0.0699] — the occupational composition of the amenity class.
+#   Tree Trimmers and Pruners (37-3013, 62.1k) maintain woody canopy, which
+#   delivers three of the seven GUF service categories directly (air filtration
+#   PM10, local climate regulation, flood attenuation by interception). Adding
+#   Vegetation Pesticide Handlers (37-3012, 30.7k) gives the upper bound. The
+#   1,235.0k in Landscaping and Groundskeeping (37-3011) maintain predominantly
+#   mown turf, which delivers none of the seven. 62.1/1327.8 = 0.0468;
+#   (62.1+30.7)/1327.8 = 0.0699.
+# errs: LOW. The lower bound is adopted, so the ecological obligation is
+#   understated. That is the conservative direction for the open question — a
+#   floor that errs low cannot manufacture the "anchor is orders too low"
+#   finding it is being used to test — but it is the UNSAFE direction for
+#   provisioning, since under-booking stewardship under-provisions it. Flagged
+#   rather than split, because splitting would put a fitted number where a
+#   composition-derived one now sits.
+# note: AUTHOR DECISION 2026-08-16 (the amenity-scope sign-off). Urban
+#   groundskeeping counts as ecological EOH to the extent it maintains a
+#   structure delivering one of the seven GUF services — canopy in, turf out.
+#   The two corners are 0.0 and 1.0 and differ 50x in the census, so a weight
+#   had to be named. Note the anchor is crossed at w* = 0.0228, BELOW this
+#   band: every admissible weight puts the census above the anchor, so the
+#   choice of w sets the magnitude and not the sign.
+# resolves_by: a task decomposition within SOC 37-3011 — what fraction of
+#   groundskeeping hours go to woody vegetation versus turf. Municipal urban-
+#   forestry program staffing against total grounds-maintenance staffing is the
+#   nearest public instrument; i-Tree Eco's urban-forestry surveys are the other.
+AMENITY_STEWARDSHIP_WEIGHT: float = 0.0468  # fraction of amenity labour counted
+# tag: bounded | units: dimensionless fraction of agency headcount | tier: B
+# band: [0.2263, 0.4073] — NPS + FWS combined, from record-level OPM Federal
+#   Workforce Data (employment 2025-09 v3, 27,104 staff, 337 occupational
+#   series). LOWER bound counts only unambiguous resource-management series
+#   (0401 general natural resources, 0404 biological science technician, 0454
+#   rangeland, 0460/0462 forestry, 0470 soil science, 0482 fish biology, 0485
+#   refuge management, 0486 wildlife biology, 1315 hydrology and neighbours).
+#   UPPER adds the two genuinely split series: 0456 wildland fire management
+#   (fuels treatment and prescribed burning against emergency response) and
+#   0025 park ranger (resource protection against interpretation).
+# errs: LOW. The lower bound is adopted, matching AMENITY_STEWARDSHIP_WEIGHT's
+#   treatment of the same shape of ambiguity, so agency stewardship is
+#   understated. 0025 alone is 3,991 NPS staff who do some of both.
+# note: THE TWO AGENCIES DISAGREE BY 5.3x AND THAT IS THE INTERESTING PART.
+#   NPS reads 10.12% (its largest series are park ranger 20.7% and maintenance
+#   mechanic 13.9%); FWS reads 53.64% (its largest is general natural resources
+#   at 27.8%). NPS is a visitor-services organisation standing on land; FWS
+#   refuges are a land-management organisation. A single federal "agency
+#   stewardship" rate would have concealed that, which is why the census splits
+#   them and this constant is only the combined summary.
+#   IT ALSO OVERTURNED A DIRECTIONAL CLAIM. Before the role mix was measured,
+#   the RAW agency intensity (0.709 h/ha/yr combined, 1.090 for NPS) suggested
+#   agency land was worked ~6x harder than forest and would RAISE the census.
+#   Role-mix-corrected it is 0.16-0.29 h/ha/yr, comparable to forest's 0.182 and
+#   BELOW the declared census mean of 0.585 — so pricing it LOWERS the mean and
+#   raises coverage. The raw figure was wrong by the size of the role mix, which
+#   is exactly why the class was not priced on it.
+# resolves_by: a task decomposition inside series 0025 and 0456 — the share of
+#   park-ranger and wildland-fire hours spent on resource condition rather than
+#   visitors and response. NPS budget justifications report FTE by activity
+#   (Resource Stewardship vs Visitor Services vs Facility Operations) and are
+#   the direct instrument; they would replace this band with a measured split.
+AGENCY_STEWARDSHIP_ROLE_MIX: float = 0.2263  # fraction of NPS+FWS on stewardship
+# tag: placeholder | units: persons | tier: C
+# form: the population the frozen O*NET/BLS registry's employment is drawn
+#   against (reference epoch 2026-07-29 -> 2024 vintage weights), stated round.
+# note: MIGRATED FROM TWO PLACES AT ONCE (2026-08-16). The same value lived as
+#   `REFERENCE_POPULATION_US` in scenarios/knowledge_base.py and as
+#   `US_POPULATION` in reference/land_stewardship.py — one value, two names, two
+#   files, neither under the gate. That is the fifth instance of the pattern
+#   behind GUF_PSI_NORM, RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS and the
+#   mean-multiplier literal: a copy of a value whose source is elsewhere. Both
+#   names now bind here. Its epistemic status is UNCHANGED by the move — it was
+#   debt before and it is debt now, only visible.
+# resolves_by: Census Bureau national population estimate for the reference
+#   epoch. The shipped figure is round to three significant figures and the
+#   estimate is not, so this closes on contact with the source.
+US_REFERENCE_POPULATION: float = 335_000_000.0  # persons, registry reference epoch
+# tag: instance | units: feet | family: PRACTICE_EQUIPMENT_WIDTHS_FT
+# supplied_by: the working width of the equipment YOUR collective actually
+#   operates. Field capacity is linear in width, so these values scale the
+#   reported stewardship hours one-for-one: halving a width doubles the hours.
+# default: mid-range North American row-crop equipment, so the shipped practice
+#   figures have a stated scale rather than none. NOT a measurement and not a
+#   published standard — the ASAE table supplies efficiency and speed because
+#   those are properties of the operation, and deliberately omits width because
+#   it is a machine-size CHOICE.
+# note: this is the input that makes hours-per-acre a DELIVERY PRODUCTIVITY
+#   rather than a physical constant, the same role the LSMS unassisted stratum
+#   plays in reference/personal_basket.py. It lived in reference/ until
+#   2026-08-16, where the shadow-constant ratchet could not see it —
+#   utils.provenance.OPERATIVE_LAYERS omits that layer — which is why it moved
+#   rather than the layer boundary moving.
+PRACTICE_EQUIPMENT_WIDTHS_FT: dict[str, float] = {
+    "grain_drill":              15.0,
+    "boom_sprayer":             60.0,
+    "roller_packer":            20.0,
+    "field_cultivator":         25.0,
+    "row_cultivator":           20.0,
+    "disk":                     25.0,
+    "mower_conditioner_rotary": 12.0,
+}
 # tag: instance | units: hectares of land per person
 # supplied_by: the land area your collective is responsible for stewarding,
 #   divided by its population. Intake path: the GUF parcel inventory
