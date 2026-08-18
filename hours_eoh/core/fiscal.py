@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    CAPITAL_STOCK_DEFAULT,
     SUFF_LEVY_RATE, DEP_RATE, DIV_RATE,
     PERSONAL_EOH_BASE, AGE_GROUPS,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
@@ -1040,7 +1041,7 @@ def trust_solvency_trajectory(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     epsilon: float = 0.40,
-    capital_stock_teh: float = 2_000_000_000.0,
+    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     population: float = 1_000_000.0,
     solvency_floor: float | None = None,
@@ -1202,7 +1203,7 @@ def min_levy_for_solvency(
     epsilon: float = 0.40,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    capital_stock_teh: float = 2_000_000_000.0,
+    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
     capital_age_ratio: float = 0.50,
     population: float = 1_000_000.0,
     stewardship_teh: float | None = None,

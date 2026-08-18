@@ -133,7 +133,11 @@ class TestTheGapItself:
         """
         rep = domain_balance_report()
         five = next(r for r in rep["requirements"] if r["target_share"] == 0.05)
-        assert 50.0 < five["shortfall_factor"] < 500.0
+        # PHASE 4b (2026-08-17): 133x -> 61,712x. The gap did not get better
+        # when the frame was declared — it got 464x WORSE, because the mismatch
+        # had been INFLATING the anchor and thereby masking the very defect this
+        # number measures. Still asserted as a BAND and an order of magnitude.
+        assert 10_000.0 < five["shortfall_factor"] < 500_000.0
 
     def test_the_anchor_implies_under_an_hour_per_hectare_per_year(self):
         """The reading that makes the defect legible without any arithmetic.
@@ -175,3 +179,57 @@ class TestCensusIntake:
         import json
         rep = domain_balance_report()
         json.dumps(rep)
+
+
+class TestTheVerdictsQuotedFiguresAreStillTrue:
+    """
+    The verdict restates figures computed in OTHER scenarios. Prose drifts —
+    this repo has four recorded doc-drift findings — so the restatements are
+    pinned against their live sources rather than made live, which would couple
+    three scenarios and slow every call.
+
+    It earned its keep immediately: the first draft quoted 0.56% for the stock's
+    share of the flow, which is a US-SCALE ratio over different areas (100 Mha
+    restorable against 37.1 Mha serviced). The per-hectare figure, which is what
+    belongs beside a per-hectare table, is 0.21%.
+    """
+
+    def test_servicing_flow_figure(self):
+        from hours_eoh.scenarios.servicing_census import census
+        assert census("core")["hours_per_hectare_year"] == pytest.approx(45.92, abs=0.01)
+
+    def test_restoration_stock_band(self):
+        from hours_eoh.scenarios.restoration_cost import (
+            DEFAULT_AMORTIZATION_YEARS,
+            restoration_band,
+        )
+        band = restoration_band()
+        lo = band["lifetime_low"] / DEFAULT_AMORTIZATION_YEARS
+        hi = band["lifetime_high"] / DEFAULT_AMORTIZATION_YEARS
+        assert lo == pytest.approx(0.017, abs=0.001)
+        assert hi == pytest.approx(0.096, abs=0.001)
+
+    def test_the_per_hectare_ratio_is_the_one_quoted(self):
+        from hours_eoh.scenarios.restoration_cost import (
+            DEFAULT_AMORTIZATION_YEARS,
+            restoration_band,
+        )
+        from hours_eoh.scenarios.servicing_census import census
+        flow = census("core")["hours_per_hectare_year"]
+        stock = restoration_band()["lifetime_high"] / DEFAULT_AMORTIZATION_YEARS
+        assert stock / flow * 100.0 == pytest.approx(0.21, abs=0.02)
+
+    def test_the_verdict_carries_the_caveat(self):
+        from hours_eoh.scenarios.ecological_floor import domain_balance_report
+        v = domain_balance_report()["verdict"]
+        assert "REFERENCE POINTS, NOT TARGETS" in v
+        assert "INVERSION, not a measurement" in v
+        assert "464" in v          # the factor moved without new evidence
+        assert "0.21%" in v and "0.56%" in v   # both stated, and distinguished
+
+    def test_the_verdict_no_longer_claims_nothing_measures_stewardship(self):
+        """`scenarios/land_stewardship` exists; the old verdict said it did not."""
+        from hours_eoh.scenarios.ecological_floor import domain_balance_report
+        v = domain_balance_report()["verdict"]
+        assert "Nothing in this repo measures stewardship hours" not in v
+        assert "land_stewardship" in v

@@ -46,6 +46,7 @@ from hours_eoh.data import (
     GUF_DEMAND_ETA_RESIDENTIAL, GUF_DEMAND_ETA_COMMERCIAL, GUF_DEMAND_D_MAX,
     GUF_ZONE_MIN, GUF_ZONE_MAX,
     GUF_ECO_KAPPA_FLOOR_FRACTION,
+    GUF_ECOSYSTEM_SERVICES,
     GUF_INFRA_MU_TRANSIT, GUF_INFRA_MU_UTILITIES, GUF_INFRA_MU_PUBLIC_SPACE,
     GUF_CHI_EXTERNAL,
     GUF_REVIEW_CYCLE_CAP,
@@ -296,6 +297,143 @@ def ecosystem_service_kappa(
     return kappa_max * ((1.0 - epsilon) ** beta) + kappa_floor
 
 
+def service_from_registry(
+    service: str,
+    volume: float,
+    retained: float = 0.0,
+    kappa_ref: float | None = None,
+    beta: float | None = None,
+) -> dict:
+    """
+    Build one E(p,ε) service dict from the named-service registry.
+
+    Governing intent: κ and β are PER-SERVICE PARTNERS. Eq. 15 derives κ_max
+    from κ_ref *through* β, so a caller who pairs carbon's κ with pollination's
+    β gets a replacement-cost curve belonging to neither, and nothing downstream
+    can detect it. Naming the service binds them together.
+
+    Until 2026-08-17 the seven GUF_ECO_KAPPA_* constants were read by no code
+    path at all — E defaulted to zero and every caller passed bare literals — so
+    the named constants documented values the package never used.
+
+    Args:
+        service:   Key of GUF_ECOSYSTEM_SERVICES.
+        volume:    Annual service volume, in that service's declared unit.
+        retained:  ρ_s(p) ∈ [0, 1] — fraction still delivered in the developed
+                   state. 0.0 means the service is wholly displaced.
+        kappa_ref: Optional jurisdiction override. κ is genuinely local (a
+                   wetland's filtration value is not a global constant), so an
+                   override is legitimate — it REPLACES the registry value and
+                   is reported as such, never silently merged.
+        beta:      Optional override, same treatment.
+
+    Returns:
+        A service dict for `ecosystem_displacement_surcharge`, carrying
+        "service", "unit" and "kappa_source" ("registry" | "override") so the
+        provenance of every term survives into the breakdown.
+    """
+    if service not in GUF_ECOSYSTEM_SERVICES:
+        raise KeyError(
+            f"unknown ecosystem service {service!r}; registered services are "
+            f"{sorted(GUF_ECOSYSTEM_SERVICES)}"
+        )
+    spec = GUF_ECOSYSTEM_SERVICES[service]
+    k = float(spec["kappa_ref"]) if kappa_ref is None else kappa_ref  # type: ignore[arg-type]
+    b = float(spec["beta"]) if beta is None else beta                 # type: ignore[arg-type]
+    return {
+        "label":        service,
+        "service":      service,
+        "volume":       volume,
+        "kappa_ref":    k,
+        "beta":         b,
+        "retained":     retained,
+        "unit":         str(spec["unit"]),
+        "kappa_source": "registry" if kappa_ref is None else "override",
+        "beta_source":  "registry" if beta is None else "override",
+    }
+
+
+def _resolve_kappa_beta(svc: dict) -> tuple[float, float]:
+    """
+    Resolve one service dict's (κ_ref, β) pair.
+
+    Shared by `ecosystem_displacement_surcharge` (E) and `rebuilding_surcharge`
+    (the §9 restoration/abandonment pathway) so the two cannot drift — they
+    consume the same table and previously each read the caller's literals
+    independently.
+
+    Precedence: explicit κ_ref AND β win outright (the pre-2026-08-17 form every
+    existing caller uses); otherwise a "service" key inherits both from the
+    registry, with either individually overridable. A dict carrying neither
+    raises, naming the registered services.
+    """
+    if "kappa_ref" in svc and "beta" in svc:
+        return float(svc["kappa_ref"]), float(svc["beta"])
+    if "service" in svc:
+        resolved = service_from_registry(
+            service=svc["service"],
+            volume=0.0,
+            kappa_ref=svc.get("kappa_ref"),
+            beta=svc.get("beta"),
+        )
+        return float(resolved["kappa_ref"]), float(resolved["beta"])
+    raise KeyError(
+        "each service needs either explicit 'kappa_ref' and 'beta', or a "
+        f"'service' key naming one of {sorted(GUF_ECOSYSTEM_SERVICES)}; "
+        f"got keys {sorted(svc)}"
+    )
+
+
+def ecosystem_services_for_area(
+    area_hectares: float,
+    per_hectare_volumes: dict[str, float],
+    retained: float | dict[str, float] = 0.0,
+) -> list[dict]:
+    """
+    Scale per-hectare ecosystem service volumes to a land area.
+
+    Governing equation:
+
+        V_s = area_hectares × per_hectare_volume[s]        [service units/yr]
+
+    THE V_s INTAKE. E(p,ε) was reachable only by hand-building one parcel's
+    service list, which is why it has never been run at land-class scale. This
+    turns a per-hectare service profile — the form ecological survey data
+    actually arrives in — into the list E consumes.
+
+    WHAT THIS DOES NOT DO: it supplies no volumes. `per_hectare_volumes` is the
+    caller's measurement, and the package ships none — there is no measured
+    figure here for how much filtration a hectare of forest delivers. Inventing
+    one would enter with the same standing as a measured value and afterwards
+    nothing could tell them apart, which is the discipline
+    reference/personal_basket.py holds for the same reason.
+
+    Args:
+        area_hectares:       Land area the profile applies to.
+        per_hectare_volumes: {service name: volume per hectare per year}, keys
+                             from GUF_ECOSYSTEM_SERVICES.
+        retained:            ρ_s — a scalar applied to every service, or a dict
+                             keyed by service name (missing keys → 0.0).
+
+    Returns:
+        List of service dicts, ready for `ecosystem_displacement_surcharge`.
+    """
+    if area_hectares < 0.0:
+        raise ValueError(f"area_hectares must be >= 0, got {area_hectares}")
+
+    out: list[dict] = []
+    for name, per_ha in per_hectare_volumes.items():
+        rho = retained.get(name, 0.0) if isinstance(retained, dict) else retained
+        out.append(
+            service_from_registry(
+                service=name,
+                volume=area_hectares * per_ha,
+                retained=rho,
+            )
+        )
+    return out
+
+
 def ecosystem_displacement_surcharge(
     services: list[dict],
     epsilon: float,
@@ -331,17 +469,22 @@ def ecosystem_displacement_surcharge(
     total      = 0.0
 
     for svc in services:
-        volume       = svc["volume"]
-        kappa        = ecosystem_service_kappa(svc["kappa_ref"], svc["beta"], epsilon)
+        volume = svc["volume"]
+
+        kappa_ref, beta = _resolve_kappa_beta(svc)
+        kappa        = ecosystem_service_kappa(kappa_ref, beta, epsilon)
         retained     = max(0.0, min(1.0, svc.get("retained", 0.0)))
         contribution = volume * kappa * (1.0 - retained)
 
         by_service.append({
-            "label":            svc.get("label", "unknown"),
+            "label":            svc.get("label", svc.get("service", "unknown")),
             "volume":           volume,
+            "kappa_ref":        kappa_ref,
+            "beta":             beta,
             "kappa_epsilon":    kappa,
             "retained":         retained,
             "contribution_teh": contribution,
+            "unit":             svc.get("unit"),
         })
         total += contribution
 
@@ -897,12 +1040,17 @@ def rebuilding_surcharge(
     total      = 0.0
 
     for svc in services_lost:
-        volume_lost  = max(0.0, svc["volume_lost"])
-        kappa        = ecosystem_service_kappa(svc["kappa_ref"], svc["beta"], epsilon)
+        volume_lost = max(0.0, svc["volume_lost"])
+        # Same registry resolution as E(p,ε). This is the §9 restoration and
+        # abandonment pathway, so it is the path a restoration-cost derivation
+        # runs through — it must consume the same κ table, not a caller's
+        # literals, or the two halves of the reset cost can disagree silently.
+        kappa_ref, beta = _resolve_kappa_beta(svc)
+        kappa        = ecosystem_service_kappa(kappa_ref, beta, epsilon)
         contribution = volume_lost * kappa / amortization_years
 
         by_service.append({
-            "label":            svc.get("label", "unknown"),
+            "label":            svc.get("label", svc.get("service", "unknown")),
             "volume_lost":      volume_lost,
             "kappa_epsilon":    kappa,
             "amortization_years": amortization_years,

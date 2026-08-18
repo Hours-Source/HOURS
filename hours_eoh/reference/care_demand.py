@@ -545,7 +545,15 @@ def curve_knots(
 ) -> dict[str, dict[int, float]]:
     """Care demand in minutes per person-day at the given knot ages.
 
-    What `data.py` mirrors. Three series, kept SEPARATE because they are
+    NOTHING MIRRORS THIS, and the docstring used to claim `data.py` did (found
+    2026-08-17 by a dead-code sweep: this function is referenced nowhere, not
+    even by a test, and no constant in `data.py` carries any of the values it
+    returns). The claim is removed rather than the function, because the
+    function is correct and the measured curve is the thing a future age-weight
+    derivation would use — but an unexercised accessor asserting a mirror that
+    does not exist is worse than an unexercised accessor.
+
+    Three series, kept SEPARATE because they are
     measured on different bases and one of them stops at 12:
 
         active        primary care from a co-resident, all ages

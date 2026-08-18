@@ -23,6 +23,16 @@ represents and where to find it in real-world data:
 | `monitoring_capability` | float | [0, 1] | Fraction of deferred ecological EOH your monitoring systems can detect; proxy with your ecological data coverage fraction |
 | `age_distribution` | dict | fractions summing to 1.0 | Census age pyramid, grouped into the buckets in `AGE_GROUP_RANGES`; see `AGE_GROUP_FRACTIONS` |
 | `knowledge_base_size` | float | relative (1.0 = ε=0 reference) | Harder to measure; use national R&D stock relative to a subsistence baseline, or leave at canonical default |
+| `ecological_area_hectares` | float | hectares | **The land your collective is responsible for stewarding.** Your own cadastre, or the GUF parcel inventory (`land/collective.py`) if you have run a GUF assessment — it already carries area per parcel. Omit it and the model derives the area from your population at `LAND_HECTARES_PER_CAPITA` (a planetary average, and the wrong number for any actual collective). Pass `ecological_hectares_per_capita=` instead if you know your ratio but not your absolute area. |
+
+**State your frame.** Population, land area and capital stock are one frame and
+must travel together: they are all extensive, so pairing one jurisdiction's
+population with another's land silently rescales the ecological domain.
+`CAPITAL_STOCK_DEFAULT` and `TRUST_BASE_TEH` say "at the 1M reference
+population" in their own tag blocks and are per-frame quantities — running the
+US population against the unscaled default models 335M people holding the
+capital of 1M. `scenarios/frame.py` declares named frames and
+`eoh scenario run frame` shows what an undeclared pairing costs.
 
 **Converting capital stock to TEH**: if you have capital stock in dollars, divide by
 your jurisdiction's mean labor-hour cost (the TEH/dollar exchange rate you decide).
@@ -176,7 +186,11 @@ wildly off, check that your `age_distribution` fractions sum to 1.0 and match th
 **Which standard are you asking for?** `PERSONAL_EOH_BASE` is the operating value
 between two others: `PERSONAL_EOH_SURVIVAL` (600, what it takes not to die) and
 `PERSONAL_EOH_SUFFICIENCY` (1500, what it takes to live well), both referenced to
-autarky. Pass `personal_standard=` to `total_eoh()` to choose. This matters more
+autarky. Pass `personal_standard=` to `total_eoh()` **or to
+`eoh_to_teh_pipeline()`** to choose — both accept it as of 2026-08-17; before
+that it reached only `total_eoh`, so this guide's two instructions could not
+both be followed. **It is the largest single lever in the model: survival →
+sufficiency moves total EOH 2.09×**, more than any domain base. This matters more
 than it looks: a feasibility test run at the sufficiency standard and reported as
 a survival result is the specific error this repo made and corrected — subsistence
 *can* survive, it just cannot reach sufficiency without automation.

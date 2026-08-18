@@ -56,6 +56,7 @@ from pathlib import Path
 from typing import Literal, TypedDict
 
 from hours_eoh.data import (
+    A_EARTH_M2,
     SECONDS_PER_YEAR,
     A_LAND_CLAIMED_M2,
     THERMAL_LAMBDA_FEEDBACK,
@@ -399,7 +400,7 @@ def decarbonization_headroom(
     basis: ForcingBasis = "net_erf",
     lam: float = THERMAL_LAMBDA_FEEDBACK,
     r: float = THERMAL_COMMONS_RESERVE,
-    a_earth: float = 5.101e14,
+    a_earth: float = A_EARTH_M2,
 ) -> dict:
     """
     F3 — the MEASURED decarbonization headroom: the P0 structural finding
@@ -510,7 +511,7 @@ def global_ceiling(
     eps_current: float = THERMAL_EPS_CURRENT,
     r: float = THERMAL_COMMONS_RESERVE,
     lam: float = THERMAL_LAMBDA_FEEDBACK,
-    a_earth: float = 5.101e14,
+    a_earth: float = A_EARTH_M2,
     eps_current_band: tuple[float, float] = (0.20, 0.60),
 ) -> GlobalCeilingReport:
     """

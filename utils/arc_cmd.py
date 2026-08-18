@@ -150,8 +150,15 @@ def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     print("personal EOH runs ~99% at ε=0 falling to ~46% at ε=0.99. Block K-IV "
           "put knowledge on\nits measured O*NET/BLS footing, which closed one of "
           "the two small domains — knowledge is\nnow CO-EQUAL with personal at "
-          "the top of the arc (~46% each). The ECOLOGICAL domain is\nstill <0.1% "
-          "and sub-hour per person per year: that half of the defect is open.\n"
+          "the top of the arc (~46% each).\n\n"
+          "The ECOLOGICAL domain is 464x SMALLER than this table used to show, and "
+          "the correction\nis the finding. Until 2026-08-17 the default paired "
+          "ECOLOGICAL_BASE_RATE — the obligation\nfor the WHOLE contiguous US — "
+          "with a population of 1,000,000, so the column was\nflattered by the "
+          "ratio between them. The area is now resolved FROM the population, and "
+          "the\ndomain reads ~0.001 h/person·yr. The defect did not shrink when "
+          "the frame was declared:\nit was being MASKED by the frame, and it is "
+          "the last of the four domains still open.\n"
           "See docs/parameter_provenance.md §'Domain balance — the denominator problem'.")
 
 

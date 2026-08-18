@@ -262,8 +262,9 @@ class TestBand:
         2026-07-29 epoch. If an O*NET/BLS refresh moves the registry, this fails
         loudly rather than letting the constant drift away from its derivation.
 
-        Re-anchored 2026-08-09 (Finding E) and again 2026-08-10: the derivation
-        is checked at the FIXED POINT ε* = 0.3828, not at K-IV's one-shot 0.40,
+        Re-anchored four times, most recently 2026-08-17 by the Phase-4b frame
+        resolution (ε* 0.38689 → 0.386619, base +0.13%): the derivation is
+        checked at the FIXED POINT, not at K-IV's one-shot 0.40,
         because a one-shot anchor is not a fixed point of its own derivation —
         adopting the base it produces moves total EOH, which moves the labour
         residual that corroborated the anchor in the first place. The second
@@ -271,7 +272,7 @@ class TestBand:
         AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.38688539028167723, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.386619143486023, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -459,7 +460,7 @@ class TestKIVAdoption:
         # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40. Finding E
         # cut it to 0.779× that; the 2026-08-10 elderly revalue moved the fixed
         # point again and put it at 1.089×, back above the K-IV figure.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.2291889e8, rel=1e-6)
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.2361210e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """

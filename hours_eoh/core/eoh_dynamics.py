@@ -24,7 +24,7 @@ Mission Statement: §"EOH and compounding", §"Regenerative offset",
 from __future__ import annotations
 import math
 
-from hours_eoh.data import ASSET_TYPES
+from hours_eoh.data import ASSET_TYPES, HUMAN_CAPITAL_NATURAL_DECAY
 from hours_eoh.core.capital import asset_condition, writedown_trigger
 
 
@@ -633,7 +633,7 @@ def maintenance_strategy_compare(
     initial_condition: float = 1.0,
     years_horizon: int = 30,
     epsilon: float = 0.40,
-    natural_decay_rate: float = 0.005,
+    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
     writedown_threshold: float = 0.20,
 ) -> dict:
     """

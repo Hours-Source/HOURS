@@ -37,7 +37,13 @@ the fee reflects real costs rather than speculative value."
 
 from __future__ import annotations
 
+from hours_eoh.data import (
+    GUF_SERVICE_PROFILE_DECLARED,
+    GUF_SERVICE_RETENTION_BY_USE,
+    SLU_HECTARES,
+)
 from hours_eoh.land.guf import (
+    ecosystem_services_for_area,
     ground_use_fee,
     review_cycle_cap,
     income_linked_subsidy,
@@ -195,6 +201,77 @@ def compute_collective_guf(
 # ---------------------------------------------------------------------------
 # Archetype factories
 # ---------------------------------------------------------------------------
+
+def attach_ecosystem_services(
+    parcels: list[dict],
+    per_hectare_volumes: dict[str, float] | None = None,
+    retained: float | dict[str, float] | None = None,
+) -> list[dict]:
+    """
+    Attach an ecosystem service profile to every parcel in an inventory.
+
+    Governing conversion:
+
+        area_ha  = area_slu x SLU_HECTARES          (1 SLU = 100 m^2)
+        V_s(p)   = area_ha x per_hectare_volumes[s]
+
+    WHY THIS EXISTS. E(p,ee) has been ZERO in every scenario the package ships.
+    The archetype factories produce 10,000 and 1,000 parcels and neither sets
+    `ecosystem_services`; `guf_rate_calibration`, `guf_fiscal_integration`,
+    `guf_revenue_sweep` and `guf_lvi_weight_sensitivity` never supply it either.
+    So the ecological term of the Ground Use Fee has never been exercised, and
+    the x100 use-category calibration was fitted with it switched off.
+
+    OPT-IN BY CONSTRUCTION. This returns NEW parcel dicts and is never called by
+    the factories themselves, so no shipped number moves until a caller asks.
+    Turning E on for existing scenarios is a calibration change, not a plumbing
+    change.
+
+    Args:
+        parcels:             Inventory in the standard parcel schema.
+        per_hectare_volumes: {service: volume per hectare per year}. Defaults to
+                             GUF_SERVICE_PROFILE_DECLARED, which is an
+                             order-of-magnitude PLACEHOLDER and not a
+                             measurement of anywhere — read its tag block before
+                             quoting anything computed from it.
+        retained:            rho_s in [0,1] — the fraction of service still
+                             delivered in the developed state. A scalar applies
+                             to every service on every parcel; a dict keys by
+                             service name. DEFAULT None takes rho from each
+                             parcel's OWN use_category via
+                             GUF_SERVICE_RETENTION_BY_USE, which is the only
+                             option that varies with what the land is actually
+                             doing. Passing 0.0 explicitly asserts total
+                             displacement everywhere — including conservation
+                             land — and is the UPPER BOUND on E, not a neutral
+                             choice.
+
+    Returns:
+        New parcel dicts carrying "ecosystem_services".
+    """
+    profile = GUF_SERVICE_PROFILE_DECLARED if per_hectare_volumes is None else per_hectare_volumes
+    out: list[dict] = []
+    for parcel in parcels:
+        area_ha = parcel["area_slu"] * SLU_HECTARES
+        # rho follows the parcel's own use category unless the caller overrides
+        # it. A single scalar across an inventory prices a nature reserve and a
+        # heavy-industrial site as displacing their services identically, which
+        # is the assumption the retention table exists to remove.
+        if retained is None:
+            rho: float | dict[str, float] = GUF_SERVICE_RETENTION_BY_USE.get(
+                parcel["use_category"], 0.0
+            )
+        else:
+            rho = retained
+        enriched = dict(parcel)
+        enriched["ecosystem_services"] = ecosystem_services_for_area(
+            area_hectares=area_ha,
+            per_hectare_volumes=profile,
+            retained=rho,
+        )
+        out.append(enriched)
+    return out
+
 
 def make_urban_collective(parcel_count: int = 10_000) -> list[dict]:
     """

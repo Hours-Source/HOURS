@@ -109,7 +109,11 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
+    "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita]",
+    "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
+    "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
+    "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
@@ -362,11 +366,14 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "demographic_shock":
         from hours_eoh.scenarios.shocks import demographic_shock
+        # `population` is not a parameter of demographic_shock — the shock is
+        # expressed as a magnitude against the shipped fiscal baseline, not
+        # against a supplied headcount. Passing it raised TypeError on every
+        # invocation (2026-08-17 audit).
         return demographic_shock(
             epsilon=epsilon,
             shock_type=args.shock_type or "decline",
             magnitude=args.shock_magnitude,
-            population=population,
         )
 
     if name == "ecological_spike":
@@ -379,15 +386,39 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "maintenance_crisis":
         from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
-        return deferred_maintenance_crisis(epsilon=epsilon)
+        # annual_eoh / fulfillment_fraction / years are REQUIRED and were never
+        # passed. Defaults here are the CLI's, not the function's: the
+        # infrastructure domain at the reference frame, chronic under-service,
+        # and a decade — enough to show the compounding the scenario is about.
+        from hours_eoh.core.eoh_generation import total_eoh
+        return deferred_maintenance_crisis(
+            epsilon=epsilon,
+            annual_eoh=total_eoh(epsilon=epsilon, population=population)["infrastructure"],
+            fulfillment_fraction=0.85,
+            years=10,
+        )
 
     if name == "care_delay":
         from hours_eoh.scenarios.maintenance import care_registration_delay
         return care_registration_delay(epsilon=epsilon)
 
     if name == "recovery":
+        from hours_eoh.core.eoh_generation import total_eoh
+        from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
         from hours_eoh.scenarios.recovery import maintenance_recovery_schedule
-        return maintenance_recovery_schedule(epsilon=epsilon)
+        # current_deferred / annual_eoh are REQUIRED and were never passed. The
+        # backlog is taken from the crisis scenario above so the two agree
+        # rather than each inventing a starting point.
+        _annual = total_eoh(epsilon=epsilon, population=population)["infrastructure"]
+        _crisis = deferred_maintenance_crisis(
+            epsilon=epsilon, annual_eoh=_annual,
+            fulfillment_fraction=0.85, years=10,
+        )
+        return maintenance_recovery_schedule(
+            epsilon=epsilon,
+            current_deferred=_crisis["final_deferred"],
+            annual_eoh=_annual,
+        )
 
     # -- new shock scenarios --------------------------------------------------
 
@@ -499,6 +530,114 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "infra_floor":
         from hours_eoh.scenarios.infrastructure_floor import doctrine_floor_invariance
         return doctrine_floor_invariance()
+
+    if name == "land_tenure":
+        from hours_eoh.scenarios.land_tenure import tenure_allocation
+        from hours_eoh.scenarios.servicing_census import census as _sv_census
+        intensity = _sv_census("core")["hours_per_hectare_year"]
+        # Declared tenure fractions are the CALLER'S; these illustrate the rule
+        # at a stated, non-measured split and the report says so.
+        rep = tenure_allocation(intensity, {
+            "Land in rural parks and wildlife areas": 0.67,
+            "Miscellaneous other land": 1.0,
+        })
+        lt_out: dict = {
+            "intensity_h_per_ha_yr": rep["intensity_h_per_ha_year"],
+            "federation_hours": rep["federation_hours"],
+            "member_hours": rep["member_hours"],
+            "total_hours": rep["total_hours"],
+            "federation_share": rep["federation_share"],
+            "uncollected_hours": rep["uncollected_hours"],
+            "classes_without_declared_tenure": ", ".join(
+                rep["classes_without_declared_tenure"]
+            ),
+            "note": rep["note"],
+        }
+        return lt_out
+
+    if name == "restoration_cost":
+        from hours_eoh.scenarios.restoration_cost import restoration_report
+        rep = restoration_report(
+            restorable_hectares=getattr(args, "restorable_hectares", None) or 100e6,
+            amortization_years=getattr(args, "amortization_years", None) or 50.0,
+        )
+        rc_out: dict = {}
+        for seq in rep["band"]["sequences"]:
+            rc_out[f"{seq['sequence']} | establishment h/ha"] = (
+                f"{seq['establishment_h_per_ha_low']:.3f}-{seq['establishment_h_per_ha_high']:.3f}"
+            )
+            rc_out[f"{seq['sequence']} | lifetime h/ha"] = (
+                f"{seq['lifetime_h_per_ha_low']:.3f}-{seq['lifetime_h_per_ha_high']:.3f}"
+            )
+        s_ = rep["stock"]
+        rc_out["restorable_hectares"] = s_["restorable_hectares"]
+        rc_out["amortization_years"] = s_["amortization_years"]
+        rc_out["legacy h/person.yr"] = (
+            f"{s_['h_per_capita_low']:.5f}-{s_['h_per_capita_high']:.5f}"
+        )
+        rc_out["phase0 guess h/ha"] = s_["bounding_assumption_h_per_ha"]
+        rc_out["guess overstated by"] = (
+            f"{s_['guess_overstated_by_low']:.0f}x-{s_['guess_overstated_by_high']:.0f}x"
+        )
+        k_ = rep["kappa"]
+        rc_out["implied kappa_carbon h/tonne"] = (
+            f"{k_['implied_kappa_low']:.5f}-{k_['implied_kappa_high']:.5f}"
+        )
+        rc_out["shipped kappa_carbon (engineered)"] = k_["shipped_kappa_carbon"]
+        rc_out["engineered over biological"] = (
+            f"{k_['shipped_over_implied_high']:.0f}x-{k_['shipped_over_implied_low']:.0f}x"
+        )
+        rc_out["unpriced"] = ", ".join(u["class"] for u in rep["band"]["unpriced"])
+        rc_out["verdict"] = rep["verdict"]
+        rc_out["kappa_verdict"] = rep["kappa_verdict"]
+        rc_out["coverage_note"] = rep["coverage_note"]
+        return rc_out
+
+    if name == "servicing_census":
+        from hours_eoh.scenarios.servicing_census import census_report
+        scope = getattr(args, "scope", None) or "core"
+        if scope not in ("core", "broad", "urban_upper"):
+            scope = "core"
+        rep = census_report(scope)
+        sv_out: dict = {
+            "scope": rep["scope"],
+            "workers": rep["workers"],
+            "hours_per_worker_year": rep["hours_per_worker_year"],
+            "serviced_hectares": rep["serviced_hectares"],
+            "measured_h_per_ha_yr": rep["hours_per_hectare_year"],
+            "measured_teh_per_slu_yr": rep["measured_teh_per_slu"],
+            "shipped_mean_coefficient": rep["shipped_mean_coefficient"],
+            "shipped_over_measured_mean": rep["shipped_over_measured_mean"],
+            "shipped_over_measured_residential": rep["shipped_over_measured_residential"],
+            "implied_scale_factor": rep["implied_scale_factor"],
+            "shipped_scale_factor": rep["shipped_scale_factor"],
+            "overshoot_factor": rep["overshoot_factor"],
+            "scope_spread_factor": rep["scope_spread_factor"],
+        }
+        for fn, w in rep["by_function"].items():
+            sv_out[f"workers | {fn}"] = w
+        for row in rep["realized"]["rows"]:
+            sv_out[f"{row['archetype']} | realised_h_per_ha"] = row["realised_h_per_ha"]
+            sv_out[f"{row['archetype']} | vs {row['compared_against']}"] = row["ratio"]
+        sv_out["realized_verdict"] = rep["realized"]["verdict"]
+        sv_out["verdict"] = rep["verdict"]
+        sv_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
+        return sv_out
+
+    if name == "frame":
+        from hours_eoh.scenarios.frame import frame_report
+        rep = frame_report(epsilon=args.epsilon)
+        frame_out: dict = {"epsilon": rep["epsilon"]}
+        for row in rep["rows"]:
+            tag = row["frame"]
+            frame_out[f"{tag} | population"] = row["population"]
+            frame_out[f"{tag} | ha_per_capita"] = row["hectares_per_capita"]
+            frame_out[f"{tag} | ecological_share"] = row["ecological_share"]
+            frame_out[f"{tag} | ecological_h_per_capita"] = row["ecological_h_per_cap"]
+        frame_out["share_spread_factor"] = rep["share_spread"]
+        frame_out["mismatch_verdict"] = rep["mismatch"]["verdict"]
+        frame_out["verdict"] = rep["verdict"]
+        return frame_out
 
     if name == "ecological_floor":
         from hours_eoh.scenarios.ecological_floor import domain_balance_report

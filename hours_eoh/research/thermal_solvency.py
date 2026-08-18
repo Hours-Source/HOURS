@@ -72,6 +72,7 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import ecological_eoh_breakdown
 from hours_eoh.core.fiscal import fiscal_snapshot, min_levy_for_solvency
 from hours_eoh.data import (
+    LAND_HECTARES_PER_CAPITA,
     CDR_ALLOCATION_BASIS,
     CDR_LABOR_HOURS_PER_TONNE,
     THERMAL_DT_LO,
@@ -241,7 +242,16 @@ def solvency_at_epsilon(
     )
 
     eco, stew, trust = snap["ecological"], snap["stewardship"], snap["trust"]
-    eco_base = ecological_eoh_breakdown(ecosystem_health, epsilon)["total"]
+    # Frame the ecological baseline from THIS run's population, as `total_eoh`
+    # does. Found 2026-08-17 by the scale-resolution gate on its first run —
+    # the fifth instance of the defect, and the one four manual passes missed.
+    # It matters here specifically: the thermal-solvency verdict compares the
+    # loaded ecological requirement against this baseline, and an unframed
+    # baseline made the comparison depend on a frame nobody declared.
+    eco_base = ecological_eoh_breakdown(
+        ecosystem_health, epsilon,
+        area_hectares=population * LAND_HECTARES_PER_CAPITA,
+    )["total"]
     human_eco = eco["human_ecological_eoh"]
     labor_fraction = human_eco / available_labor if available_labor > 0.0 else float("inf")
 

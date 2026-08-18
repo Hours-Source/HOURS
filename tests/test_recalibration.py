@@ -707,11 +707,11 @@ class TestRecalibratedArc:
         # Tracks the levy/dividend base Y = eps*total_eoh, which the Finding-E
         # re-anchor shrank at the top of the arc (2,896 -> 2,633 h/person.yr).
         # 1831.45 → 1689.87: machine output is ε × total EOH and total EOH fell
-        # 7.7% at ε=0.99 with the elderly revalue. → 1940.95 when the working
+        # 7.7% at ε=0.99 with the elderly revalue. → 1941.44 when the working
         # life was measured: the renewal rate rose 6.7%, so knowledge EOH grew
         # and the levy/dividend base grew with it. The dividend tracks the
         # total obligation, so it moves whenever ANY domain does.
-        assert last["dividend_per_capita"] == pytest.approx(1940.95, rel=1e-4)
+        assert last["dividend_per_capita"] == pytest.approx(1941.44, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing

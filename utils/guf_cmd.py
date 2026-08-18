@@ -14,14 +14,25 @@ Inventory JSON parcel file format (list of parcel dicts):
   [
     {"area_slu": 3.5, "location_value": 0.72, "use_category": "residential_primary"},
     {"area_slu": 5.0, "location_value": 0.85, "use_category": "commercial_retail",
-     "ecosystem_services": [{"label":"water","volume":0.4,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]}
+     "ecosystem_services": [{"service":"water_filtration","volume":0.4,"retained":0.3}]}
   ]
 
 Services JSON format (for writedown and rebuilding-surcharge):
   Reset services  (--services-reset-json / --services-json for rebuilding-surcharge):
-    [{"label":"water","volume":0.4,"kappa_ref":1.65,"beta":0.8,"retained":0.3}, ...]
+    [{"service":"water_filtration","volume":0.4,"retained":0.3}, ...]
   Lost services   (--services-lost-json / --services-json for rebuilding-surcharge):
-    [{"label":"biodiversity","volume_lost":5.0,"kappa_ref":0.35,"beta":0.7}, ...]
+    [{"service":"biodiversity","volume_lost":5.0}, ...]
+
+  "service" names one of the seven registered services and inherits its kappa_ref
+  and beta together (data.GUF_ECOSYSTEM_SERVICES). Supplying "kappa_ref"/"beta"
+  as bare literals still works and overrides the registry -- kappa is genuinely
+  local -- but the two are PARTNERS: NLSA Eq. 15 derives kappa_max from kappa_ref
+  through beta, so a mismatched pair yields a curve belonging to neither service
+  and nothing downstream can detect it. Registered services:
+    water_filtration ML/yr | flood_attenuation m3-retention/yr
+    carbon tonne-CO2eq/yr  | air_quality tonne-particulate/yr
+    pollination ha-equivalent/yr | biodiversity HQU/yr
+    thermal cooling-degree-day/yr
 """
 
 from __future__ import annotations

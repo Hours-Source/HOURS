@@ -622,3 +622,75 @@ class TestPipelineLaborConstraint:
             {k: v for k, v in r["eoh_by_domain"].items()}, 0.0)
         direct = labor_constrained_fulfillment(hd, self.L)
         assert r["deferred_personal"] == pytest.approx(direct["deferred_personal"])
+
+
+# ===========================================================================
+# eoh_to_teh_pipeline — the per-domain scale overrides (2026-08-17)
+#
+# The implementation guide tells an institution to run THIS function. Until now
+# it could not express the four domain bases an institution recalibrates, nor
+# the ecological AREA. Every override defaults to the value total_eoh already
+# used, so no existing caller moves.
+# ===========================================================================
+
+class TestPipelineScaleOverrides:
+
+    def test_area_reaches_the_pipeline_and_scales_linearly(self):
+        for eps in [0.0, 0.40, 0.99]:
+            one = eoh_to_teh_pipeline(epsilon=eps, ecological_area_hectares=1.0e8)
+            five = eoh_to_teh_pipeline(epsilon=eps, ecological_area_hectares=5.0e8)
+            e1 = one["eoh_by_domain"]["ecological"]
+            e5 = five["eoh_by_domain"]["ecological"]
+            assert e1 > 0.0
+            assert e5 == pytest.approx(5.0 * e1, rel=1e-12)
+
+    def test_defaults_are_unchanged_by_the_new_parameters(self):
+        """
+        The whole safety argument. Adding six parameters must move nothing for a
+        caller who passes none of them — bit-identical, not approx.
+        """
+        # Re-pinned by Phase 4b — see tests/scenarios/test_frame.py for the
+        # mechanism. The point of this test is unchanged: adding parameters must
+        # move nothing for a caller who passes none of them.
+        expected_total = {
+            0.0:  1390564529.0250847,
+            0.40: 1593258132.7079391,
+            0.99: 2883949145.115244,
+        }
+        for eps, want in expected_total.items():
+            assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342339704.5863893
+
+    def test_each_domain_base_actually_moves_the_ledger(self):
+        """
+        A parameter that is accepted and ignored is worse than one that is
+        absent. Each override must reach teh_created.
+        """
+        base = eoh_to_teh_pipeline(epsilon=0.40)["teh_created"]
+        for kw, val in (
+            ("personal_base", 2000.0),
+            ("knowledge_base", 1.0e9),
+            ("infra_maint_rate", 0.05),
+            ("ecological_base", 5.0e8),
+        ):
+            got = eoh_to_teh_pipeline(epsilon=0.40, **{kw: val})["teh_created"]
+            assert got != base, f"{kw} was accepted and ignored"
+
+    def test_base_and_area_together_refused_through_the_pipeline(self):
+        with pytest.raises(ValueError, match="not both"):
+            eoh_to_teh_pipeline(
+                epsilon=0.40,
+                ecological_base=500_000.0,
+                ecological_area_hectares=7.65e8,
+            )
+
+    def test_pipeline_matches_total_eoh_under_the_same_area(self):
+        # The two layers must not disagree — the failure mode the bound
+        # skill_decay_rate literal produced in the arc table.
+        for eps in [0.0, 0.40, 0.99]:
+            area = 3.0e8
+            p = eoh_to_teh_pipeline(epsilon=eps, ecological_area_hectares=area)
+            t = total_eoh(epsilon=eps, ecological_area_hectares=area)
+            assert p["eoh_by_domain"]["ecological"] == pytest.approx(
+                t["ecological"], rel=1e-12
+            )

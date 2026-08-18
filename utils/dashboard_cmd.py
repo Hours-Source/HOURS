@@ -91,6 +91,20 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
         capital_age_ratio=float(p["capital_age_ratio"]),
         population=population,
         floor_teh=MEANINGFUL_ACTIVITY_TEH_BASE,
+        # THE PIPELINE'S OWN ECOLOGICAL FIGURE, forwarded (2026-08-17).
+        #
+        # `fiscal.ecological_allocation` falls back to `base_rate =
+        # ECOLOGICAL_BASE_RATE` — the obligation for the WHOLE contiguous US —
+        # when no override is supplied. This command already computes the
+        # pipeline, so it HAD the frame-resolved value in hand and discarded it
+        # one line from where it was needed, reporting an ecological cost
+        # inflated ~812x. `simulation.py` and `civilization.py` both forward it
+        # and were always correct; only the user-facing dashboard was not.
+        #
+        # Third instance of the bypass pattern, after `scenarios/sweep.py` and
+        # the `skill_decay_rate` literal: a caller that reaches around the
+        # shared path is where a superseded default survives.
+        eco_eoh_override=float(pipeline["eoh_by_domain"]["ecological"]),
     )
 
 

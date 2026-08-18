@@ -179,6 +179,8 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.care_demand",
     "hours_eoh.reference.land_stewardship",
     "hours_eoh.reference.personal_basket",
+    "hours_eoh.reference.servicing",
+    "hours_eoh.reference.restoration",
 ]
 
 

@@ -19,8 +19,14 @@ Mission Statement: §"EOH as demand signal", §"The dual ledger",
 from __future__ import annotations
 
 from hours_eoh.data import (
+    CAPITAL_FAILURE_RATE,
     CAPITAL_STOCK_DEFAULT,
     CAPITAL_WRITEDOWN_MONITORING_SLOPE,
+    ECOLOGICAL_INTENSITY_BASE,
+    INFRA_MAINT_RATE,
+    LAND_HECTARES_PER_CAPITA,
+    KNOWLEDGE_EOH_BASE,
+    PERSONAL_EOH_BASE,
     SKILL_TRANSMISSION_RATE,
     MEAN_MULTIPLIER_REFERENCE,
 )
@@ -149,7 +155,7 @@ def teh_created(
 
 def capital_writedown(
     capital_stock_teh: float,
-    failure_rate: float = 0.005,
+    failure_rate: float = CAPITAL_FAILURE_RATE,
     epsilon: float = 0.40,
 ) -> float:
     """
@@ -443,6 +449,32 @@ def eoh_to_teh_pipeline(
     thermal_obligation: float = 0.0,
     available_labor_eoh: float | None = None,
     rationing: str = "survival_first",
+    # Per-domain scale overrides. These reached `total_eoh` but stopped here, so
+    # the documented intake path (docs/guides/implementation_guide.md tells an
+    # institution to run this function) could not express the four domain bases an
+    # institution actually recalibrates — nor the AREA the ecological obligation
+    # was keyed to on 2026-08-16, which left that fix stranded one layer below the
+    # entry point. All default to None → total_eoh's own defaults, so no existing
+    # caller moves.
+    personal_base: float = PERSONAL_EOH_BASE,
+    # THE STANDARDS SELECTOR (Block I). It reached `total_eoh` and stopped at
+    # this wall — the same wall the four domain bases stopped at on 2026-08-17,
+    # and it is the LARGER lever: survival → sufficiency moves total EOH 2.09x,
+    # more than any base. docs/guides/implementation_guide.md tells an
+    # institution to pass it while also telling them to run this function, so
+    # the guide's two instructions could not both be followed.
+    personal_standard: str | None = None,
+    infra_maint_rate: float = INFRA_MAINT_RATE,
+    ecological_base: float | None = None,
+    ecological_area_hectares: float | None = None,
+    ecological_intensity: float = ECOLOGICAL_INTENSITY_BASE,
+    ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
+    # The Phase-4e partition switch: "domain" books the health response as the
+    # standing obligation (default, pre-4e behaviour), "guf" relocates it to the
+    # reset cost. Stranded at this wall until 2026-08-17 — a switch that cannot
+    # be reached from the documented entry point is a switch nobody exercises.
+    ecological_health_response: str = "domain",
+    knowledge_base: float = KNOWLEDGE_EOH_BASE,
 ) -> dict:
     """
     End-to-end EOH → human share → registered → TEH creation in one call.
@@ -573,6 +605,19 @@ def eoh_to_teh_pipeline(
         monitoring_capability=monitoring_capability,
         knowledge_complexity_per_unit=knowledge_complexity_per_unit,
         thermal_obligation=thermal_obligation,
+        personal_base=personal_base,
+        personal_standard=personal_standard,
+        infra_maint_rate=infra_maint_rate,
+        # Both stay None-able and are forwarded as-is: total_eoh refuses the
+        # both-supplied combination and resolves neither-supplied to the shipped
+        # anchor exactly. Resolving either of them here would put that precedence
+        # in two places.
+        ecological_base=ecological_base,
+        ecological_area_hectares=ecological_area_hectares,
+        ecological_intensity=ecological_intensity,
+        ecological_hectares_per_capita=ecological_hectares_per_capita,
+        ecological_health_response=ecological_health_response,
+        knowledge_base=knowledge_base,
     )
 
     # Per-domain human EOH via the existing helper (uniform (1-ε) per domain)

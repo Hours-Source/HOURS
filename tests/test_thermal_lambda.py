@@ -269,3 +269,72 @@ def test_single_axis_is_marked_superseded():
     assert "SUPERSEDED" in determinacy_zone.__doc__
     assert "thermal_lambda" in determinacy_zone.__doc__
     assert determinacy_zone(3.0)["zone"] == "indeterminate"
+
+
+# ===========================================================================
+# The Planck bound — SIGMA_SB finally doing work (2026-08-17)
+# ===========================================================================
+
+from hours_eoh.data import EARTH_EMISSION_TEMPERATURE_K, SIGMA_SB, THERMAL_LAMBDA_FEEDBACK
+from hours_eoh.research.thermal_lambda import lambda_admissibility, planck_feedback
+
+
+class TestPlanckFeedbackIsDerivedNotRecalled:
+
+    def test_it_is_the_derivative_of_stefan_boltzmann(self):
+        """λ_P = dE/dT for E = σT⁴, evaluated from the constants themselves."""
+        assert planck_feedback(255.0) == pytest.approx(
+            4.0 * SIGMA_SB * 255.0 ** 3, rel=1e-15
+        )
+
+    def test_it_reproduces_the_worked_example(self):
+        assert planck_feedback() == pytest.approx(3.7609, abs=1e-4)
+
+    def test_it_uses_the_named_constants_not_literals(self):
+        assert planck_feedback(EARTH_EMISSION_TEMPERATURE_K) == planck_feedback()
+
+    def test_it_scales_as_the_cube_of_temperature(self):
+        assert planck_feedback(510.0) == pytest.approx(8.0 * planck_feedback(255.0), rel=1e-12)
+
+    def test_non_physical_temperature_rejected(self):
+        for bad in (0.0, -1.0):
+            with pytest.raises(ValueError, match="t_emission"):
+                planck_feedback(bad)
+
+
+class TestLambdaAdmissibility:
+    """
+    λ is the repo's most leveraged parameter after ΔT_lo and had no physical
+    anchor of any kind. This supplies the only one that exists — not narrowing
+    the assessed range, which physics cannot do, but stating where it cannot go.
+    """
+
+    def test_the_shipped_lambda_is_admissible(self):
+        r = lambda_admissibility()
+        assert r["admissible"]
+        assert r["lambda"] == THERMAL_LAMBDA_FEEDBACK
+
+    def test_a_lambda_above_the_planck_bound_is_refused(self):
+        """
+        Not a tuning question: λ ≥ λ_Planck implies net STABILISING feedbacks
+        stronger than the blackbody response, which no assessment supports.
+        """
+        assert not lambda_admissibility(lam=4.0)["admissible"]
+        assert not lambda_admissibility(lam=planck_feedback())["admissible"]
+
+    def test_the_implied_net_feedback_is_reported(self):
+        """The quantity a reader can check against the literature."""
+        r = lambda_admissibility()
+        assert r["implied_net_feedback"] == pytest.approx(
+            r["planck_bound"] - r["lambda"], rel=1e-12
+        )
+        assert 2.0 < r["implied_net_feedback"] < 3.0
+
+    def test_the_bound_is_deliberately_loose(self):
+        """
+        The blackbody Planck term (3.761) exceeds the real Planck response
+        (≈3.2, the figure the repo carried as prose), so the ceiling errs toward
+        admitting too much λ rather than too little — the safe direction.
+        """
+        assert planck_feedback() > 3.2
+        assert "loose" in lambda_admissibility()["note"]

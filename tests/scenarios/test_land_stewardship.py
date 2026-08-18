@@ -192,7 +192,26 @@ class TestUnpricedIsExcludedNotZero:
 class TestTheScopeQuestion:
     """Amenity groundskeeping decides the answer; both readings stay visible."""
 
-    def test_ecosystem_scope_lands_below_the_anchor(self):
+    def test_ecosystem_scope_lands_ABOVE_the_anchor(self):
+        """
+        REVERSED BY PHASE 4b (2026-08-17), and this is the largest single finding
+        of that change. Until the frame was declared, the anchor was compared at
+        an intensity inflated 464x by pairing the WHOLE contiguous US with a
+        million people — so forest read 0.49x the anchor and this test asserted
+        `< 1.0`, recorded as "forest falsifies 'the anchor is 2-3 orders low' in
+        the OPPOSITE direction".
+
+        Against a frame-consistent anchor the ecosystem scope reads 222x ABOVE
+        it. The earlier falsification was an artefact of the frame mismatch: the
+        mismatch was INFLATING the anchor and thereby MASKING the domain-balance
+        defect it was being used to test. The hypothesis it appeared to refute
+        is now supported on every class, forest included.
+        """
+        rep = census_report("ecosystem")
+        assert rep["ratio_to_anchor"] > 100.0
+        assert rep["measured_hours_per_hectare"] == pytest.approx(0.1773, abs=0.01)
+
+    def _superseded_test_ecosystem_scope_lands_below_the_anchor(self):
         rep = census_report("ecosystem")
         assert rep["ratio_to_anchor"] < 1.0
         assert rep["measured_hours_per_hectare"] == pytest.approx(0.182, abs=0.01)
@@ -258,14 +277,29 @@ class TestTheFalsification:
         assert rep["measured_hours_per_hectare"] == pytest.approx(7.31, abs=0.1)
         assert rep["measured_hours_per_hectare"] < rep["required_h_per_ha_at_1pc_share"]
 
-    def test_comparison_is_against_the_anchor_at_reference_scale(self):
-        """The trap: ECOLOGICAL_BASE_RATE is an absolute total, not a per-capita
-        rate, so only intensity is comparable. Passing a US population would
-        deflate the anchor 335x and report a meaningless ratio."""
+    def test_the_implied_intensity_is_now_POPULATION_INVARIANT(self):
+        """
+        THE TRAP THIS TEST GUARDED IS GONE — and it was the frame mismatch.
+
+        It used to assert that `ecological_eoh` is population-INVARIANT (an
+        absolute US total) while the implied INTENSITY deflates 335x with
+        population, so only intensity was comparable and only at the reference
+        scale. Both halves were consequences of a single defect: an obligation
+        keyed to the whole contiguous US being divided by whatever population
+        the caller happened to pass.
+
+        After Phase 4b the obligation scales with population and the INTENSITY
+        does not — which is the right way round, and it is what makes the census
+        comparison meaningful at any scale rather than at one privileged one.
+        """
         ref = implied_stewardship_intensity(population=1e6)
         us = implied_stewardship_intensity(population=335e6)
-        assert ref["ecological_eoh"] == pytest.approx(us["ecological_eoh"])
-        assert us["hours_per_hectare_year"] < ref["hours_per_hectare_year"] / 100.0
+        # the obligation now scales
+        assert us["ecological_eoh"] == pytest.approx(335.0 * ref["ecological_eoh"], rel=1e-9)
+        # and the intensity is invariant, to float precision
+        assert us["hours_per_hectare_year"] == pytest.approx(
+            ref["hours_per_hectare_year"], rel=1e-12
+        )
 
         rep = census_report("with_amenity")
         assert rep["anchor_hours_per_hectare"] == pytest.approx(
@@ -317,7 +351,9 @@ class TestAllocationIsWeightedNotBinary:
 
     def test_area_policy_moves_forest_but_stays_below_the_anchor(self):
         band = allocation_band("ecosystem")
-        assert band["policies"]["area"]["ratio_to_anchor"] < 1.0
+        # Phase 4b: was < 1.0 against the 464x-inflated anchor; now 309x above.
+        # The ORDERING this test exists for is unaffected — see below.
+        assert band["policies"]["area"]["ratio_to_anchor"] > 100.0
         assert (
             band["policies"]["area"]["measured_hours_per_hectare"]
             > band["policies"]["held_out"]["measured_hours_per_hectare"]
@@ -372,16 +408,31 @@ class TestAmenityWeightIsContinuous:
         vals = [r["measured_hours_per_hectare"] for r in curve]
         assert vals == sorted(vals)
 
-    def test_the_anchor_is_crossed_near_the_origin(self):
-        """w* = 0.0228, SOLVED not grid-read. The result depends on whether you
-        are AT zero, not on where you sit on the curve."""
-        # 0.0228 -> 0.0288 when federal parks entered the priced area.
-        w = anchor_crossing_weight()
-        assert w == pytest.approx(0.0288, abs=0.0005)
+    def test_the_anchor_is_now_CROSSED_AT_EVERY_POSITIVE_WEIGHT(self):
+        """
+        PHASE 4b REVERSED THE AMENITY-WEIGHT QUESTION, and this is the second
+        large consequence of declaring the frame.
 
-        # and the solved value reproduces ratio 1.0 when fed back in
-        rep = census_report("with_amenity", amenity_weight=w)
-        assert rep["ratio_to_anchor"] == pytest.approx(1.0, abs=1e-6)
+        The weight mattered because the census crossed the anchor at
+        w* = 0.0288, just above zero: at any smaller weight the census read
+        BELOW the anchor and at any larger one above it, so the weight set the
+        SIGN of the comparison and had to be argued and declared
+        (AMENITY_STEWARDSHIP_WEIGHT = 0.0468, band [0.0468, 0.0699]).
+
+        Against a frame-consistent anchor the solved crossing weight is
+        NEGATIVE — the census exceeds the anchor even with the entire amenity
+        class excluded. So the weight no longer sets the sign at all; it sets
+        only the magnitude, and the scope question that needed a charter
+        decision to settle the direction no longer needs one for that purpose.
+        The declared weight stays, because it still governs the magnitude and
+        both corners are still reported.
+        """
+        w = anchor_crossing_weight()
+        assert w < 0.0, "a positive crossing weight would restore the old regime"
+
+        # the census is above the anchor at w = 0 — i.e. with NO amenity labour
+        rep_zero = census_report("with_amenity", amenity_weight=0.0)
+        assert rep_zero["ratio_to_anchor"] > 1.0
 
     def test_the_declared_weight_sits_above_the_crossing(self):
         """The adopted position is above w*, so the census clears the anchor on

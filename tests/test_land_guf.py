@@ -957,3 +957,231 @@ class TestCarbonKappaReconciliation:
         previous = 2.750
         assert GUF_ECO_KAPPA_CARBON < previous
         assert previous / GUF_ECO_KAPPA_CARBON == pytest.approx(4.5833, rel=1e-3)
+
+
+# ===========================================================================
+# Phase 1 (2026-08-17): the E term woken up.
+#
+# The seven GUF_ECO_KAPPA_* constants were read by NO code path. E(p,ε)
+# defaulted to zero, no scenario supplied `ecosystem_services`, and every
+# caller that did passed bare literals. See notes/guf-restoration-derivation.md.
+# ===========================================================================
+
+from hours_eoh.data import (
+    GUF_ECO_BETA_CARBON,
+    GUF_ECO_KAPPA_CARBON as _K_CARBON,
+    GUF_ECO_BETA_POLLINATION,
+    GUF_ECO_KAPPA_AIR_QUALITY,
+    GUF_ECO_KAPPA_POLLINATION,
+    GUF_ECO_KAPPA_WATER_FILTRATION,
+    GUF_ECOSYSTEM_SERVICES,
+)
+from hours_eoh.land.guf import (
+    ecosystem_services_for_area,
+    service_from_registry,
+)
+
+ARC = [0.0, 0.40, 0.99]
+
+
+class TestRegistryIsBoundNotRestated:
+    """Every registry value must come FROM the constant that carries it."""
+
+    def test_kappa_values_are_the_data_constants(self):
+        assert GUF_ECOSYSTEM_SERVICES["carbon"]["kappa_ref"] is _K_CARBON
+        assert GUF_ECOSYSTEM_SERVICES["water_filtration"]["kappa_ref"] is GUF_ECO_KAPPA_WATER_FILTRATION
+        assert GUF_ECOSYSTEM_SERVICES["air_quality"]["kappa_ref"] is GUF_ECO_KAPPA_AIR_QUALITY
+
+    def test_every_service_carries_kappa_beta_and_a_unit(self):
+        # κ is meaningless without its unit: 0.6 TEH/tonne and 0.006 TEH/m³ are
+        # not comparable magnitudes.
+        assert len(GUF_ECOSYSTEM_SERVICES) == 7
+        for name, spec in GUF_ECOSYSTEM_SERVICES.items():
+            assert set(spec) == {"kappa_ref", "beta", "unit"}, name
+            assert float(spec["kappa_ref"]) > 0.0
+            assert 0.6 <= float(spec["beta"]) <= 1.2
+            assert isinstance(spec["unit"], str) and spec["unit"]
+
+
+class TestKappaAndBetaArePaired:
+    """
+    The sharper defect the registry closes. Eq. 15 derives κ_max from κ_ref
+    THROUGH β, so mismatched partners produce a curve belonging to neither and
+    nothing downstream can detect it.
+    """
+
+    def test_naming_a_service_binds_both(self):
+        s = service_from_registry("pollination", volume=1.0)
+        assert s["kappa_ref"] == GUF_ECO_KAPPA_POLLINATION
+        assert s["beta"] == GUF_ECO_BETA_POLLINATION
+        assert s["kappa_source"] == "registry"
+        assert s["beta_source"] == "registry"
+
+    def test_a_mismatched_pair_produces_a_different_curve(self):
+        # Demonstrates what the pairing prevents, rather than asserting it is
+        # impossible: carbon's κ under pollination's β is a real, silent error.
+        right = ecosystem_service_kappa(_K_CARBON, GUF_ECO_BETA_CARBON, 0.0)
+        wrong = ecosystem_service_kappa(_K_CARBON, GUF_ECO_BETA_POLLINATION, 0.0)
+        assert right != pytest.approx(wrong, rel=1e-6)
+
+    def test_kappa_equals_reference_at_the_calibration_epsilon(self):
+        # Eq. 15's defining property, checked for every registered service.
+        for name, spec in GUF_ECOSYSTEM_SERVICES.items():
+            k = ecosystem_service_kappa(
+                float(spec["kappa_ref"]), float(spec["beta"]), 0.40
+            )
+            assert k == pytest.approx(float(spec["kappa_ref"]), rel=1e-12), name
+
+
+class TestOverridesReplaceAndAreReported:
+    """κ is genuinely local, so an override is legitimate — but never silent."""
+
+    def test_override_wins_and_is_labelled(self):
+        s = service_from_registry("carbon", volume=1.0, kappa_ref=2.75)
+        assert s["kappa_ref"] == 2.75
+        assert s["kappa_source"] == "override"
+        assert s["beta_source"] == "registry"
+
+    def test_unknown_service_raises_with_the_registered_names(self):
+        with pytest.raises(KeyError, match="unknown ecosystem service"):
+            service_from_registry("unobtanium", volume=1.0)
+
+
+class TestVolumeIntakeAtLandClassScale:
+
+    def test_volumes_scale_linearly_with_area(self):
+        profile = {"carbon": 2.5, "water_filtration": 0.01}
+        one = ecosystem_services_for_area(1.0e6, profile)
+        five = ecosystem_services_for_area(5.0e6, profile)
+        for a, b in zip(one, five):
+            assert b["volume"] == pytest.approx(5.0 * a["volume"], rel=1e-12)
+
+    def test_retained_accepts_scalar_or_per_service(self):
+        profile = {"carbon": 1.0, "pollination": 1.0}
+        flat = ecosystem_services_for_area(100.0, profile, retained=0.5)
+        assert all(s["retained"] == 0.5 for s in flat)
+        keyed = ecosystem_services_for_area(100.0, profile, retained={"carbon": 0.8})
+        by = {s["service"]: s["retained"] for s in keyed}
+        assert by["carbon"] == 0.8
+        assert by["pollination"] == 0.0  # missing key → 0.0, not an error
+
+    def test_zero_area_gives_zero_surcharge(self):
+        svcs = ecosystem_services_for_area(0.0, {"carbon": 2.5})
+        for eps in ARC:
+            assert ecosystem_displacement_surcharge(svcs, eps)["surcharge_total"] == 0.0
+
+    def test_negative_area_rejected(self):
+        with pytest.raises(ValueError, match="area_hectares"):
+            ecosystem_services_for_area(-1.0, {"carbon": 1.0})
+
+    def test_supplies_no_volumes_of_its_own(self):
+        """
+        THE DISCIPLINE. The package ships no measured per-hectare service
+        volumes — there is no figure here for how much filtration a hectare of
+        forest delivers. An invented one would enter with the same standing as a
+        measured value and afterwards nothing could tell them apart.
+        """
+        with pytest.raises(TypeError):
+            ecosystem_services_for_area(1.0e6)  # type: ignore[call-arg]
+        assert ecosystem_services_for_area(1.0e6, {}) == []
+
+
+class TestSurchargeResolvesNamedServices:
+
+    def test_named_service_needs_no_literals(self):
+        r = ecosystem_displacement_surcharge([{"service": "carbon", "volume": 1000.0}], 0.40)
+        assert r["surcharge_total"] == pytest.approx(1000.0 * _K_CARBON, rel=1e-12)
+        b = r["by_service"][0]
+        assert b["label"] == "carbon"
+        assert b["kappa_ref"] == _K_CARBON
+        assert b["beta"] == GUF_ECO_BETA_CARBON
+
+    def test_explicit_literal_form_is_unchanged(self):
+        """Backward compatibility: the pre-2026-08-17 caller shape still works."""
+        old = [{"label": "water", "volume": 0.4, "kappa_ref": 1.65,
+                "beta": 0.8, "retained": 0.3}]
+        r = ecosystem_displacement_surcharge(old, 0.40)
+        assert r["surcharge_total"] == pytest.approx(0.4 * 1.65 * 0.7, rel=1e-12)
+
+    def test_a_service_with_neither_form_raises(self):
+        with pytest.raises(KeyError, match="either explicit"):
+            ecosystem_displacement_surcharge([{"volume": 1.0}], 0.40)
+
+    def test_arc_coherence_for_every_registered_service(self):
+        for name in GUF_ECOSYSTEM_SERVICES:
+            prev = None
+            for eps in ARC:
+                r = ecosystem_displacement_surcharge(
+                    [{"service": name, "volume": 100.0}], eps
+                )
+                t = r["surcharge_total"]
+                assert math.isfinite(t) and t > 0.0, name
+                if prev is not None:
+                    assert t < prev, f"{name} κ must fall with ε"
+                prev = t
+
+
+class TestEStillDefaultsToZero:
+    """
+    Phase 1 makes the term REACHABLE, not active. Waking it for existing
+    callers would be a calibration change; the note reserves that for sign-off.
+    """
+
+    def test_ground_use_fee_without_services_has_no_eco_surcharge(self):
+        for eps in ARC:
+            r = ground_use_fee(
+                area_slu=10.0, location_value=0.5,
+                use_category="residential_primary", epsilon=eps,
+            )
+            assert r["eco_surcharge"] == 0.0
+            assert r["eco_breakdown"] is None
+
+
+class TestRestorationPathwayUsesTheSameTable:
+    """
+    rebuilding_surcharge is the §9 restoration/abandonment pathway — the path a
+    restoration-cost derivation runs through. It read the caller's literals
+    independently of E, so the two halves of the reset cost could disagree
+    silently. Both now resolve through _resolve_kappa_beta.
+    """
+
+    def test_named_service_resolves_in_rebuilding_surcharge(self):
+        r = rebuilding_surcharge(
+            [{"service": "biodiversity", "volume_lost": 5.0}], epsilon=0.40
+        )
+        b = r["by_service"][0]
+        assert b["label"] == "biodiversity"
+        # κ = κ_ref at ε=0.40, amortised over the writedown horizon
+        assert b["kappa_epsilon"] == pytest.approx(
+            float(GUF_ECOSYSTEM_SERVICES["biodiversity"]["kappa_ref"]), rel=1e-12
+        )
+
+    def test_literal_form_still_works(self):
+        old = rebuilding_surcharge(
+            [{"label": "biodiversity", "volume_lost": 5.0,
+              "kappa_ref": 0.35, "beta": 0.7}], epsilon=0.40
+        )
+        named = rebuilding_surcharge(
+            [{"service": "biodiversity", "volume_lost": 5.0}], epsilon=0.40
+        )
+        # The literals in the shipped CLI example ARE the registry values, which
+        # is the hazard: they agree until one side moves.
+        assert old["surcharge_total"] == pytest.approx(
+            named["surcharge_total"], rel=1e-12
+        )
+
+    def test_missing_both_forms_raises(self):
+        with pytest.raises(KeyError, match="either explicit"):
+            rebuilding_surcharge([{"volume_lost": 1.0}], epsilon=0.40)
+
+    def test_both_paths_agree_on_kappa_for_every_service(self):
+        """The drift this guards: E and the restoration path must read one table."""
+        for name in GUF_ECOSYSTEM_SERVICES:
+            for eps in ARC:
+                e = ecosystem_displacement_surcharge(
+                    [{"service": name, "volume": 1.0}], eps
+                )["by_service"][0]["kappa_epsilon"]
+                rb = rebuilding_surcharge(
+                    [{"service": name, "volume_lost": 1.0}], eps
+                )["by_service"][0]["kappa_epsilon"]
+                assert e == pytest.approx(rb, rel=1e-12), f"{name} at ε={eps}"

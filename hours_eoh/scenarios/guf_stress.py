@@ -234,15 +234,29 @@ def guf_writedown_scenario(
     if pathway not in ("restoration", "abandonment"):
         raise ValueError(f"pathway must be 'restoration' or 'abandonment', got '{pathway}'")
 
-    # Default parcel: simple residential with one ecosystem service
+    # Default parcel: simple residential with one ecosystem service.
+    #
+    # A LIVE β MISMATCH LIVED HERE UNTIL 2026-08-17, and it is the defect the
+    # named-service registry exists to prevent. Both entries described the SAME
+    # service ("water", κ_ref 1.65 — water filtration) but carried
+    # `beta: 0.8` on the reset side and `beta: 0.7` on the lost side. 0.8 is
+    # water filtration's exponent; 0.7 belongs to flood attenuation and
+    # biodiversity. NLSA Eq. 15 derives κ_max from κ_ref THROUGH β, so the same
+    # physical service was being priced on two different automation curves
+    # inside one function call — diverging to 12.8% by ε=0.99.
+    #
+    # WHY IT SURVIVED, which is the more useful half: κ(ε) equals κ_ref exactly
+    # at ε=0.40 by construction, so the two βs agree to 0.00% there — and every
+    # test of this scenario ran at ε=0.40. The check was performed at the one
+    # point on the arc where the defect is invisible, against CLAUDE.md's own
+    # ε-coherence rule. TestWritedownArcCoherence now runs it at 0.0 and 0.99.
     default_parcels: list[dict[str, Any]] = [{
         "area_slu":         3.5,
         "location_value":   0.629,
         "use_category":     "residential_primary",
-        "services_reset":   [{"label": "water", "volume": 0.4, "kappa_ref": 1.65,
-                               "beta": 0.8, "retained": 0.3}],
-        "services_lost":    [{"label": "water", "volume_lost": 0.4,
-                               "kappa_ref": 1.65, "beta": 0.7}],
+        "services_reset":   [{"service": "water_filtration", "volume": 0.4,
+                               "retained": 0.3}],
+        "services_lost":    [{"service": "water_filtration", "volume_lost": 0.4}],
     }]
     configs = parcels_at_risk or default_parcels
 

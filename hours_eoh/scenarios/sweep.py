@@ -15,7 +15,7 @@ from typing import Any
 
 from hours_eoh.data import (
     AGE_GROUPS,
-    ECOLOGICAL_BASE_RATE, SKILL_TRANSMISSION_RATE,
+    ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA, SKILL_TRANSMISSION_RATE,
     TRUST_BASE_TEH,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CAPITAL_STOCK_DEFAULT,
@@ -92,7 +92,18 @@ def epsilon_sweep(
 
         pers_eoh  = personal_eoh(population, age_distribution, eps)
         infra_eoh = infrastructure_eoh(capital_stock_teh, capital_age_ratio, eps)
-        eco_eoh   = ecological_eoh(ecosystem_health, eps, base_rate=ECOLOGICAL_BASE_RATE)
+        # PHASE 4b (2026-08-17): resolve the ecological area FROM THE POPULATION,
+        # as total_eoh now does. This module sums its own four domains rather
+        # than calling total_eoh, so it was a SECOND live instance of the frame
+        # mismatch and the fix there did not reach it: personal scaled with
+        # `population` while ecological carried ECOLOGICAL_BASE_RATE, the whole
+        # contiguous US. Exactly the shape of the SKILL_TRANSMISSION_RATE defect
+        # documented immediately below — a module that bypasses the shared path
+        # is the last place a superseded default survives.
+        eco_eoh   = ecological_eoh(
+            ecosystem_health, eps,
+            area_hectares=population * LAND_HECTARES_PER_CAPITA,
+        )
         # SKILL_TRANSMISSION_RATE, not the deprecated SKILL_DECAY_RATE this
         # module used until 2026-08-09. params.py moved its `skill_decay_rate`
         # default to the transmission rate at Block K-IV; sweep.py bypasses

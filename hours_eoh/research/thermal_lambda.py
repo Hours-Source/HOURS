@@ -46,6 +46,10 @@ from pathlib import Path
 from typing import Literal, TypedDict
 
 from hours_eoh.data import (
+    EARTH_EMISSION_TEMPERATURE_K,
+    SIGMA_SB,
+    THERMAL_LAMBDA_FEEDBACK,
+    THERMAL_TXX_PER_GMST,
     A_EARTH_M2,
     THERMAL_F_NET_ERF,
     THERMAL_F_NET_ERF_P05,
@@ -216,7 +220,7 @@ def determinacy_map(
     delta_t_lo: float,
     lam_band: tuple[float, float] | None = None,
     f_band: tuple[float, float] | None = None,
-    txx_per_gmst: float = 1.48,
+    txx_per_gmst: float = THERMAL_TXX_PER_GMST,
     confidence: Literal["likely", "very_likely"] = "likely",
 ) -> dict:
     """
@@ -430,3 +434,87 @@ def thermal_verdict(
             "assessed λ buys back more determinate zone than any other single "
             "measurement — [1.10, 1.45] would recover ~1.96 K of it."),
     )
+
+
+# ---------------------------------------------------------------------------
+# The Planck bound — the one part of λ that is physics (2026-08-17)
+# ---------------------------------------------------------------------------
+
+def planck_feedback(t_emission: float = EARTH_EMISSION_TEMPERATURE_K) -> float:
+    """
+    The blackbody Planck feedback, derived rather than recalled.
+
+    Governing equation — differentiate Stefan–Boltzmann with respect to T:
+
+        E   = σ · T⁴
+        λ_P = dE/dT = 4 · σ · T³
+
+    units: W·m⁻²·K⁻¹.
+
+    Worked example: at Earth's emission temperature of 255 K,
+    4 × 5.670374419e-8 × 255³ = **3.761 W·m⁻²·K⁻¹**.
+
+    WHY THIS EXISTS. `SIGMA_SB` is one of only two `physics`-tagged constants in
+    the package and, until this function, was read by NOTHING — not by the
+    thermal layer, not by a test, and it was not duplicated as a literal either.
+    Meanwhile "Planck-only ≈ 3.2" appeared as PROSE in two places
+    (`data.py`'s THERMAL_LAMBDA_FEEDBACK note and `thermal_path_c.json`), where
+    nothing could read it, check it, or age it. That is the same shape as
+    `WORLD_POPULATION`, `SLU_HECTARES` and `REFERENCE_FRAME_POPULATION` — a
+    number governing the model while living in a comment.
+
+    THE BLACKBODY VALUE IS NOT THE PLANCK FEEDBACK, and the gap is the point.
+    3.761 assumes a single emitting surface at 255 K. The real Planck response
+    integrates over the atmospheric temperature profile and is ≈3.2 — the prose
+    figure. So this is an UPPER bound on the Planck term, and therefore a
+    conservative upper bound on λ itself: it errs in the direction of allowing
+    MORE λ than physics does, which is the safe direction for a gate.
+    """
+    if t_emission <= 0.0:
+        raise ValueError(f"t_emission must be > 0 K, got {t_emission}")
+    return 4.0 * SIGMA_SB * t_emission ** 3
+
+
+def lambda_admissibility(
+    lam: float = THERMAL_LAMBDA_FEEDBACK,
+    t_emission: float = EARTH_EMISSION_TEMPERATURE_K,
+) -> dict:
+    """
+    Is a climate feedback parameter physically admissible?
+
+    Governing inequality:
+
+        λ_total = λ_Planck − (water vapour + lapse rate + albedo + cloud)
+        ⇒  λ_total < λ_Planck        whenever net feedbacks are amplifying
+
+    Every assessed feedback except lapse rate is amplifying, and the net is
+    robustly amplifying across every generation of assessment. So the Planck
+    term is a CEILING on λ, and a λ at or above it would imply net stabilising
+    feedbacks stronger than the blackbody response — not a tuning question but a
+    physical impossibility.
+
+    WHY IT MATTERS HERE. λ is, in this repo's own words, "THE most leveraged
+    parameter after delta_T_lo: every threshold is F/λ, linear in 1/λ". It is
+    carried as a chosen value inside an assessed range with no physical anchor
+    of any kind. This supplies the one anchor that exists — not to narrow the
+    range, which physics cannot do, but to say where the range CANNOT go.
+
+    Returns the bound, the margin, and `implied_net_feedback` — the amplifying
+    feedback strength the shipped λ implies, which is the quantity a reader can
+    actually sanity-check against the literature.
+    """
+    bound = planck_feedback(t_emission)
+    return {
+        "lambda": lam,
+        "planck_bound": bound,
+        "t_emission_k": t_emission,
+        "admissible": lam < bound,
+        "ratio_to_planck": lam / bound,
+        "implied_net_feedback": bound - lam,
+        "note": (
+            "λ < λ_Planck is required because net feedbacks are amplifying. The "
+            "bound is the BLACKBODY Planck term (3.761 at 255 K); the real "
+            "Planck response is ≈3.2, so this ceiling is deliberately loose and "
+            "errs toward admitting too much λ rather than too little."
+        ),
+    }

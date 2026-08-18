@@ -24,11 +24,15 @@ from hours_eoh.core.eoh_generation import (
     eoh_to_essential_domains,
 )
 from hours_eoh.data import (
+    ECOLOGICAL_BASE_RATE,
+    ECOLOGICAL_INTENSITY_BASE,
+    LAND_HECTARES_PER_CAPITA,
     ESSENTIAL_DOMAINS,
     KNOWLEDGE_EOH_BASE,
     KNOWLEDGE_REFERENCE_POPULATION,
     SKILL_DECAY_RATE,
     SKILL_TRANSMISSION_RATE,
+    US_MAINLAND_HECTARES,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -164,9 +168,9 @@ class TestKnowledgePopulationScaling:
         re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
         net 954.91× against pre-K-IV.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.39445038e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.56513111e8, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.35715049e9, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.39629894e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.56720600e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.35895000e9, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -175,7 +179,7 @@ class TestKnowledgePopulationScaling:
         post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
         across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1394.450, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1396.29890, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)
@@ -557,7 +561,14 @@ def test_thermal_obligation_defaults_to_zero_everywhere():
     assert b["thermal"] == 0.0
     assert b["total"] == pytest.approx(b["baseline"] + b["spike"] + b["visible_deferred"])
     assert ecological_eoh(0.70, 0.40) == pytest.approx(b["total"])
-    assert total_eoh(0.40)["ecological"] == pytest.approx(b["total"])
+    # PHASE 4b: total_eoh resolves the ecological area FROM ITS POPULATION while
+    # ecological_eoh alone has no population and keeps the declared US reference
+    # frame. The two therefore differ by design on their DEFAULTS, and agree
+    # exactly once the same area is supplied — which is what is asserted here,
+    # rather than letting two paths disagree silently.
+    assert total_eoh(0.40, ecological_area_hectares=US_MAINLAND_HECTARES)["ecological"] \
+        == pytest.approx(b["total"])
+    assert total_eoh(0.40)["ecological"] < b["total"] / 100.0
 
 
 def test_thermal_obligation_adds_to_the_ecological_domain():
@@ -927,3 +938,179 @@ class TestAccountingBasis:
     def test_bad_basis_rejected(self):
         with pytest.raises(ValueError, match="basis"):
             total_eoh(epsilon=0.40, basis="net")
+
+
+# ===========================================================================
+# total_eoh — the ecological AREA seam (2026-08-17)
+#
+# ecological_eoh() was keyed to area on 2026-08-16, but neither total_eoh nor
+# eoh_to_teh_pipeline plumbed it, so the fix was stranded one layer below the
+# intake path docs/guides/implementation_guide.md tells institutions to use.
+# These pin the seam AND the thing that makes it safe: the default must not move.
+# ===========================================================================
+
+class TestEcologicalAreaReachesTotalEoh:
+    """area_hectares reaches total_eoh, and the default path is unchanged."""
+
+    def test_area_scales_the_ecological_domain_linearly(self):
+        # Area is the extensive quantity: doubling it doubles the obligation.
+        for eps in KEY_EPSILONS:
+            one = total_eoh(epsilon=eps, ecological_area_hectares=1.0e8)["ecological"]
+            five = total_eoh(epsilon=eps, ecological_area_hectares=5.0e8)["ecological"]
+            assert one > 0.0
+            assert five == pytest.approx(5.0 * one, rel=1e-12)
+
+    def test_default_resolves_the_area_FROM_THE_POPULATION(self):
+        """
+        PHASE 4b (2026-08-17). The default used to be ECOLOGICAL_BASE_RATE — the
+        obligation for the WHOLE CONTIGUOUS US — while the default population is
+        1,000,000. Nothing connected them, so the shipped default had a million
+        people stewarding the entire United States and the reported ecological
+        share was flattered by the ratio between the two.
+
+        The fix is in the RESOLUTION, not the constant: ECOLOGICAL_BASE_RATE
+        correctly states the US-scale obligation and ECOLOGICAL_INTENSITY_BASE is
+        derived from it, so rewriting it would break an identity the repo pins
+        deliberately. The default now derives its area from the population.
+        """
+        for eps in KEY_EPSILONS:
+            for pop in (1e6, 335e6):
+                got = total_eoh(epsilon=eps, population=pop,
+                                ecosystem_health=0.70)["ecological"]
+                expected = (pop * LAND_HECTARES_PER_CAPITA
+                            * ECOLOGICAL_INTENSITY_BASE) / 0.70
+                assert got == pytest.approx(expected, rel=1e-12)
+
+    def test_the_anchor_identity_is_UNTOUCHED(self):
+        """
+        What the resolution change deliberately preserves. A naive fix that
+        rewrote ECOLOGICAL_BASE_RATE to a 1M-consistent value would break
+        `intensity x reference area = anchor` — and that identity is correct, so
+        the pins would be firing against the fix rather than against a defect.
+        """
+        assert ECOLOGICAL_INTENSITY_BASE == pytest.approx(
+            ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES, rel=1e-15
+        )
+
+    def test_supplying_the_us_area_still_reproduces_the_us_anchor(self):
+        """The constant is still reachable — it is now supplied, not assumed."""
+        for eps in KEY_EPSILONS:
+            got = total_eoh(epsilon=eps, ecosystem_health=0.70,
+                            ecological_area_hectares=US_MAINLAND_HECTARES)["ecological"]
+            assert got == pytest.approx(ECOLOGICAL_BASE_RATE / 0.70, rel=1e-9)
+
+    def test_the_us_frame_now_DIFFERS_from_the_default(self):
+        """
+        The mismatch this change removes, pinned as a difference. Before Phase 4b
+        the default WAS the whole-US area, so these agreed; now the default is
+        1M people's share of it and the US frame is 335x larger.
+        """
+        for eps in KEY_EPSILONS:
+            framed = total_eoh(epsilon=eps, ecological_area_hectares=US_MAINLAND_HECTARES)
+            default = total_eoh(epsilon=eps)
+            assert framed["ecological"] > 100.0 * default["ecological"]
+
+    def test_base_and_area_together_is_REFUSED(self):
+        """
+        The silently-ignored-parameter failure this repo keeps finding. Under
+        ecological_scale() precedence base_rate wins and the area vanishes; a
+        caller who supplied an area would believe it was in force. Refused, not
+        resolved.
+        """
+        with pytest.raises(ValueError, match="not both"):
+            total_eoh(
+                epsilon=0.40,
+                ecological_base=500_000.0,
+                ecological_area_hectares=US_MAINLAND_HECTARES,
+            )
+
+    def test_explicit_base_still_honoured(self):
+        # The pre-2026-08-16 absolute path is unaffected.
+        got = total_eoh(epsilon=0.40, ecological_base=1_000_000.0, ecosystem_health=0.70)
+        assert got["ecological"] == pytest.approx(1_000_000.0 / 0.70, rel=1e-12)
+
+    def test_zero_area_is_zero_obligation_not_a_crash(self):
+        # eps-coherence: a collective stewarding no land owes no ecological EOH,
+        # and the rest of the ledger still resolves.
+        for eps in KEY_EPSILONS:
+            d = total_eoh(epsilon=eps, ecological_area_hectares=0.0)
+            assert d["ecological"] == 0.0
+            assert math.isfinite(d["total"]) and d["total"] > 0.0
+
+    def test_negative_area_rejected(self):
+        with pytest.raises(ValueError, match="area_hectares"):
+            total_eoh(epsilon=0.40, ecological_area_hectares=-1.0)
+
+
+class TestStatutoryHoursPerUnitYear:
+    """
+    The derivation `infrastructure_statutory_floor` documented and nothing
+    implemented, leaving INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT — a convention
+    adopted from 23 CFR 650 — read by no code path at all.
+    """
+
+    def test_reproduces_the_governing_equation(self):
+        from hours_eoh.core.eoh_generation import statutory_hours_per_unit_year
+        for interval, crew in ((24.0, 16.0), (3.0, 4.0), (12.0, 20.0)):
+            assert statutory_hours_per_unit_year(crew, interval) == pytest.approx(
+                (12.0 / interval) * crew, rel=1e-12
+            )
+
+    def test_the_statutory_default_reproduces_the_worked_example(self):
+        """23 CFR 650 routine (24 mo) at 16 crew-hours = the 'good' bucket's 8 h."""
+        from hours_eoh.core.eoh_generation import statutory_hours_per_unit_year
+        from hours_eoh.data import INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT
+        assert INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT == 24.0
+        assert statutory_hours_per_unit_year(16.0) == pytest.approx(8.0, rel=1e-12)
+
+    def test_it_feeds_the_floor_and_reproduces_ITS_worked_example(self):
+        """
+        End-to-end: derived hours through the floor must give the 448,816 h/yr
+        the floor's own docstring states, which is what shows the derivation and
+        the floor were always meant to be the same chain.
+        """
+        from hours_eoh.core.eoh_generation import (
+            infrastructure_statutory_floor,
+            statutory_hours_per_unit_year as h,
+        )
+        census = [
+            {"count": 8019,  "hours_per_unit_year": h(16.0)},           # 8 h
+            {"count": 12482, "hours_per_unit_year": h(16.0, 9.6)},      # 20 h
+            {"count": 2813,  "hours_per_unit_year": h(16.0, 4.0)},      # 48 h
+        ]
+        assert infrastructure_statutory_floor(census) == pytest.approx(448_816.0, rel=1e-9)
+
+    def test_shorter_interval_costs_more_hours(self):
+        from hours_eoh.core.eoh_generation import statutory_hours_per_unit_year as h
+        assert h(16.0, 12.0) > h(16.0, 24.0)
+
+    def test_no_currency_enters_the_chain(self):
+        """
+        An interval is a count of months and a visit is a count of hours, which
+        is the property that made the statutory floor doctrine-invariant.
+        """
+        import inspect
+        from hours_eoh.core.eoh_generation import statutory_hours_per_unit_year
+        src = inspect.getsource(statutory_hours_per_unit_year)
+        for money in ("dollar", "usd", "cost_per", "price", "wage"):
+            assert money not in src.lower()
+
+    def test_invalid_inputs_rejected(self):
+        from hours_eoh.core.eoh_generation import statutory_hours_per_unit_year as h
+        with pytest.raises(ValueError, match="interval_months"):
+            h(16.0, 0.0)
+        with pytest.raises(ValueError, match="crew_hours_per_visit"):
+            h(-1.0)
+
+
+def test_eta_land_mask_threshold_is_superseded_by_the_shipped_method():
+    """
+    The constant asserted a binary threshold "is required"; the η dataset that
+    shipped states it used the continuous land FRACTION and explicitly not a
+    threshold. Retired rather than wired — wiring it would reintroduce the
+    all-or-nothing coastal treatment the data deliberately avoided.
+    """
+    from hours_eoh.research.thermal_path_c import load_eta_land
+    weighting = load_eta_land()["_method"]["weighting"]
+    assert "not a binary threshold" in weighting
+    assert "FRACTION" in weighting

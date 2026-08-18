@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.data import (
+    HUMAN_CAPITAL_NATURAL_DECAY,
     AGE_GROUPS, HUMAN_CAPITAL_NATURAL_DECAY, PERSONAL_EOH_BASE,
     INFANT_EOH_EPSILON_FACTOR, MATURATION_AUTO_LEVERAGE,
     ANNUAL_DEATH_RATE, ESTATE_INHERITANCE_FRACTION,
@@ -261,7 +262,7 @@ def asset_condition_trajectory(
     annual_eoh: float,
     fulfillment_fraction: float,
     years: int,
-    natural_decay_rate: float = 0.005,
+    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
 ) -> list[dict]:
     """
     Simulate asset condition over time at a constant maintenance level.

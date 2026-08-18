@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from typing import Callable, TypedDict
 
-from hours_eoh.data import CONTESTABILITY_CHI_CRIT
+from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR
 from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
@@ -368,7 +368,7 @@ def thermal_ceiling(
 def measured_thermal_ceiling(
     utilization: float,
     epsilon_current: float = 0.40,
-    u_floor: float = 0.50,
+    u_floor: float = THERMAL_U_FLOOR,
 ) -> Ceiling:
     """
     The MEASURED thermal ceiling (Path C, finding F11). The binding thermal signal

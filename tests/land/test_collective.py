@@ -219,3 +219,151 @@ def test_all_fees_finite_at_extreme_eps(small_urban, eps):
         assert math.isfinite(row["guf_applied"])
         assert row["guf_applied"] >= 0.0
     assert math.isfinite(result["guf_gross_revenue"])
+
+
+# ===========================================================================
+# attach_ecosystem_services — the E term reaches an inventory (2026-08-17).
+#
+# E(p,ε) was ZERO in every scenario the package ships: neither archetype set
+# `ecosystem_services`, and no calibration or stress path supplied it. See
+# notes/guf-restoration-derivation.md.
+# ===========================================================================
+
+from hours_eoh.data import (
+    GUF_SERVICE_PROFILE_DECLARED,
+    GUF_SERVICE_RETENTION_BY_USE,
+    SLU_HECTARES,
+)
+from hours_eoh.land.collective import attach_ecosystem_services
+from hours_eoh.land.guf import USE_CATEGORIES, ecosystem_displacement_surcharge
+
+ARC = [0.0, 0.40, 0.99]
+
+
+class TestArchetypesShipWithoutServices:
+    """E stays 0 by default. Turning it on is a calibration change, not plumbing."""
+
+    def test_neither_factory_sets_ecosystem_services(self):
+        for factory in (make_urban_collective, make_rural_collective):
+            parcels = factory(50)
+            assert not any(p.get("ecosystem_services") for p in parcels)
+
+    def test_attaching_does_not_mutate_the_input(self):
+        base = make_urban_collective(20)
+        enriched = attach_ecosystem_services(base)
+        assert all("ecosystem_services" not in p for p in base)
+        assert all(p["ecosystem_services"] for p in enriched)
+
+
+class TestAreaConversionAndScaling:
+
+    def test_volume_uses_the_slu_to_hectare_conversion(self):
+        parcel = [{"area_slu": 100.0, "location_value": 0.5,
+                   "use_category": "residential_primary"}]
+        out = attach_ecosystem_services(parcel, retained=0.0)
+        carbon = next(s for s in out[0]["ecosystem_services"] if s["service"] == "carbon")
+        expected = 100.0 * SLU_HECTARES * GUF_SERVICE_PROFILE_DECLARED["carbon"]
+        assert carbon["volume"] == pytest.approx(expected, rel=1e-12)
+
+    def test_e_scales_with_parcel_area(self):
+        small = attach_ecosystem_services(
+            [{"area_slu": 1.0, "location_value": 0.5, "use_category": "residential_primary"}],
+            retained=0.0)
+        big = attach_ecosystem_services(
+            [{"area_slu": 10.0, "location_value": 0.5, "use_category": "residential_primary"}],
+            retained=0.0)
+        for a, b in zip(small[0]["ecosystem_services"], big[0]["ecosystem_services"]):
+            assert b["volume"] == pytest.approx(10.0 * a["volume"], rel=1e-12)
+
+
+class TestRetentionFollowsUseCategory:
+    """
+    ρ = 1 gives E = 0 CORRECTLY: land that keeps delivering its services owes no
+    displacement surcharge. That is the reframing sitting in the equation — E is
+    structurally a disturbance measure.
+    """
+
+    def test_default_takes_rho_from_the_parcel_use_category(self):
+        parcels = [
+            {"area_slu": 1.0, "location_value": 0.5, "use_category": "conservation"},
+            {"area_slu": 1.0, "location_value": 0.5, "use_category": "industrial_heavy"},
+        ]
+        out = attach_ecosystem_services(parcels)  # retained=None → by use
+        assert out[0]["ecosystem_services"][0]["retained"] == \
+            GUF_SERVICE_RETENTION_BY_USE["conservation"]
+        assert out[1]["ecosystem_services"][0]["retained"] == \
+            GUF_SERVICE_RETENTION_BY_USE["industrial_heavy"]
+
+    def test_conservation_owes_less_than_industry_on_identical_land(self):
+        """The ORDERING is the claim; the magnitudes are placeholders."""
+        def e_for(use):
+            p = [{"area_slu": 5.0, "location_value": 0.5, "use_category": use}]
+            base = compute_collective_guf(p, 0.40)["guf_gross_revenue"]
+            enr = compute_collective_guf(attach_ecosystem_services(p), 0.40)["guf_gross_revenue"]
+            return enr - base
+        assert e_for("conservation") < e_for("agricultural_active") < e_for("industrial_heavy")
+
+    def test_retention_table_covers_every_use_category(self):
+        assert set(GUF_SERVICE_RETENTION_BY_USE) == set(USE_CATEGORIES)
+
+    def test_retention_values_are_fractions_and_ordered_as_claimed(self):
+        for use, rho in GUF_SERVICE_RETENTION_BY_USE.items():
+            assert 0.0 <= rho <= 1.0, use
+        assert GUF_SERVICE_RETENTION_BY_USE["conservation"] > \
+               GUF_SERVICE_RETENTION_BY_USE["agricultural_active"] > \
+               GUF_SERVICE_RETENTION_BY_USE["commercial_retail"] > \
+               GUF_SERVICE_RETENTION_BY_USE["industrial_heavy"]
+
+    def test_explicit_scalar_overrides_the_table(self):
+        parcels = [{"area_slu": 1.0, "location_value": 0.5, "use_category": "conservation"}]
+        out = attach_ecosystem_services(parcels, retained=0.0)
+        assert out[0]["ecosystem_services"][0]["retained"] == 0.0
+
+    def test_rho_zero_is_the_upper_bound_on_e(self):
+        base = make_rural_collective(100)
+        b = compute_collective_guf(base, 0.40)["guf_gross_revenue"]
+        upper = compute_collective_guf(
+            attach_ecosystem_services(base, retained=0.0), 0.40)["guf_gross_revenue"]
+        by_use = compute_collective_guf(
+            attach_ecosystem_services(base), 0.40)["guf_gross_revenue"]
+        assert upper - b > by_use - b > 0.0
+
+
+class TestArcCoherence:
+
+    def test_raw_surcharge_falls_with_automation(self):
+        """
+        E itself is κ-driven and monotonically decreasing. Tested on the RAW
+        surcharge, not on the difference in total GUF — see the test below for
+        why that distinction matters.
+        """
+        enriched = attach_ecosystem_services(make_rural_collective(50))
+        services = [s for p in enriched for s in p["ecosystem_services"]]
+        prev = None
+        for eps in ARC:
+            e = ecosystem_displacement_surcharge(services, eps)["surcharge_total"]
+            assert math.isfinite(e) and e > 0.0
+            if prev is not None:
+                assert e < prev, f"κ must fall with ε (ε={eps})"
+            prev = e
+
+    def test_the_fee_contribution_is_NOT_monotonic_because_of_psi(self):
+        """
+        A trap worth pinning. E falls monotonically in ε, but what a parcel
+        actually pays is Ψ(ε)·E, and Ψ is a bell curve (0.02 → 1.00 → 0.035).
+        So the ecological CONTRIBUTION to GUF rises to mid-arc and then falls.
+        An arc test asserting monotonicity on the fee would fail for a correct
+        implementation — as this one first did.
+        """
+        base = make_rural_collective(50)
+        enriched = attach_ecosystem_services(base)
+
+        def contribution(eps: float) -> float:
+            b = compute_collective_guf(base, eps)["guf_gross_revenue"]
+            e = compute_collective_guf(enriched, eps)["guf_gross_revenue"]
+            return e - b
+
+        low, mid, high = contribution(0.0), contribution(0.40), contribution(0.99)
+        assert mid > low and mid > high
+        for v in (low, mid, high):
+            assert math.isfinite(v) and v > 0.0

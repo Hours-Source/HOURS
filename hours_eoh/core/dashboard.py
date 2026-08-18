@@ -407,6 +407,14 @@ def system_dashboard(
     # Contestability (reconciliation §8) — computed by the caller
     chi: float | None = None,
     exit_financeable: bool | None = None,
+    # The caller's already-computed ecological EOH, forwarded to
+    # `fiscal_health_check`. Without it the fiscal layer falls back to
+    # `base_rate = ECOLOGICAL_BASE_RATE`, the WHOLE-US obligation, against
+    # whatever population the caller is modelling — the frame mismatch Phase 4b
+    # fixed in `total_eoh` and which reached this layer only through callers
+    # that happened to pass it. `simulation.py` and `civilization.py` did; the
+    # dashboard CLI did not, and reported an ecological cost ~812x inflated.
+    eco_eoh_override: float | None = None,
 ) -> dict:
     """
     Full system health dashboard — all four conditions plus health indicators.
@@ -514,6 +522,7 @@ def system_dashboard(
     fis_h = fiscal_health_check(
         trust_balance, labor_income, capital_stock_teh, capital_age_ratio,
         population, floor_teh, epsilon, suff_levy_rate, dep_rate, div_rate,
+        eco_eoh_override=eco_eoh_override,
     )
 
     # Overall assessment

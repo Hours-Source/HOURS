@@ -133,6 +133,27 @@ def load_land_use() -> list[dict]:
     return [r for r in rows if r["land_use"] != _TOTAL_CLASS]
 
 
+def land_hectares_by_class() -> dict[str, float]:
+    """
+    {land-use class: hectares} — the dict projection of `load_land_use`.
+
+    THE ONE LOADER, and it excludes the aggregate row for the same reason
+    `load_land_use` does: MLU publishes a "Total land" line alongside the nine
+    classes that partition it, so a mapping carrying both double-counts the
+    moment anyone sums its values. Use `total_land_hectares()` for the
+    denominator — the aggregate is a DIFFERENT quantity and is fetched by a
+    different function on purpose.
+
+    Added 2026-08-17, collapsing a duplicate: `reference/servicing` had grown
+    its own dict loader over the same CSV, and that one INCLUDED the aggregate.
+    No live figure was wrong — every consumer either summed named classes or
+    skipped the row explicitly — but one consumer already carried a
+    `if name == "Total land": continue` workaround, which is a duplicate
+    announcing itself.
+    """
+    return {r["land_use"]: r["area_hectares"] for r in load_land_use()}
+
+
 def total_land_hectares() -> float:
     """Total US land area, hectares. The census denominator."""
     with _DATA.open() as fh:

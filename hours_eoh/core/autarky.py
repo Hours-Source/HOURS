@@ -65,7 +65,7 @@ from hours_eoh.core.eoh_generation import (
     personal_base_for,
     personal_eoh,
 )
-from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH
+from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA
 
 
 class AutarkyReference(TypedDict):
@@ -123,7 +123,20 @@ def autarky_reference(
             "use 'sufficiency' (F_a) or 'survival' (S_a)"
         )
     p = personal_eoh(population, age_distribution, standard=standard)
-    e = ecological_eoh(ecosystem_health)
+    # Resolve the ecological area FROM the population, as `total_eoh` does.
+    # Until 2026-08-17 this line called `ecological_eoh(ecosystem_health)` with
+    # no area, so the term was IDENTICAL at every population while `personal_eoh`
+    # on the line above scaled with it — and the two were then summed. Fourth
+    # instance of the frame mismatch, after the pipeline, `scenarios/sweep.py`
+    # and the dashboard's fiscal path, and the first found inside `core/`.
+    # Small here (B₀ per capita moves 0.04%) precisely because the ecological
+    # domain is tiny; the FORM was wrong regardless, and a reference the
+    # overbuild test is measured against should not depend on a frame nobody
+    # declared.
+    e = ecological_eoh(
+        ecosystem_health,
+        area_hectares=population * LAND_HECTARES_PER_CAPITA,
+    )
     return AutarkyReference(
         personal=p, ecological=e, total=p + e,
         per_capita=(p + e) / population, standard=standard,

@@ -1440,6 +1440,87 @@ PRACTICE_EQUIPMENT_WIDTHS_FT: dict[str, float] = {
 #   magnitude between a city and a rangeland — and it is here only so
 #   scenarios/ecological_floor.py can state the inversion at a stated scale.
 LAND_HECTARES_PER_CAPITA: float = 1.65  # ha/person — the stewardship denominator
+# tag: measured | tier: A | units: persons
+# form: world population, UN World Population Prospects 2024 revision, mid-2025
+#   estimate rounded to two significant figures at the scale it is used.
+# note: this number already governed a shipped constant while existing only as
+#   PROSE. LAND_HECTARES_PER_CAPITA = 1.65 is documented as "~1.34e10 ha over a
+#   world population of ~8.1e9", so the divisor was carried in a comment where
+#   nothing could read it, check it or age it. Naming it makes the global frame
+#   in JURISDICTION_FRAMES derivable instead of restated — the same move that
+#   bound US_POPULATION and REFERENCE_POPULATION_US to one source.
+# resolves_by: nothing — a published measurement. It moves when the UN revises
+#   (2-year cycle).
+WORLD_POPULATION: float = 8_100_000_000.0  # persons, UN WPP 2024 rev., mid-2025
+# tag: convention | units: persons
+# form: the population at which this package's extensive TEH constants are
+#   stated. CAPITAL_STOCK_DEFAULT and TRUST_BASE_TEH both say "TEH (at the 1M
+#   reference population)" in their own tag blocks; this names the population
+#   those sentences refer to.
+# note: A THIRD QUANTITY THAT MUST TRAVEL WITH THE FRAME, and the one that
+#   hides. Land and population are the visible pairing, but capital is stated
+#   per-frame too, so running the US population against an unscaled
+#   CAPITAL_STOCK_DEFAULT models 335M people holding the capital stock of 1M —
+#   5.97 TEH/capita against 2,000. It was found by a frame-invariance test
+#   failing at 5.7% while the other two domains agreed exactly, not by reading
+#   the constant. What the frame holds fixed is capital INTENSITY, not the
+#   absolute stock.
+# decided_by: a reference-frame declaration. Changing it changes what every
+#   extensive constant in the package MEANS, which is the convention test.
+REFERENCE_FRAME_POPULATION: float = 1_000_000.0  # persons — the frame extensives are stated at
+# tag: normative | units: fraction
+# form: the band around a declared frame's hectares-per-capita within which a
+#   supplied (population, area) pairing is called consistent with it.
+# note: deliberately WIDE. The question it answers is "is this the same order
+#   of land per person", not "do these agree to the hectare" — the mismatch it
+#   exists to catch is 335x. A tight tolerance would reclassify ordinary
+#   collectives as inconsistent and make the check noise.
+# decided_by: a reporting threshold, chosen. No dataset settles what counts as
+#   "the same frame"; the same status as the dashboard health thresholds, and
+#   like them it governs a label rather than a quantity.
+FRAME_CONSISTENCY_TOLERANCE: float = 0.10  # ±10% on ha/person to call a pairing consistent
+# tag: convention | units: dict of frame name -> {population: persons, land_hectares: ha}
+# form: DECLARED PAIRINGS of a population with the land area it is responsible
+#   for. Every value is BOUND to the constant that already carries it —
+#   US_REFERENCE_POPULATION, US_MAINLAND_HECTARES, LAND_HECTARES_PER_CAPITA —
+#   rather than restated. A frame that restated 335,000,000 would be the sixth
+#   copy-of-a-value-whose-source-is-elsewhere, after GUF_PSI_NORM,
+#   RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS, the mean_multiplier literal
+#   and US_POPULATION itself.
+# note: THE FRAME MISMATCH THIS EXISTS TO MAKE VISIBLE. ECOLOGICAL_BASE_RATE is
+#   the obligation for the WHOLE contiguous US (765,495,267 ha), while the
+#   shipped default population across the package is 1,000,000. Nothing
+#   connects them, so the ecological domain is divided by a millionth of the
+#   population that lives on the land it is keyed to, and the reported
+#   ecological SHARE is frame-dependent by a factor of 335: 0.0448% at the
+#   shipped pairing against 0.000146% at the honest US one. The shipped
+#   default is the FLATTERING reading. `reference_1m` is the consistent
+#   million-person frame — the US land-per-person ratio, not the whole US.
+#   REPORTING ONLY at introduction: no generation function consumes this and no
+#   shipped number moves. Making the default frame consistent is a calibration
+#   change and needs sign-off, because it moves the ecological anchor 335x.
+# decided_by: a reference-frame declaration, not a measurement — the pairing is
+#   a statement about WHAT IS BEING MODELLED. The same status as the eight
+#   CANONICAL_* constants: changing it changes what the numbers MEAN.
+JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
+    # The honest US pairing: contiguous-48 land with the population living on it.
+    "us_mainland": {
+        "population":     US_REFERENCE_POPULATION,
+        "land_hectares":  US_MAINLAND_HECTARES,
+    },
+    # A million people holding land at the US per-capita ratio (2.285 ha/person).
+    # This is what the shipped 1M default SHOULD be paired with; it is not what
+    # it is currently paired with, which is the whole contiguous US.
+    "reference_1m": {
+        "population":     1_000_000.0,
+        "land_hectares":  1_000_000.0 * (US_MAINLAND_HECTARES / US_REFERENCE_POPULATION),
+    },
+    # The planetary average behind LAND_HECTARES_PER_CAPITA, at world population.
+    "global": {
+        "population":     WORLD_POPULATION,
+        "land_hectares":  WORLD_POPULATION * LAND_HECTARES_PER_CAPITA,
+    },
+}
 # tag: placeholder | units: ecosystem health index ∈ [0,1]
 # form: physics — ecological regime shifts are established, so a threshold
 #   below which burden escalates nonlinearly is structural. Where 0.40 falls
@@ -1544,11 +1625,18 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   data-vintage churn; it FOLLOWS internal drift, because a change to any
 #   constant inside total_eoh changes the derivation's own inputs. Re-anchored
 #   2026-08-09 (Finding E, ε* 0.4522), 2026-08-10 (the AGE_GROUPS elderly
-#   revalue, ε* 0.3828) and 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at
-#   37.5, ε* 0.38689). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST
-#   REASSURING: a 6.7% rise in the renewal rate moved this constant by −2.0%,
-#   because the fixed point absorbs most of it. The coupling is real and it is
-#   damped, which is the property a one-shot anchor could not demonstrate.
+#   revalue, ε* 0.3828), 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at
+#   37.5, ε* 0.38689) and 2026-08-17 (the Phase-4b frame resolution, ε*
+#   0.386619). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST REASSURING: a
+#   6.7% rise in the renewal rate moved this constant by −2.0%, because the
+#   fixed point absorbs most of it. The coupling is real and it is damped,
+#   which is the property a one-shot anchor could not demonstrate.
+#   THE FOURTH IS SMALLER STILL — +0.13% — and it says something about the
+#   model rather than about this constant: the ecological domain was corrected
+#   DOWNWARD by 464× and the knowledge base barely moved, because ecological is
+#   so small a share of total_eoh that even a 464× error in it is nearly
+#   invisible to everything downstream. That is the domain-balance defect
+#   restated as a sensitivity, and it converged in ONE iteration.
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
@@ -1561,7 +1649,7 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 522_918_893.27  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.38689 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 523_612_102.71  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.386619 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2331,6 +2419,199 @@ GUF_ECO_BETA_THERMAL:           float = 0.8
 #   and still without a measurement behind any of the three.
 GUF_ECO_KAPPA_FLOOR_FRACTION: float = 0.10
 
+# tag: derived | units: dict of service name -> {kappa_ref: TEH/unit/yr, beta: exponent, unit: str}
+# form: PAIRS each ecosystem service's replacement cost with its own automation
+#   exponent, both bound to the constants above rather than restated. The unit
+#   string is carried because κ is meaningless without it — 0.6 TEH/tonne-CO₂eq
+#   and 0.006 TEH/m³ are not comparable magnitudes, and a caller supplying a
+#   volume in the wrong unit gets a silently wrong surcharge.
+# note: THE SEVEN κ CONSTANTS WERE READ BY NOTHING. Before this registry, only
+#   GUF_ECO_KAPPA_FLOOR_FRACTION was consumed anywhere in the package: E(p,ε)
+#   defaults to zero, no scenario supplied `ecosystem_services`, and every
+#   caller that did — the CLI example, the collective parcel schema — passed
+#   BARE LITERALS (`"kappa_ref": 1.65`). So the named defaults documented a
+#   value the code never used, which is the `= 1500.0` and `mean_multiplier =
+#   2.10` hazard in its purest form: the constants and the running values could
+#   not disagree, because the constants were not running values at all. It also
+#   explains the GUF_ECO_KAPPA_CARBON reconciliation's "zero blast radius"
+#   finding of 2026-08-09 — nothing was reading it.
+#   κ AND β WERE ALSO UNPAIRED, and that is the sharper defect: they are
+#   per-service partners (Eq. 15 derives κ_max from κ_ref THROUGH β), so a
+#   caller passing carbon's κ with pollination's β got a curve belonging to
+#   neither, and nothing could detect it. Pairing them makes that unstateable.
+# note: this registry is a BINDING, not a measurement. Six of the seven κ are
+#   placeholders and the seventh (carbon) is Tier D; the β ORDERING is an
+#   argument the framework makes and the magnitudes are unconstrained. Naming
+#   the services does not ground them — it makes them reachable, which is the
+#   precondition for grounding them.
+GUF_ECOSYSTEM_SERVICES: dict[str, dict[str, object]] = {
+    "water_filtration": {
+        "kappa_ref": GUF_ECO_KAPPA_WATER_FILTRATION,
+        "beta":      GUF_ECO_BETA_WATER_FILTRATION,
+        "unit":      "ML/yr",
+    },
+    "flood_attenuation": {
+        "kappa_ref": GUF_ECO_KAPPA_FLOOD_ATTENUATION,
+        "beta":      GUF_ECO_BETA_FLOOD_ATTENUATION,
+        "unit":      "m3-retention/yr",
+    },
+    "carbon": {
+        "kappa_ref": GUF_ECO_KAPPA_CARBON,
+        "beta":      GUF_ECO_BETA_CARBON,
+        "unit":      "tonne-CO2eq/yr",
+    },
+    "air_quality": {
+        "kappa_ref": GUF_ECO_KAPPA_AIR_QUALITY,
+        "beta":      GUF_ECO_BETA_AIR_QUALITY,
+        "unit":      "tonne-particulate/yr",
+    },
+    "pollination": {
+        "kappa_ref": GUF_ECO_KAPPA_POLLINATION,
+        "beta":      GUF_ECO_BETA_POLLINATION,
+        "unit":      "ha-equivalent/yr",
+    },
+    "biodiversity": {
+        "kappa_ref": GUF_ECO_KAPPA_BIODIVERSITY,
+        "beta":      GUF_ECO_BETA_BIODIVERSITY,
+        "unit":      "HQU/yr",
+    },
+    "thermal": {
+        "kappa_ref": GUF_ECO_KAPPA_THERMAL,
+        "beta":      GUF_ECO_BETA_THERMAL,
+        "unit":      "cooling-degree-day/yr",
+    },
+}
+
+# tag: convention | units: hectares per Standard Land Unit
+# form: 1 SLU = 100 m² = 0.01 ha, by the NLSA definition of the unit.
+# note: the definition was carried in PROSE ONLY — "1 SLU = 100 m²" appears in
+#   land/guf.py's module header and in three docstrings, and nowhere as a value
+#   anything could read. Nothing needed it while GUF worked entirely in SLU;
+#   ecosystem service volumes arrive per HECTARE (i-Tree, FIA and every
+#   ecological survey report per unit area), so linking a service profile to a
+#   parcel needs the conversion to exist. Third prose-only number named this
+#   session, after WORLD_POPULATION and REFERENCE_FRAME_POPULATION.
+# decided_by: the unit definition itself; changing it changes what SLU MEANS.
+SLU_HECTARES: float = 0.01  # ha per SLU (1 SLU = 100 m²)
+
+# tag: instance | units: dict of service name -> volume per hectare per year
+# supplied_by: an ecological survey of YOUR OWN land. The two services here are
+#   the ones with a public instrument that reports the right quantity in the
+#   right units per unit area:
+#     carbon      — USDA Forest Service FIA carbon estimates, or EPA GHG
+#                   Inventory LULUCF by land class. FIELD: net annual
+#                   sequestration per hectare by forest type. Not the stock.
+#     air_quality — i-Tree Eco / i-Tree Landscape. FIELD: annual pollution
+#                   removal (PM2.5/PM10) by canopy, mass per unit area.
+#   The other five registered services are deliberately ABSENT rather than
+#   guessed: water filtration and pollination are modelled (InVEST) not
+#   measured, thermal's cooling-degree-day is a climate variable rather than a
+#   service volume, and biodiversity's "HQU" is not a standard unit anywhere —
+#   it needs a DEFINITION before it needs data.
+# default: ORDER-OF-MAGNITUDE PLACEHOLDERS, and they are not a measurement of
+#   anywhere. They exist so E(p,ε) can be exercised at a stated scale and so the
+#   ×100 calibration can be re-run with the ecological term switched ON — which
+#   has never been done, because E has been zero in every scenario the package
+#   ships. Round values are used deliberately: false precision here would read
+#   as a measurement, and the discipline reference/personal_basket.py holds is
+#   that an invented figure entering beside a measured one becomes
+#   indistinguishable from it afterwards. Treat any number computed from this
+#   profile as a SENSITIVITY, never as a result.
+GUF_SERVICE_PROFILE_DECLARED: dict[str, float] = {
+    "carbon":      2.0,    # tonne-CO2eq per hectare per year
+    "air_quality": 0.005,  # tonne-particulate per hectare per year
+}
+
+# tag: instance | units: fraction of natural service retained, by use category
+# form: ρ_s(p) in NLSA Eq. 14 — E = Σ V_s · κ_s(ε) · (1 − ρ_s). ρ = 1 means the
+#   developed state still delivers the service in full and the parcel owes NO
+#   ecosystem surcharge; ρ = 0 means total displacement.
+# note: THE AUTHOR'S REFRAMING IS ALREADY IN THIS TERM. Under "nature in balance
+#   asks little of us; GUF is the cost of resetting land for human use", E is
+#   structurally a DISTURBANCE measure — undisturbed land keeps ρ ≈ 1 and owes
+#   nothing, and the fee rises precisely as use displaces function. That is why
+#   `conservation` sits at 0.95 and `industrial_heavy` at 0.02: the ordering IS
+#   the claim, and it is the same shape as the 27× disturbance gradient the
+#   stewardship census found independently (federal parks 0.161 → urban 4.349
+#   h/ha·yr, notes/guf-restoration-derivation.md §2c).
+#   Before this existed, ρ defaulted to 0.0 EVERYWHERE — asserting that every
+#   parcel, including conservation land, displaces its services totally. That is
+#   the upper bound on E, not a neutral default.
+# supplied_by: impervious-surface fraction for YOUR parcels. Intake path: the
+#   USGS/MRLC National Land Cover Database publishes it directly — FIELD:
+#   NLCD Percent Developed Imperviousness, 30 m raster — and for services
+#   delivered by soil and vegetation ρ ≈ 1 − impervious_fraction is a defensible
+#   first mapping. It is measured, gridded, and already aligned to land class,
+#   which is more than any of the seven κ values can say.
+# default: ORDERED PLACEHOLDERS. The RANKING is argued (sealed surface destroys
+#   soil and canopy function; agriculture keeps soil but loses canopy;
+#   conservation keeps nearly all); the MAGNITUDES are not constrained by
+#   anything here. Do not quote a level. The ranking is what a first NLCD pass
+#   would confirm or refute, and refuting the ranking would be the interesting
+#   result.
+GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
+    "conservation":          0.95,
+    "agricultural_fallow":   0.70,
+    "agricultural_active":   0.50,
+    "institutional":         0.35,
+    "residential_secondary": 0.30,
+    "residential_primary":   0.25,
+    "commercial_office":     0.10,
+    "commercial_retail":     0.05,
+    "industrial_light":      0.05,
+    "industrial_heavy":      0.02,
+}
+
+# tag: convention | units: dimensionless multiplier
+# form: the factor GUF_USE_* were scaled by, from the NLSA template's abstract
+#   per-category values. Stated in the GUF_USE_* tag block; named here so the
+#   servicing census can quote it without restating it.
+# note: THE VALUE PHASE 2 EXISTS TO TEST. It was chosen so aggregate GUF over a
+#   1M-population inventory would land co-equal with levy revenue at mid-arc —
+#   a value reverse-engineered from a desired outcome, which is why GUF_USE_* is
+#   tagged `placeholder` rather than measured. `eoh scenario run
+#   servicing_census` measures the quantity the fee is DEFINED as and finds this
+#   overshoots by ~35× in aggregate, implying ~2.8 in its place. It is NOT
+#   changed on that finding: the census settles the LEVEL and cannot settle the
+#   ten RATIOS, and the realised-rate decomposition shows the error is a density
+#   gradient rather than a single scale — rural lands within 1.12× while urban
+#   runs 18× over. Retiring it is a calibration decision, not a rescaling.
+# decided_by: the NLSA template scaling, retained pending the Phase 2 decision.
+GUF_USE_SCALE_FACTOR: float = 100.0
+
+# tag: convention | units: labour-hours per hectare
+# form: the restoration cost the Phase-0 bounding exercise ASSUMED, retained as
+#   the declared comparison point for the derived figure that replaced it.
+# note: A SUPERSEDED ESTIMATE, NOT A SUPERSEDED CONSTANT — which is why this is
+#   `convention` and not `retired`. It never governed shipped output; it was a
+#   figure used in an analysis ("a plausible restoration figure, prairie
+#   seeding/planting") to bound whether a legacy restoration backlog could move
+#   the ecological domain. Deriving it from ASAE field capacity instead gives
+#   0.87–4.81 h/ha over a whole restoration lifetime, so THE GUESS WAS 21–115×
+#   TOO HIGH. It is kept because the correction is the finding: the conclusion
+#   it supported — that no basis rebalances the domains — holds a fortiori, and
+#   a reader who saw only the derived figure could not tell that the earlier
+#   reasoning had been checked rather than quietly dropped.
+#   WHY IT WAS SO FAR OUT, which is the transferable part: most of a
+#   restoration's DOLLAR cost is not labour — it is seed, plant material,
+#   design and survey — so reasoning from a remembered cost-per-acre and
+#   converting at a wage prices all of that as labour. The same defect that made
+#   NRCS EQIP payment schedules unusable.
+# decided_by: a declared comparison baseline; nothing measures a guess.
+RESTORATION_BOUNDING_ASSUMPTION_H_PER_HA: float = 100.0
+
+# tag: convention | units: years
+# form: the horizon a one-off restoration is amortised over when expressed as an
+#   annual obligation.
+# note: a REPORTING FRAME, not a claim about how long restoration takes — the
+#   same role GUF_WRITEDOWN_AMORTIZATION_YEARS plays for write-downs, and it
+#   carries the same value for the same reason. Every figure derived through it
+#   scales inversely with it, which is asserted in the tests rather than left
+#   for a reader to assume.
+# decided_by: a reporting convention. Changing it changes what the annualised
+#   restoration figures MEAN, which is the convention test.
+RESTORATION_AMORTIZATION_YEARS: float = 50.0
+
 # Infrastructure proximity distance-decay rates μ_k (km⁻¹) (NLSA Eq. 16)
 # tag: placeholder | units: per kilometre | family: GUF_INFRA_MU_*
 # form: NLSA Eq. 16 — exponential decay of infrastructure benefit with
@@ -3027,6 +3308,24 @@ A_EARTH_M2: float = 5.101e14        # Earth surface area, m² (physics)
 # tag: physics | units: W·m⁻²·K⁻⁴
 # form: the Stefan–Boltzmann constant. A physical constant of nature.
 SIGMA_SB: float = 5.670374419e-8    # Stefan–Boltzmann constant, W·m⁻²·K⁻⁴ (physics)
+# tag: derived | units: kelvin
+# form: Earth's effective emission temperature — the blackbody temperature that
+#   radiates the absorbed solar flux. Computable as (S₀(1−α)/4σ)^¼ from the
+#   solar constant and planetary albedo; neither is carried here, so the
+#   standard value is adopted and the derivation is stated rather than run.
+# note: EXISTS TO GIVE SIGMA_SB SOMETHING TO DO. `SIGMA_SB` is one of only two
+#   `physics`-tagged constants in this file and was read by NOTHING until
+#   2026-08-17 — the headline "only 2 constants are physics" was true and
+#   neither was doing any work. Paired with this temperature it yields the
+#   Planck feedback 4σT³ = 3.761 W·m⁻²·K⁻¹, which bounds THERMAL_LAMBDA_FEEDBACK
+#   from above (research/thermal_lambda.planck_feedback). Before that, the
+#   Planck term lived as the prose "Planck-only ≈ 3.2" in this file's λ note and
+#   in thermal_path_c.json — a number governing the model from inside a comment,
+#   the same shape as WORLD_POPULATION and SLU_HECTARES.
+# resolves_by: nothing — a standard geophysical quantity. It moves only if the
+#   solar constant or planetary albedo is revised, and carrying those two would
+#   let this be computed rather than adopted.
+EARTH_EMISSION_TEMPERATURE_K: float = 255.0  # K, Earth's effective radiating temperature
 # tag: convention | units: seconds
 # form: Δt_s for a one-year period — 365.25 d, the Julian year. A stated
 #   denominator; the choice between Julian, tropical and calendar years is a
@@ -3396,12 +3695,28 @@ ETA_BASIS: str = "clear_sky"           # Which radiative-efficiency field weight
                                        # the per-collective gap must stay visible.
 # tag: normative | units: ERA5 land-sea-mask fraction ∈ [0,1]
 # form: lsm ≥ this counts as land (§5 decision 1: territorial sea excluded).
-#   The ERA5 mask is a fraction, so a threshold is required; 0.50 is the
-#   natural midpoint but it IS a threshold on a continuous field, not a
-#   measurement.
-# decided_by: a governance decision on whether partly-marine cells bear an
-#   allocation. The underlying field is measured (ERA5); where the line falls
-#   is not.
+# superseded_by: hours_eoh.research.thermal_path_c.load_eta_land — the shipped
+#   η dataset it returns records, in its own `_method.weighting` field,
+#   "cos(latitude) x land FRACTION (lsm), not a binary threshold, so partial
+#   coastal cells contribute their actual land area".
+# note: THE SHIPPED DATA CONTRADICTED THIS CONSTANT AND NOTHING RECORDED IT
+#   (found 2026-08-17 by a dead-code sweep). Its `form:` asserted that "the ERA5
+#   mask is a fraction, so a THRESHOLD IS REQUIRED"; the η dataset that actually
+#   shipped states in its own method field that it used the continuous land
+#   fraction and explicitly NOT a binary threshold. The generation step answered
+#   the question this constant was posed to settle, and answered it the other
+#   way — so §5 decision 1 was superseded in practice while still being carried
+#   here as live governance.
+#   It is retired rather than wired, because wiring it would REINTRODUCE the
+#   binary threshold the data deliberately avoided: partial coastal cells would
+#   flip to all-or-nothing instead of contributing their actual land area, which
+#   is strictly worse and would silently change every per-collective η.
+#   The wider lesson is that the provenance gate proves a constant is
+#   DOCUMENTED, not that it is USED — this one was tagged, audited, and
+#   contradicted by the dataset it governed.
+# decided_by: superseded. The continuous-fraction weighting is the operative
+#   decision and it lives with the data that implements it, which is the right
+#   place for a method choice the generation step makes.
 ETA_LAND_MASK_THRESHOLD: float = 0.50  # lsm ≥ this counts as land (§5 decision 1: territorial
                                        # sea excluded). Measured; ERA5 lsm is a fraction.
 # tag: normative | units: policy switch — "pro_rata"

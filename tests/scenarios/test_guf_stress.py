@@ -323,3 +323,94 @@ class TestAutomationLevyGufStress:
             epsilon_start=0.30, epsilon_end=0.75, n_periods=5
         )
         assert result["epsilon_range"] == [0.30, 0.75]
+
+
+# ===========================================================================
+# ε-coherence for the writedown scenario (2026-08-17).
+#
+# THE GAP THAT HID A LIVE DEFECT. Every existing test of
+# guf_writedown_scenario ran at ε=0.40. κ_s(ε) equals κ_ref EXACTLY at 0.40 by
+# construction (NLSA Eq. 15), so a β mismatch between two entries describing the
+# same service is invisible there — and one was shipped: the default parcel
+# carried beta 0.8 on services_reset and beta 0.7 on services_lost for the same
+# water-filtration service. CLAUDE.md requires tests at the four key ε values
+# precisely so a check cannot land only where the defect cancels.
+# ===========================================================================
+
+ARC_EPSILONS = [0.0, 0.40, 0.90, 0.99]
+
+
+class TestWritedownArcCoherence:
+
+    def test_runs_and_stays_finite_across_the_arc(self):
+        for eps in ARC_EPSILONS:
+            for pathway in ("restoration", "abandonment"):
+                r = guf_writedown_scenario(epsilon=eps, pathway=pathway)
+                rb = r["rebuilding_surcharge_total"]
+                assert math.isfinite(rb) and rb >= 0.0, (eps, pathway)
+
+    def test_rebuilding_surcharge_falls_with_automation(self):
+        """
+        κ_s(ε) is monotonically decreasing, so the amortised replacement cost of
+        a lost service must fall as ε rises. This is the assertion that would
+        have caught the mismatch: it only has content OFF the reference point.
+        """
+        prev = None
+        for eps in ARC_EPSILONS:
+            rb = guf_writedown_scenario(
+                epsilon=eps, pathway="abandonment"
+            )["rebuilding_surcharge_total"]
+            if prev is not None:
+                assert rb < prev, f"ε={eps} did not fall below the previous point"
+            prev = rb
+
+    def test_default_parcel_prices_one_service_on_one_curve(self):
+        """
+        The regression pin for the fix. Both the reset and the lost entry must
+        resolve to water filtration's OWN β — not two different exponents for
+        one physical service. Checked away from ε=0.40, where a mismatch cancels.
+        """
+        from hours_eoh.data import (
+            GUF_ECO_BETA_WATER_FILTRATION,
+            GUF_ECO_KAPPA_WATER_FILTRATION,
+        )
+        from hours_eoh.land.guf import ecosystem_service_kappa
+
+        for eps in (0.0, 0.99):
+            expected_kappa = ecosystem_service_kappa(
+                GUF_ECO_KAPPA_WATER_FILTRATION, GUF_ECO_BETA_WATER_FILTRATION, eps
+            )
+            # volume_lost 0.4 amortised over the default 50-year horizon
+            expected = 0.4 * expected_kappa / 50.0
+            got = guf_writedown_scenario(
+                epsilon=eps, pathway="abandonment"
+            )["rebuilding_surcharge_total"]
+            assert got == pytest.approx(expected, rel=1e-12), f"ε={eps}"
+
+    def test_the_mismatch_would_now_be_visible(self):
+        """
+        Demonstrates that the arc test has teeth: reintroducing the old β on the
+        lost side changes the result off the reference point, and does not
+        change it at ε=0.40 — which is exactly why it survived.
+        """
+        old = [{
+            "area_slu": 3.5, "location_value": 0.629,
+            "use_category": "residential_primary",
+            "services_reset": [{"service": "water_filtration", "volume": 0.4,
+                                "retained": 0.3}],
+            "services_lost": [{"label": "water", "volume_lost": 0.4,
+                               "kappa_ref": 1.65, "beta": 0.7}],
+        }]
+        at_ref = guf_writedown_scenario(epsilon=0.40, pathway="abandonment",
+                                        parcels_at_risk=old)
+        ref_now = guf_writedown_scenario(epsilon=0.40, pathway="abandonment")
+        assert at_ref["rebuilding_surcharge_total"] == pytest.approx(
+            ref_now["rebuilding_surcharge_total"], rel=1e-12
+        ), "the mismatch must be invisible at ε=0.40 — that is the finding"
+
+        off_ref = guf_writedown_scenario(epsilon=0.99, pathway="abandonment",
+                                         parcels_at_risk=old)
+        now = guf_writedown_scenario(epsilon=0.99, pathway="abandonment")
+        assert off_ref["rebuilding_surcharge_total"] != pytest.approx(
+            now["rebuilding_surcharge_total"], rel=1e-6
+        ), "and visible off it"
