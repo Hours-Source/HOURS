@@ -3,8 +3,16 @@ Ground Use Fee (GUF) calculation framework.
 
 Implements NLSA Template
 
-Master equation (NLSA Eq. 1):
-  GUF(p) = Ψ(ε) × [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E(p,ε) + I(p,ε)] × Ω(p)
+Master equation (NLSA Eq. 1, as applied since 2026-08-20):
+  GUF(p) = [Ψ_b·A(p)×L(p)×U(p,ε)×D(p)×Z(p) + Ψ_e·E(p,ε) + Ψ_i·I(p,ε)] × Ω(p)
+
+where (Ψ_b, Ψ_e, Ψ_i) = psi_application(ε, psi_policy). THE DEFAULT IS
+`retired`, i.e. all three are 1.0, and the equation reduces to
+
+  GUF(p) = [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E(p,ε) + I(p,ε)] × Ω(p)
+
+Pass psi_policy="bell" to recover NLSA Eq. 1 verbatim, Ψ(ε) multiplying the
+whole bracket. See `psi_application` for why the bell was retired.
 
 where:
   Ψ(ε)   = Epsilon Scaling Function — global arc multiplier
@@ -17,13 +25,21 @@ where:
   I(p,ε) = Infrastructure Proximity Premium (TEH/yr)
   Ω(p)   = Occupancy Fraction (default 1.0)
 
-ε arc shape: low at ε=0 (subsistence, minimal institutional capacity),
-peak near ε=0.40 (intensive urbanization, high demand, peak displacement),
-low at ε=0.99 (labor costs collapsed, stewardship-floor only).
+ε arc shape, under the default `retired` policy: MONOTONE FALLING, carried by
+α(ε) = labor_content_scaling inside U(p,ε). Unautomated land administration
+takes more human hours, so the fee is highest at subsistence and declines as
+automation takes over the work. The bell shape it replaced — low at both ends,
+peak at ε=0.40 — was an artifact of two far-end assumptions that did not
+survive audit (`psi_application`, handoffs/guf_redefinition.md §17).
 
 GUF revenue is circulatory TEH flowing to the Trust. At moderate-to-high ε
 it may become the Trust's dominant revenue source, replacing the contracting
-labor levy base. See guf_trust_inflow() for Trust wiring.
+labor levy base. See guf_trust_inflow() for Trust wiring. NOTE this claim was
+FALSE under the bell — GUF/levy ran 7.54× at ε=0.20 down to 0.10× at ε=0.99,
+so GUF handed over TO the levy rather than replacing it. Under `retired` it
+holds: GUF/levy stays ≥ 0.90× across the whole arc and reaches 2.77× at
+ε=0.99. Retiring Ψ was decided on other grounds; that it repairs this claim is
+corroboration, not the argument.
 
 Mission Statement: §"Land is held by the collective … the fee reflects real
 costs rather than speculative value." §"Revenue streams pegged to the capital
@@ -74,6 +90,222 @@ USE_CATEGORIES: dict[str, float] = {
     "conservation":           GUF_USE_CONSERVATION_CREDIT,
 }
 
+# ---------------------------------------------------------------------------
+# Term basis registry — what each term of the master equation IS
+# handoffs/guf_redefinition.md §10 step 1 ("adopt E as a step")
+# ---------------------------------------------------------------------------
+
+#: The closed vocabulary of definitional bases a fee term may rest on. These are
+#: not interchangeable: two terms on different bases answer different questions
+#: and must not be netted, calibrated against one another, or resolved by one
+#: instrument.
+FEE_BASES: tuple[str, ...] = (
+    "extent",       # the physical quantity the fee is assessed over
+    "cost_flow",    # recurring labour the holding costs, per period
+    "cost_stock",   # one-off labour amortised over an asset's life
+    "rent",         # unearned locational surplus (market-derived)
+    "congestion",   # scarcity/occupancy pressure
+    "damage",       # value destroyed by the use (Pigouvian)
+    "policy",       # a declared charter choice, not a measurement
+    "utilisation",  # the fraction of the assessed quantity actually in use
+    "unresolved",   # no basis survives scrutiny — see the entry
+)
+
+#: WHAT EACH TERM OF NLSA Eq. 1 IS, declared rather than inferred.
+#:
+#: `spec_direction` is scored against the inverted-Goldilocks spec
+#: (handoffs/guf_redefinition.md §1): cheap remote, expensive in serviced
+#: sprawl, cheap dense. "aligned" moves the fee the way the spec wants as
+#: density rises; "inverted" moves it the wrong way; "neutral" is
+#: density-independent.
+#:
+#: `epsilon_response` records whether the term carries its OWN automation
+#: adjustment. It is here because the double-application it exposes is
+#: invisible in any single function: U carries α(ε) internally AND Ψ(ε)
+#: multiplies the bracket that contains it, so the flow leg is discounted
+#: twice for the same stated reason. See `psi_application`.
+TERM_BASIS: dict[str, dict[str, str]] = {
+    "A": {
+        "basis": "extent",
+        "quantity": "parcel ground footprint in Standard Land Units",
+        "spec_direction": "neutral",
+        "epsilon_response": "none",
+        "why": (
+            "The base the fee is assessed over. SLUs are an AREA unit, which is "
+            "why parcel count does not enter the fee at all — see "
+            "scenarios/guf_magnitude.subdivision_invariance."
+        ),
+    },
+    "L": {
+        "basis": "rent",
+        "quantity": "hedonic regression on parcel transaction values",
+        "spec_direction": "inverted",
+        "epsilon_response": "none",
+        "why": (
+            "Its own provenance entry defines it as the output of a hedonic "
+            "regression — 'the standard land-valuation method'. That is "
+            "speculative value, which the Mission Statement disclaims for this "
+            "fee, and it peaks in the dense core where the spec wants the fee "
+            "cheapest. Slated for redefinition as relative servicing intensity "
+            "or deletion; §15 of the memo names the instrument that decides."
+        ),
+    },
+    "U": {
+        "basis": "cost_flow",
+        "quantity": "recurring servicing labour per SLU per year",
+        "spec_direction": "aligned",
+        "epsilon_response": "alpha",
+        "why": (
+            "The one term whose resolves_by names the quantity the fee is "
+            "DEFINED as. Carries labor_content_scaling(ε) internally."
+        ),
+    },
+    "D": {
+        "basis": "congestion",
+        "quantity": "occupancy pressure against a constitutional ceiling",
+        "spec_direction": "inverted",
+        "epsilon_response": "none",
+        "why": (
+            "Congestion is not a cost, and it is a density proxy — so it lifts "
+            "the fee exactly where the spec wants it lowest. Slated to be "
+            "dropped."
+        ),
+    },
+    "Z": {
+        "basis": "policy",
+        "quantity": "local zone adjustment within a permitted band",
+        "spec_direction": "neutral",
+        "epsilon_response": "none",
+        "why": (
+            "Declared governance discretion, and the honest home for any "
+            "wanted location premium: currency-free, market-free, and openly a "
+            "charter decision rather than a measurement."
+        ),
+    },
+    "E": {
+        "basis": "damage",
+        "quantity": "ecosystem service volume displaced by the use",
+        "spec_direction": "aligned",
+        "epsilon_response": "kappa",
+        "why": (
+            "Correct basis for the land-take leg, and numerically inert: "
+            "Phase 1b measured its effect on the calibration at ≤0.017%, and it "
+            "would need ~938× the declared profile to rival base_fee."
+        ),
+    },
+    "I": {
+        "basis": "cost_stock",
+        "quantity": "construction labour, annuitised over design life and shared across beneficiary parcels",
+        "spec_direction": "aligned",
+        "epsilon_response": "construction_epoch",
+        "why": (
+            "NOT benefit-received, which is how it reads and how the redefinition "
+            "memo first scored it. cost_teh/(design_life × beneficiary_count) is "
+            "an amortised capital cost. It is therefore the STOCK leg to U's "
+            "FLOW leg — the Phase 4 partition, already implemented here and "
+            "unrecognised — and it is disjoint from the servicing census by "
+            "construction, because that census excludes construction "
+            "occupations by name. Sign-aligned and structurally so: the "
+            "proximity factor is bounded in (0,1] while 1/beneficiary_count is "
+            "unbounded, so sharing dominates and dense parcels pay less."
+        ),
+    },
+    "Psi": {
+        "basis": "unresolved",
+        "quantity": "—",
+        "spec_direction": "inverted",
+        "epsilon_response": "psi",
+        "why": (
+            "Its two ends carry two different claims and neither survives. The "
+            "ε→0.99 end ('labor costs collapse') is the SAME claim α(ε) already "
+            "implements inside U, applied a second time — together they discount "
+            "the flow leg 271× from its ε=0.40 reference. The ε=0 end "
+            "('institutional capacity is minimal') is a claim about COLLECTION "
+            "CAPABILITY, not cost, and it runs OPPOSITE to α, which correctly "
+            "rises at subsistence. Multiplying them conflates what a holding "
+            "costs with whether an institution can levy it. See `psi_application`."
+        ),
+    },
+    "Omega": {
+        "basis": "utilisation",
+        "quantity": "occupancy fraction of the parcel",
+        "spec_direction": "neutral",
+        "epsilon_response": "none",
+        "why": (
+            "A fraction of the parcel, not a headcount — which is why it cannot "
+            "carry the throughput-scaling share of servicing cost."
+        ),
+    },
+}
+
+
+# ---------------------------------------------------------------------------
+# Ψ application policy
+# ---------------------------------------------------------------------------
+
+#: How Ψ(ε) is applied to the three components of the master equation.
+#: `retired` is the DEFAULT since 2026-08-20 (author decision). `bell` is the
+#: pre-flip behaviour and remains fully reachable and tested — retiring a curve
+#: is not the same as removing the ability to reproduce it, and every NLSA §4.4
+#: boundary condition is still pinned against it.
+PSI_POLICIES: tuple[str, ...] = ("bell", "flow_only", "retired")
+
+
+def psi_application(epsilon: float, policy: str = "retired") -> tuple[float, float, float]:
+    """
+    The multiplier Ψ contributes to each component: (base_fee, E, I).
+
+    Governing forms:
+
+        bell       (Ψ, Ψ, Ψ)      shipped — Ψ multiplies the whole bracket
+        flow_only  (Ψ, 1, 1)      Ψ multiplies only the flow leg
+        retired    (1, 1, 1)      Ψ ≡ 1; the ε response lives where it is earned
+
+    units: dimensionless, one factor per component.
+
+    WHAT THE POLICIES ARE CLAIMING, in order of how much they concede:
+
+    `bell` asserts that a single global automation curve scales recurring
+    servicing cost, ecosystem damage and amortised construction debt by the same
+    factor. It was the shipped default until 2026-08-20 and reproduces every
+    pre-flip figure exactly.
+
+    `flow_only` fixes one structural defect without touching the flow leg: Ψ
+    currently multiplies I, and I's own docstring says cost_teh "retains that
+    higher cost for its full design life", with aggregate I contracting only as
+    legacy assets are REPLACED at higher ε. Multiplying an epoch-fixed annuity by
+    current automation discounts it a second time and short-circuits the asset
+    turnover that was supposed to carry the response. The same argument applies
+    to E, whose κ already carries its own β(ε).
+
+    `retired` additionally drops the flow-leg duplication: U already carries
+    α(ε) = labor_content_scaling, whose stated rationale ("the declining human
+    labor content of land-use administration") is Ψ's own high-end rationale
+    verbatim. At ε=0.99 α = 0.1051 and Ψ = 0.0349, so the pair discounts the flow
+    leg to 0.0037 of its ε=0.40 value — 271×, for one stated reason applied
+    twice. At ε=0 they run in OPPOSITE directions (α = 1.4695, Ψ = 0.0200),
+    because Ψ's low end is about institutional capacity rather than cost.
+
+    ε-behaviour: at `retired` the fee's automation response is α(ε) on the flow
+    leg and asset turnover on the stock leg — both mechanisms that name what they
+    measure. Nothing becomes ε-invariant.
+
+    Worked example (ε=0.99): bell → (0.0349, 0.0349, 0.0349); flow_only →
+    (0.0349, 1.0, 1.0); retired → (1.0, 1.0, 1.0).
+
+    Raises:
+        ValueError: if policy is not in PSI_POLICIES.
+    """
+    if policy not in PSI_POLICIES:
+        raise ValueError(f"psi_policy must be one of {PSI_POLICIES}, got {policy!r}")
+    if policy == "retired":
+        return (1.0, 1.0, 1.0)
+    psi = epsilon_scaling(epsilon)
+    if policy == "flow_only":
+        return (psi, 1.0, 1.0)
+    return (psi, psi, psi)
+
+
 # Default distance-decay rates by infrastructure type (μ_k, km⁻¹)
 _INFRA_MU_BY_TYPE: dict[str, float] = {
     "transit":      GUF_INFRA_MU_TRANSIT,
@@ -94,11 +326,25 @@ def epsilon_scaling(epsilon: float) -> float:
     Global arc multiplier Ψ(ε) shaping the GUF across the automation arc.
     (NLSA Eq. 18)
 
+    RETIRED FROM THE DEFAULT FEE PATH 2026-08-20 (author decision). This
+    function still computes the curve and `psi_policy="bell"` still applies it,
+    but `psi_application` defaults to `retired` and the shipped fee no longer
+    uses it. The two justifications below are recorded as the claims that were
+    audited and did not survive; do not restore them without reading
+    handoffs/guf_redefinition.md §17.
+
+      ~~At subsistence (ε=0), institutional capacity is minimal and the formal
+      fee approaches a floor.~~ A claim about whether a fee can be COLLECTED,
+      not about what a holding COSTS — and it points opposite to α(ε), which
+      correctly RISES at subsistence (1.4695 against this floor's 0.0200).
+
+      ~~At post-scarcity (ε=0.99), labor costs collapse and the fee contracts
+      to a stewardship-only floor.~~ The same claim α(ε) already makes inside
+      U ("the declining human labor content of land-use administration"). The
+      pair discounts the flow leg to 0.0037 of its ε=0.40 reference — 273× for
+      one mechanism counted twice.
+
     Bell-shaped function: near-floor at ε=0 and ε=0.99, peak near ε=0.40.
-    At subsistence (ε=0), institutional capacity is minimal and the formal fee
-    approaches a floor. At post-scarcity (ε=0.99), labor costs collapse and
-    the fee contracts to a stewardship-only floor. The fee peaks mid-arc when
-    urbanization, institutional complexity, and demand pressure are highest.
 
     Boundary guarantees:
       Ψ(0)    ≈ GUF_PSI_FLOOR  (= 0.02)
@@ -612,11 +858,17 @@ def ground_use_fee(
     guf_floor: float = 0.0,
     custom_u_ref: float | None = None,
     residential: bool = True,
+    psi_policy: str = "retired",
 ) -> dict:
     """
     Master Ground Use Fee calculation for a single parcel. (NLSA Eq. 1-2)
 
-    GUF(p) = max(floor, Ψ(ε) × [base_fee + E(p,ε) + I(p,ε)] × Ω(p))
+    GUF(p) = max(floor, [Ψ_b·base_fee + Ψ_e·E(p,ε) + Ψ_i·I(p,ε)] × Ω(p))
+
+    where (Ψ_b, Ψ_e, Ψ_i) = psi_application(ε, psi_policy). At the default
+    `bell` all three are Ψ(ε) and this is exactly NLSA Eq. 1 as shipped:
+
+        GUF(p) = max(floor, Ψ(ε) × [base_fee + E(p,ε) + I(p,ε)] × Ω(p))
 
     All amounts are TEH/year. Conservation credits can drive the base fee
     toward zero, but the total GUF is clamped at guf_floor (default 0.0).
@@ -636,6 +888,10 @@ def ground_use_fee(
         guf_floor: Non-negative floor in TEH/year. Default 0.0.
         custom_u_ref: Override U_ref for mixed-use blends or policy rates.
         residential: True → residential demand sensitivity for D(p).
+        psi_policy: One of PSI_POLICIES. `retired` (default) sets Ψ ≡ 1 and
+            leaves the ε response to α(ε) and asset turnover. `flow_only` keeps
+            Ψ on the flow leg only; `bell` reproduces the pre-2026-08-20 fee
+            exactly. See `psi_application` for what each one claims.
 
     Returns:
         dict: {
@@ -671,7 +927,10 @@ def ground_use_fee(
         infra_amount = infra_result["premium_total"]
 
     occupancy_fraction = max(0.0, min(1.0, occupancy_fraction))
-    guf_formula        = psi * (bf + eco_amount + infra_amount) * occupancy_fraction
+    psi_b, psi_e, psi_i = psi_application(epsilon, psi_policy)
+    guf_formula        = (
+        psi_b * bf + psi_e * eco_amount + psi_i * infra_amount
+    ) * occupancy_fraction
     guf_applied        = max(guf_floor, guf_formula)
 
     return {
@@ -680,13 +939,21 @@ def ground_use_fee(
         "base_fee":        bf,
         "eco_surcharge":   eco_amount,
         "infra_premium":   infra_amount,
-        "psi":             psi,
+        # The factor actually applied to base_fee. NOT necessarily Ψ(ε): under
+        # `retired` it is 1.0. Reported this way so a caller that multiplies
+        # base_fee by it reconstructs the fee under every policy — a reported
+        # multiplier that is not the applied one is the silently-ignored-
+        # parameter failure this repo keeps finding.
+        "psi":             psi_b,
+        "psi_raw":         psi,
         "occupancy":       occupancy_fraction,
         "demand_modifier": d_modifier,
         "eco_breakdown":   eco_result,
         "infra_breakdown": infra_result,
         "floor_applied":   guf_applied > guf_formula + 1e-9,
         "epsilon":         epsilon,
+        "psi_policy":      psi_policy,
+        "psi_applied":     (psi_b, psi_e, psi_i),
     }
 
 

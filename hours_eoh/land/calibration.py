@@ -48,6 +48,7 @@ def guf_rate_calibration(
     epsilon: float = 0.40,
     levy_rates: dict | None = None,
     tolerance: float = 0.01,
+    psi_policy: str = "retired",
 ) -> dict:
     """
     Find the use-coefficient multiplier k that achieves target_guf_levy_ratio.
@@ -55,8 +56,11 @@ def guf_rate_calibration(
     Solves for k such that aggregate GUF(k) ≈ target_guf_levy_ratio × levy_revenue.
 
     GUF components split into:
-      scalable: Ψ × k × base_fee × Ω   (use-coefficient-driven; linear in k)
-      fixed:    Ψ × (E + I) × Ω         (ecosystem/infra surcharges; invariant)
+      scalable: Ψ_base × k × base_fee × Ω   (use-coefficient-driven; linear in k)
+      fixed:    (Ψ_E·E + Ψ_I·I) × Ω          (ecosystem/infra surcharges; invariant)
+
+    The three Ψ factors come from psi_application(ε, psi_policy) and are the ones
+    ACTUALLY applied. Under the default `retired` they are all 1.0.
 
     k = (target_guf − fixed) / scalable    (closed-form, exact when no floors bind)
 
@@ -71,6 +75,7 @@ def guf_rate_calibration(
         epsilon:               Automation level [0.0, 0.99].
         levy_rates:            Override default levy rates.
         tolerance:             Acceptable |achieved_ratio − target| for converged=True.
+        psi_policy:            One of land.guf.PSI_POLICIES; default `retired`.
 
     Returns:
         dict: {
@@ -90,17 +95,22 @@ def guf_rate_calibration(
     target_guf = target_guf_levy_ratio * levy_revenue
 
     # Base GUF at k=1 using full inventory
-    base_result = compute_collective_guf(parcel_inventory, epsilon)
+    base_result = compute_collective_guf(parcel_inventory, epsilon, psi_policy=psi_policy)
     by_parcel   = base_result["guf_by_parcel"]
-    psi         = base_result["psi"]
+    # The three factors ACTUALLY applied, not Ψ(ε): under `retired` they are all
+    # 1.0, and under `flow_only` the E+I leg is unscaled while base_fee is not.
+    # Decomposing with a single Ψ would solve for a k the fee never uses.
+    psi_b, psi_e, psi_i = base_result["psi_applied"]
 
     # Decompose into scalable (base_fee driven) and fixed (E+I driven)
     scalable_sum = 0.0
     fixed_sum    = 0.0
     for parcel, row in zip(parcel_inventory, by_parcel):
         omega        = max(0.0, min(1.0, float(parcel.get("occupancy_fraction", 1.0))))
-        scalable_sum += psi * row["base_fee"] * omega
-        fixed_sum    += psi * (row["eco_surcharge"] + row["infra_premium"]) * omega
+        scalable_sum += psi_b * row["base_fee"] * omega
+        fixed_sum    += (
+            psi_e * row["eco_surcharge"] + psi_i * row["infra_premium"]
+        ) * omega
 
     converged = True
     if scalable_sum < 1e-9:
@@ -123,7 +133,7 @@ def guf_rate_calibration(
         p2["custom_u_ref"] = k * u_base
         sample_mod.append(p2)
 
-    sample_result  = compute_collective_guf(sample_mod, epsilon)
+    sample_result  = compute_collective_guf(sample_mod, epsilon, psi_policy=psi_policy)
     achieved_guf   = sample_result["guf_gross_revenue"] * scale_frac
     achieved_ratio = achieved_guf / max(levy_revenue, 1.0)
 

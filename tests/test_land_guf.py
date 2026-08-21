@@ -351,8 +351,13 @@ class TestInfrastructureProximityPremium:
 # ===========================================================================
 
 class TestGroundUseFee:
-    def _nlsa_example(self, epsilon=0.40):
-        """NLSA §10 residential example (partial — no previous cycle cap)."""
+    def _nlsa_example(self, epsilon=0.40, psi_policy="retired"):
+        """NLSA §10 residential example (partial — no previous cycle cap).
+
+        NOTE this is the one fixture in the suite where E and I are BOTH
+        non-zero, so it is also the only place the three Ψ policies can be told
+        apart from one another rather than just from `bell`.
+        """
         eco_services = [
             {"label": "water",   "volume": 0.4,  "kappa_ref": 1.2,  "beta": 0.8, "retained": 0.30},
             {"label": "carbon",  "volume": 0.15, "kappa_ref": 2.5,  "beta": 0.9, "retained": 0.25},
@@ -365,6 +370,7 @@ class TestGroundUseFee:
              "distance_km": 0.4, "asset_type": "public_space", "chi": 1.0},
         ]
         return ground_use_fee(
+            psi_policy            = psi_policy,
             area_slu              = 3.5,
             location_value        = 0.629,
             use_category          = "residential_primary",
@@ -412,11 +418,27 @@ class TestGroundUseFee:
         high = self._nlsa_example(0.90)["guf_formula"]
         assert high < mid
 
-    def test_guf_lower_at_zero_epsilon(self):
+    def test_guf_lower_at_zero_epsilon_under_the_bell_policy(self):
+        """
+        The bell's low-ε behaviour, still pinned — but now explicitly AS the
+        `bell` policy rather than as the fee's only shape. Ψ(0) = 0.02.
+        """
+        zero = self._nlsa_example(0.0, psi_policy="bell")["guf_formula"]
+        mid  = self._nlsa_example(0.40, psi_policy="bell")["guf_formula"]
+        assert zero < mid * 0.10
+
+    def test_guf_is_HIGHER_at_zero_epsilon_under_the_default(self):
+        """
+        THE FLIP, 2026-08-20. Under `retired` the fee's only automation response
+        is α(ε) = labor_content_scaling, which RISES at subsistence (1.4695)
+        because unautomated land administration takes more human hours. The old
+        assertion was pinning Ψ's ε=0 floor, and that floor was a claim about
+        institutional COLLECTION CAPACITY wearing a cost multiplier — see
+        handoffs/guf_redefinition.md §17.
+        """
         zero = self._nlsa_example(0.0)["guf_formula"]
         mid  = self._nlsa_example(0.40)["guf_formula"]
-        # ε=0 has near-zero Ψ; GUF substantially lower
-        assert zero < mid * 0.10
+        assert zero > mid
 
     def test_occupancy_fraction_scales(self):
         full = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
@@ -425,17 +447,49 @@ class TestGroundUseFee:
                               occupancy_fraction=0.5)["guf_formula"]
         assert half == pytest.approx(full * 0.5, rel=1e-6)
 
-    def test_boundary_verification_subsistence(self):
-        # NLSA §4.4: GUF(ε=0) < 0.05 × GUF(ε=0.40) for all parcels
-        g0   = self._nlsa_example(0.00)["guf_formula"]
-        g040 = self._nlsa_example(0.40)["guf_formula"]
+    def test_boundary_verification_subsistence_under_the_bell_policy(self):
+        # NLSA §4.4: GUF(ε=0) < 0.05 × GUF(ε=0.40) for all parcels.
+        # RETAINED AS A PROPERTY OF `bell`, which is what §4.4 was describing.
+        g0   = self._nlsa_example(0.00, psi_policy="bell")["guf_formula"]
+        g040 = self._nlsa_example(0.40, psi_policy="bell")["guf_formula"]
         assert g0 < 0.05 * g040
 
-    def test_boundary_verification_post_scarcity(self):
-        # NLSA §4.4: GUF(ε=0.99) < 0.05 × GUF(ε=0.40) for all parcels
-        g099 = self._nlsa_example(0.99)["guf_formula"]
-        g040 = self._nlsa_example(0.40)["guf_formula"]
+    def test_boundary_verification_post_scarcity_under_the_bell_policy(self):
+        # NLSA §4.4: GUF(ε=0.99) < 0.05 × GUF(ε=0.40) for all parcels.
+        g099 = self._nlsa_example(0.99, psi_policy="bell")["guf_formula"]
+        g040 = self._nlsa_example(0.40, psi_policy="bell")["guf_formula"]
         assert g099 < 0.05 * g040
+
+    def test_the_nlsa_4_4_boundaries_DO_NOT_hold_under_the_default(self):
+        """
+        Recorded as a consequence, not smuggled. NLSA §4.4's two boundary
+        conditions were properties of Ψ's bell, and retiring it retires them.
+        At ε=0.99 the fee is ~12% of its ε=0.40 value, not under 5% — which is
+        α(0.99) = 0.1051 doing the work alone, once the duplicate discount is
+        removed.
+        """
+        g040 = self._nlsa_example(0.40)["guf_formula"]
+        g099 = self._nlsa_example(0.99)["guf_formula"]
+        assert g099 > 0.05 * g040
+        assert g099 < 0.25 * g040
+
+    def test_all_three_policies_agree_at_the_calibration_reference(self):
+        """Ψ(0.40) = 1 exactly, so the reference point is policy-invariant."""
+        vals = [
+            self._nlsa_example(0.40, psi_policy=p)["guf_formula"]
+            for p in ("bell", "flow_only", "retired")
+        ]
+        assert vals[0] == pytest.approx(vals[1])
+        assert vals[1] == pytest.approx(vals[2])
+
+    def test_flow_only_differs_from_bell_where_E_and_I_are_non_zero(self):
+        """
+        The one fixture that can show it. Elsewhere in the suite E = I = 0 and
+        `flow_only` is indistinguishable from `bell`.
+        """
+        bell = self._nlsa_example(0.80, psi_policy="bell")["guf_formula"]
+        flow = self._nlsa_example(0.80, psi_policy="flow_only")["guf_formula"]
+        assert flow > bell
 
 
 # ===========================================================================

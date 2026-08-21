@@ -49,7 +49,7 @@ from hours_eoh.land.guf import (
     income_linked_subsidy,
     soil_health_credit,
     guf_trust_inflow,
-    epsilon_scaling,
+    psi_application,
 )
 
 # Keys required in every parcel dict
@@ -80,6 +80,7 @@ def compute_collective_guf(
     epsilon: float,
     median_income: float = 0.0,
     pop_coverage_frac: float = 1.0,
+    psi_policy: str = "retired",
 ) -> dict:
     """
     Batch GUF calculator for a collective land inventory. (NLSA §7.1)
@@ -98,6 +99,9 @@ def compute_collective_guf(
                           Pass 0 to skip subsidy calculation.
         pop_coverage_frac: Fraction of population covered by this inventory.
                            Informational; does not rescale fees.
+        psi_policy:       One of land.guf.PSI_POLICIES. Default `retired`
+                          (Ψ ≡ 1); pass `bell` for the pre-2026-08-20 shape.
+                          See land.guf.psi_application.
 
     Returns:
         dict: {
@@ -107,11 +111,14 @@ def compute_collective_guf(
           "subsidies_absorbed": float,   sum of subsidy_amount across subsidized parcels
           "guf_net_inflow":     float,   gross_revenue − subsidies_absorbed
           "guf_by_parcel":      list[dict],  per-parcel breakdown
-          "psi":                float,   Ψ(ε) (same for all parcels)
+          "psi":                float,   factor applied to base_fee (1.0 under `retired`)
+          "psi_applied":        tuple,   (Ψ_base, Ψ_E, Ψ_I) actually applied
+          "psi_policy":         str,
           "pop_coverage_frac":  float,
         }
     """
-    psi = epsilon_scaling(epsilon)
+    psi_b, psi_e, psi_i = psi_application(epsilon, psi_policy)
+    psi = psi_b   # the factor applied to base_fee; see ground_use_fee
 
     if not parcels:
         return {
@@ -122,6 +129,8 @@ def compute_collective_guf(
             "guf_net_inflow":     0.0,
             "guf_by_parcel":      [],
             "psi":                psi,
+            "psi_applied":        (psi_b, psi_e, psi_i),
+            "psi_policy":         psi_policy,
             "pop_coverage_frac":  pop_coverage_frac,
         }
 
@@ -142,6 +151,7 @@ def compute_collective_guf(
             use_category=parcel["use_category"],
             epsilon=epsilon,
             guf_floor=0.0,  # floor applied below, after soil credit
+            psi_policy=psi_policy,
             **guf_kwargs,
         )
 
@@ -194,6 +204,8 @@ def compute_collective_guf(
         "guf_net_inflow":     inflow["net_inflow"],
         "guf_by_parcel":      by_parcel,
         "psi":                psi,
+        "psi_applied":        (psi_b, psi_e, psi_i),
+        "psi_policy":         psi_policy,
         "pop_coverage_frac":  pop_coverage_frac,
     }
 

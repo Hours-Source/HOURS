@@ -34,6 +34,12 @@ STRUCTURE, following the stewardship census's discipline:
              SERVICED. This is the one judgement, it is isolated in
              `SERVICING_ATTRIBUTIONS` and `SERVICED_LAND_CLASSES`, and it is
              reported under two scopes that are never silently merged.
+  ASSUMED    WHAT EACH OCCUPATION'S COST SCALES WITH — area, parcel count, or
+             throughput. A SECOND judgement, added 2026-08-18, isolated in
+             `SCALING_BASIS` and never merged with the first. It answers a
+             different question from the census total: the census asks how many
+             hours, this asks what quantity they follow. See
+             scenarios/guf_magnitude.py.
 
 THE ROLE-MIX TRAP, which this census inherits from the parks finding. Raw
 occupational headcount overstated federal stewardship by 4.4× because a park
@@ -125,6 +131,110 @@ SERVICING_ATTRIBUTIONS: tuple[dict, ...] = (
         ),
     },
 )
+
+#: What each servicing occupation's cost SCALES WITH. The second declared
+#: judgement of this module, and a different question from the census total:
+#: the census asks how many hours the land costs, this asks what quantity those
+#: hours follow. It exists because the Ground Use Fee has exactly one scaling
+#: basis — ground area — and the cost turns out to have three.
+#:
+#:   "area"        the extent of a network or surface. Resurfacing a road, or
+#:                 laying and repairing a distribution line, costs what it costs
+#:                 per kilometre however many holdings sit along it.
+#:   "parcel"      the count of separately-held or separately-occupied units. A
+#:                 bin is emptied per address, a meter read per meter, a title
+#:                 searched per title. Subdividing a block doubles the work.
+#:   "throughput"  volume delivered or treated, which follows occupants rather
+#:                 than either land or holdings.
+#:
+#: THROUGHPUT IS HELD SEPARATE AND NOT FOLDED INTO EITHER. Water treatment
+#: scales with litres, and litres follow people; per-parcel is only a proxy for
+#: it, and a poor one wherever occupancy per parcel varies — which is exactly
+#: the urban/rural contrast this module is used to examine. Folding it in would
+#: put an assumed number where a measured one appears to be, so it is reported
+#: as its own share and the parcel share is stated as a range with and without
+#: it.
+#:
+#: Every basis below is read off the occupation's own `basis` field in
+#: SERVICING_ATTRIBUTIONS wherever that field already names the quantity — three
+#: of them do so explicitly ("per-parcel municipal service", "Per-parcel
+#: measurement; the occupation is defined by the visit", "per title").
+SCALING_BASIS: dict[str, dict[str, str]] = {
+    "474051": {
+        "basis": "area",
+        "why": "Highways and rights-of-way are maintained per lane-kilometre.",
+    },
+    "472071": {
+        "basis": "area",
+        "why": "Surfacing is priced by the square metre of carriageway.",
+    },
+    "537081": {
+        "basis": "parcel",
+        "why": (
+            "Its own attribution says so: 'a per-parcel municipal service'. The "
+            "round is set by the number of collection points, not by the area "
+            "driven between them."
+        ),
+    },
+    "518031": {
+        "basis": "throughput",
+        "why": (
+            "Plant operation scales with volume treated. Volume follows "
+            "occupants, which is neither the land nor the holdings on it."
+        ),
+    },
+    "499051": {
+        "basis": "area",
+        "why": "Distribution-line kilometres, per its own 'network exists to reach' basis.",
+    },
+    "474071": {
+        "basis": "parcel",
+        "why": "A service call to a tank or a lateral, one holding at a time.",
+    },
+    "472151": {
+        "basis": "area",
+        "why": "Reticulation is laid and repaired by the metre of trench.",
+    },
+    "435041": {
+        "basis": "parcel",
+        "why": (
+            "Its own attribution says so: 'Per-parcel measurement; the "
+            "occupation is defined by the visit'."
+        ),
+    },
+    "474011": {
+        "basis": "parcel",
+        "why": "An inspection is of a structure on a holding, not of an area.",
+    },
+    "232093": {
+        "basis": "parcel",
+        "why": (
+            "Definitionally per title, and a title is a parcel. The purest "
+            "parcel-scaling occupation in the census."
+        ),
+    },
+    # Broad-scope occupations. Carried so the shares still sum under that scope;
+    # each is admitted at a declared weight in BROAD_SCOPE_WEIGHTS.
+    "231011": {
+        "basis": "parcel",
+        "why": "Conveyancing and boundary work is transacted parcel by parcel.",
+    },
+    "131041": {
+        "basis": "parcel",
+        "why": "The building/zoning share of compliance attaches to a permit on a holding.",
+    },
+    "499052": {
+        "basis": "area",
+        "why": "Telecommunications network kilometres, as for power distribution.",
+    },
+    "492022": {
+        "basis": "parcel",
+        "why": "The premises half is an installation at an address.",
+    },
+}
+
+#: The three admitted bases, in the order they are reported.
+SCALING_BASES: tuple[str, ...] = ("area", "parcel", "throughput")
 
 #: Occupations a keyword search surfaces and this census REFUSES, with the
 #: reason. Named rather than filtered, because the parks finding showed that a
@@ -293,6 +403,71 @@ def servicing_workers(
         "broad_weighted":   weighted,
         "total_workers":    total,
         "missing_from_registry": missing,
+    }
+
+
+def workers_by_scaling_basis(
+    scope: str = "core",
+    employment: Mapping[str, float] | None = None,
+) -> dict:
+    """
+    The same workers as `servicing_workers`, re-cut by what their cost SCALES
+    WITH rather than by which function they perform.
+
+    Governing sum, per basis b ∈ SCALING_BASES:
+
+        workers(b) = Σ_{occ : SCALING_BASIS[occ] == b} w(occ) · employment[occ]
+
+    where w is 1 for a core attribution and the declared BROAD_SCOPE_WEIGHTS
+    value under the `broad` scope — the same weighting `servicing_workers`
+    applies, so the two cuts of the census total agree by construction.
+
+    units: workers (headcount).
+
+    Worked example (core scope): area 381,200 · parcel 404,600 · throughput
+    123,800, summing to the census's 909,600. Shares 41.9% / 44.5% / 13.6%.
+
+    Returns:
+        dict with `by_basis`, `total_workers`, `shares`, and `missing_basis` —
+        any attributed occupation SCALING_BASIS does not classify, reported
+        rather than dropped.
+
+    Raises:
+        ValueError: if scope is not one this census recognises.
+    """
+    if scope not in ("core", "broad", "urban_upper"):
+        raise ValueError(
+            f"scope must be 'core', 'broad' or 'urban_upper', got {scope!r}"
+        )
+
+    emp = load_registry_employment() if employment is None else dict(employment)
+
+    by_basis: dict[str, float] = {b: 0.0 for b in SCALING_BASES}
+    missing_basis: list[str] = []
+
+    def _add(occ: str, weight: float) -> None:
+        if occ not in emp:
+            return
+        entry = SCALING_BASIS.get(occ)
+        if entry is None:
+            missing_basis.append(occ)
+            return
+        by_basis[entry["basis"]] += emp[occ] * 1_000.0 * weight
+
+    for att in SERVICING_ATTRIBUTIONS:
+        _add(str(att["occ6"]), 1.0)
+    if scope == "broad":
+        for occ, w in BROAD_SCOPE_WEIGHTS.items():
+            _add(occ, w)
+
+    total = sum(by_basis.values())
+    shares = {b: (v / total if total > 0.0 else 0.0) for b, v in by_basis.items()}
+    return {
+        "scope":         scope,
+        "by_basis":      by_basis,
+        "total_workers": total,
+        "shares":        shares,
+        "missing_basis": missing_basis,
     }
 
 

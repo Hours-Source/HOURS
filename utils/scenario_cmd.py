@@ -104,7 +104,7 @@ _SCENARIOS: dict[str, str] = {
     # -- GUF stress --
     "guf_integration":     "guf_fiscal_integration() — GUF revenue vs. levy deficit  [--area-slu, --location-value, --use-category]",
     "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone]",
-    "guf_sweep":           "guf_revenue_sweep() — GUF across the Ψ(ε) bell curve",
+    "guf_sweep":           "guf_revenue_sweep() — GUF across the arc; monotone falling under the default psi_policy=retired",
     # -- measured inputs (the measurement spine) --
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
@@ -114,6 +114,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
@@ -623,6 +624,69 @@ def _dispatch(args: argparse.Namespace) -> object:
         sv_out["verdict"] = rep["verdict"]
         sv_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return sv_out
+
+    if name == "guf_magnitude":
+        from hours_eoh.scenarios.guf_magnitude import magnitude_report
+        gm_scope = getattr(args, "scope", None) or "core"
+        if gm_scope not in ("core", "broad"):
+            gm_scope = "core"
+        rep = magnitude_report(epsilon=args.epsilon, servicing_scope=gm_scope)
+        gm_out: dict = {
+            "epsilon": rep["epsilon"],
+            "servicing_scope": rep["servicing_scope"],
+            "stewardship_scope": rep["stewardship_scope"],
+        }
+        # Option 1 — the derived target
+        tvr = rep["target_vs_realised"]
+        for row in tvr["rows"]:
+            tag = row["archetype"]
+            gm_out[f"{tag} | realised_h_per_ha"] = row["realised_h_per_ha"]
+            gm_out[f"{tag} | target_h_per_ha"] = row["target_h_per_ha"]
+            gm_out[f"{tag} | ratio"] = row["ratio"]
+            gm_out[f"{tag} | like_for_like"] = row["like_for_like"]
+        gm_out["target_verdict"] = tvr["verdict"]
+        amen = rep["amenity_sensitivity"]
+        gm_out["amenity | ratio_span"] = amen["ratio_span"]
+        gm_out["amenity | spread_factor"] = amen["spread_factor"]
+        gm_out["amenity | sign_robust"] = amen["sign_robust"]
+        # Option 2 — the two-part tariff
+        basis = rep["scaling_basis"]
+        for b, share in basis["shares"].items():
+            gm_out[f"cost scales with | {b}"] = share
+        two = rep["two_part_rates"]
+        gm_out["u_area_h_per_ha_yr"] = two["u_area_h_per_ha_yr"]
+        gm_out["u_area_teh_per_slu_yr"] = two["u_area_teh_per_slu_yr"]
+        gm_out["implied_scale_factor_area_only"] = two["implied_scale_factor_area_only"]
+        gm_out["u_parcel_h_per_parcel_yr"] = two["u_parcel_h_per_parcel_yr"]
+        gm_out["u_parcel_hours_total"] = two["u_parcel_hours_total"]
+        gm_out["u_parcel_resolves_by"] = two["u_parcel_resolves_by"]
+        gm_out["tariff_verdict"] = two["verdict"]
+        sub = rep["subdivision"]
+        gm_out["subdivision | invariant"] = sub["invariant"]
+        gm_out["subdivision | verdict"] = sub["verdict"]
+        gm_out["conservation_credit_verdict"] = rep["conservation_credit"]["verdict"]
+        # The term-basis audit (memo step 1)
+        tb = rep["term_basis"]
+        for term, entry in tb["terms"].items():
+            gm_out[f"basis | {term}"] = (
+                f"{entry['basis']} · {entry['spec_direction']} · ε:{entry['epsilon_response']}"
+            )
+        gm_out["basis | verdict"] = tb["verdict"]
+        pd = rep["psi_double"]
+        gm_out["psi | alpha at 0.99"] = pd["alpha"]
+        gm_out["psi | psi at 0.99"] = pd["psi"]
+        gm_out["psi | combined at 0.99"] = pd["combined"]
+        gm_out["psi | opposite signs at 0"] = pd["opposite_signs_at_zero"]
+        gm_out["psi | double_application_verdict"] = pd["verdict"]
+        pp = rep["psi_policies"]
+        for row in pp["rows"]:
+            gm_out[f"psi_policy | {row['psi_policy']}"] = " ".join(
+                f"{e:g}:{v:,.0f}" for e, v in row["realised_h_per_ha"].items()
+            )
+        gm_out["psi_policy | flow_only == bell"] = pp["flow_only_equals_bell"]
+        gm_out["psi_policy | verdict"] = pp["verdict"]
+        gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
+        return gm_out
 
     if name == "frame":
         from hours_eoh.scenarios.frame import frame_report

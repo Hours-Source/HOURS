@@ -5,7 +5,9 @@ Four scenarios that exercise the GUF layer against the Trust and fiscal system:
 
   guf_fiscal_integration      — Does GUF revenue close a levy deficit? How material is it?
   guf_writedown_scenario      — Full ecological collapse → warning → write-down pathways
-  guf_revenue_sweep           — How does GUF track the Ψ(ε) bell curve across the arc?
+  guf_revenue_sweep           — How does GUF vary across the arc? (monotone falling
+                                under the default `retired` policy; pass psi_policy="bell"
+                                for the pre-2026-08-20 bell)
   automation_levy_guf_stress  — Multi-period: automation rises → levy falls → does GUF compensate?
 
 Mission Statement: §"Ground Use Fee — land rents fund the ecological and
@@ -329,17 +331,22 @@ def guf_writedown_scenario(
 def guf_revenue_sweep(
     epsilon_values: list[float] | None = None,
     parcel_config: dict[str, Any] | None = None,
+    psi_policy: str = "retired",
 ) -> list[dict[str, Any]]:
     """
     Compute GUF at each ε in epsilon_values for a single parcel configuration.
 
-    Useful for verifying that GUF revenue tracks the Ψ(ε) bell curve:
-    near-zero at ε=0, peaking ~ε=0.40, declining to near-zero at ε=0.99.
+    Under the default `retired` policy the fee's only automation response is
+    α(ε) inside U, so the sweep is MONOTONE FALLING. Pass psi_policy="bell" for
+    the pre-2026-08-20 shape — near-zero at ε=0, peaking ~ε=0.40, declining to
+    near-zero at ε=0.99 — which was a property of Ψ rather than of the fee.
+    See handoffs/guf_redefinition.md §17.
 
     Args:
         epsilon_values: List of ε points to evaluate. None → 11-point canonical arc.
         parcel_config:  Dict with at least {area_slu, location_value, use_category}.
                         None → default residential parcel.
+        psi_policy:     One of land.guf.PSI_POLICIES; default `retired`.
 
     Returns:
         list[dict]: One dict per ε with keys:
@@ -357,6 +364,7 @@ def guf_revenue_sweep(
             location_value=config["location_value"],
             use_category=config["use_category"],
             epsilon=eps,
+            psi_policy=psi_policy,
             **{k: v for k, v in config.items()
                if k not in ("area_slu", "location_value", "use_category")},
         )
@@ -395,7 +403,10 @@ def automation_levy_guf_stress(
 
     Models the core fiscal loop as ε increases over n_periods:
       - Labor income (EOH pipeline) falls → levy revenue falls
-      - GUF revenue tracks the Ψ(ε) bell curve: peaks near ε=0.40, then declines
+      - GUF revenue falls monotonically with ε, carried by α(ε) inside U(p,ε).
+        (Before 2026-08-20 it tracked the Ψ(ε) bell and peaked near ε=0.40, which
+        made it FALL FASTEST exactly where the levy was contracting — see
+        land/guf.psi_application.)
       - Sufficiency guarantee cost changes with ε (rising per-person, fewer recipients)
       - Trust balance evolves period-by-period
 

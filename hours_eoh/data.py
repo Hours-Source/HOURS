@@ -2201,10 +2201,21 @@ CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of deve
 # tag: placeholder | units: dimensionless | family: GUF_PSI_*
 # form: NLSA Eq. 18 — the framework's own claim that land's labour-content
 #   cost peaks mid-arc and is low at both extremes.
+# note: THESE NO LONGER GOVERN THE SHIPPED FEE (2026-08-20, author decision).
+#   `land/guf.psi_application` defaults to `retired` (Ψ ≡ 1) and the fee's only
+#   automation response is now α(ε) = labor_content_scaling inside U. The whole
+#   family remains LIVE, not retired, because `psi_policy="bell"` still applies
+#   it and the NLSA §4.4 boundary conditions are still pinned against it — but
+#   nothing in the default path reads the curve. The audit that retired it:
+#   the ε→0.99 end duplicated α's own stated rationale (combined discount 273×
+#   for one mechanism), and the ε=0 floor was a claim about institutional
+#   COLLECTION CAPACITY pointing opposite to α's cost claim. See
+#   handoffs/guf_redefinition.md §17.
 # resolves_by: a ground-fee-vs-automation panel across jurisdictions at
 #   differing automation levels. Nothing in the repo constrains the rise and
 #   fall speeds independently of one another, so sweep them jointly until it
-#   does.
+#   does. NOTE such a panel would now have to justify Ψ existing at all
+#   alongside α, not merely its shape parameters.
 GUF_PSI_A:     float = 0.8   # rise speed from ε=0 (lower a = faster rise)
 GUF_PSI_B:     float = 1.2   # fall speed toward ε=1 (higher b = faster fall)
 # tag: placeholder | units: fraction of the reference fee
@@ -2573,9 +2584,18 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 #   servicing_census` measures the quantity the fee is DEFINED as and finds this
 #   overshoots by ~35× in aggregate, implying ~2.8 in its place. It is NOT
 #   changed on that finding: the census settles the LEVEL and cannot settle the
-#   ten RATIOS, and the realised-rate decomposition shows the error is a density
-#   gradient rather than a single scale — rural lands within 1.12× while urban
-#   runs 18× over. Retiring it is a calibration decision, not a rescaling.
+#   ten RATIOS, and one scalar cannot be right for both archetypes — rural lands
+#   within 1.12× while urban runs 18× over. Retiring it is a calibration
+#   decision, not a rescaling.
+# note: AND THERE IS A SECOND REASON, found 2026-08-18 (`eoh scenario run
+#   guf_magnitude`). This factor scales a PER-SLU coefficient, and SLUs are an
+#   area unit, so the fee it governs is proportional to ground area and to
+#   nothing else. Re-cut by what each servicing occupation's cost actually
+#   follows, only 41.9% of the measured hours scale with area; 44.5% scale with
+#   parcel count and 13.6% with throughput. No value of this factor lets a
+#   one-basis fee track a three-basis cost. The area-scaling half alone implies
+#   ×1.18, against the ×2.82 that falls out of dividing every servicing hour by
+#   area because the fee offers nowhere else to put them.
 # decided_by: the NLSA template scaling, retained pending the Phase 2 decision.
 GUF_USE_SCALE_FACTOR: float = 100.0
 

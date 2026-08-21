@@ -347,23 +347,43 @@ class TestArcCoherence:
                 assert e < prev, f"κ must fall with ε (ε={eps})"
             prev = e
 
-    def test_the_fee_contribution_is_NOT_monotonic_because_of_psi(self):
-        """
-        A trap worth pinning. E falls monotonically in ε, but what a parcel
-        actually pays is Ψ(ε)·E, and Ψ is a bell curve (0.02 → 1.00 → 0.035).
-        So the ecological CONTRIBUTION to GUF rises to mid-arc and then falls.
-        An arc test asserting monotonicity on the fee would fail for a correct
-        implementation — as this one first did.
-        """
+    def _eco_contribution(self, eps: float, psi_policy: str) -> float:
         base = make_rural_collective(50)
         enriched = attach_ecosystem_services(base)
+        b = compute_collective_guf(base, eps, psi_policy=psi_policy)["guf_gross_revenue"]
+        e = compute_collective_guf(enriched, eps, psi_policy=psi_policy)["guf_gross_revenue"]
+        return e - b
 
-        def contribution(eps: float) -> float:
-            b = compute_collective_guf(base, eps)["guf_gross_revenue"]
-            e = compute_collective_guf(enriched, eps)["guf_gross_revenue"]
-            return e - b
-
-        low, mid, high = contribution(0.0), contribution(0.40), contribution(0.99)
+    def test_the_fee_contribution_is_NOT_monotonic_under_the_bell_policy(self):
+        """
+        A trap worth pinning, and it is a property of `bell` specifically. E
+        falls monotonically in ε, but what a parcel pays under `bell` is Ψ(ε)·E,
+        and Ψ is a bell curve (0.02 → 1.00 → 0.035). So the ecological
+        CONTRIBUTION rises to mid-arc and then falls. An arc test asserting
+        monotonicity on the fee would fail for a correct implementation — as
+        this one first did.
+        """
+        low = self._eco_contribution(0.0, "bell")
+        mid = self._eco_contribution(0.40, "bell")
+        high = self._eco_contribution(0.99, "bell")
         assert mid > low and mid > high
+        for v in (low, mid, high):
+            assert math.isfinite(v) and v > 0.0
+
+    def test_retiring_psi_DISSOLVES_the_non_monotonicity(self):
+        """
+        THE TRAP GOES AWAY, 2026-08-20. Under the default `retired`, Ψ ≡ 1, so
+        the ecological contribution to the fee IS E — and E is monotone falling
+        in ε. The bell was the only reason the fee's ecological term disagreed
+        in shape with the term it is computed from.
+
+        This is worth a test rather than a note because the non-monotonicity is
+        recorded in CLAUDE.md as a standing hazard for arc tests. It is now a
+        hazard of one policy, not of the fee.
+        """
+        low = self._eco_contribution(0.0, "retired")
+        mid = self._eco_contribution(0.40, "retired")
+        high = self._eco_contribution(0.99, "retired")
+        assert low > mid > high
         for v in (low, mid, high):
             assert math.isfinite(v) and v > 0.0

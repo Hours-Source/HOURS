@@ -179,10 +179,16 @@ def realized_vs_measured(epsilon: float = 0.40) -> dict:
             f"{by['urban']['ratio']:,.1f}×, and that comparison already errs "
             f"against the finding because every servicing worker was charged to "
             f"urban land alone. So the fit did not get the LEVEL wrong so much "
-            f"as the DENSITY GRADIENT: the fee is per-SLU, so packing the same "
-            f"hectare with more parcels multiplies the charge while the roads, "
-            f"pipes and inspections serving that hectare do not multiply with "
-            f"it. Retiring the ×100 is therefore not a single rescaling."
+            f"as the SHAPE: one scalar cannot be right for both. CORRECTION "
+            f"(2026-08-18): this verdict previously named DENSITY as the "
+            f"mechanism — 'packing the same hectare with more parcels multiplies "
+            f"the charge'. It does not. A(p) is in Standard Land Units, which are "
+            f"an area unit, so subdividing a hectare leaves the fee exactly "
+            f"unchanged; see scenarios/guf_magnitude.subdivision_invariance, "
+            f"which runs it. The spread is driven by the L·U·D product — the "
+            f"location-value index and the ten ratios — which is the part this "
+            f"census said it could not settle. Retiring the ×100 is still not a "
+            f"single rescaling, and now for a sharper reason."
         ),
     }
 

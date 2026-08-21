@@ -192,18 +192,29 @@ class TestGufRevenueSweep:
                 if isinstance(val, float):
                     assert math.isfinite(val), f"Non-finite {key} at ε={row['epsilon']}"
 
-    def test_guf_peaks_near_mid_epsilon(self):
+    def test_guf_peaks_near_mid_epsilon_under_the_bell_policy(self):
         """GUF tracks Ψ(ε) bell — the mid-arc point should have higher GUF than extremes."""
         result = guf_revenue_sweep(
-            epsilon_values=[0.0, 0.10, 0.40, 0.80, 0.99]
+            epsilon_values=[0.0, 0.10, 0.40, 0.80, 0.99], psi_policy="bell"
         )
         by_eps = {r["epsilon"]: r["guf_applied"] for r in result}
         assert by_eps[0.40] > by_eps[0.0]
         assert by_eps[0.40] > by_eps[0.99]
 
+    def test_guf_falls_monotonically_under_the_default(self):
+        """
+        THE FLIP, 2026-08-20. With Ψ retired the fee's only automation response
+        is α(ε), which is monotone — so the sweep is monotone. A peak at mid-arc
+        was Ψ's shape, not the fee's.
+        """
+        eps = [0.0, 0.10, 0.40, 0.80, 0.99]
+        by_eps = {r["epsilon"]: r["guf_applied"] for r in guf_revenue_sweep(epsilon_values=eps)}
+        vals = [by_eps[e] for e in eps]
+        assert all(vals[i] > vals[i + 1] for i in range(len(vals) - 1)), vals
+
     def test_psi_peaks_near_040(self):
-        """Ψ(ε) bell peak should occur near ε=0.40."""
-        result = guf_revenue_sweep()
+        """Ψ(ε) bell peak should occur near ε=0.40. A property of `bell`."""
+        result = guf_revenue_sweep(psi_policy="bell")
         psi_values = [(r["epsilon"], r["psi"]) for r in result]
         max_psi_eps = max(psi_values, key=lambda x: x[1])[0]
         assert 0.30 <= max_psi_eps <= 0.60, (
