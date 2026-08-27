@@ -32,6 +32,7 @@ import math
 from hours_eoh.data import (
     CARE_SIGMOID_DEFAULTS,
     COMPETENCY_THRESHOLD,
+    LAND_HECTARES_PER_CAPITA,
     CONTESTABILITY_CHI_CRIT,
     CONTESTABILITY_CHI_WARN,
     DEFAULT_SEGMENTS,
@@ -241,6 +242,8 @@ def fiscal_health_check(
     deferred_ecological: float = 0.0,
     eco_eoh_override: float | None = None,
     capital_eoh_eliminated: float = 0.0,
+    ecological_area_hectares: float | None = None,
+    ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
 ) -> dict:
     """
     Phase 5.3: Fiscal health check — trust solvency, purchasing power, levy sufficiency.
@@ -309,10 +312,17 @@ def fiscal_health_check(
                                      infra_eoh_override=_infra_override)
     # new-3: ecological allocation is co-equal with stewardship — both draw
     # from the full Trust balance independently (neither is residual).
+    # Frame: this function scales with `population`, so its ecological term must
+    # rest on the same jurisdiction. See fiscal_snapshot() for the defect this
+    # closes — the two entry points resolve the obligation identically.
+    _eco_area = ecological_area_hectares
+    if eco_eoh_override is None and _eco_area is None:
+        _eco_area = population * ecological_hectares_per_capita
     eco     = ecological_allocation(ecosystem_health, epsilon,
                                     available_teh=trust_balance,
                                     deferred=deferred_ecological,
-                                    eco_eoh_override=eco_eoh_override)
+                                    eco_eoh_override=eco_eoh_override,
+                                    area_hectares=_eco_area)
     guar    = sufficiency_guarantee(population, epsilon)
     trust   = trust_management(trust_balance, levies["total_levied"],
                                 stew["teh_allocated"] + eco["teh_allocated"],

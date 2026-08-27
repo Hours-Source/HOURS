@@ -668,3 +668,132 @@ class TestAssessTier:
             "multiplier", "alpha_coefficients", "governance_status",
             "warnings", "passes_governance", "sunset_check", "inputs",
         }
+
+
+class TestEpochAlphaWeightsShape:
+    """
+    THE SHAPE OF THE ε-RESPONSE — the thing `epoch_alpha_weights` exists to do,
+    and the thing nothing tested (found 2026-08-27).
+
+    THE EXISTING TESTS CANNOT FAIL. Three assertions covered this function:
+    the coefficients sum to ALPHA_SCALE, they are all positive, and there are
+    four of them. Every one is enforced BY CONSTRUCTION, not by the constants:
+
+        alphas   = [max(_ALPHA_FACTOR_MIN, a) for a in (...)]   # positivity
+        absolute = tuple(a / total * ALPHA_SCALE for a in alphas)  # the sum
+
+    Dividing by the total and multiplying by ALPHA_SCALE makes the sum an
+    IDENTITY. Demonstrated rather than argued: setting all eight α constants to
+    absurd values (_ALPHA_TRAINING_BASE=99, _ALPHA_DEMAND_BASE=−7,
+    _ALPHA_SCARCITY_GROWTH=−11, …) leaves the sum at exactly 5.0 and every
+    weight positive at ε ∈ {0, 0.4, 0.99}. All three tests still passed.
+
+    So all eight α coefficients — Workstream A's own epoch-adaptive assessment
+    function, and eight of the repo's 57 shadow constants — were completely
+    unpinned, together with all four shape claims their docstring makes. This is
+    failure mode 1 (the unpinned quantity) reached through failure mode 6 (an
+    assertion that cannot fire): the tests read as coverage and tested the
+    normalizer.
+
+    NOTE `epoch_alpha_weights` is DEPRECATED in favour of the geometric map, and
+    that replacement IS properly pinned — `test_reference_multiplier` asserts
+    `epoch_factor_weights`' impact rise, its ε=0.40 anchor and its clamping. A
+    deprecated function with unfalsifiable tests is nonetheless worth fixing
+    rather than deleting: it is still exported, still consumes eight named
+    constants, and its passing tests are counted as coverage of them.
+
+    These tests pin the four claims the docstring makes. They are SHAPE
+    assertions (monotonicity, the location of a peak, an ordering), not levels,
+    because the levels are calibration and will move.
+    """
+
+    ARC = [0.0, 0.2, 0.4, 0.6, 0.8, 0.99]
+
+    def _series(self, index):
+        return [epoch_alpha_weights(e)[index] for e in self.ARC]
+
+    def test_training_rises_monotonically_with_epsilon(self):
+        """Docstring: "high throughout, rises further at high ε"."""
+        s = self._series(0)
+        assert s == sorted(s), f"training weight must be non-decreasing in ε: {s}"
+        assert s[-1] > s[0], "training must actually rise, not merely not fall"
+
+    def test_scarcity_rises_monotonically_with_epsilon(self):
+        """Docstring: "low early, rises sharply at high ε"."""
+        s = self._series(2)
+        assert s == sorted(s), f"scarcity weight must be non-decreasing in ε: {s}"
+        assert s[-1] > 2.0 * s[0], "scarcity must rise SHARPLY, not merely rise"
+
+    def test_impact_falls_monotonically_with_epsilon(self):
+        """
+        Impact is the residual, so it must absorb the other three. The docstring
+        gives it 1.58 at ε=0 and 0.25 at ε=0.99.
+        """
+        s = self._series(3)
+        assert s == sorted(s, reverse=True), f"impact must be non-increasing in ε: {s}"
+        assert s[0] > 4.0 * s[-1]
+
+    def test_demand_peaks_at_mid_arc_not_at_an_endpoint(self):
+        """
+        Docstring: "high at mid-ε (production peak), falls at high ε". A peak at
+        an endpoint would mean the curvature term had lost its sign — precisely
+        what the sum-and-positivity tests could not see.
+        """
+        s = self._series(1)
+        peak = s.index(max(s))
+        assert 0 < peak < len(s) - 1, f"demand must peak in the interior: {s}"
+        assert self.ARC[peak] == pytest.approx(0.4, abs=0.21), (
+            f"demand should peak near the production epoch, peaked at ε={self.ARC[peak]}"
+        )
+
+    def test_the_dominant_factor_changes_across_the_arc(self):
+        """
+        THE WHOLE POINT OF 'EPOCH-ADAPTIVE'. If one factor dominated everywhere,
+        the ε argument would be decorative. Impact leads at subsistence;
+        training leads by the stewardship epoch.
+        """
+        names = ("training", "demand", "scarcity", "impact")
+        lead = lambda e: names[max(range(4), key=lambda i: epoch_alpha_weights(e)[i])]
+        assert lead(0.0) == "impact"
+        assert lead(0.99) == "training"
+        assert lead(0.0) != lead(0.99)
+
+    @pytest.mark.parametrize("eps,expected", [
+        (0.00, (1.50, 1.17, 0.75, 1.58)),
+        (0.40, (1.70, 1.25, 0.91, 1.14)),
+        (0.99, (1.98, 1.06, 1.71, 0.25)),
+    ])
+    def test_the_docstring_example_values_are_true(self, eps, expected):
+        """
+        The docstring publishes worked values. This repo has had doc figures go
+        stale four separate times, so the published numbers are pinned to the
+        code that produces them.
+        """
+        got = epoch_alpha_weights(eps)
+        assert got == pytest.approx(expected, abs=0.01)
+
+    def test_the_sum_invariant_is_an_identity_and_that_is_recorded(self):
+        """
+        STATING THE CHECKER'S GAP, per the repo's own rule. The sum-to-
+        ALPHA_SCALE assertion above is worth keeping — it guards the normalizer
+        — but it is NOT evidence about the α constants, and this test says so in
+        a form that fails if the normalization is ever removed.
+        """
+        import hours_eoh.core.multipliers as M
+
+        saved = {k: getattr(M, k) for k in dir(M) if k.startswith("_ALPHA_")}
+        try:
+            M._ALPHA_TRAINING_BASE = 99.0
+            M._ALPHA_DEMAND_BASE = -7.0
+            M._ALPHA_SCARCITY_GROWTH = -11.0
+            for e in (0.0, 0.4, 0.99):
+                a = M.epoch_alpha_weights(e)
+                assert sum(a) == pytest.approx(ALPHA_SCALE, abs=1e-9), (
+                    "the sum is an identity; if this fails the normalizer changed"
+                )
+        finally:
+            for k, v in saved.items():
+                setattr(M, k, v)
+        # and the shape assertions above DO fail under that mutation, which is
+        # what makes them the real check.
+        assert self._series(0) == sorted(self._series(0))

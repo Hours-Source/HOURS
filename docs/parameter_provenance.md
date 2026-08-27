@@ -289,20 +289,20 @@ structural or it is wrong) and a `normative` decision has none either.
 
 ### Where the model stands
 
-Run `python3 utils/eoh_cli.py provenance check` for the live figures. After the
-`instance` split, over all 229 constants:
+Run `python3 utils/eoh_cli.py provenance check` for the live figures. As of
+2026-08-20, over all 265 constants:
 
 | | count | share | what it means |
 |---|---|---|---|
-| grounded | 49 | 21.4% | structural, measured, derived, or a stated convention |
-| bounded | 14 | 6.1% | picked inside a measured band — the band is the evidence |
-| **placeholder** | **96** | **41.9%** | **no measurement behind it at all — the debt** |
-| normative | 61 | 26.6% | a decision; no dataset retires it |
-| instance | 7 | 3.1% | the deploying institution supplies it, not this framework |
-| retired | 2 | 0.9% | superseded; governs no current output |
+| grounded | 72 | 27.2% | structural, measured, derived, or a stated convention |
+| bounded | 18 | 6.8% | picked inside a measured band — the band is the evidence |
+| **placeholder** | **96** | **36.2%** | **no measurement behind it at all — the debt** |
+| normative | 62 | 23.4% | a decision; no dataset retires it |
+| instance | 12 | 4.5% | the deploying institution supplies it, not this framework |
+| retired | 5 | 1.9% | superseded; governs no current output |
 
-**Debt is 48.0%**, and the actionable figure is the 41.9% of constants that are
-placeholders. That is the number to drive down. The 61 normative constants are not
+**Debt is 43.0%**, and the actionable figure is the 36.2% of constants that are
+placeholders. That is the number to drive down. The 62 normative constants are not
 debt; they are what the framework has decided, and they need argument rather than
 data. The 7 `instance` constants are not debt either — but their shipped defaults
 are not evidence, which is why they are reported on their own line rather than
@@ -327,20 +327,20 @@ their pointers named do not work:
 - `SKILL_DECAY_RATE` and `DEFAULT_SEGMENTS` — claimed retired, falsified by the
   operative-consumer check (see above).
 
-Of the 14 bounded picks, **7 err LOW, 2 HIGH, 4 NEITHER and 1 is WITHHELD**. The lean
+Of the 18 bounded picks, **9 err LOW, 4 HIGH, 4 NEITHER and 1 is WITHHELD**. The lean
 toward LOW is worth noting rather than celebrating: for `DEP_RATE`, `THERMAL_F_GHG`
 and the `GOVERNANCE_IRR_*` pair, erring low is the *unsafe* direction — it flatters
 solvency, overstates the thermal allowance, and sets the assessment-quality gate below
 the conventional bar. Each says so on its own line.
 
-> **Migration note (completed 2026-08-09 — now machine-checked).** All **229**
+> **Migration note (completed 2026-08-09 — now machine-checked).** All **265**
 > `data.py` constants carry an inline tag block, and `tests/test_provenance.py`
 > fails if that stops being true. The migration off the older binary
 > **Kind = Physics | Calibration** is finished: nine tables were still on it, and
 > the whole 51-constant GUF block was undocumented.
 >
 > The migration was not cosmetic. Several constants carrying `Physics` turned out
-> to be desk estimates or constitutional commitments. **Only 2 of 229 constants are
+> to be desk estimates or constitutional commitments. **Only 2 of 265 constants are
 > `physics`** — applying this scheme's own demanding definition honestly leaves
 > `A_EARTH_M2` and `SIGMA_SB` and nothing else. The 190 that became `CHOSEN` were
 > then split into `bounded` / `placeholder` / `normative` (see above), because one

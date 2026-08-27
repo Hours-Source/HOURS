@@ -456,16 +456,53 @@ class TestAmenityWeightIsContinuous:
 
 
 class TestTheAnchorIsKeyedToNothing:
-    """The defect stated exactly: ecological is the only domain with no
-    extensive quantity behind it."""
+    """
+    The defect stated exactly, AND ITS CLOSURE: ecological used to be the only
+    domain with no extensive quantity behind it.
 
-    def test_ecological_eoh_ignores_population_and_area(self):
-        from hours_eoh.core.eoh_generation import ecological_eoh
+    THIS CLASS WENT STALE AND ITS TEST BECAME UNFALSIFIABLE (found 2026-08-27).
+    `ecological_eoh` gained `area_hectares` on 2026-08-16, but this test still
+    read:
 
         # No area or population parameter exists to pass.
         assert ecological_eoh(0.82) == ecological_eoh(0.82)
-        base = ecological_eoh(0.82)
-        assert base == pytest.approx(500_000.0 / 0.82, rel=1e-6)
+
+    Three separate faults in four lines. The comment was FALSE — the parameter
+    exists, and another test in this same file passes it. The assertion was a
+    pure TAUTOLOGY: `f(x) == f(x)` cannot fail for any deterministic f, so it
+    pinned nothing while reading as coverage. And the expected value restated
+    `ECOLOGICAL_BASE_RATE` as the bare literal `500_000.0` — the shadow-literal
+    pattern this repo hunts, in the file documenting an anchor defect.
+
+    It now asserts the two things that are actually true and load-bearing: the
+    no-area path resolves to the DECLARED reference frame, and the with-area
+    path is linear in area — the extensive behaviour whose absence was the
+    original defect.
+    """
+
+    def test_without_an_area_it_resolves_to_the_declared_reference_frame(self):
+        """
+        Bound to the constant, not to a literal. If ECOLOGICAL_BASE_RATE moves,
+        this must move with it or say why.
+        """
+        from hours_eoh.core.eoh_generation import ecological_eoh
+        from hours_eoh.data import ECOLOGICAL_BASE_RATE
+
+        assert ecological_eoh(0.82) == pytest.approx(
+            ECOLOGICAL_BASE_RATE / 0.82, rel=1e-9
+        )
+
+    def test_with_an_area_it_is_linear_in_area(self):
+        """
+        THE PROPERTY WHOSE ABSENCE WAS THE DEFECT. Ecological demand is a
+        property of ground, so doubling the ground doubles the obligation.
+        """
+        from hours_eoh.core.eoh_generation import ecological_eoh
+
+        one = ecological_eoh(0.82, area_hectares=1.0e6)
+        two = ecological_eoh(0.82, area_hectares=2.0e6)
+        assert two == pytest.approx(2.0 * one, rel=1e-9)
+        assert one > 0.0
 
     def test_the_other_domains_do_scale(self):
         from hours_eoh.core.eoh_generation import personal_eoh

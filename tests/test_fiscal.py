@@ -1116,3 +1116,111 @@ class TestAccumulationCeiling:
     def test_mechanism_label(self):
         result = accumulation_ceiling_commitment(0.0, 1.0)
         assert result["mechanism"] == "D6_ceiling"
+
+
+class TestFiscalSnapshotStatesItsFrame:
+    """
+    THE SEAM BETWEEN THE TWO DOCUMENTED ENTRY POINTS (closed 2026-08-20).
+
+    `docs/guides/implementation_guide.md` tells an institution to run
+    `eoh_to_teh_pipeline()` and `fiscal_snapshot()`. Until this fix those two
+    calls resolved the ecological obligation two different ways: the pipeline
+    derived the area from the population it was given (Phase 4b), while
+    fiscal_snapshot took its requirement from ECOLOGICAL_BASE_RATE, the whole
+    contiguous US, whatever population was passed. The guide's own worked
+    example — 5M people — therefore disagreed with itself by 92.8x, reported
+    `solvent: True` either way, and surfaced nothing.
+
+    This is the sixth instance of the frame defect and the first on the
+    institutional intake path. The static gate lives in
+    tests/test_ecological_scale_resolution.py; these are the runtime pins.
+    """
+
+    def _frame(self, population, hectares):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        pipe = eoh_to_teh_pipeline(
+            epsilon=0.40, population=population, capital_stock=2000.0 * population,
+            ecosystem_health=0.70, ecological_area_hectares=hectares,
+        )
+        snap = fiscal_snapshot(
+            trust_balance=35e9, labor_income=pipe["teh_created"],
+            capital_stock_teh=2000.0 * population, capital_age_ratio=0.5,
+            population=population, epsilon=0.40, ecosystem_health=0.70,
+            ecological_area_hectares=hectares,
+        )
+        return pipe["eoh_by_domain"]["ecological"], snap["ecological"]["ecological_eoh_total"]
+
+    def test_the_two_entry_points_agree_at_a_declared_frame(self):
+        """Same jurisdiction, same land → one obligation, not two."""
+        for pop, ha in ((1e6, 1.65e6), (5e6, 12e6), (335e6, 765_495_267.0)):
+            eco_pipe, eco_fisc = self._frame(pop, ha)
+            assert eco_fisc == pytest.approx(eco_pipe, rel=1e-9), (
+                f"pop={pop:,.0f} ha={ha:,.0f}: pipeline {eco_pipe:.6e} "
+                f"vs fiscal {eco_fisc:.6e}"
+            )
+
+    def test_the_undeclared_default_now_resolves_from_population(self):
+        """
+        Omitting the area is no longer an unstated US pairing: it resolves the
+        same way `total_eoh` does, so the default is a frame somebody chose.
+        """
+        from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+        pop = 5_000_000.0
+        bare = fiscal_snapshot(
+            trust_balance=35e9, labor_income=1e9, capital_stock_teh=2000.0 * pop,
+            capital_age_ratio=0.5, population=pop, epsilon=0.40, ecosystem_health=0.70,
+        )["ecological"]["ecological_eoh_total"]
+        declared = fiscal_snapshot(
+            trust_balance=35e9, labor_income=1e9, capital_stock_teh=2000.0 * pop,
+            capital_age_ratio=0.5, population=pop, epsilon=0.40, ecosystem_health=0.70,
+            ecological_area_hectares=pop * LAND_HECTARES_PER_CAPITA,
+        )["ecological"]["ecological_eoh_total"]
+        assert bare == pytest.approx(declared, rel=1e-12)
+
+    def test_the_ecological_requirement_scales_with_the_frame(self):
+        """
+        The property the defect destroyed: doubling the land doubles the
+        obligation. Under the US anchor it was invariant to both land and
+        population, which is what made a 5M-person collective owe the US total.
+        """
+        pop = 5_000_000.0
+        small = fiscal_snapshot(
+            trust_balance=35e9, labor_income=1e9, capital_stock_teh=2000.0 * pop,
+            capital_age_ratio=0.5, population=pop, epsilon=0.40, ecosystem_health=0.70,
+            ecological_area_hectares=6e6,
+        )["ecological"]["ecological_eoh_total"]
+        large = fiscal_snapshot(
+            trust_balance=35e9, labor_income=1e9, capital_stock_teh=2000.0 * pop,
+            capital_age_ratio=0.5, population=pop, epsilon=0.40, ecosystem_health=0.70,
+            ecological_area_hectares=12e6,
+        )["ecological"]["ecological_eoh_total"]
+        assert large == pytest.approx(2.0 * small, rel=1e-9)
+
+    def test_base_rate_and_area_together_are_refused(self):
+        """
+        Two answers to one question. `ecological_scale` silently prefers
+        base_rate, so an area the caller believes is in force and is not is the
+        silently-ignored-parameter failure this repo keeps finding. `total_eoh`
+        refuses the same combination.
+        """
+        with pytest.raises(ValueError, match="not both"):
+            ecological_allocation(
+                ecosystem_health=0.70, epsilon=0.40, available_teh=1e9,
+                base_rate=5e5, area_hectares=1e6,
+            )
+
+    def test_a_caller_with_no_population_keeps_the_declared_us_frame(self):
+        """
+        The gate is an allowlist for a reason: `ecological_allocation` called
+        directly has no population in scope, and for it the declared reference
+        frame is the right default. Unchanged behaviour, pinned so the fix to
+        the population-scaled callers cannot silently migrate down here.
+        """
+        from hours_eoh.data import ECOLOGICAL_BASE_RATE
+        from hours_eoh.core.eoh_generation import ecological_eoh
+        got = ecological_allocation(
+            ecosystem_health=0.70, epsilon=0.40, available_teh=1e12,
+        )["ecological_eoh_total"]
+        assert got == pytest.approx(
+            ecological_eoh(0.70, 0.40, base_rate=ECOLOGICAL_BASE_RATE), rel=1e-12
+        )

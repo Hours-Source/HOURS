@@ -46,7 +46,7 @@ something the model determines.
 Every constant in `data.py` carries an inline provenance tag saying what kind of
 claim its value makes. That tag, not intuition, tells you what to do with it.
 Run `eoh provenance check` for the current counts, or read
-`hours_eoh/reference/data/constant_provenance.csv` for all 229 with their
+`hours_eoh/reference/data/constant_provenance.csv` for all 265 with their
 evidence. Both are generated from `data.py`, so neither can drift from it.
 
 | Tag | What it means | What you should do |
@@ -254,12 +254,30 @@ snap = fiscal_snapshot(
     capital_age_ratio=your_state["capital_age_ratio"],
     population=your_population,
     epsilon=eps_estimate,
+    ecosystem_health=your_state["ecosystem_health"],
+    # STATE THE SAME FRAME YOU GAVE THE PIPELINE. Omit it and the area resolves
+    # from your population at LAND_HECTARES_PER_CAPITA — a planetary average.
+    ecological_area_hectares=your_state["ecological_area_hectares"],
 )
 
 print("Solvent:", snap["solvent"])
 print("Trust end-of-period:", snap["trust"]["trust_end"])
 print("Guarantee cost:", snap["guarantee"]["total_cost_teh"])
 ```
+
+> **Pass the frame to both calls, or to neither.** `fiscal_snapshot()` sizes the
+> ecological obligation independently of the pipeline, so if you give the
+> pipeline your real land area and leave it off here, the two halves of your run
+> describe two different jurisdictions. Before 2026-08-20 this function ignored
+> the question entirely and always used the whole-contiguous-US anchor; the
+> example in §4 below disagreed with its own pipeline call by **92.8×** while
+> reporting `solvent: True`. It now resolves from your population exactly as
+> `total_eoh()` does, so the default is at least a frame somebody chose — but a
+> planetary average is still the wrong number for any actual collective.
+>
+> If you already have the pipeline's answer, pass it straight through with
+> `eco_eoh_override=result["eoh_by_domain"]["ecological"]` and the two cannot
+> diverge at all.
 
 ### Step 6: Sensitivity sweeps
 
@@ -295,12 +313,15 @@ from hours_eoh.research.recalibration import exit_financing
 
 # --- Your data ---
 population         = 5_000_000     # 5M people
+land_hectares      = 12_000_000    # the land you steward — YOUR cadastre
 capital_stock_teh  = 8_000_000_000 # 8B TEH (≈ 1,600 TEH/person)
 capital_age_ratio  = 0.42
 ecosystem_health   = 0.65          # moderately degraded
 monitoring_cap     = 0.60
 epsilon            = 0.28          # current automation level
 trust_balance      = 150_000_000_000  # 30,000 TEH/person
+
+# population, land and capital are ONE FRAME and must travel together.
 
 age_dist = {
     "infant":      0.065,
@@ -318,9 +339,13 @@ pipe = eoh_to_teh_pipeline(
     ecosystem_health=ecosystem_health,
     monitoring_capability=monitoring_cap,
     age_distribution=age_dist,
+    ecological_area_hectares=land_hectares,
 )
 
 # --- Run fiscal snapshot ---
+# The ecological obligation is passed straight through from the pipeline, so the
+# two calls cannot describe different jurisdictions. Equivalent here:
+#   ecological_area_hectares=land_hectares
 snap = fiscal_snapshot(
     trust_balance=trust_balance,
     labor_income=pipe["teh_created"],
@@ -329,6 +354,7 @@ snap = fiscal_snapshot(
     population=population,
     epsilon=epsilon,
     ecosystem_health=ecosystem_health,
+    eco_eoh_override=pipe["eoh_by_domain"]["ecological"],
 )
 
 # --- Run contestability check (the ADOPTED §8.9 test) ---
@@ -418,10 +444,10 @@ What the model **cannot** tell you:
   consumption choices above the sufficiency floor. The `basket_price()` function
   captures the floor basket; above-floor pricing is left to collective discovery.
 
-- **Calibration confidence — the honest headline**: of 229 constants, **49
-  (21.4%) are grounded**, 14 are bounded picks, **94 (41.0%) are placeholders
-  with no measurement behind them at all**, 61 are normative decisions, 7 are
-  yours to supply, and 2 are retired. Measurement debt is **47.2%**, and the
+- **Calibration confidence — the honest headline**: of 265 constants, **72
+  (27.2%) are grounded**, 18 are bounded picks, **96 (36.2%) are placeholders
+  with no measurement behind them at all**, 62 are normative decisions, 12 are
+  yours to supply, and 5 are retired. Measurement debt is **43.0%**, and the
   actionable part is the placeholders. The framework shows the direction and
   qualitative shape of the arc, not point forecasts — use it for structural
   analysis, not projection. Run `eoh provenance check` for the live figures;

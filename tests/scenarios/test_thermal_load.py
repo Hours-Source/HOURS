@@ -137,11 +137,32 @@ def test_coverage_rises_with_epsilon():
 
 
 def test_carrying_the_obligation_reduces_coverage():
+    """
+    CARRYING THE OBLIGATION COSTS THREE ORDERS OF COVERAGE, NOT A FACTOR OF 3.5.
+
+    This test recorded 3.5 — the same stale figure, from the same cause, as
+    `test_thermal_solvency.test_flow_more_than_triples_the_ecological_domain`,
+    which was corrected to ~1,626x on 2026-08-17 while this sibling was not.
+    Both compared the thermal load against an ecological baseline inflated by
+    the frame mismatch. Here the inflation entered through `fiscal_snapshot`,
+    which scaled the levy base and the guarantee with its own `population` and
+    then took its ecological requirement from ECOLOGICAL_BASE_RATE — the whole
+    contiguous US — so the denominator of `coverage_margin` was another
+    jurisdiction's obligation.
+
+    Framed consistently the ratio is ~1,162x. It is not the same number as the
+    solvency test's 1,626x and should not be: that one is a load ratio on the
+    domain, this one is levy capacity over obligation cost at ε=0.99. Same
+    cause, same order, different quantity.
+
+    Asserted as an ORDER OF MAGNITUDE, not a level — it moves with every
+    constant in the chain, and pinning the level here is what let the stale
+    3.5 survive its own correction.
+    """
     loaded = thermal_load_arc(arc=(0.99,))[0]["coverage_margin"]
     unloaded = thermal_load_arc(thermal_obligation=0.0, arc=(0.99,))[0]["coverage_margin"]
     assert loaded < unloaded
-    # the drop tracks the load ratio — carrying it costs ~3.5× of coverage
-    assert unloaded / loaded == pytest.approx(3.5, rel=0.05)
+    assert 1e3 < unloaded / loaded < 1e4
 
 
 # ---------------------------------------------------------------------------

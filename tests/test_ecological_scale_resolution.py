@@ -41,7 +41,22 @@ PKG = pathlib.Path(__file__).resolve().parent.parent / "hours_eoh"
 
 #: Functions in the ecological-scale chain. A call to any of these is a scale
 #: resolution and must state its frame.
-_SCALE_CALLS = {"ecological_eoh", "ecological_eoh_breakdown", "ecological_scale"}
+#:
+#: `ecological_allocation` was added 2026-08-20, after the defect was found a
+#: SIXTH time. It is a wrapper: it has no `population` of its own and it does
+#: not call `ecological_eoh` under a name this scan recognised at the caller's
+#: level, so `fiscal_snapshot` and `system_dashboard` — both of which scale the
+#: levy base, the guarantee and the stewardship obligation with `population` —
+#: reached the US anchor through it while the gate looked straight past. THE
+#: LESSON: a gate keyed to the names at the BOTTOM of a chain does not see a
+#: caller that enters the chain one wrapper up. Add the wrapper, not just the
+#: primitive.
+_SCALE_CALLS = {
+    "ecological_eoh",
+    "ecological_eoh_breakdown",
+    "ecological_scale",
+    "ecological_allocation",
+}
 
 #: Keyword arguments that STATE the frame. Any one of them discharges the rule.
 _FRAME_KWARGS = {
@@ -50,6 +65,19 @@ _FRAME_KWARGS = {
     "base_rate",
     "ecological_base",
 }
+
+#: `eco_eoh_override` is DELIBERATELY NOT a frame kwarg, and the reason cost a
+#: bite test. Supplying a resolved obligation outright does state the frame —
+#: but callers pass it as `eco_eoh_override=eco_eoh_override`, a pass-through of
+#: their own parameter whose value is normally None. Accepting the kwarg's
+#: PRESENCE as evidence made the gate green against the very defect it was being
+#: extended for: `fiscal_snapshot` reintroduced the unframed call and the gate
+#: did not notice, because the pass-through was still in the argument list.
+#:
+#: This is the repo's standing lesson in a new place — a reported value that is
+#: not the applied one, `psi` vs `psi_applied`; shape accepted where a DECLARED
+#: label was needed. Presence of a parameter is not the parameter being in
+#: force. A caller that genuinely resolves upstream states a real frame too.
 
 #: Parameter names that mean "this function has a population in scope", i.e. it
 #: is scaling something extensive and the ecological term must scale with it.

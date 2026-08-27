@@ -10,6 +10,8 @@ import math
 import pytest
 
 from hours_eoh.core.prices import (
+    GOODS_PRICE_FLOOR,
+    SERVICES_PRICE_FLOOR,
     teh_price,
     teh_price_trajectory,
     basket_price,
@@ -377,3 +379,97 @@ class TestFloorPrice:
     def test_arc_arc_behavior(self):
         for eps in KEY_EPSILONS:
             assert floor_price(eps) > 0
+
+
+
+class TestThePriceFloorsAreReached:
+    """
+    THE ASYMPTOTES THE FLOORS NAME (pinned 2026-08-27).
+
+    `GOODS_PRICE_FLOOR` and `SERVICES_PRICE_FLOOR` are the ε→1 limits of the two
+    price ratios — the whole content of "prices collapse toward a floor as
+    automation rises, and services collapse less because they stay
+    labour-bearing". A +7% perturbation of either moved shipped outputs and NOT
+    ONE TEST FAILED: failure mode 1 on the constants that decide where the price
+    arc lands.
+
+    They are shadow constants — declared in `core/prices.py`, not `data.py` — so
+    the provenance gate cannot see them either. A 2026-08-27 sweep found 34 of 63
+    shadow constants unpinned against 0 of 232 in `data.py`; the two gaps
+    compound, and these two were the ones demonstrably moving output.
+
+    `basket_price` returns a scalar cost, so each ratio is isolated by putting
+    all the weight on one side of the basket.
+
+    Pinned as ASYMPTOTIC BEHAVIOUR and ORDERING, not as levels — the levels are
+    calibration and will move.
+    """
+
+    BASE = 120.0
+
+    def _goods(self, eps):
+        return basket_price(eps, self.BASE, goods_weight=1.0,
+                            services_weight=0.0) / self.BASE
+
+    def _services(self, eps):
+        return basket_price(eps, self.BASE, goods_weight=0.0,
+                            services_weight=1.0) / self.BASE
+
+    def test_both_ratios_start_at_unity(self):
+        assert self._goods(0.0) == pytest.approx(1.0, rel=1e-9)
+        assert self._services(0.0) == pytest.approx(1.0, rel=1e-9)
+
+    def test_goods_ratio_lands_on_its_floor(self):
+        r = self._goods(0.99)
+        assert r >= GOODS_PRICE_FLOOR - 1e-12, "a ratio may never go below its floor"
+        assert r == pytest.approx(GOODS_PRICE_FLOOR, abs=0.02), (
+            f"at ε=0.99 goods should sit on GOODS_PRICE_FLOOR, got {r}"
+        )
+
+    def test_services_ratio_reaches_its_floor_only_in_the_limit(self):
+        """
+        AND THE CONVERGENCE IS SLOW, which is the finding rather than a tolerance
+        to widen. `_SERVICES_PRICE_DECLINE_EXPONENT` = 0.35 gives
+        (1−ε)**0.35, so at ε=0.99 the services ratio is still **0.360 — 1.8× its
+        own floor** — and only touches 0.20 as ε→1. Goods, being linear, sit on
+        their floor at 0.99 already.
+
+        I first wrote this test asserting services was AT its floor by ε=0.99,
+        which is what the phrase "prices collapse" invites you to assume. It
+        fails, and it should: the two ratios reach their floors at completely
+        different rates, and that difference IS the labour-bearing claim. Pinning
+        the wrong version would have baked in a misreading of the model.
+
+        This also pins `_SERVICES_PRICE_DECLINE_EXPONENT`, a third unpinned
+        shadow constant in this module.
+        """
+        assert self._services(0.99) >= SERVICES_PRICE_FLOOR - 1e-12
+        assert self._services(0.99) == pytest.approx(0.360, abs=0.01), (
+            "services should still be well above its floor at ε=0.99"
+        )
+        assert self._services(0.99) > 1.5 * SERVICES_PRICE_FLOOR
+        # the limit itself
+        assert self._services(0.999999) == pytest.approx(
+            SERVICES_PRICE_FLOOR, abs=0.01
+        )
+        # goods, being linear, is already there
+        assert self._goods(0.99) == pytest.approx(GOODS_PRICE_FLOOR, abs=0.02)
+
+    def test_services_stay_dearer_than_goods_across_the_arc(self):
+        """
+        THE CLAIM THE TWO FLOORS EXIST TO MAKE. Services are labour-bearing, so
+        automation cannot collapse them as far. If this inverts, the floors have
+        swapped meaning and the arc says the opposite of the theory.
+        """
+        for eps in (0.2, 0.4, 0.7, 0.9, 0.99):
+            assert self._services(eps) > self._goods(eps), (
+                f"services must not fall below goods at ε={eps}"
+            )
+
+    def test_both_ratios_fall_monotonically(self):
+        arc = [0.0, 0.2, 0.4, 0.6, 0.8, 0.99]
+        g = [self._goods(e) for e in arc]
+        s = [self._services(e) for e in arc]
+        assert g == sorted(g, reverse=True), f"goods ratio must not rise with ε: {g}"
+        assert s == sorted(s, reverse=True), f"services ratio must not rise with ε: {s}"
+        assert all(0.0 < x <= 1.0 for x in g + s)
