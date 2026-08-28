@@ -29,6 +29,8 @@ from hours_eoh.data import (
     INFRA_MAINT_RATE, ECOLOGICAL_BASE_RATE, ECOLOGICAL_INTENSITY_BASE,
     ACCUMULATION_CEILING_MULTIPLIER, BASE_LIFETIME_EARNINGS_TEH,
     MEAN_MULTIPLIER_REFERENCE, LAND_HECTARES_PER_CAPITA,
+    CARE_AUTOMATION_FLOOR, SUFF_GUARANTEE_STRUCTURAL_MIN,
+    PROVIDER_CAP_EQUIVALENTS,
 )
 from hours_eoh.core.eoh_generation import infrastructure_eoh, ecological_eoh
 from hours_eoh.core.eoh_fulfillment import human_eoh_share
@@ -37,8 +39,9 @@ from hours_eoh.core.eoh_fulfillment import human_eoh_share
 # ---------------------------------------------------------------------------
 # Fiscal calibration constants
 # ---------------------------------------------------------------------------
-_CARE_AUTOMATION_FLOOR:         float = 0.15  # floor on care stipend at ε=1 (relational care)
-_SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05  # fraction always at floor regardless of ε
+# CARE_AUTOMATION_FLOOR and SUFF_GUARANTEE_STRUCTURAL_MIN MIGRATED TO data.py
+# 2026-08-28 as CARE_AUTOMATION_FLOOR and SUFF_GUARANTEE_STRUCTURAL_MIN. Both
+# were shadow constants: untagged, and a +7% move failed no test.
 # SUFF_GUARANTEE_EPS_DECAY imported from data.py
 # Population-weighted mean EOH weight from default AGE_GROUPS fractions (constant):
 # 0.07×3.0 + 0.16×1.5 + 0.60×1.0 + 0.17×2.5 = 1.475
@@ -405,9 +408,9 @@ def sufficiency_guarantee(
     it never falls." §"The sufficiency guarantee: purchasing power never declines."
     """
     # Clamp floor_fraction to the structural minimum so the formula can't
-    # produce an effective_fraction below _SUFF_GUARANTEE_STRUCTURAL_MIN
+    # produce an effective_fraction below SUFF_GUARANTEE_STRUCTURAL_MIN
     # when a caller passes a floor_fraction smaller than the minimum.
-    floor_fraction = max(floor_fraction, _SUFF_GUARANTEE_STRUCTURAL_MIN)
+    floor_fraction = max(floor_fraction, SUFF_GUARANTEE_STRUCTURAL_MIN)
 
     raw_eoh_per_person = _AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
     eoh_reimbursement_per_person = max(0.0, raw_eoh_per_person - capital_personal_eoh_fulfilled_per_person)
@@ -424,8 +427,8 @@ def sufficiency_guarantee(
     # At higher ε, fewer people need the guarantee (rising PP means less hardship),
     # but a structural minimum remains (training periods, illness, care commitments).
     effective_fraction = (
-        _SUFF_GUARANTEE_STRUCTURAL_MIN
-        + (floor_fraction - _SUFF_GUARANTEE_STRUCTURAL_MIN) * (1.0 - SUFF_GUARANTEE_EPS_DECAY * epsilon)
+        SUFF_GUARANTEE_STRUCTURAL_MIN
+        + (floor_fraction - SUFF_GUARANTEE_STRUCTURAL_MIN) * (1.0 - SUFF_GUARANTEE_EPS_DECAY * epsilon)
     )
 
     recipients = population * effective_fraction
@@ -736,8 +739,7 @@ CARE_AGE_BRACKETS: list[dict] = [
 # 1st dependent: full rate. Each additional dependent: lower marginal rate.
 DEPENDENT_SCALE: list[float] = [1.00, 0.80, 0.65, 0.50]   # index = 0-based position
 
-# Per-provider cap: max equivalent of this many full-infant-rate dependents
-PROVIDER_CAP_EQUIVALENTS: float = 2.50
+# Per-provider cap: PROVIDER_CAP_EQUIVALENTS migrated to data.py 2026-08-28.
 
 
 def _age_weight(age: int) -> float:
@@ -804,7 +806,7 @@ def care_stipend(
     params = policy_params or {}
     cap_equiv  = params.get("provider_cap_equivalents", PROVIDER_CAP_EQUIVALENTS)
     dep_scale  = params.get("dependent_scale", DEPENDENT_SCALE)
-    auto_floor = params.get("automation_floor", _CARE_AUTOMATION_FLOOR)
+    auto_floor = params.get("automation_floor", CARE_AUTOMATION_FLOOR)
 
     # ε scaling: physical care declines with automation; relational care floors
     # At ε=0: full rate. At ε=1: auto_floor (15% for relational/emotional care).

@@ -24,6 +24,8 @@ from hours_eoh.core.eoh_generation import (
     eoh_to_essential_domains,
 )
 from hours_eoh.data import (
+    ECOLOGICAL_SPIKE_INTENSITY,
+    ECOLOGICAL_THRESHOLD,
     ECOLOGICAL_BASE_RATE,
     ECOLOGICAL_INTENSITY_BASE,
     LAND_HECTARES_PER_CAPITA,
@@ -1114,3 +1116,80 @@ def test_eta_land_mask_threshold_is_superseded_by_the_shipped_method():
     weighting = load_eta_land()["_method"]["weighting"]
     assert "not a binary threshold" in weighting
     assert "FRACTION" in weighting
+
+
+class TestEcologicalSpikeShape:
+    """
+    THE SUB-THRESHOLD SPIKE, migrated and pinned (2026-08-28).
+
+    `ECOLOGICAL_SPIKE_INTENSITY` was `_ECOLOGICAL_SPIKE_INTENSITY` in
+    `core/eoh_generation.py`. The 2026-08-09 provenance pass NAMED it as
+    calibrated-to-target — picked to produce the escalation the arc was expected
+    to show — and it then stayed a shadow constant for the whole period since,
+    so the gate that reports calibrated-to-target constants could not see it. A
+    +7% move failed no test.
+
+    Division of labour with `ECOLOGICAL_THRESHOLD`: the threshold sets WHERE the
+    spike begins, this sets HOW BIG it gets. Pinned as shape.
+    """
+
+    def test_no_spike_above_the_threshold(self):
+        """A regime-shift term that fires in the healthy regime is not a
+        regime-shift term."""
+        for health in (ECOLOGICAL_THRESHOLD + 0.01, 0.6, 0.8, 1.0):
+            b = ecological_eoh_breakdown(health, area_hectares=1.0e6)
+            assert b["spike"] == 0.0, f"spike fired at healthy h={health}"
+
+    def test_the_spike_engages_below_the_threshold(self):
+        b = ecological_eoh_breakdown(ECOLOGICAL_THRESHOLD - 0.01,
+                                     area_hectares=1.0e6)
+        assert b["spike"] > 0.0
+
+    def test_the_spike_grows_as_health_falls(self):
+        spikes = [ecological_eoh_breakdown(h, area_hectares=1.0e6)["spike"]
+                  for h in (0.39, 0.30, 0.20, 0.10, 0.01)]
+        assert spikes == sorted(spikes), spikes
+
+    def test_the_approach_is_quadratic_not_linear(self):
+        """
+        THE SHAPE CLAIM. spike ∝ ((threshold − health)/threshold)², so doubling
+        the deficit quadruples the spike. A linear term would merely double it —
+        a different model of regime shift, and the exponent is what
+        distinguishes them.
+
+        Measured between two deficits well clear of the health clamp (see the
+        collapse test below), so the clamp cannot flatter the exponent.
+        """
+        thr = ECOLOGICAL_THRESHOLD
+        quarter = ecological_eoh_breakdown(thr * 0.75, area_hectares=1.0e6)["spike"]
+        half = ecological_eoh_breakdown(thr * 0.50, area_hectares=1.0e6)["spike"]
+        assert half == pytest.approx(4.0 * quarter, rel=1e-6)
+
+    def test_total_collapse_costs_the_declared_multiple_of_the_baseline(self):
+        """
+        As health → 0 the deficit fraction → 1, so the spike approaches exactly
+        INTENSITY × scale. That is what the constant MEANS, and asserting it
+        binds the constant to the behaviour rather than restating the number.
+
+        THE HEALTH CLAMP IS WHY THIS IS AN APPROACH, NOT AN EQUALITY.
+        `ecological_eoh` floors health at 0.001 to avoid a division by zero, so
+        the deficit at h=0 is 0.9975 and the spike is 4.975×, never 5×. Pinned
+        with the clamp visible — a 0.5% shortfall that looks like a rounding
+        error is exactly the kind of thing that gets "fixed" by widening a
+        tolerance instead of being understood.
+        """
+        b = ecological_eoh_breakdown(0.0, area_hectares=1.0e6)
+        deficit = (ECOLOGICAL_THRESHOLD - 0.001) / ECOLOGICAL_THRESHOLD
+        assert b["spike"] == pytest.approx(
+            ECOLOGICAL_SPIKE_INTENSITY * deficit ** 2 * b["scale"], rel=1e-9
+        )
+        assert b["spike"] / b["scale"] == pytest.approx(
+            ECOLOGICAL_SPIKE_INTENSITY, rel=0.01
+        )
+
+    def test_the_spike_scales_with_area_like_the_baseline(self):
+        """It is an obligation on ground, so it must be extensive in area — the
+        property the 2026-08-16 keying fix established for the domain."""
+        one = ecological_eoh_breakdown(0.2, area_hectares=1.0e6)["spike"]
+        two = ecological_eoh_breakdown(0.2, area_hectares=2.0e6)["spike"]
+        assert two == pytest.approx(2.0 * one, rel=1e-9)

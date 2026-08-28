@@ -17,6 +17,11 @@ Sources: phase3, phase6 (TestTrustSolvencyTrajectory, TestFiscalSnapshotCapitalE
 import math
 import pytest
 
+from hours_eoh.data import (
+    SUFF_GUARANTEE_STRUCTURAL_MIN,
+    CARE_AUTOMATION_FLOOR,
+    PROVIDER_CAP_EQUIVALENTS,
+)
 from hours_eoh.core.fiscal import (
     levy_collection,
     stewardship_allocation,
@@ -1223,4 +1228,81 @@ class TestFiscalSnapshotStatesItsFrame:
         )["ecological_eoh_total"]
         assert got == pytest.approx(
             ecological_eoh(0.70, 0.40, base_rate=ECOLOGICAL_BASE_RATE), rel=1e-12
+        )
+
+
+class TestTheGuaranteeAndCareFloors:
+    """
+    THE THREE FISCAL FLOORS, migrated and pinned (2026-08-28).
+
+    `SUFF_GUARANTEE_STRUCTURAL_MIN`, `CARE_AUTOMATION_FLOOR` and
+    `PROVIDER_CAP_EQUIVALENTS` lived in `core/fiscal.py` as shadow constants —
+    untagged, invisible to the provenance gate, and a +7% move failed no test.
+    All three are `normative`: they are commitments, not measurements, which is
+    exactly why they need pinning. A charter commitment nothing tests is a
+    commitment the code can quietly abandon.
+
+    Pinned as BEHAVIOUR — that the floor exists, binds, and cannot be argued
+    below — rather than at their levels.
+    """
+
+    def test_the_guarantee_floor_never_falls_below_the_structural_minimum(self):
+        """
+        The floor's floor. As ε → 1 the guarantee decays toward this and stops;
+        a model in which automation removes the entitlement entirely is a
+        different charter.
+        """
+        for eps in (0.0, 0.40, 0.90, 0.99, 1.0):
+            g = sufficiency_guarantee(1_000_000.0, eps)
+            assert g["floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN - 1e-12, (
+                f"guarantee floor breached at ε={eps}: {g['floor_fraction']}"
+            )
+
+    def test_a_caller_cannot_set_a_guarantee_below_the_minimum(self):
+        """The clamp is the mechanism — the commitment is not a default that a
+        caller may quietly undercut."""
+        g = sufficiency_guarantee(1_000_000.0, 0.0, floor_fraction=0.0)
+        assert g["floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN - 1e-12
+
+    def test_the_guarantee_floor_decays_but_stays_above_the_minimum(self):
+        """Both halves: it does shrink with automation, and it does not vanish."""
+        lo = sufficiency_guarantee(1_000_000.0, 0.0)["floor_fraction"]
+        hi = sufficiency_guarantee(1_000_000.0, 0.99)["floor_fraction"]
+        assert hi < lo, "the floor should shrink with automation"
+        assert hi > SUFF_GUARANTEE_STRUCTURAL_MIN
+
+    def test_care_stipend_floors_at_the_relational_fraction(self):
+        """
+        THE CLAIM: some fraction of care is relational and cannot be automated
+        at any ε. Block II reached the same conclusion from the other side —
+        care is the least abatable component — so a non-zero floor here is
+        consistent with the abatement model rather than an independent guess.
+        """
+        assert care_stipend([0], epsilon=0.0)["automation_factor"] == pytest.approx(1.0)
+        at_full = care_stipend([0], epsilon=1.0)["automation_factor"]
+        assert at_full == pytest.approx(CARE_AUTOMATION_FLOOR, rel=1e-9)
+        assert at_full > 0.0, "care may not automate to nothing"
+
+    def test_the_care_automation_factor_falls_monotonically(self):
+        factors = [care_stipend([0], epsilon=e)["automation_factor"]
+                   for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
+        assert factors == sorted(factors, reverse=True), factors
+        assert all(f >= CARE_AUTOMATION_FLOOR - 1e-12 for f in factors)
+
+    def test_the_provider_cap_binds_on_many_dependents(self):
+        """
+        A cap that never applies is not a cap. It must bind for a large
+        household and not for a single dependent.
+        """
+        assert care_stipend([0], epsilon=0.0)["cap_applied"] is False
+        many = care_stipend([0] * 6, epsilon=0.0)
+        assert many["cap_applied"] is True
+        assert many["capped_total"] <= many["provider_cap_teh"] + 1e-9
+
+    def test_the_cap_is_the_declared_number_of_full_rate_dependents(self):
+        """It is denominated in full-infant-rate equivalents, so the cap must be
+        exactly that multiple of the base stipend at ε=0."""
+        c = care_stipend([0], epsilon=0.0, base_infant_stipend=200.0)
+        assert c["provider_cap_teh"] == pytest.approx(
+            200.0 * PROVIDER_CAP_EQUIVALENTS, rel=1e-12
         )

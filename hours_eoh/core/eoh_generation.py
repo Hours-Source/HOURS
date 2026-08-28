@@ -35,6 +35,7 @@ from hours_eoh.data import (
     PERSONAL_EOH_BASE, PERSONAL_EOH_SURVIVAL, PERSONAL_EOH_SUFFICIENCY,
     CAPITAL_STOCK_DEFAULT, ECOLOGICAL_BASE_RATE, ECOLOGICAL_INTENSITY_BASE,
     ECOLOGICAL_THRESHOLD, LAND_HECTARES_PER_CAPITA, US_MAINLAND_HECTARES,
+    ECOLOGICAL_SPIKE_INTENSITY,
     INFRA_MAINT_RATE, KNOWLEDGE_EOH_BASE,
     KNOWLEDGE_EPS_EXPONENT, KNOWLEDGE_REFERENCE_POPULATION, SKILL_DECAY_RATE,
     SKILL_TRANSMISSION_RATE, SKILL_CPD_RATE,
@@ -51,7 +52,9 @@ from hours_eoh.data import (
 # ---------------------------------------------------------------------------
 # EOH generation calibration constants (physics, not trajectory)
 # ---------------------------------------------------------------------------
-_ECOLOGICAL_SPIKE_INTENSITY: float = 5.0   # nonlinear spike multiplier below ecological threshold
+# ECOLOGICAL_SPIKE_INTENSITY migrated to data.py 2026-08-28 as
+# ECOLOGICAL_SPIKE_INTENSITY. It was named as calibrated-to-target on
+# 2026-08-09 and stayed a shadow constant for the whole period since.
 # Trajectory-scaling constants (CANONICAL_*) are in data.py and used only
 # when epsilon is provided as a backward-compat canonical-trajectory lookup.
 
@@ -1462,7 +1465,7 @@ def ecological_eoh_breakdown(
     spike = 0.0
     if health < threshold:
         deficit = (threshold - health) / threshold
-        spike = rate * _ECOLOGICAL_SPIKE_INTENSITY * (deficit ** 2)
+        spike = rate * ECOLOGICAL_SPIKE_INTENSITY * (deficit ** 2)
 
     # PHASE 4e (2026-08-17, author sign-off) — DECOMPOSE THE HEALTH RESPONSE.
     #

@@ -10,7 +10,14 @@ unmeasured rather than zero.
 
 import pytest
 
+from hours_eoh.data import BASKET_DIET_KCAL_PER_DAY
+from hours_eoh.reference.personal_basket import (
+    DIET_DAYS_PER_YEAR,
+    NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
+    NUTRITION_HOURS_PER_KCAL,
+)
 from hours_eoh.scenarios.food_conservation import (
+    LSMS_CROP_PRODUCTION_BAND,
     LSMS_CROP_PRODUCTION_HOURS,
     LSMS_PROCESSING_HOURS,
     SOC_AGRICULTURE,
@@ -188,3 +195,89 @@ class TestUnpaidSeries:
         years = [row["year"] for row in unpaid_food_series()["rows"]]
         assert 2020 not in years
         assert years[0] == 2003 and years[-1] == 2025
+
+
+class TestTheProductionCollapseIsRobust:
+    """
+    THE MODULE'S HEADLINE CLAIM, PINNED — and pinned across the whole measured
+    band rather than at one route (2026-08-28).
+
+    `LSMS_CROP_PRODUCTION_HOURS` was the bare literal `320.0`, declared in this
+    module rather than `data.py` or `reference/`, so it carried no tag, no
+    source, and appeared in no coverage figure. Worse, it was a THIRD number for
+    a quantity `reference/personal_basket` already measures: its own docstring
+    cited both routes (331 kcal-chain, 306 observed-labour) and then stated a
+    value that is neither, and is not their midpoint (318.46) either.
+
+    IT WAS ALSO COMPLETELY UNPINNED. Moving it 320.0 → 330.9233 (+3.3%) — a
+    change to the constant anchoring this module's entire conservation result —
+    failed ZERO of 3,244 tests. That is failure mode 1 on a headline finding.
+
+    It is now DERIVED from the kcal chain, so it cannot drift from the basket.
+    These tests pin the claim it supports, and deliberately assert it at BOTH
+    ends of the measured band: a finding that depends on which of two equally
+    good routes was picked is not a finding.
+    """
+
+    def test_the_constant_is_derived_not_restated(self):
+        """It must equal the kcal chain exactly — no third number."""
+        expected = (BASKET_DIET_KCAL_PER_DAY * DIET_DAYS_PER_YEAR
+                    * NUTRITION_HOURS_PER_KCAL)
+        assert LSMS_CROP_PRODUCTION_HOURS == pytest.approx(expected, rel=1e-12)
+
+    def test_the_band_brackets_both_measured_routes(self):
+        lo, hi = LSMS_CROP_PRODUCTION_BAND
+        assert lo < hi
+        assert lo == pytest.approx(NUTRITION_CROSSCHECK_HOURS_PER_YEAR, rel=1e-12)
+        assert hi == pytest.approx(LSMS_CROP_PRODUCTION_HOURS, rel=1e-12)
+        assert (hi - lo) / hi < 0.10, "the two routes should agree within ~8%"
+
+    def test_production_labour_collapses_by_at_least_an_order_of_magnitude(self):
+        """
+        THE CLAIM: automation eliminated food-PRODUCTION labour. Asserted as an
+        order of magnitude, not a level — the level moves with every constant in
+        the chain, and pinning it is what let 320.0 drift unnoticed.
+        """
+        r = conservation_test()
+        prod = next(s for s in r["stages"] if s["stage"] == "production")
+        collapse = prod["lsms_hours"] / prod["us_total_hours"]
+        assert collapse > 20.0, f"production collapse only {collapse:.1f}x"
+
+    def test_the_collapse_holds_at_both_ends_of_the_band(self):
+        """
+        THE ROBUSTNESS TEST. If the 62× finding only survived at the kcal route
+        it would be an artefact of route choice. At the observed-labour end it
+        must still be an order of magnitude.
+        """
+        r = conservation_test()
+        prod = next(s for s in r["stages"] if s["stage"] == "production")
+        us = prod["us_total_hours"]
+        for route in LSMS_CROP_PRODUCTION_BAND:
+            assert route / us > 20.0, (
+                f"collapse fails at route {route}: only {route / us:.1f}x"
+            )
+
+    def test_processing_and_service_did_not_collapse(self):
+        """
+        THE OTHER HALF, and the reason the single-total reading was wrong.
+        Automation eliminated production labour; processing and service labour
+        are large in the US, and processing is overwhelmingly UNPAID — it moved
+        into households, off the ledger, rather than disappearing.
+        """
+        r = conservation_test()
+        by = {s["stage"]: s for s in r["stages"]}
+        prod, proc, serv = by["production"], by["processing"], by["service"]
+        assert proc["us_total_hours"] > 10.0 * prod["us_total_hours"]
+        assert serv["us_total_hours"] > 10.0 * prod["us_total_hours"]
+        assert proc["us_unpaid_hours"] > 0.9 * proc["us_total_hours"], (
+            "processing must be overwhelmingly unpaid — that is the relocation"
+        )
+
+    def test_the_unmeasured_processing_term_stays_none(self):
+        """An unmeasured term is not a zero term. If this ever becomes 0.0 the
+        stage comparison silently starts claiming a collapse it cannot show."""
+        assert LSMS_PROCESSING_HOURS is None
+        r = conservation_test()
+        proc = next(s for s in r["stages"] if s["stage"] == "processing")
+        assert proc["lsms_hours"] is None
+        assert proc["ratio_us_to_lsms"] is None

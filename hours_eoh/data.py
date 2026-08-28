@@ -1584,6 +1584,65 @@ JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
 #   of claim on the deferral rate rather than the state; both resolve from one
 #   series.
 ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
+# tag: placeholder | units: dimensionless multiplier on the base ecological rate
+# form: the magnitude of the sub-threshold spike —
+#     spike = rate × INTENSITY × ((threshold − health) / threshold)²
+#   so it is the multiple of the baseline obligation incurred at TOTAL collapse
+#   (health = 0), and the quadratic makes the approach gradual. ECOLOGICAL_THRESHOLD
+#   sets WHERE the spike begins; this sets HOW BIG it gets.
+# note: CALIBRATED TO A TARGET on the 2026-08-09 provenance pass's own reading —
+#   it was picked to produce the escalation the arc was expected to show, which
+#   is the DEFAULT_SEGMENTS / GUF_USE_* pattern. It also spent that whole period
+#   in core/eoh_generation.py rather than here, so the gate that names
+#   calibrated-to-target constants could not see it. Migrated 2026-08-28; a
+#   +7% move failed no test until the pins landed with it.
+# resolves_by: the same ecological time series ECOLOGICAL_THRESHOLD names, read
+#   for a different FIELD — not where the regime shift begins, but the ratio of
+#   restoration labour demanded after collapse to that demanded at the
+#   threshold. A threshold study that reports only the breakpoint settles the
+#   companion constant and NOT this one.
+ECOLOGICAL_SPIKE_INTENSITY: float = 5.0
+# tag: placeholder | units: fraction of the spike removable by monitoring
+# form: automated monitoring softens the sub-threshold spike, capped at this
+#   fraction at ε=1. The CAP is the claim: monitoring makes an obligation
+#   VISIBLE sooner, it does not discharge it, so most of the spike survives
+#   however good the sensors get.
+# note: migrated from core/eoh_dynamics.py 2026-08-28 as a shadow constant.
+#   Runs in the OPPOSITE direction to `monitoring_capability` in the ecological
+#   domain, where better monitoring RAISES measured obligation by revealing
+#   deferred work. Both can be true — one reveals, one mitigates — but they have
+#   never been reconciled in one place and a measured pass should do both at once.
+# resolves_by: paired remote-sensing and field-survey records over one
+#   degradation event. FIELD: restoration labour actually required where early
+#   detection occurred, against comparable sites without it.
+MONITORING_SPIKE_SOFTENING_MAX: float = 0.20
+# tag: placeholder | units: fraction of deferred EOH per period
+# form: the ceiling the pre-threshold compounding curve approaches as t → T⁻,
+#   i.e. deferred maintenance accrues at most this fraction per period BEFORE
+#   the irreversibility threshold. Past it, the escalation is governed elsewhere.
+# note: migrated from core/eoh_dynamics.py 2026-08-28 as a shadow constant.
+#   THIS IS EOH COMPOUNDING, WHICH IS PHYSICS AND NOT INTEREST — Condition III
+#   forbids balances growing passively, and this does not create TEH. Deferring
+#   work makes more work; that is entropy, not a rate of return.
+# resolves_by: an infrastructure deferred-maintenance panel — FHWA NBI again,
+#   or a utility asset register. FIELD: the growth in estimated restoration cost
+#   for assets left unmaintained, per year, before functional failure.
+PRE_THRESHOLD_COMPOUND_RATE: float = 0.10
+# tag: placeholder | units: dimensionless leverage per ε unit
+# form: regenerative labour is amplified by automation —
+#     leverage = 1 + MAX × ε
+#   so at ε=1 a regenerative hour does this much more than at subsistence.
+# note: migrated from core/eoh_dynamics.py 2026-08-28 as a shadow constant.
+#   It makes the same SHAPE of claim as MATURATION_AUTO_LEVERAGE (0.30, and the
+#   identical value) — automation amplifies a human activity's return — but for
+#   a different activity, and neither is bound to the other. Whether they are
+#   one quantity or two is unresolved; they are at least not independent
+#   evidence for each other.
+# resolves_by: restoration-project outcomes with and without machine assistance.
+#   FIELD: hectares restored per labour-hour by equipment level, which is the
+#   same instrument reference/restoration.py already uses for ASAE field
+#   capacity — so this is reachable from data the repo can already read.
+REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # --- KNOWLEDGE_EOH_BASE — ADOPTED FROM MEASUREMENT (Block K-IV, 2026-08-08) ---
 #
 # Was 100_000.0, CHOSEN, with the epistemic pointer "occupational CPD hours".
@@ -2084,6 +2143,45 @@ SUFF_LEVY_RATE:               float = 0.0125            # sufficiency levy rate 
 #   automation rises; it is a distributional commitment about who carries the
 #   transition. Argue it, do not fit it.
 SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarantee floor_fraction shrinks with ε
+# tag: normative | units: fraction of the guarantee
+# form: the guarantee floor decays with ε toward this residual, never below it —
+#     effective = MIN + (floor_fraction − MIN) × (1 − SUFF_GUARANTEE_EPS_DECAY × ε)
+#   and `floor_fraction` is itself clamped up to MIN, so no caller can set a
+#   guarantee below it.
+# decided_by: a charter commitment that a floor exists AT ALL automation levels.
+#   It is the companion to SUFF_GUARANTEE_EPS_DECAY: the decay says how fast the
+#   guarantee shrinks, this says what it may never shrink past. Nothing measures
+#   an irreducible entitlement — arguing it is the point.
+# note: migrated from core/fiscal.py 2026-08-28, where it was a shadow constant.
+#   It is the floor's floor, so it binds precisely where the model is least
+#   tested: ε→1, with human labour income near zero.
+SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
+# tag: normative | units: fraction of the full care rate
+# form: care_stipend's automation factor is
+#     FLOOR + (1 − FLOOR) × (1 − ε)
+#   so the stipend falls with automation to this residual and no further.
+# decided_by: the claim that some fraction of care is RELATIONAL and cannot be
+#   automated at any ε — a commitment about what care IS, not a measurement of
+#   what machines can do. Block II reached the same conclusion from the other
+#   side: care is the least abatable component (84.4% of the residual at full
+#   abatement), so a non-zero floor here is consistent with the abatement model
+#   rather than an independent assertion.
+# note: migrated from core/fiscal.py 2026-08-28 as a shadow constant. Whether
+#   0.15 is the right residual is arguable; that the residual is non-zero is
+#   the load-bearing part, and it is what the tests pin.
+CARE_AUTOMATION_FLOOR:        float = 0.15
+# tag: normative | units: full-infant-rate dependent equivalents
+# form: the per-provider cap on care stipend —
+#     provider_cap_teh = base_infant_stipend × CAP_EQUIVALENTS × automation_factor
+#   so one provider may claim at most this many full-rate dependents' worth,
+#   however many dependents they actually have.
+# decided_by: a policy limit on how much care one person may be paid to
+#   provide, which is a judgement about capacity and about gaming, not a
+#   measurable quantity. Note it interacts with DEPENDENT_SCALE: the
+#   diminishing per-dependent rate already reduces large households, and this
+#   cap binds on top of that.
+# note: migrated from core/fiscal.py 2026-08-28 as a shadow constant.
+PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 # tag: instance | units: TEH (at the 1M reference population)
 # supplied_by: your collective Trust's actual balance, or a capital inventory
 #   in TEH for the jurisdiction being modelled. Intake path:

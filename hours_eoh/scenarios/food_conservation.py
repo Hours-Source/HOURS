@@ -63,20 +63,51 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from hours_eoh.data import BASKET_DIET_KCAL_PER_DAY
 from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.onet_multipliers import load_registry
+from hours_eoh.reference.personal_basket import (
+    DIET_DAYS_PER_YEAR,
+    NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
+    NUTRITION_HOURS_PER_KCAL,
+)
 from hours_eoh.scenarios.knowledge_base import (
     REGISTRY_EMPLOYMENT_COVERAGE,
     REFERENCE_POPULATION_US,
 )
 
-#: LSMS-ISA central estimate of unassisted crop-PRODUCTION labour, h/person·yr,
-#: at ε ≈ 0.05. MEASURED (handoff §1.1): median-of-ratios 13,907 kcal per
-#: labour-day over seven countries, at a calibrated 6-hour labour-day, against a
-#: 2,100 kcal/day target. Two routes 6% apart (331 kcal-chain, 306 observed-labour).
-#: PRODUCTION ONLY — it does not include processing, and every known bias in it
-#: runs upward.
-LSMS_CROP_PRODUCTION_HOURS: float = 320.0
+#: Unassisted crop-PRODUCTION labour, h/person·yr, at ε ≈ 0.05.
+#:
+#: DERIVED, NOT RESTATED (2026-08-28). This was the bare literal `320.0` — a
+#: THIRD number for a quantity `reference/personal_basket` already measures. Its
+#: own docstring cited both routes ("331 kcal-chain, 306 observed-labour") and
+#: then stated a value that is neither, and is not their midpoint (318.46)
+#: either. It is now the kcal chain itself:
+#:
+#:     diet_kcal/day × days/yr × hours/kcal
+#:
+#: so it cannot drift from the basket that supplies the same figure to the
+#: personal floor. It moves 320.0 → 330.9233 (+3.3%).
+#:
+#: THE MOVE COST NOTHING AND THAT IS THE FINDING: a 3.3% change to the constant
+#: anchoring this module's entire conservation result failed ZERO tests. The
+#: production-collapse ratio is now pinned, and pinned across the whole measured
+#: band rather than at one route — see TestTheProductionCollapseIsRobust.
+#:
+#: PRODUCTION ONLY — it excludes processing, and every known bias in it runs
+#: upward. The 7.6% spread between the two routes is NOT a climate error bar:
+#: both are computed from the same seven countries.
+LSMS_CROP_PRODUCTION_HOURS: float = (
+    BASKET_DIET_KCAL_PER_DAY * DIET_DAYS_PER_YEAR * NUTRITION_HOURS_PER_KCAL
+)
+
+#: The measured band for the quantity above: the observed-labour cross-check at
+#: one end, the kcal chain at the other. Carried so a result can be reported
+#: across the band instead of resting on whichever route was picked.
+LSMS_CROP_PRODUCTION_BAND: tuple[float, float] = (
+    NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
+    LSMS_CROP_PRODUCTION_HOURS,
+)
 
 #: LSMS processing labour: threshing, milling, fuel gathering, water for cooking,
 #: cooking. NOT MEASURED — the binding unknown, and the entire difference between

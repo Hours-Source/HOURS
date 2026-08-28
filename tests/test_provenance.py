@@ -1572,8 +1572,15 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # Each constant migrated here gained BOTH a tag block naming what would
     # settle it AND a shape test, because moving it without pinning it would
     # only have fixed the half this ratchet can measure.
-    assert len(free) <= 46, (
-        f"{len(free)} shadow constants, was 46. New ones: a domain constant "
+    # 46 -> 38 on 2026-08-28 (batch 2): the three fiscal floors, the three
+    # compounding/regenerative constants, ECOLOGICAL_SPIKE_INTENSITY — which the
+    # 2026-08-09 pass had NAMED as calibrated-to-target and which then sat
+    # outside data.py for the whole period since, where the gate reporting that
+    # class could not see it — and LSMS_CROP_PRODUCTION_HOURS, which was a THIRD
+    # number for a quantity reference/personal_basket already measures and is
+    # now derived from it.
+    assert len(free) <= 38, (
+        f"{len(free)} shadow constants, was 38. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."

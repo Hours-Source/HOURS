@@ -24,16 +24,22 @@ Mission Statement: §"EOH and compounding", §"Regenerative offset",
 from __future__ import annotations
 import math
 
-from hours_eoh.data import ASSET_TYPES, HUMAN_CAPITAL_NATURAL_DECAY
+from hours_eoh.data import (
+    ASSET_TYPES,
+    HUMAN_CAPITAL_NATURAL_DECAY,
+    MONITORING_SPIKE_SOFTENING_MAX,
+    PRE_THRESHOLD_COMPOUND_RATE,
+    REGEN_AUTOMATION_LEVERAGE_MAX,
+)
 from hours_eoh.core.capital import asset_condition, writedown_trigger
 
 
 # ---------------------------------------------------------------------------
 # Compounding and regenerative calibration constants
 # ---------------------------------------------------------------------------
-_MONITORING_SPIKE_SOFTENING_MAX: float = 0.20  # max spike reduction from automated monitoring at ε=1
-_PRE_THRESHOLD_COMPOUND_RATE:    float = 0.10  # compounding amount approaches 10% of deferred at t→T⁻
-_REGEN_AUTOMATION_LEVERAGE_MAX:  float = 0.30  # max automation amplification of regenerative labor
+# All three migrated to data.py 2026-08-28 as MONITORING_SPIKE_SOFTENING_MAX,
+# PRE_THRESHOLD_COMPOUND_RATE and REGEN_AUTOMATION_LEVERAGE_MAX. All were
+# shadow constants and none was pinned by any test.
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +158,7 @@ def eoh_compounding(
     spike      = _SPIKE_FACTORS.get(asset_type, 2.0)
 
     # Monitoring at higher ε softens the spike (better predictive maintenance)
-    monitoring_softener = 1.0 - _MONITORING_SPIKE_SOFTENING_MAX * epsilon
+    monitoring_softener = 1.0 - MONITORING_SPIKE_SOFTENING_MAX * epsilon
 
     t = float(time_deferred)
 
@@ -162,7 +168,7 @@ def eoh_compounding(
         # At t→0: approaches 0. At t→T⁻: approaches 0.10 × deferred.
         # (1/exp) > 1 for exp<1, <1 for exp>1 — higher exp → more concave pre-threshold
         t_frac = t / T
-        return deferred * _PRE_THRESHOLD_COMPOUND_RATE * (t_frac ** (1.0 / exp))
+        return deferred * PRE_THRESHOLD_COMPOUND_RATE * (t_frac ** (1.0 / exp))
 
     else:
         # At/beyond threshold: DISCONTINUOUS JUMP + power-law escalation
@@ -170,7 +176,7 @@ def eoh_compounding(
         # a tipping point beyond which its EOH obligation balloons.
 
         # Pre-threshold baseline (continuous part, just below T)
-        pre = deferred * _PRE_THRESHOLD_COMPOUND_RATE
+        pre = deferred * PRE_THRESHOLD_COMPOUND_RATE
 
         # Discontinuous spike at threshold: spike_factor × deferred
         # Plus power-law escalation with years beyond threshold
@@ -329,7 +335,7 @@ def regenerative_offset(
 
     # At higher ε, automated monitoring and precision tools extend the reach
     # of regenerative labor. Leverage grows modestly with automation.
-    epsilon_leverage = 1.0 + _REGEN_AUTOMATION_LEVERAGE_MAX * epsilon
+    epsilon_leverage = 1.0 + REGEN_AUTOMATION_LEVERAGE_MAX * epsilon
 
     per_year = regenerative_hours * profile["eoh_saved_per_hour"] * epsilon_leverage
     amort    = profile["amortization_years"]
@@ -970,7 +976,7 @@ def regenerative_investment_required(
         )
 
     profile          = REGENERATIVE_PROFILES[labor_type]
-    epsilon_leverage = 1.0 + _REGEN_AUTOMATION_LEVERAGE_MAX * epsilon
+    epsilon_leverage = 1.0 + REGEN_AUTOMATION_LEVERAGE_MAX * epsilon
     effective_rate   = profile["eoh_saved_per_hour"] * epsilon_leverage
 
     hours_needed     = eoh_reduction_target / max(effective_rate, 1e-10)

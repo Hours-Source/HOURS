@@ -11,6 +11,12 @@ regenerative_investment_required, update_deferred_from_fulfillment.
 import math
 import pytest
 
+from hours_eoh.data import (
+    ASSET_TYPES,
+    PRE_THRESHOLD_COMPOUND_RATE,
+    MONITORING_SPIKE_SOFTENING_MAX,
+    REGEN_AUTOMATION_LEVERAGE_MAX,
+)
 from hours_eoh.core.eoh_dynamics import (
     deferred_eoh,
     eoh_compounding,
@@ -728,3 +734,98 @@ class TestNoOrphanTeh:
         result = regenerative_offset("composting", 100.0, 0.40)
         assert "future_eoh_reduction_per_year" in result
         assert "teh_created" not in result
+
+
+class TestCompoundingAndRegenerativeShape:
+    """
+    THE THREE COMPOUNDING/REGENERATIVE CONSTANTS, migrated and pinned
+    (2026-08-28). All were shadow constants in `core/eoh_dynamics.py`, and a
+    +7% move of any of them failed no test.
+
+    Each governs a SHAPE — a ceiling, a softening cap, a leverage slope — so
+    each is pinned by the behaviour its docstring claims, not by its level.
+    """
+
+    def test_pre_threshold_compounding_approaches_its_ceiling(self):
+        """
+        `PRE_THRESHOLD_COMPOUND_RATE` is the limit as t → T⁻: deferred
+        maintenance accrues at most this fraction per period BEFORE the
+        irreversibility threshold.
+        """
+        T = float(ASSET_TYPES["generic_infra"]["threshold_age"])
+        deferred = 1000.0
+        just_below = eoh_compounding(deferred, "generic_infra", T * 0.999, 0.0)
+        assert just_below == pytest.approx(
+            deferred * PRE_THRESHOLD_COMPOUND_RATE, rel=0.01
+        )
+        assert just_below <= deferred * PRE_THRESHOLD_COMPOUND_RATE + 1e-9
+
+    def test_pre_threshold_compounding_is_bounded_everywhere_below_T(self):
+        T = float(ASSET_TYPES["generic_infra"]["threshold_age"])
+        ceiling = 1000.0 * PRE_THRESHOLD_COMPOUND_RATE
+        for frac in (0.01, 0.25, 0.5, 0.9, 0.99):
+            assert eoh_compounding(1000.0, "generic_infra", T * frac, 0.0) <= ceiling + 1e-9
+
+    def test_compounding_rises_with_time_deferred(self):
+        """Deferring work makes more work — this is entropy, not interest, and
+        Condition III is untouched because no TEH is created."""
+        vals = [eoh_compounding(1000.0, "generic_infra", t, 0.40)
+                for t in (1.0, 10.0, 30.0, 60.0, 120.0)]
+        assert vals == sorted(vals), vals
+
+    def test_the_threshold_is_a_discontinuity_not_a_bend(self):
+        """The sharp-failure claim: crossing T must jump, not merely steepen."""
+        T = float(ASSET_TYPES["generic_infra"]["threshold_age"])
+        below = eoh_compounding(1000.0, "generic_infra", T * 0.999, 0.0)
+        above = eoh_compounding(1000.0, "generic_infra", T * 1.001, 0.0)
+        assert above > 10.0 * below, f"no discontinuity at T: {below} -> {above}"
+
+    def test_monitoring_softens_the_post_threshold_spike_by_a_capped_fraction(self):
+        """
+        `MONITORING_SPIKE_SOFTENING_MAX` caps how much automated monitoring can
+        mitigate. THE CAP IS THE CLAIM: monitoring makes an obligation visible
+        sooner, it does not discharge it, so most of the spike survives however
+        good the sensors get.
+        """
+        T = float(ASSET_TYPES["generic_infra"]["threshold_age"])
+        deferred, t = 1000.0, T * 1.5
+        unmonitored = eoh_compounding(deferred, "generic_infra", t, 0.0)
+        fully = eoh_compounding(deferred, "generic_infra", t, 1.0)
+        assert fully < unmonitored, "monitoring must soften something"
+
+        # The softener multiplies the SPIKE TERM ONLY — the pre-threshold
+        # baseline is added afterwards and is not mitigable. Comparing the
+        # totals gives 0.8007, not 0.8, and asserting the total ratio would
+        # encode that arithmetic artefact as if it were the constant.
+        pre = deferred * PRE_THRESHOLD_COMPOUND_RATE
+        assert (fully - pre) / (unmonitored - pre) == pytest.approx(
+            1.0 - MONITORING_SPIKE_SOFTENING_MAX, rel=1e-9
+        )
+        assert fully > 0.5 * unmonitored, (
+            "most of the spike must survive — monitoring reveals, it does not repair"
+        )
+
+    def test_monitoring_does_not_soften_below_the_threshold(self):
+        """The softening is a spike mitigation, so pre-threshold accrual must be
+        ε-invariant. If this fails, automation is discounting an obligation it
+        has not acted on."""
+        T = float(ASSET_TYPES["generic_infra"]["threshold_age"])
+        lo = eoh_compounding(1000.0, "generic_infra", T * 0.5, 0.0)
+        hi = eoh_compounding(1000.0, "generic_infra", T * 0.5, 0.99)
+        assert lo == pytest.approx(hi, rel=1e-12)
+
+    def test_regenerative_leverage_rises_to_its_cap_with_automation(self):
+        """`REGEN_AUTOMATION_LEVERAGE_MAX` is the ε=1 amplification of
+        regenerative labour: leverage = 1 + MAX × ε."""
+        at_zero = regenerative_offset("ecosystem_restoration", 100.0, 0.0)
+        at_one = regenerative_offset("ecosystem_restoration", 100.0, 1.0)
+        assert at_zero["epsilon_leverage"] == pytest.approx(1.0, rel=1e-12)
+        assert at_one["epsilon_leverage"] == pytest.approx(
+            1.0 + REGEN_AUTOMATION_LEVERAGE_MAX, rel=1e-9
+        )
+
+    def test_regenerative_leverage_is_monotone_and_bounded(self):
+        lev = [regenerative_offset("ecosystem_restoration", 100.0, e)["epsilon_leverage"]
+               for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
+        assert lev == sorted(lev), lev
+        assert all(1.0 <= x <= 1.0 + REGEN_AUTOMATION_LEVERAGE_MAX + 1e-9 for x in lev)
