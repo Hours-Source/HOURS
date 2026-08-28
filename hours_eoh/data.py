@@ -213,6 +213,60 @@ ASSET_TYPES: dict[str, dict] = {
 # Mission Statement: §"ε is a physical observable" — this table is the
 # machine-capacity sub-model that makes ε emergent from physical state.
 # ---------------------------------------------------------------------------
+# tag: placeholder | units: fraction of condition per period
+# form: the two arms of the maintenance response in core/capital.asset_condition.
+#   Under-maintenance: condition *= (1 − deficit_fraction × NEGLECT_DECAY), so
+#   NEGLECT_DECAY is the drop at TOTAL neglect. Over-maintenance:
+#   condition += surplus × RESTORE_RATE × condition, bounded by the initial
+#   condition — you may not build a better asset by polishing it.
+# note: THE ASYMMETRY IS THE CLAIM AND IT IS THE DEFENSIBLE PART — neglect
+#   costs 4x what surplus effort recovers, which is the entropy argument
+#   applied to one asset: degradation is spontaneous and repair is not. The
+#   LEVELS are desk estimates. Migrated from core/capital.py 2026-08-27, where
+#   both were shadow constants and a +7% move failed no test.
+# resolves_by: an infrastructure condition-rating panel with maintenance
+#   spending per asset — FHWA NBI bridge condition ratings carry exactly this
+#   (condition rating 0–9 by structure by year, against reported maintenance
+#   expenditure). FIELD: the year-on-year rating change for structures at
+#   zero-versus-adequate maintenance. NOT the ASCE report-card grades, which
+#   are an aggregate letter and cannot resolve a per-period rate.
+ASSET_FULL_NEGLECT_DECAY:      float = 0.20  # condition drop per period at zero maintenance
+# tag: placeholder | units: fraction of condition per period
+# form: the over-maintenance arm of the same response —
+#   condition += surplus × RESTORE_RATE × condition, bounded above by the
+#   initial condition. See ASSET_FULL_NEGLECT_DECAY for the pair and for why
+#   the 4x asymmetry between them is the defensible part.
+# resolves_by: as for ASSET_FULL_NEGLECT_DECAY — FHWA NBI condition ratings
+#   against maintenance expenditure. FIELD: the rating change for structures
+#   maintained ABOVE their assessed need, which is the rarer half of that
+#   panel and the reason this arm is the weaker of the two.
+ASSET_OVER_MAINT_RESTORE_RATE: float = 0.05  # condition restore per unit surplus maintenance
+# tag: placeholder | units: EOH capacity per year; EOH capacity per TEH^exponent; dimensionless
+# form: core/capital.maturation_update —
+#     capacity_delta = BASE_GROWTH × years
+#                    + EDU_COEFFICIENT × investment**EDU_EXPONENT × (1 + MATURATION_AUTO_LEVERAGE × ε)
+#   BASE_GROWTH is maturation without schooling; the education arm has
+#   diminishing returns via the exponent.
+# note: the schooling-free arm — maturation that happens with age alone.
+#   Migrated from core/capital.py 2026-08-27 as a shadow constant.
+# resolves_by: as for MATURATION_EDU_* — PIAAC proficiency by age for adults
+#   at a FIXED level of completed education, which isolates ageing from
+#   schooling.
+MATURATION_BASE_GROWTH_RATE: float = 50.0  # EOH/yr capacity from natural aging
+# tag: placeholder | units: EOH capacity per TEH^exponent; dimensionless | family: MATURATION_EDU_*
+# form: the education arm of maturation_update —
+#     EDU_COEFFICIENT × investment**EDU_EXPONENT × (1 + MATURATION_AUTO_LEVERAGE × ε)
+# note: EDU_EXPONENT = 0.5 is a SQUARE ROOT, the strongest diminishing return
+#   short of a logarithm, and it is the term deciding whether education
+#   investment ever saturates. Pinned by SHAPE (test_capital.TestMaturationShape),
+#   not level. Both migrated from core/capital.py 2026-08-27 as shadow constants.
+# resolves_by: returns to schooling measured as CAPACITY, not earnings —
+#   earnings embed the wage structure this framework replaces, so a Mincer
+#   coefficient is the WRONG INSTRUMENT here for the same reason BLS Employee
+#   Tenure was wrong for SKILL_WORKING_LIFE_YEARS. FIELD: PIAAC numeracy and
+#   literacy proficiency by years of education — capability measured directly.
+MATURATION_EDU_COEFFICIENT:  float = 5.0   # coefficient on the education arm
+MATURATION_EDU_EXPONENT:     float = 0.5   # diminishing-returns exponent
 # tag: placeholder | units: EOH eliminated per TEH of capital per year; TEH per capita; years; condition ∈ [0,1]
 # note: CALIBRATED TO A TARGET, on its own admission — the tiers were set so
 #   that "standard" across all types totals ~2000 TEH/person (matching
@@ -2133,6 +2187,42 @@ HUMAN_CAPITAL_ELDERLY_DECAY:  float = 0.015 # annual condition decay rate, elder
 #   direction is contested in the literature (automation may raise the return
 #   to skill or hollow the middle), so the sign is not safe to assume either.
 MATURATION_AUTO_LEVERAGE:     float = 0.30  # automation amplifies education returns: leverage = 1 + factor×ε
+# tag: placeholder | units: years of age | family: CAPACITY_DECLINE_*_AGE
+# form: the three breakpoints of the piecewise capacity-decline schedule in
+#   core/population._capacity_decline_rate — no decline below onset, then early,
+#   mid and late phases. A step schedule is itself an approximation: real
+#   functional decline is continuous and accelerating, and the steps are a
+#   readable stand-in for a curve nobody here has fitted.
+# note: CAPACITY_DECLINE_MID_AGE is BOUND to the AGE_GROUP_RANGES elderly
+#   boundary rather than restating 65, so the two cannot drift apart. The onset
+#   at 50 is deliberately NOT the retirement age — the claim is biological
+#   capacity, not labour-force status, and conflating them would be the
+#   wrong-instrument error this repo keeps finding (a participation series
+#   measures whether people DO work, not what they are capable of).
+# resolves_by: NHATS or HRS functional-limitation prevalence by single year of
+#   age. FIELD: the age at which ADL/IADL limitation prevalence first departs
+#   from its plateau, and the two inflections above it. The same dataset is
+#   already the named pointer for HUMAN_CAPITAL_*_DECAY and the AGE_GROUPS care
+#   weights, so one ingest closes all three. Grip strength (NHANES, mean kg by
+#   age) bounds the PHYSICAL axis only and would understate cognitive decline.
+CAPACITY_DECLINE_ONSET_AGE:  int = 50
+CAPACITY_DECLINE_MID_AGE:    int = AGE_GROUP_RANGES["elderly"][0]
+CAPACITY_DECLINE_LATE_AGE:   int = 80
+# tag: placeholder | units: fraction of capacity lost per year | family: CAPACITY_DECLINE_*_RATE
+# form: annual fractional loss of entropy-reduction capacity within each phase.
+#   The ORDERING (early < mid < late) is the claim and is biologically
+#   well-founded; the three LEVELS and the ~2.7x and ~1.75x steps between them
+#   are desk estimates.
+# note: these govern a SHAPE, so they are pinned by shape tests
+#   (test_population.TestCapacityDeclineShape) rather than by their levels — a
+#   +7% perturbation of any of them moved no test at all before 2026-08-27,
+#   which is how they were found.
+# resolves_by: as for the breakpoints above — NHATS/HRS by single year of age.
+#   FIELD: the year-on-year change in mean functional capacity within each band,
+#   NOT the prevalence level, which answers a different question.
+CAPACITY_DECLINE_EARLY_RATE: float = 0.015  # ages 50–64
+CAPACITY_DECLINE_MID_RATE:   float = 0.040  # ages 65–79
+CAPACITY_DECLINE_LATE_RATE:  float = 0.070  # ages 80+
 
 # ---------------------------------------------------------------------------
 # Canonical trajectory constants

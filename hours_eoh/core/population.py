@@ -30,20 +30,22 @@ from hours_eoh.data import (
     ELDERLY_EOH_EPSILON_FACTOR,
     HUMAN_CAPITAL_NATURAL_DECAY,
     HUMAN_CAPITAL_ELDERLY_DECAY,
+    CAPACITY_DECLINE_ONSET_AGE,
+    CAPACITY_DECLINE_MID_AGE,
+    CAPACITY_DECLINE_LATE_AGE,
+    CAPACITY_DECLINE_EARLY_RATE,
+    CAPACITY_DECLINE_MID_RATE,
+    CAPACITY_DECLINE_LATE_RATE,
 )
 
 
 # ---------------------------------------------------------------------------
 # Capacity decline model constants
-# Onset age differs from AGE_GROUPS elderly boundary (65) — biological capacity
-# decline begins in late working life (50), not at formal retirement age.
+# MIGRATED TO data.py 2026-08-27. They were shadow constants — untagged,
+# invisible to the provenance gate, and a +7% perturbation of any of them moved
+# no test at all. Onset age differs from the AGE_GROUPS elderly boundary
+# because the claim is biological capacity, not labour-force status.
 # ---------------------------------------------------------------------------
-_CAPACITY_DECLINE_ONSET_AGE: int   = 50    # no decline before this age
-_CAPACITY_DECLINE_MID_AGE:   int   = 65    # elderly onset (matches AGE_GROUPS)
-_CAPACITY_DECLINE_LATE_AGE:  int   = 80    # late-elderly phase onset
-_CAPACITY_DECLINE_EARLY_RATE: float = 0.015 # 1.5%/yr ages 50–64
-_CAPACITY_DECLINE_MID_RATE:   float = 0.040 # 4.0%/yr ages 65–79
-_CAPACITY_DECLINE_LATE_RATE:  float = 0.070 # 7.0%/yr ages 80+
 
 
 # ---------------------------------------------------------------------------
@@ -95,14 +97,14 @@ def _capacity_decline_rate(age: float) -> float:
     - Ages 65–79: 4.0%/year (early elderly phase)
     - Ages 80+:   7.0%/year (late elderly phase)
     """
-    if age < _CAPACITY_DECLINE_ONSET_AGE:
+    if age < CAPACITY_DECLINE_ONSET_AGE:
         return 0.0
-    elif age < _CAPACITY_DECLINE_MID_AGE:
-        return _CAPACITY_DECLINE_EARLY_RATE
-    elif age < _CAPACITY_DECLINE_LATE_AGE:
-        return _CAPACITY_DECLINE_MID_RATE
+    elif age < CAPACITY_DECLINE_MID_AGE:
+        return CAPACITY_DECLINE_EARLY_RATE
+    elif age < CAPACITY_DECLINE_LATE_AGE:
+        return CAPACITY_DECLINE_MID_RATE
     else:
-        return _CAPACITY_DECLINE_LATE_RATE
+        return CAPACITY_DECLINE_LATE_RATE
 
 
 # ---------------------------------------------------------------------------

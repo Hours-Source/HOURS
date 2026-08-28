@@ -29,19 +29,18 @@ from hours_eoh.data import (
     INFANT_EOH_EPSILON_FACTOR, MATURATION_AUTO_LEVERAGE,
     ANNUAL_DEATH_RATE, ESTATE_INHERITANCE_FRACTION,
     ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
+    ASSET_FULL_NEGLECT_DECAY, ASSET_OVER_MAINT_RESTORE_RATE,
+    MATURATION_BASE_GROWTH_RATE, MATURATION_EDU_COEFFICIENT,
+    MATURATION_EDU_EXPONENT,
 )
 
 
 # ---------------------------------------------------------------------------
-# Asset condition calibration constants
+# Asset condition and maturation calibration
+# MIGRATED TO data.py 2026-08-27. All five were shadow constants — untagged,
+# invisible to the provenance gate, and a +7% perturbation of any of them
+# failed no test. They now carry tag blocks naming what would settle them.
 # ---------------------------------------------------------------------------
-_ASSET_FULL_NEGLECT_DECAY:     float = 0.20  # condition drop per period at zero maintenance
-_ASSET_OVER_MAINT_RESTORE_RATE: float = 0.05  # condition restore per unit surplus maintenance
-
-# Maturation model calibration (birth event uses INFANT_EOH_EPSILON_FACTOR from data.py)
-_MATURATION_BASE_GROWTH_RATE: float = 50.0  # EOH/yr capacity from natural aging (per year)
-_MATURATION_EDU_COEFFICIENT:  float = 5.0   # sqrt-scaling coefficient for education investment
-_MATURATION_EDU_EXPONENT:     float = 0.5   # diminishing-returns exponent for education
 
 
 # ---------------------------------------------------------------------------
@@ -238,9 +237,9 @@ def asset_condition(
             quality = 1.0  # no demand → perfect quality
 
         # Deficit effect: unmet maintenance degrades condition
-        # Full neglect (quality=0): condition drops _ASSET_FULL_NEGLECT_DECAY this period
+        # Full neglect (quality=0): condition drops ASSET_FULL_NEGLECT_DECAY this period
         deficit_fraction = max(0.0, 1.0 - quality)
-        condition *= (1.0 - deficit_fraction * _ASSET_FULL_NEGLECT_DECAY)
+        condition *= (1.0 - deficit_fraction * ASSET_FULL_NEGLECT_DECAY)
 
         # Natural aging: unavoidable
         condition *= (1.0 - natural_decay_rate)
@@ -249,7 +248,7 @@ def asset_condition(
         if quality > 1.0:
             surplus = quality - 1.0
             # Diminishing returns on over-maintenance
-            restoration = surplus * _ASSET_OVER_MAINT_RESTORE_RATE * condition
+            restoration = surplus * ASSET_OVER_MAINT_RESTORE_RATE * condition
             condition = min(initial_condition, condition + restoration)
 
         condition = max(0.0, min(1.0, condition))
@@ -592,12 +591,12 @@ def maturation_update(
 
     # Logarithmic growth model: sqrt of investment adds to capacity
     # Base growth: natural maturation with age (even without formal education)
-    base_growth = _MATURATION_BASE_GROWTH_RATE * years_elapsed
+    base_growth = MATURATION_BASE_GROWTH_RATE * years_elapsed
     # Education multiplier: sqrt scaling for diminishing returns.
     # Automation leverage amplifies returns: precision tutoring, simulators, etc.
     automation_leverage = 1.0 + MATURATION_AUTO_LEVERAGE * epsilon
     edu_growth = (
-        _MATURATION_EDU_COEFFICIENT * (total_investment ** _MATURATION_EDU_EXPONENT) * automation_leverage
+        MATURATION_EDU_COEFFICIENT * (total_investment ** MATURATION_EDU_EXPONENT) * automation_leverage
         if total_investment > 0 else 0.0
     )
 

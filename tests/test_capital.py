@@ -33,6 +33,11 @@ from hours_eoh.data import (
     ANNUAL_DEATH_RATE,
     ESTATE_INHERITANCE_FRACTION,
     ESTATE_LEVY_FRACTION,
+    ASSET_FULL_NEGLECT_DECAY,
+    ASSET_OVER_MAINT_RESTORE_RATE,
+    MATURATION_BASE_GROWTH_RATE,
+    MATURATION_EDU_COEFFICIENT,
+    MATURATION_EDU_EXPONENT,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -600,3 +605,165 @@ class TestEstateDissolution:
         excess = deaths * (per_capita - reserve)
         assert abs(result["teh_destroyed"] - excess * 0.40) < 1.0
         assert abs(result["teh_levied_to_trust"] - excess * 0.10) < 1.0
+
+
+class TestAssetConditionResponseShape:
+    """
+    THE MAINTENANCE RESPONSE, pinned as shape (2026-08-27).
+
+    `ASSET_FULL_NEGLECT_DECAY` and `ASSET_OVER_MAINT_RESTORE_RATE` lived in
+    `core/capital.py` as shadow constants — untagged, invisible to the
+    provenance gate, and a +7% perturbation of either failed no test in the
+    suite. They now sit in `data.py` pointing at FHWA NBI condition ratings.
+
+    THE ASYMMETRY IS THE CLAIM. Neglect costs 4x what surplus effort recovers,
+    which is the entropy argument applied to a single asset: degradation is
+    spontaneous, repair is not. The levels are desk estimates and are not
+    pinned; the asymmetry, the direction and the bounds are.
+    """
+
+    @staticmethod
+    def _history(quality, periods=1):
+        return [{"eoh_demanded": 100.0, "eoh_fulfilled": 100.0 * quality}
+                for _ in range(periods)]
+
+    def test_full_maintenance_holds_condition(self):
+        """Meeting demand exactly must be neither punished nor rewarded."""
+        c = asset_condition(1.0, self._history(1.0), natural_decay_rate=0.0)
+        assert c == pytest.approx(1.0, rel=1e-12)
+
+    def test_total_neglect_costs_the_full_decay(self):
+        c = asset_condition(1.0, self._history(0.0), natural_decay_rate=0.0)
+        assert c == pytest.approx(1.0 - ASSET_FULL_NEGLECT_DECAY, rel=1e-9)
+
+    def test_the_deficit_response_is_proportional(self):
+        """Half-met demand must cost half the full-neglect drop, not some other
+        share — the response is linear in the deficit by construction."""
+        half = asset_condition(1.0, self._history(0.5), natural_decay_rate=0.0)
+        assert half == pytest.approx(1.0 - 0.5 * ASSET_FULL_NEGLECT_DECAY, rel=1e-9)
+
+    def test_condition_falls_monotonically_as_maintenance_falls(self):
+        conds = [asset_condition(1.0, self._history(q), natural_decay_rate=0.0)
+                 for q in (0.0, 0.25, 0.5, 0.75, 1.0)]
+        assert conds == sorted(conds), conds
+
+    def test_surplus_on_an_undamaged_asset_does_nothing(self):
+        """
+        A CONSEQUENCE OF THE CAP THAT IS EASY TO MISS, and I missed it writing
+        this class. The restore arm is `min(initial_condition, condition +
+        restoration)` where `initial_condition` is the condition at the START of
+        the supplied history — so over-maintaining a healthy asset cannot lift
+        it, and `ASSET_OVER_MAINT_RESTORE_RATE` only ever recovers ground lost
+        WITHIN the same history.
+
+        My first version of the asymmetry test asserted surplus restores
+        something on a fresh asset. It returns exactly 0.0. Pinned so the
+        limitation is documented behaviour rather than a surprise.
+        """
+        assert asset_condition(1.0, self._history(2.0), natural_decay_rate=0.0) == 1.0
+
+    def test_neglect_costs_more_than_surplus_recovers(self):
+        """
+        THE ASYMMETRY, stated as an inequality so the levels stay free: entropy
+        is spontaneous, repair is not. Measured on a damaged asset, since that
+        is the only state in which the restore arm can act at all.
+        """
+        neglected = asset_condition(1.0, self._history(0.0), natural_decay_rate=0.0)
+        repaired = asset_condition(
+            1.0,
+            self._history(0.0) + self._history(2.0),
+            natural_decay_rate=0.0,
+        )
+        lost = 1.0 - neglected
+        recovered = repaired - neglected
+        assert recovered > 0.0, "surplus must restore a damaged asset"
+        assert lost > recovered, (
+            f"neglect must cost more than surplus recovers: "
+            f"lost {lost}, recovered {recovered}"
+        )
+        assert lost / recovered > 2.0, (
+            "the asymmetry must be substantial, not marginal"
+        )
+
+    def test_surplus_cannot_exceed_the_starting_condition(self):
+        """You may not build a better asset by polishing it."""
+        c = asset_condition(0.8, self._history(2.0, periods=20), natural_decay_rate=0.0)
+        assert c <= 0.8 + 1e-12
+
+    def test_condition_stays_within_bounds(self):
+        for q in (0.0, 0.5, 1.0, 2.0):
+            c = asset_condition(1.0, self._history(q, periods=50),
+                                natural_decay_rate=0.01)
+            assert 0.0 <= c <= 1.0
+
+
+class TestMaturationShape:
+    """
+    THE EDUCATION RESPONSE, pinned as shape (2026-08-27).
+
+    `MATURATION_BASE_GROWTH_RATE`, `MATURATION_EDU_COEFFICIENT` and
+    `MATURATION_EDU_EXPONENT` were shadow constants; none was pinned.
+
+    `MATURATION_EDU_EXPONENT` = 0.5 is a SQUARE ROOT — the strongest diminishing
+    return short of a logarithm — and it is the term deciding whether education
+    investment ever saturates. That property, not its value, is what is pinned:
+    if the exponent ever reaches 1.0 the model asserts constant returns to
+    schooling, which is a different theory.
+    """
+
+    @staticmethod
+    def _asset(capacity=0.0):
+        return make_asset(
+            asset_id="h", asset_type="human", teh_value=100.0, annual_eoh=0.0,
+            design_life=100.0, age=25.0, is_human_capital=True,
+            entropy_reduction_capacity=capacity,
+        )
+
+    def _delta(self, investment, years=1.0, eps=0.0):
+        r = maturation_update(self._asset(), years_elapsed=years,
+                              education_eoh=investment, epsilon=eps)
+        return r["capacity_delta"]
+
+    def test_ageing_alone_grows_capacity(self):
+        """The schooling-free arm: base growth with no investment at all."""
+        assert self._delta(0.0) == pytest.approx(MATURATION_BASE_GROWTH_RATE, rel=1e-9)
+
+    def test_base_growth_is_linear_in_time(self):
+        assert self._delta(0.0, years=3.0) == pytest.approx(
+            3.0 * self._delta(0.0, years=1.0), rel=1e-9
+        )
+
+    def test_education_increases_capacity(self):
+        assert self._delta(100.0) > self._delta(0.0)
+
+    def test_returns_to_education_diminish(self):
+        """
+        THE CLAIM THE EXPONENT MAKES. Quadrupling the investment must less than
+        quadruple the education arm. With an exponent of 1.0 this fails — which
+        is exactly the theory change it guards against.
+        """
+        base = self._delta(0.0)
+        one = self._delta(100.0) - base
+        four = self._delta(400.0) - base
+        assert one > 0.0
+        assert four > one, "more education must still help"
+        assert four < 4.0 * one, (
+            f"returns must diminish: 4x investment gave {four / one:.3f}x the gain"
+        )
+
+    def test_the_marginal_return_falls_with_scale(self):
+        """Swept, so a single lucky pair cannot satisfy it."""
+        base = self._delta(0.0)
+        gains = [self._delta(x) - base for x in (100.0, 400.0, 900.0, 1600.0)]
+        marginal = [b - a for a, b in zip(gains, gains[1:])]
+        assert marginal == sorted(marginal, reverse=True), marginal
+        assert all(m > 0.0 for m in marginal)
+
+    def test_automation_amplifies_only_the_education_arm(self):
+        """
+        MATURATION_AUTO_LEVERAGE multiplies the education term, not base growth
+        — ageing is not automatable.
+        """
+        assert self._delta(0.0, eps=0.99) == pytest.approx(self._delta(0.0, eps=0.0),
+                                                           rel=1e-12)
+        assert self._delta(400.0, eps=0.99) > self._delta(400.0, eps=0.0)

@@ -18,7 +18,11 @@ from hours_eoh.core.population import (
 from hours_eoh.core.capital import make_asset
 from hours_eoh.data import (
     AGE_GROUPS,
+    AGE_GROUP_RANGES,
     PERSONAL_EOH_BASE,
+    CAPACITY_DECLINE_ONSET_AGE,
+    CAPACITY_DECLINE_MID_AGE,
+    CAPACITY_DECLINE_LATE_AGE,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -441,3 +445,112 @@ class TestCohortAgingCapitalFulfillment:
             burdens_year1.append(result["human_eoh_burdens"][0])
         for i in range(len(burdens_year1) - 1):
             assert burdens_year1[i] >= burdens_year1[i + 1] - 1e-6
+
+
+class TestCapacityDeclineShape:
+    """
+    THE CURVE `_capacity_decline_rate` DESCRIBES, pinned as shape (2026-08-27).
+
+    Its six constants lived in `core/population.py` as shadow constants —
+    untagged, invisible to the provenance gate, and a +7% perturbation of ANY of
+    them failed no test in the suite. They now live in `data.py` with a
+    `resolves_by` naming NHATS/HRS functional-limitation prevalence by single
+    year of age, and these are the pins.
+
+    Asserted as SHAPE and ORDERING, not levels. The levels are desk estimates
+    that will move when the dataset lands; what must not move without argument
+    is the structure the docstring claims:
+
+      ages 18–49  no age-related decline (prime working capacity)
+      ages 50–64  gradual late-career erosion
+      ages 65–79  steeper, early elderly
+      ages 80+    steepest, late elderly
+
+    THE ORDERING IS THE BIOLOGICALLY WELL-FOUNDED PART; the 2.7x and 1.75x steps
+    between the three rates are not, and are deliberately NOT pinned as levels.
+    """
+
+    def _rate(self, age):
+        from hours_eoh.core.population import _capacity_decline_rate
+        return _capacity_decline_rate(age)
+
+    def test_no_decline_through_prime_working_years(self):
+        """The claim that makes ε-coherence work at low ε: prime adults are the
+        numeraire, and a decline here would tax them for existing."""
+        for age in (18, 25, 35, 45, CAPACITY_DECLINE_ONSET_AGE - 1):
+            assert self._rate(age) == 0.0, f"unexpected decline at age {age}"
+
+    def test_the_rate_is_monotonically_non_decreasing_in_age(self):
+        rates = [self._rate(a) for a in range(0, 101)]
+        assert rates == sorted(rates), "capacity decline must never ease with age"
+
+    def test_the_three_phases_are_strictly_ordered(self):
+        """early < mid < late. If this inverts, the model says the old recover."""
+        early = self._rate(CAPACITY_DECLINE_ONSET_AGE)
+        mid = self._rate(CAPACITY_DECLINE_MID_AGE)
+        late = self._rate(CAPACITY_DECLINE_LATE_AGE)
+        assert 0.0 < early < mid < late, f"{early} !< {mid} !< {late}"
+
+    @pytest.mark.parametrize("boundary,below,above", [
+        ("CAPACITY_DECLINE_ONSET_AGE", 0.0, None),
+        ("CAPACITY_DECLINE_MID_AGE", None, None),
+        ("CAPACITY_DECLINE_LATE_AGE", None, None),
+    ])
+    def test_each_breakpoint_actually_steps(self, boundary, below, above):
+        """
+        A breakpoint that changes nothing is a constant pretending to be a
+        parameter. Each must produce a strict step at exactly its age.
+        """
+        import hours_eoh.data as D
+        age = getattr(D, boundary)
+        assert self._rate(age - 1) < self._rate(age), (
+            f"{boundary}={age} produces no step"
+        )
+
+    def test_the_elderly_breakpoint_is_bound_not_restated(self):
+        """
+        It was the literal 65 beside AGE_GROUP_RANGES' own 65 — the
+        restates-instead-of-binds pattern. Now bound, so they cannot drift.
+        """
+        assert CAPACITY_DECLINE_MID_AGE == AGE_GROUP_RANGES["elderly"][0]
+
+    def test_onset_precedes_the_elderly_boundary(self):
+        """
+        The deliberate claim: biological capacity decline begins in late working
+        life, NOT at the formal retirement age. Conflating the two would be the
+        wrong-instrument error — a participation series measures whether people
+        DO work, not what they are capable of.
+        """
+        assert CAPACITY_DECLINE_ONSET_AGE < CAPACITY_DECLINE_MID_AGE
+        assert CAPACITY_DECLINE_MID_AGE < CAPACITY_DECLINE_LATE_AGE
+
+    def test_the_curve_is_observable_through_aging(self):
+        """
+        The shape must be visible through the PUBLIC API, or these pins guard a
+        private function nothing consumes. `aging()` is the consumer.
+        """
+        def capacity_after_a_year(age):
+            a = make_asset(
+                asset_id=f"h{age}", asset_type="human", teh_value=100.0,
+                annual_eoh=0.0, design_life=100.0, age=age,
+                is_human_capital=True, entropy_reduction_capacity=1000.0,
+            )
+            return aging(a, years_elapsed=1.0)["new_capacity"]
+
+        prime = capacity_after_a_year(40.0)
+        late = capacity_after_a_year(85.0)
+        assert prime == pytest.approx(1000.0, rel=1e-9), "no decline before onset"
+        assert late < prime, "the elderly must decline faster through the public path"
+
+    def test_capacity_decline_is_monotone_in_age_through_aging(self):
+        """Same claim, swept: no age may fare better than a younger one."""
+        def capacity_after_a_year(age):
+            a = make_asset(
+                asset_id=f"h{age}", asset_type="human", teh_value=100.0,
+                annual_eoh=0.0, design_life=100.0, age=age,
+                is_human_capital=True, entropy_reduction_capacity=1000.0,
+            )
+            return aging(a, years_elapsed=1.0)["new_capacity"]
+
+        caps = [capacity_after_a_year(float(a)) for a in range(30, 96, 5)]
+        assert caps == sorted(caps, reverse=True), caps

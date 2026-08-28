@@ -1562,8 +1562,18 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # and a verdict threshold, each with siblings the scan already counted.
     # A rise from honesty is not the failure this ratchet guards against; a rise
     # from a fresh copy is. Distinguish them before raising it again.
-    assert len(free) <= 57, (
-        f"{len(free)} shadow constants, was 57. New ones: a domain constant "
+    #
+    # 57 -> 46 on 2026-08-27: the six CAPACITY_DECLINE_* constants and the five
+    # asset-condition/maturation constants moved into data.py. THE TRIGGER WAS
+    # NOT THIS RATCHET — it was a mutation sweep that perturbed every scalar
+    # +7% and re-ran the suite, finding 0 of 232 data.py constants unpinned
+    # against 34 of 63 shadow constants. The two gaps compound: the surface the
+    # provenance gate cannot see is also the surface the tests do not hold.
+    # Each constant migrated here gained BOTH a tag block naming what would
+    # settle it AND a shape test, because moving it without pinning it would
+    # only have fixed the half this ratchet can measure.
+    assert len(free) <= 46, (
+        f"{len(free)} shadow constants, was 46. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."
