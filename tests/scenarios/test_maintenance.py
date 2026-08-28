@@ -5,6 +5,7 @@ Covers: deferred_maintenance_crisis, care_registration_delay.
 """
 
 import pytest
+from hours_eoh.scenarios.maintenance import _IRREVERSIBILITY_MULTIPLE
 from hours_eoh.scenarios.maintenance import (
     deferred_maintenance_crisis,
     care_registration_delay,
@@ -87,3 +88,78 @@ class TestCareRegistrationDelay:
     def test_scenario_name(self):
         result = care_registration_delay(0.50, 0.10)
         assert result["scenario"] == "care_registration_delay"
+
+
+
+class TestTheIrreversibilityThreshold:
+    """
+    `_IRREVERSIBILITY_MULTIPLE`, pinned — AND TWO DEFECTS IT UNCOVERED
+    (2026-08-28).
+
+    It is a shadow constant in `scenarios/maintenance.py` that a +7% move left
+    undetected. Asking WHY it was undetectable found that its output never
+    reached the caller at all:
+
+      1. `failure_boundary`, documented as "year of irreversibility", RETURNED
+         `crisis_year` — a value already returned under its own key. The
+         quantity the field names was computed and discarded.
+      2. `outcome` came from the compounding ratio alone, so at 20 years of zero
+         maintenance the function returned **outcome=STABLE** beside a
+         recommendation reading "Deferred maintenance exceeds 5× annual EOH at
+         year 5. Rebuilding required." The machine-readable field contradicted
+         the human-readable one.
+
+    Both are the reported-value-is-not-the-computed-value failure this repo has
+    hit before (`psi` vs `psi_applied`). Neither failed a test, because nothing
+    asserted either field against a neglected asset — which is exactly what an
+    unpinned constant lets happen downstream of itself.
+    """
+
+    def test_the_failure_year_is_actually_returned(self):
+        """FIX 1. The field must report the quantity it is named for."""
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
+                                        fulfillment_fraction=0.0, years=20)
+        assert r["failure_boundary"] is not None, (
+            "20 years of zero maintenance must reach irreversibility"
+        )
+        assert r["failure_boundary"] != r["crisis_year"], (
+            "failure_boundary must not be a second copy of crisis_year"
+        )
+
+    def test_irreversibility_is_not_reported_as_stable(self):
+        """FIX 2. The structured verdict must not contradict the prose."""
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
+                                        fulfillment_fraction=0.0, years=20)
+        assert "Rebuilding required" in r["recommendation"]
+        assert r["outcome"] != "STABLE", (
+            f"outcome {r['outcome']!r} contradicts its own recommendation"
+        )
+
+    def test_full_maintenance_never_reaches_irreversibility(self):
+        """The converse: a threshold that fires under full maintenance is not a
+        threshold, it is a clock."""
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
+                                        fulfillment_fraction=1.0, years=40)
+        assert r["failure_boundary"] is None
+        assert r["outcome"] == "STABLE"
+
+    def test_failure_arrives_sooner_the_worse_the_neglect(self):
+        years = []
+        for frac in (0.0, 0.25, 0.5):
+            r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
+                                            fulfillment_fraction=frac, years=30)
+            years.append(r["failure_boundary"] or 10**6)
+        assert years == sorted(years), f"worse neglect must fail sooner: {years}"
+
+    def test_failure_is_declared_at_the_declared_multiple(self):
+        """Binds the constant to the behaviour rather than restating 5.0."""
+        annual = 1_000_000.0
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=annual,
+                                        fulfillment_fraction=0.0, years=30)
+        fy = r["failure_boundary"]
+        assert fy is not None
+        row = next(t for t in r["trajectory"] if t["year"] == fy)
+        assert row["total_obligation"] > annual * _IRREVERSIBILITY_MULTIPLE
+        prev = [t for t in r["trajectory"] if t["year"] == fy - 1]
+        if prev:
+            assert prev[0]["total_obligation"] <= annual * _IRREVERSIBILITY_MULTIPLE

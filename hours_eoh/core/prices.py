@@ -34,7 +34,11 @@ same nominal TEH buys more"; §"teh_price" in Phase 3.2 requirements.
 from __future__ import annotations
 import math
 
-from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEAN_MULTIPLIER_REFERENCE
+from hours_eoh.data import (
+    MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEAN_MULTIPLIER_REFERENCE,
+    BASKET_GOODS_WEIGHT, BASKET_SERVICES_WEIGHT,
+    GOODS_PRICE_FLOOR, SERVICES_PRICE_FLOOR, SERVICES_PRICE_DECLINE_EXPONENT,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -42,22 +46,11 @@ from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEA
 # ---------------------------------------------------------------------------
 
 # Fraction of the sufficiency basket that is goods vs. services
-# Goods: food, clothing, shelter materials, manufactured items
-# Services: healthcare, care, education, local skilled services
-BASKET_GOODS_WEIGHT:    float = 0.60
-BASKET_SERVICES_WEIGHT: float = 0.40
-
-# Goods price floor (fraction of baseline): even with full automation,
-# some goods require energy, logistics, quality control — not zero
-GOODS_PRICE_FLOOR:    float = 0.05
-
-# Services price floor: relational/emotional services can't be automated
-SERVICES_PRICE_FLOOR: float = 0.20
-
-# Services price decline shape: exponent < 1 → concave (slower decline than goods)
-# At ε=0: ratio=1. At ε=0.99: ratio→SERVICES_PRICE_FLOOR. Exponent 0.35 chosen to
-# keep services meaningful in the care economy while prices still fall substantially.
-_SERVICES_PRICE_DECLINE_EXPONENT: float = 0.35
+# All five basket/price constants MIGRATED TO data.py 2026-08-28. They were
+# shadow constants — untagged, invisible to the provenance gate, and a +7% move
+# of any of them failed no test. Goods: food, clothing, shelter materials,
+# manufactured items. Services: healthcare, care, education, local skilled
+# services.
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +247,7 @@ def basket_price(
 
     # Services: price declines slower (power < 1 → concave decline)
     # At ε=0: 1.0. At ε=0.99: services_price_floor.
-    services_price_ratio = services_price_floor + (1.0 - services_price_floor) * ((1.0 - epsilon) ** _SERVICES_PRICE_DECLINE_EXPONENT)
+    services_price_ratio = services_price_floor + (1.0 - services_price_floor) * ((1.0 - epsilon) ** SERVICES_PRICE_DECLINE_EXPONENT)
 
     basket_ratio = goods_weight * goods_price_ratio + services_weight * services_price_ratio
     return baseline_cost_teh * basket_ratio

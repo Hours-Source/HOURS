@@ -9,6 +9,7 @@ domain_scarcity_multiplier, full_price_monotonicity_audit, cpi_goods_destruction
 import math
 import pytest
 
+from hours_eoh.data import BASKET_GOODS_WEIGHT, BASKET_SERVICES_WEIGHT
 from hours_eoh.core.prices import (
     GOODS_PRICE_FLOOR,
     SERVICES_PRICE_FLOOR,
@@ -420,10 +421,19 @@ class TestThePriceFloorsAreReached:
         assert self._services(0.0) == pytest.approx(1.0, rel=1e-9)
 
     def test_goods_ratio_lands_on_its_floor(self):
-        r = self._goods(0.99)
-        assert r >= GOODS_PRICE_FLOOR - 1e-12, "a ratio may never go below its floor"
-        assert r == pytest.approx(GOODS_PRICE_FLOOR, abs=0.02), (
-            f"at ε=0.99 goods should sit on GOODS_PRICE_FLOOR, got {r}"
+        """
+        Asserted at ε=1.0 where the limit is EXACT. The first version used
+        ε=0.99 with `abs=0.02`, which on a floor of 0.05 tolerates a 40% move —
+        a fresh mutation sweep on 2026-08-28 still reported this constant
+        unpinned at +7% because of it. A tolerance wide enough to absorb the
+        arc's own curvature is wide enough to absorb the constant.
+        """
+        assert self._goods(1.0) == pytest.approx(GOODS_PRICE_FLOOR, rel=1e-12)
+        assert self._goods(0.99) >= GOODS_PRICE_FLOOR - 1e-12, (
+            "a ratio may never go below its floor"
+        )
+        assert self._goods(0.99) == pytest.approx(GOODS_PRICE_FLOOR, rel=0.25), (
+            "goods is linear, so it should be near its floor by ε=0.99"
         )
 
     def test_services_ratio_reaches_its_floor_only_in_the_limit(self):
@@ -448,10 +458,8 @@ class TestThePriceFloorsAreReached:
             "services should still be well above its floor at ε=0.99"
         )
         assert self._services(0.99) > 1.5 * SERVICES_PRICE_FLOOR
-        # the limit itself
-        assert self._services(0.999999) == pytest.approx(
-            SERVICES_PRICE_FLOOR, abs=0.01
-        )
+        # the limit itself, asserted where it is EXACT
+        assert self._services(1.0) == pytest.approx(SERVICES_PRICE_FLOOR, rel=1e-12)
         # goods, being linear, is already there
         assert self._goods(0.99) == pytest.approx(GOODS_PRICE_FLOOR, abs=0.02)
 
@@ -473,3 +481,28 @@ class TestThePriceFloorsAreReached:
         assert g == sorted(g, reverse=True), f"goods ratio must not rise with ε: {g}"
         assert s == sorted(s, reverse=True), f"services ratio must not rise with ε: {s}"
         assert all(0.0 < x <= 1.0 for x in g + s)
+
+
+class TestTheBasketWeightsPartition:
+    """
+    `BASKET_GOODS_WEIGHT` / `BASKET_SERVICES_WEIGHT`, migrated and pinned
+    (2026-08-28). Both were shadow constants in `core/prices.py`.
+
+    They are two INDEPENDENT constants that must sum to 1.0, so this is a real
+    check rather than an identity — nothing in the code normalises them, and a
+    pair summing to 0.9 would silently shrink the whole basket.
+    """
+
+    def test_the_weights_partition_the_basket(self):
+        assert BASKET_GOODS_WEIGHT + BASKET_SERVICES_WEIGHT == pytest.approx(1.0, rel=1e-12)
+        assert BASKET_GOODS_WEIGHT > 0.0 and BASKET_SERVICES_WEIGHT > 0.0
+
+    def test_the_shipped_weights_are_what_basket_price_uses(self):
+        """Binds the constants to the behaviour: the default basket must equal
+        the weighted combination of its two halves."""
+        base = 120.0
+        for eps in (0.0, 0.40, 0.99):
+            goods = basket_price(eps, base, goods_weight=1.0, services_weight=0.0)
+            services = basket_price(eps, base, goods_weight=0.0, services_weight=1.0)
+            combined = BASKET_GOODS_WEIGHT * goods + BASKET_SERVICES_WEIGHT * services
+            assert basket_price(eps, base) == pytest.approx(combined, rel=1e-9)

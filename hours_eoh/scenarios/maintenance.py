@@ -104,12 +104,31 @@ def deferred_maintenance_crisis(
     final       = trajectory[-1]
     final_ratio = final["compounding_ratio"]
 
-    if final_ratio < 0.10:
-        outcome = "STABLE"
-    elif final_ratio < CRIT_RATIO:
+    # TWO DEFECTS FIXED 2026-08-28, both found by asking why
+    # `_IRREVERSIBILITY_MULTIPLE` was unpinned.
+    #
+    # (1) `failure_boundary` is documented as "year of irreversibility" and
+    #     RETURNED `crisis_year` — which is already returned under its own key,
+    #     so the field duplicated one value while the quantity it names was
+    #     computed and discarded. `failure_year` reached the caller only inside
+    #     a prose recommendation string.
+    #
+    # (2) `outcome` was derived from the compounding ratio ALONE, so an asset
+    #     past irreversibility read STABLE. At 20 years of zero maintenance the
+    #     function returned outcome=STABLE beside a recommendation reading
+    #     "Deferred maintenance exceeds 5× annual EOH at year 5. Rebuilding
+    #     required." The machine-readable field said the opposite of the
+    #     human-readable one, and a caller consuming `outcome` got STABLE for a
+    #     collapsed asset.
+    #
+    # Neither defect failed any test, because nothing asserted a value of
+    # either field against a neglected asset.
+    if final_ratio >= CRIT_RATIO:
+        outcome = "CRISIS"
+    elif final_ratio >= 0.10 or failure_year is not None:
         outcome = "DEGRADED"
     else:
-        outcome = "CRISIS"
+        outcome = "STABLE"
 
     if crisis_year:
         rec = (
@@ -139,7 +158,7 @@ def deferred_maintenance_crisis(
         "final_deferred":         final["cumulative_deferred"],
         "final_compounding_ratio": final_ratio,
         "outcome":                outcome,
-        "failure_boundary":       crisis_year,
+        "failure_boundary":       failure_year,
         "recommendation":         rec,
     }
 

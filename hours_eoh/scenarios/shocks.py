@@ -322,6 +322,14 @@ def demographic_shock(
         "shock_type":           shock_type,
         "magnitude":            magnitude,
         "epsilon":              epsilon,
+        # REPORTED 2026-08-28. `labor_income` is computed here from
+        # `_LABOR_INCOME_AUTO_SLOPE` and was then discarded — the same
+        # computed-and-not-reported pattern fixed in scenarios/maintenance.py
+        # the same day. Its absence is why the slope could not be pinned from
+        # outside: ε drives the guarantee, the EOH total and the income
+        # together, so the income's own response is not recoverable from any
+        # downstream figure. Reporting it makes the term observable.
+        "labor_income":         labor_income,
         "population_before":    BASE_POPULATION,
         "population_after":     new_population,
         "eoh_before":           base_eoh,

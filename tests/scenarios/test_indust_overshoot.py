@@ -5,6 +5,20 @@ Covers: indust_overshoot_baseline, indust_recovery_trajectory.
 """
 
 import pytest
+
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import ecological_eoh_breakdown
+from hours_eoh.data import CAPITAL_STOCK_DEFAULT, ECOLOGICAL_THRESHOLD
+from hours_eoh.indust_no_eco_params import (
+    INDUST_CAPITAL_AGE_RATIO,
+    INDUST_CAPITAL_EOH_ELIMINATED,
+    INDUST_CAPITAL_MULTIPLIER,
+    INDUST_CAPITAL_PERSONAL_EOH_FULFILLED,
+    INDUST_DEFERRED_ECOLOGICAL,
+    INDUST_ECOSYSTEM_HEALTH,
+    INDUST_NO_ECO_PIPELINE_KWARGS,
+    make_indust_no_eco_params,
+)
 from hours_eoh.scenarios.indust_overshoot import (
     indust_overshoot_baseline,
     indust_recovery_trajectory,
@@ -157,3 +171,108 @@ class TestIndustRecoveryTrajectory:
         eco_low  = r_low["trajectory"][-1]["ecosystem_health"]
         eco_high = r_high["trajectory"][-1]["ecosystem_health"]
         assert eco_high >= eco_low
+
+
+class TestTheArchetypeIsWhatItClaims:
+    """
+    THE SCENARIO'S DEFINING PROPERTIES, pinned (2026-08-28).
+
+    `indust_no_eco_params.py` holds five shadow constants and a 2026-08-28
+    mutation sweep found four of them completely unpinned — including BOTH
+    zeros that encode the archetype's central premise.
+
+    THEY ARE NOT MIGRATED TO data.py, DELIBERATELY. `data.py` is the framework's
+    structural constants; these are ONE SCENARIO'S inputs — the specification of
+    an archetype, in the same class as `make_urban_collective()`'s parcel mix.
+    Moving them would say the framework asserts a 10× capital stock, which it
+    does not. What was missing is not provenance but a check that the archetype
+    still IS what its docstring says.
+
+    An unpinned specification is the thing that silently stops being true.
+    """
+
+    def test_capital_is_the_declared_multiple_of_canonical(self):
+        p = make_indust_no_eco_params(population=1_000_000)
+        canonical_per_capita = CAPITAL_STOCK_DEFAULT / 1_000_000
+        assert p.get("capital_stock_teh") / 1_000_000 == pytest.approx(
+            canonical_per_capita * INDUST_CAPITAL_MULTIPLIER, rel=1e-9
+        )
+        assert INDUST_CAPITAL_MULTIPLIER > 1.0, "overshoot means MORE capital"
+
+    def test_capital_scales_with_population(self):
+        """The archetype is an intensity, not an absolute stock."""
+        a = make_indust_no_eco_params(population=1_000_000).get("capital_stock_teh")
+        b = make_indust_no_eco_params(population=4_000_000).get("capital_stock_teh")
+        assert b == pytest.approx(4.0 * a, rel=1e-9)
+
+    def test_the_stock_is_aged_past_mid_life(self):
+        """'Deferred renewal typical of heavy industry' — the claim is that this
+        stock is OLD, not merely present."""
+        assert 0.5 < INDUST_CAPITAL_AGE_RATIO < 1.0
+
+    def test_ecosystem_health_sits_BELOW_the_spike_threshold(self):
+        """
+        THE RELATIONAL PROPERTY, and the reason this is the most valuable pin in
+        the class. The archetype is defined as being IN the threshold-failure
+        regime — its docstring says "the nonlinear penalty in ecological_eoh()
+        is now live". That is a claim about 0.38 relative to
+        ECOLOGICAL_THRESHOLD, not about 0.38 itself.
+
+        `ECOLOGICAL_THRESHOLD` is a `placeholder` whose own tag block says where
+        0.40 falls on the health index is "a mapping, not a measurement". If it
+        is ever measured downward past 0.38, this scenario silently stops being
+        an overshoot scenario while every one of its tests still passes. Pinning
+        the VALUE would not catch that; pinning the RELATION does.
+        """
+        assert INDUST_ECOSYSTEM_HEALTH < ECOLOGICAL_THRESHOLD, (
+            f"the archetype must sit in the spike regime: health "
+            f"{INDUST_ECOSYSTEM_HEALTH} vs threshold {ECOLOGICAL_THRESHOLD}"
+        )
+
+    def test_the_spike_is_actually_live_in_the_archetype(self):
+        """The relation above, demonstrated through the ecological domain rather
+        than asserted about two numbers."""
+        b = ecological_eoh_breakdown(INDUST_ECOSYSTEM_HEALTH, area_hectares=1.0e6)
+        assert b["spike"] > 0.0, "the nonlinear penalty must be live"
+
+    def test_capital_provides_no_offset_in_any_domain(self):
+        """
+        THE ARCHETYPE'S CENTRAL PREMISE — "it consumes entropy obligations, it
+        does not reduce them" — and BOTH constants encoding it were unpinned.
+        They are zero, so a mutation sweep that scales by a percentage cannot
+        move them at all; only an explicit test can hold them.
+        """
+        assert INDUST_CAPITAL_EOH_ELIMINATED == 0.0
+        assert INDUST_CAPITAL_PERSONAL_EOH_FULFILLED == 0.0
+        assert INDUST_NO_ECO_PIPELINE_KWARGS["capital_eoh_eliminated"] == 0.0
+        assert INDUST_NO_ECO_PIPELINE_KWARGS["capital_personal_eoh_fulfilled"] == 0.0
+
+    def test_the_no_offset_premise_reaches_the_pipeline(self):
+        """
+        The premise must be OBSERVABLE, not just declared: granting the same
+        capital an offset must reduce total EOH, so the archetype's zero is
+        doing real work.
+        """
+        p = make_indust_no_eco_params(population=1_000_000)
+        common = dict(
+            epsilon=0.40, population=1_000_000,
+            capital_stock=p.get("capital_stock_teh"),
+            capital_age_ratio=p.get("capital_age_ratio"),
+            ecosystem_health=p.get("ecosystem_health"),
+        )
+        no_offset = eoh_to_teh_pipeline(**common, **INDUST_NO_ECO_PIPELINE_KWARGS)
+        with_offset = eoh_to_teh_pipeline(
+            **common, capital_eoh_eliminated=1.0e8,
+            capital_personal_eoh_fulfilled=0.0,
+        )
+        assert with_offset["total_eoh"] < no_offset["total_eoh"], (
+            "if an offset changes nothing, the archetype's zero is decorative"
+        )
+
+    def test_the_deferred_backlog_is_large_relative_to_the_standing_obligation(self):
+        """'Four-to-five decades of neglect' is a claim about MAGNITUDE. A
+        backlog smaller than one year's obligation would not be a backlog."""
+        standing = ecological_eoh_breakdown(
+            INDUST_ECOSYSTEM_HEALTH, area_hectares=1.0e6
+        )["total"]
+        assert INDUST_DEFERRED_ECOLOGICAL > 100.0 * standing

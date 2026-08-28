@@ -2229,6 +2229,48 @@ DIV_RATE:                     float = 0.40              # fraction of depreciati
 #   The two should be reconciled; at present they are set independently.
 MEANINGFUL_ACTIVITY_TEH_BASE: float = 120.0            # discretionary spending bonus at ε=0 (TEH/yr)
 MEANINGFUL_ACTIVITY_TEH_SCALE: float = 1.5              # quadratic ε-growth factor; bonus = base×(1+scale×ε²)
+# tag: normative | units: fraction of the basket | family: BASKET_*_WEIGHT
+# form: the two weights partition the reference basket and must sum to 1.0.
+# decided_by: a charter decision about what a sufficiency basket CONTAINS —
+#   goods (food, clothing, shelter materials, manufactured items) against
+#   services (healthcare, care, education, local skilled services). No dataset
+#   settles the split, because it is a statement of what the guarantee covers.
+# note: migrated from core/prices.py 2026-08-28 as shadow constants. The split
+#   matters more than it looks: services fall to a floor 4x higher than goods,
+#   so the weights decide how much of the basket is protected from the price
+#   collapse automation drives.
+BASKET_GOODS_WEIGHT:    float = 0.60
+BASKET_SERVICES_WEIGHT: float = 0.40
+# tag: placeholder | units: fraction of the ε=0 price | family: *_PRICE_FLOOR
+# form: the ε→1 limits of the two price ratios. Goods decline LINEARLY to their
+#   floor; services decline as (1−ε)**SERVICES_PRICE_DECLINE_EXPONENT, so they
+#   approach theirs far more slowly — at ε=0.99 services still sit at 0.360,
+#   1.8x its floor, while linear goods is already there.
+# note: THE ORDERING IS THE CLAIM AND IT IS THE DEFENSIBLE PART — services stay
+#   dearer than goods at every ε because they remain labour-bearing, which is
+#   the same conclusion Block II reached from abatement (care is the least
+#   abatable component). The LEVELS are desk estimates. Migrated from
+#   core/prices.py 2026-08-28, where all three were shadow constants and a +7%
+#   move failed no test.
+# resolves_by: the non-labour cost share of each basket half at high mechanisation
+#   — energy, materials and logistics for goods; the irreducible human contact
+#   time for services. FIELD: input-output tables' non-labour intermediate share
+#   by sector, NOT a price index, which measures what things cost rather than
+#   what they cannot stop costing.
+GOODS_PRICE_FLOOR:    float = 0.05
+SERVICES_PRICE_FLOOR: float = 0.20
+# tag: placeholder | units: dimensionless exponent
+# form: services_ratio = FLOOR + (1 − FLOOR) × (1 − ε)**EXPONENT. An exponent
+#   below 1 makes the decline CONCAVE — slower than the linear goods path.
+# note: this is the term that decides HOW SLOWLY services approach their floor,
+#   and it is why the two halves of the basket reach their limits at completely
+#   different rates. Its own source comment says 0.35 was "chosen to keep
+#   services meaningful in the care economy while prices still fall
+#   substantially" — i.e. picked for the shape it produces, which is the
+#   calibrated-to-target pattern stated plainly. Migrated 2026-08-28.
+# resolves_by: as for the two floors — the non-labour share by sector, read as
+#   a curve against a mechanisation index rather than at a single point.
+SERVICES_PRICE_DECLINE_EXPONENT: float = 0.35
 # tag: instance | units: TEH (at the 1M reference population)
 # supplied_by: your gross fixed capital stock, converted to TEH at the
 #   TEH/currency exchange rate you choose (the model does not determine it).

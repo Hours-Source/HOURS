@@ -1579,8 +1579,13 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # class could not see it — and LSMS_CROP_PRODUCTION_HOURS, which was a THIRD
     # number for a quantity reference/personal_basket already measures and is
     # now derived from it.
-    assert len(free) <= 38, (
-        f"{len(free)} shadow constants, was 38. New ones: a domain constant "
+    # 38 -> 33 on 2026-08-28 (batch 3): the five basket/price constants moved
+    # out of core/prices.py, and a DEAD DUPLICATE of MINUTES_PER_HOUR was
+    # deleted from reference/care_demand.py rather than migrated — nothing read
+    # it, and the live one is in reference/atus_time_use.py. Removing a
+    # duplicate is a better outcome than tagging it.
+    assert len(free) <= 33, (
+        f"{len(free)} shadow constants, was 33. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."

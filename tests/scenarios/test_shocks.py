@@ -7,6 +7,8 @@ Covers: automation_failure_shock, demographic_shock, ecological_eoh_spike,
 
 import pytest
 from hours_eoh.scenarios.shocks import (
+    _LABOR_INCOME_AUTO_SLOPE, _LABOR_INCOME_BASE, _LABOR_INCOME_MIN)
+from hours_eoh.scenarios.shocks import (
     automation_failure_shock,
     demographic_shock,
     ecological_eoh_spike,
@@ -260,3 +262,56 @@ class TestCompoundShock:
         )
         assert len(result["individual_outcomes"]) == 3
         assert result["combined_outcome"] in VALID_OUTCOMES
+
+
+
+class TestLaborIncomeAutomationSlope:
+    """
+    `_LABOR_INCOME_AUTO_SLOPE`, pinned (2026-08-28) — after making it
+    observable at all.
+
+    It is a shadow constant that a +7% move left undetected, and the reason was
+    structural: `demographic_shock` computed `labor_income` from it and then
+    DISCARDED it. ε drives the guarantee, the EOH total and the income
+    together, so the income's own response cannot be recovered from any
+    downstream figure — I tried, and the implied ratio came back 2.17 against an
+    expected 0.60 because the other ε effects swamp it.
+
+    The fix is the same one applied to `scenarios/maintenance.py` the same day:
+    report the quantity the code already computes. A term that reaches the
+    caller only through other terms is a term no test can hold.
+    """
+
+    def _income(self, eps, base=None):
+        kw = {} if base is None else {"labor_income_base": base}
+        return demographic_shock(epsilon=eps, shock_type="growth",
+                                 magnitude=0.1, **kw)["labor_income"]
+
+    def test_labor_income_falls_with_automation(self):
+        vals = [self._income(e) for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
+        assert vals == sorted(vals, reverse=True), vals
+        assert vals[-1] < vals[0], "automation must reduce labour income"
+
+    def test_the_decline_is_the_declared_fraction_of_base(self):
+        """Binds the constant to the behaviour rather than restating 0.80."""
+        base = _LABOR_INCOME_BASE
+        for eps in (0.0, 0.25, 0.5):
+            expected = max(_LABOR_INCOME_MIN,
+                           base * (1.0 - eps * _LABOR_INCOME_AUTO_SLOPE))
+            assert self._income(eps) == pytest.approx(expected, rel=1e-9)
+
+    def test_income_never_falls_below_the_floor(self):
+        for eps in (0.0, 0.5, 0.9, 0.99):
+            assert self._income(eps) >= _LABOR_INCOME_MIN - 1e-6
+
+    def test_the_floor_is_reachable_with_a_small_enough_base(self):
+        """A floor that never binds is not a floor."""
+        small = _LABOR_INCOME_MIN * 1.1
+        assert self._income(0.99, base=small) == pytest.approx(
+            _LABOR_INCOME_MIN, rel=1e-9
+        )
+
+    def test_the_slope_is_a_fraction_not_a_multiplier(self):
+        """A slope ≥ 1 would zero labour income at ε=1 before the floor could
+        act; a negative slope would mean automation RAISES labour income."""
+        assert 0.0 < _LABOR_INCOME_AUTO_SLOPE < 1.0

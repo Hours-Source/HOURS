@@ -110,7 +110,12 @@ PASSIVE_MAX_AGE: int = 12
 #: times the length of a day.
 ATUS_TOP_CODED_AGE: int = 85
 
-MINUTES_PER_HOUR: float = 60.0
+# MINUTES_PER_HOUR REMOVED 2026-08-28. It was declared here and read by
+# NOTHING — a dead duplicate of the live one in reference/atus_time_use.py,
+# which does the minute→hour conversion. This module's own header says its
+# native unit is minutes per person-day with no annualizing convention, so the
+# constant was vestigial. Removing the duplicate is the fix; pinning it would
+# have preserved a second definition of an already-defined quantity.
 DAYS_PER_YEAR: float = 365.0
 
 
