@@ -207,11 +207,18 @@ def health_response_relocation(
     """
     from hours_eoh.core.eoh_generation import ecological_eoh_breakdown
 
+    # `standing_response` is pinned to "domain" on BOTH sides deliberately: this
+    # function isolates the HEALTH response, so the standing term must be held
+    # fixed or the reported split would mix two partition decisions. Passing it
+    # explicitly also keeps `**eco_kwargs` (float-valued) from being offered to
+    # a str parameter, which is what mypy caught when Phase 4f added it.
     kept = ecological_eoh_breakdown(
-        ecosystem_health, epsilon, health_response="guf", **eco_kwargs
+        ecosystem_health, epsilon, health_response="guf",
+        standing_response="domain", **eco_kwargs
     )
     whole = ecological_eoh_breakdown(
-        ecosystem_health, epsilon, health_response="domain", **eco_kwargs
+        ecosystem_health, epsilon, health_response="domain",
+        standing_response="domain", **eco_kwargs
     )
     relocated = kept["relocatable_to_guf"]
     return {

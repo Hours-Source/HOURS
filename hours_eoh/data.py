@@ -1337,13 +1337,37 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 #   this repo, and choosing a value to produce a target share would be the
 #   fitted-residual error the personal floor refuses. It states what a census
 #   would have to find. Run `eoh scenario run ecological_floor`.
-# resolves_by: a stewardship-hours census on an absolute footing — agency FTEs
-#   per hectare, or the GUF parcel inventory × measured crew-hours. The intake
-#   path now exists: core/eoh_generation.ecological_statutory_floor() takes the
-#   census in physical units and excludes unpriced parcels rather than costing
-#   them at zero, and scenarios/ecological_floor.floor_from_census() reports the
-#   ratio against this anchor, which is the falsification.
-ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. CHOSEN — relative anchor, needs absolute footing
+#   THE LEVEL IS CLOSED, AND NOT BY A CENSUS (Phase 4f, 2026-08-28).
+#   The question "what should this be?" was posed as a MEASUREMENT question for
+#   months. It is not one. This constant produces `standing` — a RECURRING
+#   per-year term — and Phase 4d's adopted partition says everything recurring
+#   is GUF's. Checked rather than assumed:
+#   `scenarios/guf_magnitude.recurring_target_by_class` already charges the
+#   measured stewardship intensity of every class the census can price (forest
+#   0.182, federal parks 0.161, urban 4.349 h/ha·yr) as part of GUF's recurring
+#   target. Raising this anchor toward the census would bill the SAME measured
+#   hours twice — once to the holder through GUF, once to the domain — which is
+#   the double-application failure the Ψ audit found, reached from the other
+#   side. And Phase 4c leaves no residue to keep: land held by no member is held
+#   by the FEDERATION and owes what any holder owes, with `uncollected_hours`
+#   structurally 0.0, so every hectare has a holder paying maintain-current.
+#   THE DERIVED VALUE IS THEREFORE 0.0, and the 500,000 here is a residue of the
+#   pre-partition model. This REVERSES the long-standing "low by 2-3 orders"
+#   framing: the anchor was never too low, it was the wrong kind of term.
+#   The value is RETAINED pending author sign-off, exactly as Phase 4e retained
+#   its own default. Relocate it with
+#   `ecological_standing_response="guf"`, reachable from `total_eoh` and
+#   `eoh_to_teh_pipeline`; the relocated amount is always reported. Adopting it
+#   moves total EOH by 0.0001%, because the domain was already essentially there.
+# resolves_by: NOT a stewardship census — that instrument is spent, and the
+#   pointer this field used to carry (land_stewardship.census_report) was
+#   written 2026-08-16, the day BEFORE the partition that invalidated it. What
+#   settles it now is an author decision on Phase 4f. If the standing term is
+#   RETAINED instead, the instrument would have to be a census that separates
+#   the reference-condition obligation from the disturbance response — which the
+#   shipped census cannot do, because it counts workers and does not decompose
+#   what they are responding to.
+ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem health. Phase 4f derives 0.0; retained pending sign-off
 # tag: measured | units: hectares | tier: B
 # form: USDA ERS Major Land Uses, "48 States" total land, 2022 vintage
 #   (released 2026-08-14): 1,891,580 thousand acres x 0.40468564224 ha/acre.
@@ -1379,9 +1403,12 @@ US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
 #   anchor over a different area (1e6 people x 1.65 ha). Both are correct and
 #   the disagreement IS the point: an anchor keyed to nothing implies whatever
 #   per-hectare figure the area you supply happens to produce.
-# resolves_by: scenarios/land_stewardship.census_report() — the measured
-#   stewardship-hours census. At the declared amenity weight it reads
-#   0.585 h/ha/yr, ~900x this value, over 30% of censused area.
+# resolves_by: SUPERSEDED BY PHASE 4f — see ECOLOGICAL_BASE_RATE above. This
+#   field used to name scenarios/land_stewardship.census_report(), and the
+#   census does read ~625x this value at the declared scope. That comparison is
+#   still TRUE and no longer RELEVANT: those hours are GUF's under the adopted
+#   partition, so matching them here would double-count. The derived value is
+#   0.0 and what remains is a sign-off, not a measurement.
 ECOLOGICAL_INTENSITY_BASE: float = 6.53171902629151e-04  # h/ha·yr at health=1.0
 # tag: bounded | units: dimensionless fraction of amenity labour | tier: C
 # band: [0.0468, 0.0699] — the occupational composition of the amenity class.

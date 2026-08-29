@@ -24,11 +24,18 @@ THE RESULT DEPENDS ON A SCOPE CHOICE, AND THE MODULE REFUSES TO MAKE IT
 -----------------------------------------------------------------------
 Two readings, from the same measured inputs:
 
-  ecosystem-only   0.18 h/ha·yr over forest-use land. BELOW the anchor's implied
-                   0.37 h/ha·yr — the anchor is not too low here, it is too HIGH.
-  with amenity     9.2 h/ha·yr over forest plus urban, ≈25× the anchor, and
-                   almost exactly the intensity a 1% ecological EOH share
-                   requires (9.4 h/ha·yr, `required_stewardship_intensity`).
+  ecosystem-only   0.18 h/ha·yr over forest-use land and federal parks.
+  with amenity     7.3 h/ha·yr over those plus urban groundskeeping.
+
+CORRECTED 2026-08-28. These lines used to read "BELOW the anchor's implied 0.37
+h/ha·yr — the anchor is not too low here, it is too HIGH." That comparison was
+against the PRE-Phase-4b implied intensity, which divided the whole contiguous
+US obligation by a million-person population. Against a frame-consistent anchor
+the ecosystem scope reads ~222× ABOVE, so the claim was inverted, and the
+hypothesis it appeared to refute was in fact supported on every class. The
+reversal was recorded in CLAUDE.md on 2026-08-17 and this module was not
+updated — the verdict string shipped the retracted reading for eleven days.
+The ratio is now computed live rather than restated in prose.
 
 A factor of 50 separates the two area-weighted means, and 510 separates the two
 land classes themselves. The only thing that moves between them is whether 1.33M
@@ -864,10 +871,15 @@ def scope_comparison() -> dict:
         "spread_factor": (amen / eco) if eco > 0.0 else 0.0,
         "verdict": (
             f"the two scopes differ by {amen / eco:.0f}× on identical measured "
-            f"inputs ({eco:.3f} vs {amen:.3f} h/ha·yr). Ecosystem-only lands "
-            f"BELOW the anchor; with amenity groundskeeping it lands ~"
+            f"inputs ({eco:.3f} vs {amen:.3f} h/ha·yr). Ecosystem-only lands ~"
+            f"{reports['ecosystem']['ratio_to_anchor']:.0f}× ABOVE the anchor; "
+            f"with amenity groundskeeping ~"
             f"{reports['with_amenity']['ratio_to_anchor']:.0f}× above it. The "
             f"measurement is not what is unresolved — the definition is. Do not "
-            f"quote a single stewardship intensity for the US."
+            f"quote a single stewardship intensity for the US. "
+            f"AND UNDER PHASE 4f (2026-08-28) NEITHER FIGURE BELONGS IN THE "
+            f"ECOLOGICAL DOMAIN: these hours are GUF's recurring charge, so "
+            f"comparing them to ECOLOGICAL_BASE_RATE answers a question the "
+            f"adopted partition has already closed."
         ),
     }

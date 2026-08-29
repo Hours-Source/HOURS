@@ -1193,3 +1193,111 @@ class TestEcologicalSpikeShape:
         one = ecological_eoh_breakdown(0.2, area_hectares=1.0e6)["spike"]
         two = ecological_eoh_breakdown(0.2, area_hectares=2.0e6)["spike"]
         assert two == pytest.approx(2.0 * one, rel=1e-9)
+
+
+class TestPhase4fTheStandingTermIsGufs:
+    """
+    THE ECOLOGICAL LEVEL, CLOSED — and not by a census (Phase 4f, 2026-08-28).
+
+    `ECOLOGICAL_BASE_RATE` produces `standing`, a RECURRING per-year term, and
+    Phase 4d's adopted partition says everything recurring is GUF's. The
+    question "what should the anchor be?" was carried for months as a
+    MEASUREMENT question; it is not one.
+
+    The argument is checkable, and `test_the_census_is_already_spent_in_guf`
+    checks it: GUF's recurring target already charges the measured stewardship
+    intensity of every class the census can price. Raising this anchor toward
+    the census would bill the same hours twice.
+
+    THEORY-FLAGGED. The relocation is opt-in and default-off, exactly as
+    `health_response` and `thermal_obligation` were at their sign-offs.
+    """
+
+    def test_the_default_moves_nothing(self):
+        """`TestPIChangesNothing` discipline: the seam is explicit, not applied."""
+        for health in (0.3, 0.7, 1.0):
+            a = ecological_eoh_breakdown(health, area_hectares=1.65e6)
+            b = ecological_eoh_breakdown(health, area_hectares=1.65e6,
+                                         standing_response="domain")
+            assert a["total"] == b["total"]
+            assert a["standing_relocated"] == 0.0
+
+    def test_relocating_standing_removes_exactly_the_standing_term(self):
+        kept = ecological_eoh_breakdown(0.70, area_hectares=1.65e6)
+        moved = ecological_eoh_breakdown(0.70, area_hectares=1.65e6,
+                                         standing_response="guf")
+        assert moved["total"] == pytest.approx(
+            kept["total"] - kept["standing"], rel=1e-12
+        )
+        assert moved["standing_relocated"] == pytest.approx(kept["standing"])
+
+    def test_the_obligation_is_conserved_only_relocated(self):
+        """Nothing is destroyed: what leaves the domain is reported."""
+        for health in (0.3, 0.7, 1.0):
+            kept = ecological_eoh_breakdown(health, area_hectares=1.65e6)
+            moved = ecological_eoh_breakdown(health, area_hectares=1.65e6,
+                                             standing_response="guf")
+            assert moved["total"] + moved["standing_relocated"] == pytest.approx(
+                kept["total"], rel=1e-12
+            )
+
+    def test_the_full_partition_leaves_only_stocks(self):
+        """
+        THE PARTITION REALISED. With both recurring terms relocated and no stock
+        supplied, the ecological domain is EXACTLY zero — which is Phase 4d's
+        "the domain carries exactly two terms and both are STOCKS", arrived at
+        by algebra rather than assertion.
+        """
+        b = ecological_eoh_breakdown(0.70, area_hectares=1.65e6,
+                                     health_response="guf",
+                                     standing_response="guf")
+        assert b["total"] == 0.0
+
+    def test_the_stocks_still_survive_the_relocation(self):
+        """The partition must EMPTY the recurring side, not the domain."""
+        b = ecological_eoh_breakdown(0.70, area_hectares=1.65e6,
+                                     health_response="guf",
+                                     standing_response="guf",
+                                     thermal_obligation=1000.0,
+                                     restoration_obligation=250.0)
+        assert b["total"] == pytest.approx(1250.0, rel=1e-12)
+
+    def test_the_census_is_already_spent_in_guf(self):
+        """
+        THE ARGUMENT, RUN. Every class whose stewardship intensity the census
+        can price already appears in GUF's recurring target, so matching this
+        anchor to the census would double-count. If GUF ever stops charging
+        stewardship, this test fails and the Phase 4f derivation must be redone.
+        """
+        from hours_eoh.scenarios.guf_magnitude import recurring_target_by_class
+
+        charged = {r["land_use"]: r["stewardship_h_per_ha"]
+                   for r in recurring_target_by_class()
+                   if r["stewardship_h_per_ha"] is not None}
+        assert charged, "GUF must charge stewardship somewhere, or 4f's premise fails"
+        for land_use, intensity in charged.items():
+            assert intensity > 0.0, f"{land_use} charged a non-positive intensity"
+        # and every one of them dwarfs the anchor it would otherwise be raised to
+        assert min(charged.values()) > 100.0 * ECOLOGICAL_INTENSITY_BASE
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.99])
+    def test_arc_coherence_under_both_policies(self, eps):
+        for policy in ("domain", "guf"):
+            v = ecological_eoh(0.70, epsilon=eps, area_hectares=1.65e6,
+                               standing_response=policy)
+            assert v >= 0.0 and v == v
+
+    def test_the_switch_is_reachable_from_the_documented_intake_path(self):
+        """
+        Parameters stranded one layer below `eoh_to_teh_pipeline` is this repo's
+        recurring failure — `personal_standard` and `ecological_health_response`
+        both hit that wall. This one is checked at the entry point.
+        """
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+        kept = eoh_to_teh_pipeline(epsilon=0.40, population=1e6)
+        moved = eoh_to_teh_pipeline(epsilon=0.40, population=1e6,
+                                    ecological_standing_response="guf",
+                                    ecological_health_response="guf")
+        assert moved["eoh_by_domain"]["ecological"] == 0.0
+        assert kept["eoh_by_domain"]["ecological"] > 0.0
