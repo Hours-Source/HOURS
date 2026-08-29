@@ -483,12 +483,13 @@ class TestTheAnchorIsKeyedToNothing:
     def test_without_an_area_it_resolves_to_the_declared_reference_frame(self):
         """
         Bound to the constant, not to a literal. If ECOLOGICAL_BASE_RATE moves,
-        this must move with it or say why.
+        this must move with it or say why. Pinned at the pre-Phase-4f policy
+        because the frame question and the partition question are separate.
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
         from hours_eoh.data import ECOLOGICAL_BASE_RATE
 
-        assert ecological_eoh(0.82) == pytest.approx(
+        assert ecological_eoh(0.82, standing_response="domain") == pytest.approx(
             ECOLOGICAL_BASE_RATE / 0.82, rel=1e-9
         )
 
@@ -561,8 +562,13 @@ class TestEcologicalIsNowExtensiveInArea:
         from hours_eoh.core.eoh_generation import ecological_eoh
         from hours_eoh.data import ECOLOGICAL_BASE_RATE
 
-        assert ecological_eoh(1.0) == pytest.approx(ECOLOGICAL_BASE_RATE, rel=1e-12)
-        assert ecological_eoh(0.82) == pytest.approx(
+        # `standing_response="domain"` is the pre-Phase-4f policy this test was
+        # written against; 4f moved the default on 2026-08-28 and is a partition
+        # decision, not an area one. Pinning it keeps this test about the FORM.
+        assert ecological_eoh(1.0, standing_response="domain") == pytest.approx(
+            ECOLOGICAL_BASE_RATE, rel=1e-12
+        )
+        assert ecological_eoh(0.82, standing_response="domain") == pytest.approx(
             ECOLOGICAL_BASE_RATE / 0.82, rel=1e-12
         )
 
@@ -599,7 +605,11 @@ class TestEcologicalIsNowExtensiveInArea:
     def test_legacy_base_rate_callers_are_unaffected(self):
         from hours_eoh.core.eoh_generation import ecological_eoh
 
-        assert ecological_eoh(1.0, base_rate=123_456.0) == pytest.approx(123_456.0)
+        assert ecological_eoh(1.0, base_rate=123_456.0,
+                              standing_response="domain") == pytest.approx(123_456.0)
+        # under the adopted 4f default a supplied base still scales the domain,
+        # but pristine land owes it nothing — the standing term is GUF's.
+        assert ecological_eoh(1.0, base_rate=123_456.0) == 0.0
 
     def test_the_scale_path_is_reported(self):
         from hours_eoh.core.eoh_generation import ecological_eoh_breakdown

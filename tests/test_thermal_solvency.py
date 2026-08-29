@@ -57,11 +57,14 @@ def test_flow_more_than_triples_the_ecological_domain():
     its own population, so the baseline was the WHOLE contiguous US against a
     one-million-person fisc.
 
-    Framed consistently the ratio is ~1,626x. The thermal obligation is three
-    orders of magnitude larger than the standing ecological obligation, which
-    sharpens rather than contradicts the repo's existing note that the "38x
-    margin" verdict passes because the obligation is negligible — the
-    obligation being compared against was itself the negligible one.
+    Framed consistently the ratio was ~1,626x, and PHASE 4f (adopted
+    2026-08-28) raises it to ~3,875x — the standing ecological obligation
+    relocated to GUF, so the denominator shrank again. The thermal obligation is
+    now nearly four orders of magnitude larger than what the domain carries,
+    which sharpens rather than contradicts the repo's existing note that the
+    "38x margin" verdict passes because the obligation is negligible: the
+    obligation being compared against was itself the negligible one, and the
+    partition has made it smaller still.
 
     Found by the scale-resolution gate on its first run (2026-08-17), the fifth
     instance of the defect and the one four manual passes missed. Asserted as an
@@ -70,7 +73,7 @@ def test_flow_more_than_triples_the_ecological_domain():
     flow = thermal_flow_eoh(2.0)
     assert flow == pytest.approx(1_789_175, rel=0.01)
     r = solvency_at_epsilon(0.40)
-    assert 1_000.0 < r["load_ratio"] < 3_000.0
+    assert 2_000.0 < r["load_ratio"] < 8_000.0
 
 
 def test_horizon_default_is_a_single_lifetime():

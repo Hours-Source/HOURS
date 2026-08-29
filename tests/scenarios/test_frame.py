@@ -163,9 +163,9 @@ class TestFrameChangesNothing:
         # a regression — what this class guards is that nothing moves WITHOUT a
         # recorded mechanism.
         expected = {
-            0.0:  1390564529.0250847,
-            0.40: 1593258132.7079391,
-            0.99: 2883949145.115244,
+            0.0:  1390563516.8958747,
+            0.40: 1593257791.3184154,
+            0.99: 2883954452.3405046,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -213,7 +213,12 @@ class TestFrameChangesNothing:
         # sending both into total_eoh, which refuses the combination.
         r = at_frame("us_mainland", 0.40, ecological_base=1_000_000.0)
         assert math.isfinite(r["ecological_eoh"])
-        assert r["ecological_eoh"] == pytest.approx(1_000_000.0 / 0.70, rel=1e-9)
+        # PHASE 4f (adopted 2026-08-28): the supplied base still SCALES the
+        # domain, but what it scales is the degradation response — the standing
+        # term is GUF's. What this test guards is the guard, not the level.
+        assert r["ecological_eoh"] == pytest.approx(
+            1_000_000.0 * (1.0 - 0.70) / 0.70, rel=1e-9
+        )
 
 
 class TestArcCoherence:

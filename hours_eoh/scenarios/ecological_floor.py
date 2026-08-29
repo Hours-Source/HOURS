@@ -29,11 +29,21 @@ and `scenarios/food_conservation.uncounted_headroom` (price the missing sectors
 and see what closing the gap would demand).
 
 THE READING AT DEFAULTS. The anchor implies a stewardship intensity of roughly
-**0.3 h/ha·yr** — about eighteen minutes per hectare per year, all biomes, all
-condition classes, including cropland. Reaching even a 5% share of total EOH
-requires roughly **two orders of magnitude** more. So the "low by 2–3 orders"
-hypothesis in `data.py` is not merely plausible; it is what the arithmetic
-requires, and the shortfall is now quantified rather than asserted.
+**8.0e-4 h/ha·yr** — about three seconds per hectare per year, all biomes, all
+condition classes, including cropland.
+
+TWO CORRECTIONS, BOTH RECORDED ELSEWHERE AND NEITHER APPLIED HERE UNTIL
+2026-08-28. This paragraph read "roughly 0.3 h/ha·yr", which was the
+PRE-Phase-4b implied intensity — the whole contiguous US obligation divided by a
+million-person population, stale by 464× since 2026-08-17. And it concluded that
+"the 'low by 2–3 orders' hypothesis in data.py is not merely plausible; it is
+what the arithmetic requires." PHASE 4f (adopted 2026-08-28) supersedes that
+conclusion outright: the anchor produces a RECURRING term, the adopted partition
+assigns everything recurring to GUF, and GUF's target already charges the
+measured stewardship census. The anchor was never too low — it was the wrong
+KIND of term, and its derived value is zero. The shortfall arithmetic below is
+retained because it is still correct arithmetic; it just answers a question the
+partition has closed.
 
 Reference: reconciliation §9 (domain balance); the infrastructure floor's
 determinacy result (doctrine spread 1.000, scenarios/infrastructure_floor.py).
@@ -214,9 +224,11 @@ def domain_balance_report(
         f"hours twice — and Phase 4c leaves no unheld land for the domain to "
         f"keep a residue on. THE DERIVED VALUE IS 0.0. That REVERSES the "
         f"'low by 2-3 orders' framing this table was built to quantify: the "
-        f"anchor was never too low, it was the wrong KIND of term. Relocate it "
-        f"with `ecological_standing_response='guf'`; adopting it moves total "
-        f"EOH by 0.0001%. Retained pending author sign-off.\n\n"
+        f"anchor was never too low, it was the wrong KIND of term. ADOPTED "
+        f"2026-08-28: `ecological_standing_response` defaults to 'guf', so the "
+        f"figures BELOW are computed with the standing term already relocated "
+        f"and the residual shown is the degradation response alone. The pre-4f "
+        f"behaviour stays reachable under 'domain'.\n\n"
 
         f"WHAT THE SHORTFALL DOES BOUND. The numerator is fixed by the other "
         f"three domains and the land area; only the denominator is in question. "

@@ -649,17 +649,19 @@ class TestPipelineScaleOverrides:
         The whole safety argument. Adding six parameters must move nothing for a
         caller who passes none of them — bit-identical, not approx.
         """
-        # Re-pinned by Phase 4b — see tests/scenarios/test_frame.py for the
-        # mechanism. The point of this test is unchanged: adding parameters must
-        # move nothing for a caller who passes none of them.
+        # Re-pinned by Phase 4b, and again by Phase 4f (adopted 2026-08-28),
+        # which relocated the standing ecological obligation to GUF. The point
+        # of this test is unchanged: adding parameters must move nothing for a
+        # caller who passes none of them. What moved here was a DEFAULT, which
+        # is the one thing that legitimately re-pins it.
         expected_total = {
-            0.0:  1390564529.0250847,
-            0.40: 1593258132.7079391,
-            0.99: 2883949145.115244,
+            0.0:  1390563516.8958747,
+            0.40: 1593257791.3184154,
+            0.99: 2883954452.3405046,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342339704.5863893
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342339069.5601347
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """

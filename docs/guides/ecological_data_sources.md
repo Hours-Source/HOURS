@@ -48,8 +48,12 @@ Signed off at a declared weight rather than either corner:
 `AMENITY_STEWARDSHIP_WEIGHT = 0.0468`, from the amenity class's own occupational
 composition — canopy in (37-3013 maintains structure delivering three of the
 seven GUF services), turf out (37-3011, 1.24M workers, delivers none). The
-anchor is crossed at w\* = 0.0288, below the adopted weight, so **the weight sets
-the magnitude and not the sign.** Both corners stay reachable via `--scope`.
+anchor is crossed at w\* = **−0.0229**, so **the weight sets the magnitude and
+not the sign** — and more strongly than this passage used to say. It read
+*w\* = 0.0288, below the adopted weight*, computed before the Phase-4b frame
+resolution; frame-consistently the crossing weight is NEGATIVE, meaning the
+census exceeds the anchor with the entire amenity class excluded. Both corners
+stay reachable via `--scope`.
 
 ## Instruments checked and rejected
 

@@ -170,10 +170,16 @@ def realized_vs_measured(epsilon: float = 0.40) -> dict:
         "epsilon": epsilon,
         "rows":    rows,
         "verdict": (
-            f"THE ×100 IS NOT UNIFORMLY WRONG. The rural archetype realises "
-            f"{by['rural']['realised_h_per_ha']:,.1f} h/ha·yr against a measured "
-            f"{by['rural']['measured_h_per_ha']:,.1f} — a factor of "
-            f"{by['rural']['ratio']:.2f}, essentially on the census. The urban "
+            f"THE ×100 IS NOT UNIFORMLY WRONG. "
+            f"THE RURAL COMPARISON IS WITHDRAWN (2026-08-18) and is no longer "
+            f"quoted as a finding: the rural archetype is 70% agricultural by "
+            f"parcel, and cropland and pasture sit in no serviced land class AND "
+            f"are unpriced by the stewardship census, so BOTH halves of its "
+            f"target are missing. Phase 2 compared it against an average taken "
+            f"over urban land and rural highway corridor — a different land "
+            f"class. It survives as `phase_2_comparison` in "
+            f"scenarios/guf_magnitude, flagged. The urban row is complete on "
+            f"both halves and carries the finding alone: the urban "
             f"archetype realises {by['urban']['realised_h_per_ha']:,.1f} against "
             f"{by['urban']['measured_h_per_ha']:,.1f} — a factor of "
             f"{by['urban']['ratio']:,.1f}×, and that comparison already errs "

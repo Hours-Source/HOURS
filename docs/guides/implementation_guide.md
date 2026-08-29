@@ -46,7 +46,7 @@ something the model determines.
 Every constant in `data.py` carries an inline provenance tag saying what kind of
 claim its value makes. That tag, not intuition, tells you what to do with it.
 Run `eoh provenance check` for the current counts, or read
-`hours_eoh/reference/data/constant_provenance.csv` for all 265 with their
+`hours_eoh/reference/data/constant_provenance.csv` for all 288 with their
 evidence. Both are generated from `data.py`, so neither can drift from it.
 
 | Tag | What it means | What you should do |
@@ -421,12 +421,16 @@ What the model **cannot** tell you:
   books at **0.56–0.69 h/person·yr — 0.0% of the total at every ε**. Since
   ε = machine EOH / total EOH, your ε is overwhelmingly a personal-domain number,
   and your ecological and thermal obligations will round to nothing in its
-  denominator. Run `eoh arc --domain-shares` to see it. The root cause is
-  declared but unresolved: `ECOLOGICAL_BASE_RATE` is documented as a *relative*
-  anchor and is summed with absolute counts, so replacing it with your own
-  measured stewardship cost will not by itself fix the imbalance. Either the
-  ecological and knowledge bases are low by 2–3 orders of magnitude, or
-  `CDR_LABOR_HOURS_PER_TONNE` is, or both. **Nothing in current data settles it.**
+  denominator. Run `eoh arc --domain-shares` to see it. **The ecological half of
+  this is now closed (Phase 4f, adopted 2026-08-28), and not by a measurement.**
+  `ECOLOGICAL_BASE_RATE` produces a *recurring* obligation, and the adopted
+  partition assigns everything recurring to the Ground Use Fee — where it scales
+  with land held rather than with the ledger. `ecological_standing_response`
+  defaults to `"guf"`, so the ecological domain now carries stocks only and is
+  exactly zero for land at reference condition. **Do not replace this anchor with
+  your own measured stewardship cost**: that cost is GUF's, and charging it here
+  as well would bill the same hours twice. What remains open is the KNOWLEDGE
+  base and `CDR_LABOR_HOURS_PER_TONNE`; nothing in current data settles those.
 
 - **Individual tenure-vesting**: the contestability model uses population-average
   portable endowment P. A late entrant to the collective has less vested capital
@@ -444,10 +448,10 @@ What the model **cannot** tell you:
   consumption choices above the sufficiency floor. The `basket_price()` function
   captures the floor basket; above-floor pricing is left to collective discovery.
 
-- **Calibration confidence — the honest headline**: of 265 constants, **72
-  (27.2%) are grounded**, 18 are bounded picks, **96 (36.2%) are placeholders
-  with no measurement behind them at all**, 62 are normative decisions, 12 are
-  yours to supply, and 5 are retired. Measurement debt is **43.0%**, and the
+- **Calibration confidence — the honest headline**: of 288 constants, **72
+  (25.0%) are grounded**, 18 are bounded picks, **114 (39.6%) are placeholders
+  with no measurement behind them at all**, 67 are normative decisions, 12 are
+  yours to supply, and 5 are retired. Measurement debt is **45.8%**, and the
   actionable part is the placeholders. The framework shows the direction and
   qualitative shape of the arc, not point forecasts — use it for structural
   analysis, not projection. Run `eoh provenance check` for the live figures;

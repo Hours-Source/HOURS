@@ -272,7 +272,7 @@ class TestBand:
         AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.386619143486023, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.38661819934844976, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -460,7 +460,7 @@ class TestKIVAdoption:
         # 4.9010742e8 was the K-IV value at the one-shot ε_ref = 0.40. Finding E
         # cut it to 0.779× that; the 2026-08-10 elderly revalue moved the fixed
         # point again and put it at 1.089×, back above the K-IV figure.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.2361210e8, rel=1e-6)
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(5.23614563e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """

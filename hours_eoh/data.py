@@ -1354,11 +1354,17 @@ INFRA_TREATMENT_HOURS_POOR: float = 48.0   # hours/unit/year, poor condition
 #   THE DERIVED VALUE IS THEREFORE 0.0, and the 500,000 here is a residue of the
 #   pre-partition model. This REVERSES the long-standing "low by 2-3 orders"
 #   framing: the anchor was never too low, it was the wrong kind of term.
-#   The value is RETAINED pending author sign-off, exactly as Phase 4e retained
-#   its own default. Relocate it with
-#   `ecological_standing_response="guf"`, reachable from `total_eoh` and
-#   `eoh_to_teh_pipeline`; the relocated amount is always reported. Adopting it
-#   moves total EOH by 0.0001%, because the domain was already essentially there.
+#   ADOPTED 2026-08-28 (author sign-off): `ecological_standing_response`
+#   defaults to "guf", so this constant no longer enters the ecological domain
+#   at all — it scales the DEGRADATION RESPONSE and nothing else, and at
+#   reference condition the domain is exactly zero. The pre-4f behaviour stays
+#   reachable under `standing_response="domain"` and is what every figure before
+#   this date was computed at. Adoption moved total EOH by −0.00007% and
+#   re-anchored KNOWLEDGE_EOH_BASE by +0.00047%; nothing else in the suite
+#   moved, which is itself the measure of how little the domain was carrying.
+#   The constant is RETAINED rather than set to zero because it still scales the
+#   degradation response, which `health_response` governs and which is a
+#   SEPARATE, unadopted decision (Phase 4e).
 # resolves_by: NOT a stewardship census — that instrument is spent, and the
 #   pointer this field used to carry (land_stewardship.census_report) was
 #   written 2026-08-16, the day BEFORE the partition that invalidated it. What
@@ -1777,6 +1783,15 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   so small a share of total_eoh that even a 464× error in it is nearly
 #   invisible to everything downstream. That is the domain-balance defect
 #   restated as a sensitivity, and it converged in ONE iteration.
+#   THE FIFTH IS THE SMALLEST OF ALL — +0.00047%, 2026-08-28, when Phase 4f
+#   relocated the whole STANDING ecological obligation to GUF. Removing an
+#   entire domain term moved this constant in its seventh significant figure,
+#   and it converged in one iteration again. Read the two together: the fourth
+#   re-anchor said a 464× error in the ecological domain was nearly invisible
+#   downstream; the fifth says deleting the domain's recurring term outright is
+#   nearly invisible too. Both are the same sensitivity finding, and after 4f
+#   it is no longer a defect — it is the partition, which puts that obligation
+#   in GUF where it scales with land held rather than with the ledger.
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
@@ -1789,7 +1804,7 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 523_612_102.71  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.386619 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 523614562.8761029  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.386619 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -4026,8 +4041,14 @@ CDR_UNATTRIBUTED_POLICY: str = "pro_rata"  # What happens to emissions belonging
 #   CDR_ENERGY_GJ_PER_TONNE this DERIVES ι_drawdown ≈ 6.7e9 J/EOH — ~4 orders
 #   above the infrastructure ι floor, as expected: drawdown is
 #   energy-intensive and labour-thin.
-# note: A CANDIDATE FOR THE DOMAIN-BALANCE DEFECT. Either ECOLOGICAL_BASE_RATE
-#   is low by 2–3 orders or this is, or both; nothing in current data settles it.
+# note: WAS A CANDIDATE FOR THE DOMAIN-BALANCE DEFECT, and that framing is
+#   SUPERSEDED (Phase 4f, 2026-08-28). This read "Either ECOLOGICAL_BASE_RATE is
+#   low by 2–3 orders or this is, or both; nothing in current data settles it."
+#   The partition settles the first disjunct: ECOLOGICAL_BASE_RATE produces a
+#   RECURRING term, everything recurring is GUF's, and its derived value in the
+#   domain is zero — it was never "low", it was the wrong kind of term. So if a
+#   discrepancy remains between the two layers it is THIS constant's to answer,
+#   and the ecological anchor can no longer absorb it.
 #   GUF_ECO_KAPPA_CARBON reached the SAME quantity from the land layer at 2.750, a
 #   4.58× disagreement inside one repo; it is now bound EQUAL to this constant
 #   (2026-08-09, author decision), so this figure carries both layers and a

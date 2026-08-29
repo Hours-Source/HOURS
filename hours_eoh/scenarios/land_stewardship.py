@@ -877,9 +877,11 @@ def scope_comparison() -> dict:
             f"{reports['with_amenity']['ratio_to_anchor']:.0f}× above it. The "
             f"measurement is not what is unresolved — the definition is. Do not "
             f"quote a single stewardship intensity for the US. "
-            f"AND UNDER PHASE 4f (2026-08-28) NEITHER FIGURE BELONGS IN THE "
-            f"ECOLOGICAL DOMAIN: these hours are GUF's recurring charge, so "
-            f"comparing them to ECOLOGICAL_BASE_RATE answers a question the "
-            f"adopted partition has already closed."
+            f"AND UNDER PHASE 4f (ADOPTED 2026-08-28) NEITHER FIGURE BELONGS "
+            f"IN THE ECOLOGICAL DOMAIN: these hours are GUF's recurring charge. "
+            f"The anchor comparison above is retained because it is what this "
+            f"census was built to make, but it now answers a question the "
+            f"partition has closed — read it as evidence about GUF's target, "
+            f"not about ECOLOGICAL_BASE_RATE."
         ),
     }

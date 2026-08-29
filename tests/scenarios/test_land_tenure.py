@@ -49,13 +49,29 @@ class TestTheDomainCarriesTwoStocks:
             assert loaded - base == pytest.approx(1000.0, rel=1e-12)
 
     def test_total_is_the_sum_of_its_named_parts(self):
+        """
+        PHASE 4f (adopted 2026-08-28): `standing` left the domain, so the sum is
+        stated over the parts that remain. Written as the partition — degradation
+        response, spike, visible deferred, and the two stocks — rather than as
+        `baseline` minus something, so the composition is readable.
+        """
         b = ecological_eoh_breakdown(
             0.70, 0.40, deferred=5000.0,
             thermal_obligation=250.0, restoration_obligation=1000.0,
         )
         assert b["total"] == pytest.approx(
-            b["baseline"] + b["spike"] + b["visible_deferred"]
+            b["degradation_response"] + b["spike"] + b["visible_deferred"]
             + b["thermal"] + b["restoration"], rel=1e-12
+        )
+        # and the pre-4f composition survives under the superseded policy
+        legacy = ecological_eoh_breakdown(
+            0.70, 0.40, deferred=5000.0,
+            thermal_obligation=250.0, restoration_obligation=1000.0,
+            standing_response="domain",
+        )
+        assert legacy["total"] == pytest.approx(
+            legacy["baseline"] + legacy["spike"] + legacy["visible_deferred"]
+            + legacy["thermal"] + legacy["restoration"], rel=1e-12
         )
 
     def test_the_two_stocks_are_independent(self):
@@ -225,9 +241,9 @@ class TestPartitionChangesNothing:
 
     def test_shipped_totals_are_untouched(self):
         expected = {
-            0.0:  1390564529.0250847,
-            0.40: 1593258132.7079391,
-            0.99: 2883949145.115244,
+            0.0:  1390563516.8958747,
+            0.40: 1593257791.3184154,
+            0.99: 2883954452.3405046,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -286,21 +302,45 @@ class TestDefaultReproducesPre4e:
         assert ecological_eoh_breakdown(0.70, 0.40)["health_response"] == "domain"
 
     def test_default_total_is_the_pre_4e_formula(self):
+        """
+        4e's own default, isolated. `standing_response` is pinned to "domain"
+        because Phase 4f moved that default on 2026-08-28 and this test is about
+        the HEALTH response — mixing the two partition decisions would stop it
+        testing either.
+        """
         for h in HEALTHS:
-            b = ecological_eoh_breakdown(h, 0.40)
+            b = ecological_eoh_breakdown(h, 0.40, standing_response="domain")
             assert b["total"] == pytest.approx(
                 b["baseline"] + b["spike"] + b["visible_deferred"]
                 + b["thermal"] + b["restoration"], rel=1e-12
             )
 
     def test_shipped_totals_untouched(self):
+        """
+        MOVED BY PHASE 4f (adopted 2026-08-28), by -0.000078% / -0.000068% /
+        -0.000037% across the arc. These are the only arc totals 4f touches, and
+        the size of the move IS the finding: relocating the whole standing
+        ecological obligation to GUF changes total EOH in the seventh
+        significant figure, because the domain was already essentially where the
+        partition says it belongs.
+        """
         expected = {
-            0.0:  1390564529.0250847,
-            0.40: 1593258132.7079391,
-            0.99: 2883949145.115244,
+            0.0:  1390563516.8958747,
+            0.40: 1593257791.3184154,
+            0.99: 2883954452.3405046,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
+        # the pre-4f arc is still reachable, and is what every earlier figure used
+        legacy = {
+            0.0:  1390564594.629514,
+            0.40: 1593258869.0520546,
+            0.99: 2883955530.0741434,
+        }
+        for eps, want in legacy.items():
+            got = total_eoh(epsilon=eps,
+                            ecological_standing_response="domain")["total"]
+            assert got == want
 
     def test_bad_mode_rejected(self):
         with pytest.raises(ValueError, match="health_response"):
@@ -351,7 +391,7 @@ class TestRelocationConservesAndIsHealthInvariant:
     def test_stocks_are_untouched_by_the_relocation(self):
         """thermal and restoration are stocks and must not move sides."""
         g = ecological_eoh_breakdown(
-            0.30, 0.40, health_response="guf",
+            0.30, 0.40, health_response="guf", standing_response="domain",
             thermal_obligation=100.0, restoration_obligation=200.0,
         )
         assert g["thermal"] == 100.0
@@ -359,14 +399,29 @@ class TestRelocationConservesAndIsHealthInvariant:
         assert g["total"] == pytest.approx(
             g["standing"] + g["visible_deferred"] + 100.0 + 200.0, rel=1e-12
         )
+        # and under the adopted 4f default the stocks are ALL that is left —
+        # the partition's endpoint, with both recurring terms relocated.
+        both = ecological_eoh_breakdown(
+            0.30, 0.40, health_response="guf",
+            thermal_obligation=100.0, restoration_obligation=200.0,
+        )
+        assert both["total"] == pytest.approx(300.0, rel=1e-12)
 
     def test_arc_coherence_in_both_modes(self):
         for mode in ("domain", "guf"):
             for eps in ARC:
                 for h in (0.99, 0.70, 0.20):
-                    v = ecological_eoh(0.70 if h is None else h, eps,
-                                       health_response=mode)
+                    v = ecological_eoh(h, eps, health_response=mode,
+                                       standing_response="domain")
                     assert math.isfinite(v) and v > 0.0
+        # Under the adopted 4f default the domain is finite and NON-NEGATIVE
+        # rather than strictly positive: at reference condition it is exactly
+        # zero, which is the partition working and not a degenerate result.
+        for eps in ARC:
+            for h in (0.99, 0.70, 0.20):
+                v = ecological_eoh(h, eps)
+                assert math.isfinite(v) and v >= 0.0
+            assert ecological_eoh(1.0, eps) == 0.0
 
 
 class TestOneLoaderOverOneCSV:
