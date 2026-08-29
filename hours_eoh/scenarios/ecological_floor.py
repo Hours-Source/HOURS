@@ -75,7 +75,16 @@ def _eoh_at(epsilon: float, population: float) -> dict:
     bug for the whole life of the `arc` command.
     """
     state = canonical_physical_state(epsilon)
+        # ANCHOR-CHARACTERISING REPORT: computed at the PRE-PARTITION policy.
+        # Phases 4e/4f (adopted 2026-08-28/29) relocated both recurring
+        # ecological terms to GUF, so under the shipped default this domain is
+        # zero and every ratio here would be 0/0. This module exists to say how
+        # far ECOLOGICAL_BASE_RATE sits from any assumed share, which is a
+        # question about the ANCHOR — so it is evaluated where the anchor is
+        # live, and the verdict says the partition has closed the question.
     return total_eoh(
+        ecological_standing_response="domain",
+        ecological_health_response="domain",
         capital_stock=state["capital_stock_teh"],
         capital_age_ratio=state["capital_age_ratio"],
         ecosystem_health=state["ecosystem_health"],

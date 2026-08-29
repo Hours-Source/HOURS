@@ -174,6 +174,12 @@ def at_frame(name: str, epsilon: float, **overrides: float) -> dict:
     if "ecological_base" in overrides:
         kw.pop("ecological_area_hectares", None)
 
+    # As in scenarios/ecological_floor: this module reports what an UNDECLARED
+    # frame costs the ecological SHARE, which is only a live quantity under the
+    # pre-partition policy. Phases 4e/4f empty the domain by default, and a
+    # share of zero is frame-invariant for the wrong reason.
+    kw.setdefault("ecological_standing_response", "domain")
+    kw.setdefault("ecological_health_response", "domain")
     d = total_eoh(**kw)
     pop = float(kw["population"])
     return {
@@ -213,7 +219,12 @@ def frame_report(epsilon: float = 0.40) -> dict:
         })
 
     # The shipped pairing, which is not a declared frame.
-    shipped = total_eoh(epsilon=epsilon, population=1_000_000.0)
+    # Same policy as `at_frame` above, for the same reason: the undeclared row
+    # exists to be COMPARED with the declared ones, so both sides must be
+    # evaluated where the ecological share is a live quantity.
+    shipped = total_eoh(epsilon=epsilon, population=1_000_000.0,
+                        ecological_standing_response="domain",
+                        ecological_health_response="domain")
     rows.append({
         "frame":                "SHIPPED DEFAULT (undeclared)",
         "population":           1_000_000.0,

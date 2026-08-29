@@ -893,6 +893,15 @@ class TestMinLevyForSolvency:
 # Ecological Allocation (C2)
 # ===========================================================================
 
+#: Phases 4e/4f (adopted 2026-08-28/29) relocated BOTH recurring ecological
+#: terms to GUF, so `ecological_allocation` funds nothing by default — the
+#: recurring cost of holding land is the Ground Use Fee's. Tests whose subject
+#: is the ALLOCATION MECHANISM run at the pre-partition policy, where there is
+#: an obligation to allocate against; the adopted default is asserted by
+#: `TestTheAllocationIsEmptyUnderThePartition` below.
+PRE_PARTITION = {"health_response": "domain", "standing_response": "domain"}
+
+
 class TestEcologicalAllocation:
     """ecological_allocation() must mirror stewardship_allocation() semantics
     but for ecological EOH."""
@@ -909,7 +918,7 @@ class TestEcologicalAllocation:
 
     def test_teh_allocated_capped_at_available(self):
         available = 1_000.0
-        result = ecological_allocation(0.70, 0.40, available_teh=available)
+        result = ecological_allocation(0.70, 0.40, available_teh=available, **PRE_PARTITION)
         assert result["teh_allocated"] <= available + 1e-9
 
     def test_fully_funded_when_trust_large(self):
@@ -923,19 +932,20 @@ class TestEcologicalAllocation:
     def test_funding_gap_when_trust_zero(self):
         result = ecological_allocation(
             ecosystem_health=0.70, epsilon=0.40, available_teh=0.0,
+            **PRE_PARTITION,
         )
         assert result["teh_allocated"] == pytest.approx(0.0)
         assert result["funding_gap"] > 0.0
         assert result["fully_funded"] is False
 
     def test_higher_epsilon_lower_human_ecological_eoh(self):
-        low  = ecological_allocation(0.70, 0.20, available_teh=1e12)
-        high = ecological_allocation(0.70, 0.80, available_teh=1e12)
+        low  = ecological_allocation(0.70, 0.20, available_teh=1e12, **PRE_PARTITION)
+        high = ecological_allocation(0.70, 0.80, available_teh=1e12, **PRE_PARTITION)
         assert high["human_ecological_eoh"] < low["human_ecological_eoh"]
 
     def test_degraded_ecosystem_requires_more_teh(self):
-        healthy  = ecological_allocation(0.90, 0.40, available_teh=1e12)
-        degraded = ecological_allocation(0.30, 0.40, available_teh=1e12)
+        healthy  = ecological_allocation(0.90, 0.40, available_teh=1e12, **PRE_PARTITION)
+        degraded = ecological_allocation(0.30, 0.40, available_teh=1e12, **PRE_PARTITION)
         assert degraded["teh_required"] > healthy["teh_required"]
 
     def test_eco_eoh_override_respected(self):
@@ -946,7 +956,7 @@ class TestEcologicalAllocation:
         assert result["ecological_eoh_total"] == pytest.approx(999_999.0)
 
     def test_funding_coverage_one_when_fully_funded(self):
-        result = ecological_allocation(0.70, 0.40, available_teh=1e12)
+        result = ecological_allocation(0.70, 0.40, available_teh=1e12, **PRE_PARTITION)
         assert result["funding_coverage"] == pytest.approx(1.0)
 
     def test_funding_coverage_proportional_when_underfunded(self):
@@ -990,10 +1000,33 @@ class TestFiscalSnapshotEcological:
         assert trust_exp == pytest.approx(stew_alloc + eco_alloc + guarantee, rel=1e-6)
 
     def test_degraded_ecosystem_reduces_solvency(self):
-        healthy  = self._snap(ecosystem_health=0.95)
-        degraded = self._snap(ecosystem_health=0.25)
+        """
+        PHASES 4e/4f: `ecosystem_health` no longer reaches the fisc through the
+        ecological domain — condition changes what the HOLDER owes via GUF, not
+        what the Trust allocates. Asserted by supplying the obligation the
+        pre-partition policy would have produced, which is what
+        `relocated_to_guf` now reports on every snapshot.
+        """
+        from hours_eoh.core.eoh_generation import ecological_eoh
+        def snap_at(h):
+            return self._snap(
+                ecosystem_health=h,
+                eco_eoh_override=ecological_eoh(
+                    h, 0.40, health_response="domain",
+                    standing_response="domain"),
+            )
+        healthy, degraded = snap_at(0.95), snap_at(0.25)
         assert (degraded["trust"]["surplus_deficit"]
                 < healthy["trust"]["surplus_deficit"])
+
+    def test_health_no_longer_moves_the_fisc_by_default(self):
+        """The consequence, pinned: the relocation is reported, not silent."""
+        healthy, degraded = self._snap(ecosystem_health=0.95), self._snap(ecosystem_health=0.25)
+        assert (degraded["trust"]["surplus_deficit"]
+                == healthy["trust"]["surplus_deficit"])
+        assert degraded["ecological"]["teh_required"] == 0.0
+        assert degraded["ecological"]["relocated_to_guf"] > \
+            healthy["ecological"]["relocated_to_guf"]
 
     def test_eco_eoh_override_passthrough(self):
         result = self._snap(eco_eoh_override=0.0)

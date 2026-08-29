@@ -72,6 +72,13 @@ from hours_eoh.scenarios.land_stewardship import (
 
 ARC = (0.0, 0.40, 0.99)
 
+#: This file's subject is the ANCHOR and the census measured against it, which
+#: are questions about the ecological GENERATION FORM. Phases 4e/4f (adopted
+#: 2026-08-28/29) relocated both recurring terms to GUF, so under the shipped
+#: default the domain is zero and every anchor comparison would be 0/0. These
+#: tests therefore run where the anchor is live, and say so.
+PRE_PARTITION = {"standing_response": "domain", "health_response": "domain"}
+
 
 def load_load_use_classes():
     """MLU class names as the census sees them, before the parks split."""
@@ -465,7 +472,7 @@ class TestTheAnchorIsKeyedToNothing:
     read:
 
         # No area or population parameter exists to pass.
-        assert ecological_eoh(0.82) == ecological_eoh(0.82)
+        assert ecological_eoh(0.82, **PRE_PARTITION) == ecological_eoh(0.82, **PRE_PARTITION)
 
     Three separate faults in four lines. The comment was FALSE — the parameter
     exists, and another test in this same file passes it. The assertion was a
@@ -489,7 +496,7 @@ class TestTheAnchorIsKeyedToNothing:
         from hours_eoh.core.eoh_generation import ecological_eoh
         from hours_eoh.data import ECOLOGICAL_BASE_RATE
 
-        assert ecological_eoh(0.82, standing_response="domain") == pytest.approx(
+        assert ecological_eoh(0.82, **PRE_PARTITION) == pytest.approx(
             ECOLOGICAL_BASE_RATE / 0.82, rel=1e-9
         )
 
@@ -500,8 +507,8 @@ class TestTheAnchorIsKeyedToNothing:
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
 
-        one = ecological_eoh(0.82, area_hectares=1.0e6)
-        two = ecological_eoh(0.82, area_hectares=2.0e6)
+        one = ecological_eoh(0.82, area_hectares=1.0e6, **PRE_PARTITION)
+        two = ecological_eoh(0.82, area_hectares=2.0e6, **PRE_PARTITION)
         assert two == pytest.approx(2.0 * one, rel=1e-9)
         assert one > 0.0
 
@@ -565,10 +572,10 @@ class TestEcologicalIsNowExtensiveInArea:
         # `standing_response="domain"` is the pre-Phase-4f policy this test was
         # written against; 4f moved the default on 2026-08-28 and is a partition
         # decision, not an area one. Pinning it keeps this test about the FORM.
-        assert ecological_eoh(1.0, standing_response="domain") == pytest.approx(
+        assert ecological_eoh(1.0, **PRE_PARTITION) == pytest.approx(
             ECOLOGICAL_BASE_RATE, rel=1e-12
         )
-        assert ecological_eoh(0.82, standing_response="domain") == pytest.approx(
+        assert ecological_eoh(0.82, **PRE_PARTITION) == pytest.approx(
             ECOLOGICAL_BASE_RATE / 0.82, rel=1e-12
         )
 
@@ -587,10 +594,10 @@ class TestEcologicalIsNowExtensiveInArea:
         """THE defect closed: it used to be identical for any area."""
         from hours_eoh.core.eoh_generation import ecological_eoh
 
-        one = ecological_eoh(1.0, area_hectares=1.0e6)
-        two = ecological_eoh(1.0, area_hectares=2.0e6)
+        one = ecological_eoh(1.0, area_hectares=1.0e6, **PRE_PARTITION)
+        two = ecological_eoh(1.0, area_hectares=2.0e6, **PRE_PARTITION)
         assert two == pytest.approx(2.0 * one, rel=1e-12)
-        assert ecological_eoh(1.0, area_hectares=0.0) == pytest.approx(0.0)
+        assert ecological_eoh(1.0, area_hectares=0.0, **PRE_PARTITION) == pytest.approx(0.0)
 
     def test_the_spike_scales_with_area_too(self):
         """The threshold spike is a multiple of the same scale; leaving it
@@ -606,10 +613,13 @@ class TestEcologicalIsNowExtensiveInArea:
         from hours_eoh.core.eoh_generation import ecological_eoh
 
         assert ecological_eoh(1.0, base_rate=123_456.0,
-                              standing_response="domain") == pytest.approx(123_456.0)
-        # under the adopted 4f default a supplied base still scales the domain,
-        # but pristine land owes it nothing — the standing term is GUF's.
+                              **PRE_PARTITION) == pytest.approx(123_456.0)
+        # Under the ADOPTED partition (4e + 4f) a supplied base scales nothing
+        # the domain keeps: both recurring terms are GUF's, so the domain is
+        # zero at every health unless a STOCK is supplied.
         assert ecological_eoh(1.0, base_rate=123_456.0) == 0.0
+        assert ecological_eoh(1.0, base_rate=123_456.0,
+                              thermal_obligation=7.0) == 7.0
 
     def test_the_scale_path_is_reported(self):
         from hours_eoh.core.eoh_generation import ecological_eoh_breakdown
@@ -626,13 +636,13 @@ class TestEcologicalIsNowExtensiveInArea:
         from hours_eoh.core.eoh_generation import ecological_eoh
 
         with pytest.raises(ValueError, match="area_hectares must be"):
-            ecological_eoh(1.0, area_hectares=-1.0)
+            ecological_eoh(1.0, area_hectares=-1.0, **PRE_PARTITION)
 
     @pytest.mark.parametrize("eps", ARC)
     def test_arc_coherence_at_every_epsilon(self, eps):
         from hours_eoh.core.eoh_generation import ecological_eoh
 
-        v = ecological_eoh(0.82, epsilon=eps, area_hectares=1.0e8)
+        v = ecological_eoh(0.82, epsilon=eps, area_hectares=1.0e8, **PRE_PARTITION)
         assert v > 0.0
         assert v == v  # not NaN
 

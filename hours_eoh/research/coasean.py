@@ -235,6 +235,7 @@ def make_federation(
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     ecosystem_health_schedule: list[float] | None = None,
+    capital_schedule: list[float] | None = None,
 ) -> list[Collective]:
     """
     Create a federation of N Coasean collectives at automation level ε.
@@ -277,6 +278,10 @@ def make_federation(
         raise ValueError(
             f"ecosystem_health_schedule length {len(ecosystem_health_schedule)} != n={n}"
         )
+    if capital_schedule is not None and len(capital_schedule) != n:
+        raise ValueError(
+            f"capital_schedule length {len(capital_schedule)} != n={n}"
+        )
 
     pop_per     = population / n
     trust_per   = trust_balance / n
@@ -289,11 +294,24 @@ def make_federation(
         else:
             eco = ecosystem_health
 
+        # CAPITAL IS THE HETEROGENEITY LEVER THAT WORKS (added 2026-08-29).
+        # `ecosystem_health_schedule` was the only one this factory had, and
+        # after Phases 4e/4f it differentiates NOTHING: both recurring ecological
+        # terms are GUF's, so the domain is health-invariant and two collectives
+        # differing only in health are identical in the ledger. That was already
+        # nearly true before — the domain was ~0.0002% of total EOH, so health
+        # moved exchange rates by ~1e-5 — and the partition made it exact.
+        # `research/exchange.py` documents the same finding from the accounting
+        # side. Capital moves per-capita output directly, so a capital schedule
+        # produces real terms of trade; health is kept for callers who want the
+        # GUF-side effect and is no longer a way to make collectives differ.
+        cap = capital_per if capital_schedule is None else capital_schedule[i]
+
         pipeline, fiscal = run_collective_period(
             epsilon=epsilon,
             population=pop_per,
             trust_balance=trust_per,
-            capital_stock_teh=capital_per,
+            capital_stock_teh=cap,
             capital_age_ratio=capital_age_ratio,
             ecosystem_health=eco,
         )
@@ -303,7 +321,7 @@ def make_federation(
             epsilon=epsilon,
             population=pop_per,
             trust_balance=trust_per,
-            capital_stock=capital_per,
+            capital_stock=cap,
             ecosystem_health=eco,
             pipeline=pipeline,
             fiscal=fiscal,
@@ -1177,11 +1195,25 @@ def simulate_federation(
             trust_t -= escheat
             commons_t += escheat
 
-        # Per-collective ecosystem health: Normal(baseline, heterogeneity²), clipped
+        # HETEROGENEITY IS DRAWN ON CAPITAL, NOT HEALTH (2026-08-29).
+        # This drew per-collective ecosystem health from Normal(baseline,
+        # heterogeneity²). After Phases 4e/4f that produces NO variation at all:
+        # both recurring ecological terms are GUF's, so the domain is
+        # health-invariant and collectives differing only in health are
+        # identical in the ledger — inter-collective inflation came back
+        # identically zero at every heterogeneity and every seed.
+        #
+        # Capital per collective is drawn instead, as a multiplicative
+        # lognormal-ish perturbation clipped away from zero, because capital
+        # moves per-capita output directly and therefore moves the exchange
+        # rates this simulation exists to produce. Health is still passed at its
+        # baseline so the GUF-side effect is unchanged.
         eco_schedule: list[float] | None = None
+        cap_schedule: list[float] | None = None
         if heterogeneity > 0.0:
-            eco_schedule = [
-                max(0.01, min(0.99, baseline_ecosystem_health + rng.gauss(0.0, heterogeneity)))
+            per = capital_t / n
+            cap_schedule = [
+                max(per * 0.05, per * (1.0 + rng.gauss(0.0, heterogeneity)))
                 for _ in range(n)
             ]
 
@@ -1194,6 +1226,7 @@ def simulate_federation(
             capital_age_ratio=capital_age_ratio,
             ecosystem_health=baseline_ecosystem_health,
             ecosystem_health_schedule=eco_schedule,
+            capital_schedule=cap_schedule,
         )
 
         curr_rates = exchange_rates(collectives)

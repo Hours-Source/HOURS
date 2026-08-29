@@ -274,9 +274,24 @@ class TestCivilizationEpsilonPhysicalState:
         )
 
     def test_degraded_ecosystem_increases_eco_eoh(self):
+        """
+        PHASES 4e/4f: health no longer moves the ecological DOMAIN — it moves
+        what the holder owes through GUF. Asserted at the pre-partition policy,
+        where the domain still carries the health response.
+        """
+        from hours_eoh.core.eoh_generation import total_eoh
+        pre = {"ecological_standing_response": "domain",
+               "ecological_health_response": "domain"}
+        healthy = total_eoh(epsilon=0.40, ecosystem_health=0.90, **pre)["ecological"]
+        degraded = total_eoh(epsilon=0.40, ecosystem_health=0.30, **pre)["ecological"]
+        assert degraded > healthy
+
+        # And the adopted behaviour: the DOMAIN is health-invariant, which was
+        # Phase 4e's stated point. Condition changes what the holder owes.
         r_healthy  = civilization_epsilon({"ecosystem_health": 0.90, "capital": {}})
         r_degraded = civilization_epsilon({"ecosystem_health": 0.30, "capital": {}})
-        assert r_degraded["eoh_gross"]["ecological"] > r_healthy["eoh_gross"]["ecological"]
+        assert r_degraded["eoh_gross"]["ecological"] == \
+            r_healthy["eoh_gross"]["ecological"] == 0.0
 
     def test_degraded_capital_gives_lower_epsilon(self):
         r_good = civilization_epsilon({

@@ -179,7 +179,10 @@ class TestHumanEohPerDomain:
         assert result["personal"] == pytest.approx(eoh["personal"])
 
     def test_high_epsilon_reduces_all_domains(self):
-        eoh = total_eoh(0.90)
+        # Pre-partition policy: under the adopted one the ecological domain is
+        # zero, and 0 < 0 is false for the right reason rather than a defect.
+        eoh = total_eoh(0.90, ecological_standing_response="domain",
+                        ecological_health_response="domain")
         result = human_eoh_per_domain(eoh, epsilon=0.90)
         for domain in ("personal", "infrastructure", "ecological", "knowledge"):
             assert result[domain] < eoh[domain]
@@ -637,8 +640,12 @@ class TestPipelineScaleOverrides:
 
     def test_area_reaches_the_pipeline_and_scales_linearly(self):
         for eps in [0.0, 0.40, 0.99]:
-            one = eoh_to_teh_pipeline(epsilon=eps, ecological_area_hectares=1.0e8)
-            five = eoh_to_teh_pipeline(epsilon=eps, ecological_area_hectares=5.0e8)
+            pre = {"ecological_standing_response": "domain",
+                   "ecological_health_response": "domain"}
+            one = eoh_to_teh_pipeline(epsilon=eps,
+                                      ecological_area_hectares=1.0e8, **pre)
+            five = eoh_to_teh_pipeline(epsilon=eps,
+                                       ecological_area_hectares=5.0e8, **pre)
             e1 = one["eoh_by_domain"]["ecological"]
             e5 = five["eoh_by_domain"]["ecological"]
             assert e1 > 0.0
@@ -655,13 +662,13 @@ class TestPipelineScaleOverrides:
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
         expected_total = {
-            0.0:  1390563516.8958747,
-            0.40: 1593257791.3184154,
-            0.99: 2883954452.3405046,
+            0.0:  1390563055.0100293,
+            0.40: 1593257329.4325702,
+            0.99: 2883953990.454659,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342339069.5601347
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342338742.2385972
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """
@@ -673,10 +680,24 @@ class TestPipelineScaleOverrides:
             ("personal_base", 2000.0),
             ("knowledge_base", 1.0e9),
             ("infra_maint_rate", 0.05),
-            ("ecological_base", 5.0e8),
         ):
             got = eoh_to_teh_pipeline(epsilon=0.40, **{kw: val})["teh_created"]
             assert got != base, f"{kw} was accepted and ignored"
+
+        # `ecological_base` IS ACCEPTED AND NO LONGER MOVES teh_created, and
+        # that is the adopted partition rather than the defect this test guards.
+        # Phases 4e/4f send both recurring ecological terms to GUF, so the
+        # domain is zero whatever base is supplied — the base now scales what
+        # the HOLDER owes, not what the ledger mints. It still moves the ledger
+        # under the pre-partition policy, which is asserted so the parameter is
+        # demonstrably live rather than merely tolerated.
+        assert eoh_to_teh_pipeline(epsilon=0.40,
+                                   ecological_base=5.0e8)["teh_created"] == base
+        pre = {"ecological_standing_response": "domain",
+               "ecological_health_response": "domain"}
+        assert eoh_to_teh_pipeline(epsilon=0.40, ecological_base=5.0e8,
+                                   **pre)["teh_created"] != \
+            eoh_to_teh_pipeline(epsilon=0.40, **pre)["teh_created"]
 
     def test_base_and_area_together_refused_through_the_pipeline(self):
         with pytest.raises(ValueError, match="not both"):

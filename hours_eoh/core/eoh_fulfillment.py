@@ -473,7 +473,7 @@ def eoh_to_teh_pipeline(
     # standing obligation (default, pre-4e behaviour), "guf" relocates it to the
     # reset cost. Stranded at this wall until 2026-08-17 — a switch that cannot
     # be reached from the documented entry point is a switch nobody exercises.
-    ecological_health_response: str = "domain",
+    ecological_health_response: str = "guf",
     ecological_standing_response: str = "guf",
     knowledge_base: float = KNOWLEDGE_EOH_BASE,
 ) -> dict:

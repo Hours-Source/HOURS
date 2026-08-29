@@ -894,7 +894,7 @@ def ecological_eoh(
     area_hectares: float | None = None,
     intensity: float = ECOLOGICAL_INTENSITY_BASE,
     restoration_obligation: float = 0.0,
-    health_response: str = "domain",
+    health_response: str = "guf",
     standing_response: str = "guf",
 ) -> float:
     """
@@ -1409,7 +1409,7 @@ def ecological_eoh_breakdown(
     area_hectares: float | None = None,
     intensity: float = ECOLOGICAL_INTENSITY_BASE,
     restoration_obligation: float = 0.0,
-    health_response: str = "domain",
+    health_response: str = "guf",
     standing_response: str = "guf",
 ) -> dict:
     """
@@ -1536,19 +1536,28 @@ def ecological_eoh_breakdown(
     # content is the two STOCK terms — thermal and restoration — which are
     # already separate parameters with their own measured basis.
     #
-    # Opt-in and default-off, exactly as `health_response` and
-    # `thermal_obligation` were at their own sign-offs: "domain" reproduces
-    # every pre-4f number, and the relocated amount is always reported so it is
-    # never merely missing. THEORY-FLAGGED — see the docstring.
+    # THE PARTITION, STATED ONCE. Both switches ADOPTED and defaulting to "guf"
+    # (4e and 4f, author sign-off 2026-08-28/29), so the shipped domain is the
+    # three STOCK terms and nothing else.
+    #
+    # Written as "what the domain KEEPS" rather than as a baseline with
+    # subtractions. The earlier form computed `baseline − (standing −
+    # standing_kept)` inside one branch of a two-branch `if`, which was correct
+    # and unreadable: `baseline` silently contains `standing`, so the reader had
+    # to hold that identity in mind to see what the expression meant. Four
+    # policy combinations over two independent switches do not need four
+    # branches — each switch decides whether its own term is kept.
+    #
+    #   standing            recurring, land at reference condition   → 4f
+    #   degradation + spike recurring, the response to DISTURBANCE   → 4e
+    #   visible_deferred    a STOCK: the accumulated backlog         → stays
+    #   thermal             a STOCK: non-restorable                  → stays
+    #   restoration         a STOCK: the pristine gap                → stays
     relocatable = degradation_response + spike
-    standing_kept = 0.0 if standing_response == "guf" else standing
-    if health_response == "guf":
-        total = (standing_kept + visible_deferred
-                 + thermal_obligation + restoration_obligation)
-    else:
-        # `baseline` already contains `standing`; remove it when relocated.
-        total = (baseline - (standing - standing_kept) + spike + visible_deferred
-                 + thermal_obligation + restoration_obligation)
+    kept_standing = 0.0 if standing_response == "guf" else standing
+    kept_disturbance = 0.0 if health_response == "guf" else relocatable
+    total = (kept_standing + kept_disturbance + visible_deferred
+             + thermal_obligation + restoration_obligation)
 
     return {
         "baseline":          baseline,
@@ -1558,7 +1567,7 @@ def ecological_eoh_breakdown(
         "health_response":   health_response,
         "relocatable_to_guf": relocatable,
         "standing_response": standing_response,
-        "standing_relocated": standing - standing_kept,
+        "standing_relocated": standing - kept_standing,
         "visible_deferred":  visible_deferred,
         "thermal":           thermal_obligation,
         "restoration":       restoration_obligation,
@@ -1594,7 +1603,7 @@ def total_eoh(
     ecological_area_hectares: float | None = None,
     ecological_intensity: float = ECOLOGICAL_INTENSITY_BASE,
     ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
-    ecological_health_response: str = "domain",
+    ecological_health_response: str = "guf",
     ecological_standing_response: str = "guf",
     knowledge_base: float = KNOWLEDGE_EOH_BASE,
     knowledge_exponent: float = KNOWLEDGE_EPS_EXPONENT,

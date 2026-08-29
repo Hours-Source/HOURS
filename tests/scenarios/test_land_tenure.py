@@ -59,15 +59,16 @@ class TestTheDomainCarriesTwoStocks:
             0.70, 0.40, deferred=5000.0,
             thermal_obligation=250.0, restoration_obligation=1000.0,
         )
+        # BOTH recurring terms adopted into GUF, so the domain is the stocks
+        # alone: the visible backlog plus thermal plus restoration.
         assert b["total"] == pytest.approx(
-            b["degradation_response"] + b["spike"] + b["visible_deferred"]
-            + b["thermal"] + b["restoration"], rel=1e-12
+            b["visible_deferred"] + b["thermal"] + b["restoration"], rel=1e-12
         )
         # and the pre-4f composition survives under the superseded policy
         legacy = ecological_eoh_breakdown(
             0.70, 0.40, deferred=5000.0,
             thermal_obligation=250.0, restoration_obligation=1000.0,
-            standing_response="domain",
+            standing_response="domain", health_response="domain",
         )
         assert legacy["total"] == pytest.approx(
             legacy["baseline"] + legacy["spike"] + legacy["visible_deferred"]
@@ -241,9 +242,9 @@ class TestPartitionChangesNothing:
 
     def test_shipped_totals_are_untouched(self):
         expected = {
-            0.0:  1390563516.8958747,
-            0.40: 1593257791.3184154,
-            0.99: 2883954452.3405046,
+            0.0:  1390563055.0100293,
+            0.40: 1593257329.4325702,
+            0.99: 2883953990.454659,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -295,11 +296,23 @@ class TestTheDecompositionIsExact:
         assert b["relocatable_to_guf"] == 0.0
 
 
-class TestDefaultReproducesPre4e:
-    """Opt-in, the same treatment thermal_obligation received at its sign-off."""
+class TestPre4eIsReachableAndTheDefaultIsGuf:
+    """
+    ADOPTED 2026-08-29 (author sign-off): `health_response` defaults to "guf",
+    so the disturbance response is the holder's through GUF and the domain is
+    HEALTH-INVARIANT — 4e's stated point, now the shipped behaviour.
 
-    def test_default_mode_is_domain(self):
-        assert ecological_eoh_breakdown(0.70, 0.40)["health_response"] == "domain"
+    The class was `TestDefaultReproducesPre4e` and asserted the opposite. Its
+    tests are retargeted rather than deleted: the superseded policy is still
+    reachable and is what every pre-4e figure was computed at.
+    """
+
+    def test_default_mode_is_guf(self):
+        assert ecological_eoh_breakdown(0.70, 0.40)["health_response"] == "guf"
+
+    def test_the_pre_4e_policy_is_still_reachable(self):
+        assert ecological_eoh_breakdown(
+            0.70, 0.40, health_response="domain")["health_response"] == "domain"
 
     def test_default_total_is_the_pre_4e_formula(self):
         """
@@ -309,7 +322,8 @@ class TestDefaultReproducesPre4e:
         testing either.
         """
         for h in HEALTHS:
-            b = ecological_eoh_breakdown(h, 0.40, standing_response="domain")
+            b = ecological_eoh_breakdown(h, 0.40, standing_response="domain",
+                                         health_response="domain")
             assert b["total"] == pytest.approx(
                 b["baseline"] + b["spike"] + b["visible_deferred"]
                 + b["thermal"] + b["restoration"], rel=1e-12
@@ -325,9 +339,9 @@ class TestDefaultReproducesPre4e:
         partition says it belongs.
         """
         expected = {
-            0.0:  1390563516.8958747,
-            0.40: 1593257791.3184154,
-            0.99: 2883954452.3405046,
+            0.0:  1390563055.0100293,
+            0.40: 1593257329.4325702,
+            0.99: 2883953990.454659,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -339,7 +353,8 @@ class TestDefaultReproducesPre4e:
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,
-                            ecological_standing_response="domain")["total"]
+                            ecological_standing_response="domain",
+                            ecological_health_response="domain")["total"]
             assert got == want
 
     def test_bad_mode_rejected(self):
@@ -383,7 +398,8 @@ class TestRelocationConservesAndIsHealthInvariant:
         assert shares[-1] > 0.7            # badly degraded
 
     def test_guf_mode_reaches_total_eoh(self):
-        base = total_eoh(epsilon=0.40, ecosystem_health=0.70)["ecological"]
+        base = total_eoh(epsilon=0.40, ecosystem_health=0.70,
+                         ecological_health_response="domain")["ecological"]
         moved = total_eoh(epsilon=0.40, ecosystem_health=0.70,
                           ecological_health_response="guf")["ecological"]
         assert moved < base

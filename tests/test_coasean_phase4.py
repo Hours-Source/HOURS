@@ -116,8 +116,13 @@ class TestPhase4RegressionAnchors:
 
 class TestMergeCollectives:
 
-    def _fed(self, epsilon=0.40, n=3, eco=None):
-        return make_federation(epsilon, n=n, ecosystem_health_schedule=eco)
+    def _fed(self, epsilon=0.40, n=3, eco=None, caps=None):
+        # `caps` supersedes `eco` as the heterogeneity lever: after Phases 4e/4f
+        # the ecological domain is health-invariant, so an ecosystem_health
+        # schedule makes collectives that are identical in the ledger and every
+        # exchange rate comes back exactly 1.0.
+        return make_federation(epsilon, n=n, ecosystem_health_schedule=eco,
+                               capital_schedule=caps)
 
     def test_conserves_teh_rate_one(self):
         fed = self._fed()
@@ -130,7 +135,7 @@ class TestMergeCollectives:
 
     def test_conserves_teh_rate_not_one(self):
         """Heterogeneous federation: conservation holds in absorber units."""
-        fed = self._fed(eco=[0.5, 0.7, 0.9])
+        fed = self._fed(caps=[1.0e9, 2.0e9, 4.0e9])
         rates = exchange_rates(fed)
         rate = rates[(1, 0)]  # r(absorbed=1 → absorber=0)
         assert rate != 1.0

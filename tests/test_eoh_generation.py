@@ -37,6 +37,20 @@ from hours_eoh.data import (
     US_MAINLAND_HECTARES,
 )
 
+#: The pre-partition ecological policy, named once so its use is a visible
+#: choice rather than a scattered kwarg. Phases 4e and 4f (adopted 2026-08-28/29)
+#: relocated BOTH recurring ecological terms to GUF, so the shipped domain is
+#: stocks-only and is exactly zero unless one is supplied. Tests whose subject is
+#: the GENERATION FORM — area linearity, the spike shape, deferred visibility —
+#: run at this policy, because the form is what they are for and it is unchanged.
+#: Tests whose subject IS the partition assert the adopted default instead; see
+#: TestPhase4fTheStandingTermIsGufs.
+PRE_PARTITION = {"standing_response": "domain", "health_response": "domain"}
+#: The same policy spelled for `total_eoh` / `eoh_to_teh_pipeline`, which prefix
+#: the two switches.
+PRE_PARTITION_TOTAL = {"ecological_standing_response": "domain",
+                       "ecological_health_response": "domain"}
+
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 POP = 1_000_000
 CAPITAL = 2_000_000_000.0
@@ -108,16 +122,23 @@ class TestEcologicalEoh:
 
     def test_positive_at_all_key_epsilons(self):
         for eps in KEY_EPSILONS:
-            result = ecological_eoh(0.70, epsilon=eps)
+            result = ecological_eoh(0.70, epsilon=eps, **PRE_PARTITION)
             assert result > 0
             assert math.isfinite(result)
+
+    def test_the_adopted_default_is_stocks_only(self):
+        """The shipped domain: zero without a stock, the stock when supplied."""
+        for eps in KEY_EPSILONS:
+            assert ecological_eoh(0.70, epsilon=eps) == 0.0
+            assert ecological_eoh(0.70, epsilon=eps,
+                                  thermal_obligation=500.0) == 500.0
 
     def test_nonlinear_spike_below_threshold(self):
         """EOH compounding is nonlinear, not exponential."""
         # At health=0.70 (above threshold=0.40): no spike
-        eoh_above = ecological_eoh(0.70, threshold=0.40)
+        eoh_above = ecological_eoh(0.70, threshold=0.40, **PRE_PARTITION)
         # At health=0.20 (below threshold): spike should be significant
-        eoh_below = ecological_eoh(0.20, threshold=0.40)
+        eoh_below = ecological_eoh(0.20, threshold=0.40, **PRE_PARTITION)
         # Below-threshold EOH should be disproportionately higher
         assert eoh_below > eoh_above * 3.0, (
             "Ecological EOH should spike nonlinearly below threshold"
@@ -561,12 +582,9 @@ def test_thermal_obligation_defaults_to_zero_everywhere():
     from hours_eoh.core.eoh_generation import ecological_eoh_breakdown, ecological_eoh, total_eoh
     b = ecological_eoh_breakdown(0.70, 0.40)
     assert b["thermal"] == 0.0
-    # PHASE 4f (adopted 2026-08-28): `standing` is GUF's, so the domain total is
-    # the baseline MINUS it. Stated as the partition rather than as a subtraction:
-    # degradation response + spike + visible deferred.
-    assert b["total"] == pytest.approx(
-        b["degradation_response"] + b["spike"] + b["visible_deferred"]
-    )
+    # PHASES 4e AND 4f (both adopted): BOTH recurring terms are GUF's, so the
+    # domain total is the stocks alone — here just the visible deferred backlog.
+    assert b["total"] == pytest.approx(b["visible_deferred"])
     assert b["standing_relocated"] == pytest.approx(b["standing"])
     assert ecological_eoh(0.70, 0.40) == pytest.approx(b["total"])
     # PHASE 4b: total_eoh resolves the ecological area FROM ITS POPULATION while
@@ -574,9 +592,15 @@ def test_thermal_obligation_defaults_to_zero_everywhere():
     # frame. The two therefore differ by design on their DEFAULTS, and agree
     # exactly once the same area is supplied — which is what is asserted here,
     # rather than letting two paths disagree silently.
-    assert total_eoh(0.40, ecological_area_hectares=US_MAINLAND_HECTARES)["ecological"] \
-        == pytest.approx(b["total"])
-    assert total_eoh(0.40)["ecological"] < b["total"] / 100.0
+    # Asserted at the PRE-PARTITION policy: under the adopted one both sides are
+    # zero and the frame comparison would say nothing. `b` above is the adopted
+    # default, so a fresh breakdown is taken at the old policy for this leg.
+    legacy = ecological_eoh_breakdown(0.70, 0.40, **PRE_PARTITION)
+    assert total_eoh(0.40, ecological_area_hectares=US_MAINLAND_HECTARES,
+                     **PRE_PARTITION_TOTAL)["ecological"] \
+        == pytest.approx(legacy["total"])
+    assert total_eoh(0.40, **PRE_PARTITION_TOTAL)["ecological"] \
+        < legacy["total"] / 100.0
 
 
 def test_thermal_obligation_adds_to_the_ecological_domain():
@@ -963,8 +987,10 @@ class TestEcologicalAreaReachesTotalEoh:
     def test_area_scales_the_ecological_domain_linearly(self):
         # Area is the extensive quantity: doubling it doubles the obligation.
         for eps in KEY_EPSILONS:
-            one = total_eoh(epsilon=eps, ecological_area_hectares=1.0e8)["ecological"]
-            five = total_eoh(epsilon=eps, ecological_area_hectares=5.0e8)["ecological"]
+            one = total_eoh(epsilon=eps, ecological_area_hectares=1.0e8,
+                            **PRE_PARTITION_TOTAL)["ecological"]
+            five = total_eoh(epsilon=eps, ecological_area_hectares=5.0e8,
+                             **PRE_PARTITION_TOTAL)["ecological"]
             assert one > 0.0
             assert five == pytest.approx(5.0 * one, rel=1e-12)
 
@@ -988,9 +1014,10 @@ class TestEcologicalAreaReachesTotalEoh:
         for eps in KEY_EPSILONS:
             for pop in (1e6, 335e6):
                 got = total_eoh(epsilon=eps, population=pop,
-                                ecosystem_health=0.70)["ecological"]
+                                ecosystem_health=0.70,
+                                **PRE_PARTITION_TOTAL)["ecological"]
                 rate = pop * LAND_HECTARES_PER_CAPITA * ECOLOGICAL_INTENSITY_BASE
-                expected = rate * (1.0 - 0.70) / 0.70
+                expected = rate / 0.70
                 assert got == pytest.approx(expected, rel=1e-12)
 
     def test_the_anchor_identity_is_UNTOUCHED(self):
@@ -1008,16 +1035,14 @@ class TestEcologicalAreaReachesTotalEoh:
         """The constant is still reachable — it is now supplied, not assumed."""
         for eps in KEY_EPSILONS:
             got = total_eoh(epsilon=eps, ecosystem_health=0.70,
-                            ecological_area_hectares=US_MAINLAND_HECTARES)["ecological"]
-            # PHASE 4f: the degradation response over the US anchor, the standing
-            # term having moved to GUF. The anchor is still what scales it.
-            expected = ECOLOGICAL_BASE_RATE * (1.0 - 0.70) / 0.70
-            assert got == pytest.approx(expected, rel=1e-9)
-            # and the pre-4f figure is still reachable
-            legacy = total_eoh(epsilon=eps, ecosystem_health=0.70,
-                               ecological_area_hectares=US_MAINLAND_HECTARES,
-                               ecological_standing_response="domain")["ecological"]
-            assert legacy == pytest.approx(ECOLOGICAL_BASE_RATE / 0.70, rel=1e-9)
+                            ecological_area_hectares=US_MAINLAND_HECTARES,
+                            **PRE_PARTITION_TOTAL)["ecological"]
+            assert got == pytest.approx(ECOLOGICAL_BASE_RATE / 0.70, rel=1e-9)
+            # and under the ADOPTED partition the same call owes the domain
+            # nothing: both recurring terms are GUF's.
+            assert total_eoh(epsilon=eps, ecosystem_health=0.70,
+                             ecological_area_hectares=US_MAINLAND_HECTARES
+                             )["ecological"] == 0.0
 
     def test_the_us_frame_now_DIFFERS_from_the_default(self):
         """
@@ -1026,8 +1051,10 @@ class TestEcologicalAreaReachesTotalEoh:
         1M people's share of it and the US frame is 335x larger.
         """
         for eps in KEY_EPSILONS:
-            framed = total_eoh(epsilon=eps, ecological_area_hectares=US_MAINLAND_HECTARES)
-            default = total_eoh(epsilon=eps)
+            framed = total_eoh(epsilon=eps,
+                               ecological_area_hectares=US_MAINLAND_HECTARES,
+                               **PRE_PARTITION_TOTAL)
+            default = total_eoh(epsilon=eps, **PRE_PARTITION_TOTAL)
             assert framed["ecological"] > 100.0 * default["ecological"]
 
     def test_base_and_area_together_is_REFUSED(self):
@@ -1048,14 +1075,13 @@ class TestEcologicalAreaReachesTotalEoh:
         # The pre-2026-08-16 absolute path still SCALES the domain — but under
         # Phase 4f what it scales is the degradation response, the standing term
         # having moved to GUF. The legacy figure remains reachable.
-        got = total_eoh(epsilon=0.40, ecological_base=1_000_000.0, ecosystem_health=0.70)
-        assert got["ecological"] == pytest.approx(
-            1_000_000.0 * (1.0 - 0.70) / 0.70, rel=1e-12
-        )
-        legacy = total_eoh(epsilon=0.40, ecological_base=1_000_000.0,
-                           ecosystem_health=0.70,
-                           ecological_standing_response="domain")
-        assert legacy["ecological"] == pytest.approx(1_000_000.0 / 0.70, rel=1e-12)
+        got = total_eoh(epsilon=0.40, ecological_base=1_000_000.0,
+                        ecosystem_health=0.70, **PRE_PARTITION_TOTAL)
+        assert got["ecological"] == pytest.approx(1_000_000.0 / 0.70, rel=1e-12)
+        # Under the adopted partition a supplied base scales nothing the domain
+        # keeps — it is the GUF charge that moves with it.
+        assert total_eoh(epsilon=0.40, ecological_base=1_000_000.0,
+                         ecosystem_health=0.70)["ecological"] == 0.0
 
     def test_zero_area_is_zero_obligation_not_a_crash(self):
         # eps-coherence: a collective stewarding no land owes no ecological EOH,
@@ -1253,7 +1279,8 @@ class TestPhase4fTheStandingTermIsGufs:
         """
         for health in (0.3, 0.7, 1.0):
             kept = ecological_eoh_breakdown(health, area_hectares=1.65e6,
-                                            standing_response="domain")
+                                            standing_response="domain",
+                                            health_response="domain")
             assert kept["standing_relocated"] == 0.0
             assert kept["total"] == pytest.approx(
                 kept["baseline"] + kept["spike"], rel=1e-12
@@ -1288,7 +1315,12 @@ class TestPhase4fTheStandingTermIsGufs:
         is a separate, unadopted decision).
         """
         assert ecological_eoh_breakdown(1.0, area_hectares=1.65e6)["total"] == 0.0
-        assert ecological_eoh_breakdown(0.70, area_hectares=1.65e6)["total"] > 0.0
+        # 4e ADOPTED TOO (2026-08-29): the disturbance response is GUF's as well,
+        # so the domain is now zero at EVERY health, not only at reference
+        # condition — health-invariant, which was 4e's stated point.
+        assert ecological_eoh_breakdown(0.70, area_hectares=1.65e6)["total"] == 0.0
+        assert ecological_eoh_breakdown(0.70, area_hectares=1.65e6,
+                                        health_response="domain")["total"] > 0.0
 
     def test_the_full_partition_leaves_only_stocks(self):
         """
@@ -1349,4 +1381,10 @@ class TestPhase4fTheStandingTermIsGufs:
                                     ecological_standing_response="guf",
                                     ecological_health_response="guf")
         assert moved["eoh_by_domain"]["ecological"] == 0.0
-        assert kept["eoh_by_domain"]["ecological"] > 0.0
+        assert kept["eoh_by_domain"]["ecological"] == 0.0, (
+            "both switches now default to guf, so the plain default is zero too"
+        )
+        legacy = eoh_to_teh_pipeline(epsilon=0.40, population=1e6,
+                                     ecological_standing_response="domain",
+                                     ecological_health_response="domain")
+        assert legacy["eoh_by_domain"]["ecological"] > 0.0

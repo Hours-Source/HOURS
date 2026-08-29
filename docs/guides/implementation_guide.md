@@ -19,11 +19,32 @@ represents and where to find it in real-world data:
 | `population` | float | persons | Census — total resident population |
 | `capital_stock_teh` | float | TEH (≈ labor-hours of value) | National accounts: gross fixed capital stock, converted at your TEH/dollar exchange rate |
 | `capital_age_ratio` | float | [0, 1] | National accounts: average age of fixed assets / average design life (or use 0.5 as default if unavailable) |
-| `ecosystem_health` | float | [0, 1] | Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine |
+| `ecosystem_health` | float | [0, 1] | Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine. **Since Phases 4e/4f this no longer moves the ecological DOMAIN** — see the note below. It still drives the Ground Use Fee, which is where the recurring cost now sits. |
 | `monitoring_capability` | float | [0, 1] | Fraction of deferred ecological EOH your monitoring systems can detect; proxy with your ecological data coverage fraction |
 | `age_distribution` | dict | fractions summing to 1.0 | Census age pyramid, grouped into the buckets in `AGE_GROUP_RANGES`; see `AGE_GROUP_FRACTIONS` |
 | `knowledge_base_size` | float | relative (1.0 = ε=0 reference) | Harder to measure; use national R&D stock relative to a subsistence baseline, or leave at canonical default |
 | `ecological_area_hectares` | float | hectares | **The land your collective is responsible for stewarding.** Your own cadastre, or the GUF parcel inventory (`land/collective.py`) if you have run a GUF assessment — it already carries area per parcel. Omit it and the model derives the area from your population at `LAND_HECTARES_PER_CAPITA` (a planetary average, and the wrong number for any actual collective). Pass `ecological_hectares_per_capita=` instead if you know your ratio but not your absolute area. |
+
+> **The ecological domain is stocks-only, and is zero unless you supply one.**
+> Phases 4e and 4f (adopted 2026-08-28/29) moved BOTH recurring ecological terms
+> — the standing obligation of land at reference condition, and the response to
+> its being degraded — to the Ground Use Fee, where they scale with land held
+> rather than with the ledger. What remains in the domain is three STOCKS:
+> `deferred_ecological`, `thermal_obligation` and `restoration_obligation`. None
+> ships with a default, so **`eoh_to_teh_pipeline()` reports `ecological = 0.0`
+> until you supply one**, and `fiscal_snapshot()` allocates nothing to it.
+>
+> **This does not mean the obligation is absent, and it must not be read that
+> way.** `fiscal_snapshot()["ecological"]["relocated_to_guf"]` reports what the
+> pre-partition policy would have charged, so you can see the size of what
+> moved. To recover the pre-partition behaviour — which is what every figure
+> published before 2026-08-28 was computed at — pass
+> `ecological_standing_response="domain"` and `ecological_health_response="domain"`.
+>
+> **Open work you should know about**: `fiscal_snapshot()` has no GUF revenue
+> line, so the obligation leaves the Trust's ecological allocation and is not
+> picked up elsewhere in the fiscal snapshot. Run the GUF layer
+> (`land/collective.py`) alongside it until the two are connected.
 
 **State your frame.** Population, land area and capital stock are one frame and
 must travel together: they are all extensive, so pairing one jurisdiction's

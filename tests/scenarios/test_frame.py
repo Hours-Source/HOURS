@@ -129,6 +129,8 @@ class TestDeclaringTheFrameMakesTheShareInVARIANT:
         undeclared = [x for x in r["rows"] if not x["declared"]]
         assert len(undeclared) == 1
         glob = next(x for x in r["rows"] if x["frame"] == "global")
+        # at_frame pins the pre-partition policy (see scenarios/frame.py), so the
+        # comparison must too, or it compares a live share against a zero one.
         assert undeclared[0]["ecological_share"] == pytest.approx(
             glob["ecological_share"], rel=1e-12
         )
@@ -163,9 +165,9 @@ class TestFrameChangesNothing:
         # a regression — what this class guards is that nothing moves WITHOUT a
         # recorded mechanism.
         expected = {
-            0.0:  1390563516.8958747,
-            0.40: 1593257791.3184154,
-            0.99: 2883954452.3405046,
+            0.0:  1390563055.0100293,
+            0.40: 1593257329.4325702,
+            0.99: 2883953990.454659,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -181,6 +183,10 @@ class TestFrameChangesNothing:
         for eps in KEY_EPSILONS:
             f = frame_for("us_mainland")
             direct = total_eoh(
+                # at_frame pins the pre-partition policy; match it or the two
+                # sides differ by the whole relocated obligation.
+                ecological_standing_response="domain",
+                ecological_health_response="domain",
                 epsilon=eps,
                 population=f["population"],
                 ecological_area_hectares=f["land_hectares"],
@@ -213,12 +219,10 @@ class TestFrameChangesNothing:
         # sending both into total_eoh, which refuses the combination.
         r = at_frame("us_mainland", 0.40, ecological_base=1_000_000.0)
         assert math.isfinite(r["ecological_eoh"])
-        # PHASE 4f (adopted 2026-08-28): the supplied base still SCALES the
-        # domain, but what it scales is the degradation response — the standing
-        # term is GUF's. What this test guards is the guard, not the level.
-        assert r["ecological_eoh"] == pytest.approx(
-            1_000_000.0 * (1.0 - 0.70) / 0.70, rel=1e-9
-        )
+        # `at_frame` evaluates at the pre-partition policy (see frame.py), so
+        # the supplied base scales the full baseline. What this test guards is
+        # the base/area GUARD, not the level.
+        assert r["ecological_eoh"] == pytest.approx(1_000_000.0 / 0.70, rel=1e-9)
 
 
 class TestArcCoherence:

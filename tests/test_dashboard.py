@@ -307,8 +307,21 @@ class TestFiscalHealthCheckNewParams:
         assert "ecological_status" in result
 
     def test_ecological_cost_positive(self):
-        result = self._base_call(ecosystem_health=0.70)
+        """
+        PHASES 4e/4f: the Trust's ecological allocation is zero by default —
+        the recurring cost is GUF's. The cost is exercised by supplying the
+        obligation, which is what `relocated_to_guf` reports on every snapshot.
+        """
+        from hours_eoh.core.eoh_generation import ecological_eoh
+        obligation = ecological_eoh(0.70, 0.40, health_response="domain",
+                                    standing_response="domain")
+        result = self._base_call(ecosystem_health=0.70,
+                                 eco_eoh_override=obligation)
         assert result["ecological_cost"] > 0.0
+
+    def test_ecological_cost_is_zero_by_default_under_the_partition(self):
+        """The adopted behaviour, pinned so the zero is deliberate not silent."""
+        assert self._base_call(ecosystem_health=0.70)["ecological_cost"] == 0.0
 
     def test_degraded_ecosystem_higher_ecological_cost(self):
         result_healthy = self._base_call(ecosystem_health=0.95)

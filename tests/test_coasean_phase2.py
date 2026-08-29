@@ -30,14 +30,26 @@ KEY_EPSILONS = [0.0, 0.40, 0.99]
 _ECO_A = 0.80
 _ECO_B = 0.60
 
+# HETEROGENEITY NOW COMES FROM CAPITAL, NOT HEALTH (2026-08-29).
+# `ecosystem_health_schedule` was this file's only lever and after Phases 4e/4f
+# it differentiates NOTHING: both recurring ecological terms are GUF's, so the
+# domain is health-invariant and two collectives differing only in health are
+# identical in the ledger. It was nearly true before — the domain was ~0.0002%
+# of total EOH, so health moved exchange rates by ~1e-5 — and the partition made
+# it exact. `research/exchange.py` reached the same conclusion from the
+# accounting side. Capital moves per-capita output directly, so these give real
+# terms of trade.
+_CAP_A = 1.0e9
+_CAP_B = 4.0e9
+
 
 def _two_collective_fed(epsilon: float = 0.40) -> list[Collective]:
-    """Federation of exactly 2 collectives with different ecosystem health."""
+    """Federation of exactly 2 collectives that genuinely differ."""
     return make_federation(
         epsilon=epsilon,
         n=2,
         population=1_000_000.0,
-        ecosystem_health_schedule=[_ECO_A, _ECO_B],
+        capital_schedule=[_CAP_A, _CAP_B],
     )
 
 
@@ -191,9 +203,9 @@ class TestThreeRegimeInflation:
     def test_heterogeneous_federation_nonzero_inter_inflation(self):
         # Different eco schedules across periods → exchange rates drift
         fed_a = make_federation(0.40, n=2, population=1_000_000.0,
-                                ecosystem_health_schedule=[_ECO_A, _ECO_B])
+                                capital_schedule=[_CAP_A, _CAP_B])
         fed_b = make_federation(0.50, n=2, population=1_000_000.0,
-                                ecosystem_health_schedule=[0.75, 0.65])
+                                capital_schedule=[2.0e9, 3.0e9])
         r0 = exchange_rates(fed_a)
         r1 = exchange_rates(fed_b)
         result = three_regime_inflation(r0, r1, 0.50)
@@ -202,7 +214,7 @@ class TestThreeRegimeInflation:
     def test_system_inflation_less_than_inter(self):
         fed_a = _two_collective_fed(0.40)
         fed_b = make_federation(0.50, n=2, population=1_000_000.0,
-                                ecosystem_health_schedule=[0.75, 0.65])
+                                capital_schedule=[2.0e9, 3.0e9])
         r0 = exchange_rates(fed_a)
         r1 = exchange_rates(fed_b)
         result = three_regime_inflation(r0, r1, 0.50)
@@ -210,20 +222,21 @@ class TestThreeRegimeInflation:
 
     def test_system_inflation_shrinks_toward_high_epsilon(self):
         # Same rate drift at low vs high ε → system_inflation is smaller at high ε
-        eco_a = [_ECO_A, _ECO_B]
-        eco_b = [0.75, 0.65]
+        # Capital, not health — see the note at _CAP_A/_CAP_B.
+        cap_a = [_CAP_A, _CAP_B]
+        cap_b = [2.0e9, 3.0e9]
         rates_before_low = exchange_rates(
             make_federation(0.20, n=2, population=1_000_000.0,
-                            ecosystem_health_schedule=eco_a))
+                            capital_schedule=cap_a))
         rates_after_low  = exchange_rates(
             make_federation(0.30, n=2, population=1_000_000.0,
-                            ecosystem_health_schedule=eco_b))
+                            capital_schedule=cap_b))
         rates_before_high = exchange_rates(
             make_federation(0.80, n=2, population=1_000_000.0,
-                            ecosystem_health_schedule=eco_a))
+                            capital_schedule=cap_a))
         rates_after_high  = exchange_rates(
             make_federation(0.85, n=2, population=1_000_000.0,
-                            ecosystem_health_schedule=eco_b))
+                            capital_schedule=cap_b))
 
         low  = three_regime_inflation(rates_before_low,  rates_after_low,  0.30)
         high = three_regime_inflation(rates_before_high, rates_after_high, 0.85)
@@ -233,7 +246,7 @@ class TestThreeRegimeInflation:
     def test_max_rate_pair_identified(self):
         fed_a = _two_collective_fed(0.40)
         fed_b = make_federation(0.50, n=2, population=1_000_000.0,
-                                ecosystem_health_schedule=[0.75, 0.65])
+                                capital_schedule=[2.0e9, 3.0e9])
         r0 = exchange_rates(fed_a)
         r1 = exchange_rates(fed_b)
         result = three_regime_inflation(r0, r1, 0.50)

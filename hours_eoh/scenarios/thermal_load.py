@@ -61,7 +61,9 @@ class ThermalLoadRow(TypedDict):
     thermal_eoh: float               # the obligation carried (h/yr)
     ecological_baseline_eoh: float   # ecological EOH without it
     ecological_loaded_eoh: float     # ecological EOH with it
-    load_ratio: float                # loaded / baseline — how much it moves the DOMAIN
+    # None once the partition empties the baseline — see the note at the
+    # computation. A ratio with no denominator is not infinite, it is undefined.
+    load_ratio: float | None         # loaded / baseline — how much it moves the DOMAIN
     total_eoh: float
     thermal_share_of_total: float    # how much it moves the LEDGER
     personal_share_of_total: float
@@ -70,7 +72,7 @@ class ThermalLoadRow(TypedDict):
     personal_per_capita: float
     teh_created: float
     solvent: bool
-    coverage_margin: float           # levy capacity ÷ obligation cost
+    coverage_margin: float | None    # levy capacity ÷ obligation cost
 
 
 def thermal_load_arc(
@@ -135,17 +137,31 @@ def thermal_load_arc(
 
     rows: list[ThermalLoadRow] = []
     for eps in arc:
+        # COMPUTED AT THE PRE-PARTITION POLICY, and the reason is the module's
+        # question. `load_ratio` asks how much the thermal obligation moves the
+        # ECOLOGICAL DOMAIN — which presupposes a domain to move. Phases 4e/4f
+        # (adopted 2026-08-28/29) send both recurring ecological terms to GUF,
+        # so under the shipped default the baseline is 0.0 and the comparison
+        # is 0/0. Evaluating here where the baseline is live keeps the question
+        # answerable; `thermal_share_of_total`, which measures the effect on the
+        # LEDGER rather than on the domain, is unaffected either way.
         base = total_eoh(epsilon=eps, population=population,
                          capital_stock=capital_stock,
-                         ecosystem_health=ecosystem_health)
+                         ecosystem_health=ecosystem_health,
+                           ecological_standing_response="domain",
+                           ecological_health_response="domain")
         loaded = total_eoh(epsilon=eps, population=population,
                            capital_stock=capital_stock,
                            ecosystem_health=ecosystem_health,
-                           thermal_obligation=thermal_obligation)
+                           thermal_obligation=thermal_obligation,
+                           ecological_standing_response="domain",
+                           ecological_health_response="domain")
         pipeline = eoh_to_teh_pipeline(eps, population=population,
                                        capital_stock=capital_stock,
                                        ecosystem_health=ecosystem_health,
-                                       thermal_obligation=thermal_obligation)
+                                       thermal_obligation=thermal_obligation,
+                                       ecological_standing_response="domain",
+                         ecological_health_response="domain")
         teh_created = float(pipeline.get("teh_created", 0.0))
         snap = fiscal_snapshot(
             epsilon=eps,
@@ -156,6 +172,7 @@ def thermal_load_arc(
             capital_age_ratio=0.5,
             ecosystem_health=ecosystem_health,
             thermal_obligation=thermal_obligation,
+            eco_eoh_override=loaded["ecological"],
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]
@@ -168,7 +185,22 @@ def thermal_load_arc(
             thermal_eoh=thermal_obligation,
             ecological_baseline_eoh=eco_base,
             ecological_loaded_eoh=eco_loaded,
-            load_ratio=eco_loaded / eco_base if eco_base > 0 else float("inf"),
+            # THE DENOMINATOR IS GONE, AND None IS THE HONEST ANSWER.
+            # This read `float("inf")` when the baseline was zero, which was a
+            # correct guard while a zero baseline was an edge case. After Phase
+            # 4e/4f (adopted 2026-08-28/29) it is the SHIPPED DEFAULT: the
+            # ecological domain carries stocks only, none of which is supplied
+            # by default, so `eco_base` is 0.0 on every ordinary run and `inf`
+            # would be this module's headline figure.
+            #
+            # It is also the wrong QUESTION now. `load_ratio` asked "how much
+            # does the thermal obligation move the ecological domain?" — but
+            # under the partition the thermal obligation IS one of that domain's
+            # stocks. It is not moving a baseline; it is the content. So the
+            # ratio is undefined rather than enormous, and `None` says that
+            # where `inf` implied a magnitude. `thermal_share_of_total` is
+            # unaffected and carries the effect on the ledger.
+            load_ratio=(eco_loaded / eco_base) if eco_base > 0 else None,
             total_eoh=loaded["total"],
             thermal_share_of_total=(thermal_obligation / loaded["total"]
                                     if loaded["total"] > 0 else 0.0),
@@ -179,17 +211,22 @@ def thermal_load_arc(
             personal_per_capita=loaded["personal"] / population,
             teh_created=teh_created,
             solvent=bool(snap.get("solvent", False)),
-            coverage_margin=levy / eco_required if eco_required > 0 else float("inf"),
+            # As for `load_ratio`: undefined, not infinite. Under the adopted
+            # partition the Trust's ecological requirement is 0.0 by default —
+            # the recurring obligation is GUF's — so there is nothing for the
+            # levy to cover and the margin has no denominator.
+            coverage_margin=(levy / eco_required) if eco_required > 0 else None,
         ))
     return rows
 
 
 class ThermalLoadVerdict(TypedDict):
     thermal_obligation: float
-    max_load_ratio: float            # largest effect on the ecological DOMAIN
+    # None when no row had a non-zero baseline — the partition's default state.
+    max_load_ratio: float | None     # largest effect on the ecological DOMAIN
     max_share_of_total: float        # largest effect on the LEDGER
     solvent_throughout: bool
-    min_coverage_margin: float
+    min_coverage_margin: float | None
     coverage_below_one_at: list[float]  # ε values where the levy cannot fund it
     negligible_in_ledger: bool       # share < 0.1% everywhere on the arc
     verdict: str
@@ -232,12 +269,25 @@ def thermal_load_verdict(
         ThermalLoadVerdict.
     """
     rows = thermal_load_arc(thermal_obligation, population, **kwargs)  # type: ignore[arg-type]
-    max_load = max(r["load_ratio"] for r in rows)
+    _ratios = [r["load_ratio"] for r in rows if r["load_ratio"] is not None]
+    max_load = max(_ratios) if _ratios else None
     max_share = max(r["thermal_share_of_total"] for r in rows)
     solvent = all(r["solvent"] for r in rows)
-    min_cov = min(r["coverage_margin"] for r in rows)
-    under = [r["epsilon"] for r in rows if r["coverage_margin"] < 1.0]
+    _covs = [r["coverage_margin"] for r in rows if r["coverage_margin"] is not None]
+    min_cov = min(_covs) if _covs else None
+    under = [r["epsilon"] for r in rows
+             if r["coverage_margin"] is not None and r["coverage_margin"] < 1.0]
     negligible = max_share < negligible_threshold
+
+    # THE LOAD RATIO MAY HAVE NO DENOMINATOR. After Phases 4e/4f the ecological
+    # domain carries stocks only and none ships by default, so `max_load` is
+    # None on every ordinary run. Rendered as a phrase rather than a number so
+    # the verdict stays readable and never claims a magnitude it does not have.
+    _load = (f"multiplies the ecological domain by {max_load:.2f}×"
+             if max_load is not None else
+             "lands in an ecological domain that is EMPTY by default — the "
+             "recurring obligation is GUF's under the adopted partition, so "
+             "there is no baseline to multiply")
 
     if not negligible and max_share < material_threshold:
         # MARGINAL: above the negligible line but nowhere near material. Added
@@ -246,16 +296,16 @@ def thermal_load_verdict(
         # and calling that "material" would overstate it as badly as calling it
         # negligible would understate it.
         verdict = (
-            f"MARGINAL: the obligation multiplies the ecological domain by "
-            f"{max_load:.2f}× and reaches {max_share:.3%} of total EOH — above "
+            f"MARGINAL: the obligation {_load}; it reaches "
+            f"{max_share:.3%} of total EOH — above "
             f"the {negligible_threshold:.1%} negligible line but far below "
             f"materiality. Note it crossed that line because the personal "
             f"domain was repriced, not because the obligation grew."
         )
     elif negligible:
         verdict = (
-            f"CARRIED BUT NEGLIGIBLE IN THE LEDGER: the obligation multiplies the "
-            f"ecological domain by {max_load:.2f}× while never exceeding "
+            f"CARRIED BUT NEGLIGIBLE IN THE LEDGER: the obligation {_load}; "
+            f"it never exceeds "
             f"{max_share:.4%} of total EOH. The domain it lands in is a rounding "
             f"error, so a passing solvency verdict here is evidence that the "
             f"obligation is small, not that the fisc is strong. See "
@@ -264,7 +314,7 @@ def thermal_load_verdict(
     else:
         verdict = (
             f"MATERIAL: the obligation reaches {max_share:.2%} of total EOH "
-            f"(load ratio {max_load:.2f}×)."
+            f"({_load})."
         )
 
     if under:

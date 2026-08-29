@@ -215,15 +215,24 @@ def solvency_at_epsilon(
         delta_t_max, population, world_population, programme_years, labor_hours_per_tonne
     )
 
+    # ONE POLICY FOR THE WHOLE VERDICT. This function compares a LOADED
+    # ecological requirement against a baseline and checks co-equality of
+    # funding — all of which presuppose the ecological obligation sits in the
+    # domain. Phases 4e/4f (adopted 2026-08-28/29) move both recurring terms to
+    # GUF, so the pipeline, the snapshot and the baseline must be evaluated at
+    # the same pre-partition policy or the co-equality check compares a live
+    # stewardship coverage against an emptied ecological one.
     base_pipe = eoh_to_teh_pipeline(
         epsilon, population=population, capital_stock=capital_stock,
         capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
-    )
+                           ecological_standing_response="domain",
+                           ecological_health_response="domain")
     loaded_pipe = eoh_to_teh_pipeline(
         epsilon, population=population, capital_stock=capital_stock,
         capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
         thermal_obligation=flow,
-    )
+                           ecological_standing_response="domain",
+                           ecological_health_response="domain")
 
     snap = fiscal_snapshot(
         trust_balance=trust_balance,
@@ -234,7 +243,7 @@ def solvency_at_epsilon(
         epsilon=epsilon,
         ecosystem_health=ecosystem_health,
         thermal_obligation=flow,
-    )
+        health_response="domain", standing_response="domain")
     levy = min_levy_for_solvency(
         trust_balance=trust_balance, epsilon=epsilon,
         capital_stock_teh=capital_stock, capital_age_ratio=capital_age_ratio,
@@ -248,9 +257,15 @@ def solvency_at_epsilon(
     # It matters here specifically: the thermal-solvency verdict compares the
     # loaded ecological requirement against this baseline, and an unframed
     # baseline made the comparison depend on a frame nobody declared.
+    # AND AT THE PRE-PARTITION POLICY, for the same reason thermal_load uses it:
+    # this verdict compares the LOADED ecological requirement against a
+    # baseline, and Phases 4e/4f (adopted 2026-08-28/29) send both recurring
+    # ecological terms to GUF — so under the shipped default the baseline is 0.0
+    # and `load_ratio` is a division by zero rather than a large number.
     eco_base = ecological_eoh_breakdown(
         ecosystem_health, epsilon,
         area_hectares=population * LAND_HECTARES_PER_CAPITA,
+        health_response="domain", standing_response="domain",
     )["total"]
     human_eco = eco["human_ecological_eoh"]
     labor_fraction = human_eco / available_labor if available_labor > 0.0 else float("inf")
