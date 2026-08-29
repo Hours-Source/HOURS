@@ -140,16 +140,32 @@ def guf_fiscal_integration(
         dep_rate, div_rate, epsilon,
     )
 
-    # With GUF: levy + net_inflow
+    # With GUF: a SEPARATE revenue line, not added into the levy (2026-08-29).
+    #
+    # This used to pass `levies["total_levied"] + inflow["net_inflow"]` as the
+    # levy argument, which produced the right Trust balance and the wrong
+    # report: `trust_guf["levy_inflow"]` came back as levy PLUS fee, so the fee
+    # was invisible in the very block that exists to show it, and the
+    # substitution this scenario measures could not be read off its own output.
+    #
+    # `trust_management` gained `guf_revenue` when GUF was wired into
+    # `fiscal_snapshot`, and this scenario had been doing the same arithmetic by
+    # hand since before that — including its own copy of the fee/levy ratio.
+    # Both now resolve through core, so the two cannot drift.
     trust_guf = trust_management(
         trust_balance,
-        levies["total_levied"] + inflow["net_inflow"],
+        levies["total_levied"],
         stew["teh_allocated"],
         guar["total_cost_teh"],
         dep_rate, div_rate, epsilon,
+        guf_revenue=inflow["net_inflow"],
     )
 
-    guf_fraction = (inflow["net_inflow"] / max(levies["total_levied"], 1.0))
+    # BOUND to the core figure, not restated. This was its own division —
+    # a second computation of `trust_management`'s `guf_over_levy`, which is the
+    # copy-of-a-value-whose-source-is-elsewhere pattern this repo keeps finding.
+    # The two agreed, which is exactly how those cases always start.
+    guf_fraction = trust_guf["guf_over_levy"]
 
     if not trust_base["solvent"] and trust_guf["solvent"]:
         outcome = "GUF_MATERIAL"
