@@ -298,7 +298,7 @@ hours_eoh/
 ## Running Tests
 
 ```bash
-# Full suite (3,310 tests)
+# Full suite (3,319 tests)
 python3 -m pytest tests/ -q
 
 # Single test file

@@ -41,10 +41,34 @@ represents and where to find it in real-world data:
 > published before 2026-08-28 was computed at — pass
 > `ecological_standing_response="domain"` and `ecological_health_response="domain"`.
 >
-> **Open work you should know about**: `fiscal_snapshot()` has no GUF revenue
-> line, so the obligation leaves the Trust's ecological allocation and is not
-> picked up elsewhere in the fiscal snapshot. Run the GUF layer
-> (`land/collective.py`) alongside it until the two are connected.
+> **Where the obligation goes, and how to close the loop.** Pass your parcel
+> inventory through `land/collective.compute_collective_guf()` and hand the
+> result to `fiscal_snapshot(guf_revenue=...)`:
+>
+> ```python
+> from hours_eoh.land.collective import compute_collective_guf
+>
+> guf = compute_collective_guf(your_parcels, epsilon)["guf_net_inflow"]
+> snap = fiscal_snapshot(..., guf_revenue=guf)
+>
+> snap["guf"]["coverage"]   # fee ÷ the obligation relocated out of the domain
+> snap["trust"]["guf_over_levy"]   # has the fee overtaken the labour levy?
+> ```
+>
+> GUF arrives as its **own** Trust revenue line, never folded into the levy —
+> the two behave oppositely across the arc, since the levy contracts with labour
+> income while the fee scales with land held. It is circulatory: it redistributes
+> TEH, it does not mint any.
+>
+> **`snap["guf"]["covered"] == True` is necessary, not sufficient.** The
+> obligation it checks against is only the *ecological* requirement that left the
+> domain; the fee also carries the **servicing** cost of the built environment,
+> which the snapshot has no inventory for. On the shipped urban archetype the
+> coverage figure is ~1e6, which says almost nothing — the denominator is tiny.
+> Set the same revenue against the servicing census and it reads ~21× **over**,
+> matching the 18.1× urban overshoot `scenarios/servicing_census` measured
+> independently. Run `eoh scenario run servicing_census` for the comparison that
+> actually constrains the fee's magnitude.
 
 **State your frame.** Population, land area and capital stock are one frame and
 must travel together: they are all extensive, so pairing one jurisdiction's

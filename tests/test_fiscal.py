@@ -1339,3 +1339,147 @@ class TestTheGuaranteeAndCareFloors:
         assert c["provider_cap_teh"] == pytest.approx(
             200.0 * PROVIDER_CAP_EQUIVALENTS, rel=1e-12
         )
+
+
+class TestGufRevenueReachesTheFisc:
+    """
+    THE PLUMBING GAP THE PARTITION CREATED, CLOSED (2026-08-29).
+
+    Phases 4e/4f moved the recurring ecological obligation out of the ecological
+    allocation and assigned it to the Ground Use Fee. Until GUF revenue reached
+    `fiscal_snapshot` there was no way to ask whether the fee covers what was
+    moved to it: the obligation left one side of the ledger and arrived nowhere,
+    and the Trust simply allocated nothing.
+
+    GUF is a SEPARATE revenue line, not folded into the levy, because the two
+    instruments behave oppositely across the arc — the levy contracts with
+    labour income while the fee scales with land held. `land/guf.py` claims GUF
+    "may become the Trust's dominant revenue source, replacing the contracting
+    labor levy base", and `guf_over_levy` is what makes that checkable.
+    """
+
+    def _snap(self, **kw):
+        base = dict(trust_balance=35e9, labor_income=1e9, capital_stock_teh=2e9,
+                    capital_age_ratio=0.5, population=1e6, epsilon=0.40)
+        base.update(kw)
+        return fiscal_snapshot(**base)
+
+    def test_guf_defaults_to_zero_and_changes_nothing(self):
+        """Additive: a caller who supplies no fee is unaffected."""
+        a = self._snap()
+        b = self._snap(guf_revenue=0.0)
+        assert a["trust"]["trust_end"] == b["trust"]["trust_end"]
+        assert a["trust"]["guf_inflow"] == 0.0
+
+    def test_guf_revenue_reaches_the_trust(self):
+        base = self._snap()
+        withguf = self._snap(guf_revenue=1_000_000.0)
+        assert withguf["trust"]["guf_inflow"] == 1_000_000.0
+        assert withguf["trust"]["trust_end"] == pytest.approx(
+            base["trust"]["trust_end"] + 1_000_000.0, rel=1e-12
+        )
+        assert withguf["trust"]["total_revenue"] == pytest.approx(
+            base["trust"]["total_revenue"] + 1_000_000.0, rel=1e-12
+        )
+
+    def test_guf_is_not_folded_into_the_levy(self):
+        """
+        The substitution the partition is about is only visible if the two
+        arrive as separate numbers.
+        """
+        s = self._snap(guf_revenue=1_000_000.0)
+        assert s["trust"]["levy_inflow"] == self._snap()["trust"]["levy_inflow"]
+        assert s["trust"]["guf_over_levy"] == pytest.approx(
+            1_000_000.0 / s["trust"]["levy_inflow"], rel=1e-12
+        )
+
+    def test_guf_is_circulatory_not_minted(self):
+        """
+        `land/guf.py`: "GUF revenue is circulatory TEH flowing to the Trust."
+        It must move the Trust and the revenue line and NOT teh_created — the
+        fee redistributes, it does not mint. Condition III is untouched.
+        """
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        minted = eoh_to_teh_pipeline(epsilon=0.40, population=1e6)["teh_created"]
+        s = self._snap(labor_income=minted, guf_revenue=5_000_000.0)
+        assert s["trust"]["guf_inflow"] == 5_000_000.0
+        # the levy base is labour income and is untouched by the fee
+        assert s["levies"]["total_levied"] == \
+            self._snap(labor_income=minted)["levies"]["total_levied"]
+
+    def test_the_relocated_obligation_is_reported_in_teh(self):
+        """Set against a TEH revenue figure, the obligation must be in TEH too —
+        the human share at ε, times the mean multiplier."""
+        from hours_eoh.core.eoh_fulfillment import human_eoh_share
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+
+        s = self._snap()
+        eco = s["ecological"]
+        assert eco["relocated_teh_required"] == pytest.approx(
+            human_eoh_share(eco["relocated_to_guf"], 0.40) * MEAN_MULTIPLIER_REFERENCE,
+            rel=1e-12,
+        )
+        assert s["guf"]["obligation"] == eco["relocated_teh_required"]
+
+    def test_coverage_answers_the_partitions_question(self):
+        under = self._snap(guf_revenue=0.0)
+        over = self._snap(guf_revenue=1_000_000.0)
+        assert under["guf"]["covered"] is False
+        assert under["guf"]["gap"] > 0.0
+        assert over["guf"]["covered"] is True
+        assert over["guf"]["gap"] == 0.0
+
+    def test_the_obligation_is_declared_a_lower_bound(self):
+        """
+        `covered` is necessary, not sufficient: the fee also carries the
+        SERVICING cost of the built environment, which this snapshot has no
+        parcel inventory for. A verdict that let a reader forget that would be
+        the more dangerous half of the answer.
+        """
+        g = self._snap(guf_revenue=1e6)["guf"]
+        assert g["obligation_is_a_lower_bound"] is True
+        assert "LOWER BOUND" in g["verdict"]
+        assert "servicing" in g["note"]
+
+    def test_a_real_inventory_reaches_the_snapshot(self):
+        """
+        END TO END, on the shipped urban archetype: a parcel inventory produces
+        revenue, and that revenue lands in the Trust. This is the path the
+        implementation guide points an institution at.
+        """
+        from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
+
+        parcels = make_urban_collective()
+        hectares = sum(p["area_slu"] for p in parcels) * 100.0 / 10_000.0
+        revenue = compute_collective_guf(parcels, 0.40)["guf_net_inflow"]
+        assert revenue > 0.0
+
+        s = self._snap(population=30_000.0,
+                       ecological_area_hectares=hectares,
+                       guf_revenue=revenue)
+        assert s["trust"]["guf_inflow"] == pytest.approx(revenue)
+        assert s["guf"]["covered"] is True
+
+    def test_the_fee_is_an_order_of_magnitude_over_the_servicing_census(self):
+        """
+        THE COMPARISON WITH INFORMATION IN IT, and an independent corroboration
+        that the wiring is right. `coverage` against the relocated ECOLOGICAL
+        obligation is ~1e6 on this archetype and says almost nothing — the
+        denominator is tiny for the reason the domain-balance work records.
+        Against the SERVICING census, the same revenue reads ~21× over, which
+        matches the 18.1× urban overshoot `scenarios/servicing_census` measured
+        by a completely separate route.
+        """
+        from hours_eoh.core.eoh_fulfillment import human_eoh_share
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+        from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
+
+        parcels = make_urban_collective()
+        hectares = sum(p["area_slu"] for p in parcels) * 100.0 / 10_000.0
+        revenue = compute_collective_guf(parcels, 0.40)["guf_net_inflow"]
+
+        servicing_teh = human_eoh_share(45.92 * hectares, 0.40) * MEAN_MULTIPLIER_REFERENCE
+        ratio = revenue / servicing_teh
+        assert 10.0 < ratio < 40.0, (
+            f"expected the known urban overshoot, got {ratio:.1f}×"
+        )

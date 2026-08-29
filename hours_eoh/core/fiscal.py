@@ -352,6 +352,13 @@ def ecological_allocation(
         # a positive figure here means the obligation MOVED to GUF, not that it
         # vanished — see the note at the top of this function.
         "relocated_to_guf":     _relocated,
+        # ...and the same quantity in TEH, so it can be set against GUF revenue
+        # without the reader doing the human-share and multiplier conversion by
+        # hand. This is the obligation the partition assigns to the Ground Use
+        # Fee; `fiscal_snapshot` compares it against what GUF actually collects.
+        "relocated_teh_required": (
+            human_eoh_share(_relocated, epsilon) * mean_multiplier
+        ),
     }
 
 
@@ -495,6 +502,7 @@ def trust_management(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     epsilon: float = 0.40,
+    guf_revenue: float = 0.0,
 ) -> dict:
     """
     Fiscal balance of the Trust for one period.
@@ -552,13 +560,26 @@ def trust_management(
     dividend   = ann_dep * div_rate
     renewal    = ann_dep * (1.0 - div_rate)
 
-    total_revenue     = dividend + levy_revenue
+    # GUF IS ITS OWN REVENUE LINE, NOT FOLDED INTO THE LEVY (2026-08-29).
+    # A ground-use fee and a labour levy are different instruments: the levy
+    # scales with labour income and therefore CONTRACTS as ε rises, while GUF
+    # scales with land held and does not. Adding GUF into `levy_inflow` would
+    # hide exactly the substitution the Phase 4 partition is about — and
+    # `land/guf.py` claims GUF "may become the Trust's dominant revenue source,
+    # replacing the contracting labor levy base", which is a claim you cannot
+    # check if the two arrive as one number.
+    #
+    # It is CIRCULATORY, like the levy: collected from holders and spent, never
+    # minted. `land/guf.py` says so in its own header ("GUF revenue is
+    # circulatory TEH flowing to the Trust"), so no TEH is created here and
+    # Condition III is untouched.
+    total_revenue     = dividend + levy_revenue + guf_revenue
     total_expenditure = stewardship_cost + guarantee_cost
     surplus_deficit   = total_revenue - total_expenditure
 
-    # Trust balance evolves: loses depreciation, gains renewal and levy inflow
-    # (dividend goes out; renewal stays; levy comes in)
-    trust_end = trust_balance - ann_dep + renewal + levy_revenue
+    # Trust balance evolves: loses depreciation, gains renewal and both inflows
+    # (dividend goes out; renewal stays; levy and GUF come in)
+    trust_end = trust_balance - ann_dep + renewal + levy_revenue + guf_revenue
     # Equivalently: trust_end = trust_balance - div_rate*annDep + levy_revenue
     # = trust_balance - dividend + levy_revenue
 
@@ -568,6 +589,12 @@ def trust_management(
         "dividend":          dividend,
         "renewal":           renewal,
         "levy_inflow":       levy_revenue,
+        "guf_inflow":        guf_revenue,
+        # The claim land/guf.py makes, made checkable: GUF over levy. > 1 means
+        # the fee has overtaken the contracting labour base.
+        "guf_over_levy":     (guf_revenue / levy_revenue
+                              if levy_revenue > 0.0 else float("inf")
+                              if guf_revenue > 0.0 else 0.0),
         "total_revenue":     total_revenue,
         "total_expenditure": total_expenditure,
         "surplus_deficit":   surplus_deficit,
@@ -605,6 +632,7 @@ def fiscal_snapshot(
     ecological_intensity: float = ECOLOGICAL_INTENSITY_BASE,
     health_response: str = "guf",
     standing_response: str = "guf",
+    guf_revenue: float = 0.0,
 ) -> dict:
     """
     Compute full fiscal balance for one period from first principles.
@@ -743,9 +771,71 @@ def fiscal_snapshot(
         stew["teh_allocated"] + eco["teh_allocated"] + care_stipend_aggregate,
         guarantee["total_cost_teh"],
         dep_rate, div_rate, epsilon,
+        guf_revenue=guf_revenue,
     )
 
+    # THE PARTITION'S OWN QUESTION, NOW ANSWERABLE (2026-08-29).
+    #
+    # Phases 4e/4f moved the recurring ecological obligation out of this
+    # snapshot's ecological allocation and assigned it to the Ground Use Fee.
+    # Until GUF revenue reached this function there was no way to ask whether
+    # the fee actually covers what was moved to it — the obligation left one
+    # side of the ledger and arrived nowhere. That gap is what this block
+    # closes.
+    #
+    # `obligation` is the relocated ecological requirement in TEH. It is a LOWER
+    # BOUND on what GUF must fund, not the whole of it: the fee also carries the
+    # SERVICING cost of the built environment (scenarios/servicing_census
+    # measures 45.92 h/ha·yr over 37.1 Mha), which this snapshot has no inventory
+    # for. So `covered` being True means "GUF covers the part that left the
+    # ecological domain", never "GUF is adequately sized".
+    _guf_obligation = float(eco.get("relocated_teh_required", 0.0))
+    _guf_gap = max(0.0, _guf_obligation - guf_revenue)
+    guf = {
+        "revenue":           guf_revenue,
+        "obligation":        _guf_obligation,
+        "coverage":          (guf_revenue / _guf_obligation
+                              if _guf_obligation > 0.0 else None),
+        "gap":               _guf_gap,
+        "covered":           _guf_gap <= 0.0,
+        "obligation_is_a_lower_bound": True,
+        "note": (
+            "obligation = the recurring ecological requirement relocated out of "
+            "the domain by Phases 4e/4f. It EXCLUDES the servicing cost of the "
+            "built environment, which GUF also carries and which this snapshot "
+            "has no parcel inventory for — so `covered` is necessary, not "
+            "sufficient. Supply guf_revenue from land/collective.compute_"
+            "collective_guf()['guf_net_inflow']."
+        ),
+        # DO NOT READ A LARGE `coverage` AS "GUF IS WELL SIZED". The denominator
+        # is the relocated ECOLOGICAL obligation alone, which the domain-balance
+        # work has repeatedly found to be tiny — on the shipped urban archetype
+        # it is ~0.34 TEH/yr against ~348,000 TEH/yr of fee, a ratio of ~1e6
+        # that says almost nothing about the fee and almost everything about the
+        # obligation. Set against the SERVICING census instead (the other half
+        # of what GUF carries, and the larger one), the same archetype reads
+        # ~21x over — consistent with the 18.1x urban overshoot
+        # scenarios/servicing_census measured independently. That is the
+        # comparison with information in it, and this snapshot cannot make it
+        # without a parcel inventory.
+        "verdict": (
+            f"GUF revenue {guf_revenue:,.0f} TEH/yr against a relocated "
+            f"ecological obligation of {_guf_obligation:,.2f} TEH/yr. The "
+            f"obligation is a LOWER BOUND — it excludes the servicing cost of "
+            f"the built environment — and it is small for the reason the "
+            f"domain-balance work records, so a large coverage figure here is "
+            f"evidence about the obligation, not about the fee. Run "
+            f"`eoh scenario run servicing_census` for the comparison that "
+            f"constrains the fee's magnitude."
+            if _guf_obligation > 0.0 else
+            "no relocated ecological obligation at this configuration — either "
+            "the pre-partition policy is in force (nothing was relocated) or "
+            "the collective stewards no land."
+        ),
+    }
+
     return {
+        "guf":              guf,
         "levies":           levies,
         "stewardship":      stew,
         "ecological":       eco,
