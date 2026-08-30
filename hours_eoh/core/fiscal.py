@@ -605,6 +605,85 @@ def trust_management(
     }
 
 
+# ---------------------------------------------------------------------------
+# THE INJECTION REGISTER, AND THE RULE FOR RETIRING AN ENTRY
+# ---------------------------------------------------------------------------
+#
+# `core/` may not import outward, so anything it needs from a layer above or
+# beside it arrives as a parameter. Those parameters accumulate, and by
+# 2026-08-29 `fiscal_snapshot` carried nine — up from five at the first commit,
+# with six of the seven added in the final three weeks of measurement work.
+#
+# THE GROWTH IS MOSTLY NOT THE LAYER RULE, and treating it as though it were
+# leads to the wrong repair. Categorised, the nine are four different things,
+# and only ONE is caused by the layer rule at all:
+#
+#   1 RECOMPUTE-AVOIDANCE — infra_eoh_override, eco_eoh_override
+#     Not a defect: these are the FIX for two paths computing one obligation
+#     and disagreeing, which they did by 92.8x before 2026-08-20. They retire
+#     when the caller passes a state that already carries the resolved value.
+#
+#   2 UNMODELLED PHYSICAL STATE — thermal_obligation, care_stipend_aggregate
+#     (was four; `capital_eoh_eliminated` and
+#     `capital_personal_eoh_fulfilled_per_person` were PROMOTED to state on
+#     2026-08-29 when this function learned to read the container)
+#     Each is core ADMITTING it does not model something physical. This is the
+#     category that grows when measurement lands, and that is healthy: the
+#     parameter is a declared hypothesis, not debt. PROMOTE to `_STATE_TO_PARAM`
+#     when the quantity is measured well enough to be state a civilisation has.
+#     `thermal_obligation` is the live candidate — it stays a parameter only
+#     while λ is bounded rather than measured.
+#
+#   3 CROSS-LAYER VALUE — guf_revenue
+#     The only true cost of the layer rule. `land/` imports `core/`, so `core/`
+#     cannot ask for a fee it is owed. DO NOT PROMOTE THIS ONE: moving it into
+#     core asserts that land tenure is physics, which is a theory claim, and
+#     `land/` is a separate layer precisely because it is not. It is assembled
+#     one layer up instead.
+#
+#   4 THEORY SWITCH — health_response, standing_response
+#     Partition decisions that happen to be parameters. They would exist under
+#     any architecture and are not an architectural cost at all. They retire
+#     when a decision is settled and the superseded branch is deleted, which is
+#     a sign-off, not a refactor.
+#
+# THE TEST FOR PROMOTING AN ENTRY: does the measurement say core should MODEL
+# this, or that another layer OWNS it? Model → promote to state. Owns → it
+# stays a parameter, and the parameter is the honest record of the boundary.
+# Read this list as what the model does not yet know, the same way `resolves_by`
+# is read in data.py.
+
+#: The register above, as data, so it can be CHECKED rather than merely
+#: written. A prose list naming nine parameters goes stale the moment a tenth
+#: is added, and this repo has found that failure often enough to know better —
+#: `_DECLARED_EXEMPT` and `_INNOCUOUS_NAMES` are both checked for exactly this.
+#: `tests/test_fiscal.py::TestTheInjectionRegisterIsComplete` fails if a
+#: parameter is injected without being classified, so adding one is a visible
+#: act in a diff rather than a silent accumulation.
+INJECTION_REGISTER: dict[str, str] = {
+    "infra_eoh_override":                        "recompute_avoidance",
+    "eco_eoh_override":                          "recompute_avoidance",
+    "thermal_obligation":                        "unmodelled_state",
+    "care_stipend_aggregate":                    "unmodelled_state",
+    # PROMOTED 2026-08-29, and the register caught it on its first run:
+    # `capital_eoh_eliminated` and `capital_personal_eoh_fulfilled_per_person`
+    # were classified here AND appear in `_STATE_TO_PARAM`, because
+    # `make_economy_state` already carries both. Core no longer has to be told
+    # them, so they are state, not injections. That is the promotion rule
+    # executing — and it is why a quantity may not sit in both registers: two
+    # routes to one value is how `psi` came to differ from `psi_applied`.
+    "guf_revenue":                               "cross_layer",
+    "health_response":                           "theory_switch",
+    "standing_response":                         "theory_switch",
+}
+
+#: Which categories may be promoted into `_STATE_TO_PARAM` when a measurement
+#: lands, and which may not. `cross_layer` is excluded on purpose: promoting
+#: `guf_revenue` would assert that land tenure is physics.
+PROMOTABLE_CATEGORIES: frozenset[str] = frozenset(
+    {"unmodelled_state", "recompute_avoidance"}
+)
+
 #: The economy-state keys `fiscal_snapshot` can read, mapped to its own
 #: parameter names. `make_economy_state()` in core/simulation.py already carries
 #: every one of them — the container existed before this function accepted it.

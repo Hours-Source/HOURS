@@ -1590,3 +1590,107 @@ class TestFiscalSnapshotAcceptsAState:
         new_state, report = simulate_period(make_economy_state())
         assert new_state["trust_balance"] > 0.0
         assert report["fiscal"]["solvent"] in (True, False)
+
+
+class TestTheInjectionRegisterIsComplete:
+    """
+    THE REGISTER IS CHECKED, NOT JUST WRITTEN (2026-08-29).
+
+    `core/fiscal.INJECTION_REGISTER` classifies every value `fiscal_snapshot`
+    takes because core may not fetch it. The classification decides what
+    happens when a measurement lands — promote to state, or leave it as the
+    honest record of a layer boundary — so it is only useful if it stays
+    complete. A prose list of nine parameters goes stale the moment a tenth is
+    added, which is the `unused_innocuous_names` failure in a new place.
+    """
+
+    #: What makes a parameter an injection: it names a value core cannot compute
+    #: from what it was given, because the thing that knows sits in another
+    #: layer or is not modelled at all.
+    MARKERS = ("_override", "_obligation", "guf_revenue", "_aggregate",
+               "capital_eoh_eliminated", "capital_personal_eoh_fulfilled",
+               "_response")
+
+    def _injected(self):
+        """
+        Marker-shaped AND not readable from state. The second half is what makes
+        this a live definition rather than a name pattern: once a quantity is in
+        `_STATE_TO_PARAM`, core can be handed it rather than told it, and it has
+        been promoted out of the injection class.
+        """
+        import inspect
+        from hours_eoh.core.fiscal import fiscal_snapshot, _STATE_TO_PARAM
+        state_readable = set(_STATE_TO_PARAM.values())
+        return {p for p in inspect.signature(fiscal_snapshot).parameters
+                if any(m in p for m in self.MARKERS) and p not in state_readable}
+
+    def test_promotion_removes_a_parameter_from_the_injection_class(self):
+        """
+        The rule, demonstrated on the two it already moved.
+        `capital_eoh_eliminated` and `capital_personal_eoh_fulfilled_per_person`
+        are still parameters — a caller may pass either — but they are no longer
+        INJECTIONS, because `make_economy_state` carries them and core can be
+        handed them. The register caught this overlap on its first run.
+        """
+        import inspect
+        from hours_eoh.core.fiscal import (
+            fiscal_snapshot, INJECTION_REGISTER, _STATE_TO_PARAM)
+        promoted = {"capital_eoh_eliminated",
+                    "capital_personal_eoh_fulfilled_per_person"}
+        params = set(inspect.signature(fiscal_snapshot).parameters)
+        assert promoted <= params, "still reachable as parameters"
+        assert promoted <= set(_STATE_TO_PARAM.values()), "readable from state"
+        assert not (promoted & set(INJECTION_REGISTER)), "no longer injections"
+
+    def test_every_injected_parameter_is_classified(self):
+        from hours_eoh.core.fiscal import INJECTION_REGISTER
+        missing = self._injected() - set(INJECTION_REGISTER)
+        assert not missing, (
+            f"injected without a category: {sorted(missing)}. Classify it in "
+            "core/fiscal.INJECTION_REGISTER — the category decides whether a "
+            "measurement promotes it to state or it stays a layer boundary."
+        )
+
+    def test_the_register_names_no_parameter_that_has_gone(self):
+        """A register entry for a parameter nobody has is one nobody reviews."""
+        import inspect
+        from hours_eoh.core.fiscal import fiscal_snapshot, INJECTION_REGISTER
+        params = set(inspect.signature(fiscal_snapshot).parameters)
+        stale = set(INJECTION_REGISTER) - params
+        assert not stale, f"register names parameters that no longer exist: {sorted(stale)}"
+
+    def test_every_category_is_one_of_the_four(self):
+        from hours_eoh.core.fiscal import INJECTION_REGISTER
+        allowed = {"recompute_avoidance", "unmodelled_state", "cross_layer",
+                   "theory_switch"}
+        assert set(INJECTION_REGISTER.values()) <= allowed
+
+    def test_nothing_promotable_is_already_state(self):
+        """
+        A quantity cannot be both injected and state — that would be two routes
+        to one value, which is how `psi` came to differ from `psi_applied`.
+        """
+        from hours_eoh.core.fiscal import INJECTION_REGISTER, _STATE_TO_PARAM
+        assert not (set(INJECTION_REGISTER) & set(_STATE_TO_PARAM.values()))
+
+    def test_the_cross_layer_entry_is_not_promotable(self):
+        """
+        `guf_revenue` must stay injected. Promoting it into core would assert
+        that land tenure is physics — a theory claim smuggled in as an
+        engineering convenience, and `land/` is a separate layer precisely
+        because it is not physics.
+        """
+        from hours_eoh.core.fiscal import INJECTION_REGISTER, PROMOTABLE_CATEGORIES
+        assert INJECTION_REGISTER["guf_revenue"] == "cross_layer"
+        assert "cross_layer" not in PROMOTABLE_CATEGORIES
+
+    def test_theory_switches_are_not_an_architectural_cost(self):
+        """
+        They would exist under any architecture, so they are excluded from the
+        promotable set too — they retire by a sign-off deleting a branch, not
+        by a refactor.
+        """
+        from hours_eoh.core.fiscal import INJECTION_REGISTER, PROMOTABLE_CATEGORIES
+        switches = [p for p, c in INJECTION_REGISTER.items() if c == "theory_switch"]
+        assert set(switches) == {"health_response", "standing_response"}
+        assert "theory_switch" not in PROMOTABLE_CATEGORIES
