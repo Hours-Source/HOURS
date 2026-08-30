@@ -1339,3 +1339,112 @@ class TestTheRemoteEndIsZeroByABSENCE:
         assert r["guf_formula"] < 0.0, "the formula wants to pay a credit"
         assert r["guf_applied"] == 0.0, "and the floor stops it"
         assert r["floor_applied"] is True
+
+
+class TestTheConservationCreditClampIsADecision:
+    """
+    CHARTER DECISION, 2026-08-30 (author sign-off): a credit may reduce a fee to
+    zero; it may NOT pay out.
+
+    The clamp existed before the decision as an accident of `guf_floor`. What
+    changed is that it is now DECIDED, with the four measurements that decided
+    it pinned here so the decision cannot be reversed by someone who only sees
+    the floor and reads it as an oversight. That is the failure this file has
+    hit before: `guf_magnitude` recorded the credit as "notional −90 h/ha·yr,
+    never paid" as though it were a defect awaiting repair.
+    """
+
+    HA = 100.0  # 1 ha = 100 SLU
+
+    def _fee(self, cat, L, eps=0.40, **kw):
+        return ground_use_fee(area_slu=self.HA, location_value=L,
+                              use_category=cat, epsilon=eps, **kw)
+
+    def test_a_credit_reduces_to_zero_and_no_further(self):
+        """The decision, stated as behaviour."""
+        for L in (0.25, 0.50, 0.75, 1.0):
+            r = self._fee("conservation", L)
+            assert r["guf_formula"] < 0.0, "the formula wants to pay"
+            assert r["guf_applied"] == 0.0, "and it is bounded at zero"
+            assert r["floor_applied"] is True
+
+    def test_the_payout_would_dwarf_the_work_it_rewards(self):
+        """
+        MEASUREMENT (1): ~2,064× the measured stewardship cost. Asserted as an
+        order of magnitude — the levels move with every constant in the chain,
+        and pinning them is what let the stale 3.5 survive its own correction.
+        """
+        from hours_eoh.core.eoh_fulfillment import human_eoh_share
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+
+        payout = -self._fee("conservation", 0.75)["guf_formula"]
+        measured_cost = human_eoh_share(0.182, 0.40) * MEAN_MULTIPLIER_REFERENCE
+        assert payout / measured_cost > 500.0, (
+            f"payout {payout:,.1f} vs measured stewardship {measured_cost:.4f} "
+            f"TEH/ha·yr — if this ratio ever approaches 1 the decision is worth "
+            f"revisiting, because the payout would then price the actual work"
+        )
+
+    def test_the_payout_tracks_location_value_not_ecological_service(self):
+        """
+        MEASUREMENT (2), and the one that decides the KIND of instrument this
+        is. The same ecosystem earns an order of magnitude more on valuable
+        ground, so it compensates foregone development rather than paying for
+        ecology.
+        """
+        cheap = -self._fee("conservation", 0.05)["guf_formula"]
+        dear = -self._fee("conservation", 0.95)["guf_formula"]
+        assert dear > 10.0 * cheap, (
+            f"identical ecosystem: {cheap:,.1f} vs {dear:,.1f} TEH/ha·yr"
+        )
+
+    def test_the_reward_for_conserving_already_exists_and_is_larger(self):
+        """
+        MEASUREMENT (4). The avoided fee is the incentive, and it already
+        exceeds what a payout would add.
+        """
+        avoided = {
+            cat: self._fee(cat, 0.75)["guf_applied"]
+            for cat in ("residential_primary", "commercial_retail", "industrial_heavy")
+        }
+        payout = -self._fee("conservation", 0.75)["guf_formula"]
+        assert min(avoided.values()) > payout, (
+            f"avoided fees {avoided} must exceed the {payout:,.1f} a payout adds"
+        )
+
+    def test_the_coefficient_still_does_work_and_must_not_be_retired(self):
+        """
+        THE NUANCE THE DECISION TURNS ON. The clamp bounds the credit BELOW; it
+        is live above that bound. On a parcel carrying an infrastructure
+        premium the credit reduces a real, positive fee — so setting the
+        coefficient to 0.0 would RAISE fees, and "the credit never pays" is not
+        an argument for deleting it.
+        """
+        assets = [{"cost_teh": 5.0e5, "design_life": 50.0,
+                   "beneficiary_count": 40.0, "distance_km": 0.2}]
+        for L in (0.10, 0.25):
+            with_credit = self._fee("conservation", L, infrastructure_assets=assets)
+            assert with_credit["guf_applied"] > 0.0, "a real fee remains"
+            assert with_credit["guf_applied"] < with_credit["infra_premium"], (
+                "and the credit has reduced it below the premium alone — "
+                "the coefficient is load-bearing here"
+            )
+            assert with_credit["floor_applied"] is False
+
+    def test_restoration_labour_is_not_what_the_clamp_blocks(self):
+        """
+        WHAT THE DECISION COSTS: nothing, for the case a reward is actually
+        wanted. Restoration is labour; it registers and mints TEH through the
+        ordinary pipeline. The clamp forbids paying a holder for a DESIGNATION,
+        not paying a restorer for HOURS.
+        """
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+        idle = eoh_to_teh_pipeline(epsilon=0.40, population=1e6)
+        restoring = eoh_to_teh_pipeline(epsilon=0.40, population=1e6,
+                                        restoration_obligation=1.0e6)
+        assert restoring["teh_created"] > idle["teh_created"], (
+            "restoration work must reach the ledger as labour — the parameter "
+            "was stranded at ecological_eoh until 2026-08-30, which made this "
+            "argument false at the documented entry point"
+        )

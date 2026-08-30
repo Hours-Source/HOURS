@@ -1615,6 +1615,13 @@ def total_eoh(
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
     thermal_obligation: float = 0.0,
+    # STRANDED UNTIL 2026-08-30, and the omission mattered more after the
+    # partition than before it. `thermal_obligation` — the same class of term,
+    # added by the same phase — reached `total_eoh` and the pipeline; this one
+    # stopped at `ecological_eoh`. After Phases 4e/4f the ecological domain
+    # carries ONLY stocks, so this is one of three, and it was the one an
+    # institution following the documented intake path could not supply.
+    restoration_obligation: float = 0.0,
     basis: str = "gross",
 ) -> dict[str, float]:
     """
@@ -1746,6 +1753,7 @@ def total_eoh(
                        ecological_threshold, deferred_ecological,
                        monitoring_capability, thermal_obligation,
                        ecological_area_hectares, ecological_intensity,
+                       restoration_obligation=restoration_obligation,
                        health_response=ecological_health_response,
                        standing_response=ecological_standing_response)
     k = knowledge_eoh(knowledge_complexity, skill_decay_rate, epsilon,

@@ -447,6 +447,9 @@ def eoh_to_teh_pipeline(
     monitoring_capability: float | None = None,
     knowledge_complexity_per_unit: float | None = None,
     thermal_obligation: float = 0.0,
+    # See the note on total_eoh: stranded at ecological_eoh until 2026-08-30
+    # while its sibling thermal_obligation reached here.
+    restoration_obligation: float = 0.0,
     available_labor_eoh: float | None = None,
     rationing: str = "survival_first",
     # Per-domain scale overrides. These reached `total_eoh` but stopped here, so
@@ -617,6 +620,7 @@ def eoh_to_teh_pipeline(
         ecological_area_hectares=ecological_area_hectares,
         ecological_intensity=ecological_intensity,
         ecological_hectares_per_capita=ecological_hectares_per_capita,
+        restoration_obligation=restoration_obligation,
         ecological_health_response=ecological_health_response,
         ecological_standing_response=ecological_standing_response,
         knowledge_base=knowledge_base,

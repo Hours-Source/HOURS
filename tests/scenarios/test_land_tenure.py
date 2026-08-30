@@ -489,3 +489,63 @@ class TestOneLoaderOverOneCSV:
         r = tenure_allocation(1.0, {})
         assert "Total land" not in [x["land_use"] for x in r["by_class"]]
         assert len(r["by_class"]) == 9
+
+
+class TestRestorationReachesTheIntakePath:
+    """
+    THE THIRD STOCK WAS UNREACHABLE FROM THE DOCUMENTED ENTRY (fixed 2026-08-30).
+
+    `restoration_obligation` stopped at `ecological_eoh` while its sibling
+    `thermal_obligation` — same class of term, added by the same phase —
+    reached `total_eoh` and `eoh_to_teh_pipeline`. That is the stranded-
+    parameter failure this repo has now found four times (`personal_standard`,
+    `ecological_health_response`, `knowledge_base_size`, and this).
+
+    It mattered more after the partition than before it: Phases 4e/4f leave the
+    ecological domain carrying ONLY stocks, and this was the one an institution
+    following the implementation guide could not supply. Found while pinning the
+    conservation-credit decision, whose whole argument is that restoration is
+    representable as LABOUR — a claim that was false at the entry point.
+    """
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_restoration_reaches_total_eoh(self, eps):
+        base = total_eoh(epsilon=eps)["ecological"]
+        loaded = total_eoh(epsilon=eps, restoration_obligation=1.0e6)["ecological"]
+        assert loaded - base == pytest.approx(1.0e6, rel=1e-9)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_restoration_reaches_the_pipeline_and_the_ledger(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+        idle = eoh_to_teh_pipeline(epsilon=eps, population=1e6)
+        working = eoh_to_teh_pipeline(epsilon=eps, population=1e6,
+                                      restoration_obligation=1.0e6)
+        assert working["eoh_by_domain"]["ecological"] > idle["eoh_by_domain"]["ecological"]
+        if eps < 0.99:
+            assert working["teh_created"] > idle["teh_created"], (
+                "restoration is labour and must mint TEH through the ordinary "
+                "pipeline — that is what makes the credit clamp costless"
+            )
+
+    def test_it_defaults_to_zero_like_its_sibling(self):
+        """Opt-in, the treatment `thermal_obligation` received at its sign-off."""
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        assert total_eoh(epsilon=0.40)["ecological"] == 0.0
+        assert eoh_to_teh_pipeline(
+            epsilon=0.40, population=1e6)["eoh_by_domain"]["ecological"] == 0.0
+
+    def test_all_three_stocks_are_now_reachable_from_the_entry_point(self):
+        """
+        The partition's own claim, checked at the documented entry rather than
+        one layer below it: the domain carries three stocks and every one can
+        be supplied.
+        """
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+        r = eoh_to_teh_pipeline(epsilon=0.40, population=1e6,
+                                deferred_ecological=3.0e6,
+                                thermal_obligation=2.0e6,
+                                restoration_obligation=1.0e6)
+        eco = r["eoh_by_domain"]["ecological"]
+        assert eco > 3.0e6, f"all three stocks must land in the domain, got {eco:,.0f}"

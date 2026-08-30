@@ -2577,7 +2577,49 @@ GUF_USE_COMMERCIAL_OFFICE:      float =  22.5
 GUF_USE_INDUSTRIAL_LIGHT:       float =  17.0
 GUF_USE_INDUSTRIAL_HEAVY:       float =  37.5
 GUF_USE_INSTITUTIONAL:          float =   1.0
-GUF_USE_CONSERVATION_CREDIT:    float =  -6.0  # negative: credit reduces base fee
+# tag: normative | units: TEH per SLU per year
+# form: the only negative coefficient in the fee table. It enters `base_fee`
+#   like any other U, so it OFFSETS the positive terms — and `ground_use_fee`
+#   clamps the total at `guf_floor` (0.0), so it can take a fee to zero and no
+#   further.
+# decided_by: CHARTER DECISION, 2026-08-30 (author sign-off): THE CLAMP IS
+#   ADOPTED. A credit may reduce a fee to zero; it may not pay out. Four
+#   measurements decided it, none of them solvency alone:
+#
+#   (1) SCALE. A payout at L=0.75 would be 450.0 TEH/ha·yr against a measured
+#       stewardship cost of 0.218 (forest, 0.182 h/ha·yr at the reference
+#       multiplier) — about 2,064x the cost of the work being rewarded.
+#   (2) BASIS. It is proportional to LOCATION VALUE, not to ecological service:
+#       an identical ecosystem earns 30.0 at L=0.05 and 570.0 at L=0.95, a 19x
+#       spread on ground delivering the same thing. That is opportunity-cost
+#       compensation, not an ecological payment.
+#   (3) DIRECTION. GUF exists to charge for exclusive use of valuable land. A
+#       payout proportional to location value pays MOST to whoever holds the
+#       most valuable land — the instrument run backwards, and unearned income
+#       proportional to holdings is precisely what the contestability work
+#       (§8.9, the Piketty inversion) exists to prevent.
+#   (4) REDUNDANCY. The reward already exists and is large: conserving rather
+#       than developing already avoids 750.0 TEH/ha·yr against residential,
+#       2,250.0 against retail, 2,812.5 against heavy industry. A payout would
+#       add 450.0 on top of land already charged nothing.
+#
+#   FUNDING FOLLOWS FROM THE ABOVE RATHER THAN LEADING IT. GUF revenue flows to
+#   the Trust, so a payout is a Trust expenditure backed by the labour levy and
+#   the dividend — labour subsidising landholding.
+#
+#   WHAT THE DECISION DOES NOT BLOCK, and the reason it costs nothing:
+#   restoration is LABOUR. It registers and mints TEH through the ordinary
+#   pipeline. Paying a holder for a DESIGNATION is unearned; paying a restorer
+#   for HOURS WORKED is the ledger working as designed. The clamp forbids only
+#   the first. (That claim was FALSE at the entry point when this was written —
+#   `restoration_obligation` was stranded at `ecological_eoh` — and plumbing it
+#   through was part of the same decision.)
+# note: THE COEFFICIENT IS NOT DECORATION AND MUST NOT BE RETIRED ON THE
+#   STRENGTH OF THIS DECISION. On a conservation parcel that also carries an
+#   infrastructure premium it does real work: at I = 240.20 it brings the fee to
+#   180.20 at L=0.10 and 90.20 at L=0.25. Setting it to 0.0 would RAISE those
+#   fees. The clamp bounds it below; above that bound it is live.
+GUF_USE_CONSERVATION_CREDIT:    float =  -6.0  # negative: credit reduces base fee, floored at 0
 
 # Demand Pressure Modifier parameters (NLSA Eq. 11-13)
 # tag: placeholder | units: dimensionless elasticity | family: GUF_DEMAND_ETA_*
