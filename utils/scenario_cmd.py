@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
@@ -688,6 +689,29 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "use_split":
+        from hours_eoh.scenarios.use_split import split_report
+        rep = split_report()
+        out: dict = {
+            "spearman_fee_vs_disturbance": rep["ranks"]["spearman"],
+            "categories":                  rep["ranks"]["n"],
+            "disagreements":               len(rep["ranks"]["disagreements"]),
+        }
+        for row in rep["ranks"]["rows"]:
+            out[f"{row['use_category']} | U"] = row["shipped_u"]
+            out[f"{row['use_category']} | disturbance"] = row["disturbance"]
+            out[f"{row['use_category']} | rank gap"] = row["rank_gap"]
+        b = rep["basis"]
+        out["basis_area_share"] = b["shares"]["area"]
+        out["basis_parcel_share"] = b["shares"]["parcel"]
+        out["basis_throughput_share"] = b["shares"]["throughput"]
+        out["expressible_by_a_per_SLU_fee"] = b["expressible_now"]
+        out["basis_verdict"] = b["verdict"]
+        for k, v in rep["terms"].items():
+            out[f"term | {k}"] = v
+        out["verdict"] = rep["verdict"]
+        return out
 
     if name == "collective":
         from hours_eoh.core.simulation import make_economy_state
