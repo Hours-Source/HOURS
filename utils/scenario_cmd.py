@@ -109,6 +109,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
+    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point  [--epsilon, --population]",
     "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
@@ -687,6 +688,44 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "collective":
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+        from hours_eoh.land.collective import make_urban_collective
+        from hours_eoh.scenarios.collective import collective_snapshot
+
+        # The urban archetype is 302.5 ha, so the CLI default population is
+        # scaled to it rather than left at the package 1e6 — pairing a million
+        # people with 302 hectares is the undeclared-frame defect this scenario
+        # exists to make impossible. Capital and Trust scale with it, because
+        # both are declared "at the 1M reference population" in their tag blocks.
+        pop = float(args.population) if args.population != 1_000_000.0 else 30_000.0
+        state = make_economy_state(
+            population=pop,
+            capital_stock_teh=CAPITAL_STOCK_DEFAULT * pop / 1_000_000.0,
+            trust_balance=TRUST_BASE_TEH * pop / 1_000_000.0,
+            epsilon=args.epsilon,
+        )
+        rep = collective_snapshot(state, parcels=make_urban_collective())
+        fr, gf, fi = rep["frame"], rep["guf"], rep["fiscal"]
+        return {
+            "epsilon":                 fr["epsilon"],
+            "population":              fr["population"],
+            "land_hectares":           fr["land_hectares"],
+            "hectares_per_capita":     fr["hectares_per_capita"],
+            "parcel_count":            fr["parcel_count"],
+            "teh_created":             rep["pipeline"]["teh_created"],
+            "ecological_eoh":          rep["pipeline"]["eoh_by_domain"]["ecological"],
+            "guf_revenue":             gf["revenue"],
+            "guf_relocated_obligation": gf["obligation"],
+            "guf_over_levy":           fi["trust"]["guf_over_levy"],
+            "levy_total":              fi["levies"]["total_levied"],
+            "trust_end":               fi["trust"]["trust_end"],
+            "solvent":                 fi["solvent"],
+            "guf_verdict":             gf["verdict"],
+            "verdict":                 rep["verdict"],
+        }
 
     if name == "frame":
         from hours_eoh.scenarios.frame import frame_report

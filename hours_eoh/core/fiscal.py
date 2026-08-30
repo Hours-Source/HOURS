@@ -308,21 +308,36 @@ def ecological_allocation(
     # `relocated_to_guf` reports what the pre-partition policy would have
     # charged here, so a reader sees the size of what moved instead of a bare
     # zero. Connecting GUF revenue to the fisc is open work.
+    # THE RELOCATED FIGURE IS COMPUTED WHETHER OR NOT AN OVERRIDE IS SUPPLIED
+    # (corrected 2026-08-29). This read `_relocated = 0.0` in the override
+    # branch, on the reasoning that a caller supplying the total must know what
+    # was relocated. That was wrong twice over: an override states the DOMAIN
+    # total and says nothing about what left it, and both principal paths —
+    # `simulate_period` and `scenarios/collective.collective_snapshot` — pass an
+    # override. So the two calls that matter reported no relocated obligation,
+    # which made `snap["guf"]["coverage"]` vacuous exactly where it was meant to
+    # be read. Found by running the new assembly scenario, three commits after
+    # the field was added: the reported value was not the computed one, which is
+    # the `psi` vs `psi_applied` failure in code written to close that class.
+    #
+    # It is derivable from the same arguments the override was derived from, so
+    # it is derived. The caveat is that this assumes the override was computed
+    # at THIS frame — which `collective_snapshot` guarantees by construction,
+    # since it passes the area and the override from one resolution.
+    _relocated = ecological_eoh(
+        ecosystem_health=ecosystem_health,
+        epsilon=epsilon,
+        base_rate=base_rate,
+        deferred=deferred,
+        thermal_obligation=thermal_obligation,
+        area_hectares=area_hectares,
+        intensity=intensity,
+        health_response="domain",
+        standing_response="domain",
+    )
     if eco_eoh_override is not None:
         total_eco_eoh = eco_eoh_override
-        _relocated = 0.0
     else:
-        _relocated = ecological_eoh(
-            ecosystem_health=ecosystem_health,
-            epsilon=epsilon,
-            base_rate=base_rate,
-            deferred=deferred,
-            thermal_obligation=thermal_obligation,
-            area_hectares=area_hectares,
-            intensity=intensity,
-            health_response="domain",
-            standing_response="domain",
-        )
         total_eco_eoh = ecological_eoh(
             ecosystem_health=ecosystem_health,
             epsilon=epsilon,

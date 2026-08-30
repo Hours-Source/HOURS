@@ -4,8 +4,28 @@
 real economy data and want to model their own civilization using the HOURS framework.
 This is not a developer guide — see `extending.md` for that.
 
-**Goal**: given your data, you should be able to run `eoh_to_teh_pipeline()` and
-`fiscal_snapshot()` and get outputs that mean something about your jurisdiction.
+**Goal**: given your data, you should be able to run one function and get
+outputs that mean something about your jurisdiction.
+
+```python
+from hours_eoh.core.simulation import make_economy_state
+from hours_eoh.scenarios.collective import collective_snapshot
+
+state = make_economy_state(population=..., capital_stock_teh=..., trust_balance=...)
+report = collective_snapshot(state, parcels=your_parcel_inventory)
+```
+
+`collective_snapshot()` runs the EOH→TEH pipeline, the Ground Use Fee and the
+fiscal snapshot on **one stated frame**, passing the three values between them
+that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
+it on the shipped urban archetype.
+
+**Use it in preference to calling the three by hand.** The sections below
+document the pieces, because you will want to understand them and because
+`collective_snapshot` is a thin assembly over exactly those calls — but running
+them yourself means keeping eleven parameters in agreement across three
+functions, and that is where the frame comes apart. It came apart in this
+guide's own worked example, by a factor of 92.8.
 
 ---
 
