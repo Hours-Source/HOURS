@@ -2944,6 +2944,17 @@ GUF_USE_SCALE_FACTOR: float = 100.0
 #   P_service's residential share.
 GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
 
+# tag: convention | units: dimensionless (automation level epsilon)
+# form: the epsilon values arc TABLES are reported at. A superset of the four
+#   this repo's own rule requires every function to be meaningful at — 0, 0.40,
+#   0.90, 0.99 (CLAUDE.md, "Adding new functions") — with 0.20 and 0.70 added so
+#   the shape BETWEEN the required points is visible rather than interpolated by
+#   the reader. It is a reporting frame, not a calibration: no result depends on
+#   which points are displayed, and `tests/test_tolerances.py` is the precedent
+#   for constants whose correct behaviour is to move nothing.
+# decided_by: the four-point rule in CLAUDE.md, extended for legibility.
+ARC_REPORTING_POINTS: tuple[float, ...] = (0.0, 0.20, 0.40, 0.70, 0.90, 0.99)
+
 # tag: convention | units: labour-hours per hectare
 # form: the restoration cost the Phase-0 bounding exercise ASSUMED, retained as
 #   the declared comparison point for the derived figure that replaced it.

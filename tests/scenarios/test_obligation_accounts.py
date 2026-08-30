@@ -1,0 +1,244 @@
+"""
+Tests for scenarios/obligation_accounts.py — Phase 0 of the one-obligation
+reframe.
+
+Discipline, following the modules this sits beside:
+  * the partition must CLOSE exactly — a presentation that loses or invents a
+    quantity is not a presentation of anything;
+  * findings are asserted as ORDERINGS and SIGNS where the level is calibration
+    that has moved before;
+  * `TestAccountsChangeNothing` pins that this is reporting only.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
+from hours_eoh.scenarios.obligation_accounts import (
+    ACCOUNTS,
+    accounts_arc,
+    accounts_report,
+    automation_uniformity_check,
+    delivery_crossover,
+    obligation_accounts,
+)
+
+ARC = (0.0, 0.40, 0.99)
+
+
+class TestThePartitionCloses:
+    """
+    The integrity condition. This module re-presents quantities `total_eoh`
+    already computes, so the three accounts must sum to its total EXACTLY. A
+    presentation that loses or invents a quantity is not a presentation.
+    """
+
+    @pytest.mark.parametrize("epsilon", ARC)
+    def test_the_three_accounts_sum_to_the_gross_total(self, epsilon):
+        r = obligation_accounts(epsilon)
+        assert r["reconciles"] is True
+        assert r["obligation"] + r["delivery"] + r["stock"] == pytest.approx(
+            r["gross_total"], rel=1e-12
+        )
+
+    @pytest.mark.parametrize("epsilon", ARC)
+    def test_the_accounts_are_the_domains_regrouped_not_recomputed(self, epsilon):
+        """
+        Bound to `total_eoh`'s own keys on both sides, so the two cannot drift.
+        If the domains are ever recomputed here rather than regrouped, this
+        fails — the shadow-constant lesson applied to a derived quantity.
+        """
+        d = total_eoh(epsilon=epsilon)
+        r = obligation_accounts(epsilon)
+        assert r["obligation"] == pytest.approx(
+            d["personal"] + d["knowledge_civilisational"]
+        )
+        assert r["delivery"] == pytest.approx(
+            d["infrastructure"] + d["knowledge_apparatus"]
+        )
+        assert r["stock"] == pytest.approx(d["ecological"])
+
+    def test_out_of_range_epsilon_raises(self):
+        with pytest.raises(ValueError):
+            obligation_accounts(1.5)
+        with pytest.raises(ValueError):
+            automation_uniformity_check(-0.1)
+
+
+class TestTheShapeTheFourWaySumHides:
+
+    def test_the_obligation_is_nearly_flat_and_delivery_is_not(self):
+        """
+        THE FINDING, as an ordering rather than a level. What must be met barely
+        moves across the arc; what meeting it costs grows by more than an order
+        of magnitude. Adding the two into one total hides exactly that.
+        """
+        arc = accounts_arc()
+        obligation_growth = arc[-1]["obligation"] / arc[0]["obligation"]
+        delivery_growth = arc[-1]["delivery"] / arc[0]["delivery"]
+        assert obligation_growth < 1.25, "the obligation should be nearly flat"
+        assert delivery_growth > 10.0, "delivery should grow by an order of magnitude"
+        assert delivery_growth > 10.0 * obligation_growth
+
+    def test_delivery_over_obligation_rises_monotonically(self):
+        ratios = [r["delivery_over_obligation"] for r in accounts_arc()]
+        assert ratios == sorted(ratios)
+
+    def test_delivery_crosses_the_obligation_late_in_the_arc(self):
+        """
+        SIGN and LOCATION, not level: the crossover exists and it is late. The
+        level moves with the capital path and has been re-anchored six times.
+        """
+        c = delivery_crossover()
+        assert c["crossover_epsilon"] is not None
+        assert 0.90 < c["crossover_epsilon"] <= 0.99
+        assert c["ratio_at_zero"] < 0.10
+        assert c["ratio_at_top"] > 1.0
+
+    def test_the_crossover_is_not_reported_as_a_failure(self):
+        """
+        It is where the apparatus's entropy debt equals the obligation it
+        reduces. Whether that is acceptable depends on how much it ABATES, which
+        this account does not carry — so the module must say so rather than let
+        a reader infer a verdict.
+        """
+        assert "Not a failure condition" in delivery_crossover()["note"]
+        assert "abates" in delivery_crossover()["note"]
+
+
+class TestTheStockAccountIsSeparateAndBlockIIIPutsItInTheBase:
+    """
+    THE CORRECTION, and it is why this is not merely a rename of
+    `total_eoh(basis="final")`. Legacy damage is not a forward obligation.
+    """
+
+    def test_no_stock_ships_by_default(self):
+        """Phase 4d/4e/4f: the ecological domain carries stocks and none ships."""
+        for r in accounts_arc():
+            assert r["stock"] == 0.0
+            assert r["base_includes_stock"] is False
+
+    def test_a_supplied_stock_lands_in_the_stock_account(self):
+        r = obligation_accounts(0.40, thermal_obligation=1.0e8)
+        assert r["stock"] == pytest.approx(1.0e8)
+        assert r["reconciles"] is True
+
+    def test_block_iii_base_absorbs_the_stock_and_the_accounts_do_not(self):
+        """
+        THE DIFFERENCE, measured rather than argued. `total_base` rises by the
+        full stock, so a thermal obligation reads as though the system owed more
+        going FORWARD. The obligation account does not move.
+        """
+        plain = obligation_accounts(0.40)
+        stocked = obligation_accounts(0.40, thermal_obligation=1.0e8)
+
+        assert stocked["obligation"] == pytest.approx(plain["obligation"]), (
+            "a legacy stock must not raise the forward obligation"
+        )
+        assert stocked["total_base_block_iii"] - plain["total_base_block_iii"] == (
+            pytest.approx(1.0e8)
+        ), "Block III's base absorbs the whole stock — which is the defect"
+        assert stocked["base_includes_stock"] is True
+        assert stocked["base_minus_accounts_oblig"] == pytest.approx(1.0e8)
+
+
+class TestTheCareContradiction:
+    """
+    Three statements this repo makes about care's automatability. Two agree and
+    the third does not, and nothing compared them until now.
+    """
+
+    def test_the_two_layers_disagree(self):
+        u = automation_uniformity_check(0.99)
+        assert u["agrees"] is False
+        assert u["implied_human_fraction"] > u["uniform_human_fraction"]
+
+    def test_the_disagreement_is_an_order_of_magnitude(self):
+        """
+        SIGN and MAGNITUDE-CLASS. The exact factor moves with the care share and
+        the floor, both of which are pinned elsewhere; that it is large is the
+        claim.
+        """
+        assert automation_uniformity_check(0.99)["understatement_factor"] > 5.0
+
+    def test_it_is_bound_to_both_sources_and_restates_neither(self):
+        """
+        The shadow-literal lesson: the check must READ the care share and the
+        floor rather than carry its own copies, or it can agree with a source
+        that has moved.
+        """
+        u = automation_uniformity_check(0.99)
+        assert u["care_share_of_personal"] == PERSONAL_EOH_COMPONENTS["care"]["share"]
+        assert u["care_automation_floor"] == CARE_AUTOMATION_FLOOR
+
+    def test_they_agree_at_zero_automation_which_is_the_control(self):
+        """
+        At ε=0 nothing is automated, so a floor on automation cannot bite and
+        the two accounts MUST coincide. If they disagreed here the check would
+        be measuring an arithmetic artefact rather than the contradiction.
+        """
+        u = automation_uniformity_check(0.0)
+        assert u["uniform_human_fraction"] == pytest.approx(1.0)
+        assert u["implied_human_fraction"] == pytest.approx(1.0)
+        assert u["agrees"] is True
+
+    def test_care_is_the_least_abatable_component(self):
+        """
+        Block II's independent statement, which is why the floor is not an
+        isolated assertion. If care ever stops being least abatable, the
+        contradiction's second leg goes with it.
+        """
+        ab = {k: v["abatability"] for k, v in PERSONAL_EOH_COMPONENTS.items()}
+        assert min(ab, key=lambda k: ab[k]) == "care"
+        assert PERSONAL_EOH_COMPONENTS["care"]["share"] > 0.5
+
+
+class TestTheAccountsAreDeclared:
+
+    def test_every_account_says_what_distinguishes_it(self):
+        """
+        A category nobody has written down is a category nobody has audited —
+        the `TERM_BASIS` precedent.
+        """
+        assert set(ACCOUNTS) == {"obligation", "delivery", "stock"}
+        for name, entry in ACCOUNTS.items():
+            for field in ("question", "domains", "exists_because", "epsilon_behaviour"):
+                assert entry[field].strip(), f"{name}.{field}"
+
+    def test_the_report_runs_and_states_its_status(self):
+        rep = accounts_report()
+        assert rep["reporting_only"] is True
+        assert rep["arc"] and rep["here"]["reconciles"] is True
+        assert "delivery cost" in rep["verdict"]
+
+
+class TestAccountsChangeNothing:
+    """
+    REPORTING ONLY. This module must not move a single shipped number — it
+    exists to make a proposed reframing arguable BEFORE it is adopted, and a
+    presentation that changed behaviour would be the adoption.
+    """
+
+    @pytest.mark.parametrize("epsilon", ARC)
+    def test_total_eoh_is_untouched_by_importing_the_accounts(self, epsilon):
+        before = total_eoh(epsilon=epsilon)["total"]
+        obligation_accounts(epsilon)
+        accounts_report(epsilon)
+        assert total_eoh(epsilon=epsilon)["total"] == before
+
+    def test_the_module_declares_itself_reporting_only(self):
+        import hours_eoh.scenarios.obligation_accounts as mod
+        assert "REPORTING ONLY" in (mod.__doc__ or "")
+
+    def test_it_does_not_take_the_charter_decision(self):
+        """
+        Whether `total_eoh` should RETURN this shape is a charter question and
+        Phase 0 does not answer it. If this module ever starts asserting the
+        reframe rather than presenting it, that admission goes first.
+        """
+        import hours_eoh.scenarios.obligation_accounts as mod
+        doc = mod.__doc__ or ""
+        assert "WHAT THIS DOES NOT SETTLE" in doc
+        assert "charter decision" in doc

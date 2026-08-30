@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
@@ -689,6 +690,28 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "obligation_accounts":
+        from hours_eoh.scenarios.obligation_accounts import accounts_report
+        rep = accounts_report(epsilon)
+        oa: dict = {}
+        for r in rep["arc"]:
+            e = r["epsilon"]
+            oa[f"eps {e:.2f} | obligation"] = r["obligation"]
+            oa[f"eps {e:.2f} | delivery"] = r["delivery"]
+            oa[f"eps {e:.2f} | stock"] = r["stock"]
+            oa[f"eps {e:.2f} | delivery/obligation"] = r["delivery_over_obligation"]
+        c = rep["crossover"]
+        oa["crossover_epsilon"] = c["crossover_epsilon"]
+        oa["crossover_note"] = c["note"]
+        u = rep["uniformity"]
+        oa["care_share_of_personal"] = u["care_share_of_personal"]
+        oa["uniform_human_fraction_at_0.99"] = u["uniform_human_fraction"]
+        oa["implied_human_fraction_at_0.99"] = u["implied_human_fraction"]
+        oa["understatement_factor"] = u["understatement_factor"]
+        oa["uniformity_verdict"] = u["verdict"]
+        oa["verdict"] = rep["verdict"]
+        return oa
 
     if name == "use_split":
         from hours_eoh.scenarios.use_split import split_report
