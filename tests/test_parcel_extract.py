@@ -209,10 +209,10 @@ class TestServicePointDenominatorIsNotBuildable:
     into one parcel removes a hundred deeds but not one refuse collection.
 
     `P_title` is buildable now: the parcel count is complete and clean.
-    `P_service` is not, and the reason is NOT the 47.6% coverage. `numunits` is
-    contaminated in the same shape as `taxacres` — median right, tail garbage —
-    and the national total moves across an order of magnitude depending on an
-    exclusion cap that nothing justifies.
+    `P_service` is not, and the reason is NOT the 47.6% coverage. `numunits`
+    carries OTHER COLUMNS — see `TestTheContaminationIsOtherColumns` — and the
+    national total moves across an order of magnitude depending on an exclusion
+    cap that nothing justifies.
     """
 
     def test_the_verdict_is_not_buildable(self):
@@ -275,3 +275,102 @@ class TestServicePointDenominatorIsNotBuildable:
         """
         header = DATA_FILE.read_text(encoding="utf-8").splitlines()[0]
         assert "unit" not in header.lower()
+
+
+class TestTheContaminationIsOtherColumns:
+    """
+    THE MECHANISM, IDENTIFIED (2026-08-30). The tail is not a heavy tail of a
+    real distribution — it is other columns pasted into `numunits`, one county
+    at a time. That matters for the verdict rather than merely colouring it: a
+    cap is the wrong instrument at ANY threshold, because it is not trimming
+    outliers, it is guessing which rows came from the wrong source column.
+    """
+
+    def test_camden_alone_is_most_of_the_national_total(self):
+        """
+        A single constant, 2,040,202, on 22,342 rows — and that product is 86%
+        of every unit the census claims. Arithmetic, not inference.
+        """
+        from hours_eoh.reference.parcels import NUMUNITS_NATIONAL_TOTAL
+        assert 2_040_202 * 22_342 == 45_582_193_084
+        share = 45_582_193_084 / NUMUNITS_NATIONAL_TOTAL
+        assert 0.85 < share < 0.88
+
+    def test_the_record_holder_is_its_own_land_area(self):
+        """
+        Lee County FL parcel 14452400000060010: 140.542 acres of college
+        campus, and `numunits` is that area in hundredths of a square foot.
+        """
+        sq_ft = 140.542 * 43_560.0
+        assert 612_196_539 / sq_ft == pytest.approx(100.0, rel=1e-4)
+
+    def test_each_leak_names_what_the_column_actually_holds(self):
+        """
+        A leak recorded without its mechanism is a magnitude observation, and
+        magnitude is exactly what must NOT drive an exclusion.
+        """
+        from hours_eoh.reference.parcels import NUMUNITS_COLUMN_LEAKS
+        assert len(NUMUNITS_COLUMN_LEAKS) >= 3
+        for fips, county, holds in NUMUNITS_COLUMN_LEAKS:
+            assert len(fips) == 5 and fips.isdigit()
+            assert county and len(holds) > 15, f"{county} does not say what it holds"
+
+
+class TestExclusionCleansTheTailAndNotTheNumerator:
+    """
+    THE QUESTION THIS ANSWERS (2026-08-30): would dropping the worst counties
+    let the rest support a placeholder? Half of it, and the half it does not
+    support is the half that matters.
+
+    The exclusion rule is mechanism-based — a value repeated on >=1% of rows,
+    or >=1% of rows matching parcel or building area to within 2% — and was
+    DECLARED BEFORE its outcome was seen, because choosing exclusions by size
+    is the cap trap at county resolution.
+    """
+
+    def test_the_exclusion_cleans_the_tail_decisively(self):
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert float(v["parcels_retained"]) > 0.98, "an exclusion this cheap is the point"
+        assert float(v["cleaned_reduction"]) > 100.0, "232x, and it is why this was worth measuring"
+        assert 1.0 < float(v["cleaned_ratio"]) < 2.5, (
+            "the cleaned total must stay in the plausible band — above the "
+            "residential stock, because commercial suites count too, but not "
+            "wildly above it"
+        )
+
+    def test_the_exclusion_does_not_move_the_missing_numerator(self):
+        """
+        THE FINDING. 31.59% of built parcels carry no unit count before
+        exclusion; 31.61% after. The two defects are ORTHOGONAL — cleaning the
+        tail buys a plausible total and not one row of the numerator.
+        """
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        before = float(v["missing_on_built"])
+        after = float(v["missing_on_built_retained"])
+        assert abs(after - before) < 0.005, (
+            "if exclusion ever DID move the coverage gap, the two defects "
+            "would share a cause and this verdict should be revisited"
+        )
+
+    def test_the_gap_cannot_be_imputed_from_the_populating_counties(self):
+        """
+        The move that would turn a lower bound into a band, measured and
+        refused: the counties that populate the field are denser than those
+        that do not, so their rate is measured exactly where it is least
+        transferable. Applied nationally it gives ~2.9x the housing stock.
+        """
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert v["imputable"] is False
+        assert float(v["imputed_ratio"]) > 2.0, (
+            "the imputed total must stay implausible, or the reason for "
+            "refusing the imputation stops holding"
+        )
+
+    def test_the_cleaned_figure_is_reported_as_a_lower_bound(self):
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert v["buildable"] is False
+        assert "LOWER BOUND" in str(v["verdict"])
