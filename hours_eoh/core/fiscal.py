@@ -605,13 +605,32 @@ def trust_management(
     }
 
 
+#: The economy-state keys `fiscal_snapshot` can read, mapped to its own
+#: parameter names. `make_economy_state()` in core/simulation.py already carries
+#: every one of them — the container existed before this function accepted it.
+#: Only two names differ, and both differences are historical rather than
+#: meaningful.
+_STATE_TO_PARAM: dict[str, str] = {
+    "trust_balance":                  "trust_balance",
+    "labor_income_teh":               "labor_income",
+    "capital_stock_teh":              "capital_stock_teh",
+    "capital_age_ratio":              "capital_age_ratio",
+    "population":                     "population",
+    "epsilon":                        "epsilon",
+    "ecosystem_health":               "ecosystem_health",
+    "deferred_ecological":            "deferred_ecological",
+    "capital_eoh_eliminated":         "capital_eoh_eliminated",
+    "capital_personal_eoh_fulfilled": "capital_personal_eoh_fulfilled_per_person",
+}
+
+
 def fiscal_snapshot(
-    trust_balance: float,
-    labor_income: float,
-    capital_stock_teh: float,
-    capital_age_ratio: float,
-    population: float,
-    epsilon: float,
+    trust_balance: float | None = None,
+    labor_income: float | None = None,
+    capital_stock_teh: float | None = None,
+    capital_age_ratio: float | None = None,
+    population: float | None = None,
+    epsilon: float | None = None,
     levy_rates: dict[str, float] | None = None,
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     dep_rate: float = DEP_RATE,
@@ -633,6 +652,7 @@ def fiscal_snapshot(
     health_response: str = "guf",
     standing_response: str = "guf",
     guf_revenue: float = 0.0,
+    state: dict | None = None,
 ) -> dict:
     """
     Compute full fiscal balance for one period from first principles.
@@ -703,6 +723,82 @@ def fiscal_snapshot(
     Reference: Mission Statement §"Principle 8 — Every claim should be
     verifiable by running a function."
     """
+    # ---- state resolution -------------------------------------------------
+    #
+    # `core/` HAS CARRIED A STATE CONTAINER SINCE THE FIRST COMMIT AND THIS
+    # FUNCTION DID NOT ACCEPT IT. `make_economy_state()` holds ten of the
+    # quantities below, and `simulate_period` was unpacking it into nineteen
+    # loose keyword arguments to make this call. Every unpack is a place two
+    # paths can disagree, which is exactly how the ecological frame came to
+    # differ by 92.8x between the pipeline and this function.
+    #
+    # SUPPLYING BOTH A STATE AND THE SAME QUANTITY LOOSE IS REFUSED, not
+    # silently resolved. `total_eoh` refuses `ecological_base` alongside
+    # `area_hectares` for the same reason, and `research/exchange.build_
+    # collective` refuses kwargs that restate a frame: a state that can be
+    # overridden piecemeal is not a state, and a caller who believes an
+    # argument is in force when it is not is the silently-ignored-parameter
+    # failure this repo keeps finding.
+    #
+    # A state is a snapshot of ONE economy at ONE moment. `simulate_period`
+    # evolves its state and passes the evolved one, which is why this reads
+    # whatever it is given rather than any notion of "the" state.
+    if state is not None:
+        _given = {
+            "trust_balance": trust_balance, "labor_income": labor_income,
+            "capital_stock_teh": capital_stock_teh,
+            "capital_age_ratio": capital_age_ratio,
+            "population": population, "epsilon": epsilon,
+            "ecosystem_health": ecosystem_health if ecosystem_health != 0.70 else None,
+            "deferred_ecological": deferred_ecological or None,
+            "capital_eoh_eliminated": capital_eoh_eliminated or None,
+            "capital_personal_eoh_fulfilled_per_person":
+                capital_personal_eoh_fulfilled_per_person or None,
+        }
+        _clash = sorted(
+            param for key, param in _STATE_TO_PARAM.items()
+            if key in state and _given.get(param) is not None
+        )
+        if _clash:
+            raise ValueError(
+                f"these are the state's to supply, not the caller's: {_clash}. "
+                "Build a different state instead of overriding one — a state "
+                "that can be overridden piecemeal is not a state."
+            )
+        _resolved = {param: state[key] for key, param in _STATE_TO_PARAM.items()
+                     if key in state}
+        trust_balance = _resolved.get("trust_balance", trust_balance)
+        labor_income = _resolved.get("labor_income", labor_income)
+        capital_stock_teh = _resolved.get("capital_stock_teh", capital_stock_teh)
+        capital_age_ratio = _resolved.get("capital_age_ratio", capital_age_ratio)
+        population = _resolved.get("population", population)
+        epsilon = _resolved.get("epsilon", epsilon)
+        ecosystem_health = _resolved.get("ecosystem_health", ecosystem_health)
+        deferred_ecological = _resolved.get("deferred_ecological", deferred_ecological)
+        capital_eoh_eliminated = _resolved.get(
+            "capital_eoh_eliminated", capital_eoh_eliminated)
+        capital_personal_eoh_fulfilled_per_person = _resolved.get(
+            "capital_personal_eoh_fulfilled_per_person",
+            capital_personal_eoh_fulfilled_per_person)
+
+    # Written as an explicit disjunction rather than a computed list so the
+    # type narrows past it: after this, the six are floats whatever route
+    # supplied them, and the rest of the body is identical to what it was
+    # before `state=` existed.
+    if (trust_balance is None or labor_income is None
+            or capital_stock_teh is None or capital_age_ratio is None
+            or population is None or epsilon is None):
+        _missing = sorted(n for n, v in (
+            ("trust_balance", trust_balance), ("labor_income", labor_income),
+            ("capital_stock_teh", capital_stock_teh),
+            ("capital_age_ratio", capital_age_ratio),
+            ("population", population), ("epsilon", epsilon),
+        ) if v is None)
+        raise ValueError(
+            f"missing required quantities: {_missing}. Supply them directly or "
+            "pass a `state=` carrying them (see make_economy_state)."
+        )
+
     if levy_rates is None:
         levy_rates = {"sufficiency": SUFF_LEVY_RATE}
 

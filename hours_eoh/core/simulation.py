@@ -374,13 +374,30 @@ def simulate_period(
     cap_per_person = cap_pers_fulfil / max(new_population, 1.0)
 
     # ---- 6. Fiscal pipeline ------------------------------------------------
+    # THE EVOLVED STATE, PASSED AS A STATE. This unpacked into nineteen loose
+    # keyword arguments until 2026-08-29 — ten of which `make_economy_state`
+    # already carried, so the container existed and the call did not use it.
+    # Every unpack is a place two paths can disagree; that is how the ecological
+    # frame came to differ by 92.8x between the pipeline and the fiscal layer.
+    #
+    # Built explicitly rather than mutating `state`, because these are the
+    # END-of-period values and the caller's state is the start-of-period one.
+    # The remaining arguments are POLICY (levy rates, dividend split) and
+    # cross-layer values, which are not state and are not pretending to be.
+    fiscal_state = {
+        "trust_balance":                  trust_bal,
+        "labor_income_teh":               labor_income,
+        "capital_stock_teh":              new_cap_stock,
+        "capital_age_ratio":              new_cap_age,
+        "population":                     new_population,
+        "epsilon":                        eps,
+        "ecosystem_health":               new_eco_health,
+        "deferred_ecological":            new_deferred,
+        "capital_eoh_eliminated":         cap_eoh_elim,
+        "capital_personal_eoh_fulfilled": cap_per_person,
+    }
     fiscal = fiscal_snapshot(
-        trust_balance=trust_bal,
-        labor_income=labor_income,
-        capital_stock_teh=new_cap_stock,
-        capital_age_ratio=new_cap_age,
-        population=new_population,
-        epsilon=eps,
+        state=fiscal_state,
         levy_rates=levy_rates,
         mean_multiplier=mean_multiplier,
         dep_rate=dep_rate,
@@ -388,10 +405,6 @@ def simulate_period(
         floor_fraction=floor_fraction,
         meaningful_activity_teh=meaningful_activity_teh,
         meaningful_activity_scale=meaningful_activity_scale,
-        capital_personal_eoh_fulfilled_per_person=cap_per_person,
-        capital_eoh_eliminated=cap_eoh_elim,
-        ecosystem_health=new_eco_health,
-        deferred_ecological=new_deferred,
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         care_stipend_aggregate=care_stipend_aggregate,
     )

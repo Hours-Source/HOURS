@@ -1483,3 +1483,110 @@ class TestGufRevenueReachesTheFisc:
         assert 10.0 < ratio < 40.0, (
             f"expected the known urban overshoot, got {ratio:.1f}×"
         )
+
+
+class TestFiscalSnapshotAcceptsAState:
+    """
+    THE CONTAINER EXISTED AND THIS FUNCTION DID NOT ACCEPT IT (closed 2026-08-29).
+
+    `make_economy_state()` has carried ten of `fiscal_snapshot`'s quantities
+    since the first commit, and `simulate_period` was unpacking it into NINETEEN
+    loose keyword arguments to make the call. Every unpack is a place two paths
+    can disagree — which is how the ecological frame came to differ by 92.8×
+    between the pipeline and the fiscal layer.
+
+    This is not a layer-rule change. `fiscal_snapshot`'s parameter count grew
+    20 → 27 between May and August, and only ONE of its nine injected values
+    (`guf_revenue`) is caused by the layer rule at all; four are physical state
+    the model learned it does not carry, which is what a state container is for.
+    """
+
+    def _state(self, **kw):
+        from hours_eoh.core.simulation import make_economy_state
+        st = make_economy_state(**kw)
+        st["labor_income_teh"] = 1.0e9
+        return st
+
+    def test_the_state_form_equals_the_loose_form_exactly(self):
+        """Bit-identical, not approx: this is a plumbing change, not a model one."""
+        st = self._state(population=5e6, capital_stock_teh=1e10)
+        via_state = fiscal_snapshot(state=st)
+        via_loose = fiscal_snapshot(
+            trust_balance=st["trust_balance"], labor_income=st["labor_income_teh"],
+            capital_stock_teh=st["capital_stock_teh"],
+            capital_age_ratio=st["capital_age_ratio"],
+            population=st["population"], epsilon=st["epsilon"],
+            ecosystem_health=st["ecosystem_health"],
+            deferred_ecological=st["deferred_ecological"],
+            capital_eoh_eliminated=st["capital_eoh_eliminated"],
+            capital_personal_eoh_fulfilled_per_person=st["capital_personal_eoh_fulfilled"],
+        )
+        assert via_state["trust"]["trust_end"] == via_loose["trust"]["trust_end"]
+        assert via_state["solvent"] == via_loose["solvent"]
+        assert via_state["guarantee"]["total_cost_teh"] == \
+            via_loose["guarantee"]["total_cost_teh"]
+
+    def test_every_mapped_key_actually_reaches_the_result(self):
+        """
+        A state key that is accepted and ignored is worse than one that is
+        absent — the failure `test_each_domain_base_actually_moves_the_ledger`
+        exists to catch. Each mapped quantity must move something.
+        """
+        from hours_eoh.core.fiscal import _STATE_TO_PARAM
+        base = fiscal_snapshot(state=self._state())
+        moved = []
+        for key in _STATE_TO_PARAM:
+            st = self._state()
+            # ε is bounded, so it gets a perturbation inside its own range;
+            # everything else scales. A perturbation that raises ValueError is
+            # not evidence the key is inert.
+            st[key] = 0.55 if key == "epsilon" else st[key] * 1.5 + 1.0
+            if fiscal_snapshot(state=st) != base:
+                moved.append(key)
+        assert set(moved) == set(_STATE_TO_PARAM), (
+            f"state keys accepted and ignored: {sorted(set(_STATE_TO_PARAM) - set(moved))}"
+        )
+
+    def test_supplying_a_quantity_both_ways_is_refused(self):
+        """
+        A state that can be overridden piecemeal is not a state — the same
+        discipline `total_eoh` applies to base-vs-area and
+        `research/exchange.build_collective` applies to frames. Silently
+        preferring one is the ignored-parameter failure this repo keeps finding.
+        """
+        st = self._state()
+        with pytest.raises(ValueError, match="state's to supply"):
+            fiscal_snapshot(state=st, population=99.0)
+        with pytest.raises(ValueError, match="state's to supply"):
+            fiscal_snapshot(state=st, trust_balance=1.0)
+
+    def test_a_partial_state_is_completed_by_explicit_arguments(self):
+        """The state need not be complete — it is a container, not a contract."""
+        st = {"population": 1e6, "epsilon": 0.40}
+        s = fiscal_snapshot(state=st, trust_balance=35e9, labor_income=1e9,
+                            capital_stock_teh=2e9, capital_age_ratio=0.5)
+        assert s["guarantee"]["population"] == 1e6
+
+    def test_missing_quantities_are_named(self):
+        with pytest.raises(ValueError, match="missing required quantities"):
+            fiscal_snapshot(trust_balance=1.0)
+        with pytest.raises(ValueError, match="capital_stock_teh"):
+            fiscal_snapshot(state={"population": 1e6, "epsilon": 0.40})
+
+    def test_policy_is_not_state_and_stays_explicit(self):
+        """
+        `levy_rates`, `dep_rate`, `div_rate` and the cross-layer values are NOT
+        state and must not be readable from one — a levy rate is a charter
+        decision, not a fact about the economy.
+        """
+        from hours_eoh.core.fiscal import _STATE_TO_PARAM
+        for policy in ("levy_rates", "dep_rate", "div_rate", "guf_revenue",
+                       "health_response", "standing_response", "mean_multiplier"):
+            assert policy not in _STATE_TO_PARAM.values()
+
+    def test_simulate_period_is_unchanged_by_the_rewiring(self):
+        """The 19-kwarg unpack became a state; the simulation must not move."""
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        new_state, report = simulate_period(make_economy_state())
+        assert new_state["trust_balance"] > 0.0
+        assert report["fiscal"]["solvent"] in (True, False)
