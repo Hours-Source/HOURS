@@ -43,6 +43,9 @@ import pathlib
 
 __all__ = [
     "DATA_FILE",
+    "NUMUNITS_CAP_SENSITIVITY",
+    "US_HOUSING_UNITS_2020",
+    "service_point_denominator_verdict",
     "PARCEL_VINTAGE",
     "STATE_LAND_AREA_KM2",
     "load_county_parcels",
@@ -80,6 +83,61 @@ STATE_LAND_AREA_KM2: dict[str, float] = {
 }
 
 _M2_PER_KM2 = 1.0e6
+
+#: US housing units, 2020 decennial census — carried ONLY as the external
+#: yardstick for the measurement below, not used by anything else.
+US_HOUSING_UNITS_2020 = 140_498_736
+
+#: WHY `numunits` IS NOT SHIPPED, measured rather than asserted (2026-08-30).
+#:
+#: `scenarios/use_split` proposed splitting the per-parcel term in two —
+#: `P_title` per legal parcel (deed, assessment, boundary) and `P_service` per
+#: SERVICE POINT (refuse, metering, inspection), because consolidating a
+#: hundred apartments into one parcel removes a hundred deeds but not one
+#: refuse collection. `P_title`'s denominator is the parcel count this module
+#: ships. `P_service`'s would be a count of units, and `numunits` cannot supply
+#: one.
+#:
+#: Coverage is 47.6%, and that is NOT the binding problem — it is bounded and
+#: could be reasoned about. The binding problem is that the field is
+#: contaminated in the same shape as `taxacres`: the median is right and the
+#: tail is garbage. Populated values sum to **52,780,834,579 units**, 364× the
+#: US housing stock, and the largest single parcel claims **612,196,539 units** —
+#: nearly twice the US population, on one parcel.
+#:
+#: THE TABLE IS THE FINDING. Each row is (cap, rows above it, units summed
+#: below it). Excluding a few hundredths of a percent of rows moves the
+#: national total across an order of magnitude — `service_point_denominator_
+#: verdict()` computes the exact span rather than restating it here, because a
+#: figure written in prose beside a table that produces it is how this repo's
+#: stale claims have started:
+#:
+#:     cap 1,000  →  0.9× the housing stock   ← plausible, and that is the trap
+#:     cap 10,000 →  1.9×
+#:     no cap     →  364×
+#:
+#: A cap of 1,000 produces an answer close to the truth. **Choosing it because
+#: it produces that answer is fitting to a target**, which is the failure this
+#: repo has named in `DEFAULT_SEGMENTS` (means set so the weighted mean hit the
+#: band ceiling) and `GUF_USE_SCALE_FACTOR` (scaled so aggregate GUF matched
+#: levy revenue). No principled cap exists here, so no cap is adopted and no
+#: units column is shipped.
+NUMUNITS_CAP_SENSITIVITY: tuple[tuple[int, int, int], ...] = (
+    #  cap,     rows above,   units summed below the cap
+    (       10,    503_736,      80_643_748),
+    (      100,    197_896,      93_540_738),
+    (    1_000,     88_052,     128_058_785),
+    (   10_000,     37_242,     280_590_381),
+    (  100_000,     26_508,     649_540_503),
+    (1_000_000,     23_320,   1_719_437_954),
+)
+
+#: Parcels carrying buildings but NO unit count — genuinely missing data, as
+#: distinct from parcels with neither, where zero service points is arguable.
+#: 34,428,480 of 108,969,030 built parcels: **31.6% of parcels that have a
+#: structure do not say how many units it holds.**
+NUMUNITS_MISSING_ON_BUILT_PARCELS = 34_428_480
+NUMUNITS_BUILT_PARCELS = 108_969_030
 
 
 def load_county_parcels() -> list[dict[str, float | str]]:
@@ -165,3 +223,54 @@ def land_area_validation() -> list[dict[str, float | str]]:
             "exceeds_land":   summed > actual,
         })
     return rows
+
+
+def service_point_denominator_verdict() -> dict[str, float | str | bool]:
+    """
+    Whether `P_service` is buildable from this census. It is not.
+
+    Governing comparison — the national units total under each exclusion cap,
+    against the 2020 housing stock:
+
+        ratio(cap) = Σ numunits[numunits ≤ cap] / US_HOUSING_UNITS_2020
+
+    Returns the span of that ratio across the caps in
+    `NUMUNITS_CAP_SENSITIVITY`. A denominator whose value depends on an
+    unprincipled exclusion threshold is not a measurement, and the span is how
+    far it can be moved — by excluding between 0.03% and 0.66% of rows. The
+    span is COMPUTED and returned, not restated in prose: a figure written
+    beside the table that produces it is how a claim goes stale.
+
+    THE PLAUSIBLE ANSWER IS THE TRAP. A cap of 1,000 gives 0.9× the housing
+    stock — close enough to look settled. Adopting it on that basis is fitting
+    to a target, and this repo has been caught by that twice already.
+
+    What would settle `P_service` is an EXTERNAL service-point count. Census
+    housing-unit estimates by county are published, authoritative, and do not
+    depend on this file at all — though they cover only the residential share,
+    and commercial service points remain a separate gap.
+    """
+    ratios = [units / US_HOUSING_UNITS_2020 for _, _, units in NUMUNITS_CAP_SENSITIVITY]
+    lo, hi = min(ratios), max(ratios)
+    return {
+        "buildable":          False,
+        "coverage":           0.476,
+        "ratio_span":         hi / lo,
+        "ratio_min":          lo,
+        "ratio_max":          hi,
+        "missing_on_built":   NUMUNITS_MISSING_ON_BUILT_PARCELS / NUMUNITS_BUILT_PARCELS,
+        "verdict": (
+            f"P_service is NOT buildable from `numunits`. Coverage is 47.6% and "
+            f"that is not the binding problem; the field is contaminated in the "
+            f"same shape as `taxacres`, summing to 364× the US housing stock "
+            f"with one parcel claiming 612 million units. The national total "
+            f"moves across a {hi / lo:.0f}× range depending on an exclusion cap "
+            f"that nothing justifies, and the cap giving a plausible answer "
+            f"(1,000 → 0.9×) would be chosen BECAUSE it is plausible, which is "
+            f"fitting. A further "
+            f"{NUMUNITS_MISSING_ON_BUILT_PARCELS / NUMUNITS_BUILT_PARCELS:.1%} "
+            f"of parcels that HAVE a structure carry no unit count at all. "
+            f"P_title is buildable now; P_service needs an external "
+            f"service-point count."
+        ),
+    }

@@ -197,3 +197,81 @@ class TestTheVintageIsDeclared:
     def test_the_vintage_is_named(self):
         """A refreshed extract must be a visible change, not a silent one."""
         assert PARCEL_VINTAGE == "NATIONWIDE_SAMPLE_Q3_R2"
+
+
+class TestServicePointDenominatorIsNotBuildable:
+    """
+    THE MEASUREMENT THAT SETTLES HALF THE TWO-TERM SPLIT (2026-08-30).
+
+    `scenarios/use_split` proposed splitting the per-parcel term: `P_title` per
+    legal parcel (deed, assessment, boundary) and `P_service` per SERVICE POINT
+    (refuse, metering, inspection) — because consolidating a hundred apartments
+    into one parcel removes a hundred deeds but not one refuse collection.
+
+    `P_title` is buildable now: the parcel count is complete and clean.
+    `P_service` is not, and the reason is NOT the 47.6% coverage. `numunits` is
+    contaminated in the same shape as `taxacres` — median right, tail garbage —
+    and the national total moves across an order of magnitude depending on an
+    exclusion cap that nothing justifies.
+    """
+
+    def test_the_verdict_is_not_buildable(self):
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert v["buildable"] is False
+        assert "NOT buildable" in str(v["verdict"])
+
+    def test_the_cap_moves_the_answer_by_an_order_of_magnitude(self):
+        """
+        The finding, as a number: a denominator whose value depends on an
+        unprincipled threshold is not a measurement.
+        """
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert float(v["ratio_span"]) > 10.0, (
+            "if the span ever fell below an order of magnitude the field might "
+            "be usable with a stated cap, and this verdict should be revisited"
+        )
+
+    def test_the_plausible_cap_is_flagged_as_the_trap(self):
+        """
+        A cap of 1,000 gives ~0.9× the US housing stock — close enough to look
+        settled. Adopting it BECAUSE it looks settled is fitting to a target,
+        which is what `DEFAULT_SEGMENTS` and `GUF_USE_SCALE_FACTOR` both did.
+        """
+        from hours_eoh.reference.parcels import (
+            NUMUNITS_CAP_SENSITIVITY, US_HOUSING_UNITS_2020)
+        by_cap = {c: u for c, _, u in NUMUNITS_CAP_SENSITIVITY}
+        assert 0.8 < by_cap[1_000] / US_HOUSING_UNITS_2020 < 1.1, (
+            "the plausible-looking cap must stay plausible-looking, or the "
+            "warning about it stops making sense"
+        )
+        assert by_cap[1_000_000] / US_HOUSING_UNITS_2020 > 10.0
+
+    def test_the_sensitivity_table_is_monotone(self):
+        """A higher cap admits more rows, so the summed total may only rise."""
+        from hours_eoh.reference.parcels import NUMUNITS_CAP_SENSITIVITY
+        caps = [c for c, _, _ in NUMUNITS_CAP_SENSITIVITY]
+        sums = [u for _, _, u in NUMUNITS_CAP_SENSITIVITY]
+        above = [a for _, a, _ in NUMUNITS_CAP_SENSITIVITY]
+        assert caps == sorted(caps)
+        assert sums == sorted(sums), "raising the cap cannot lower the total"
+        assert above == sorted(above, reverse=True), "raising the cap admits more rows"
+
+    def test_a_third_of_built_parcels_carry_no_unit_count(self):
+        """
+        The second, independent reason. A parcel with buildings and no unit
+        count is genuinely MISSING data — distinct from a parcel with neither,
+        where zero service points is at least arguable.
+        """
+        from hours_eoh.reference.parcels import service_point_denominator_verdict
+        v = service_point_denominator_verdict()
+        assert 0.25 < float(v["missing_on_built"]) < 0.40
+
+    def test_no_units_column_reached_the_extract(self):
+        """
+        The measurement's practical consequence: nothing derived from
+        `numunits` is shipped, so no caller can pick it up believing it settled.
+        """
+        header = DATA_FILE.read_text(encoding="utf-8").splitlines()[0]
+        assert "unit" not in header.lower()
