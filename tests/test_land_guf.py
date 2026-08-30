@@ -1239,3 +1239,103 @@ class TestRestorationPathwayUsesTheSameTable:
                     [{"service": name, "volume_lost": 1.0}], eps
                 )["by_service"][0]["kappa_epsilon"]
                 assert e == pytest.approx(rb, rel=1e-12), f"{name} at ε={eps}"
+
+
+class TestTheRemoteEndIsZeroByABSENCE:
+    """
+    OPEN ITEM CLOSED, AND IT WAS MIS-SCOPED (2026-08-29).
+
+    CLAUDE.md carried this as open since 2026-08-20:
+
+        "STILL OPEN: `retired` gives ε=0 the HIGHEST fee (1,692 h/ha·yr) …
+         it collides with the spec's '≈0 at the remote end' until one
+         remembers that zero comes from ASSET ABSENCE, not from a multiplier.
+         … Needs the asset intake to test, which is the critical path."
+
+    THE HYPOTHESIS IN THAT NOTE IS RIGHT AND ITS SCOPING IS WRONG. No asset
+    intake is needed: `location_value` already carries absence, and it zeroes
+    `base_fee` outright. NLSA §4.4's "≈0 at the remote end" is satisfied
+    exactly, at every ε, and the apparent contradiction was never in the
+    formula — it was in holding a SERVICED URBAN inventory fixed while
+    sweeping ε, which asserts a serviced parcel at subsistence.
+
+    The general lesson, and the reason this sat open for nine days: an item
+    recorded as "needs data" is worth re-deriving before it is worked. This one
+    needed a test, and the note said so in its own first clause.
+    """
+
+    def test_a_parcel_with_no_location_value_pays_nothing_at_any_epsilon(self):
+        """The remote end, and it is EXACT rather than approximate."""
+        for eps in (0.0, 0.40, 0.99):
+            r = ground_use_fee(area_slu=1.0, location_value=0.0,
+                               use_category="residential_primary", epsilon=eps)
+            assert r["guf_applied"] == 0.0, f"remote land owes nothing at ε={eps}"
+
+    def test_the_zero_is_ABSENCE_and_not_the_floor(self):
+        """
+        The distinction the whole item turns on. A fee clamped to zero by
+        `guf_floor` would mean the formula wanted to charge and was stopped —
+        which is what happens to the conservation CREDIT. Here `base_fee` is
+        zero on its own, so nothing is being suppressed.
+        """
+        r = ground_use_fee(area_slu=1.0, location_value=0.0,
+                           use_category="residential_primary", epsilon=0.0)
+        assert r["base_fee"] == 0.0
+        assert r["floor_applied"] is False
+        assert r["guf_formula"] == 0.0
+
+    def test_location_value_is_what_carries_absence(self):
+        """Monotone in L, and zero only at zero — so 'remote' is expressible
+        without an asset inventory."""
+        fees = [
+            ground_use_fee(area_slu=1.0, location_value=L,
+                           use_category="residential_primary", epsilon=0.0)["guf_applied"]
+            for L in (0.0, 0.1, 0.4, 0.75, 1.0)
+        ]
+        assert fees[0] == 0.0
+        assert all(b > a for a, b in zip(fees, fees[1:])), fees
+
+    def test_the_high_epsilon_zero_reading_needs_a_CONTRADICTORY_inventory(self):
+        """
+        THE CONTRADICTION, DEMONSTRATED. Holding a serviced urban parcel fixed
+        across the arc makes ε=0 the most expensive point — α's honest reading,
+        since unautomated land administration costs the most human hours. That
+        is not a defect; it is a parcel declared `residential_primary` at
+        L=0.75 while ε=0 asserts subsistence, and no such parcel exists.
+
+        Both readings are pinned together so neither can be quoted alone.
+        """
+        serviced = [
+            ground_use_fee(area_slu=1.0, location_value=0.75,
+                           use_category="residential_primary", epsilon=e)["guf_applied"]
+            for e in (0.0, 0.40, 0.99)
+        ]
+        assert serviced == sorted(serviced, reverse=True), (
+            "for a FIXED inventory the fee falls monotonically with ε — α alone"
+        )
+        assert serviced[0] > serviced[-1] * 10.0
+
+        remote = [
+            ground_use_fee(area_slu=1.0, location_value=0.0,
+                           use_category="residential_primary", epsilon=e)["guf_applied"]
+            for e in (0.0, 0.40, 0.99)
+        ]
+        assert remote == [0.0, 0.0, 0.0], (
+            "and the same sweep on land that is actually remote is flat at zero, "
+            "so the spec's boundary condition holds and the inventory was the "
+            "thing asserting otherwise"
+        )
+
+    def test_the_conservation_credit_is_still_clipped_and_that_is_separate(self):
+        """
+        NOT the same issue, pinned here so the two are not conflated. A
+        conservation parcel on VALUABLE ground is owed a credit by the formula
+        and receives nothing, because `guf_floor` clamps at zero. That is a
+        charter question — should a credit pay out? — and it is untouched by
+        this item, which is about absence rather than suppression.
+        """
+        r = ground_use_fee(area_slu=1.0, location_value=0.75,
+                           use_category="conservation", epsilon=0.0)
+        assert r["guf_formula"] < 0.0, "the formula wants to pay a credit"
+        assert r["guf_applied"] == 0.0, "and the floor stops it"
+        assert r["floor_applied"] is True
