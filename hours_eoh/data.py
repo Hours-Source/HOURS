@@ -2913,6 +2913,37 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 # decided_by: the NLSA template scaling, retained pending the Phase 2 decision.
 GUF_USE_SCALE_FACTOR: float = 100.0
 
+# tag: measured | units: TEH per parcel per year | tier: B
+# form: hours(parcel) / national_parcel_count, both halves measured —
+#   758,393,730 h/yr from the servicing census (404,600 workers on a per-parcel
+#   basis × the derived 1,874.4 h/worker·yr) over 160,573,137 assessor parcels
+#   from `reference/parcels`. Bound by TEST to
+#   `scenarios.guf_magnitude.two_part_rates()`, never by expression: data.py sits
+#   below reference/ and scenarios/ and cannot import them — the same constraint
+#   MEAN_MULTIPLIER_REFERENCE and GUF_ECO_KAPPA_CARBON are bound under.
+#   TestParcelRateIsBoundToTheCensus fails whichever side moves alone.
+# note: THIS IS A LOWER BOUND AND MUST NOT BE QUOTED AS A POINT. The numerator is
+#   restricted to SERVICED_LAND_CLASSES (37.1 Mha of urban and rural
+#   transportation land); the denominator is every parcel in the country,
+#   including parcels on land that census never charged. Restricting the
+#   denominator can only remove parcels, so it can only RAISE the rate. errs LOW.
+#   The gap is deliberately not quantified — parcels concentrate in developed
+#   land so the bound is probably close, but "probably close" is not a
+#   measurement, and guessing it is exactly what GUF_USE_SCALE_FACTOR did.
+# note: IT ALSO BLENDS TWO QUANTITIES THAT SHOULD SEPARATE. `scenarios/use_split`
+#   proposed P_title per legal parcel and P_service per SERVICE POINT, because
+#   consolidating a hundred apartments into one parcel removes a hundred deeds
+#   but not one refuse collection. P_service is not buildable — `numunits`
+#   carries other columns entirely (see `reference/parcels`) — so this is one
+#   blended rate and the split is a declared open item.
+# resolves_by: the parcel roll keyed to LAND CLASS, which closes the scope
+#   mismatch and turns the bound into a point. FIELD: assessor `usedesc`
+#   normalised onto the ERS Major Land Uses classes — 41.2% filled free text
+#   across 3,230 independent county systems, a normalisation project rather than
+#   a lookup. Census county housing-unit estimates would separately settle
+#   P_service's residential share.
+GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
+
 # tag: convention | units: labour-hours per hectare
 # form: the restoration cost the Phase-0 bounding exercise ASSUMED, retained as
 #   the declared comparison point for the derived figure that replaced it.

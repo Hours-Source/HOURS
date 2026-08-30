@@ -589,22 +589,35 @@ def two_part_rates(scope: str = "core") -> dict:
 
 def subdivision_invariance(epsilon: float = 0.40) -> dict:
     """
-    The demonstration that the Ground Use Fee does not depend on parcel count.
+    Whether the Ground Use Fee depends on parcel count. Since 2026-08-30 it does.
 
     Splits every parcel of the urban archetype in two, halving each one's
     `area_slu` so the collective holds the SAME LAND in twice as many holdings,
-    and recomputes. The fee per hectare is unchanged to floating-point equality,
-    because A(p) is in Standard Land Units and SLUs are an area unit.
+    and recomputes the fee per hectare.
 
-    units: labour-hours per hectare per year; `ratio` is dimensionless and is 1.0.
+    units: labour-hours per hectare per year; `ratio` is dimensionless.
 
-    WHY IT IS HERE. `servicing_census.realized_vs_measured` records the urban
-    overshoot's mechanism as "the fee is per-SLU, so packing a hectare with more
-    parcels multiplies the charge". That is false, and the consequence is not
-    cosmetic: it means the urban 18× is driven by the L·U·D product — the
-    location-value index and the ten ratios — and not by density. Run rather than
-    argued, on the established precedent that a claim about the model's behaviour
-    should be a test.
+    THIS FUNCTION HAS INVERTED, AND BOTH READINGS ARE THE POINT.
+
+    Until the per-parcel term was adopted it returned `ratio == 1.0` to
+    floating-point equality, because A(p) is in Standard Land Units and SLUs are
+    an area unit. That was the FALSIFICATION of a recorded claim:
+    `servicing_census.realized_vs_measured` had attributed the urban overshoot to
+    density — "the fee is per-SLU, so packing a hectare with more parcels
+    multiplies the charge" — and parcel count did not enter the fee at all. The
+    consequence was not cosmetic: it relocated the defect onto the L·U·D product.
+
+    It is now the REGRESSION ANCHOR for the term that fixed it. The ratio must
+    exceed 1.0, because the per-parcel term is flat per parcel and subdivision
+    doubles the count while the area product is unchanged. Pricing fragmentation
+    is the intended consequence (notes/guf-per-parcel-term.md, author decision):
+    the same hectare costs more when split, because splitting it genuinely
+    creates deeds, assessments, inspections and refuse rounds.
+
+    Both directions are reported so neither can be quoted alone —
+    `ratio_area_only` recomputes at `parcel_rate=0.0` and must still be exactly
+    1.0, which keeps the original falsification alive as a property of the area
+    product rather than deleting the evidence for it.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
@@ -626,6 +639,15 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
     hectares_after = sum(p["area_slu"] for p in split) * SLU_HECTARES
     after = compute_collective_guf(split, epsilon)["guf_gross_revenue"] / hectares_after
 
+    # The area product alone, with the per-parcel term switched off. Keeps the
+    # original falsification alive rather than deleting the evidence for it.
+    zero = [dict(p, parcel_rate=0.0) for p in parcels]
+    zero_split = [dict(p, parcel_rate=0.0) for p in split]
+    before_area = compute_collective_guf(zero, epsilon)["guf_gross_revenue"] / hectares
+    after_area = (
+        compute_collective_guf(zero_split, epsilon)["guf_gross_revenue"] / hectares_after
+    )
+
     return {
         "epsilon":            epsilon,
         "parcels_before":     len(parcels),
@@ -635,12 +657,19 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
         "h_per_ha_after":     after,
         "ratio":              after / before,
         "invariant":          after == before,
+        "h_per_ha_before_area_only": before_area,
+        "h_per_ha_after_area_only":  after_area,
+        "ratio_area_only":    after_area / before_area,
+        "area_only_invariant": after_area == before_area,
         "verdict": (
-            f"Doubling the parcel count on the same {hectares:,.1f} ha leaves the "
-            f"fee at {after:,.2f} h/ha·yr, exactly as before. Parcel count does "
-            f"not enter the fee. The mechanism recorded for the urban overshoot "
-            f"in Phase 2 is therefore wrong, and the driver is the L·U·D product "
-            f"— the ratios, which that census could not settle."
+            f"Doubling the parcel count on the same {hectares:,.1f} ha moves the "
+            f"fee {before:,.2f} → {after:,.2f} h/ha·yr, ×{after / before:.3f}. "
+            f"The fee prices fragmentation, which is the per-parcel term working "
+            f"as adopted. With that term switched off the same split returns "
+            f"{after_area:,.2f} against {before_area:,.2f} — EXACTLY unchanged, "
+            f"because A(p) is in area units. So the area product is still "
+            f"parcel-blind, and Phase 2's density mechanism for the urban "
+            f"overshoot is still wrong: the driver there is the L·U·D product."
         ),
     }
 

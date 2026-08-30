@@ -351,7 +351,8 @@ class TestInfrastructureProximityPremium:
 # ===========================================================================
 
 class TestGroundUseFee:
-    def _nlsa_example(self, epsilon=0.40, psi_policy="retired"):
+    def _nlsa_example(self, epsilon=0.40, psi_policy="retired",
+                      parcel_rate=None):
         """NLSA §10 residential example (partial — no previous cycle cap).
 
         NOTE this is the one fixture in the suite where E and I are BOTH
@@ -380,6 +381,7 @@ class TestGroundUseFee:
             demand_supply_ratio   = 0.15,
             zone_adj              = 1.0,
             occupancy_fraction    = 1.0,
+            **({} if parcel_rate is None else {"parcel_rate": parcel_rate}),
         )
 
     def test_worked_example_formula(self):
@@ -391,14 +393,30 @@ class TestGroundUseFee:
         assert result["base_fee"]      == pytest.approx(22.5, abs=0.05)
         assert result["eco_surcharge"] == pytest.approx(0.905, abs=0.005)
         assert result["infra_premium"] == pytest.approx(0.490, abs=0.005)
-        # Verify master equation assembly
-        expected = result["psi"] * (result["base_fee"] + 0.905 + 0.490)
-        assert result["guf_formula"] == pytest.approx(expected, rel=1e-4)
+        # NLSA Eq. 1 IS the pre-2026-08-30 fee, so the worked example is
+        # asserted at parcel_rate=0.0. The per-parcel term is an addition to the
+        # equation, not a restatement of it, and pinning the published example
+        # against a changed equation would silently rewrite the source.
+        legacy = self._nlsa_example(0.40, parcel_rate=0.0)
+        expected = legacy["psi"] * (legacy["base_fee"] + 0.905 + 0.490)
+        assert legacy["guf_formula"] == pytest.approx(expected, rel=1e-4)
+        assert legacy["parcel_term"] == 0.0
+
+        # And the shipped default is the example PLUS the term, so the addition
+        # is demonstrated rather than merely excluded from the check.
+        assert result["parcel_term"] > 0.0
+        assert result["guf_formula"] == pytest.approx(
+            expected + result["parcel_term"], rel=1e-4
+        )
 
     def test_components_sum_correctly(self):
         result = self._nlsa_example(0.40)
         psi    = result["psi"]
-        reconstructed = psi * (result["base_fee"] + result["eco_surcharge"] + result["infra_premium"])
+        reconstructed = (
+            psi * (result["base_fee"] + result["eco_surcharge"]
+                   + result["infra_premium"])
+            + result["parcel_term"]
+        )
         assert result["guf_formula"] == pytest.approx(reconstructed, rel=1e-9)
 
     def test_floor_applied_when_below_zero(self):
@@ -423,8 +441,8 @@ class TestGroundUseFee:
         The bell's low-ε behaviour, still pinned — but now explicitly AS the
         `bell` policy rather than as the fee's only shape. Ψ(0) = 0.02.
         """
-        zero = self._nlsa_example(0.0, psi_policy="bell")["guf_formula"]
-        mid  = self._nlsa_example(0.40, psi_policy="bell")["guf_formula"]
+        zero = self._nlsa_example(0.0, psi_policy="bell", parcel_rate=0.0)["guf_formula"]
+        mid  = self._nlsa_example(0.40, psi_policy="bell", parcel_rate=0.0)["guf_formula"]
         assert zero < mid * 0.10
 
     def test_guf_is_HIGHER_at_zero_epsilon_under_the_default(self):
@@ -440,18 +458,35 @@ class TestGroundUseFee:
         mid  = self._nlsa_example(0.40)["guf_formula"]
         assert zero > mid
 
-    def test_occupancy_fraction_scales(self):
+    def test_occupancy_fraction_scales_the_area_product(self):
         full = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
-                              occupancy_fraction=1.0)["guf_formula"]
+                              occupancy_fraction=1.0, parcel_rate=0.0)["guf_formula"]
         half = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
-                              occupancy_fraction=0.5)["guf_formula"]
+                              occupancy_fraction=0.5, parcel_rate=0.0)["guf_formula"]
         assert half == pytest.approx(full * 0.5, rel=1e-6)
+
+    def test_occupancy_does_NOT_scale_the_per_parcel_term(self):
+        """
+        A DESIGN DECISION, pinned so it is visible rather than incidental. Ω is
+        the fraction of the ASSESSED QUANTITY in use, and for this term the
+        assessed quantity is a parcel — a half-occupied parcel is still one
+        parcel, and its deed, boundary and assessment do not halve.
+        """
+        full = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
+                              occupancy_fraction=1.0)
+        half = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
+                              occupancy_fraction=0.5)
+        assert half["parcel_term"] == full["parcel_term"] > 0.0
+        assert half["guf_formula"] > full["guf_formula"] * 0.5
 
     def test_boundary_verification_subsistence_under_the_bell_policy(self):
         # NLSA §4.4: GUF(ε=0) < 0.05 × GUF(ε=0.40) for all parcels.
         # RETAINED AS A PROPERTY OF `bell`, which is what §4.4 was describing.
-        g0   = self._nlsa_example(0.00, psi_policy="bell")["guf_formula"]
-        g040 = self._nlsa_example(0.40, psi_policy="bell")["guf_formula"]
+        # Asserted on the Ψ-bearing terms. The per-parcel term carries α only,
+        # so at ε=0 it is at its LARGEST while Ψ is at its smallest — §4.4's
+        # ratio is a statement about Ψ's shape and this keeps it one.
+        g0   = self._nlsa_example(0.00, psi_policy="bell", parcel_rate=0.0)["guf_formula"]
+        g040 = self._nlsa_example(0.40, psi_policy="bell", parcel_rate=0.0)["guf_formula"]
         assert g0 < 0.05 * g040
 
     def test_boundary_verification_post_scarcity_under_the_bell_policy(self):
@@ -1334,11 +1369,43 @@ class TestTheRemoteEndIsZeroByABSENCE:
         charter question — should a credit pay out? — and it is untouched by
         this item, which is about absence rather than suppression.
         """
-        r = ground_use_fee(area_slu=1.0, location_value=0.75,
+        # 10 SLU = 0.1 ha. At 1 SLU (100 m²) the flat per-parcel term adopted
+        # 2026-08-30 exceeds the area-scaled credit and the formula comes out
+        # POSITIVE — see the companion test below, which pins that as a real
+        # consequence rather than letting it quietly weaken this one.
+        r = ground_use_fee(area_slu=10.0, location_value=0.75,
                            use_category="conservation", epsilon=0.0)
         assert r["guf_formula"] < 0.0, "the formula wants to pay a credit"
         assert r["guf_applied"] == 0.0, "and the floor stops it"
         assert r["floor_applied"] is True
+
+    def test_the_per_parcel_term_creates_a_minimum_viable_conservation_parcel(self):
+        """
+        A CONSEQUENCE OF PRICING FRAGMENTATION, found by this test failing at
+        1 SLU rather than reasoned to in advance.
+
+        The conservation credit scales with AREA; the per-parcel term is FLAT.
+        So below a crossover size the term dominates and a conservation parcel
+        pays a positive fee instead of reaching zero. That is coherent with the
+        decision — a tiny fragment still needs a deed, a boundary and an
+        assessment, and fragmenting land into conservation slivers should not be
+        free — but it is a real change in behaviour and is pinned as one.
+        """
+        tiny = ground_use_fee(area_slu=1.0, location_value=0.75,
+                              use_category="conservation", epsilon=0.0)
+        big = ground_use_fee(area_slu=100.0, location_value=0.75,
+                             use_category="conservation", epsilon=0.0)
+        assert tiny["guf_formula"] > 0.0, "the flat term dominates on a sliver"
+        assert tiny["floor_applied"] is False
+        assert big["guf_formula"] < 0.0, "and the credit dominates at real sizes"
+        assert big["guf_applied"] == 0.0
+
+        # With the term off, even the sliver reaches the credit — so this is the
+        # term's doing and not a property of the conservation coefficient.
+        off = ground_use_fee(area_slu=1.0, location_value=0.75,
+                             use_category="conservation", epsilon=0.0,
+                             parcel_rate=0.0)
+        assert off["guf_formula"] < 0.0
 
 
 class TestTheConservationCreditClampIsADecision:

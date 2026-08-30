@@ -220,17 +220,54 @@ class TestTwoPartRates:
 
 class TestSubdivisionInvariance:
     """
-    THE FALSIFICATION, run rather than asserted. Phase 2 recorded the urban
-    overshoot's mechanism as parcel density; it is not.
+    THE TEST THAT INVERTED, and both readings are pinned so neither can be
+    quoted alone.
+
+    It began as the FALSIFICATION of Phase 2's recorded mechanism for the urban
+    overshoot — "the fee is per-SLU, so packing a hectare with more parcels
+    multiplies the charge" — which was false, because parcel count did not enter
+    the fee at all. Since the per-parcel term was adopted (2026-08-30) it is the
+    REGRESSION ANCHOR for the term that fixed it.
+
+    The area product must STILL be parcel-blind, which is what keeps the original
+    falsification alive as evidence rather than deleting it.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
-    def test_doubling_the_parcel_count_does_not_move_the_fee(self, epsilon):
+    def test_doubling_the_parcel_count_now_raises_the_fee(self, epsilon):
+        """
+        Pricing fragmentation, as adopted. The same land in twice as many
+        holdings costs more, because splitting it genuinely creates deeds,
+        assessments, inspections and refuse rounds.
+        """
         r = subdivision_invariance(epsilon)
         assert r["parcels_after"] == 2 * r["parcels_before"]
-        assert r["invariant"] is True
-        assert r["h_per_ha_after"] == r["h_per_ha_before"]
-        assert r["ratio"] == pytest.approx(1.0)
+        assert r["invariant"] is False
+        assert r["h_per_ha_after"] > r["h_per_ha_before"]
+        assert r["ratio"] > 1.0
+
+    @pytest.mark.parametrize("epsilon", ARC)
+    def test_the_area_product_is_still_exactly_parcel_blind(self, epsilon):
+        """
+        THE ORIGINAL FALSIFICATION, kept. With the per-parcel term switched off
+        the split returns the fee to floating-point equality — so the urban
+        overshoot's driver is still the L·U·D product and not density, and
+        adopting the term did not quietly redefine that finding.
+        """
+        r = subdivision_invariance(epsilon)
+        assert r["area_only_invariant"] is True
+        assert r["h_per_ha_after_area_only"] == r["h_per_ha_before_area_only"]
+        assert r["ratio_area_only"] == pytest.approx(1.0)
+
+    def test_the_fragmentation_premium_is_epsilon_invariant(self):
+        """
+        A property I did not expect and the run produced: the ratio is the same
+        at every ε, because the per-parcel term and the area product both carry
+        α(ε), so it cancels. The fee prices fragmentation by the same factor at
+        subsistence and at post-scarcity.
+        """
+        ratios = [subdivision_invariance(e)["ratio"] for e in ARC]
+        assert max(ratios) - min(ratios) < 1e-9
 
     def test_out_of_range_epsilon_raises(self):
         with pytest.raises(ValueError):
@@ -391,7 +428,8 @@ class TestMagnitudeReport:
         assert rep["epsilon"] == epsilon
         assert rep["by_class"]
         assert rep["two_part_rates"]["u_area_h_per_ha_yr"] > 0.0
-        assert rep["subdivision"]["invariant"] is True
+        assert rep["subdivision"]["invariant"] is False
+        assert rep["subdivision"]["area_only_invariant"] is True
 
     def test_report_states_what_it_cannot_settle(self):
         assert "RATIOS" in magnitude_report()["what_this_does_not_settle"]
@@ -405,7 +443,10 @@ class TestTermBasisRegistry:
 
     def test_every_term_of_the_master_equation_is_declared(self):
         """A term with no declared basis is a term nobody has audited."""
-        assert set(TERM_BASIS) == {"A", "L", "U", "D", "Z", "E", "I", "Psi", "Omega"}
+        assert set(TERM_BASIS) == {
+            "A", "L", "U", "D", "Z", "E", "I", "Psi", "Omega",
+            "P",   # the per-parcel term, adopted 2026-08-30
+        }
 
     def test_every_basis_is_in_the_closed_vocabulary(self):
         for term, entry in TERM_BASIS.items():
@@ -440,11 +481,22 @@ class TestTermBasisRegistry:
     def test_psi_has_no_surviving_basis(self):
         assert TERM_BASIS["Psi"]["basis"] == "unresolved"
 
-    def test_four_terms_carry_their_own_epsilon_response(self):
-        """The double application, as a property of the declaration."""
+    def test_five_terms_carry_their_own_epsilon_response(self):
+        """
+        The double application, as a property of the declaration. `P` joined
+        2026-08-30 carrying alpha — the same response as U, because it is the
+        same KIND of term, a recurring flow. It deliberately does NOT carry Psi:
+        Psi was retired for duplicating alpha, and adding it here would repeat
+        exactly the defect that retired it.
+        """
         assert set(basis_table()["carries_own_epsilon_response"]) == {
-            "U", "E", "I", "Psi"
+            "U", "E", "I", "Psi", "P"
         }
+
+    def test_P_is_a_flow_like_U_and_never_carries_psi(self):
+        assert TERM_BASIS["P"]["basis"] == "cost_flow"
+        assert TERM_BASIS["P"]["spec_direction"] == "aligned"
+        assert TERM_BASIS["P"]["epsilon_response"] == "alpha"
 
 
 class TestPsiDoubleApplication:
@@ -496,7 +548,15 @@ class TestPsiPolicies:
         bell = compute_collective_guf(parcels, 0.99, psi_policy="bell")["guf_gross_revenue"]
         default = compute_collective_guf(parcels, 0.99)["guf_gross_revenue"]
         assert bell < default
-        assert bell == pytest.approx(default * epsilon_scaling(0.99))
+
+        # The Ψ identity holds on the terms Ψ actually multiplies. Since
+        # 2026-08-30 the per-parcel term is not one of them — it carries α only,
+        # because Ψ was retired for duplicating α — so the identity is asserted
+        # with that term switched off rather than loosened with a tolerance.
+        flat = [dict(p, parcel_rate=0.0) for p in parcels]
+        bell_f = compute_collective_guf(flat, 0.99, psi_policy="bell")["guf_gross_revenue"]
+        default_f = compute_collective_guf(flat, 0.99)["guf_gross_revenue"]
+        assert bell_f == pytest.approx(default_f * epsilon_scaling(0.99))
 
     @pytest.mark.parametrize("epsilon", ARC)
     def test_bell_applies_psi_to_all_three_components(self, epsilon):
@@ -586,3 +646,36 @@ class TestMagnitudeChangesNothing:
         c = census("core")
         assert c["workers"] == pytest.approx(909_600.0)
         assert c["hours_per_hectare_year"] == pytest.approx(45.9178, rel=1e-4)
+
+
+class TestParcelRateIsBoundToTheCensus:
+    """
+    `GUF_PARCEL_RATE_TEH_PER_PARCEL_YR` is bound by TEST, not by expression:
+    data.py sits below reference/ and scenarios/ and cannot import them — the
+    same constraint MEAN_MULTIPLIER_REFERENCE and GUF_ECO_KAPPA_CARBON are bound
+    under. This fails whichever side moves alone.
+    """
+
+    def test_the_constant_equals_the_measured_rate(self):
+        from hours_eoh.data import GUF_PARCEL_RATE_TEH_PER_PARCEL_YR
+        assert GUF_PARCEL_RATE_TEH_PER_PARCEL_YR == pytest.approx(
+            two_part_rates("core")["u_parcel_h_per_parcel_yr"], rel=1e-12
+        )
+
+    def test_it_is_the_fee_s_default_and_not_merely_declared(self):
+        """
+        The author decision was to ship it LIVE, not at 0.0. A constant that is
+        declared and not wired is the stranded-parameter failure this repo has
+        found four times.
+        """
+        import inspect
+        from hours_eoh.data import GUF_PARCEL_RATE_TEH_PER_PARCEL_YR
+        default = inspect.signature(ground_use_fee).parameters["parcel_rate"].default
+        assert default == GUF_PARCEL_RATE_TEH_PER_PARCEL_YR
+
+    def test_the_term_actually_moves_the_fee(self):
+        """A wired parameter that changes nothing is wired in name only."""
+        on = ground_use_fee(10.0, 0.5, "residential_primary", 0.40)["guf_applied"]
+        off = ground_use_fee(10.0, 0.5, "residential_primary", 0.40,
+                             parcel_rate=0.0)["guf_applied"]
+        assert on > off

@@ -50,6 +50,7 @@ from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    GUF_PARCEL_RATE_TEH_PER_PARCEL_YR,
     GUF_PSI_A, GUF_PSI_B, GUF_PSI_FLOOR, GUF_PSI_NORM,
     GUF_ALPHA_ZETA, GUF_ALPHA_FLOOR,
     GUF_LVI_W_CENTRALITY, GUF_LVI_W_TRANSIT,
@@ -134,6 +135,22 @@ TERM_BASIS: dict[str, dict[str, str]] = {
             "The base the fee is assessed over. SLUs are an AREA unit, which is "
             "why parcel count does not enter the fee at all — see "
             "scenarios/guf_magnitude.subdivision_invariance."
+        ),
+    },
+    "P": {
+        "basis": "cost_flow",
+        "quantity": "recurring servicing labour per PARCEL per year",
+        "spec_direction": "aligned",
+        "epsilon_response": "alpha",
+        "why": (
+            "The second scaling basis, adopted 2026-08-30 by author decision "
+            "(notes/guf-per-parcel-term.md). 44.5% of measured servicing hours "
+            "follow the count of separately-held parcels, not ground area — "
+            "title search, building inspection, the refuse round — and A is an "
+            "AREA unit, so no value of any coefficient could reach them. It "
+            "carries alpha like U because it is the same kind of term, a "
+            "recurring flow, and it never carries Psi: Psi was retired for "
+            "duplicating alpha, and applying it here would repeat that."
         ),
     },
     "L": {
@@ -859,11 +876,32 @@ def ground_use_fee(
     custom_u_ref: float | None = None,
     residential: bool = True,
     psi_policy: str = "retired",
+    parcel_rate: float = GUF_PARCEL_RATE_TEH_PER_PARCEL_YR,
 ) -> dict:
     """
     Master Ground Use Fee calculation for a single parcel. (NLSA Eq. 1-2)
 
-    GUF(p) = max(floor, [Ψ_b·base_fee + Ψ_e·E(p,ε) + Ψ_i·I(p,ε)] × Ω(p))
+    GUF(p) = max(floor, [Ψ_b·base_fee + Ψ_e·E(p,ε) + Ψ_i·I(p,ε)] × Ω(p) + P(ε))
+
+    THE PER-PARCEL TERM P(ε) (adopted 2026-08-30, author decision;
+    notes/guf-per-parcel-term.md):
+
+        P(ε) = parcel_rate · α(ε)                                  [TEH/year]
+
+    It is a FLAT charge per parcel, so a collective's total scales with its
+    parcel COUNT — which the area product cannot express, because A is in
+    Standard Land Units and 44.5% of measured servicing hours follow parcels
+    rather than ground area. Pricing fragmentation is the intended consequence:
+    the same hectare now costs more when it is subdivided, because subdivision
+    genuinely creates deeds, assessments, inspections and refuse rounds.
+
+    IT SITS OUTSIDE Ω, deliberately. Ω is the fraction of the ASSESSED QUANTITY
+    in use, and the assessed quantity for this term is a parcel — a half-occupied
+    parcel is still one parcel, and its deed, boundary and assessment do not
+    halve. It also never carries Ψ: Ψ was retired for duplicating α, and α is
+    already here.
+
+    Set `parcel_rate=0.0` to recover the pre-2026-08-30 fee exactly.
 
     where (Ψ_b, Ψ_e, Ψ_i) = psi_application(ε, psi_policy). At the default
     `bell` all three are Ψ(ε) and this is exactly NLSA Eq. 1 as shipped:
@@ -928,9 +966,29 @@ def ground_use_fee(
 
     occupancy_fraction = max(0.0, min(1.0, occupancy_fraction))
     psi_b, psi_e, psi_i = psi_application(epsilon, psi_policy)
+    # GATED ON location_value > 0, and the gate is a judgement worth naming.
+    # The parcel-basis occupations split into title examiners — whose cost
+    # exists for any deed, anywhere — and refuse rounds, metering and
+    # inspection, which require the parcel to be SERVICED. That is exactly the
+    # P_title / P_service split `scenarios/use_split` proposed, arriving here as
+    # a structural consequence rather than a measurement refinement, and this
+    # data cannot separate them (see GUF_PARCEL_RATE_TEH_PER_PARCEL_YR).
+    #
+    # L = 0 is this fee's existing encoding of land no service reaches, and
+    # NLSA §4.4 requires the remote end to be ≈0. Charging a blended rate there
+    # would assert that a refuse round reaches a parcel the fee says nothing
+    # reaches. So the term applies where the fee already says services do.
+    #
+    # THE DISCONTINUITY AT L → 0 IS REAL AND IS NOT SMOOTHED. A parcel at
+    # L = 0.001 pays the full term and one at L = 0 pays none. Smoothing it
+    # would be inventing a P_title/P_service ratio that nothing measures.
+    parcel_term        = (
+        max(0.0, parcel_rate) * labor_content_scaling(epsilon)
+        if location_value > 0.0 else 0.0
+    )
     guf_formula        = (
         psi_b * bf + psi_e * eco_amount + psi_i * infra_amount
-    ) * occupancy_fraction
+    ) * occupancy_fraction + parcel_term
     guf_applied        = max(guf_floor, guf_formula)
 
     return {
@@ -939,6 +997,8 @@ def ground_use_fee(
         "base_fee":        bf,
         "eco_surcharge":   eco_amount,
         "infra_premium":   infra_amount,
+        "parcel_term":     parcel_term,
+        "parcel_rate":     parcel_rate,
         # The factor actually applied to base_fee. NOT necessarily Ψ(ε): under
         # `retired` it is 1.0. Reported this way so a caller that multiplies
         # base_fee by it reconstructs the fee under every policy — a reported

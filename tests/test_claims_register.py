@@ -95,7 +95,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_288_of_288() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 288 and total == 288
+    return tagged == 289 and total == 289
 
 
 def _shadow_count_is_33() -> bool:
@@ -122,7 +122,10 @@ def _remote_land_pays_nothing() -> bool:
 
 def _conservation_credit_is_clipped() -> bool:
     from hours_eoh.land.guf import ground_use_fee
-    r = ground_use_fee(area_slu=1.0, location_value=0.75,
+    # 10 SLU = 0.1 ha. At 1 SLU the per-parcel term (adopted 2026-08-30)
+    # exceeds the credit, which is the minimum-viable-conservation-parcel
+    # consequence of pricing fragmentation, not a failure of the clamp.
+    r = ground_use_fee(area_slu=10.0, location_value=0.75,
                        use_category="conservation", epsilon=0.0)
     return r["guf_formula"] < 0.0 and r["guf_applied"] == 0.0
 
@@ -150,7 +153,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 288/288",
+        anchor="provenance 289/289",
         check=_provenance_is_288_of_288,
         why="the coverage figure quoted to institutions; it moved 265 -> 288 in one week.",
     ),
@@ -223,13 +226,6 @@ class TestOpenItemsCannotGoStaleSilently:
     #: it. A third state — open, unlisted, and quietly false — is what this
     #: forbids.
     DECLARED_OPEN: dict[str, str] = {
-        "the per-parcel TERM itself": (
-            "author sign-off on notes/guf-per-parcel-term.md §7 — whether GUF "
-            "acquires a per-parcel basis at all, whether the coefficient ships "
-            "at 0.0 or at the measured lower bound, and whether pricing "
-            "fragmentation is intended. The measurement is done; the charter "
-            "decision is not, and it is not one the data can settle."
-        ),
         "THE TEN RATIOS": (
             "needs occupational data coded by the land use it serves, or a "
             "change to the fee's definition. Both censuses measure disturbance "

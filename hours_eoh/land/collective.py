@@ -59,6 +59,7 @@ _REQUIRED_KEYS: frozenset[str] = frozenset({"area_slu", "location_value", "use_c
 _GUF_SPREAD_KEYS: frozenset[str] = frozenset({
     "ecosystem_services", "infrastructure_assets", "demand_supply_ratio",
     "zone_adj", "occupancy_fraction", "custom_u_ref", "residential",
+    "parcel_rate",
 })
 
 # Keys consumed by collective processing — not forwarded to ground_use_fee()
