@@ -223,6 +223,13 @@ class TestOpenItemsCannotGoStaleSilently:
     #: it. A third state — open, unlisted, and quietly false — is what this
     #: forbids.
     DECLARED_OPEN: dict[str, str] = {
+        "the per-parcel TERM itself": (
+            "author sign-off on notes/guf-per-parcel-term.md §7 — whether GUF "
+            "acquires a per-parcel basis at all, whether the coefficient ships "
+            "at 0.0 or at the measured lower bound, and whether pricing "
+            "fragmentation is intended. The measurement is done; the charter "
+            "decision is not, and it is not one the data can settle."
+        ),
         "THE TEN RATIOS": (
             "needs occupational data coded by the land use it serves, or a "
             "change to the fee's definition. Both censuses measure disturbance "

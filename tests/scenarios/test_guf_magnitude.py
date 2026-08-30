@@ -132,18 +132,63 @@ class TestScalingBasisShares:
 
 class TestTwoPartRates:
 
-    def test_the_area_rate_is_measured_and_the_parcel_rate_is_excluded(self):
+    def test_the_parcel_rate_is_measured_now_that_the_divisor_exists(self):
         """
-        EXCLUDED IS NOT ZERO — the discipline `personal_statutory_floor`
-        established. The parcel hours are known; the rate is not, and it says so
-        while naming the FIELD that would close it.
+        THE EXCLUSION IS RETIRED (2026-08-30). It read "no national parcel count
+        is carried in this repo"; `reference/parcels` carries one. An exclusion
+        whose stated blocker has been removed and is left standing is the
+        status-note-outliving-its-decision failure this repo has caught eight
+        times, so the retirement is pinned rather than merely performed.
         """
         r = two_part_rates("core")
         assert r["u_area_h_per_ha_yr"] > 0.0
-        assert r["u_parcel_h_per_parcel_yr"] is None
-        assert r["u_parcel_hours_total"] > 0.0
+        assert r["u_parcel_h_per_parcel_yr"] is not None
+        assert r["u_parcel_h_per_parcel_yr"] == pytest.approx(
+            r["u_parcel_hours_total"] / r["u_parcel_parcels"]
+        )
+        assert "u_parcel_excluded_reason" not in r, (
+            "the exclusion key must go, not merely be contradicted by a "
+            "neighbouring value — two accounts of one status is how `psi` came "
+            "to differ from `psi_applied`"
+        )
+
+    def test_the_parcel_rate_is_declared_a_lower_bound_and_says_why(self):
+        """
+        THE HALF THAT DID NOT CLOSE, and it must not be quoted as a point. The
+        numerator is restricted to SERVICED_LAND_CLASSES; the denominator is
+        every parcel in the country. Restricting the denominator can only remove
+        parcels, so it can only RAISE the rate — hence errs LOW.
+
+        The gap is deliberately not quantified. Parcels concentrate in developed
+        land so the bound is probably close, but "probably close" is not a
+        measurement, and guessing it would be the fitting this module exists to
+        refuse.
+        """
+        r = two_part_rates("core")
+        assert r["u_parcel_is_lower_bound"] is True
+        assert r["u_parcel_errs"] == "LOW"
+        assert "restrict" in r["u_parcel_bound_reason"].lower()
         assert "FIELD:" in r["u_parcel_resolves_by"]
         assert r["u_parcel_resolves_by"] == PARCEL_COUNT_RESOLVES_BY
+
+    def test_the_resolves_by_still_names_the_unclosed_half(self):
+        """
+        The pointer stays live because it is only HALF satisfied: the count
+        exists, the land-class restriction does not. A `resolves_by` retired on
+        partial satisfaction is how a bound silently becomes a point.
+        """
+        assert "restricted to the land classes" in PARCEL_COUNT_RESOLVES_BY
+
+    def test_the_parcel_rate_is_not_the_area_rate_in_disguise(self):
+        """
+        The two rates have different denominators and different units. If they
+        ever coincided it would mean one divisor had leaked into the other.
+        """
+        r = two_part_rates("core")
+        assert r["u_parcel_parcels"] != pytest.approx(r["serviced_hectares"])
+        assert r["u_parcel_h_per_parcel_yr"] != pytest.approx(
+            r["u_area_h_per_ha_yr"]
+        )
 
     def test_the_area_rate_is_the_area_share_of_the_census_rate(self):
         """The governing equation, checked against its own inputs."""

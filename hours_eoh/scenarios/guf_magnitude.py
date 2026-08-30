@@ -55,10 +55,18 @@ use categories, and no occupational data is coded by the land use it serves.
 Option 1 settles the LEVEL for the classes both censuses reach, and Option 2
 settles the FORM. Neither settles the shape of the table.
 
-The per-parcel rate, for want of one number. The parcel-scaling hours are
-measured (404,600 workers); converting them to a rate needs a national parcel
-count, which this repo does not carry. It is EXCLUDED, not costed at zero, and
-names the field that would close it.
+The per-parcel rate is no longer excluded, but it is a BOUND (2026-08-30).
+`reference/parcels` ships the divisor this module used to lack — 160,573,137
+assessor parcels — so `u_parcel` is 4.723 h/parcel·yr. It is a LOWER bound and
+not a point, because the numerator is restricted to SERVICED_LAND_CLASSES while
+the denominator is every parcel in the country; restricting the denominator can
+only raise the rate. Closing that needs the parcel roll keyed to land class,
+which is the `usedesc` normalisation project the extract deliberately declines
+to bundle into a count.
+
+And the fee still has nowhere to put it. A per-parcel term is a change to what
+the fee is a function of, not a recalibration — see `notes/guf-per-parcel-term.md`,
+awaiting author sign-off.
 
 Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
 """
@@ -81,6 +89,7 @@ from hours_eoh.land.guf import (
     psi_application,
 )
 from hours_eoh.reference import servicing
+from hours_eoh.reference.parcels import national_parcel_count
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 from hours_eoh.scenarios.land_stewardship import ADOPTED_SCOPE, stewardship_intensities
 from hours_eoh.scenarios.servicing_census import census
@@ -503,8 +512,25 @@ def two_part_rates(scope: str = "core") -> dict:
     area-driven", and they differ by the 58.1% of the cost the current form
     cannot address.
 
-    `u_parcel` is EXCLUDED, not zero. The hours are measured; the divisor is not
-    in this repo. `PARCEL_COUNT_RESOLVES_BY` names the field.
+    `u_parcel` IS NOW MEASURED, AS A LOWER BOUND (2026-08-30). It was EXCLUDED
+    for want of a divisor; `reference/parcels` ships one — 160,573,137 assessor
+    parcels over 3,230 counties — and the rate is **4.723 h/parcel·yr**.
+
+    IT IS A BOUND AND NOT A POINT, because the two halves are on different
+    scopes. The numerator is restricted to `SERVICED_LAND_CLASSES` (37.1 Mha of
+    urban and rural transportation land); the denominator is every parcel in the
+    country, including parcels on land that census never charged. Restricting
+    the denominator can only REMOVE parcels, so it can only RAISE the rate:
+
+        u_parcel ≥ hours(parcel) / all_parcels = 4.723 h/parcel·yr
+
+    errs LOW. The gap is not quantified and is deliberately not guessed at —
+    parcels are concentrated in developed land, so the bound is probably close,
+    but "probably close" is not a measurement. Closing it needs the parcel roll
+    keyed to land class, i.e. the `usedesc` normalisation project that
+    `reference/parcels` declines to bundle into a count (41.2% filled, free text
+    from 3,230 independent county systems). `PARCEL_COUNT_RESOLVES_BY` states
+    that remaining half.
 
     THE FORM IS THE FINDING, not the level. A per-parcel term makes the fee
     depend on subdivision, which it currently does not at all
@@ -514,6 +540,8 @@ def two_part_rates(scope: str = "core") -> dict:
     basis = scaling_basis_shares(scope)
     hectares = servicing.serviced_hectares(scope)
     u_area = basis["hours_by_basis"]["area"] / hectares
+    parcels = national_parcel_count()
+    u_parcel = basis["hours_by_basis"]["parcel"] / parcels
     template_mean = (
         sum(v for v in USE_CATEGORIES.values() if v > 0.0)
         / sum(1 for v in USE_CATEGORIES.values() if v > 0.0)
@@ -525,13 +553,16 @@ def two_part_rates(scope: str = "core") -> dict:
         "u_area_h_per_ha_yr":  u_area,
         "u_area_teh_per_slu_yr": u_area * SLU_HECTARES,
         "implied_scale_factor_area_only": (u_area * SLU_HECTARES) / template_mean,
-        "u_parcel_h_per_parcel_yr": None,
+        "u_parcel_h_per_parcel_yr": u_parcel,
         "u_parcel_hours_total":     basis["hours_by_basis"]["parcel"],
-        "u_parcel_excluded_reason": (
-            "measured in hours, unmeasured as a rate — no national parcel count "
-            "is carried in this repo. EXCLUDED rather than costed at zero, which "
-            "would assert that title search, building inspection and refuse "
-            "collection are free."
+        "u_parcel_parcels":         parcels,
+        "u_parcel_is_lower_bound":  True,
+        "u_parcel_errs":            "LOW",
+        "u_parcel_bound_reason": (
+            "the numerator is restricted to SERVICED_LAND_CLASSES and the "
+            "denominator is every parcel in the country. Restricting the "
+            "denominator can only remove parcels, so it can only raise the "
+            "rate. The gap is not quantified and is not guessed at."
         ),
         "u_parcel_resolves_by":     PARCEL_COUNT_RESOLVES_BY,
         "throughput_hours_total":   basis["hours_by_basis"]["throughput"],
@@ -546,9 +577,12 @@ def two_part_rates(scope: str = "core") -> dict:
             f"which is ×{(u_area * SLU_HECTARES) / template_mean:.2f} on the "
             f"template values against the shipped ×{_shipped_scale_factor():g}. "
             f"The parcel-scaling half is "
-            f"{basis['hours_by_basis']['parcel'] / 1e6:,.0f}M h/yr and has no rate "
-            f"because it has no divisor here. A single per-SLU coefficient cannot "
-            f"carry both."
+            f"{basis['hours_by_basis']['parcel'] / 1e6:,.0f}M h/yr over "
+            f"{parcels:,} parcels = {u_parcel:.3f} h/parcel·yr, a LOWER BOUND "
+            f"(the numerator is restricted to serviced land classes and the "
+            f"denominator is not, so restricting it can only raise the rate). "
+            f"A single per-SLU coefficient cannot carry both, and the fee has "
+            f"no per-parcel term to put this one in."
         ),
     }
 
