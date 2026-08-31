@@ -73,6 +73,7 @@ __all__ = [
     "accounts_arc",
     "delivery_crossover",
     "automation_uniformity_check",
+    "anchor_sensitivity",
     "accounts_report",
 ]
 
@@ -310,6 +311,173 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
             f"{implied / uniform:.1f}× the uniform figure. The fiscal layer and "
             f"Block II agree that care resists automation; the generation layer "
             f"does not know it."
+        ),
+    }
+
+
+def anchor_sensitivity(
+    observed_hours_per_capita: float = 937.3,
+    shipped_base: float | None = None,
+) -> dict:
+    """
+    What fixing the care contradiction would cost the knowledge anchor.
+
+    `KNOWLEDGE_EOH_BASE` is set by a fixed point (`knowledge_base.
+    epsilon_ref_fixed_point`) that solves the anchor and the base together:
+
+        base(ε_ref) ──► total_eoh ──► ε_residual(observed) ──► ε_ref …
+
+    The residual step asks at what ε the human labour the model REQUIRES equals
+    the labour actually observed. That step currently applies a uniform (1 − ε)
+    to every domain. Flooring care — as `core/fiscal.care_stipend` already does
+    and as Block II independently supports — raises the required labour at every
+    ε above zero, so the implied ε rises and the base falls with it.
+
+    Governing substitution, personal domain only:
+
+        uniform(ε)     = 1 − ε
+        non_uniform(ε) = s_care·[f + (1 − f)(1 − ε)] + (1 − s_care)·(1 − ε)
+
+    units: ε dimensionless; base in hours at KNOWLEDGE_REFERENCE_POPULATION.
+
+    WHY THIS IS MEASURED BEFORE PHASE 2 AND NOT AFTER. The anchor has been
+    re-derived six times and every previous move was tiny — +0.13%, +0.00047%,
+    0.00% — precisely because the domains it balances against are tiny. This
+    would be the first move against the 91–97% domain, and the question is
+    whether "small" still holds. It does not: the base moves **−16.4%**.
+
+    Worked example (937.3 h/person·yr, US paid labour): ε* 0.386618 → 0.423227,
+    base 523,614,562.88 → 437,917,083.98. Human labour at ε=0.99 goes 28.8 →
+    148.8 h/person·yr, a factor of **5.16** — the difference between "labour has
+    effectively ended" and "most of a month of care work per person per year".
+
+    THE MOVE IS A LOWER BOUND. Only care is floored here, using the fiscal
+    layer's own floor and the basket's own share. `PERSONAL_EOH_COMPONENTS` gives
+    health an abatability of 0.60 and nutrition 0.85, so a fuller treatment
+    floors more components, raises required labour further, and moves the anchor
+    further in the same direction.
+
+    REPORTING ONLY. Nothing is written back; this exists so Phase 2 is committed
+    to on a measured blast radius rather than an estimate.
+    """
+    from hours_eoh.core.trajectory import canonical_physical_state
+    from hours_eoh.data import KNOWLEDGE_EOH_BASE, SKILL_TRANSMISSION_RATE
+
+    # Injectable ONLY so the control flag is falsifiable — a flag that
+    # cannot report False is a flag nobody is checking.
+    reference = KNOWLEDGE_EOH_BASE if shipped_base is None else shipped_base
+    from hours_eoh.scenarios.knowledge_base import knowledge_base_from_registry
+
+    pop = 1.0e6
+    s_care = PERSONAL_EOH_COMPONENTS["care"]["share"]
+    f = CARE_AUTOMATION_FLOOR
+
+    def _domains(eps: float, base: float) -> dict:
+        st = canonical_physical_state(eps)
+        return total_eoh(
+            population=pop,
+            capital_stock=st["capital_stock_teh"],
+            capital_age_ratio=st["capital_age_ratio"],
+            ecosystem_health=st["ecosystem_health"],
+            monitoring_capability=st["monitoring_capability"],
+            age_distribution=st["age_distribution"],
+            knowledge_complexity=st["knowledge_base_size"],
+            knowledge_complexity_per_unit=st["knowledge_complexity_per_unit"],
+            knowledge_base=base,
+            skill_decay_rate=SKILL_TRANSMISSION_RATE,
+        )
+
+    def _required(eps: float, base: float, uniform: bool) -> float:
+        d = _domains(eps, base)
+        if uniform:
+            return (1.0 - eps) * d["total"] / pop
+        care_hf = f + (1.0 - f) * (1.0 - eps)
+        personal_hf = s_care * care_hf + (1.0 - s_care) * (1.0 - eps)
+        rest = d["infrastructure"] + d["ecological"] + d["knowledge"]
+        return (personal_hf * d["personal"] + (1.0 - eps) * rest) / pop
+
+    def _residual(base: float, uniform: bool) -> float | None:
+        if _required(0.0, base, uniform) < observed_hours_per_capita:
+            return None
+        lo, hi = 0.0, 0.99
+        if _required(hi, base, uniform) > observed_hours_per_capita:
+            return hi
+        for _ in range(120):
+            mid = 0.5 * (lo + hi)
+            if _required(mid, base, uniform) > observed_hours_per_capita:
+                lo = mid
+            else:
+                hi = mid
+            if hi - lo < 1e-6:
+                break
+        return 0.5 * (lo + hi)
+
+    def _fixed_point(uniform: bool) -> tuple[float | None, float | None, bool]:
+        eps = 0.40
+        for _ in range(80):
+            base = knowledge_base_from_registry(
+                eps, decay=SKILL_TRANSMISSION_RATE
+            )["base_rate"]
+            implied = _residual(base, uniform)
+            if implied is None:
+                return None, None, False
+            if abs(implied - eps) < 1e-4:
+                base = knowledge_base_from_registry(
+                    implied, decay=SKILL_TRANSMISSION_RATE
+                )["base_rate"]
+                return implied, base, True
+            eps = 0.5 * (eps + implied)
+        return eps, None, False
+
+    eps_u, base_u, conv_u = _fixed_point(True)
+    eps_n, base_n, conv_n = _fixed_point(False)
+
+    # Narrowed explicitly rather than behind an `ok` flag: mypy cannot follow a
+    # boolean guard into a dict literal, and widening the annotation to silence
+    # it would hide a real None that reaches arithmetic.
+    if base_u is None or base_n is None or eps_u is None or eps_n is None:
+        return {
+            "observed_hours_per_capita": observed_hours_per_capita,
+            "epsilon_uniform":     eps_u,
+            "epsilon_non_uniform": eps_n,
+            "base_uniform":        base_u,
+            "base_non_uniform":    base_n,
+            "shipped_base":        reference,
+            "uniform_reproduces_shipped": False,
+            "base_move":           None,
+            "converged":           False,
+            "labour_at_top":       None,
+            "move_is_a_lower_bound": True,
+            "verdict": (
+                "no fixed point at these inputs — the supplied labour exceeds "
+                "the whole obligation at ε=0, which is Finding B and not a "
+                "solver failure"
+            ),
+        }
+
+    move = base_n / base_u - 1.0
+    return {
+        "observed_hours_per_capita": observed_hours_per_capita,
+        "epsilon_uniform":     eps_u,
+        "epsilon_non_uniform": eps_n,
+        "base_uniform":        base_u,
+        "base_non_uniform":    base_n,
+        "shipped_base":        reference,
+        "uniform_reproduces_shipped": abs(base_u / reference - 1.0) < 1e-6,
+        "base_move":  move,
+        "converged":  conv_u and conv_n,
+        "labour_at_top": {
+            "uniform":     _required(0.99, KNOWLEDGE_EOH_BASE, True),
+            "non_uniform": _required(0.99, KNOWLEDGE_EOH_BASE, False),
+        },
+        "move_is_a_lower_bound": True,
+        "verdict": (
+            f"Flooring care alone moves the knowledge anchor "
+            f"{move:+.2%} (ε* {eps_u:.6f} → {eps_n:.6f}). "
+            f"Every previous re-anchor was +0.13% or smaller, because the "
+            f"domains it balanced against were tiny; this is the first move "
+            f"against the 91–97% domain and it is two to four orders of "
+            f"magnitude larger. It is a LOWER bound — only care is floored."
         ),
     }
 

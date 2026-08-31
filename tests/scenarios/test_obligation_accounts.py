@@ -18,6 +18,7 @@ from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
 from hours_eoh.scenarios.obligation_accounts import (
     ACCOUNTS,
+    anchor_sensitivity,
     accounts_arc,
     accounts_report,
     automation_uniformity_check,
@@ -242,3 +243,80 @@ class TestAccountsChangeNothing:
         doc = mod.__doc__ or ""
         assert "WHAT THIS DOES NOT SETTLE" in doc
         assert "charter decision" in doc
+
+
+class TestTheAnchorMoveIsMeasuredBeforePhase2:
+    """
+    Phase 2 de-risking. The care contradiction's fix moves the knowledge anchor,
+    and this measures how far BEFORE the change is committed to rather than
+    after — the anchor has been re-derived six times and every previous move was
+    tiny, which is exactly the reason to check whether "tiny" still holds.
+    """
+
+    def test_the_uniform_branch_reproduces_the_shipped_constant(self):
+        """
+        THE CONTROL, and without it the comparison is worthless. This module
+        reimplements the fixed point; if the reimplementation did not land
+        exactly on `KNOWLEDGE_EOH_BASE`, the non-uniform figure would be
+        measuring the reimplementation's drift instead of the change.
+        """
+        r = anchor_sensitivity()
+        assert r["converged"] is True
+        assert r["uniform_reproduces_shipped"] is True
+        assert r["base_uniform"] == pytest.approx(r["shipped_base"], rel=1e-9)
+
+    def test_the_control_flag_can_report_FALSE(self):
+        """
+        THE BITE THAT WAS MISSING. Hard-coding `uniform_reproduces_shipped` to
+        True passed every test here, because the fact was independently checked
+        and the FLAG was not — the reported-vs-applied pattern (`psi` vs
+        `psi_applied`). A flag that cannot report False is a flag nobody is
+        checking, so the reference is injectable purely to prove it can.
+        """
+        wrong = anchor_sensitivity(shipped_base=1.0e8)
+        assert wrong["uniform_reproduces_shipped"] is False
+        assert wrong["base_move"] == pytest.approx(anchor_sensitivity()["base_move"]), (
+            "the reference must affect only the control flag, never the measured move"
+        )
+
+    def test_the_move_is_large_and_downward(self):
+        """
+        SIGN and MAGNITUDE-CLASS. Flooring care raises the human labour the model
+        requires at every ε above zero, so the implied ε rises and the base falls
+        with it. The exact level moves with the care share and the floor; that it
+        is an order of magnitude beyond every previous re-anchor is the claim.
+        """
+        r = anchor_sensitivity()
+        assert r["base_move"] < 0.0, "the base must fall"
+        assert abs(r["base_move"]) > 0.05, (
+            "every previous re-anchor was +0.13% or smaller; if this ever drops "
+            "into that range, Phase 2 stops being a calibration change and the "
+            "plan should be revisited"
+        )
+        assert r["epsilon_non_uniform"] > r["epsilon_uniform"]
+
+    def test_the_labour_at_the_top_of_the_arc_differs_by_an_order_of_magnitude(self):
+        """
+        The substantive consequence, not the calibration one: the difference
+        between "labour has effectively ended" and "most of a month of care work
+        per person per year still remains".
+        """
+        top = anchor_sensitivity()["labour_at_top"]
+        assert top["non_uniform"] > 4.0 * top["uniform"]
+
+    def test_it_declares_the_move_a_lower_bound(self):
+        """
+        Only care is floored here. `PERSONAL_EOH_COMPONENTS` gives health an
+        abatability of 0.60 and nutrition 0.85, so a fuller treatment floors more
+        components and moves the anchor further in the same direction.
+        """
+        r = anchor_sensitivity()
+        assert r["move_is_a_lower_bound"] is True
+        assert "LOWER bound" in r["verdict"]
+
+    def test_it_changes_nothing(self):
+        from hours_eoh.data import KNOWLEDGE_EOH_BASE
+        before = KNOWLEDGE_EOH_BASE
+        anchor_sensitivity()
+        from hours_eoh.data import KNOWLEDGE_EOH_BASE as after
+        assert after == before

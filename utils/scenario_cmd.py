@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --capital-stock]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
@@ -690,6 +691,26 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "arc_stability":
+        from hours_eoh.scenarios.arc_stability import stability_report
+        rep = stability_report(epsilon)
+        st: dict = {}
+        for r in rep["arc"]:
+            e = r["epsilon"]
+            st[f"eps {e:.2f} | supply"] = r["supply_per_capita"]
+            st[f"eps {e:.2f} | obligation"] = r["obligation_per_capita"]
+            st[f"eps {e:.2f} | delivery"] = r["delivery_per_capita"]
+            st[f"eps {e:.2f} | surplus"] = r["surplus_per_capita"]
+            st[f"eps {e:.2f} | stationary"] = r["stationary"]
+            if r["failing"]:
+                st[f"eps {e:.2f} | failing"] = ", ".join(r["failing"])
+        b = rep["band"]
+        st["band_lower"] = b["lower"]
+        st["band_upper"] = b["upper"]
+        st["band_contiguous"] = b["contiguous"]
+        st["verdict"] = rep["verdict"]
+        return st
 
     if name == "obligation_accounts":
         from hours_eoh.scenarios.obligation_accounts import accounts_report
