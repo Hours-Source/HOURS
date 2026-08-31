@@ -19,6 +19,8 @@ Mission Statement: §"EOH as demand signal", §"The dual ledger",
 from __future__ import annotations
 
 from hours_eoh.data import (
+    PERSONAL_AUTOMATION_FLOORS,
+    PERSONAL_EOH_COMPONENTS,
     CAPITAL_FAILURE_RATE,
     CAPITAL_STOCK_DEFAULT,
     CAPITAL_WRITEDOWN_MONITORING_SLOPE,
@@ -236,9 +238,82 @@ def teh_supply(
 # Per-domain human EOH breakdown
 # ---------------------------------------------------------------------------
 
+#: How the machine/human split is applied across the personal obligation.
+#: `uniform` is the shipped behaviour and reproduces every pre-Phase-2 number
+#: exactly; `per_component` applies the floors in PERSONAL_AUTOMATION_FLOORS.
+AUTOMATION_RESPONSES: tuple[str, ...] = ("uniform", "per_component")
+
+
+def personal_human_fraction(
+    epsilon: float,
+    automation_response: str = "uniform",
+) -> float:
+    """
+    The share of personal EOH that stays human-carried at automation level ε.
+
+    Governing equations:
+
+        uniform(ε)        = 1 − ε
+        per_component(ε)  = Σ_c share_c · [ f_c + (1 − f_c)·(1 − ε) ]
+
+    where share_c comes from `PERSONAL_EOH_COMPONENTS` and f_c from
+    `PERSONAL_AUTOMATION_FLOORS` (0.0 for a component with no declared floor,
+    which reduces that term to 1 − ε).
+
+    units: dimensionless fraction in [0, 1].
+
+    ε-behaviour: both forms equal 1.0 at ε=0 — with nothing automated a floor ON
+    automation cannot bite, and that coincidence is the control. They diverge as
+    ε rises; at ε=0.99 uniform gives 0.0100 and per_component 0.1022, a factor
+    of 10.2.
+
+    WHY THIS EXISTS. `CARE_AUTOMATION_FLOOR`'s own tag block says relational care
+    "cannot be automated at any ε — a commitment about what care IS", and Block
+    II independently finds care the least abatable component at 84.4% of the
+    residual. But the shipped split applies one (1 − ε) to every domain, and care
+    is 62.1% of personal EOH. **The fiscal layer has modelled care as
+    un-automatable while the generation layer automated it at the full rate**,
+    and nothing compared them until `scenarios/obligation_accounts`.
+
+    AN AUTOMATION FLOOR IS NOT AN ABATABILITY. `abatability` in
+    `PERSONAL_EOH_COMPONENTS` is the most infrastructure can REMOVE — a(K),
+    ε-free by construction. This is who does what REMAINS. They compose.
+
+    Worked example (ε=0.99, per_component): care is 62.1% of personal and floors
+    at 0.15 + 0.85·0.01 = 0.1585; the other 37.9% carry no floor and give 0.0100;
+    the weighted fraction is 0.1022.
+
+    Args:
+        epsilon: Automation level [0.0, 1.0].
+        automation_response: One of AUTOMATION_RESPONSES. Default `uniform`
+            reproduces the pre-2026-08-30 split exactly.
+
+    Raises:
+        ValueError: if epsilon is outside [0.0, 1.0] or the response is unknown.
+    """
+    if not 0.0 <= epsilon <= 1.0:
+        raise ValueError(f"epsilon must be in [0.0, 1.0], got {epsilon}")
+    if automation_response not in AUTOMATION_RESPONSES:
+        raise ValueError(
+            f"automation_response must be one of {AUTOMATION_RESPONSES}, "
+            f"got {automation_response!r}"
+        )
+
+    uniform = 1.0 - epsilon
+    if automation_response == "uniform":
+        return uniform
+
+    total = 0.0
+    for name, spec in PERSONAL_EOH_COMPONENTS.items():
+        floor = PERSONAL_AUTOMATION_FLOORS.get(name, 0.0)
+        total += float(spec["share"]) * (floor + (1.0 - floor) * uniform)
+    return total
+
+
 def human_eoh_per_domain(
     total_eoh_dict: dict,
     epsilon: float = 0.40,
+    automation_response: str = "uniform",
 ) -> dict:
     """
     Per-domain human-labor EOH from a total_eoh() result dict.
@@ -266,14 +341,29 @@ def human_eoh_per_domain(
 
     Reference: Mission Statement §"EOH and automation" — human_fraction = (1-ε)
     applies uniformly across all four entropy domains.
+
+    PHASE 2 (2026-08-30): `automation_response="per_component"` gives the
+    PERSONAL domain its own human fraction from `personal_human_fraction`, which
+    honours the declared automation floors. The other three domains keep the
+    uniform split — nothing in this repo measures a floor for them, and
+    inventing one would be the guessing this module refuses. Default `uniform`
+    reproduces every pre-Phase-2 number exactly.
     """
     human_fraction = 1.0 - epsilon
+    personal_fraction = personal_human_fraction(epsilon, automation_response)
     domains = ("personal", "infrastructure", "ecological", "knowledge")
-    per_domain = {d: total_eoh_dict.get(d, 0.0) * human_fraction for d in domains}
+    per_domain = {
+        d: total_eoh_dict.get(d, 0.0) * (
+            personal_fraction if d == "personal" else human_fraction
+        )
+        for d in domains
+    }
     return {
         **per_domain,
         "total":          sum(per_domain.values()),
         "human_fraction": human_fraction,
+        "personal_human_fraction": personal_fraction,
+        "automation_response":     automation_response,
         "epsilon":        epsilon,
     }
 
@@ -478,6 +568,7 @@ def eoh_to_teh_pipeline(
     # be reached from the documented entry point is a switch nobody exercises.
     ecological_health_response: str = "guf",
     ecological_standing_response: str = "guf",
+    automation_response: str = "uniform",
     knowledge_base: float = KNOWLEDGE_EOH_BASE,
 ) -> dict:
     """
@@ -627,7 +718,9 @@ def eoh_to_teh_pipeline(
     )
 
     # Per-domain human EOH via the existing helper (uniform (1-ε) per domain)
-    hd                 = human_eoh_per_domain(eoh_dict, epsilon)
+    hd                 = human_eoh_per_domain(
+        eoh_dict, epsilon, automation_response=automation_response
+    )
     personal_eoh_val   = eoh_dict["personal"]
 
     # Labor constraint (opt-in). Without it the pipeline assumes every hour of

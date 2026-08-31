@@ -2212,6 +2212,32 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   0.15 is the right residual is arguable; that the residual is non-zero is
 #   the load-bearing part, and it is what the tests pin.
 CARE_AUTOMATION_FLOOR:        float = 0.15
+
+# tag: measured | units: dimensionless human-labour fraction | tier: B
+# form: the floor on the human share of a personal-EOH component — the fraction
+#   that stays human-carried however high epsilon goes. Only `care` is listed,
+#   bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A
+#   component that is ABSENT carries no floor and behaves exactly as the uniform
+#   (1 - epsilon) split does today.
+# note: AN AUTOMATION FLOOR IS NOT AN ABATABILITY, and conflating them would be
+#   the wrong-instrument error. PERSONAL_EOH_COMPONENTS carries `abatability` —
+#   "the most of this component INFRASTRUCTURE CAN EVER REMOVE", i.e. a(K),
+#   which deletes the obligation and is epsilon-FREE by construction (Block II).
+#   This is the different question of who does the work that REMAINS. The two
+#   compose; neither substitutes for the other.
+# note: THE ABSENCE OF THE OTHER THREE IS AN ADMISSION, NOT A ZERO. Nothing here
+#   measures whether nutrition, shelter or health have an un-automatable
+#   residue. Omitting them reproduces today's behaviour exactly, which is the
+#   conservative choice, but "no floor" is an ASSUMPTION and not a finding.
+#   Adding a floor for any of them moves the arc further in the same direction,
+#   so the shipped figure errs LOW.
+# resolves_by: time-use studies separating the RELATIONAL from the physical
+#   component of each obligation, as CARE_AUTOMATION_FLOOR's own pointer names
+#   for care. FIELD: the share of hours whose value depends on a human
+#   performing them, not the share a machine is technically capable of.
+PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
+    "care": CARE_AUTOMATION_FLOOR,
+}
 # tag: normative | units: full-infant-rate dependent equivalents
 # form: the per-provider cap on care stipend —
 #     provider_cap_teh = base_infant_stipend × CAP_EQUIVALENTS × automation_factor

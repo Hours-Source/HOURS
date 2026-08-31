@@ -536,10 +536,14 @@ def simulate_period(
         "registered_eoh":    pipeline["registered_eoh"],
         "registration_share": pipeline["registration_share"],
         "eoh_by_domain":     pipeline["eoh_by_domain"],
+        # Whitelisted to the DOMAINS rather than blacklisting metadata: this
+        # dict is typed float and the helper also returns labels. The blacklist
+        # broke the moment Phase 2 added two keys — the same shape as Block
+        # III's basis label landing in a dict[str, float].
         "human_eoh_by_domain": {
             k: v for k, v in
             human_eoh_per_domain(pipeline["eoh_by_domain"], eps).items()
-            if k not in ("total", "human_fraction", "epsilon")
+            if k in ("personal", "infrastructure", "ecological", "knowledge")
         },
         # TEH
         "teh_created":       teh_this_period,

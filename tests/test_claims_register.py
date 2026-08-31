@@ -95,7 +95,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_288_of_288() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 290 and total == 290
+    return tagged == 291 and total == 291
 
 
 def _shadow_count_is_33() -> bool:
@@ -153,7 +153,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 290/290",
+        anchor="provenance 291/291",
         check=_provenance_is_288_of_288,
         why="the coverage figure quoted to institutions; it moved 265 -> 288 in one week.",
     ),
@@ -226,6 +226,14 @@ class TestOpenItemsCannotGoStaleSilently:
     #: it. A third state — open, unlisted, and quietly false — is what this
     #: forbids.
     DECLARED_OPEN: dict[str, str] = {
+        "the Phase 2 FLIP": (
+            "author sign-off on notes/phase-2-per-component-automation.md §7 — "
+            "whether care is un-automatable in the generation layer as the "
+            "fiscal layer and Block II already say, whether to flip the default "
+            "or leave per_component opt-in, and whether to adopt the -16.4% "
+            "re-anchor in the following commit. The mechanism is built and "
+            "default-off; the charter decision is not one the data can settle."
+        ),
         "THE TEN RATIOS": (
             "needs occupational data coded by the land use it serves, or a "
             "change to the fee's definition. Both censuses measure disturbance "
