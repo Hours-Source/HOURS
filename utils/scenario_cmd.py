@@ -115,7 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
-    "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --capital-stock]",
+    "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
@@ -225,6 +225,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        help="Land use category (GUF scenarios; default: residential_primary)")
 
     # Autarky / overbuild
+    run_p.add_argument("--standard", choices=["survival", "sufficiency"],
+                       default="sufficiency",
+                       help="personal-EOH standard for arc_stability. "
+                            "'collapsed' is refused: an abated value cannot "
+                            "be the autarky reference")
     run_p.add_argument("--capital-stock", type=float, default=1.9e9,
                        dest="capital_stock", metavar="TEH",
                        help="Apparatus capital stock in TEH (overbuild; default: 1.9e9 "
@@ -694,7 +699,9 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "arc_stability":
         from hours_eoh.scenarios.arc_stability import stability_report
-        rep = stability_report(epsilon)
+        rep = stability_report(
+            epsilon, standard=getattr(args, "standard", "sufficiency")
+        )
         st: dict = {}
         for r in rep["arc"]:
             e = r["epsilon"]
@@ -706,6 +713,12 @@ def _dispatch(args: argparse.Namespace) -> object:
             if r["failing"]:
                 st[f"eps {e:.2f} | failing"] = ", ".join(r["failing"])
         b = rep["band"]
+        st["standard"] = rep["standard"]
+        for _name, _sb in rep["band_by_standard"].items():
+            st[f"band @ {_name}"] = (
+                f"[{_sb['lower']}, {_sb['upper']}]"
+                if _sb["any_stationary"] else "none"
+            )
         st["band_lower"] = b["lower"]
         st["band_upper"] = b["upper"]
         st["band_contiguous"] = b["contiguous"]

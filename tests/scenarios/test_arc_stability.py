@@ -15,6 +15,8 @@ import pytest
 
 from hours_eoh.scenarios.arc_stability import (
     CONDITIONS,
+    STANDARDS,
+    band_by_standard,
     band_from_flags,
     stability_arc,
     stability_at,
@@ -213,3 +215,201 @@ class TestStabilityChangesNothing:
     def test_it_takes_no_charter_decision(self):
         import hours_eoh.scenarios.arc_stability as mod
         assert "WHAT THIS DOES NOT DO" in (mod.__doc__ or "")
+
+
+class TestTheStandardIsDeclaredAndSingular:
+    """
+    THE DEFECT THIS MODULE SHIPPED WITH FOR ONE COMMIT, and the tests that would
+    have caught it.
+
+    Conditions 1 and 3 ran at `collapsed` (feasibility's own default) while
+    condition 2 ran at `sufficiency` (overbuild's own default) — one verdict, two
+    standards, undeclared. Every test in this file passed. It was found by
+    checking whether the neighbouring `corridor` entry point was reachable, not
+    by the suite.
+    """
+
+    def test_the_result_states_which_standard_it_is_at(self):
+        r = stability_at(0.40)
+        assert r["standard"] in STANDARDS
+        assert r["personal_base"] > 0.0
+
+    def test_all_three_conditions_move_together_with_the_standard(self):
+        """
+        THE BITE, and the first version of it did NOT bite. It asserted the
+        band moves with the standard — but the band is driven by conditions 1
+        and 3, so condition 2 could stay stuck on its own default undetected.
+        Condition 2 is now pinned through `autarky_reference`, the one field of
+        the overbuild test that moves with the standard.
+        """
+        from hours_eoh.core.eoh_generation import personal_base_for
+        lo = stability_at(0.40, standard="survival")
+        hi = stability_at(0.40, standard="sufficiency")
+
+        assert hi["personal_base"] > lo["personal_base"]
+        assert hi["personal_base"] == personal_base_for("sufficiency")
+        assert lo["personal_base"] == personal_base_for("survival")
+        # conditions 1 & 3
+        assert hi["obligation_per_capita"] > lo["obligation_per_capita"]
+        assert hi["surplus_per_capita"] < lo["surplus_per_capita"]
+        # condition 2 — the one the band cannot see
+        assert hi["autarky_reference"] > lo["autarky_reference"], (
+            "the standard did not reach overbuild_check; condition 2 is stuck "
+            "on its own default, which is the mixed-standard defect"
+        )
+
+    def test_the_reported_standard_is_the_requested_one(self):
+        """
+        Hard-coding the reported field passed every earlier test — the
+        reported-vs-applied shape again. Pinned against the request.
+        """
+        for st in STANDARDS:
+            assert stability_at(0.40, standard=st)["standard"] == st
+
+    def test_the_supply_does_not_depend_on_the_standard_and_says_so(self):
+        """
+        The labour SUPPLY is a capacity, not an obligation, so it must NOT move
+        with the standard. This module briefly passed `personal_base` into
+        `feasibility_check` and read only `supply_per_capita`, which ignores it —
+        a silently-ignored parameter. It now calls `labor_supply_per_capita`
+        directly, which is honest about what it needs.
+        """
+        lo = stability_at(0.40, standard="survival")
+        hi = stability_at(0.40, standard="sufficiency")
+        assert lo["supply_per_capita"] == hi["supply_per_capita"]
+        # The CALL, not the word — the module still discusses the defect in
+        # prose, and a substring check would fire on its own documentation (the
+        # claims-register lesson).
+        import ast
+        import hours_eoh.scenarios.arc_stability as mod
+        tree = ast.parse(open(mod.__file__).read())
+        called = {
+            n.func.id for n in ast.walk(tree)
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        }
+        assert "feasibility_check" not in called, (
+            "reading only `supply_per_capita` from feasibility_check invites "
+            "passing it a standard it ignores"
+        )
+        assert "labor_supply_per_capita" in called
+
+    def test_every_condition_source_names_something_that_exists(self):
+        """
+        A `source:` pointer that outlives the call it names is this repo's most
+        repeated failure. Line 117 named `feasibility_check` for one commit
+        after the module stopped calling it.
+        """
+        import importlib
+        import re
+        checked = 0
+        for name, c in CONDITIONS.items():
+            src = re.sub(r"\s*\(.*\)$", "", c["source"]).strip()
+            if "/" not in src:                      # "this module, ..." — no target
+                continue
+            mod_path, _, fn = src.rpartition(".")
+            mod = importlib.import_module("hours_eoh." + mod_path.replace("/", "."))
+            assert hasattr(mod, fn), f"{name}: {src} does not exist"
+            checked += 1
+        assert checked >= 2, (
+            "the scan matched nothing and would pass vacuously — the "
+            "`exercised alongside passes` discipline"
+        )
+
+
+class TestConditionTwoIsReachableInBothDirections:
+    """
+    A condition that cannot fail is not a condition. `delivery_pays` was True
+    everywhere for one commit — not because the apparatus always paid, but
+    because the default `capital_stock_teh` was 2,000 TOTAL over 1e6 people,
+    i.e. 0.002 per capita. There was no apparatus to fail to pay for, and every
+    test in this file passed.
+    """
+
+    def test_capital_stock_teh_is_TOTAL_not_per_capita(self):
+        """
+        The units error, pinned. `overbuild_check` divides by population itself,
+        and its own docstring says "Total apparatus capital".
+        """
+        from hours_eoh.data import CAPITAL_STOCK_DEFAULT
+        r = stability_at(0.40)
+        assert r["capital_stock_teh"] == CAPITAL_STOCK_DEFAULT
+        assert r["capital_stock_teh"] > 1.0e8, (
+            "a default small enough to be a per-capita figure means the "
+            "apparatus is effectively absent and condition 2 cannot bind"
+        )
+
+    def test_delivery_pays_holds_at_the_reference_capital(self):
+        assert stability_at(0.40)["delivery_pays"] is True
+
+    def test_delivery_pays_FAILS_when_the_apparatus_is_overbuilt(self):
+        """
+        The other direction. At ~25,000 TEH/capita the apparatus costs more than
+        it abates — the recorded overbuild threshold — and the condition must
+        say so.
+        """
+        r = stability_at(0.40, capital_stock_teh=2.5e10)
+        assert r["delivery_pays"] is False
+        assert r["overbuild_verdict"] == "overbuilt"
+        assert "delivery_pays" in r["failing"]
+        assert r["stationary"] is False
+
+    def test_the_abated_standard_is_refused_with_its_reason(self):
+        """
+        `collapsed` is F_a·(1 − a) — already abated — and `core/autarky` refuses
+        it as an autarky reference in as many words. A standard with the
+        apparatus baked into it cannot be the counterfactual FOR the apparatus.
+        """
+        assert "collapsed" not in STANDARDS
+        with pytest.raises(ValueError):
+            stability_at(0.40, standard="collapsed")
+        with pytest.raises(ValueError):
+            stability_at(0.40, standard="nonsense")
+
+    def test_the_exclusion_is_explained_where_a_reader_will_look(self):
+        import hours_eoh.scenarios.arc_stability as mod
+        doc = " ".join((mod.__doc__ or "").split())
+        src = " ".join(open(mod.__file__).read().split())
+        assert "autarky reference" in src
+        assert "collapsed" in src
+
+
+class TestItIsComparableToTheNeighbouringQuestions:
+    """
+    The module docstring names `corridor` and `canonical_arc_trajectory` as the
+    neighbouring questions. A pointer a reader cannot follow is worse than none —
+    the `resolves_by`-naming-a-source-not-a-field lesson — so both are exercised.
+    """
+
+    def test_both_neighbours_are_importable_and_runnable(self):
+        from hours_eoh.research.corridor import survival_floor_epsilon  # noqa: F401
+        from hours_eoh.scenarios.long_run import canonical_arc_trajectory
+        r = canonical_arc_trajectory(n_periods=3)
+        assert r["n_periods"] == 3
+
+    def test_stability_is_strictly_stronger_than_survivability(self):
+        """
+        THE RELATIONSHIP, and it is the reason the two bands may differ without
+        contradicting. Corridor asks which ε are SURVIVABLE; this asks where the
+        system could STAND STILL, which additionally requires the delivery cost
+        to be covered. So the stationary band must start at or above corridor's
+        floor at the same standard — and stating the standard is what makes that
+        legible instead of looking like a disagreement.
+        """
+        from hours_eoh.core.eoh_generation import total_eoh
+        from hours_eoh.research.corridor import survival_floor
+        for standard in STANDARDS:
+            # The same path `utils/corridor_cmd._band` takes.
+            eoh = total_eoh(epsilon=0.40, population=1.0e6,
+                            personal_standard=standard)
+            floor = survival_floor(eoh, 1.0e9)["epsilon_floor"]
+            band = stationary_band(standard=standard)
+            assert band["lower"] >= floor - 1e-9, (
+                f"at {standard!r} the stationary band starts BELOW the survival "
+                f"floor ({band['lower']} < {floor}), which would mean the system "
+                f"can stand still where it cannot survive"
+            )
+
+    def test_the_band_is_reported_at_every_admissible_standard(self):
+        """Both corners survive rather than one being picked — SCOPES precedent."""
+        by = band_by_standard()
+        assert set(by) == set(STANDARDS)
