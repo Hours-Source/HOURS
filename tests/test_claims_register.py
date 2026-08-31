@@ -227,7 +227,7 @@ class TestOpenItemsCannotGoStaleSilently:
     #: forbids.
     DECLARED_OPEN: dict[str, str] = {
         "the Phase 2 FLIP": (
-            "author sign-off on notes/phase-2-per-component-automation.md §7 — "
+            "author sign-off on notes/phase-2-per-component-automation.md §8 — "
             "whether care is un-automatable in the generation layer as the "
             "fiscal layer and Block II already say, whether to flip the default "
             "or leave per_component opt-in, and whether to adopt the -16.4% "

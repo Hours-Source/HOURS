@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
@@ -696,6 +697,29 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "component_shares":
+        from hours_eoh.scenarios.component_shares import shares_report
+        rep = shares_report()
+        cs: dict = {}
+        for row in rep["comparison"]["rows"]:
+            k = row["component"]
+            cs[f"{k} | observed"] = row["observed"]
+            cs[f"{k} | desk"] = row["desk"]
+            cs[f"{k} | ratio"] = row["ratio"]
+        d = rep["direction"]
+        for row in d["rows"]:
+            cs[f"{row['component']} | change {d['start']}-{d['end']}"] = row["change"]
+        cs["rho(abatability, change)"] = d["spearman_abatability_vs_change"]
+        cs["rho(abatability, desk share)"] = d["spearman_abatability_vs_desk_share"]
+        cs["rho(abatability, observed share)"] = d["spearman_abatability_vs_observed_share"]
+        cs["refutes_abatement"] = d["refutes_abatement"]
+        s2 = rep["sensitivity"]
+        cs["phase2 factor @ desk share"] = s2["factor_at_desk"]
+        cs["phase2 factor @ observed share"] = s2["factor_at_observed"]
+        cs["is_a_bound"] = rep["comparison"]["is_a_bound"]
+        cs["verdict"] = rep["verdict"]
+        return cs
 
     if name == "arc_stability":
         from hours_eoh.scenarios.arc_stability import stability_report
