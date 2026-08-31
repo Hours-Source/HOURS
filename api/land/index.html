@@ -1649,6 +1649,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2084,10 +2105,10 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ground_use_fee</span><span class="p">(</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">area_slu</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">location_value</span><span class="o">=</span><span class="mf">0.629</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">use_category</span><span class="o">=</span><span class="s2">&quot;residential_primary&quot;</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">use_category</span><span class="o">=</span><span class="s2">"residential_primary"</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;guf_formula&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;floor_applied&quot;</span><span class="p">])</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"guf_formula"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"floor_applied"</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="rate-constraints">Rate Constraints<a class="headerlink" href="#rate-constraints" title="Permanent link">&para;</a></h2>
@@ -2107,7 +2128,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.guf</span><span class="w"> </span><span class="kn">import</span> <span class="n">rebuilding_surcharge</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">rebuilding_surcharge</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">services_lost</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;biodiversity&quot;</span><span class="p">,</span> <span class="s2">&quot;volume_lost&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="s2">&quot;kappa_ref&quot;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s2">&quot;beta&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">}],</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">services_lost</span><span class="o">=</span><span class="p">[{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"biodiversity"</span><span class="p">,</span> <span class="s2">"volume_lost"</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="s2">"kappa_ref"</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">}],</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">amortization_years</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
@@ -2124,7 +2145,7 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ground_use_fee_writedown</span><span class="p">(</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">area_slu</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">services_reset</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;water&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s2">&quot;kappa_ref&quot;</span><span class="p">:</span> <span class="mf">1.65</span><span class="p">,</span> <span class="s2">&quot;beta&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">&quot;retained&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">}],</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">services_reset</span><span class="o">=</span><span class="p">[{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"water"</span><span class="p">,</span> <span class="s2">"volume"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s2">"kappa_ref"</span><span class="p">:</span> <span class="mf">1.65</span><span class="p">,</span> <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">"retained"</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">}],</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">services_lost</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># restoration pathway</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -2142,24 +2163,24 @@
 <h3 id="standard-parcel-schema">Standard parcel schema<a class="headerlink" href="#standard-parcel-schema" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="c1"># Required</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;area_slu&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">,</span>   <span class="c1"># parcel area (1 SLU = 100 m²)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">&quot;location_value&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>   <span class="c1"># L(p) ∈ [0,1]</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="s2">&quot;use_category&quot;</span><span class="p">:</span>   <span class="nb">str</span><span class="p">,</span>     <span class="c1"># see USE_CATEGORIES in guf.py</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">"area_slu"</span><span class="p">:</span>       <span class="nb">float</span><span class="p">,</span>   <span class="c1"># parcel area (1 SLU = 100 m²)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">"location_value"</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>   <span class="c1"># L(p) ∈ [0,1]</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="s2">"use_category"</span><span class="p">:</span>   <span class="nb">str</span><span class="p">,</span>     <span class="c1"># see USE_CATEGORIES in guf.py</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="c1"># Optional — forwarded to ground_use_fee()</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">&quot;ecosystem_services&quot;</span><span class="p">:</span>     <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">&quot;infrastructure_assets&quot;</span><span class="p">:</span>  <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="s2">&quot;demand_supply_ratio&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="s2">&quot;zone_adj&quot;</span><span class="p">:</span>               <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="s2">&quot;occupancy_fraction&quot;</span><span class="p">:</span>     <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="s2">&quot;custom_u_ref&quot;</span><span class="p">:</span>           <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="s2">&quot;residential&quot;</span><span class="p">:</span>            <span class="nb">bool</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">"ecosystem_services"</span><span class="p">:</span>     <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="s2">"infrastructure_assets"</span><span class="p">:</span>  <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="s2">"demand_supply_ratio"</span><span class="p">:</span>    <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="s2">"zone_adj"</span><span class="p">:</span>               <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="s2">"occupancy_fraction"</span><span class="p">:</span>     <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="s2">"custom_u_ref"</span><span class="p">:</span>           <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="s2">"residential"</span><span class="p">:</span>            <span class="nb">bool</span><span class="p">,</span>
 </span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="c1"># Optional — handled by this module</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="s2">&quot;parcel_id&quot;</span><span class="p">:</span>       <span class="nb">str</span><span class="p">,</span>    <span class="c1"># label for reporting</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="s2">&quot;occupant_income&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># enables income-linked subsidy σ-curve</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="s2">&quot;guf_previous&quot;</span><span class="p">:</span>    <span class="nb">float</span><span class="p">,</span>  <span class="c1"># enables 10% review-cycle cap</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="s2">&quot;delta_shi&quot;</span><span class="p">:</span>       <span class="nb">float</span><span class="p">,</span>  <span class="c1"># soil-health credit for agricultural parcels</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="s2">"parcel_id"</span><span class="p">:</span>       <span class="nb">str</span><span class="p">,</span>    <span class="c1"># label for reporting</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="s2">"occupant_income"</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># enables income-linked subsidy σ-curve</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="s2">"guf_previous"</span><span class="p">:</span>    <span class="nb">float</span><span class="p">,</span>  <span class="c1"># enables 10% review-cycle cap</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="s2">"delta_shi"</span><span class="p">:</span>       <span class="nb">float</span><span class="p">,</span>  <span class="c1"># soil-health credit for agricultural parcels</span>
 </span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>The schema maps directly to geo-data pipeline column names; a GeoJSON or CSV loader needs only to rename columns to these keys.</p>
@@ -2168,9 +2189,9 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_collective_guf</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">parcels</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="p">{</span><span class="s2">&quot;area_slu&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">,</span> <span class="s2">&quot;location_value&quot;</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span> <span class="s2">&quot;use_category&quot;</span><span class="p">:</span> <span class="s2">&quot;residential_primary&quot;</span><span class="p">},</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="p">{</span><span class="s2">&quot;area_slu&quot;</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span> <span class="s2">&quot;location_value&quot;</span><span class="p">:</span> <span class="mf">0.85</span><span class="p">,</span> <span class="s2">&quot;use_category&quot;</span><span class="p">:</span> <span class="s2">&quot;commercial_retail&quot;</span><span class="p">,</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>     <span class="s2">&quot;residential&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="p">{</span><span class="s2">"area_slu"</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">,</span> <span class="s2">"location_value"</span><span class="p">:</span> <span class="mf">0.75</span><span class="p">,</span> <span class="s2">"use_category"</span><span class="p">:</span> <span class="s2">"residential_primary"</span><span class="p">},</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="p">{</span><span class="s2">"area_slu"</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">,</span> <span class="s2">"location_value"</span><span class="p">:</span> <span class="mf">0.85</span><span class="p">,</span> <span class="s2">"use_category"</span><span class="p">:</span> <span class="s2">"commercial_retail"</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>     <span class="s2">"residential"</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">]</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">compute_collective_guf</span><span class="p">(</span><span class="n">parcels</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">median_income</span><span class="o">=</span><span class="mf">350.0</span><span class="p">)</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># Returns: {epsilon, parcel_count, guf_gross_revenue, subsidies_absorbed,</span>

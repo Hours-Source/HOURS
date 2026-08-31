@@ -1661,6 +1661,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2081,7 +2102,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.sweep</span><span class="w"> </span><span class="kn">import</span> <span class="n">epsilon_sweep</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">results</span> <span class="o">=</span> <span class="n">epsilon_sweep</span><span class="p">()</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;fiscally_solvent&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"fiscally_solvent"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="shockspy-shock-events">shocks.py — Shock Events<a class="headerlink" href="#shockspy-shock-events" title="Permanent link">&para;</a></h2>
@@ -2122,7 +2143,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.long_run</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_arc_trajectory</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">canonical_arc_trajectory</span><span class="p">(</span><span class="n">epsilon_start</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">epsilon_end</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">n_periods</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;outcome&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;inflection_points&quot;</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"outcome"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"inflection_points"</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="trust_depletion_stressn_periods-population-trust_balance-stressor_profile-dict"><code>trust_depletion_stress(n_periods, population, trust_balance, stressor_profile, ...)</code> → <code>dict</code><a class="headerlink" href="#trust_depletion_stressn_periods-population-trust_balance-stressor_profile-dict" title="Permanent link">&para;</a></h3>
 <p>Multi-stressor run — applies compounding stressors each period and records when (if ever) the Trust first becomes insolvent. Returns <code>{first_insolvency_period, outcome, trajectory, summary_table}</code>. <code>stressor_profile</code> controls per-period compounding shock magnitudes.</p>
@@ -2135,7 +2156,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.indust_overshoot</span><span class="w"> </span><span class="kn">import</span> <span class="n">indust_overshoot_baseline</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">indust_overshoot_baseline</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">65_000_000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;overshoot_eoh_delta&quot;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;fiscally_solvent&quot;</span><span class="p">])</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"overshoot_eoh_delta"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"fiscally_solvent"</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="indust_recovery_trajectoryepsilon_start-n_periods-restoration_rate-dict"><code>indust_recovery_trajectory(epsilon_start, n_periods, restoration_rate, ...)</code> → <code>dict</code><a class="headerlink" href="#indust_recovery_trajectoryepsilon_start-n_periods-restoration_rate-dict" title="Permanent link">&para;</a></h3>
 <p>Multi-period run starting from industrial-overshoot state. Models whether ecosystem restoration at <code>restoration_rate</code> (fraction per period) can pull the economy out of the overshoot regime before Trust depletion. Returns <code>{escaped_overshoot, escape_period, outcome, trajectory}</code>.</p>
@@ -2158,10 +2179,10 @@
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">epsilon_end</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">n_periods</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;outcome&quot;</span><span class="p">])</span>               <span class="c1"># ADEQUATE / PARTIAL / CRISIS</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;crossover_period&quot;</span><span class="p">])</span>      <span class="c1"># first period GUF &gt; levy (or None)</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;first_insolvency&quot;</span><span class="p">])</span>      <span class="c1"># first insolvent period (or None)</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;compensation_adequacy&quot;</span><span class="p">])</span> <span class="c1"># mean GUF / levy shortfall</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"outcome"</span><span class="p">])</span>               <span class="c1"># ADEQUATE / PARTIAL / CRISIS</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"crossover_period"</span><span class="p">])</span>      <span class="c1"># first period GUF &gt; levy (or None)</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"first_insolvency"</span><span class="p">])</span>      <span class="c1"># first insolvent period (or None)</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"compensation_adequacy"</span><span class="p">])</span> <span class="c1"># mean GUF / levy shortfall</span>
 </span></code></pre></div>
 <p>Returns <code>{scenario, trajectory, parcel_count, epsilon_range, levy_peak_period, guf_peak_period, crossover_period, first_insolvency, compensation_adequacy, outcome, recommendation}</code>.</p>
 

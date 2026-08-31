@@ -1487,6 +1487,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1729,8 +1750,24 @@
 <p><strong>Audience</strong>: analysts and researchers at institutions or foundations who have
 real economy data and want to model their own civilization using the HOURS framework.
 This is not a developer guide — see <code>extending.md</code> for that.</p>
-<p><strong>Goal</strong>: given your data, you should be able to run <code>eoh_to_teh_pipeline()</code> and
-<code>fiscal_snapshot()</code> and get outputs that mean something about your jurisdiction.</p>
+<p><strong>Goal</strong>: given your data, you should be able to run one function and get
+outputs that mean something about your jurisdiction.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_economy_state</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">collective_snapshot</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">state</span> <span class="o">=</span> <span class="n">make_economy_state</span><span class="p">(</span><span class="n">population</span><span class="o">=...</span><span class="p">,</span> <span class="n">capital_stock_teh</span><span class="o">=...</span><span class="p">,</span> <span class="n">trust_balance</span><span class="o">=...</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">report</span> <span class="o">=</span> <span class="n">collective_snapshot</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">parcels</span><span class="o">=</span><span class="n">your_parcel_inventory</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>collective_snapshot()</code> runs the EOH→TEH pipeline, the Ground Use Fee and the
+fiscal snapshot on <strong>one stated frame</strong>, passing the three values between them
+that otherwise have to be hand-carried. Run <code>eoh scenario run collective</code> to see
+it on the shipped urban archetype.</p>
+<p><strong>Use it in preference to calling the three by hand.</strong> The sections below
+document the pieces, because you will want to understand them and because
+<code>collective_snapshot</code> is a thin assembly over exactly those calls — but running
+them yourself means keeping eleven parameters in agreement across three
+functions, and that is where the frame comes apart. It came apart in this
+guide's own worked example, by a factor of 92.8.</p>
 <hr />
 <h2 id="1-what-inputs-the-model-needs">1. What inputs the model needs<a class="headerlink" href="#1-what-inputs-the-model-needs" title="Permanent link">&para;</a></h2>
 <p>The EOH → TEH pipeline takes seven physical-state fields. Here is what each
@@ -1767,7 +1804,7 @@ represents and where to find it in real-world data:</p>
 <td><code>ecosystem_health</code></td>
 <td>float</td>
 <td>[0, 1]</td>
-<td>Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine</td>
+<td>Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine. <strong>Since Phases 4e/4f this no longer moves the ecological DOMAIN</strong> — see the note below. It still drives the Ground Use Fee, which is where the recurring cost now sits.</td>
 </tr>
 <tr>
 <td><code>monitoring_capability</code></td>
@@ -1787,8 +1824,62 @@ represents and where to find it in real-world data:</p>
 <td>relative (1.0 = ε=0 reference)</td>
 <td>Harder to measure; use national R&amp;D stock relative to a subsistence baseline, or leave at canonical default</td>
 </tr>
+<tr>
+<td><code>ecological_area_hectares</code></td>
+<td>float</td>
+<td>hectares</td>
+<td><strong>The land your collective is responsible for stewarding.</strong> Your own cadastre, or the GUF parcel inventory (<code>land/collective.py</code>) if you have run a GUF assessment — it already carries area per parcel. Omit it and the model derives the area from your population at <code>LAND_HECTARES_PER_CAPITA</code> (a planetary average, and the wrong number for any actual collective). Pass <code>ecological_hectares_per_capita=</code> instead if you know your ratio but not your absolute area.</td>
+</tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>The ecological domain is stocks-only, and is zero unless you supply one.</strong>
+Phases 4e and 4f (adopted 2026-08-28/29) moved BOTH recurring ecological terms
+— the standing obligation of land at reference condition, and the response to
+its being degraded — to the Ground Use Fee, where they scale with land held
+rather than with the ledger. What remains in the domain is three STOCKS:
+<code>deferred_ecological</code>, <code>thermal_obligation</code> and <code>restoration_obligation</code>. None
+ships with a default, so <strong><code>eoh_to_teh_pipeline()</code> reports <code>ecological = 0.0</code>
+until you supply one</strong>, and <code>fiscal_snapshot()</code> allocates nothing to it.</p>
+<p><strong>This does not mean the obligation is absent, and it must not be read that
+way.</strong> <code>fiscal_snapshot()["ecological"]["relocated_to_guf"]</code> reports what the
+pre-partition policy would have charged, so you can see the size of what
+moved. To recover the pre-partition behaviour — which is what every figure
+published before 2026-08-28 was computed at — pass
+<code>ecological_standing_response="domain"</code> and <code>ecological_health_response="domain"</code>.</p>
+<p><strong>Where the obligation goes, and how to close the loop.</strong> Pass your parcel
+inventory through <code>land/collective.compute_collective_guf()</code> and hand the
+result to <code>fiscal_snapshot(guf_revenue=...)</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_collective_guf</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">guf</span> <span class="o">=</span> <span class="n">compute_collective_guf</span><span class="p">(</span><span class="n">your_parcels</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)[</span><span class="s2">"guf_net_inflow"</span><span class="p">]</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">guf_revenue</span><span class="o">=</span><span class="n">guf</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">snap</span><span class="p">[</span><span class="s2">"guf"</span><span class="p">][</span><span class="s2">"coverage"</span><span class="p">]</span>   <span class="c1"># fee ÷ the obligation relocated out of the domain</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">snap</span><span class="p">[</span><span class="s2">"trust"</span><span class="p">][</span><span class="s2">"guf_over_levy"</span><span class="p">]</span>   <span class="c1"># has the fee overtaken the labour levy?</span>
+</span></code></pre></div>
+<p>GUF arrives as its <strong>own</strong> Trust revenue line, never folded into the levy —
+the two behave oppositely across the arc, since the levy contracts with labour
+income while the fee scales with land held. It is circulatory: it redistributes
+TEH, it does not mint any.</p>
+<p><strong><code>snap["guf"]["covered"] == True</code> is necessary, not sufficient.</strong> The
+obligation it checks against is only the <em>ecological</em> requirement that left the
+domain; the fee also carries the <strong>servicing</strong> cost of the built environment,
+which the snapshot has no inventory for. On the shipped urban archetype the
+coverage figure is ~1e6, which says almost nothing — the denominator is tiny.
+Set the same revenue against the servicing census and it reads ~21× <strong>over</strong>,
+matching the 18.1× urban overshoot <code>scenarios/servicing_census</code> measured
+independently. Run <code>eoh scenario run servicing_census</code> for the comparison that
+actually constrains the fee's magnitude.</p>
+</blockquote>
+<p><strong>State your frame.</strong> Population, land area and capital stock are one frame and
+must travel together: they are all extensive, so pairing one jurisdiction's
+population with another's land silently rescales the ecological domain.
+<code>CAPITAL_STOCK_DEFAULT</code> and <code>TRUST_BASE_TEH</code> say "at the 1M reference
+population" in their own tag blocks and are per-frame quantities — running the
+US population against the unscaled default models 335M people holding the
+capital of 1M. <code>scenarios/frame.py</code> declares named frames and
+<code>eoh scenario run frame</code> shows what an undeclared pairing costs.</p>
 <p><strong>Converting capital stock to TEH</strong>: if you have capital stock in dollars, divide by
 your jurisdiction's mean labor-hour cost (the TEH/dollar exchange rate you decide).
 The model is denominated in TEH, not dollars; the exchange rate is an input, not
@@ -1798,7 +1889,7 @@ something the model determines.</p>
 <p>Every constant in <code>data.py</code> carries an inline provenance tag saying what kind of
 claim its value makes. That tag, not intuition, tells you what to do with it.
 Run <code>eoh provenance check</code> for the current counts, or read
-<code>hours_eoh/reference/data/constant_provenance.csv</code> for all 229 with their
+<code>hours_eoh/reference/data/constant_provenance.csv</code> for all 288 with their
 evidence. Both are generated from <code>data.py</code>, so neither can drift from it.</p>
 <table>
 <thead>
@@ -1918,39 +2009,39 @@ is "a vote", it is <code>normative</code> and you decide it.</p>
 <h3 id="step-1-establish-a-baseline">Step 1: Establish a baseline<a class="headerlink" href="#step-1-establish-a-baseline" title="Permanent link">&para;</a></h3>
 <p>Start with <code>canonical_physical_state(0.40)</code> — the ideal mid-arc reference for
 a civilization at 40% automation. Compare it to your actual data:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">canonical</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># {&#39;capital_stock_teh&#39;: 2_400_000_000, &#39;capital_age_ratio&#39;: 0.38,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">#  &#39;ecosystem_health&#39;: 0.82, &#39;monitoring_capability&#39;: 0.70, ...}</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Your actual data:</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">your_state</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">:</span> <span class="n">your_capital_stock_in_teh</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">,</span>             <span class="c1"># from national accounts</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="s2">&quot;ecosystem_health&quot;</span><span class="p">:</span>  <span class="mf">0.68</span><span class="p">,</span>             <span class="c1"># from ESI/BII index</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="s2">&quot;monitoring_capability&quot;</span><span class="p">:</span> <span class="mf">0.55</span><span class="p">,</span>         <span class="c1"># from ecological data coverage</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="s2">&quot;knowledge_base_size&quot;</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span>            <span class="c1"># relative to subsistence baseline</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span>  <span class="c1"># estimated</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="s2">&quot;age_distribution&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;infant&quot;</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span> <span class="s2">&quot;child&quot;</span><span class="p">:</span> <span class="mf">0.18</span><span class="p">,</span> <span class="s2">&quot;working_age&quot;</span><span class="p">:</span> <span class="mf">0.62</span><span class="p">,</span> <span class="s2">&quot;elderly&quot;</span><span class="p">:</span> <span class="mf">0.14</span><span class="p">},</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">canonical</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># {'capital_stock_teh': 2_400_000_000, 'capital_age_ratio': 0.38,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">#  'ecosystem_health': 0.82, 'monitoring_capability': 0.70, ...}</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Your actual data:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">your_state</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="s2">"capital_stock_teh"</span><span class="p">:</span> <span class="n">your_capital_stock_in_teh</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="s2">"capital_age_ratio"</span><span class="p">:</span> <span class="mf">0.45</span><span class="p">,</span>             <span class="c1"># from national accounts</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="s2">"ecosystem_health"</span><span class="p">:</span>  <span class="mf">0.68</span><span class="p">,</span>             <span class="c1"># from ESI/BII index</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="s2">"monitoring_capability"</span><span class="p">:</span> <span class="mf">0.55</span><span class="p">,</span>         <span class="c1"># from ecological data coverage</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="s2">"knowledge_base_size"</span><span class="p">:</span> <span class="mf">3.2</span><span class="p">,</span>            <span class="c1"># relative to subsistence baseline</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="s2">"knowledge_complexity_per_unit"</span><span class="p">:</span> <span class="mf">1.8</span><span class="p">,</span>  <span class="c1"># estimated</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="s2">"age_distribution"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"infant"</span><span class="p">:</span> <span class="mf">0.06</span><span class="p">,</span> <span class="s2">"child"</span><span class="p">:</span> <span class="mf">0.18</span><span class="p">,</span> <span class="s2">"working_age"</span><span class="p">:</span> <span class="mf">0.62</span><span class="p">,</span> <span class="s2">"elderly"</span><span class="p">:</span> <span class="mf">0.14</span><span class="p">},</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>The divergence from canonical is the point — it tells you how your trajectory
 differs from the ideal arc.</p>
 <h3 id="step-2-run-total_eoh-with-your-state">Step 2: Run total_eoh() with your state<a class="headerlink" href="#step-2-run-total_eoh-with-your-state" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">total_eoh</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;age_distribution&quot;</span><span class="p">],</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">],</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">],</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;ecosystem_health&quot;</span><span class="p">],</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;monitoring_capability&quot;</span><span class="p">],</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">],</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1"># eoh[&quot;total&quot;] = your jurisdiction&#39;s total entropy obligation (h/yr)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># eoh[&quot;personal&quot;] = biological burden (≈ 1,000 × population × 1.475)</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># eoh[&quot;infrastructure&quot;] = capital stock maintenance burden</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">total_eoh</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"age_distribution"</span><span class="p">],</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_stock_teh"</span><span class="p">],</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_age_ratio"</span><span class="p">],</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"ecosystem_health"</span><span class="p">],</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"monitoring_capability"</span><span class="p">],</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"knowledge_complexity_per_unit"</span><span class="p">],</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># eoh["total"] = your jurisdiction's total entropy obligation (h/yr)</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># eoh["personal"] = biological burden (≈ 1,000 × population × 1.475)</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># eoh["infrastructure"] = capital stock maintenance burden</span>
 </span></code></pre></div>
 <p>Check plausibility: personal EOH should be roughly <code>PERSONAL_EOH_BASE × population
 × 1.475</code>, where 1.475 is the age-weighted mean at default demographics. If it's
@@ -1959,7 +2050,11 @@ wildly off, check that your <code>age_distribution</code> fractions sum to 1.0 a
 <p><strong>Which standard are you asking for?</strong> <code>PERSONAL_EOH_BASE</code> is the operating value
 between two others: <code>PERSONAL_EOH_SURVIVAL</code> (600, what it takes not to die) and
 <code>PERSONAL_EOH_SUFFICIENCY</code> (1500, what it takes to live well), both referenced to
-autarky. Pass <code>personal_standard=</code> to <code>total_eoh()</code> to choose. This matters more
+autarky. Pass <code>personal_standard=</code> to <code>total_eoh()</code> <strong>or to
+<code>eoh_to_teh_pipeline()</code></strong> to choose — both accept it as of 2026-08-17; before
+that it reached only <code>total_eoh</code>, so this guide's two instructions could not
+both be followed. <strong>It is the largest single lever in the model: survival →
+sufficiency moves total EOH 2.09×</strong>, more than any domain base. This matters more
 than it looks: a feasibility test run at the sufficiency standard and reported as
 a survival result is the specific error this repo made and corrected — subsistence
 <em>can</em> survive, it just cannot reach sufficiency without automation.</p>
@@ -1968,128 +2063,154 @@ a survival result is the specific error this repo made and corrected — subsist
 economies are at ε ≈ 0.15–0.35: automation handles transport, manufacturing, and
 basic computation, but not care, ecological stewardship, or knowledge maintenance.</p>
 <p>You can estimate ε from your capital stock using <code>civilization_epsilon()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.civilization</span><span class="w"> </span><span class="kn">import</span> <span class="n">civilization_epsilon</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">CAPITAL_MACHINE_PROFILES</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">eps_estimate</span> <span class="o">=</span> <span class="n">civilization_epsilon</span><span class="p">(</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">capital_tiers</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="s2">&quot;power_grid&quot;</span><span class="p">:</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="s2">&quot;water_treatment&quot;</span><span class="p">:</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="s2">&quot;transportation&quot;</span><span class="p">:</span> <span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="s2">&quot;manufacturing&quot;</span><span class="p">:</span> <span class="s2">&quot;advanced&quot;</span><span class="p">,</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="s2">&quot;computing_ai&quot;</span><span class="p">:</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">},</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">)</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># eps_estimate[&quot;epsilon&quot;] → estimated current ε</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.civilization</span><span class="w"> </span><span class="kn">import</span> <span class="n">civilization_epsilon</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">CAPITAL_MACHINE_PROFILES</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">eps_estimate</span> <span class="o">=</span> <span class="n">civilization_epsilon</span><span class="p">(</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">capital_tiers</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="s2">"power_grid"</span><span class="p">:</span> <span class="s2">"standard"</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="s2">"water_treatment"</span><span class="p">:</span> <span class="s2">"standard"</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="s2">"transportation"</span><span class="p">:</span> <span class="s2">"advanced"</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="s2">"manufacturing"</span><span class="p">:</span> <span class="s2">"advanced"</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="s2">"computing_ai"</span><span class="p">:</span> <span class="s2">"basic"</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="p">},</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># eps_estimate["epsilon"] → estimated current ε</span>
 </span></code></pre></div>
 <p>Or simply pick ε as a scenario parameter and run multiple values to bracket
 uncertainty.</p>
 <h3 id="step-4-run-the-full-pipeline">Step 4: Run the full pipeline<a class="headerlink" href="#step-4-run-the-full-pipeline" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">eps_estimate</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">],</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">],</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;ecosystem_health&quot;</span><span class="p">],</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;monitoring_capability&quot;</span><span class="p">],</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;knowledge_complexity_per_unit&quot;</span><span class="p">],</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># result[&quot;teh_created&quot;]    → TEH entering circulation this period</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># result[&quot;human_eoh&quot;]      → labor demand on human workers (h/yr)</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># result[&quot;registered_eoh&quot;] → officially recognized labor (h/yr)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">eps_estimate</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_stock_teh"</span><span class="p">],</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_age_ratio"</span><span class="p">],</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"ecosystem_health"</span><span class="p">],</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"monitoring_capability"</span><span class="p">],</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"knowledge_complexity_per_unit"</span><span class="p">],</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">)</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># result["teh_created"]    → TEH entering circulation this period</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># result["human_eoh"]      → labor demand on human workers (h/yr)</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># result["registered_eoh"] → officially recognized labor (h/yr)</span>
 </span></code></pre></div>
 <h3 id="step-5-run-fiscal_snapshot">Step 5: Run fiscal_snapshot()<a class="headerlink" href="#step-5-run-fiscal_snapshot" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">your_trust_balance</span><span class="p">,</span>   <span class="c1"># collective Trust fund balance in TEH</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;teh_created&quot;</span><span class="p">],</span> <span class="c1"># TEH from pipeline</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_stock_teh&quot;</span><span class="p">],</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">&quot;capital_age_ratio&quot;</span><span class="p">],</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">eps_estimate</span><span class="p">,</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Solvent:&quot;</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">&quot;solvent&quot;</span><span class="p">])</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trust end-of-period:&quot;</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">&quot;trust&quot;</span><span class="p">][</span><span class="s2">&quot;trust_end&quot;</span><span class="p">])</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Guarantee cost:&quot;</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">&quot;guarantee&quot;</span><span class="p">][</span><span class="s2">&quot;total_cost_teh&quot;</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">your_trust_balance</span><span class="p">,</span>   <span class="c1"># collective Trust fund balance in TEH</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">result</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span> <span class="c1"># TEH from pipeline</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_stock_teh"</span><span class="p">],</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"capital_age_ratio"</span><span class="p">],</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">eps_estimate</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"ecosystem_health"</span><span class="p">],</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="c1"># STATE THE SAME FRAME YOU GAVE THE PIPELINE. Omit it and the area resolves</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="c1"># from your population at LAND_HECTARES_PER_CAPITA — a planetary average.</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">ecological_area_hectares</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"ecological_area_hectares"</span><span class="p">],</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="p">)</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Solvent:"</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">"solvent"</span><span class="p">])</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Trust end-of-period:"</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">"trust"</span><span class="p">][</span><span class="s2">"trust_end"</span><span class="p">])</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Guarantee cost:"</span><span class="p">,</span> <span class="n">snap</span><span class="p">[</span><span class="s2">"guarantee"</span><span class="p">][</span><span class="s2">"total_cost_teh"</span><span class="p">])</span>
 </span></code></pre></div>
+<blockquote>
+<p><strong>Pass the frame to both calls, or to neither.</strong> <code>fiscal_snapshot()</code> sizes the
+ecological obligation independently of the pipeline, so if you give the
+pipeline your real land area and leave it off here, the two halves of your run
+describe two different jurisdictions. Before 2026-08-20 this function ignored
+the question entirely and always used the whole-contiguous-US anchor; the
+example in §4 below disagreed with its own pipeline call by <strong>92.8×</strong> while
+reporting <code>solvent: True</code>. It now resolves from your population exactly as
+<code>total_eoh()</code> does, so the default is at least a frame somebody chose — but a
+planetary average is still the wrong number for any actual collective.</p>
+<p>If you already have the pipeline's answer, pass it straight through with
+<code>eco_eoh_override=result["eoh_by_domain"]["ecological"]</code> and the two cannot
+diverge at all.</p>
+</blockquote>
 <h3 id="step-6-sensitivity-sweeps">Step 6: Sensitivity sweeps<a class="headerlink" href="#step-6-sensitivity-sweeps" title="Permanent link">&para;</a></h3>
 <p>Use <code>p.temporary()</code> to explore parameter sensitivity without polluting history:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Sweep ecosystem_health from 0.5 to 0.9</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">for</span> <span class="n">health</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">,</span> <span class="mf">0.70</span><span class="p">,</span> <span class="mf">0.80</span><span class="p">,</span> <span class="mf">0.90</span><span class="p">]:</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">ecosystem_health</span><span class="o">=</span><span class="n">health</span><span class="p">):</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="n">eps_estimate</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>                                     <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">health</span><span class="p">)</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;health=</span><span class="si">{</span><span class="n">health</span><span class="si">}</span><span class="s2">: EOH_eco=</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;eoh_by_domain&#39;</span><span class="p">][</span><span class="s1">&#39;ecological&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Sweep ecosystem_health from 0.5 to 0.9</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">for</span> <span class="n">health</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.50</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">,</span> <span class="mf">0.70</span><span class="p">,</span> <span class="mf">0.80</span><span class="p">,</span> <span class="mf">0.90</span><span class="p">]:</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">ecosystem_health</span><span class="o">=</span><span class="n">health</span><span class="p">):</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="n">eps_estimate</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">your_population</span><span class="p">,</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>                                     <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">health</span><span class="p">)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"health=</span><span class="si">{</span><span class="n">health</span><span class="si">}</span><span class="s2">: EOH_eco=</span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'eoh_by_domain'</span><span class="p">][</span><span class="s1">'ecological'</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Or use the CLI: <code>eoh sensitivity --param ecosystem_health --range 0.5:0.9:5</code>.</p>
 <hr />
 <h2 id="4-running-a-scenario-against-local-data-complete-example">4. Running a scenario against local data — complete example<a class="headerlink" href="#4-running-a-scenario-against-local-data-complete-example" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="sd">Minimal complete example: run eoh_to_teh_pipeline and fiscal_snapshot</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="sd">with real inputs and interpret the outputs.</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.recalibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">exit_financing</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># --- Your data ---</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">population</span>         <span class="o">=</span> <span class="mi">5_000_000</span>     <span class="c1"># 5M people</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="n">capital_stock_teh</span>  <span class="o">=</span> <span class="mi">8_000_000_000</span> <span class="c1"># 8B TEH (≈ 1,600 TEH/person)</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="n">capital_age_ratio</span>  <span class="o">=</span> <span class="mf">0.42</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">ecosystem_health</span>   <span class="o">=</span> <span class="mf">0.65</span>          <span class="c1"># moderately degraded</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">monitoring_cap</span>     <span class="o">=</span> <span class="mf">0.60</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="n">epsilon</span>            <span class="o">=</span> <span class="mf">0.28</span>          <span class="c1"># current automation level</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="n">trust_balance</span>      <span class="o">=</span> <span class="mi">150_000_000_000</span>  <span class="c1"># 30,000 TEH/person</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">age_dist</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>    <span class="s2">&quot;infant&quot;</span><span class="p">:</span>      <span class="mf">0.065</span><span class="p">,</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="s2">&quot;child&quot;</span><span class="p">:</span>       <span class="mf">0.180</span><span class="p">,</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    <span class="s2">&quot;working_age&quot;</span><span class="p">:</span> <span class="mf">0.630</span><span class="p">,</span>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    <span class="s2">&quot;elderly&quot;</span><span class="p">:</span>     <span class="mf">0.125</span><span class="p">,</span>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="p">}</span>
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="c1"># --- Run the pipeline ---</span>
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
-</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
-</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
-</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
-</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
-</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">monitoring_cap</span><span class="p">,</span>
-</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">age_dist</span><span class="p">,</span>
-</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="p">)</span>
-</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>
-</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a><span class="c1"># --- Run fiscal snapshot ---</span>
-</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
-</span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">trust_balance</span><span class="p">,</span>
-</span><span id="__span-6-40"><a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">&quot;teh_created&quot;</span><span class="p">],</span>
-</span><span id="__span-6-41"><a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
-</span><span id="__span-6-42"><a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
-</span><span id="__span-6-43"><a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
-</span><span id="__span-6-44"><a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
-</span><span id="__span-6-45"><a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
-</span><span id="__span-6-46"><a id="__codelineno-6-46" name="__codelineno-6-46" href="#__codelineno-6-46"></a><span class="p">)</span>
-</span><span id="__span-6-47"><a id="__codelineno-6-47" name="__codelineno-6-47" href="#__codelineno-6-47"></a>
-</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a><span class="c1"># --- Run contestability check (the ADOPTED §8.9 test) ---</span>
-</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a><span class="n">exit_fin</span> <span class="o">=</span> <span class="n">exit_financing</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">)</span>
-</span><span id="__span-6-50"><a id="__codelineno-6-50" name="__codelineno-6-50" href="#__codelineno-6-50"></a>
-</span><span id="__span-6-51"><a id="__codelineno-6-51" name="__codelineno-6-51" href="#__codelineno-6-51"></a><span class="c1"># --- Interpret ---</span>
-</span><span id="__span-6-52"><a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total EOH demand:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">&#39;total_eoh&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr&quot;</span><span class="p">)</span>
-</span><span id="__span-6-53"><a id="__codelineno-6-53" name="__codelineno-6-53" href="#__codelineno-6-53"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Human EOH burden:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">&#39;human_eoh&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr  (= total × (1−ε))&quot;</span><span class="p">)</span>
-</span><span id="__span-6-54"><a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TEH created:       </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">&#39;teh_created&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B TEH/yr&quot;</span><span class="p">)</span>
-</span><span id="__span-6-55"><a id="__codelineno-6-55" name="__codelineno-6-55" href="#__codelineno-6-55"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fiscal solvent:    </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;solvent&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-6-56"><a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Trust end:         </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">&#39;trust&#39;</span><span class="p">][</span><span class="s1">&#39;trust_end&#39;</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">B TEH&quot;</span><span class="p">)</span>
-</span><span id="__span-6-57"><a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Exit financeable:  </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;exit_financeable&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">  &quot;</span>
-</span><span id="__span-6-58"><a id="__codelineno-6-58" name="__codelineno-6-58" href="#__codelineno-6-58"></a>      <span class="sa">f</span><span class="s2">&quot;via </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">  (t_exit </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">&#39;t_labor_years&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> yr)&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="sd">"""</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="sd">Minimal complete example: run eoh_to_teh_pipeline and fiscal_snapshot</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="sd">with real inputs and interpret the outputs.</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="sd">"""</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.recalibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">exit_financing</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># --- Your data ---</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">population</span>         <span class="o">=</span> <span class="mi">5_000_000</span>     <span class="c1"># 5M people</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">land_hectares</span>      <span class="o">=</span> <span class="mi">12_000_000</span>    <span class="c1"># the land you steward — YOUR cadastre</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="n">capital_stock_teh</span>  <span class="o">=</span> <span class="mi">8_000_000_000</span> <span class="c1"># 8B TEH (≈ 1,600 TEH/person)</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">capital_age_ratio</span>  <span class="o">=</span> <span class="mf">0.42</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">ecosystem_health</span>   <span class="o">=</span> <span class="mf">0.65</span>          <span class="c1"># moderately degraded</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">monitoring_cap</span>     <span class="o">=</span> <span class="mf">0.60</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">epsilon</span>            <span class="o">=</span> <span class="mf">0.28</span>          <span class="c1"># current automation level</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">trust_balance</span>      <span class="o">=</span> <span class="mi">150_000_000_000</span>  <span class="c1"># 30,000 TEH/person</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="c1"># population, land and capital are ONE FRAME and must travel together.</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">age_dist</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>    <span class="s2">"infant"</span><span class="p">:</span>      <span class="mf">0.065</span><span class="p">,</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>    <span class="s2">"child"</span><span class="p">:</span>       <span class="mf">0.180</span><span class="p">,</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>    <span class="s2">"working_age"</span><span class="p">:</span> <span class="mf">0.630</span><span class="p">,</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>    <span class="s2">"elderly"</span><span class="p">:</span>     <span class="mf">0.125</span><span class="p">,</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="p">}</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="c1"># --- Run the pipeline ---</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">monitoring_cap</span><span class="p">,</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">age_dist</span><span class="p">,</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>    <span class="n">ecological_area_hectares</span><span class="o">=</span><span class="n">land_hectares</span><span class="p">,</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="p">)</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="c1"># --- Run fiscal snapshot ---</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a><span class="c1"># The ecological obligation is passed straight through from the pipeline, so the</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="c1"># two calls cannot describe different jurisdictions. Equivalent here:</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a><span class="c1">#   ecological_area_hectares=land_hectares</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">trust_balance</span><span class="p">,</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>    <span class="n">eco_eoh_override</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"eoh_by_domain"</span><span class="p">][</span><span class="s2">"ecological"</span><span class="p">],</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="p">)</span>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="c1"># --- Run contestability check (the ADOPTED §8.9 test) ---</span>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a><span class="n">exit_fin</span> <span class="o">=</span> <span class="n">exit_financing</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">)</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a><span class="c1"># --- Interpret ---</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total EOH demand:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'total_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr"</span><span class="p">)</span>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Human EOH burden:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'human_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr  (= total × (1−ε))"</span><span class="p">)</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TEH created:       </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B TEH/yr"</span><span class="p">)</span>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fiscal solvent:    </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Trust end:         </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'trust'</span><span class="p">][</span><span class="s1">'trust_end'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">B TEH"</span><span class="p">)</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Exit financeable:  </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'exit_financeable'</span><span class="p">]</span><span class="si">}</span><span class="s2">  "</span>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a>      <span class="sa">f</span><span class="s2">"via </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">]</span><span class="si">}</span><span class="s2">  (t_exit </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'t_labor_years'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> yr)"</span><span class="p">)</span>
 </span></code></pre></div>
 <blockquote>
 <p><strong>Do not use <code>contestability_margin()</code> (the bare χ = P/K_entry) for a reported
@@ -2135,12 +2256,16 @@ adversarial review. If below band: skill investment is insufficient.</p>
   books at <strong>0.56–0.69 h/person·yr — 0.0% of the total at every ε</strong>. Since
   ε = machine EOH / total EOH, your ε is overwhelmingly a personal-domain number,
   and your ecological and thermal obligations will round to nothing in its
-  denominator. Run <code>eoh arc --domain-shares</code> to see it. The root cause is
-  declared but unresolved: <code>ECOLOGICAL_BASE_RATE</code> is documented as a <em>relative</em>
-  anchor and is summed with absolute counts, so replacing it with your own
-  measured stewardship cost will not by itself fix the imbalance. Either the
-  ecological and knowledge bases are low by 2–3 orders of magnitude, or
-  <code>CDR_LABOR_HOURS_PER_TONNE</code> is, or both. <strong>Nothing in current data settles it.</strong></p>
+  denominator. Run <code>eoh arc --domain-shares</code> to see it. <strong>The ecological half of
+  this is now closed (Phase 4f, adopted 2026-08-28), and not by a measurement.</strong>
+  <code>ECOLOGICAL_BASE_RATE</code> produces a <em>recurring</em> obligation, and the adopted
+  partition assigns everything recurring to the Ground Use Fee — where it scales
+  with land held rather than with the ledger. <code>ecological_standing_response</code>
+  defaults to <code>"guf"</code>, so the ecological domain now carries stocks only and is
+  exactly zero for land at reference condition. <strong>Do not replace this anchor with
+  your own measured stewardship cost</strong>: that cost is GUF's, and charging it here
+  as well would bill the same hours twice. What remains open is the KNOWLEDGE
+  base and <code>CDR_LABOR_HOURS_PER_TONNE</code>; nothing in current data settles those.</p>
 </li>
 <li>
 <p><strong>Individual tenure-vesting</strong>: the contestability model uses population-average
@@ -2162,10 +2287,10 @@ adversarial review. If below band: skill investment is insufficient.</p>
   captures the floor basket; above-floor pricing is left to collective discovery.</p>
 </li>
 <li>
-<p><strong>Calibration confidence — the honest headline</strong>: of 229 constants, <strong>49
-  (21.4%) are grounded</strong>, 14 are bounded picks, <strong>94 (41.0%) are placeholders
-  with no measurement behind them at all</strong>, 61 are normative decisions, 7 are
-  yours to supply, and 2 are retired. Measurement debt is <strong>47.2%</strong>, and the
+<p><strong>Calibration confidence — the honest headline</strong>: of 288 constants, <strong>72
+  (25.0%) are grounded</strong>, 18 are bounded picks, <strong>114 (39.6%) are placeholders
+  with no measurement behind them at all</strong>, 67 are normative decisions, 12 are
+  yours to supply, and 5 are retired. Measurement debt is <strong>45.8%</strong>, and the
   actionable part is the placeholders. The framework shows the direction and
   qualitative shape of the arc, not point forecasts — use it for structural
   analysis, not projection. Run <code>eoh provenance check</code> for the live figures;

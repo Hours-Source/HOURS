@@ -1379,6 +1379,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1514,7 +1535,7 @@
 <p>Computes the population-weighted average multiplier from a distribution of tier assignments.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.multipliers</span><span class="w"> </span><span class="kn">import</span> <span class="n">population_weighted_mean_multiplier</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">mean</span> <span class="o">=</span> <span class="n">population_weighted_mean_multiplier</span><span class="p">({</span><span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="mf">0.40</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">},</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">mean</span> <span class="o">=</span> <span class="n">population_weighted_mean_multiplier</span><span class="p">({</span><span class="s2">"1"</span><span class="p">:</span> <span class="mf">0.40</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">},</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>Band target:</strong> 1.8–2.1, with a recommended target of 2.1. This is monitored by <a href="../conditions/">Condition II</a>.</p>
 <hr />
@@ -1523,7 +1544,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.multipliers</span><span class="w"> </span><span class="kn">import</span> <span class="n">multiplier_band_check</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">check</span> <span class="o">=</span> <span class="n">multiplier_band_check</span><span class="p">(</span><span class="n">mean_multiplier</span><span class="o">=</span><span class="mf">2.05</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Returns: {&quot;in_band&quot;: True, &quot;mean&quot;: 2.05, &quot;target&quot;: 2.1, ...}</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Returns: {"in_band": True, "mean": 2.05, "target": 2.1, ...}</span>
 </span></code></pre></div>
 <hr />
 <h2 id="tier_multipliertier-p-float"><code>tier_multiplier(tier, p)</code> → <code>float</code><a class="headerlink" href="#tier_multipliertier-p-float" title="Permanent link">&para;</a></h2>

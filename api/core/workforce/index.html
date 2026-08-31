@@ -1445,6 +1445,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1648,11 +1669,11 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.workforce</span><span class="w"> </span><span class="kn">import</span> <span class="n">competency_reserve</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">reserve</span> <span class="o">=</span> <span class="n">competency_reserve</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">domain_headcounts</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;agriculture&quot;</span><span class="p">:</span> <span class="mi">150</span><span class="p">,</span> <span class="s2">&quot;construction&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="s2">&quot;healthcare&quot;</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">domain_headcounts</span><span class="o">=</span><span class="p">{</span><span class="s2">"agriculture"</span><span class="p">:</span> <span class="mi">150</span><span class="p">,</span> <span class="s2">"construction"</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span> <span class="s2">"healthcare"</span><span class="p">:</span> <span class="mi">180</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">total_workforce</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">p</span><span class="o">=</span><span class="n">p</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Returns: {&quot;reserve_fraction&quot;: 0.xx, &quot;condition_iv_satisfied&quot;: bool, ...}</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Returns: {"reserve_fraction": 0.xx, "condition_iv_satisfied": bool, ...}</span>
 </span></code></pre></div>
 <p><strong>Condition IV threshold:</strong> ~15.5% of the workforce across essential domains. See <a href="../../../theory/structural_conditions/#condition-iv-distributed-competency-strongly-recommended">Structural Conditions</a>.</p>
 <h3 id="competency_checkreserve_fraction-p-dict"><code>competency_check(reserve_fraction, p)</code> → <code>dict</code><a class="headerlink" href="#competency_checkreserve_fraction-p-dict" title="Permanent link">&para;</a></h3>
@@ -1672,7 +1693,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.civilization</span><span class="w"> </span><span class="kn">import</span> <span class="n">machine_eoh_from_capital</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">machine_eoh</span> <span class="o">=</span> <span class="n">machine_eoh_from_capital</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">capital_profile</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;automation&quot;</span><span class="p">:</span> <span class="mf">2e9</span><span class="p">,</span> <span class="s2">&quot;infrastructure&quot;</span><span class="p">:</span> <span class="mf">5e8</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">capital_profile</span><span class="o">=</span><span class="p">{</span><span class="s2">"automation"</span><span class="p">:</span> <span class="mf">2e9</span><span class="p">,</span> <span class="s2">"infrastructure"</span><span class="p">:</span> <span class="mf">5e8</span><span class="p">,</span> <span class="o">...</span><span class="p">},</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">epsilon_at_build</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">p</span><span class="o">=</span><span class="n">p</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
@@ -1681,8 +1702,8 @@
 <p>Derives endogenous ε from a complete civilization state dict (capital stock, ecosystem, population).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.civilization</span><span class="w"> </span><span class="kn">import</span> <span class="n">civilization_epsilon</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">civilization_epsilon</span><span class="p">(</span><span class="n">civ</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;capital_stock&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="s2">&quot;total_eoh&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="s2">&quot;machine_eoh&quot;</span><span class="p">:</span> <span class="o">...</span><span class="p">})</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Returns: {&quot;epsilon&quot;: 0.xx, &quot;machine_eoh&quot;: ..., &quot;total_eoh&quot;: ..., ...}</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">civilization_epsilon</span><span class="p">(</span><span class="n">civ</span><span class="o">=</span><span class="p">{</span><span class="s2">"capital_stock"</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="s2">"total_eoh"</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="s2">"machine_eoh"</span><span class="p">:</span> <span class="o">...</span><span class="p">})</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Returns: {"epsilon": 0.xx, "machine_eoh": ..., "total_eoh": ..., ...}</span>
 </span></code></pre></div>
 <p>This is the path to endogenous ε — rather than setting ε exogenously, derive it from the capital stock's actual machine capacity. Currently ε is often set exogenously for simplicity; the architecture supports full endogenous derivation via this module.</p>
 <p><code>CAPITAL_MACHINE_PROFILES</code> in <code>civilization.py</code> defines reference machine profiles by capital type.</p>

@@ -2,154 +2,158 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://wiki.hoursframework.org/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/changelog/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/contributing/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/mission_statement/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/parameter_provenance/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/land/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/params/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/research/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/scenarios/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/capital/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/conditions/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/dynamics/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/eoh_fulfillment/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/eoh_generation/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/fiscal/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/multipliers/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/prices/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/simulation/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/trajectory/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/api/core/workforce/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/guides/cli/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
+    </url>
+    <url>
+         <loc>https://wiki.hoursframework.org/guides/ecological_data_sources/</loc>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/guides/extending/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/guides/implementation_guide/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/guides/quickstart/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/guides/scenarios_howto/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/design_principles/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/diagrams/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/eoh_accounting/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/epsilon_arc/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/four_domains/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/guf_framework/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/overview/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/prior_art/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/regenerative_labor/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/structural_conditions/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
     <url>
          <loc>https://wiki.hoursframework.org/theory/three_economies/</loc>
-         <lastmod>2026-08-15</lastmod>
+         <lastmod>2026-08-31</lastmod>
     </url>
 </urlset>

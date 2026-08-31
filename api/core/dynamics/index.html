@@ -1496,6 +1496,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ecological_data_sources/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Ecological Data Sources
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1776,8 +1797,8 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">rank_investment_candidates</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;water treatment&quot;</span><span class="p">,</span> <span class="s2">&quot;teh_cost&quot;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span> <span class="s2">&quot;eoh_eliminated&quot;</span><span class="p">:</span> <span class="mi">80000</span><span class="p">,</span> <span class="s2">&quot;design_life&quot;</span><span class="p">:</span> <span class="mi">40</span><span class="p">},</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;road resurfacing&quot;</span><span class="p">,</span> <span class="s2">&quot;teh_cost&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span> <span class="s2">&quot;eoh_eliminated&quot;</span><span class="p">:</span> <span class="mi">5000</span><span class="p">,</span> <span class="s2">&quot;design_life&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"water treatment"</span><span class="p">,</span> <span class="s2">"teh_cost"</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span> <span class="s2">"eoh_eliminated"</span><span class="p">:</span> <span class="mi">80000</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">40</span><span class="p">},</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"road resurfacing"</span><span class="p">,</span> <span class="s2">"teh_cost"</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span> <span class="s2">"eoh_eliminated"</span><span class="p">:</span> <span class="mi">5000</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">]</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">ranked</span> <span class="o">=</span> <span class="n">rank_investment_candidates</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
 </span></code></pre></div>
