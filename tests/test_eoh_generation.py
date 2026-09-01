@@ -191,9 +191,9 @@ class TestKnowledgePopulationScaling:
         re-anchor to the ε_ref FIXED POINT then took 0.779× off that, giving a
         net 954.91× against pre-K-IV.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.3963055e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.56721329e8, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.35895632e9, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(1.257549433e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(1.4114734839e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(1.2239114824e9, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -202,7 +202,7 @@ class TestKnowledgePopulationScaling:
         post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
         across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1396.30546, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(1257.54943, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)
@@ -667,9 +667,13 @@ DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 # Moved by the 2026-08-10 AGE_GROUPS elderly revalue (2.5 → 1.48): w fell
 # 1.475 → 1.3016, so the personal numerator fell 11.76% while the other three
 # domains were untouched. Was {0.0: 0.945, 0.40: 0.859, 0.90: 0.614, 0.99: 0.562}.
-# The DEFECT is unchanged — personal still dominates the low arc, and the
-# revalue narrows the imbalance without addressing its cause.
-_PERSONAL_SHARE_EXPECTED = {0.0: 0.936, 0.40: 0.820, 0.90: 0.517, 0.99: 0.461}
+# Then 1.3016 → 1.3528 on the 2026-09-01 child-weight measurement, which raises
+# the personal numerator, while the knowledge re-anchor that came with it CUT
+# the largest non-personal domain by 9.94% — so the share rose at every point.
+# Was {0.0: 0.936, 0.40: 0.820, 0.90: 0.517, 0.99: 0.461}.
+# The DEFECT is unchanged — personal still dominates the low arc, and neither
+# revalue addresses its cause.
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.940, 0.40: 0.830, 0.90: 0.538, 0.99: 0.483}
 
 
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -704,12 +708,12 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     # 0.412 at the K-IV one-shot anchor; 0.353 at the Finding-E fixed point.
     # 0.353 → 0.3785 with the 2026-08-10 elderly revalue: knowledge did not
     # grow, personal SHRANK 11.76% and knowledge's share of the smaller total
-    # rose. 0.460 → 0.471 with the 2026-08-16 working-life measurement, and
+    # rose. 0.460 → 0.4373 with the 2026-08-16 working-life measurement, and
     # this time by the OTHER mechanism: the renewal rate rose 6.7% so knowledge
     # itself grew. The claim being tested — knowledge stops being a rounding
     # error at the top of the arc — is unaffected by which way it happened,
     # which is why the share is pinned and the cause is recorded in prose.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.471, abs=0.01)
+    assert top["knowledge"] / top["total"] == pytest.approx(0.4373, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
@@ -946,8 +950,8 @@ class TestAccountingBasis:
 
         # +6.1% → +9.0%: the final basis excludes apparatus knowledge but keeps the
         # CIVILISATIONAL corpus, which the re-anchor grew 1.397× along with the rest.
-        assert final_drift == pytest.approx(0.090, abs=0.005)
-        assert gross_drift > 0.09
+        assert final_drift == pytest.approx(0.08080, abs=0.005)
+        assert gross_drift > 0.0808
         assert final_drift < gross_drift / 5.0
 
     def test_civilisational_knowledge_is_not_epsilon_invariant(self):

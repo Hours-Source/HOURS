@@ -253,12 +253,12 @@ def test_the_three_standards_give_three_different_floors():
     suff = survival_floor_epsilon(
         _t(epsilon=0.0, personal_standard="sufficiency"), L_AVAIL)
     assert surv == 0.0
-    # 0.306 → 0.217: a lower w means the operating standard demands fewer
+    # 0.306 → 0.2449: a lower w means the operating standard demands fewer
     # per-capita hours, so less automation is needed to reach it.
-    assert oper == pytest.approx(0.217, abs=0.005)
-    # 0.530 → 0.467: the sufficiency standard is unchanged, but a lower w means
+    assert oper == pytest.approx(0.2449, abs=0.005)
+    # 0.530 → 0.4862: the sufficiency standard is unchanged, but a lower w means
     # fewer per-capita hours are owed, so less automation reaches it.
-    assert suff == pytest.approx(0.467, abs=0.005)
+    assert suff == pytest.approx(0.4862, abs=0.005)
     assert surv < oper < suff
 
 

@@ -37,9 +37,19 @@ of quantity, and adding them hides the difference:
                  the shipped defaults the ecological domain IS this account.
 
 THE HEADLINE THE SUM HIDES. Delivery grows against a nearly flat obligation:
-at ε=0 it is 5.7% of the obligation and at ε=0.99 it is **100.3%** — the
-apparatus costs more entropy than the obligation it serves. That crossover is
-invisible in a four-way sum because both sides are added into one total.
+at ε=0 it is 5.5% of the obligation and at ε=0.99 it is **89.6%**. Essentially
+all growth in total EOH is delivery cost, and a four-way sum hides that by
+adding it to the obligation.
+
+**THE CROSSOVER CLAIM IS WITHDRAWN (2026-09-01), AND IT IS THE CLEANEST CASE OF
+WHY A PLACEHOLDER MATTERS.** This module originally read 100.3% at ε=0.99 —
+"the apparatus costs more entropy than the obligation it serves" — and that was
+true at the calibration of the day. Then `AGE_WEIGHT_CHILD` took the MTUS
+self-maintenance measurement for ages 6–14 (1.5 → 1.82, raising the obligation)
+and the knowledge fixed point re-anchored −9.94% with it (cutting the apparatus
+term). Both push the ratio DOWN and it no longer crosses 1.0. The SHAPE
+survives — delivery grows 17.6× while the obligation grows 8% — and the level
+did not.
 
 WHAT THIS CORRECTS IN THE EXISTING SPLIT. Block III already gives
 `total_eoh(basis="gross"|"final")` — base vs overhead — and this is NOT merely
@@ -128,10 +138,8 @@ def obligation_accounts(epsilon: float = 0.40, **state: Any) -> dict:
     rises with the capital stock the arc builds; stock is carried and is 0.0 on
     every shipped path because no stock ships by default.
 
-    Worked example (canonical arc, ε=0.40, default 1M frame):
-    obligation 1,365,766,053 = personal 1,301,536,000 + civilisational
-    64,230,053; delivery 227,491,276 = infrastructure 135,000,000 + apparatus
-    92,491,276; stock 0.0. Ratio delivery/obligation = 0.1666.
+    Worked example (canonical arc, ε=0.40, default 1M frame): obligation
+    1,409,559,274; delivery 218,300,074; stock 0.0. Ratio 0.1549.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -191,8 +199,8 @@ def accounts_arc(
     units: EOH/year, plus dimensionless ratios.
 
     Worked example (canonical, default frame): delivery/obligation runs
-    0.0570 → 0.0888 → 0.1666 → 0.4486 → 1.0029 across ε ∈ {0, 0.2, 0.4, 0.7,
-    0.99}. The obligation itself moves only 1,315.6M → 1,439.9M, i.e. +9.5%
+    0.0549 → 0.0848 → 0.1549 → 0.4053 → 0.8964 across ε ∈ {0, 0.2, 0.4, 0.7,
+    0.99}. The obligation itself moves only 1,365.4M → 1,475.7M, i.e. +8.1%
     over the whole arc, so essentially all of the growth in total EOH is
     delivery cost.
     """
@@ -213,9 +221,15 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
     knowledge apparatus fraction (1 − 1/cpu) and the canonical capital path are
     both non-linear in ε.
 
-    THE CROSSOVER IS NOT A FAILURE, and this function does not call it one. It
-    is where the apparatus's own entropy debt equals the obligation it was built
-    to reduce — the same question `core/autarky.overbuild_check` asks from the
+    THERE IS NO CROSSOVER AT THE CURRENT CALIBRATION — this returns None, and
+    that is a result rather than a gap. Delivery peaks at 0.90 of the
+    obligation. The function is kept because the crossover DID exist before
+    `AGE_WEIGHT_CHILD` took its measurement on 2026-09-01, and a search that
+    can only report "yes" is not a search.
+
+    THE CROSSOVER WOULD NOT BE A FAILURE, and this function does not call it
+    one. It is where the apparatus's own entropy debt equals the obligation it
+    was built to reduce — the same question `core/autarky.overbuild_check` asks from the
     labour side, which reports an interior optimum and an overbuild threshold.
     Whether crossing it is acceptable depends on how much obligation the
     apparatus ABATES, which is Block II's `abatement_fraction` and is not in

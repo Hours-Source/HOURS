@@ -176,6 +176,7 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.onet_knowledge",
     "hours_eoh.reference.onet_multipliers",
     "hours_eoh.reference.atus_time_use",
+    "hours_eoh.reference.mtus_time_use",
     "hours_eoh.reference.care_demand",
     "hours_eoh.reference.land_stewardship",
     "hours_eoh.reference.personal_basket",

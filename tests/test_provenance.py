@@ -697,9 +697,12 @@ def _derived_prose_figures() -> dict[str, float]:
 def test_derived_prose_figures_are_the_values_the_doc_prints():
     """Pins the products the doc restates in prose, so a reprice cannot orphan them."""
     figures = _derived_prose_figures()
-    # w moved 1.475 → 1.3016 with the AGE_GROUPS elderly revalue (2026-08-10).
-    assert figures["age-weighted mean w"] == pytest.approx(1.3016)
-    assert figures["personal EOH per capita"] == pytest.approx(1301.6)
+    # w moved 1.475 → 1.3016 with the AGE_GROUPS elderly revalue (2026-08-10),
+    # then → 1.3528 when AGE_WEIGHT_CHILD took the MTUS self-maintenance
+    # measurement for ages 6–14 (2026-09-01). Both are recorded because the
+    # sequence is the point: each move came from a measurement, not a retune.
+    assert figures["age-weighted mean w"] == pytest.approx(1.3528)
+    assert figures["personal EOH per capita"] == pytest.approx(1352.8)
     assert figures["membership min-hours WARN"] == pytest.approx(500.0)
     assert figures["membership min-hours CRIT"] == pytest.approx(1000.0)
     # 2 × CONTESTABILITY_VESTING_YEARS, per the constant's own stated derivation
@@ -798,7 +801,7 @@ def test_domain_balance_table_restates_the_shares_the_model_computes():
     """
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
 
-    marker = "### Current (post-K-IV, re-anchored three times to the ε_ref fixed point)"
+    marker = "### Current (post-K-IV, re-anchored to the ε_ref fixed point seven times)"
     assert marker in doc, (
         "the Current domain-balance section was renamed — this test no longer "
         "checks anything, so update the marker deliberately"

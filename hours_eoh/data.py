@@ -77,18 +77,34 @@ AGE_WEIGHT_WORKING_AGE: float = 1.0
 # form: personal obligation generated per person of that age, relative to a
 #   working-age adult: (self-maintenance + care received) integrated over the
 #   band and divided by the numeraire band's total.
-# band: ≥ 2.55, one-sided — and the openness is the whole point. Measured
-#   2026-08-10 from ATUS 2021–25 pooled (scenario run care_curve), but ATUS
-#   surveys nobody under 15, so the self-maintenance term is missing for the
-#   ENTIRE infant band. The measurement is a FLOOR that can only rise, never a
-#   point estimate, and calling it a two-sided band would be a worse claim than
-#   leaving the constant a placeholder.
+# band: ≥ 2.55, one-sided — and it STAYS one-sided, unlike the child weight.
+#   Measured 2026-08-10 from ATUS 2021–25 pooled (scenario run care_curve), but
+#   ATUS surveys nobody under 15, so the self-maintenance term is missing for
+#   the ENTIRE infant band. The measurement is a FLOOR that can only rise.
+# note: MTUS WAS CHECKED AND DELIBERATELY NOT APPLIED HERE (2026-09-01), which
+#   is the one case this session found where more data did not license a better
+#   pick. Two reasons, and the second is decisive. (1) 92% of the MTUS "infant"
+#   measurement is ages 3–5 — ages 0–2 are 260 diaries from a single sample.
+#   (2) An infant's maintenance IS the caregiver's work, and `care_curve`
+#   already counts it on the care-received side at 409.1 min/day, so
+#   extrapolating a self-maintenance term down the (monotone) age curve into
+#   0–2 would DOUBLE COUNT. Applying the ages-3–5 figure to the whole band
+#   gives 3.21; assuming 0–2 self-maintain at ~0 gives 2.85. The shipped 3.0
+#   sits between them, so the measurement does not move it in either direction.
 # errs: HIGH, and high is the safe direction, by the same asymmetric-loss
 #   argument that set PERSONAL_EOH_BASE. A weight set too low understates the
 #   obligation a dependent generates, and the deficit is paid in unserved care
 #   — the model reports feasible while a child goes unattended. Too high only
-#   over-provisions. The shipped 3.0 and 1.5 sit above their measured floors
-#   by 18% and 11%, which is the direction to be wrong in.
+#   over-provisions. The shipped 3.0 sits 18% above its measured floor, which
+#   is the direction to be wrong in.
+# confidence: 45 — LOWER than the child weight, and deliberately so. The care
+#   received term is measured (ATUS, 409.1 min/day) and it is the larger of the
+#   two, which is most of the 45. The self-maintenance term is not measured and
+#   MTUS cannot supply it: 92% of its infant-band diaries are ages 3–5, and for
+#   0–2 the quantity is not missing so much as double-counted, because an
+#   infant's maintenance IS the caregiver's work already on the other side of
+#   the sum. So the gap here is structural rather than a data gap, and a survey
+#   of under-3s would not on its own close it.
 # resolves_by: self-maintenance below age 15, which ATUS cannot observe
 #   because it does not survey children. A time-use survey covering children
 #   (some HETUS members do) would close the band from below and turn these
@@ -98,17 +114,40 @@ AGE_WEIGHT_INFANT: float = 3.0
 # tag: bounded | tier: B | units: relative personal EOH (dimensionless)
 # form: as AGE_WEIGHT_INFANT — (self-maintenance + care received) over ages
 #   6–17, relative to a working-age adult.
-# band: ≥ 1.35, one-sided. Measured 2026-08-10 (ATUS 2021–25 pooled). The band
-#   is one-sided for the same reason as the infant weight, but LESS of this one
-#   is missing: ATUS observes ages 15–17, so the band's self-maintenance term
-#   is partly present (24.5 min/day measured across the band) rather than
-#   wholly absent.
+# band: [1.68, 1.82], TWO-SIDED since 2026-09-01. It was ≥1.35 one-sided while
+#   the self-maintenance term for ages 6–14 was ABSENT and the arithmetic had to
+#   enter it as 0.0 — which `reference/care_demand` itself calls "plainly wrong
+#   for a twelve-year-old". `reference/mtus_time_use` now measures those ages:
+#   977,809 diaries, 21 countries, children surveyed from age 3. The child band
+#   reads 171.1 min/day against the 24.5 ATUS reported from its 15–17 sliver.
+#   The two ends are one measurement under two corrections — 1.82 with MTUS's
+#   meals left in, 1.68 with ~75 min/day of meals stripped from both sides of
+#   the ratio.
+# note: STILL A BETTER-PICKED PLACEHOLDER, NOT A CLOSURE, and the distinction is
+#   the whole guard. MTUS puts meals inside personal care and this repo's
+#   definition excludes them; removing meals needs the sub-codes of {4,5,6},
+#   which are NOT comparable across samples (code 6 runs 137 min/day in AM2008
+#   and 59 in KR2004). So a measured ratio is transferred across two
+#   definitions, which is an assumption. What it is NOT is the previous state:
+#   ages 6–14 entered as zero, and any positive value beats that.
 # errs: HIGH, and high is the safe direction — a weight set too low understates
 #   the obligation a dependent generates and the deficit is paid in unserved
-#   care. The shipped 1.5 sits 11% above its measured floor.
-# resolves_by: self-maintenance for ages 6–14, which ATUS cannot observe. A
-#   time-use survey covering children would close the band from below.
-AGE_WEIGHT_CHILD: float = 1.5
+#   care. 1.82 is the top of the band, and the meals bias runs the same way:
+#   meals are roughly age-invariant, so they enter numerator and denominator
+#   alike and pull a below-1 ratio TOWARD 1, overstating it. Chosen on the
+#   asymmetric-loss argument that set PERSONAL_EOH_BASE to its high end.
+# confidence: 70 — the two terms of the ratio are now BOTH measured. Care
+#   received is ATUS 2021–25 (192.5 min/day) and self-maintenance is MTUS
+#   (171.1 min/day over 88,763 child-band diaries), where before it was the
+#   number 0.0 standing in for "ATUS cannot see this". What is still chosen is
+#   the BRIDGE between two definitions — MTUS counts meals as personal care and
+#   this repo does not — which sets the 1.68–1.82 width and nothing else. Not
+#   100 and not close to it, but the alternative it replaced was a band whose
+#   lower end rested on counting ages 6–14 as needing no self-maintenance.
+# resolves_by: the meals split — MTUS sub-codes made comparable across samples,
+#   or an ATUS-definition time-use survey that covers ages 6–14 directly. Either
+#   turns the band into a point estimate; neither is in hand.
+AGE_WEIGHT_CHILD: float = 1.82
 
 # tag: measured | tier: B | units: relative personal EOH (dimensionless)
 # form: as above — (self-maintenance + care received) over the 65+ band,
@@ -1100,6 +1139,13 @@ PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficien
 #   is survival-shaped work and what it cannot remove is care (the Baumol
 #   case). That prediction is TESTED in TestAntiCorrelationPrediction, not
 #   asserted here — changing these weights falsifies it.
+# confidence: 25 — and the two halves of this table are not equal, which one
+#   figure cannot express. The SHARES have a measurement against them:
+#   `scenarios/component_shares` reads care at 25.7% of observed personal time
+#   against the desk 62.1%, which is a bound (marketised care leaves unpaid
+#   time use) and not a replacement. The ABATABILITIES have nothing: every one
+#   of their pointers names cross-development variation and this repo ships one
+#   country. Most of the 25 is the shares.
 # resolves_by: per-component pointers are on each line below. a_max = Σ share
 #   × abatability = 0.4483 is DERIVED from this table, so it is not a free
 #   parameter; the table is where the judgement lives.
@@ -1127,6 +1173,12 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
 # note: THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free
 #   parameter the block introduced. Report the sensitivity alongside any
 #   abatement figure until it is measured.
+# confidence: 5 — very nearly a bare pick, and the 5 is only that the ORDER of
+#   magnitude is bounded by the arc having to saturate somewhere inside it.
+#   Checked 2026-08-30 and NOT improved: MTUS/ATUS give 22 years and 21
+#   countries of time use, but the identity route needs matched (capital
+#   inventory, time-use) pairs at two or more capital LEVELS, and rich-country
+#   panels sit at one saturated level. More time-use data does not raise this.
 # resolves_by: the identity route run at two or more capital levels — B(K)
 #   measured at matched (inventory, time-use) pairs pins a_max and K_half
 #   together.
@@ -1804,7 +1856,7 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 523614562.8761029  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.386619 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 471581037.4589498  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.407885 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2589,11 +2641,29 @@ GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 #   under this scheme's own precedent — _ECOLOGICAL_SPIKE_INTENSITY was
 #   retagged for the same reason on 2026-08-05 — whatever the ratios between
 #   categories rest on.
-# resolves_by: a stewardship-cost census — collective labour-hours per year
-#   actually attributable to servicing each use category (roads, utilities,
-#   inspection, dispute resolution), divided by land area. That measures the
-#   quantity the fee is DEFINED as, so it settles the levels and the ratios in
-#   one instrument rather than calibrating one against the other.
+# resolves_by: a servicing census indexed by USE CATEGORY — collective
+#   labour-hours per year attributable to servicing each category (roads,
+#   utilities, inspection, dispute resolution). THIS FIELD USED TO PROMISE THAT
+#   SUCH A CENSUS, "divided by land area", WOULD SETTLE "THE LEVELS AND THE
+#   RATIOS IN ONE INSTRUMENT". Corrected 2026-08-31: a per-area census reaches
+#   at most 41.9% of the cost structure. `scenarios/use_split` measured what
+#   each servicing occupation's cost actually follows — area 41.9%, PARCEL
+#   COUNT 44.5%, THROUGHPUT 13.6% — and the fee acquired a SECOND BASIS on
+#   2026-08-30 (GUF_PARCEL_RATE_TEH_PER_PARCEL_YR, author sign-off), so "the
+#   fee" is no longer one per-SLU number to settle. What settles what: these
+#   ten per-SLU coefficients take the area-scaling 41.9% per use category, and
+#   that census is still the instrument and still unrun; the per-parcel term
+#   needs a PER-PARCEL servicing cost per use category, which does not exist
+#   (GUF_PARCEL_RATE_TEH_PER_PARCEL_YR is a national blended rate); and
+#   throughput's 13.6% is reachable by NO term the fee has, because Omega is an
+#   occupancy FRACTION of a parcel and not a headcount. THE INDEXING OBSTACLE
+#   IS UNCHANGED AND IS THE REAL ONE: both censuses this repo owns aggregate
+#   over LAND CLASSES while this table is indexed by USE CATEGORY, and
+#   occupational data is not coded by the land use it serves.
+#   GUF_SERVICE_RETENTION_BY_USE is the one measured ordering that IS indexed
+#   this way, correlating at Spearman 0.891 with the shipped ratios — a lead
+#   for the SHAPE, not a level, and `scenarios/use_split` records why four
+#   categories disagree by two ranks.
 GUF_USE_RESIDENTIAL_PRIMARY:    float =  10.0
 GUF_USE_RESIDENTIAL_SECONDARY:  float =  21.5
 GUF_USE_AGRICULTURAL_ACTIVE:    float =   2.0

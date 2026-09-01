@@ -14,6 +14,16 @@ The tag scheme is defined in ``docs/parameter_provenance.md`` §"The tag scheme"
     derived      computed from measured inputs by a stated formula
     bounded      picked inside a MEASURED band — the band is evidence, the point
                  is not. Must state its ``band`` and which way it ``errs``.
+
+``confidence:`` (0–100) says how much of a value is MEASURED rather than chosen.
+0 is a number picked to let the arithmetic run; 100 is fully data-backed. It is
+NOT a claim of correctness and it never licenses a stronger tag — a constant at
+70 is still a placeholder, just a better-picked one. The point is that anything
+fitted against a constant is fitted against something closer to the truth as the
+figure rises, so the number is worth stating even when it is low: 3 beats 0, and
+0 is what an undocumented guess actually is. Every value must say WHAT is
+measured and what is not, so the figure is auditable rather than a second guess
+layered on the first.
     placeholder  no measurement stands behind it at all. The real debt.
     normative    a decision, not measurable even in principle. Must state
                  ``decided_by``, and may NOT claim a ``resolves_by``.
@@ -161,6 +171,7 @@ FIELDS: frozenset[str] = frozenset(
         "baseline_in",   # retired: modules that may still read it as a REFUTED baseline
         "baseline_labels",  # retired: the keys/labels those reads may be reported under
         "errs",          # bounded: HIGH | LOW | NEITHER | WITHHELD, and why
+        "confidence",    # bounded/placeholder: 0-100, how much of it is MEASURED
         "decided_by",    # normative: who or what decides it
         "precedent",     # normative: an external analogue that informs, not settles
         "supplied_by",   # instance: what the institution measures, and the intake path
@@ -218,6 +229,7 @@ class TagBlock:
     baseline_in: str = ""
     baseline_labels: str = ""
     errs: str = ""
+    confidence: str = ""
     decided_by: str = ""
     precedent: str = ""
     supplied_by: str = ""
@@ -256,6 +268,9 @@ class Record:
     #: Modules that may still read a RETIRED constant as a refuted baseline,
     #: comma-separated repo-relative paths. Gated: see ``problems``.
     baseline_in: str = ""
+    #: 0-100: how much of the value is MEASURED rather than chosen, with a
+    #: stated basis. Never licenses a stronger tag — see the module docstring.
+    confidence: str = ""
     #: The dict keys / tuple labels those reads may be reported under. Gated:
     #: a read landing under any other label is contaminating a live figure.
     baseline_labels: str = ""
@@ -358,6 +373,7 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             baseline_in=fields.get("baseline_in", ""),
             baseline_labels=fields.get("baseline_labels", ""),
             errs=fields.get("errs", ""),
+            confidence=fields.get("confidence", ""),
             decided_by=fields.get("decided_by", ""),
             precedent=fields.get("precedent", ""),
             supplied_by=fields.get("supplied_by", ""),
@@ -464,6 +480,7 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         baseline_in=source_block.baseline_in,
                         baseline_labels=source_block.baseline_labels,
                         errs=source_block.errs,
+                        confidence=source_block.confidence,
                         decided_by=source_block.decided_by,
                         precedent=source_block.precedent,
                         note=source_block.note,

@@ -36,13 +36,13 @@ ARC = [0.0, 0.40, 0.90, 0.99]
 # ---------------------------------------------------------------------------
 
 def test_age_weight_mean_matches_shipped_groups():
-    assert age_weight_mean() == pytest.approx(1.3016)
+    assert age_weight_mean() == pytest.approx(1.3528)
 
 
 def test_base_is_per_equivalent_not_per_capita():
     """The base is per working-age-EQUIVALENT: at 1000 it asserts 1475 h/p·yr."""
     per_capita = PERSONAL_EOH_BASE * age_weight_mean()
-    assert per_capita == pytest.approx(PERSONAL_EOH_BASE * 1.3016)
+    assert per_capita == pytest.approx(PERSONAL_EOH_BASE * 1.3528)
     assert per_capita > PERSONAL_EOH_BASE
     c = feasibility_check(epsilon=0.0)
     assert c["personal_demand_per_capita"] == pytest.approx(per_capita)
@@ -90,7 +90,7 @@ def test_epsilon_zero_is_infeasible_on_the_repos_own_constants():
     # 1000. Still over-determined — the reprice narrowed the gap, it did not
     # close it, and the residual is now reported as deferred_personal rather
     # than surfacing as an unexplained infeasibility.
-    assert c["demand_supply_ratio"] == pytest.approx(1.387, rel=0.01)
+    assert c["demand_supply_ratio"] == pytest.approx(1.4404, rel=0.01)
 
 
 def test_implied_ceiling_is_far_below_the_shipped_base():
@@ -101,7 +101,7 @@ def test_implied_ceiling_is_far_below_the_shipped_base():
     # measured footing, so the ceiling fell 626.6 → 618.3. Small, and in the
     # tightening direction: a bigger apparatus obligation leaves less labour
     # for the biological one.
-    assert c["implied_base_ceiling"] == pytest.approx(702.8, rel=0.01)
+    assert c["implied_base_ceiling"] == pytest.approx(674.47, rel=0.01)
     # > 1.5 until the elderly revalue; 1.42 still means the shipped base is
     # 42% above what the labour supply can serve at ε=0.
     assert c["base_overshoot"] > 1.35
@@ -111,7 +111,7 @@ def test_supply_side_resolution_demands_an_implausible_working_day():
     """The other way to close it, priced so it can be judged."""
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.6,
                           epsilon=0.0)
-    assert c["hours_per_adult_required"] == pytest.approx(2311.4, rel=0.01)
+    assert c["hours_per_adult_required"] == pytest.approx(2400.63, rel=0.01)
     # 7.08 h/day before the elderly revalue, 6.33 after — still every day of
     # the year with no rest days, which is the point.
     assert c["hours_per_adult_required"] / 365.0 > 6.0  # h/day, no rest days
@@ -138,7 +138,7 @@ def test_subsistence_sweep_clears_only_at_implausible_labour_budgets():
                                adult capacity — ABOVE the modern full-time
                                reference — and a 0.60 adult share
       KNOWLEDGE_EOH_BASE       that case now reads 1.0019 and fails
-      AGE_GROUPS elderly       w 1.475 → 1.3016 cuts personal demand 11.76%
+      AGE_GROUPS elderly       w 1.475 → 1.3528 cuts personal demand 11.76%
       2.5 → 1.48 (2026-08-10)  and TWO cases clear, best ratio 0.889
 
     The over-determination is REDUCED, not resolved, and the two cases that
@@ -151,31 +151,41 @@ def test_subsistence_sweep_clears_only_at_implausible_labour_budgets():
     The honest statement moved from "infeasible everywhere in the sweep" to
     "feasible only where the labour budget is implausible".
     """
+    # 2026-09-01: ONE survivor, not two. AGE_WEIGHT_CHILD took the MTUS
+    # self-maintenance measurement for ages 6-14 (1.5 -> 1.82), which raises
+    # per-capita demand, and the second survivor stopped clearing. The finding
+    # hardened rather than moved: fewer corners clear than before.
     r = over_determination_report()
     feasible = [c for c in r["subsistence_cases"] if c["feasible"]]
-    assert len(feasible) == 2, [c["supply_per_capita"] for c in feasible]
-    # Both survivors sit at the top of the capacity band, not in its middle.
+    assert len(feasible) == 1, [c["supply_per_capita"] for c in feasible]
+    # The survivor sits at the top of the capacity band, not in its middle.
     for case in feasible:
         assert case["supply_per_capita"] > 1_400.0
-    assert r["best_ratio"] == pytest.approx(0.889, abs=0.01)
+    assert r["best_ratio"] == pytest.approx(0.9233, abs=0.01)
     assert r["worst_ratio"] > 2.0
 
 
 def test_sweep_covers_a_capacity_above_the_modern_reference():
     """The test must not rest on a stingy labour budget.
 
-    Since the 2026-08-10 elderly revalue the most generous corner DOES clear —
-    at 2,600 h/yr per adult, which is 7.1 hours every day of the year with no
-    rest days. That it clears there and nowhere plausible is the finding, so
-    the assertion is on the capacity required rather than on failure.
+    THE SOFTENING IS WITHDRAWN (2026-09-01). The 2026-08-10 elderly revalue had
+    made the most generous corner CLEAR, and this test was rewritten then to
+    assert that. AGE_WEIGHT_CHILD taking the MTUS measurement for ages 6-14
+    reverses it: at 2,600 h/yr per adult — 7.1 hours every day of the year with
+    no rest days — and the most favourable adult share, subsistence STILL does
+    not clear. Ratio 1.0073, only just over, which is why it flipped on a 3.6%
+    demand change and why the ORDERING is asserted rather than the level.
     """
     assert max(SUBSISTENCE_CAPACITY_BAND) > 2080.0
     generous = feasibility_check(adult_capacity_h_yr=max(SUBSISTENCE_CAPACITY_BAND),
                                  adult_share=min(SUBSISTENCE_ADULT_SHARE_BAND),
                                  epsilon=0.0)
-    assert generous["feasible"] is True
-    assert generous["demand_supply_ratio"] < 1.0
-    # …but the capacity it needs is not a working year anyone observes.
+    assert generous["feasible"] is False
+    assert generous["demand_supply_ratio"] > 1.0
+    # And it is CLOSE — a corner that fails by 0.7% is not a robust failure,
+    # so the claim is that nothing plausible clears, not that nothing can.
+    assert generous["demand_supply_ratio"] < 1.05
+    # The capacity it would need is not a working year anyone observes.
     assert max(SUBSISTENCE_CAPACITY_BAND) / 365.0 > 7.0
 
     # At the repo's own labour constants the answer is still no.
@@ -275,13 +285,13 @@ def test_closed_form_understates_the_crossover():
     # K-IV WIDENED this gap from 0.024 to 0.080, strengthening the test's point:
     # knowledge EOH is now a materially ε-growing term, so treating the
     # inventory as fixed understates the crossover by more than it used to.
-    assert naive == pytest.approx(0.279, abs=0.005)
+    assert naive == pytest.approx(0.3057, abs=0.005)
     # 0.441 at the K-IV anchor; 0.425 after the Finding-E re-anchor. The CLAIM
     # is the gap against the naive closed form (0.360), which the smaller
     # non-personal load narrows without closing.
     # crossover 0.425 → 0.335: less personal demand to automate away, so the
     # arc reaches feasibility earlier.
-    assert actual == pytest.approx(0.355, abs=0.005)
+    assert actual == pytest.approx(0.3793, abs=0.005)
     assert actual - naive > 0.05
 
 
@@ -330,7 +340,7 @@ def test_identity_recovers_the_base_from_M_and_H():
     # 536.2 post-K-IV (was 544.0): R rises, so B = (M + H − R)/w falls. Still
     # comfortably inside the independent supply-ceiling band, which is the
     # point of the two-instrument agreement.
-    assert r["implied_base"] == pytest.approx(606.7, abs=2.0)
+    assert r["implied_base"] == pytest.approx(584.88, abs=2.0)
     assert r["implied_epsilon"] == pytest.approx(0.302, abs=0.005)
 
 
@@ -379,7 +389,7 @@ def test_identification_rejects_bad_inputs():
 def test_shipped_base_predicts_an_unobserved_working_day():
     """B=1500 predicts 7.1 h/adult/day of entropy labour at advanced capital."""
     p = implied_human_hours(machine_eoh_per_capita=741.4, personal_base=1500.0)
-    assert p["human_per_adult_day"] == pytest.approx(5.92, abs=0.2)
+    assert p["human_per_adult_day"] == pytest.approx(6.28, abs=0.2)
 
 
 def test_predicted_hours_fall_as_capital_rises():

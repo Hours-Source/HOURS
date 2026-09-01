@@ -455,8 +455,8 @@ class TestIdentityReport:
 class TestFloorVsConstants:
 
     def test_age_weight_comes_from_the_shared_bridge(self):
-        # 1.475 → 1.3016 with the 2026-08-10 AGE_GROUPS elderly revalue.
-        assert floor_vs_constants()["age_weight"] == pytest.approx(1.3016)
+        # 1.475 → 1.3528 with the 2026-08-10 AGE_GROUPS elderly revalue.
+        assert floor_vs_constants()["age_weight"] == pytest.approx(1.3528)
 
     def test_floor_sits_below_every_standard(self):
         """The only ordering compatible with 30% coverage."""
@@ -557,7 +557,7 @@ class TestPIChangesNothing:
         # revalue, which is a CONSTANTS change; the basket still feeds nothing,
         # which is what this test is for.
         assert personal_eoh(population=1e6, epsilon=0.0) == pytest.approx(
-            1.3016e9, rel=1e-6
+            1.3528e9, rel=1e-6
         )
 
 

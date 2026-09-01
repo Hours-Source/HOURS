@@ -702,3 +702,70 @@ class TestParcelRateIsBoundToTheCensus:
         off = ground_use_fee(10.0, 0.5, "residential_primary", 0.40,
                              parcel_rate=0.0)["guf_applied"]
         assert on > off
+
+
+class TestTheUseCoefficientPointerMatchesTheMeasurement:
+    """
+    The ten `GUF_USE_*` `resolves_by` used to promise that a per-area servicing
+    census would settle "the levels and the ratios in one instrument". Two
+    things overtook it (corrected 2026-08-31): `use_split` measured that area
+    accounts for 41.9% of servicing hours, and the fee acquired a second basis
+    on 2026-08-30.
+
+    The corrected pointer QUOTES that 41.9%, so it is pinned against the live
+    measurement — a derived figure restated in prose is how this repo's claims
+    have gone stale five times.
+    """
+
+    def _pointer(self) -> str:
+        from utils import provenance as pv
+        scan = pv.scan(pv.DATA_PY.read_text(encoding="utf-8"))
+        rec = next(r for r in scan.records if r.name == "GUF_USE_INSTITUTIONAL")
+        return rec.resolves_by or ""
+
+    def test_the_quoted_shares_are_the_measured_ones(self):
+        shares = scaling_basis_shares("core")["shares"]
+        p = self._pointer()
+        for basis in ("area", "parcel", "throughput"):
+            assert f"{shares[basis]:.1%}" in p, (
+                f"the pointer quotes a {basis} share that no longer matches "
+                f"{shares[basis]:.1%}"
+            )
+
+    def test_it_names_the_second_basis_the_fee_acquired(self):
+        """
+        Without this the pointer reads as though one per-SLU number were still
+        the whole fee.
+        """
+        p = self._pointer()
+        assert "GUF_PARCEL_RATE_TEH_PER_PARCEL_YR" in p
+        assert "per-parcel" in p
+
+    def test_it_still_names_the_indexing_obstacle(self):
+        """
+        The real blocker is unchanged and must not be lost in the correction:
+        the censuses aggregate over LAND CLASSES, the table is indexed by USE
+        CATEGORY.
+        """
+        p = self._pointer()
+        assert "LAND CLASSES" in p
+        assert "USE CATEGORY" in p
+
+    def test_the_whole_pointer_is_machine_visible(self):
+        """
+        A BLANK COMMENT LINE ENDS A CONTINUATION, so the first draft of this
+        correction had only its opening paragraph inside `resolves_by` and the
+        rest sitting as ordinary comment — invisible to the provenance gate and
+        to `eoh provenance csv`. Detail that a reader can see and a checker
+        cannot is exactly the gap this scheme exists to close.
+        """
+        p = self._pointer()
+        assert len(p) > 900, "the pointer has been truncated by a blank line again"
+        assert "Spearman 0.891" in p
+
+    def test_the_coefficients_did_not_move(self):
+        """A pointer correction is not a recalibration."""
+        from hours_eoh.data import GUF_USE_SCALE_FACTOR
+        assert GUF_USE_SCALE_FACTOR == 100.0
+        assert USE_CATEGORIES["residential_primary"] == 10.0
+        assert USE_CATEGORIES["industrial_heavy"] == 37.5

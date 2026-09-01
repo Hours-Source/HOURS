@@ -87,16 +87,23 @@ class TestTheShapeTheFourWaySumHides:
         ratios = [r["delivery_over_obligation"] for r in accounts_arc()]
         assert ratios == sorted(ratios)
 
-    def test_delivery_crosses_the_obligation_late_in_the_arc(self):
+    def test_delivery_approaches_but_no_longer_crosses_the_obligation(self):
         """
-        SIGN and LOCATION, not level: the crossover exists and it is late. The
-        level moves with the capital path and has been re-anchored six times.
+        THE CLAIM THAT MOVED WHEN A PLACEHOLDER GOT DATA (2026-09-01), and it is
+        the cleanest example in the repo. This asserted a crossover late in the
+        arc, and there WAS one at 1.0029. Then AGE_WEIGHT_CHILD took the MTUS
+        measurement for ages 6-14 — raising the obligation — and the knowledge
+        fixed point re-anchored -9.94% with it, cutting the apparatus term.
+        Both push the ratio down and it now peaks at 0.90.
+
+        The SHAPE is what survives and is what is asserted: delivery grows by
+        more than an order of magnitude against a nearly flat obligation. The
+        crossover was a LEVEL, and levels move.
         """
         c = delivery_crossover()
-        assert c["crossover_epsilon"] is not None
-        assert 0.90 < c["crossover_epsilon"] <= 0.99
+        assert c["crossover_epsilon"] is None
         assert c["ratio_at_zero"] < 0.10
-        assert c["ratio_at_top"] > 1.0
+        assert 0.7 < c["ratio_at_top"] < 1.0
 
     def test_the_crossover_is_not_reported_as_a_failure(self):
         """

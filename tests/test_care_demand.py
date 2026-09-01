@@ -223,9 +223,15 @@ def test_measured_weights_bracket_the_shipped_infant_and_child_values():
     """
     rows = {r["band"]: r for r in care_curve.implied_weights()["rows"]}
     for band in ("infant", "child"):
-        row = rows[band]
-        assert row["bound"] == "lower"
-        assert 0.80 < row["ratio"] < 1.0, f"{band}: {row['ratio']}"
+        assert rows[band]["bound"] == "lower"
+    # INFANT still reads just below its shipped 3.0 — consistent with it.
+    assert 0.80 < rows["infant"]["ratio"] < 1.0, rows["infant"]["ratio"]
+    # CHILD now reads well below, because the shipped weight left this
+    # ATUS-only floor behind on 2026-09-01: AGE_WEIGHT_CHILD took the MTUS
+    # self-maintenance measurement for ages 6-14 (1.5 -> 1.82), which this
+    # ATUS-only curve cannot see and still enters as zero. The gap IS the
+    # measurement ATUS is missing, so a low ratio here is expected.
+    assert 0.70 < rows["child"]["ratio"] < 0.80, rows["child"]["ratio"]
 
 
 def test_the_elderly_weight_was_adopted_from_this_measurement():
@@ -302,18 +308,42 @@ class TestOnlyTheElderlyWeightWasAdopted:
     a term — the opposite of what the evidence supports. They stay.
     """
 
-    def test_the_unmeasured_bands_did_not_move(self):
+    def test_the_infant_band_still_has_not_moved(self):
+        """
+        INFANT is unchanged, and 2026-09-01 CHECKED it rather than assumed it.
+        MTUS surveys children, but 92% of its infant-band diaries are ages 3-5
+        and an infant's maintenance IS the caregiver's work, already counted on
+        the care-received side — so extrapolating into ages 0-2 would double
+        count. Applying the ages-3-5 figure to the whole band gives 3.21;
+        assuming 0-2 self-maintain at ~0 gives 2.85. The shipped 3.0 sits
+        between them and the measurement does not move it.
+        """
         assert AGE_GROUPS["infant"]["eoh_weight"] == 3.0
-        assert AGE_GROUPS["child"]["eoh_weight"] == 1.5
+
+    def test_the_child_band_MOVED_when_a_survey_covering_children_arrived(self):
+        """
+        THE HALF OF THE 2026-08-10 DECISION THAT WAS REVERSED, and its own
+        `resolves_by` is what licensed it: "a time-use survey covering children
+        would close the band from below." MTUS is that survey — 977,809
+        diaries, children from age 3 — and the child band reads 171.1 min/day
+        of self-maintenance against the 24.5 ATUS reports from its 15-17
+        sliver. Band [1.68, 1.82], and 1.82 is the high end because errs is
+        HIGH: a weight set too low is paid in unserved care.
+        """
+        assert AGE_GROUPS["child"]["eoh_weight"] == 1.82
 
     def test_working_age_remains_the_numeraire(self):
         assert AGE_GROUPS["working_age"]["eoh_weight"] == 1.0
 
     def test_the_bridge_moved_by_the_documented_amount(self):
-        """w 1.475 → 1.3016, −11.76%. Everything downstream of it moved with it."""
+        """
+        w 1.475 → 1.3016 on the elderly revalue (2026-08-10), then → 1.3528 on
+        the child measurement (2026-09-01). Both recorded: each move came from
+        a measurement, and the sequence is the point.
+        """
         w = sum(g["fraction"] * g["eoh_weight"] for g in AGE_GROUPS.values())
-        assert w == pytest.approx(1.3016)
-        assert w / 1.475 - 1.0 == pytest.approx(-0.1176, abs=5e-5)
+        assert w == pytest.approx(1.3528)
+        assert w / 1.3016 - 1.0 == pytest.approx(0.0393, abs=5e-4)
 
     def test_the_fractions_were_not_touched(self):
         """The weights were revalued; the population split is a separate question.
