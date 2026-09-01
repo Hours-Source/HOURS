@@ -24,9 +24,11 @@ ratio as measured and the definitional bridge as chosen; `ABATEMENT_HALF_CAPITAL
 at 5 says the order of magnitude is bounded and nothing else is.
 
 IT IS A RATCHET, NOT A BLANKET RULE. 135 constants carry `placeholder` or
-`bounded` and backfilling all of them at once would be inventing 131 more
+`bounded` and backfilling all of them at once would be inventing 126 more
 numbers — the exact failure the field exists to expose. So the count WITHOUT a
-confidence may not rise, and it falls as constants are revisited.
+confidence may not rise, and it falls as constants are revisited. The first pass
+annotated the nine highest-leverage, measured by perturbation rather than
+chosen: everything above 0.14 elasticity on the model's headline outputs.
 """
 
 from __future__ import annotations
@@ -42,10 +44,11 @@ from utils import provenance as pv
 #: tag itself, and `normative` is a decision that no measurement settles.
 SOFT_TAGS = frozenset({"placeholder", "bounded"})
 
-#: Constants without a confidence figure, at the moment the field shipped. May
-#: not RISE. Lowering it means revisiting a constant and stating what is
-#: measured in it, which is real work and not a rename.
-BASELINE_WITHOUT = 131
+#: Constants without a confidence figure. May not RISE. Lowering it means
+#: revisiting a constant and stating what is measured in it, which is real work
+#: and not a rename. 131 when the field shipped; 126 after the first leverage
+#: review annotated the five biggest levers.
+BASELINE_WITHOUT = 126
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 
@@ -149,9 +152,25 @@ class TestTheRatchet:
 
 class TestTheFiguresThatShipped:
     """
-    Pinned as ORDERINGS, not levels. What matters is that the four constants
-    this session touched are ranked by how much of each is actually measured.
+    Pinned as ORDERINGS, not levels. What matters is the RANKING by how much of
+    each is actually measured — and that it runs against leverage, which is the
+    finding: the model's biggest levers are its least-measured constants.
     """
+
+    def test_leverage_and_confidence_run_OPPOSITE(self):
+        """
+        THE HEADLINE OF THE FIRST LEVERAGE REVIEW. PERSONAL_EOH_BASE has the
+        highest elasticity in the model (0.94) at confidence 40; the GUF alpha
+        pair are next (0.73, 0.59) at 10; SERVICES_PRICE_DECLINE_EXPONENT is
+        fourth (0.54) at 5. The best-measured constant of the nine,
+        AGE_WEIGHT_CHILD at 70, ranks SIXTH by leverage. Anything fitted in this
+        repo is fitted hardest against what is known least.
+        """
+        assert self._value("AGE_WEIGHT_CHILD") > self._value("PERSONAL_EOH_BASE")
+        assert self._value("PERSONAL_EOH_BASE") > self._value("GUF_ALPHA_ZETA")
+        assert self._value("GUF_ALPHA_ZETA") > self._value(
+            "SERVICES_PRICE_DECLINE_EXPONENT"
+        )
 
     def _value(self, name: str) -> int:
         record = next(r for r in _soft_records() if r.name == name)

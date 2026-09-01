@@ -1219,6 +1219,25 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   derived at the OLD w and has not been re-derived; a lower w raises the
 #   supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather
 #   than wrong, and re-deriving it is owed.)
+# confidence: 40 — and this is THE MOST LEVERAGED CONSTANT IN THE MODEL, so the
+#   figure matters more here than anywhere else. Measured 2026-09-01 by
+#   perturbation: elasticity 0.94 on total EOH at ε=0, against 0.20 for the
+#   child weight and 0.45 for INFRA_MAINT_RATE. It sets the denominator of ε
+#   across the low arc, so everything fitted anywhere in this repo is fitted
+#   through it.
+# note: WHAT THE 40 IS MADE OF. Two independent instruments give a BAND —
+#   the labour-supply ceiling (L−R)/w and the capital-inventory identity
+#   (M+H−R)/w — and they share no assumption, which is why the band is evidence
+#   rather than a restatement. That is most of the 40. What is NOT measured is
+#   the point inside it: 1000 was chosen at the HIGH end on an asymmetric loss
+#   argument, not derived. And the direct instrument that would settle it,
+#   `personal_statutory_floor`, prices ONE basket component of seven — coverage
+#   0.069 — so it cannot yet falsify the value at all.
+# note: the band itself is now stale in a way that errs SAFE. It was derived at
+#   w = 1.475; w is 1.3528 after two age-weight measurements, and a lower w
+#   RAISES the supply-ceiling arm, so the band is wider than stated rather than
+#   wrong. Re-deriving it is owed and would raise this figure without any new
+#   data.
 # resolves_by: the capital-inventory + time-use identity, NOT time-use data
 #   alone — see the circularity section in docs/parameter_provenance.md.
 #   Partial progress: core/eoh_generation.personal_statutory_floor() now
@@ -1307,9 +1326,30 @@ BASKET_HEALTH_MIN_EPSILON: float = 0.10
 #   is not the point but the PATH: this constant sits on the monetized route
 #   that scenarios/infrastructure_floor.py shows is doctrine-dominated 10.26×,
 #   so narrowing it inside the band buys very little.
-# resolves_by: it cites a 2–4% band and picks a point inside it. The statutory
-#   floor below is the better instrument and supersedes this in practice — a
-#   physical condition census in crew-hours, with no money→hours step.
+# confidence: 30 — the BAND is measured and the point inside it is not. OECD
+#   capital-stock statistics give a real 2–4% range, so this is not a bare pick;
+#   what nothing constrains is where in the range 0.025 sits.
+# note: THE SUPERSEDING INSTRUMENT CANNOT SET THIS VALUE, checked 2026-09-01
+#   after this constant was ranked as a cheap win on its own `resolves_by`. The
+#   statutory floor IS built and IS doctrine-invariant (floor_spread 1.000), but
+#   it is currency-free by design and returns HOURS, while this constant is a
+#   ratio to a capital STOCK. Bridging them needs embodied hours per asset —
+#   the census schema carries `teh_per_unit` for exactly that and NOTHING SHIPS
+#   IT. So "supersedes in practice" is true of a CALLER, who can use the floor
+#   instead of this rate, and false as a derivation. Same shape as `u_parcel`
+#   before the parcel census: numerator yes, denominator no.
+# note: A DUPLICATE LITERAL, REPORTED NOT BOUND. `ASSET_TYPES["generic_infra"]
+#   ["maint_rate"]` is also 0.025, a bare literal 1,087 lines away, and
+#   `generic_infra` is the catch-all class this aggregate is meant to describe.
+#   This repo has found five copies-of-a-value-whose-source-is-elsewhere and in
+#   every case they AGREED until one moved. Binding them is not done here
+#   because it would ASSERT that the aggregate rate and the catch-all class rate
+#   are one quantity, which is a theory claim and not a refactor.
+# resolves_by: a physical condition census in crew-hours PLUS embodied hours per
+#   asset — `infrastructure_statutory_floor` supplies the first and the
+#   `teh_per_unit` census field is where the second would go. Until then the
+#   OECD band is the only constraint. FIELD: OECD/BEA capital consumption by
+#   asset class, or an asset census populated with both fields.
 INFRA_MAINT_RATE: float    = 0.025      # fraction of capital stock = EOH/year. CHOSEN — a point inside the OECD 2–4% band
 # tag: placeholder | units: dimensionless multiplier at end of design life
 # form: physics — maintenance burden really is convex in age. The DOUBLING is
@@ -2388,8 +2428,27 @@ SERVICES_PRICE_FLOOR: float = 0.20
 #   services meaningful in the care economy while prices still fall
 #   substantially" — i.e. picked for the shape it produces, which is the
 #   calibrated-to-target pattern stated plainly. Migrated 2026-08-28.
+# confidence: 5 — a near-bare pick on the FOURTH-LARGEST lever in the model
+#   (elasticity 0.542 on the basket price at ε=0.99, measured 2026-09-01 —
+#   ahead of INFRA_MAINT_RATE and more than twice AGE_WEIGHT_CHILD). Nothing in
+#   this repo has ever measured it and no work has been aimed at it. The 5 is
+#   that the shape is bounded — concave, monotone, and pinned to 1.0 at ε=0 —
+#   not that the exponent is constrained.
+# note: THREE CONSTANTS IN THIS REPO MAKE THE SAME SHAPE OF CLAIM AND NOTHING
+#   RECONCILES THEM (found 2026-09-01). "Labour content declines with automation
+#   to an irreducible floor", written three times with different parameters:
+#   GUF administration (1−ε)^0.8 + 0.05; services prices 0.2 + 0.8·(1−ε)^0.35;
+#   personal care 0.15 + 0.85·(1−ε)^1.0. Exponents spread 2.9×, floors 4×, and
+#   goods is linear to 0.05 — a fourth shape again. They MAY be four genuinely
+#   different activities with four different curves; nothing says so, and they
+#   are at least not independent evidence for one another. Same posture as
+#   REGEN_AUTOMATION_LEVERAGE_MAX and MATURATION_AUTO_LEVERAGE, recorded rather
+#   than reconciled. If they ARE one quantity, one measurement settles four
+#   constants, which is why this is worth writing down.
 # resolves_by: as for the two floors — the non-labour share by sector, read as
-#   a curve against a mechanisation index rather than at a single point.
+#   a curve against a mechanisation index rather than at a single point. FIELD:
+#   BEA/OECD input–output tables, non-labour intermediate share by sector across
+#   vintages. Standard, published, and never attempted here.
 SERVICES_PRICE_DECLINE_EXPONENT: float = 0.35
 # tag: instance | units: TEH (at the 1M reference population)
 # supplied_by: your gross fixed capital stock, converted to TEH at the
@@ -2601,9 +2660,30 @@ GUF_PSI_NORM:  float = (1.0 - GUF_PSI_FLOOR) / (
 # tag: placeholder | units: dimensionless | family: GUF_ALPHA_*
 # form: NLSA Eq. 19–20 — labour content declines with automation to an
 #   irreducible human-judgment floor.
+# confidence: 10 — and reviewed 2026-09-01 WITHOUT improvement, which is the
+#   part worth recording. These are the two highest-leverage placeholders in the
+#   model (elasticity 0.73 and 0.59 on GUF revenue at ε=0.99), and they were
+#   ranked as partly resolvable because the O*NET spine has since been cut to
+#   land administration — `reference/servicing.SCALING_BASIS` names eight
+#   parcel-basis occupations with their reasons. THAT RANKING WAS WRONG. The
+#   occupational cut fixes a LEVEL, and ζ and the floor are pure SHAPE: how
+#   labour content DECLINES with automation, and where it stops. Knowing which
+#   occupations do parcel administration, and how many hours they work, says
+#   nothing about either.
+# note: THE MISSING HALF IS AN AUTOMATION INDEX AND THE REGISTRY HAS NONE.
+#   `multiplier_registry_v5.csv` carries `i_substitutability`, which measures
+#   whether ANOTHER HUMAN can substitute for a worker — adjacent to
+#   automatability and not the same thing. Reading it as an automation index
+#   would repeat the SKILL_WORKING_LIFE_YEARS wrong-instrument error, so it is
+#   named here as refused rather than left for someone to notice.
+# note: the 10 is the SHAPE being bounded rather than free — α must be positive,
+#   fall monotonically in ε, and equal 1.0 at the calibration point by
+#   construction, which fixes the level and leaves the curvature open.
 # resolves_by: measured labour-hours per parcel-administration task against an
-#   automation index. The O*NET/BLS spine already shipped in reference/data/
-#   covers the occupations but has never been cut to land administration.
+#   automation index — a TIME SERIES of the eight occupations
+#   `SCALING_BASIS` names, or a per-occupation automatability score built for
+#   that purpose. FIELD: BLS employment for those eight SOC codes across
+#   vintages, which measures the decline directly and needs no index at all.
 GUF_ALPHA_ZETA:  float = 0.8   # rate of labor-content decline with automation
 GUF_ALPHA_FLOOR: float = 0.05  # irreducible human-judgment fraction at ε→1
 
