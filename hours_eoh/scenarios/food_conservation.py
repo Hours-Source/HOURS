@@ -165,34 +165,54 @@ class ConservationReport(TypedDict):
     caveat: str
 
 
-def hours_per_worker_year(
-    year: int | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
-) -> float:
+def hours_per_worker_year(year: int | None = None) -> float:
     """
     Average paid hours per worker per year — DERIVED, not chosen.
 
     Governing equation:
 
-        h_worker = (ATUS paid hours per capita × population) / total employment
+        h_worker = (paid hours per person 15+ × population_15_plus)
+                   / total employment
 
-    where total employment is the registry's covered employment grossed up by
-    `REGISTRY_EMPLOYMENT_COVERAGE`. Both sides are measured and both are quoted
-    against the same population, so no annual-hours convention is imported.
+    where the numerator is the 15+ paid-hours AGGREGATE and total employment is
+    the registry's covered employment grossed up by
+    `REGISTRY_EMPLOYMENT_COVERAGE`. Both sides are measured, so no annual-hours
+    convention is imported.
 
     units: hours per worker per year.
 
-    Worked example: 2025 — 937.3 h/person·yr × 335e6 ÷ 167.5M workers ≈ 1,875
-    h/worker·yr. A chosen 1,800 would have been defensible and is not needed.
+    Worked example: 2025 — 2,258.4 h/person15+·yr × 278.0M ÷ 334.9M workers…
+    resolving to **1,874.4284 h/worker·yr**. A chosen 1,800 would have been
+    defensible and is not needed.
+
+    IT NO LONGER TAKES A POPULATION, AND THAT IS A FIX (2026-08-31). It used to
+    accept `total_population`, convert the 15+ hours DOWN to a per-capita figure
+    with it, and then multiply the same population back in — a round trip that
+    cancelled exactly. The answer was 1,874.4284 at every population, so a caller
+    reframing to another country got the same number while believing they had
+    reframed it: the frame-seam shape this repo has found seven times. Found by
+    `tests/test_parameter_wiring`; the value is unchanged, because a cancelling
+    parameter cannot have been affecting it.
+
+    THE FRAME IS NOW WHERE IT BELONGS. This ratio is population-free by
+    construction — hours per worker does not depend on how many non-workers
+    there are. Callers that need a PER-CAPITA figure still divide by their own
+    `total_population`, which is live and stays.
+
+    Raises:
+        ValueError: if the registry reports non-positive employment.
+        KeyError: if `year` is not an ATUS survey year.
     """
-    paid_per_capita = atus_time_use.hours_per_capita(
-        atus_time_use.latest_year() if year is None else year, ("05",), total_population
+    y = atus_time_use.latest_year() if year is None else year
+    paid_15plus_total = (
+        atus_time_use.hours_per_person_15plus(y, ("05",))
+        * atus_time_use.population_15_plus(y)
     )
     covered = sum(row["employment_k"] for row in load_registry()) * 1_000.0
     total_employment = covered / REGISTRY_EMPLOYMENT_COVERAGE
     if total_employment <= 0.0:
         raise ValueError("registry reports non-positive employment")
-    return paid_per_capita * total_population / total_employment
+    return paid_15plus_total / total_employment
 
 
 def food_system_employment() -> dict[str, float]:
@@ -271,7 +291,7 @@ def conservation_test(
     is not ambiguous at all.
     """
     year = atus_time_use.latest_year() if year is None else year
-    per_worker = hours_per_worker_year(year, total_population)
+    per_worker = hours_per_worker_year(year)
     employment = food_system_employment()
     unpaid = unpaid_food_hours(year, total_population)
     lsms = {
@@ -349,7 +369,7 @@ def uncounted_headroom(
     """
     if not 0.0 <= employment_share <= 1.0:
         raise ValueError(f"employment_share must be in [0, 1], got {employment_share}")
-    per_worker = hours_per_worker_year(year, total_population)
+    per_worker = hours_per_worker_year(year)
     covered = sum(row["employment_k"] for row in load_registry()) * 1_000.0
     total_employment = covered / REGISTRY_EMPLOYMENT_COVERAGE
     per_point = employment_share * total_employment * per_worker / total_population

@@ -45,6 +45,67 @@ class TestDerivedHoursPerWorker:
         assert hours_per_worker_year(2003) != hours_per_worker_year(2025)
 
 
+class TestTheRatioIsPopulationFree:
+    """
+    THE FIX (2026-08-31). `hours_per_worker_year` used to accept
+    `total_population`, convert the 15+ hours DOWN to a per-capita figure with
+    it, and multiply the same population back in — a round trip that cancelled
+    exactly. The answer was 1,874.4284 at every population, so a caller
+    reframing to another country got the same number while believing they had
+    reframed it: the frame-seam shape, found a seventh time.
+
+    Found by `tests/test_parameter_wiring`, not by this file.
+    """
+
+    def test_it_takes_no_population_at_all(self):
+        """
+        The parameter is GONE, not defaulted. A cancelling parameter left in
+        place is a false affordance — it advertises a reframing that does not
+        happen.
+        """
+        import inspect
+        params = set(inspect.signature(hours_per_worker_year).parameters)
+        assert params == {"year"}, (
+            "hours per worker does not depend on how many non-workers there "
+            "are; a population parameter here can only mislead"
+        )
+
+    def test_the_value_did_not_move(self):
+        """
+        It must not: a parameter that cancels cannot have been affecting the
+        answer. If this ever moves, the removal was not a pure cancellation and
+        the derivation needs re-reading.
+        """
+        assert hours_per_worker_year() == pytest.approx(1874.428397952944, rel=1e-12)
+
+    def test_it_is_built_from_the_15plus_AGGREGATE(self):
+        """
+        The governing equation, checked against its own inputs rather than
+        against a remembered number.
+        """
+        from hours_eoh.reference import atus_time_use as atus
+        from hours_eoh.scenarios.food_conservation import (
+            REGISTRY_EMPLOYMENT_COVERAGE, load_registry)
+        y = atus.latest_year()
+        numerator = (atus.hours_per_person_15plus(y, ("05",))
+                     * atus.population_15_plus(y))
+        covered = sum(r["employment_k"] for r in load_registry()) * 1_000.0
+        assert hours_per_worker_year() == pytest.approx(
+            numerator / (covered / REGISTRY_EMPLOYMENT_COVERAGE)
+        )
+
+    def test_callers_that_need_per_capita_still_carry_their_own_population(self):
+        """
+        The frame did not vanish — it moved to where it belongs. A caller
+        converting to per-capita still divides by its own total_population, and
+        that parameter is LIVE.
+        """
+        from hours_eoh.scenarios.food_conservation import uncounted_headroom
+        a = uncounted_headroom(total_population=335e6)
+        b = uncounted_headroom(total_population=200e6)
+        assert a["hours_per_capita"] != b["hours_per_capita"]
+
+
 class TestFoodSystemEmployment:
 
     def test_stage_headcounts(self):

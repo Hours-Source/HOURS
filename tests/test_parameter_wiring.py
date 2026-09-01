@@ -21,8 +21,9 @@ checker look stronger than it is.
 
 WHAT IT CATCHES: a parameter that exists, is inert at every configuration tried,
 and is never passed by name anywhere in the suite. That is real — it found
-`hours_per_worker_year(total_population=)`, whose value structurally cancels, and
-two detectors nothing had ever exercised.
+`hours_per_worker_year(total_population=)`, whose value structurally CANCELLED
+(fixed 2026-08-31; the ratchet dropped 11 → 10), and two detectors nothing had
+ever exercised.
 
 WHAT IT CANNOT CATCH, stated so nobody relies on it:
   * **a wrong default.** `capital_stock_teh=2000` moves the output — the
@@ -51,7 +52,7 @@ zeroth power and CANNOT bite. It reported a live parameter as inert. That is the
 ε=0.40 trap inside the tool for finding it, and it is why several
 configurations are tried rather than one.
 
-IT IS A RATCHET, NOT A BLANKET RULE. The 11 findings below pre-date it and each
+IT IS A RATCHET, NOT A BLANKET RULE. The findings below pre-date it and each
 is declared with its reason; the count may not RISE. Declaring an entry is a
 visible act in a diff — the `_INNOCUOUS_NAMES` discipline: masking must be
 DECLARED, never inferred.
@@ -75,15 +76,16 @@ TESTS = pathlib.Path(__file__).resolve().parent
 #: Parameters known to be inert at their defaults AND unexercised, each with the
 #: reason it is tolerated. **Four classes**, and only the first is a defect.
 _DECLARED: dict[tuple[str, str], str] = {
-    # --- A. A REAL DEFECT, reported and not yet decided -------------------
-    ("hours_per_worker_year", "total_population"): (
-        "STRUCTURALLY CANCELS. `hours_per_capita(..., total_population)` divides "
-        "by it and the return multiplies by it, so the parameter is a round "
-        "trip. The docstring's governing equation advertises a dependency that "
-        "is void, and a caller reframing to another population gets the SAME "
-        "number silently — the frame-seam shape this repo has found six times. "
-        "Either document-and-pin the cancellation or remove the parameter."
-    ),
+    # --- A. FIXED 2026-08-31, kept here as the record ---------------------
+    # `hours_per_worker_year(total_population=)` was the one real defect this
+    # gate found: `hours_per_capita(..., total_population)` divided by it and the
+    # return multiplied it back, so the parameter was a round trip and the answer
+    # was 1,874.4284 at every population. The parameter is GONE — the function
+    # now builds the 15+ aggregate directly — and the value is unchanged,
+    # because a cancelling parameter cannot have been affecting it. Removing the
+    # declaration is what the ratchet is for: it fired on its own staleness
+    # check the moment the parameter stopped existing.
+    #
     # --- B. Detectors that CAN fire and that nothing exercises -------------
     ("epsilon_sweep", "jump_threshold"): (
         "the discontinuity detector is live — 0 flags at the default 5.0, 29 at "
@@ -305,7 +307,7 @@ class TestNoUndeclaredInertParameter:
         A ratchet, not a blanket rule: 11 pre-date the gate. Lowering the count
         means wiring or exercising one, which is a real fix.
         """
-        assert len(_DECLARED) <= 11
+        assert len(_DECLARED) <= 10
 
 
 class TestTheGateItselfIsHonest:

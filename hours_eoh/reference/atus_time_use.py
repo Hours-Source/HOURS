@@ -209,6 +209,31 @@ def series(
     }
 
 
+def population_15_plus(year: int) -> float:
+    """
+    The ATUS survey population aged 15+, for a given year.
+
+    units: persons.
+
+    WHY IT IS EXPOSED. A quantity that is a 15+ AGGREGATE — total paid hours,
+    say — should be built as `hours_per_person_15plus × population_15_plus`, not
+    by going out to a per-capita figure and multiplying the total population
+    back in. That round trip cancels exactly, and a caller who supplies a
+    different total population gets the same answer while believing they have
+    reframed it. `scenarios/food_conservation.hours_per_worker_year` did that
+    for months (found 2026-08-31 by `tests/test_parameter_wiring`).
+
+    Worked example: 2025 → 277,984,658 persons.
+
+    Raises:
+        KeyError: if the year is not a survey year.
+    """
+    for row in survey_years(include_incomparable=True):
+        if row.year == year:
+            return row.population_15_plus
+    raise KeyError(f"{year} is not an ATUS survey year")
+
+
 def per_capita_scale(year: int, total_population: float) -> float:
     """
     The 15+ → all-ages bridge: multiply a per-person-15+ figure by this.
