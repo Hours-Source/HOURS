@@ -33,6 +33,11 @@ WHAT IT CANNOT CATCH, stated so nobody relies on it:
   * **a parameter a test names but under-pins.** Stage 2 filters anything the
     suite passes by name, so once a test mentions it this gate goes quiet even
     if the wiring behind it is broken.
+  * **its own ratchet being loosened.** `len(_DECLARED) <= 8` passes if the
+    bound is simply raised, exactly as the shadow ratchet does. Verified: that
+    mutation does not bite. Raising it is a visible act in a diff, which is the
+    standard this repo holds ratchets to, and a meta-ratchet would only move the
+    same problem up one level.
 
 STATIC ANALYSIS DOES NOT REACH EVEN THE NARROW CLASS. `personal_base` WAS
 referenced in the body — it was forwarded into a call that ignored it. Only

@@ -256,8 +256,31 @@ class TestSubdivisionInvariance:
         """
         r = subdivision_invariance(epsilon)
         assert r["area_only_invariant"] is True
-        assert r["h_per_ha_after_area_only"] == r["h_per_ha_before_area_only"]
-        assert r["ratio_area_only"] == pytest.approx(1.0)
+        # To TOLERANCE, not `==`. These sum over N parcels and over 2N halved
+        # ones, and floating-point addition is not associative — asserting
+        # bit-exact equality passed on one machine and failed on another. The
+        # claim survives intact: 1.0 to 1e-12 against a per-parcel effect of
+        # 1.1194.
+        assert r["ratio_area_only"] == pytest.approx(1.0, rel=1e-12)
+        assert r["h_per_ha_after_area_only"] == pytest.approx(
+            r["h_per_ha_before_area_only"], rel=1e-12
+        )
+
+    def test_the_tolerance_cannot_hide_the_effect_it_must_distinguish(self):
+        """
+        A tolerance wide enough to absorb the finding is worse than none — the
+        `GOODS_PRICE_FLOOR` lesson, where `abs=0.02` on a floor of 0.05 let a
+        40% move pass. Here the tolerance must separate a parcel-blind 1.0 from
+        a per-parcel 1.1194, and it sits eleven orders of magnitude below it.
+        """
+        from hours_eoh.data import SUBDIVISION_FP_TOLERANCE as _FP_TOL
+        r = subdivision_invariance(0.40)
+        effect = abs(r["ratio"] - 1.0)
+        assert effect > 0.1, "the per-parcel effect is what must stay visible"
+        assert _FP_TOL < effect / 1e9, (
+            f"tolerance {_FP_TOL} is not far enough below the {effect:.4f} "
+            f"effect it has to distinguish"
+        )
 
     def test_the_fragmentation_premium_is_epsilon_invariant(self):
         """

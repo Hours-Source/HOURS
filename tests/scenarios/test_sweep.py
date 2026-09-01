@@ -65,3 +65,32 @@ class TestEpsilonSweepCanonicalImport:
             assert required.issubset(row.keys()), (
                 f"Missing keys in sweep row: {required - row.keys()}"
             )
+
+
+class TestTheDiscontinuityDetectorCanFire:
+    """
+    CLOSING A DETECTOR NOTHING HAD EVER EXERCISED (2026-08-31, found by
+    `tests/test_parameter_wiring`). `jump_threshold` gates the discontinuity
+    scan, and in the whole suite no test had ever passed it — so nothing checked
+    the scan could fire at all. The `settlement_report` lesson: a threshold
+    nobody exercises is a threshold nobody trusts.
+    """
+
+    def test_the_default_flags_nothing_because_the_arc_is_smooth(self):
+        assert epsilon_sweep()["discontinuities"] == []
+
+    def test_lowering_it_flags_steps_that_are_really_there(self):
+        """
+        The other direction, which is what was missing. If this ever returns
+        nothing the scan is dead and the clean default above means nothing.
+        """
+        loose = len(epsilon_sweep(jump_threshold=0.05)["discontinuities"])
+        tight = len(epsilon_sweep(jump_threshold=0.001)["discontinuities"])
+        assert loose > 0, "the detector cannot fire at all"
+        assert tight > loose, "lowering the threshold must admit more steps"
+
+    def test_a_flagged_step_reports_the_jump_that_tripped_it(self):
+        """A flag with no measurement behind it is not actionable."""
+        rows = epsilon_sweep(jump_threshold=0.05)["discontinuities"]
+        for row in rows:
+            assert row["rel_jump"] > 0.05, "flagged below its own threshold"

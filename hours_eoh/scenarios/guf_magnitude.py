@@ -73,7 +73,7 @@ Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
 
 from __future__ import annotations
 
-from hours_eoh.data import SLU_HECTARES
+from hours_eoh.data import SLU_HECTARES, SUBDIVISION_FP_TOLERANCE
 from hours_eoh.land.collective import (
     compute_collective_guf,
     make_rural_collective,
@@ -656,11 +656,22 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
         "h_per_ha_before":    before,
         "h_per_ha_after":     after,
         "ratio":              after / before,
-        "invariant":          after == before,
+        # TOLERANCE, NOT `==`, and the reason is not fussiness. These compare a
+        # sum over N parcels against a sum over 2N halved ones, and
+        # floating-point addition is NOT associative — the accumulations can
+        # differ in the last ulp. Bit-exact equality held on the machine this
+        # was written on and failed on another, which is how it was found. The
+        # CLAIM is undamaged: the parcel-blind ratio must be 1.0 to 1e-12 while
+        # the per-parcel term moves it to 1.1194, eleven orders of magnitude
+        # away, so no real effect can hide inside the tolerance.
+        "invariant":          abs(after - before) <= SUBDIVISION_FP_TOLERANCE * max(abs(before), 1.0),
         "h_per_ha_before_area_only": before_area,
         "h_per_ha_after_area_only":  after_area,
         "ratio_area_only":    after_area / before_area,
-        "area_only_invariant": after_area == before_area,
+        "area_only_invariant": (
+            abs(after_area - before_area) <= SUBDIVISION_FP_TOLERANCE * max(abs(before_area), 1.0)
+        ),
+        "fp_tolerance":       SUBDIVISION_FP_TOLERANCE,
         "verdict": (
             f"Doubling the parcel count on the same {hectares:,.1f} ha moves the "
             f"fee {before:,.2f} → {after:,.2f} h/ha·yr, ×{after / before:.3f}. "

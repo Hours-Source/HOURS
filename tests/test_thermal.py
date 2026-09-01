@@ -50,6 +50,36 @@ def test_planetary_budget_floored_at_zero():
     assert planetary_budget(delta_t_lo=3.0, lam=2.0, f_ghg=3.0) > 0.0
 
 
+def test_budget_scales_with_the_planet_area_ABOVE_the_clamp():
+    """
+    CLOSING THE LAST UNEXERCISED PHYSICS PARAMETER (2026-08-31, found by
+    `tests/test_parameter_wiring`). `a_earth` was the only one of the five that
+    no test touched: at the shipped defaults P0 is clamped to 0, which makes
+    EVERY parameter inert there, and the tests above correctly exercise
+    delta_t_lo, lam and f_ghg away from the clamp — but not this one.
+
+    P0 is a forcing DENSITY times an area, so above the clamp it must be
+    strictly linear in the area. Asserted as a proportionality rather than a
+    level: A_EARTH_M2 is `physics` and the level is not this test's business.
+    """
+    live = dict(delta_t_lo=3.0, lam=2.0, f_ghg=3.0)
+    base = planetary_budget(**live)
+    assert base > 0.0, "the fixture must sit above the clamp or this proves nothing"
+    assert planetary_budget(a_earth=2 * A_EARTH_M2, **live) == pytest.approx(2.0 * base)
+    assert planetary_budget(a_earth=0.5 * A_EARTH_M2, **live) == pytest.approx(0.5 * base)
+
+
+def test_the_area_is_inert_ON_the_clamp_and_that_is_the_clamp_not_the_area():
+    """
+    The companion reading, so neither can be quoted alone. At the shipped
+    defaults the budget is exhausted and NO parameter can move it — which is why
+    an inertness probe flags all five here and why it is not evidence of a
+    defect.
+    """
+    assert planetary_budget() == 0.0
+    assert planetary_budget(a_earth=2 * A_EARTH_M2) == 0.0
+
+
 def test_decarbonization_raises_budget_F3():
     # lowering F_GHG strictly raises the budget (restoration and liberation couple)
     hi_ghg = planetary_budget(delta_t_lo=3.0, lam=2.0, f_ghg=3.0)

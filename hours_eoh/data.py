@@ -2970,6 +2970,21 @@ GUF_USE_SCALE_FACTOR: float = 100.0
 #   P_service's residential share.
 GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
 
+# tag: convention | units: dimensionless relative tolerance
+# form: the relative tolerance for `guf_magnitude.subdivision_invariance`, which
+#   compares a fee summed over N parcels against the same fee summed over 2N
+#   halved ones. Floating-point addition is NOT associative, so the two
+#   accumulations may differ in the last ulp.
+# note: NUMERICS ONLY. It must not move any reported result, and the effect it
+#   has to distinguish — a parcel-blind ratio of 1.0 against a per-parcel 1.1194
+#   — is eleven orders of magnitude larger, which
+#   `test_the_tolerance_cannot_hide_the_effect_it_must_distinguish` pins. A
+#   tolerance wide enough to absorb the finding is worse than none, which is the
+#   GOODS_PRICE_FLOOR lesson (abs=0.02 on a floor of 0.05 let a 40% move pass).
+# decided_by: adopted 2026-08-31 after bit-exact equality passed on one machine
+#   and failed on another — the assertion was unsound, not the arithmetic.
+SUBDIVISION_FP_TOLERANCE: float = 1e-12
+
 # tag: convention | units: dimensionless (automation level epsilon)
 # form: the epsilon values arc TABLES are reported at. A superset of the four
 #   this repo's own rule requires every function to be meaningful at — 0, 0.40,
