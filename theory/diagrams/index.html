@@ -1723,7 +1723,10 @@
 
 
 <h1 id="diagrams">Diagrams<a class="headerlink" href="#diagrams" title="Permanent link">&para;</a></h1>
-<p>Fifteen diagrams rendered from Mermaid source. Source <code>.mmd</code> files are in <code>diagrams/</code> (gitignored); rendered SVGs are committed to <code>docs/images/</code>.</p>
+<p>Fifteen diagrams rendered from Mermaid source. The rendered SVGs are committed to
+<code>docs/images/</code> and are what this page shows. The <code>.mmd</code> sources live in <code>diagrams/</code>,
+which is gitignored — so the commands below are for maintainers who hold the
+sources, not steps a reader of this page needs to run.</p>
 <p>To re-render a single diagram:
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>mmdc<span class="w"> </span>-i<span class="w"> </span>diagrams/&lt;name&gt;.mmd<span class="w"> </span>-o<span class="w"> </span>docs/images/&lt;name&gt;.svg<span class="w"> </span>-p<span class="w"> </span>~/.config/mermaid/puppeteer.json
 </span></code></pre></div></p>
