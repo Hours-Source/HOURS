@@ -2,12 +2,12 @@
 Thermal Sink EOH — P0: the decarbonization-headroom finding (F3), with the
 provable ceiling bound (E29 / F1–F2) demoted to conditional.
 
-The uncounted vector (handoffs/Thermal_Sink_EOH_Implementation_Handoff_1_0.md):
+The uncounted vector (the thermal-sink implementation handoff):
 all degraded energy must exit through radiation to space; that capacity is fixed
 and cannot be enlarged by labor. Machine fulfillment of entropy obligations costs
 joules, so automation ε has a thermodynamic ceiling ε_max that may sit below 1.
 
-P0 REORDER (2026-08-01, per the Path C first-pass, handoffs/path c §7 rec 2 & 5):
+P0 REORDER (2026-08-01, per the Path C first pass §7 rec 2 & 5):
 the measured run showed the thermodynamic-floor ceiling bound is NON-BINDING at
 current dissipation, so F1/F2 are demoted to CONDITIONAL — true as specified, but
 not a constraint today. The load-bearing P0 finding is instead:
@@ -208,7 +208,7 @@ def decarbonization_headroom(
     Returns:
         DecarbonizationHeadroom.
 
-    Reference: handoffs §12.2/F3; handoffs/path c §4 (measured ~1000–1100 TW).
+    Reference: the thermal-sink implementation handoff §12.2/F3; the Path C first pass §4 (measured ~1000–1100 TW).
     """
     def alloc(forcing: float) -> float:
         f_th = lam * delta_t_lo - forcing

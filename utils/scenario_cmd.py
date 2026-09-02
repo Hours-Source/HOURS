@@ -1003,13 +1003,16 @@ def _dispatch(args: argparse.Namespace) -> object:
         return kb_out
 
     if name == "care_curve":
-        from hours_eoh.scenarios.care_curve import (
-            elderly_routes, implied_weights, measured_population_shares, rivalry,
-        )
-        weights = implied_weights()
-        routes = elderly_routes()
-        riv = rivalry()
-        shares = measured_population_shares()
+        # Route through the module's own assembly point rather than
+        # reassembling from the parts: report() is defined as "everything the
+        # scenario reports", so a field added there reaches the CLI without a
+        # second edit here, and the two cannot drift.
+        from hours_eoh.scenarios.care_curve import report as care_curve_report
+        rep = care_curve_report()
+        weights = rep["weights"]
+        routes = rep["elderly_routes"]
+        riv = rep["rivalry"]
+        shares = rep["population_shares"]
         cc_out: dict = {
             "years_pooled":  ", ".join(str(y) for y in weights["years"]),
             "numeraire":     weights["numeraire"],
@@ -1030,6 +1033,16 @@ def _dispatch(args: argparse.Namespace) -> object:
         cc_out["elderly_roster_min_day"] = routes["roster_minutes_per_person_day"]
         cc_out["elderly_module_min_day"] = routes["module_minutes_per_person_day"]
         cc_out["elderly_route_ratio"] = routes["ratio"]
+        # The stated limits and the coverage exclusions travel WITH the figures.
+        # Reading a band total without them reports the measurement floor as if
+        # it were the obligation: ATUS surveys nobody under 15, so infant and
+        # child self-maintenance is unmeasured rather than small.
+        for lim_key, lim_val in rep["limits"].items():
+            cc_out[f"limit_{lim_key}"] = lim_val
+        for row in rep["coverage"]:
+            acts = row.get("activities") or "0"
+            wmin = row.get("weighted_minutes") or "n/a"
+            cc_out[f"excluded_{row['reason']}"] = f"{acts} activities, {wmin} weighted min"
         cc_out["note"] = (
             "REPORTING ONLY. Infant and child totals are LOWER bounds — ATUS "
             "surveys nobody under 15, so their self-maintenance is unmeasured. "

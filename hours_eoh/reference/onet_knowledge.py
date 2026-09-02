@@ -46,7 +46,7 @@ HONEST LIMITS — read before citing any figure from here
    flags them; treat clipped rows as bounds, not values.
 3. **No external corroboration exists.** The whole chain rests on the O*NET
    education/training category → hours mapping performed upstream in
-   `handoffs/multipliers-v5/`. Nothing in this repo checks it against an
+   the multiplier handoff. Nothing in this repo checks it against an
    independent source. NCES/OECD attainment-and-instructional-hours would.
 4. **US-specific and epoch-frozen** (reference epoch 2026-07-29, methodology
    mult-5.1.0). Employment weights are BLS EP 2024–2034.
@@ -58,7 +58,7 @@ HONEST LIMITS — read before citing any figure from here
 Layer rule: `reference/` imports nothing from hours_eoh core/land/scenarios/data —
 this module reads only shipped data files via the standard library.
 
-Reference: notes/knowledge-eoh-closure.md §1 (the derivation route); Block K-II.
+Reference: the knowledge-base closure note §1 (the derivation route); Block K-II.
 """
 
 from __future__ import annotations

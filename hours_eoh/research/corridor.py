@@ -151,7 +151,7 @@ def survival_floor_epsilon(
     Raises:
         ValueError: if total EOH is non-positive or available_labor_eoh < 0.
 
-    Reference: handoffs/Thermal_Sink_EOH_Implementation_Handoff §5.5 E22.
+    Reference: the thermal-sink implementation handoff §5.5 E22.
     """
     if available_labor_eoh < 0.0:
         raise ValueError(f"available_labor_eoh must be ≥ 0, got {available_labor_eoh}")
@@ -223,7 +223,7 @@ def contestability_ceiling(
     (t=1.8 yr), ε≈0.1–0.2 by commons underwriting, ε≥0.4 self-finances
     (t≈2.9 yr at ε=0.99) → non-binding across the arc.
 
-    Reference: notes/contestability-closure-proposal.md §8.9, §8.9b.
+    Reference: the contestability closure proposal §8.9, §8.9b.
     """
     for eps in arc:
         fin = exit_financing(eps, population=population, regime=regime,

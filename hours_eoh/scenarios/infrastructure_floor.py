@@ -7,7 +7,7 @@ redesign: the floor is INVARIANT to the maintenance doctrine, because a doctrine
 is a set of accounting/ambition choices and the floor contains none.
 
 The contrast is with the monetized `capital_stock_teh` path
-(handoffs/Infrastructure): there, switching doctrine moved infrastructure EOH by
+(the infrastructure-floor handoff): there, switching doctrine moved infrastructure EOH by
 10.26× — and the flip-one-field decomposition showed 100% of that came from
 money→hours conversion conventions and 0% from any physical knob. Here, switching
 doctrine moves the floor by exactly 1.000×; the only thing that changes is the
@@ -187,7 +187,7 @@ def epsilon_from_floor(machine_eoh: float, counts: tuple[float, float, float] = 
 
     Because the floor is doctrine-invariant, ε is single-valued given an observed
     machine_eoh — the [0.04, 0.40] indeterminacy of the monetized denominator
-    (handoffs/Infrastructure §4.3) collapses. This is the ε-observability fix in
+    (the infrastructure-floor handoff §4.3) collapses. This is the ε-observability fix in
     miniature; the full rewire of the fulfilment ε computation is sign-off-gated.
     """
     good, fair, poor = counts

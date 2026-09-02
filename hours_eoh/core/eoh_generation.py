@@ -443,7 +443,7 @@ def infrastructure_statutory_floor(asset_census: list[dict]) -> float:
     task-normative labour-hours per unit per year to inspect/maintain them (e.g.
     (12 / inspection_interval_months) · crew_hours_per_visit). No money→hours
     conversion enters — this is the auditable, measured stream. Motivated by the
-    NBI calibration (handoffs/Infrastructure): flipping any physical knob moves
+    NBI calibration (the infrastructure-floor handoff): flipping any physical knob moves
     this floor; flipping an accounting convention does not, because there is none.
 
     units: hours/year. ε-behavior: none — maintenance burden is a property of what
@@ -472,7 +472,7 @@ def infrastructure_statutory_floor(asset_census: list[dict]) -> float:
         ValueError: if any count or hours_per_unit_year is negative or a bucket
             is missing a required key.
 
-    Reference: handoffs/Infrastructure §4.4 (statutory floor survives); Mission
+    Reference: the infrastructure-floor handoff §4.4 (statutory floor survives); Mission
     Statement Guardrail I (physical grounding).
     """
     total = 0.0
@@ -729,7 +729,7 @@ def personal_statutory_floor(
         ValueError: if a component is missing a required key, or carries a
             negative quantity or hours_per_unit.
 
-    Reference: handoffs/personal_eoh §0.1 (the basket must be pinned to physical
+    Reference: the personal-obligation handoff §0.1 (the basket must be pinned to physical
     quantities or the parameter is unfalsifiable), §0.3 (survival core vs
     entitlement augmentation — health has no ε=0 delivery path); Mission
     Statement Guardrail I (physical grounding).
@@ -811,7 +811,7 @@ def infrastructure_eoh_breakdown(
       - asset_census (PRIMARY, physical): the floor is
         infrastructure_statutory_floor(asset_census); audited=True. Currency never
         enters, so ε's infrastructure denominator can honestly be this floor
-        (handoffs/Infrastructure §5.4b) — the [0.04, 0.40] ε-indeterminacy of the
+        (the infrastructure-floor handoff §5.4b) — the [0.04, 0.40] ε-indeterminacy of the
         monetized path collapses to a physical count.
       - capital_stock (FALLBACK, monetized): the floor is infrastructure_eoh(...);
         audited=False. With discretionary=0 and deferred=0 the total EQUALS
@@ -850,7 +850,7 @@ def infrastructure_eoh_breakdown(
     Raises:
         ValueError: if neither asset_census nor capital_stock is provided.
 
-    Reference: handoffs/Infrastructure §5.1–5.4; reconciliation §3 (floor semantics);
+    Reference: the infrastructure-floor handoff §5.1–5.4; reconciliation §3 (floor semantics);
     Mission Statement Guardrail I.
     """
     if asset_census is not None:
@@ -1121,7 +1121,7 @@ def knowledge_eoh(
     converts to an annual obligation. The label was wrong, not the arithmetic.
     This matters because it is what makes the domain measurable: the O*NET/BLS
     spine supplies exactly a training STOCK (hours to reach competency) and a
-    renewal RATE, which is the same shape. See notes/knowledge-eoh-closure.md.
+    renewal RATE, which is the same shape. See the knowledge-base closure note.
 
     POPULATION SCALING (new in K-I). Knowledge EOH was population-invariant —
     the identical absolute figure at 1M and at 300M — so the domain's share of

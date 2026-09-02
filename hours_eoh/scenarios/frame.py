@@ -3,7 +3,7 @@ Jurisdiction frames — pairing a population with the land it is responsible for
 
 REPORTING ONLY. Nothing here is consumed by a generation function and no
 shipped number moves. Introduced 2026-08-17 as Phase 0 of the GUF
-restoration-cost derivation (notes/guf-restoration-derivation.md).
+restoration-cost derivation.
 
 THE DEFECT THIS MAKES VISIBLE
 -----------------------------

@@ -572,7 +572,8 @@ def curve_knots(
 
     Absolute minutes rather than a normalised index: the numbers stay directly
     checkable against the extract, and the choice of numeraire is then made once
-    in `core/care.py` where it is visible, instead of being baked in here.
+    in `scenarios/care_curve.py` (`NUMERAIRE_BAND`) where it is visible, instead
+    of being baked in here.
     """
     care = care_by_age(year, attribution)
     elder = elderly_per_capita(year, household_only=False)

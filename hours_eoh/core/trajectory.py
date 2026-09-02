@@ -224,7 +224,7 @@ def compute_epsilon(
     reach — not the success criterion. Success is a stable feasible corridor
     [ε_suff, ε_max] with a met sufficiency floor; a collective stable at ε=0.6
     with a positive corridor is a success, not a failed run at ε=1. See
-    research/corridor.py and notes/thermal (§1.1 / §12.1).
+    research/corridor.py and the thermal layer notes (§1.1 / §12.1).
     """
     if total_eoh_collective_potential <= 0.0:
         return 0.0

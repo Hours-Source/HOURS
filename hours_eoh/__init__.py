@@ -5,7 +5,6 @@ Causal model: entropy generates EOH → workers fulfill registered EOH → TEH c
 Old model started from labor supply; this model starts from entropy demand.
 
 Mission Statement: docs/mission_statement.md
-Migration guide: HOURS_EOH_Migration_Prompt.md
 """
 
 __version__ = "0.1.0"

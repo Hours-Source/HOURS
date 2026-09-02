@@ -78,7 +78,8 @@ from hours_eoh.core.prices import floor_purchasing_power
 from hours_eoh.core.workforce import competency_reserve, competency_check
 
 
-# Thresholds are imported from data.py (single source of truth shared with stress.py).
+# Thresholds are imported from data.py (single source of truth shared with the
+# scenario layer; core/stress.py was removed — scenario code lives in scenarios/).
 
 # ---------------------------------------------------------------------------
 # EOH Health Indicators

@@ -389,14 +389,6 @@ class TestOpenItemsCannotGoStaleSilently:
     #: it. A third state — open, unlisted, and quietly false — is what this
     #: forbids.
     DECLARED_OPEN: dict[str, str] = {
-        "the Phase 2 FLIP": (
-            "author sign-off on notes/phase-2-per-component-automation.md §8 — "
-            "whether care is un-automatable in the generation layer as the "
-            "fiscal layer and Block II already say, whether to flip the default "
-            "or leave per_component opt-in, and whether to adopt the -16.4% "
-            "re-anchor in the following commit. The mechanism is built and "
-            "default-off; the charter decision is not one the data can settle."
-        ),
         "THE TEN RATIOS": (
             "needs occupational data coded by the land use it serves, or a "
             "change to the fee's definition. Both censuses measure disturbance "

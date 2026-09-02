@@ -104,7 +104,7 @@ as care's low abatability, reached from a different direction.
 Layer rule: `reference/` imports nothing from the package — these are data, and
 any layer may read them.
 
-Reference: handoffs/personal_eoh/HANDOFF_personal_eoh_base.md §0.1, §0.3, §1.1,
+Reference: the personal-obligation handoff §0.1, §0.3, §1.1,
 §1.2, §2.
 """
 

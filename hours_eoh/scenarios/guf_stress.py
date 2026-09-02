@@ -356,7 +356,7 @@ def guf_revenue_sweep(
     α(ε) inside U, so the sweep is MONOTONE FALLING. Pass psi_policy="bell" for
     the pre-2026-08-20 shape — near-zero at ε=0, peaking ~ε=0.40, declining to
     near-zero at ε=0.99 — which was a property of Ψ rather than of the fee.
-    See handoffs/guf_redefinition.md §17.
+    See the GUF term-basis audit §17.
 
     Args:
         epsilon_values: List of ε points to evaluate. None → 11-point canonical arc.

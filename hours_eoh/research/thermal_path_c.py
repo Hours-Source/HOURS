@@ -15,7 +15,7 @@ existing ε ≈ 0.40. This is what moved the method from "near-term" to "runnabl
 today." Caveat: C1 holds ι and EOH_total fixed as ε scales, so the figure is a
 LOWER bound on ε_max (falling ι raises it; rising EOH_total lowers it).
 
-Three findings this reproduces (see handoffs/path c - thermal sink/):
+Three findings this reproduces (see the Path C first pass):
   F1  the thermal ceiling does NOT bind globally at current dissipation — but by
       much less margin than the pre-C5 run reported. CONDITIONAL: binding needs
       Φ > ε_current·budget, and by Eq. C1 that multiple IS ε_max, so at ΔT_lo =

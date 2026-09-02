@@ -55,8 +55,8 @@ Layer: scenarios/ imports reference/ only — pure, no I/O beyond shipped extrac
 function of ε. It is deliberately NOT dressed as an arc: there is no measurement
 between ε ≈ 0.05 and ε ≈ 0.9, and interpolating would invent one.
 
-Reference: handoffs/personal_eoh/HANDOFF_personal_eoh_base.md §2, §3.3, §3.5;
-notes/personal-eoh-floor.md Finding D.
+Reference: the personal-obligation handoff §2, §3.3, §3.5;
+the personal-floor note Finding D.
 """
 
 from __future__ import annotations

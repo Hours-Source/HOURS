@@ -1,7 +1,7 @@
 """
 Phase 3 — what resetting a hectare actually costs in labour, and what it implies.
 
-REPORTING ONLY. No constant moves. `notes/guf-restoration-derivation.md` §Phase 3.
+REPORTING ONLY. No constant moves. the GUF restoration-cost derivation, Phase 3.
 
 THE RESULT, AND IT CORRECTS AN EARLIER ESTIMATE IN THIS FILE'S OWN LINEAGE
 --------------------------------------------------------------------------

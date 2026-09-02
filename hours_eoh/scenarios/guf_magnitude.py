@@ -65,7 +65,7 @@ which is the `usedesc` normalisation project the extract deliberately declines
 to bundle into a count.
 
 And the fee still has nowhere to put it. A per-parcel term is a change to what
-the fee is a function of, not a recalibration — see `notes/guf-per-parcel-term.md`,
+the fee is a function of, not a recalibration — see the per-parcel-term decision,
 awaiting author sign-off.
 
 Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
@@ -610,7 +610,7 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
     It is now the REGRESSION ANCHOR for the term that fixed it. The ratio must
     exceed 1.0, because the per-parcel term is flat per parcel and subdivision
     doubles the count while the area product is unchanged. Pricing fragmentation
-    is the intended consequence (notes/guf-per-parcel-term.md, author decision):
+    is the intended consequence (the per-parcel-term decision, author decision):
     the same hectare costs more when split, because splitting it genuinely
     creates deeds, assessments, inspections and refuse rounds.
 

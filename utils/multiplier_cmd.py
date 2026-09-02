@@ -135,7 +135,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
             "(Spearman rank correlation vs the frozen ordering; pairwise-ratio\n"
             "drift). SECONDARY metrics (band verdict, spread) are construction\n"
             "artifacts of the normalization choice — reported, but not evidence.\n"
-            "See handoffs/multipliers-v5/FALSIFIABILITY.md."
+            "See the multiplier falsifiability pass."
         ),
     )
     s.add_argument("--delta", type=float, default=0.10, metavar="D",

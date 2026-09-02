@@ -1,149 +1,41 @@
 # CLAUDE.md
 
-## Current Task
+## Local working material
 
-0. One-line mission
+Design documents, data handoffs, raw datasets and diagram sources are **not in
+the repo** — `notes/`, `handoffs/`, `rawdata/` and `diagrams/` are gitignored.
+**`notes/README.md` indexes all of it**: what each design document settles and
+whether it is signed off, which handoff feeds which committed extract, which
+ingest script derives which dataset, the diagram render workflow, and the local
+environment quirks. It also holds the original commission (Workstreams A–F, all
+merged) and the agent corpus pointer.
 
-Take the HOURS model from "high-level functions that run simulations" to "in-depth, documented, reproducible mechanics that a researcher or a foundation can read, trust, and instantiate" — and fold in the reconciliation decisions made in the attached design documents, starting with a full multiplier and a contestability layer.
+Read it when a citation below points at `notes/…`, `handoffs/…`, `rawdata/…` or
+`diagrams/…` and you cannot find the file, or before opening several notes to
+work out which one is relevant. Nothing there governs the code; every adopted
+decision is stated in **Current status** below and pinned by a test.
 
-1. Files to attach to this session
+## Standing guardrails
 
-Design documents produced in the prior session all found in notes/ :
+Numbered 3 and 5 because the status log cites them by number ("§3 forbids
+rewriting theory in docstrings", "per the §5 guardrail"). The rest of the
+commission they came from is in `notes/README.md`.
 
+### 3. Standing guardrails (apply to every workstream)
 
-hours-reconciliation.md — the controlling spec. Its §§6–9 define the price-as-floor reframing, the polycentric/Coasean architecture, the contestability invariant and its math, and the prioritized open-work list. Treat this as the source of truth for what to build.
-coasean-collectives.md — the conceptual basis for the multi-collective workstream (D).
-historical-autopsy.md — the failure-mode taxonomy and the revised scorecard. Use it as an acceptance checklist: each change should move a named failure mode, not just add code.
-HOURS_-_Time_Currency_Framework_For_Automation.docx — the working paper. Source of the full multiplier assessment function, the Comprehensive Price Identity, the fiscal mechanisms, and the module list. When the README and the paper disagree on detail, surface it rather than guessing.
+- **Honor the layer rules.** `core/` stays pure and imports nothing outside itself. Experimental work (contestability, multi-collective) goes in `research/` until it has a stable API and tests. `scenarios/` and `land/` may import `core/` but never the reverse.
+- **ε-coherence is mandatory.** Every new function must return physically meaningful output across the full arc ε ∈ [0, 0.99], not just at the 0.40 reference. Add an arc test for each.
+- **Keep the suite green and typed.** The whole existing suite must still pass; add tests for new code; `python3 -m mypy hours_eoh/` must stay clean.
+- **Additive, not destructive.** Prefer new modules and new functions; deprecate rather than delete public API; don't break the CLI.
+- **License.** Repo is AGPL-3.0; preserve headers and license obligations.
+- **Author sign-off for theory changes.** Some items are substantive intellectual commitments, not refactors (the price-as-floor reframing, demoting system-wide inflation-impossibility to a floor/limit property, and any objectivity→transparency language change). Implement these behind clearly-labeled PRs/issues that link the reconciliation doc, for the author (AWol) to approve. Do not silently rewrite the theory in docstrings or docs.
 
+### 5. What NOT to do
 
-Repo files to read first, before writing anything (in this order):
-
-
-CLAUDE.md — architecture reference, module layout, design invariants, layer rules. Authoritative for repo conventions.
-CONTRIBUTING.md — function requirements (note the ε-coherence rule).
-README.md — package structure, CLI, structural conditions.
-docs/ — especially theory/overview and design principles.
-hours_eoh/params.py and hours_eoh/data.py — the parameter container and constants.
-hours_eoh/core/ — especially eoh_fulfillment.py (the EOH→TEH pipeline and where the multiplier is applied), fiscal.py (levies, guarantee, Trust), registration.py, eoh_generation.py, trajectory.py, simulation.py.
-utils/eoh_cli.py — the research CLI (commands: arc, dashboard, params, scenario, simulate, sensitivity, guf).
-tests/ — the 2,608-test suite; learn its patterns before adding to it.
-
-
-First action: read the above, then produce a short written map of (a) where each paper "module" currently lives in code, and (b) which modules are only high-level stubs. That gap map drives everything else.
-
-2. Context — what was decided in the design session
-
-The reconciliation resolved a tension between two "engines" in the framework: objectivity (measured prices, inflation impossible by definition) vs transparency + discovery (a measured floor, market discovery above it, polycentric collectives). The decision was to make transparency-plus-discovery load-bearing and demote measured-pricing to a floor. Three consequences drive this codebase work:
-
-
-The computed price is the floor price, not the price. Discovery happens above it and between collectives.
-The system is a federation of Coasean collectives; the number of collectives is emergent from the automation level ε, not fixed. The current single-ledger model is the ε→1 limit case.
-The invariant held constant across the whole ε arc is contestability — substantive right of exit — guaranteed by a portable, commonly-held, ε-growing capital dividend. Its math is in hours-reconciliation.md §8 and is summarized in Workstream B below.
-
-
-3. Standing guardrails (apply to every workstream)
-
-
-Honor the layer rules. core/ stays pure and imports nothing outside itself. Experimental work (contestability, multi-collective) goes in research/ until it has a stable API and tests. scenarios/ and land/ may import core/ but never the reverse.
-ε-coherence is mandatory. Every new function must return physically meaningful output across the full arc ε ∈ [0, 0.99], not just at the 0.40 reference. Add an arc test for each.
-Keep the suite green and typed. All 2,608 existing tests must still pass; add tests for new code; python3 -m mypy hours_eoh/ must stay clean.
-Additive, not destructive. Prefer new modules and new functions; deprecate rather than delete public API; don't break the CLI.
-License. Repo is AGPL-3.0; preserve headers and license obligations.
-Author sign-off for theory changes. Some items below are substantive intellectual commitments, not refactors (the price-as-floor reframing, demoting system-wide inflation-impossibility to a floor/limit property, and any objectivity→transparency language change). Implement these behind clearly-labeled PRs/issues that link the reconciliation doc, for the author (AWol) to approve. Do not silently rewrite the theory in docstrings or docs.
-
-
-4. Workstreams
-
-A. The multiplier — full breakdown (highest-priority deepening)
-
-Why: the README models Condition II as a "Multiplier Band" check; the paper specifies a full assessment function. This is the single biggest "high-level stub → in-depth mechanic" gap, and it is the skill-differential wound from the autopsy.
-Build: a dedicated module (suggest hours_eoh/core/multiplier.py, or extend wherever the multiplier is currently applied — confirm first) implementing the paper's assessment function in full:
-
-
-m(c) = 1 + α₁·T(c) + α₂·D(c) + α₃·S(c) + α₄·I(c) over the four factors (training/skill-acquisition cost, demand, scarcity, impact), with epoch-adaptive weights αᵢ(ε).
-Enforce the constitutional band (mean ≈ the paper's [1.8, 2.1], hard cap ≈ 6.0) as a checked invariant, not a hard-coded constant.
-Implement the paper's scarcity-feedback handling (scarcity is endogenous → use the lagged/decayed measure the paper specifies) and the decomposed "impact" sub-questions.
-Encode the governance safeguards as parameters/hooks: sortition-based assessor selection, adversarial-review flag, inter-rater-reliability inputs, and a sunset/revalidation clock. These can be data structures and validators now; they document the mechanism even before they're fully simulated.
-Reframe per §3 above: the multiplier sets the floor wage rate, not the universal price. Document this; it eases the measurement burden (the multiplier need only be fair-enough at the floor).
-Acceptance: multiplier reproducible and band-compliant across the arc; a CLI/notebook breakdown that shows the four-factor contributions at chosen ε; tests at ε ∈ {0, 0.4, 0.99}; docstring states the governing equation.
-
-
-B. Contestability instrumentation (legitimacy-critical, new)
-
-Why: hours-reconciliation.md §8 makes contestability the invariant the whole arc must preserve. Nothing in the repo measures it yet.
-Build: hours_eoh/research/contestability.py implementing:
-
-
-P(epsilon) — portable per-capita endowment (Sufficiency floor + vested per-capita share of the commonly-held Trust). Hook into fiscal.py's Trust/guarantee.
-k_entry(epsilon, regime) — sunk cost of founding a viable alternative collective, with a regime switch: increasing_returns (K_entry rises with ε) vs replicable (K_entry falls). Default to the adversarial increasing_returns case.
-chi(epsilon, regime) = P / k_entry — the contestability margin; invariant requires χ ≥ 1 across the arc.
-phi(epsilon) — commonized fraction of automation value; in the adversarial regime it must be able to → 1 as ε → 1.
-tau(epsilon) = T/K (Trust share of total automated capital) and a check that dτ/dε ≥ 0 ⇔ g_Trust ≥ g_priv — the Piketty-inverted condition. Derive the common-fund levy schedule that satisfies it and expose it as a function of ε.
-Wire in: add a CLI command contestability (arc table of ε, P, k_entry, χ, φ, τ, pass/fail) and a line in dashboard that goes RED when χ < 1. Add a scenario contestability_stress (increasing-returns regime, rising K_entry) to the scenario list.
-Acceptance: a reproducible χ(ε) chart across the arc under both regimes; a derived levy schedule that holds χ ≥ 1 in the adversarial regime; tests; honest docstring noting the regime uncertainty (reconciliation §8.5).
-
-
-C. Price-as-floor refactor (theory-flagged — open PR for sign-off)
-
-Why: reconciliation §3 demotes the Comprehensive Price Identity to the floor price.
-Build: locate the price computation feeding the CLI arc "price" column (likely eoh_fulfillment.py/fiscal.py). Expose it explicitly as floor_price(...) and add a market_premium hook (default 0.0) so discovered premiums can layer above the floor without changing the floor's guarantee. Update docstrings to say "floor price, not the price."
-Acceptance: behavior unchanged at default (premium 0); the seam is now explicit and documented; PR links reconciliation §3 and §9-item-3 and asks the author to confirm the reframing before merge.
-
-D. Polycentric / Coasean scaffolding (research-tier, larger)
-
-Why: reconciliation §§6–7 and coasean-collectives.md. The current single ledger is the mono limit; the general case is N collectives trading at floating rates.
-Build (in research/): a Collective wrapper around the existing single-ledger pipeline; an N-collective simulation with pairwise exchange rates and reserve holdings; and the three-regime inflation metric (within-collective floor-impossibility at all ε; inter-collective relative inflation as FX in transition; system-wide impossibility as the ε→1 limit) from reconciliation §7. Let the Coasean boundary (collective size) be an emergent function of ε rather than a fixed input.
-Acceptance: an N-collective scenario that reproduces, at N=1, the existing single-ledger results exactly (a regression anchor); an inter-collective inflation series that behaves per §7; clearly marked experimental status.
-
-E. Research & foundation accessibility (the through-line goal)
-
-Why: the explicit aim — make the modules legible and instantiable, not just runnable.
-Build:
-
-
-In-depth docstrings: every core/ function gains the governing equation, units, ε-behavior, and a worked numeric example. This is the "full-blown workings" the high-level stubs lack.
-Parameter provenance table: for every EohParams value, document source/derivation and whether it is physics (structural) or a calibration knob. Put it in docs/ and link from the README.
-Reproducible figure/notebook scripts (suggest examples/ or docs/notebooks/): the arc sweep, the multiplier four-factor breakdown (A), and the χ(ε) contestability chart (B), each runnable end-to-end from repo root.
-Foundation Implementation Guide (docs/): how an institution maps its real data (capital stock, ecosystem health, population structure, knowledge base) onto the EOH inputs; which parameters to calibrate; how to run a scenario against local data; what outputs mean. Written for an analyst, not a core dev.
-Acceptance: a newcomer can go from clone → understand one core mechanism in depth → run a figure → see how to plug in their own numbers, using only docs/ and examples/.
-
-
-F. Objectivity → transparency language pass (theory-flagged — open PR for sign-off)
-
-Why: reconciliation §9-item-9. Replace physical-truth claims ("the currency tells the truth," "better physics") with show-your-work / floor framing in README and docs/.
-Do not apply unilaterally. Open a single PR proposing the wording changes with the reconciliation rationale, for author approval. Low effort, high return, but it is a positioning decision.
-
-5. What NOT to do
-
-
-Do not delete or rewrite the existing inflation-impossibility result; reframe it as floor-level/limit per §7 and leave the original theorem documented as the ε→1 case (behind a sign-off PR).
-Do not move experimental code into core/ until it has a stable API and full tests.
-Do not invent function signatures from this prompt; confirm the real ones in the code first (this prompt is written from the README, not the module internals).
-Do not change calibration constants to make a chart look better; if a result is ugly, report it.
-
-
-6. Definition of done (per PR)
-
-New/changed code has: governing-equation docstrings, arc tests at ε ∈ {0, 0.4, 0.99}, green full suite, clean mypy, a CLI or notebook entry point where user-facing, and — for theory-flagged items (C, D's reframing, F) — a PR description linking the relevant reconciliation section and explicitly requesting author sign-off.
-
-7. Suggested sequencing
-
-
-Gap map (§1 first action) — where each paper module lives, which are stubs.
-A. Multiplier — biggest deepening win, self-contained.
-B. Contestability — legitimacy-critical; depends on fiscal.py Trust hooks.
-E. Accessibility — run alongside A and B so each new mechanic ships with its docstring, provenance entry, and figure.
-C. Price-as-floor — small, but theory-flagged; open the sign-off PR early so it can be discussed in parallel.
-D. Polycentric scaffolding — largest; research-tier; anchor it with the N=1 regression test.
-F. Language pass — last, as a single reviewable PR.
-
-
-8. The test that this prompt succeeded
-
-A researcher who has never seen HOURS can open the repo, read one core mechanism (say the multiplier) and understand its full workings from the docstring alone, run the χ(ε) contestability chart to see whether exit stays viable across the arc, and find a guide telling them how to plug their own institution's data in — and every claim the code makes about itself is a show-your-work claim the ledger can back, not a physics-truth claim it cannot.
-
-
+- Do not delete or rewrite the existing inflation-impossibility result; reframe it as floor-level/limit per reconciliation §7 and leave the original theorem documented as the ε→1 case (behind a sign-off PR).
+- Do not move experimental code into `core/` until it has a stable API and full tests.
+- Do not invent function signatures from a description; confirm the real ones in the code first.
+- Do not change calibration constants to make a chart look better; if a result is ugly, report it.
 
 ## Commands
 
@@ -152,9 +44,9 @@ python3 -m pytest tests/ -q                          # full suite
 python3 -m pytest tests/test_eoh_generation.py       # single file
 python3 -m mypy hours_eoh/                           # type-check
 python3 utils/eoh_cli.py <command>                   # research CLI (see README)
-mmdc -i diagrams/<name>.mmd -o docs/images/<name>.svg -p ~/.config/mermaid/puppeteer.json   # render one
-for f in diagrams/*.mmd; do mmdc -i "$f" -o "docs/images/$(basename $f .mmd).svg" -p ~/.config/mermaid/puppeteer.json --quiet; done  # render all
 ```
+
+Diagram rendering (`mmdc`) is local tooling — see `notes/README.md`.
 
 The package is importable directly from the repo root. `tests/conftest.py` adds the repo root to sys.path automatically for all tests.
 
@@ -194,9 +86,10 @@ hours_eoh/
     dashboard.py       Condition monitors + EOH/fiscal health indicators
     civilization.py    Endogenous ε from capital stock
     simulation.py      Period simulation engine
+    autarky.py         Autarky reference B₀, overbuild_check(), break_even_epsilon(), payback() (Block II)
 
   land/                Ground Use Fee + stewardship lease mechanics
-    guf.py             GUF framework (NLSA) — 14 functions
+    guf.py             GUF framework (NLSA) — the fee, Ψ policies, ecosystem-service term, §9 write-down
     collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective()
     calibration.py     Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
@@ -204,6 +97,11 @@ hours_eoh/
     practitioners.py   Practitioner/demand histories for scarcity_score() (6 occupations, 5 periods each)
     workforce.py       Workforce composition snapshots for population_weighted_mean_multiplier() (5 snapshots)
     atus_time_use.py   Measured US time use 2003–2025 (BLS ATUS); ingest via utils/atus_ingest.py
+    mtus_time_use.py   Multinational time use — self-maintenance by age, 977,809 diaries; ingest via utils/mtus_ingest.py
+    care_demand.py     ATUS care demand by age: care_by_age(), elderly_per_capita(), coverage()
+    parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py
+    onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
+    onet_knowledge.py  Knowledge/training axis inverted against the same frozen bounds
     personal_basket.py The personal obligation pinned to physical quantities; one component priced.
                        QUANTITIES live in data.py as BASKET_*; this holds the MEASURED delivery
                        productivities and takes the quantities as arguments
@@ -247,6 +145,13 @@ hours_eoh/
     ecological_floor.py  domain_balance_report — the ecological anchor INVERTED: what intensity a given share demands
     land_stewardship.py  census_report, agency_report, field_capacity_report, frame_report, scope_comparison
                        — the anchor's resolves_by RUN: the forward question, US, 38.1% covered
+    obligation_accounts.py  The three accounts — OBLIGATION / DELIVERY / STOCK — and anchor_sensitivity();
+                       REPORTING ONLY; the partition closes to float equality against total_eoh()
+    arc_stability.py   Can the system STAND STILL here: obligation met, delivery pays, stock stationary
+    component_shares.py  The desk component shares measured against observed ATUS time use; a BOUND, REPORTING ONLY
+    use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
+    knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
+    care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
 
   research/            Experimental — NOT stable API, not imported by core or scenarios
     investment.py      rank_investment_candidates, optimal_investment
@@ -258,6 +163,8 @@ hours_eoh/
     coasean.py         N-collective federation (§§6–7)
     corridor.py        survival_floor_epsilon, contestability_ceiling, thermal_ceiling, corridor
     epsilon_inverse.py capital_for_epsilon — sweep the economy, not the score
+    exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger, parity_rate, the named FX seam
+    anchor_determinacy.py  Eight anchors CLASSIFIED from their own definitions — no rival is modelled; REPORTING ONLY
     thermal*.py        thermal, thermal_path_c, thermal_lambda, thermal_overage, thermal_drawdown,
                        thermal_solvency, thermal_capital — the planetary radiative layer
     desire.py          Discovery-above-the-floor stub (sign-off-gated)
@@ -274,7 +181,7 @@ utils/                 Presentation layer — CLI and research helpers (see READ
 - `reference/` imports nothing from the package — pure data; any layer may import from it
 - `research/` re-exports from `core/`; callers are in experimental territory
 - `utils/` imports freely from all layers; never imported by any of them
-- New scenario code goes in `scenarios/` — do not add to `core/stress.py`
+- New scenario code goes in `scenarios/` (the former `core/stress.py` was removed; do not recreate it)
 
 ### The EOH → TEH pipeline
 
@@ -328,28 +235,48 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
 
 ## Visuals and Diagrams
 
-**Use Mermaid for all diagrams.** Source `.mmd` files stay local (`diagrams/`, gitignored). Rendered SVGs go in `docs/images/` (committed) and are referenced in markdown as `![Label](images/name.svg)`. The CLI tool `mmdc` (v11, installed globally via npm) does the rendering.
+**Use Mermaid for all diagrams.** Source `.mmd` files stay local (`diagrams/`,
+gitignored) and are **never committed**; rendered SVGs go in `docs/images/`
+(committed) and are referenced in markdown as `![Label](images/name.svg)` — that
+is what GitHub and the docs see.
 
 - **Flowcharts** (`flowchart TD/LR/TB`) — pipelines, relationships, layered structures
 - **XY charts** (`xychart-beta`) — numeric arcs (price vs. ε, purchasing power vs. ε)
-- **Source files** live in `diagrams/` (gitignored) as `.mmd` files — never committed
-- **Rendered SVGs** live in `docs/images/` (committed) — what GitHub and the docs see
-- Re-render a diagram: `mmdc -i diagrams/<name>.mmd -o docs/images/<name>.svg -p ~/.config/mermaid/puppeteer.json`
-- Re-render all: `for f in diagrams/*.mmd; do mmdc -i "$f" -o "docs/images/$(basename $f .mmd).svg" -p ~/.config/mermaid/puppeteer.json --quiet; done`
 
-Puppeteer config for WSL (no-sandbox): `~/.config/mermaid/puppeteer.json`
+15 diagrams exist — EOH→TEH pipeline, four domains, pricing arcs, demand
+layers, scarcity signal, TEH lifecycle, automation arc, purchasing power, and
+the five GUF diagrams. They are referenced from `docs/theory/diagrams.md` and
+from the theory and API pages that use them.
 
-**System deps** (Ubuntu 24.04, required for mmdc): `libnss3 libnspr4 libasound2t64`
-
-Existing diagrams: `diagrams/*.mmd` → `docs/images/*.svg`, referenced in `docs/eoh_visuals.md`.
-10 diagrams: EOH→TEH pipeline, four domains, pricing arc, demand layers, scarcity signal,
-TEH lifecycle, automation arc.
+The `mmdc` render commands, the WSL puppeteer config and the system deps are
+local tooling: see `notes/README.md`.
 
 ---
 
 ## Current status
 
 **3650 tests passing (1 skipped), mypy clean on 88 source files** (verified 2026-09-01). Workstreams A–F merged to main, including the contestability closure (derived levy schedule, marginal χ, dashboard wiring) and Coasean Phase 3 (trust dynamics, settlement rules, desire stub).
+
+**SESSION CLOSE 2026-09-02 — WHAT IS OPEN, AND WHAT WOULD SETTLE IT.** 3,802 pass (1 skipped), mypy clean on 89 files, provenance 294/294, `main` pushed and clean at `d1c14f1`. Eight commits compacted to one; seven stale branches removed. The open-item discipline applies: each of these is declared with what would close it, because an item that is open, unlisted and quietly false is the state this file's claims register exists to forbid.
+
+**THEORY — needs the author, not a gate.**
+- **`notes/value-anchor.md` §2 is not signed off for publication.** The four retirements in §1 ARE (2026-09-02): "backed by human labor" → "backed by the capacity to fulfil obligations", "entropy is measured in time" → the numeraire framing, ε as the share that no longer depends on human agency, and trust relocating rather than disappearing. **Still open: whether §2 ships as drafted, and whether the corrected CENSUS-vs-VALUATION framing is accepted** — it replaces "no price in the chain", which measurement showed is true of both routes and distinguishes nothing. Settles by: author decision.
+- **THE DISCOVERY LAYER IS A 120-LINE STUB WITH 3 FUNCTIONS** (`research/desire.py`). The stock identity bounds the guaranteed portion; what a unit commands ABOVE the floor has no theory. Every claim the framework makes about purchasing power is therefore scoped to the floor, and `floor_claim_across_the_arc` flags its own result as internal. Settles by: a theorem, not code.
+- **REGISTRATION CAPTURE IS MEASURED AND UNMODELLED.** Unit elasticity on the money supply, and the only lever that moves it — so whoever controls what counts controls issuance, which is the failure mode discretionary issuance is criticised for. **The contestability arc (§§8.7–8.9c) addresses EXIT; this is VOICE.** Settles by: a governance model of the register, which does not exist.
+- **THE BASE IS BLIND TO ECOSYSTEM CONDITION** — halving health moves minting 0.0%. That is a design consequence of Phases 4e/4f, not a bug: the recurring obligation moved to GUF, where it rises 2.05×. **Whether an anchor whose SUPPLY ignores ecological condition is what the framework wants is a charter question**, now measurable and unanswered.
+
+**MEASUREMENT — the standing debt, unchanged in shape.**
+- **126 of 135 placeholder/bounded constants carry no confidence figure** (ratcheted; may not rise). **Leverage runs OPPOSITE to confidence** and that ordering is pinned as a test: `PERSONAL_EOH_BASE` has the model's highest elasticity (0.94) at confidence 40; the GUF α pair 0.73/0.59 at 10; `SERVICES_PRICE_DECLINE_EXPONENT` 0.54 at 5.
+- **THREE OF FOUR PERSONAL AUTOMATION FLOORS ARE ABSENT** — only care is measured. Every further floor lowers the observable-ε ceiling, so **the shipped ~0.92 errs HIGH** and a test pins that direction. Settles by: the share of hours whose value depends on a human performing them.
+- **THE THREE-CURVES-ONE-SHAPE LEAD IS UNTOUCHED.** Three constants make the same claim — labour content declines to an irreducible floor — with exponents spread 2.9× and floors 4×. If they are one quantity, **one measurement settles four constants.**
+- Also open, all previously declared: the ten `GUF_USE_*` ratios (needs use-category-indexed occupational data); `ASSET_TYPES["generic_infra"]["maint_rate"]` duplicating `INFRA_MAINT_RATE` as an unbound literal, reported not bound because binding asserts they are one quantity; `P_service` needing an external service-point count.
+
+**HELD DELIBERATELY — do not build without a reason to.**
+- **Anchor comparison Phases 1–3.** Phase 0 may be sufficient: "two anchors are indeterminate, two indifferent by design, and of those that respond only mutual credit and HOURS require the activity to have fulfilled a recognised obligation" is defensible without simulating a rival. Building Phases 1+ is monetary economics rather than entropy accounting and is the surface growth the review's §15 warns about.
+- **`teh_supply` is pinned, not decided.** It has zero callers, states the bound the theory wants, and raises on the shipped trajectory. Wire it, retire it, or leave it — currently a test fails if it acquires a caller, which is the safe holding state.
+- **The compensating-mechanism audit** (review §15) and **dynamic stability / oscillation** (review §6) are both unbuilt. `arc_stability` answers stationarity, NOT whether the coupled capital→automation→income→formation loop oscillates. Nothing tests for limit cycles.
+
+**METHOD — the finding this session kept re-learning.** Four separate times, the numbers were checked and the sentence about them was not: a false crossover claim in the guide, a "clears with 6% to spare" that held only under an unstated full-employment assumption, a doctrine-invariance figure half-sourced from a gitignored artifact, and a value-anchor proposition that was false at founding. **Verifying the neighbourhood is not verifying the claim.** Recorded as F-027 in the local agent corpus (`notes/agents/`, 27 findings, 4 roles, gitignored), which now also carries the probe: for every "because X", evaluate X and check its DIRECTION.
 
 **THE INTAKE GUIDE CARRIES THE FULFILMENT WARNING — AND REVIEWING IT FOUND FIVE DEFECTS, THREE OF THEM MINE** (2026-09-02). `docs/guides/implementation_guide.md`: an eighth intake field, the demand-vs-fulfilment note, corrected outputs, and a worked example that now runs verbatim. 3,802 pass, mypy clean on 89 files. **No code changed.**
 - **THE GAP IT CLOSES.** The mint gate established that `available_labor_eoh` defaults to unsupplied, so the pipeline mints from obligation DEMANDED rather than SERVED — and the one document written for analysts had **zero mentions of the field**. It told institutions to run the pipeline and never said that without it they are measuring demand. The intake table now carries it, with the note that this is the single most consequential default in the table.
@@ -494,7 +421,7 @@ TEH lifecycle, automation arc.
 - **IT IS REACHABLE FROM THE DOCUMENTED ENTRY POINT, WHICH IS NOT AUTOMATIC HERE.** The stranded-parameter failure has been found **four times** — `personal_standard`, `ecological_health_response`, `knowledge_base_size` and `restoration_obligation` each reached `total_eoh` and stopped at `eoh_to_teh_pipeline`, the path the implementation guide tells institutions to run. Pinned by a test that asserts the switch moves `teh_created` (**5.69× at ε=0.99**).
 - **ε=0 IS EXACT UNDER BOTH RESPONSES, AND THAT IS THE CONTROL.** With nothing automated a floor ON automation cannot bite, so the two MUST coincide; had they differed there the divergence would be an arithmetic artefact rather than the contradiction.
 - **AND IT REPRODUCED A KNOWN BUG ON ITS FIRST RUN.** The two new metadata keys leaked into `simulation`'s `human_eoh_by_domain`, typed `dict[str, float]`, and broke `isfinite` — **the same shape as Block III's basis label landing in a float dict.** The blacklist filter (`k not in ("total", "human_fraction", "epsilon")`) broke the moment a key was added; replaced with a **whitelist of the four domains**, which is robust to the next one.
-- **STILL OPEN: the Phase 2 FLIP** — `notes/phase-2-per-component-automation.md` §8, awaiting author sign-off. FOUR questions: is care un-automatable in the GENERATION layer (if the fiscal floor is instead the thing that is wrong, retiring `CARE_AUTOMATION_FLOOR` is the OPPOSITE decision, not a smaller version of the same one); flip the default or leave it opt-in (leaving it opt-in keeps a known contradiction shipping as the default); adopt the −16.4% re-anchor in the following commit; and whether the §5 bound changes the decision — it halves the headline without touching whether the contradiction is real.
+- **~~STILL OPEN: the Phase 2 FLIP~~ — ADOPTED 2026-09-01** (author sign-off; see the PHASE 2 ADOPTED entry above, and `notes/phase-2-per-component-automation.md`, whose status is now *"SIGNED OFF AND ADOPTED … all four questions in §8 answered"*). The default IS `per_component`. **This line was stale for a day while the file simultaneously asserted the adoption two entries up — the ninth instance of a status note outliving its decision, and the first the claims register did not catch: it checks that an open item is DECLARED, never that it is still OPEN.** Left visible because that gap is the finding. The four questions it carried were: is care un-automatable in the GENERATION layer (if the fiscal floor is instead the thing that is wrong, retiring `CARE_AUTOMATION_FLOOR` is the OPPOSITE decision, not a smaller version of the same one); flip the default or leave it opt-in (leaving it opt-in keeps a known contradiction shipping as the default); adopt the −16.4% re-anchor in the following commit; and whether the §5 bound changes the decision — it halves the headline without touching whether the contradiction is real.
 
 **CHECKING WHETHER THE NEIGHBOURING QUESTIONS WERE REACHABLE FOUND THREE DEFECTS IN PHASE 1 — ALL SHIPPED, ALL PASSING** (2026-08-30). Prompted by "are `canonical_arc_trajectory` and `corridor` accessible?" Both ARE — `scenario run canonical_arc`, `corridor band`, `corridor axes` all run clean. **The pointers were fine; the module that named them was not.** 42 tests on `arc_stability`, 3,552 pass, mypy clean on 86 files.
 - **DEFECT 1 — ONE VERDICT, TWO STANDARDS, UNDECLARED.** Conditions 1 and 3 ran at `collapsed` (feasibility's own default, 1000) while condition 2 ran at `sufficiency` (overbuild's own default, 1500). **This is the category error CLAUDE.md already records once** — *a SURVIVAL feasibility test applied to a SUFFICIENCY number* — and it is why `corridor band --standard` exists. Now threaded through all three and reported.
@@ -570,17 +497,12 @@ TEH lifecycle, automation arc.
 - **THAT TEST DID NOT BITE ON ITS FIRST WRITING, and the reason generalises.** It read `set(load_county_parcels()[0])` — but the loader builds a fixed dict from named keys, so an extra CSV column is silently ignored and the test PASSED with `usedesc` added to the file. **It guarded the loader, not the extract.** Now keyed to the file's header. Third time this session a bite test caught my own weak assertion.
 - **A BONUS FOR PHASE 4c**: `government_parcels` = **3,231,732** over an 81.5% populated `ownertype`, shipped as a PAIR with `ownertype_known` rather than a fraction — an unpopulated owner type is not a private owner, which is the coverage-inflation trap `scenarios/land_stewardship` guards against.
 
-**THE PARCEL DATASET REVIEWED — THE DENOMINATOR EXISTS, THE NUMERATOR STILL DOES NOT** (2026-08-30, `rawdata/parcels/NATIONWIDE_SAMPLE_Q3_R2.parquet`, 68 GB, gitignored). Reviewed metadata-only against the per-parcel gap the U split left open. **REVIEW ONLY — nothing ingested, no constant moved.**
-- **IT IS A CENSUS, NOT A SAMPLE, DESPITE THE FILENAME.** 160,573,137 parcels, 99 columns, **all 56 FIPS codes with none missing**, and **3,230 distinct counties** against a US total of ~3,143 plus territory equivalents. State ordering is exactly right (TX 14.3M, CA 13.2M, FL 11.3M, OH 6.5M), `statefp`/`countyfp` are 100% populated, and the bbox spans −174° to 146° so AK, HI, Guam, CNMI, AS, PR and VI are all in. "SAMPLE" is a product name.
+**THE PARCEL DATASET REVIEWED — THE DENOMINATOR EXISTS, THE NUMERATOR STILL DOES NOT** (2026-08-30, `rawdata/parcels/NATIONWIDE_SAMPLE_Q3_R2.parquet`, 68 GB, gitignored). Metadata-only review against the per-parcel gap the U split left open. **REVIEW ONLY — nothing ingested.** Superseded the same day by the county extract below, which carries the `calcarea`/`taxacres`/`usedesc`/`ownertype` findings; only what is unique to the review is kept here.
+- **IT IS A CENSUS, NOT A SAMPLE, DESPITE THE FILENAME.** 99 columns, **all 56 FIPS codes with none missing**, and **3,230 distinct counties** against a US total of ~3,143 plus territory equivalents; `statefp`/`countyfp` 100% populated and the bbox spans −174° to 146°, so AK, HI, Guam, CNMI, AS, PR and VI are all in. "SAMPLE" is a product name.
 - **THIS IS WHAT `PARCEL_COUNT_RESOLVES_BY` NAMED.** That field says *"assessor parcel rolls, and explicitly NOT a housing-unit count — a multi-unit building is one parcel and many units."* This is assessor rolls, at county resolution, complete.
-- **`calcarea` IS THE USABLE AREA FIELD AND IT IS IN SQUARE METRES**, established rather than assumed: the median ratio `calcarea/taxacres` over 717,431 rows where both are sane is **4,046.6 against 4,046.86 m²/acre**, matching to four significant figures and ruling out square feet. Median parcel 1,654 m² (0.41 acre); mean × 160.6M = **484 Mha ≈ 53% of US land**, plausible against ~250 Mha federal.
-- **`taxacres` IS CONTAMINATED AND MUST NOT BE SUMMED.** Median 0.6 acres is fine but p95 = 10,489, p99 = 37,183, with a sentinel cap near 99,998. Summed it gives **157,478 Mha against 915 Mha of US land — 172× over.** A field whose median is right and whose tail is garbage is the shape that survives a spot check and fails an aggregate.
-- **`usedesc` IS NOT READY, AND THAT IS THE LIMITATION THAT MATTERS.** 41.2% filled, and free text from 3,230 independent county systems — `RESIDENTIAL`, `Residential`, `SINGLE FAMILY`, `SFR`, `Single Family Detached`, `residential,residential`, `0131`. Mapping that onto ten fee categories is a normalisation PROJECT with a real judgement in it, not a lookup, and doing it casually is the wrong-instrument trap. If it is attempted the mapping must be isolated and declared the way `STEWARDSHIP_ATTRIBUTIONS` isolates its assumed occupation→land-class attribution.
 - **THE STRUCTURAL POINT: THIS SUPPLIES THE DENOMINATOR, NOT THE NUMERATOR.** The per-parcel term needs hours ÷ parcels. This file has the parcels; the hours still come from `scenarios/servicing_census`. It closes the half that was genuinely missing and leaves the ten RATIOS where the U split left them.
-- **A BONUS FOR PHASE 4c.** `ownertype` is 81.5% filled with **GOVERNMENT = 3,231,732 parcels** — a second, independent route to the tenure split whose `resolves_by` names BLM Public Land Statistics.
-- **TOOLING NOTE.** The environment has no parquet library and is PEP-668 managed; pyarrow was installed into an ISOLATED venv in the scratchpad and nothing was added to the system Python. Any ingest follows the `utils/atus_ingest.py` precedent: derive a small committed extract, leave the raw file uncommitted under the existing `rawdata/` ignore.
-- **NEXT, AND DELIBERATELY THE SMALLER HALF FIRST**: a county-level parcel-count-and-area extract (~3,230 rows, a few hundred KB) settles the per-parcel denominator with NO normalisation judgement in it at all, and is checkable against published county parcel counts. The use-category normalisation is a separate piece and should not be bundled with it.
-
+- **IF `usedesc` IS EVER MAPPED, THE MAPPING MUST BE ISOLATED AND DECLARED** the way `STEWARDSHIP_ATTRIBUTIONS` isolates its assumed occupation→land-class attribution. Normalising free text from 3,230 independent county systems onto ten fee categories is a PROJECT with a real judgement in it, not a lookup, and doing it casually is the wrong-instrument trap.
+- **TOOLING NOTE.** No parquet library, PEP-668 managed; pyarrow went into an ISOLATED scratchpad venv, nothing added to the system Python. Ingests follow the `utils/atus_ingest.py` precedent — derive a small committed extract, leave the raw file under the `rawdata/` ignore. See `notes/README.md`.
 **THE TEN RATIOS DECOMPOSED — THE WRONG-INSTRUMENT OBJECTION DISSOLVED BY SPLITTING, NOT BY DATA** (2026-08-30). `scenarios/use_split.py` + `eoh scenario run use_split`, 21 tests, REPORTING ONLY — no coefficient moves and `TestUSplitChangesNothing` fails the moment that stops being true. 3,429 pass, mypy clean on 83 files, shadow count held at 33.
 - **THE OBJECTION THAT BLOCKED THIS WAS CORRECT WHEN WRITTEN AND THE PARTITION RETIRED IT.** The two measured orderings both gauge DISTURBANCE while U was defined as SERVICING, so adopting either would repeat the `SKILL_WORKING_LIFE_YEARS` error. But Phases 4d/4e/4f moved the recurring ECOLOGICAL obligation into GUF, so **U now carries a disturbance component** — and for that component a disturbance instrument is the RIGHT one. The blocker was a consequence of the pre-partition definition.
 - **ρ IS INDEXED BY USE CATEGORY, AND THAT IS THE WHOLE BRIDGE.** Both censuses aggregate over LAND CLASSES while the fee table is indexed by USE CATEGORY — which is precisely why neither could settle the ratios. `GUF_SERVICE_RETENTION_BY_USE` is indexed the same way the fee table is, so it can be compared row for row. Nothing new was measured; an existing measurement turned out to be in the right index.
@@ -714,12 +636,14 @@ TEH lifecycle, automation arc.
 - **THE SHADOW RATCHET FIRED ON THIS SESSION'S OWN NEW MODULE** (`REFERENCE_FRAME_POPULATION`, `FRAME_CONSISTENCY_TOLERANCE` in `scenarios/frame.py`). Migrated into `data.py` with tag blocks rather than exempted or baselined — which is what the ratchet is for, and it cost two tag blocks. **The gate also bit on the stale CSV and doc tables** and was cleared through `provenance csv --write` / `doc --write`, never by hand.
 - **THE MAGNITUDE QUESTION IS NOW BOUNDED WITHOUT FIELDWORK.** At the honest US frame, reaching a 5% ecological share needs **33.6 h/ha·yr (47× the census mean)**, or as a legacy stock **12,857 one-off h/ha = 6.4 PERSON-YEARS PER HECTARE**. Restoration is seeding, planting and hydrology — tens to low hundreds of hours per hectare. **Four independent instruments — tending hours (1.63), carbon replacement cost (1.34), legacy restoration (~0.6) — agree at 0.5–2 h/person·yr against personal's 1,301.5.** So the domain-balance defect DISSOLVES rather than gets fixed, and four instruments agreeing is the strongest form of the claim, not a failure to find something.
 - **THE DISTURBANCE GRADIENT IS 27× AND MONOTONIC**, which is what makes the author's reframing falsifiable rather than merely comfortable: federal parks 0.161 → forest 0.182 → cropland 0.303–0.844 → **urban 4.349**. A framework blind to ecological obligation reads low EVERYWHERE; this one reads low on wilderness and 27× higher on cities. It also dissolves the 41× amenity-scope spread without a declared weight — that spread was two different quantities being summed.
-- **PHASE 1 DONE (2026-08-17): THE E TERM IS AWAKE.** `GUF_ECOSYSTEM_SERVICES` binds each service's κ to its β and its UNIT; `service_from_registry()`, `ecosystem_services_for_area()` (the V_s intake at land-class scale) and `_resolve_kappa_beta()` in `land/guf.py`; 21 tests; coverage 81.9%, debt 44.2%. **κ AND β WERE UNPAIRED, which is sharper than the unread constants** — Eq. 15 derives κ_max from κ_ref THROUGH β, so carbon's κ with pollination's β gave a curve belonging to neither and nothing could detect it. **A SECOND CONSUMER WAS ABOUT TO DRIFT and it is the one Phase 3 needs**: `rebuilding_surcharge`, the §9 restoration pathway, read the caller's literals independently of E; both now resolve through one helper, pinned across the arc. **THE SHIPPED CLI EXAMPLES WERE THE HAZARD IN MINIATURE** — the documented parcel JSON restated `kappa_ref:1.65/beta:0.8` and `0.35/0.7`, the registry values, as literals in the text people copy; they AGREED, which is the `mean_multiplier = 2.10` pattern exactly. **Phase 1 supplies NO volumes** — the package ships no measured per-hectare service profile, `E` still defaults to 0, and the term is REACHABLE not active.
+
+**PHASE 1 DONE (2026-08-17): THE E TERM IS AWAKE.** `GUF_ECOSYSTEM_SERVICES` binds each service's κ to its β and its UNIT; `service_from_registry()`, `ecosystem_services_for_area()` (the V_s intake at land-class scale) and `_resolve_kappa_beta()` in `land/guf.py`; 21 tests; coverage 81.9%, debt 44.2%. **κ AND β WERE UNPAIRED, which is sharper than the unread constants** — Eq. 15 derives κ_max from κ_ref THROUGH β, so carbon's κ with pollination's β gave a curve belonging to neither and nothing could detect it. **A SECOND CONSUMER WAS ABOUT TO DRIFT and it is the one Phase 3 needs**: `rebuilding_surcharge`, the §9 restoration pathway, read the caller's literals independently of E; both now resolve through one helper, pinned across the arc. **THE SHIPPED CLI EXAMPLES WERE THE HAZARD IN MINIATURE** — the documented parcel JSON restated `kappa_ref:1.65/beta:0.8` and `0.35/0.7`, the registry values, as literals in the text people copy; they AGREED, which is the `mean_multiplier = 2.10` pattern exactly. **Phase 1 supplies NO volumes** — the package ships no measured per-hectare service profile, `E` still defaults to 0, and the term is REACHABLE not active.
 - **PHASE 1b: E SWITCHED ON, AND THE ×100 QUESTION ANSWERED — IT IS NOT WRONG BECAUSE E WAS OFF.** Re-running `guf_rate_calibration` with the ecological term active moves the calibrated multiplier **at most 0.017%**, even at ρ=0 (total displacement everywhere). Inverted: **E would need 938× the declared profile to rival the urban base fee — carbon at 1,876 t-CO₂e/ha·yr — and 52× rural, at 105**, against a temperate-forest order of 1–10. *No physically plausible service volume makes E competitive with `base_fee`.* So the ×100's defect is an INSTRUMENT problem (fitted to levy revenue, not measured against what the fee is defined as), not an omission — **Phase 2 is not a prerequisite for anything downstream.** E's share does climb 0.084% → 0.902% of GUF from urban to rural and would dominate on wild land, which is exactly where ρ→1 and E→0: coherent, since the term is a disturbance measure.
 - **A LIVE β MISMATCH, AND THE ε-COHERENCE GAP THAT HID IT.** `scenarios/guf_stress.py`'s default parcel described ONE service (water filtration, κ 1.65) with **β 0.8 on `services_reset` and β 0.7 on `services_lost`** — two automation curves for one physical service inside one call. Fixing it moves the rebuilding surcharge **+4.9% at ε=0, −11.4% at ε=0.99, and EXACTLY 0.00% at ε=0.40** — and **every existing test of that scenario ran at ε=0.40**, the one point where κ = κ_ref by construction and the mismatch cancels. The check had been performed where the defect is invisible, against this file's own four-ε rule. Same shape as `DEFAULT_SEGMENTS` sitting exactly on the band ceiling.
 - **`attach_ecosystem_services()` + `GUF_SERVICE_RETENTION_BY_USE` + `SLU_HECTARES`.** ρ_s now follows each parcel's use category (conservation 0.95 → industrial_heavy 0.02) instead of a global ρ=0.0 that asserted *conservation land displaces its services totally*. **The ORDERING is the claim, the magnitudes are placeholders**; `resolves_by` names NLCD Percent Developed Imperviousness — measured, gridded, already aligned to land class, which is more than any of the seven κ can say. The ordering independently mirrors the 27× disturbance gradient the census found. E remains **0 for every shipped path** — `attach_ecosystem_services` returns new dicts and no factory calls it. **`SLU_HECTARES` was the THIRD prose-only number found this session** (after `WORLD_POPULATION`, `REFERENCE_FRAME_POPULATION`): "1 SLU = 100 m²" lived in a module header and three docstrings, never as a value.
 - **A TRAP WORTH REMEMBERING: the ecological CONTRIBUTION to the fee is NOT monotonic in ε even though E is.** What a parcel pays is Ψ(ε)·E, and Ψ is a bell curve (0.02 → 1.00 → 0.035), so an arc test asserting monotonicity on the FEE fails for a correct implementation. It did, and is now pinned as its own fact.
-- **THE TERM-BASIS AUDIT, AND Ψ'S BELL CURVE RETIRED FROM THE DEFAULT (2026-08-20, author decision, `handoffs/guf_redefinition.md` §§11–17).** `land/guf.TERM_BASIS` + `FEE_BASES` + `psi_application`, `scenarios/guf_magnitude.basis_table/psi_double_application/psi_policy_comparison`, 26 new tests (72 in the file), 3,126 pass, mypy clean on 80 files. **`psi_policy` now DEFAULTS TO `retired` (Ψ ≡ 1)**; `bell` stays reachable and every NLSA §4.4 boundary condition is still pinned against it. 3,133 tests pass, mypy clean on 80 files.
+
+**THE TERM-BASIS AUDIT, AND Ψ'S BELL CURVE RETIRED FROM THE DEFAULT (2026-08-20, author decision, `handoffs/guf_redefinition.md` §§11–17).** `land/guf.TERM_BASIS` + `FEE_BASES` + `psi_application`, `scenarios/guf_magnitude.basis_table/psi_double_application/psi_policy_comparison`, 26 new tests (72 in the file), 3,126 pass, mypy clean on 80 files. **`psi_policy` now DEFAULTS TO `retired` (Ψ ≡ 1)**; `bell` stays reachable and every NLSA §4.4 boundary condition is still pinned against it. 3,133 tests pass, mypy clean on 80 files.
 - **DECLARING EACH TERM'S BASIS IMMEDIATELY REFUTED THE ROW IT WAS WRITTEN TO CONFIRM.** The memo scored `I` as *benefit received, sign undetermined*. Writing down "what quantity is this" forces `cost_teh/(design_life × beneficiary_count)` to be read as **an annuity shared across beneficiaries** — so I is **`cost_stock`**, and it is **sign-ALIGNED and structurally so**: the proximity factor is bounded in (0,1] while 1/beneficiary_count is unbounded, so sharing dominates. Measured on one fixed asset: dense 0.94, suburban 4.26, **sprawl 22.34 TEH/yr — 23.7× in the direction the spec wants.** `benefit` is consequently NOT in `FEE_BASES` — it was refuted, not merely unused.
 - **U AND I ARE THE PHASE 4 PARTITION, ALREADY IMPLEMENTED IN THE FEE AND UNRECOGNISED.** U is the recurring FLOW, I is the amortised STOCK. **No double-count, and the reason was already written down**: `reference/servicing.py` excludes Operating Engineers (507.1k) by name — *"Construction is the creation of the built environment, not the recurring cost of holding it"* — so the census is flow-only by construction. The memo's double-counting worry is withdrawn.
 - **Ψ'S TWO ENDS FAIL FOR DIFFERENT REASONS, WHICH IS WHY NO SINGLE RE-DERIVATION FIXES IT.** **HIGH END — DUPLICATION**: Ψ's own docstring justifies its ε→0.99 collapse as *"labor costs collapse"*, which is verbatim the claim `labor_content_scaling` α(ε) already makes inside U. At ε=0.99 α=0.1051 and Ψ=0.0349, so **the flow leg is discounted to 0.0037 of its ε=0.40 reference — 273× for one mechanism counted twice.** **LOW END — CATEGORY ERROR**: Ψ's floor is justified as *"institutional capacity is minimal"*, a claim about whether a fee can be COLLECTED, not what a holding COSTS — and it runs **OPPOSITE to α, which correctly RISES at subsistence (1.4695 vs Ψ 0.0200)**. The product silently nets a cost against a collection capability. **The author's hypothesis that the bell is an artifact of far-end cost assumptions is CONFIRMED.**
@@ -732,7 +656,8 @@ TEH lifecycle, automation arc.
 - **A CLAIM THAT WAS FALSE AND IS NOW TRUE.** `land/guf.py` says GUF *"may become the Trust's dominant revenue source, replacing the contracting labor levy base"* at moderate-to-high ε. Under `bell` this was **FALSE** — GUF/levy ran 7.54× at ε=0.20 down to **0.10×** at ε=0.99, so GUF handed over TO the levy. Under `retired` it HOLDS: **≥0.90× across the whole arc, 2.77× at ε=0.99.** Ψ was retired on the duplication and category-error arguments; repairing this claim is corroboration, not the argument.
 - **~~STILL OPEN: `retired` gives ε=0 the HIGHEST fee~~ — CLOSED 2026-08-29, AND THE ITEM WAS MIS-SCOPED.** The note's own first clause was right and its last was wrong: zero comes from ASSET ABSENCE, and **no asset intake was needed to show it.** `location_value` already carries absence and zeroes `base_fee` outright — a parcel at L=0 pays **exactly 0.0 at every ε**, with `floor_applied=False`, so NLSA §4.4's "≈0 at the remote end" holds exactly and nothing is being suppressed. The apparent contradiction was holding a SERVICED URBAN inventory fixed while sweeping ε, which asserts a serviced parcel at subsistence. Both readings are now pinned together in `TestTheRemoteEndIsZeroByABSENCE` so neither can be quoted alone. **THE GENERAL LESSON, and the reason this sat open nine days: an item recorded as "needs data" is worth re-deriving before it is worked.** It needed a test, and the note said so in its own first clause.
 - **AND THE CONSERVATION CREDIT IS A SEPARATE QUESTION, pinned so the two are not conflated.** A conservation parcel on VALUABLE ground has `guf_formula < 0` — the formula wants to pay a credit — and `guf_applied == 0.0` with `floor_applied=True`. That is SUPPRESSION, not absence: a charter decision on whether a credit may pay out, untouched by the item above.
-- **GUF MAGNITUDE, OPTIONS 1 AND 2 (2026-08-18): THE TARGET COMPLETED AND THE TARIFF DERIVED — and Phase 2's stated MECHANISM falsified.** `scenarios/guf_magnitude.py` + `reference/servicing.SCALING_BASIS`/`workers_by_scaling_basis` + `eoh scenario run guf_magnitude`, 46 tests, REPORTING ONLY (`GUF_USE_SCALE_FACTOR` still 100.0, coefficients untouched). 3,100 tests pass, mypy clean on 80 files, shadow count held at 57 — the module introduces no constant outside `data.py`.
+
+**GUF MAGNITUDE, OPTIONS 1 AND 2 (2026-08-18): THE TARGET COMPLETED AND THE TARIFF DERIVED — and Phase 2's stated MECHANISM falsified.** `scenarios/guf_magnitude.py` + `reference/servicing.SCALING_BASIS`/`workers_by_scaling_basis` + `eoh scenario run guf_magnitude`, 46 tests, REPORTING ONLY (`GUF_USE_SCALE_FACTOR` still 100.0, coefficients untouched). 3,100 tests pass, mypy clean on 80 files, shadow count held at 57 — the module introduces no constant outside `data.py`.
 - **OPTION 1 — PHASE 2'S TARGET WAS INCOMPLETE ON THE PARTITION'S OWN TERMS.** Phase 4 says GUF carries *the recurring flow*, and the flow has TWO measured halves: servicing (what the BUILT ENVIRONMENT demands) **plus stewardship (what the LAND demands)**. Phase 2 compared against servicing alone. The censuses are disjoint by construction and a test already enforced it, so **they add rather than overlap**: urban target 63.66 → **68.01 h/ha·yr**, and the urban overshoot 18.1× → **16.9×**. Direction unchanged; the target is now the one the partition defines.
 - **THE RURAL COMPARISON IS WITHDRAWN, NOT RESTATED.** The rural archetype is 70% agricultural by parcel, and cropland/pasture is **in no serviced land class AND unpriced by the stewardship census — both halves of its target are missing**. Phase 2's "1.12×, essentially on the census" compared the fee against an average taken over urban land and rural highway corridor: a different land class. It survives as `phase_2_comparison`, flagged, and no ratio is reported.
 - **THE AMENITY WEIGHT IS WORTH 2.5× HERE, AGAINST 41× IN THE STEWARDSHIP CENSUS.** Ratios 7.4×–18.1× across the three scopes. **The SIGN is robust — the fee over-collects at every corner — and the magnitude is not**, so the band travels with the figure rather than a single number being quoted.
@@ -743,11 +668,13 @@ TEH lifecycle, automation arc.
 - **THE FALSIFICATION, RUN NOT ARGUED: SUBDIVIDING A HECTARE DOES NOT MOVE THE FEE BY ONE FLOAT.** `subdivision_invariance()` splits every parcel in two and gets **exactly** 1,151.34 h/ha·yr back, at every ε. Phase 2 recorded the urban 18× as a DENSITY effect — "packing a hectare with more parcels multiplies the charge" — and **parcel count does not enter the fee at all**. The correction relocates the defect onto the **L·U·D product — the location-value index and the ten ratios — which is precisely what that census said it could not settle.** It also sharpens Option 2 from "rescale the density term" to "there is no per-parcel term to rescale", and makes the ratios MORE load-bearing, not less. Corrected in `realized_vs_measured`'s verdict and in `GUF_USE_SCALE_FACTOR`'s tag block.
 - **A THIRD FINDING FELL OUT OF THE FEE FLOOR, AND IT IS THE ONLY PLACE THE PARTITION IS VIOLATED IN BOTH DIRECTIONS AT ONCE.** `GUF_USE_CONSERVATION_CREDIT` is notionally **−90.0 h/ha·yr** on the archetype's conservation parcels, but `ground_use_fee` clamps at `guf_floor = 0.0`, so **the credit never pays out — it can only take a fee to zero.** Conservation land realises **exactly 0.0** while owing a measured **0.161–0.182 h/ha·yr**. Neither side of the notional exchange happens, and only one of the two numbers is visible in any output the framework currently produces. A credit MAY be how a collective pays a steward (`soil_health_credit`, §7.2) — but the coefficient is not derived from the flow and nothing in the code connects them. **Charter decision, reported so it is not an oversight.**
 - **STILL OPEN AFTER BOTH OPTIONS: THE TEN RATIOS.** Both censuses are aggregates over LAND CLASSES; the fee table is indexed by USE CATEGORY, and occupational data is not coded by the land use it serves. Two measured orderings exist and run the same direction — the stewardship census's 27× disturbance gradient and `GUF_SERVICE_RETENTION_BY_USE`'s ρ (resolves_by NLCD imperviousness) — but **both measure disturbance, not servicing**, so adopting them for U would repeat the `SKILL_WORKING_LIFE_YEARS` wrong-instrument error unless the fee's definition changes to match.
-- **PHASE 2 DONE: THE ×100 MEASURED AGAINST WHAT IT IS DEFINED AS, and it is a SHAPE defect not a level one.** `reference/servicing.py` + `scenarios/servicing_census.py` + `eoh scenario run servicing_census`, 21 tests, REPORTING ONLY (`GUF_USE_*` unchanged). BLS EP employment × ERS MLU 2022 ÷ the derived 1,874.4 h/worker·yr gives **45.92 h/ha·yr over 37.1 Mha from 909.6k workers** (roads 361.7k, utilities 342.9k, inspection 146.5k, title 58.5k). **Comparing the REALISED fee — which carries L, D, Z and Ψ, not just U — against the census over the land class each archetype occupies: rural realises 51.6 vs 45.9 = 1.12×, ESSENTIALLY ON THE CENSUS; urban realises 1,151.3 vs 63.7 = 18.1× OVER**, and that comparison already errs *against* the finding since every servicing worker was charged to urban land alone. **~~The mechanism: the fee is per-SLU, so packing a hectare with more parcels multiplies the charge while the roads, pipes and inspections serving that hectare do not.~~ FALSIFIED 2026-08-18 — see the Options 1/2 entry below.** Retiring the ×100 is therefore NOT a single rescaling — which is exactly what the original fit was, one scalar against ten coefficients. In aggregate the shipped mean is 35.4× measured, implying ×2.8, **but the aggregate hides the gradient that is the actual defect.** What it does NOT settle: the ten RATIOS — occupational data is not coded by the land use it serves.
+
+**PHASE 2 DONE: THE ×100 MEASURED AGAINST WHAT IT IS DEFINED AS, and it is a SHAPE defect not a level one.** `reference/servicing.py` + `scenarios/servicing_census.py` + `eoh scenario run servicing_census`, 21 tests, REPORTING ONLY (`GUF_USE_*` unchanged). BLS EP employment × ERS MLU 2022 ÷ the derived 1,874.4 h/worker·yr gives **45.92 h/ha·yr over 37.1 Mha from 909.6k workers** (roads 361.7k, utilities 342.9k, inspection 146.5k, title 58.5k). **Comparing the REALISED fee — which carries L, D, Z and Ψ, not just U — against the census over the land class each archetype occupies: rural realises 51.6 vs 45.9 = 1.12×, ESSENTIALLY ON THE CENSUS; urban realises 1,151.3 vs 63.7 = 18.1× OVER**, and that comparison already errs *against* the finding since every servicing worker was charged to urban land alone. **~~The mechanism: the fee is per-SLU, so packing a hectare with more parcels multiplies the charge while the roads, pipes and inspections serving that hectare do not.~~ FALSIFIED 2026-08-18 — see the Options 1/2 entry below.** Retiring the ×100 is therefore NOT a single rescaling — which is exactly what the original fit was, one scalar against ten coefficients. In aggregate the shipped mean is 35.4× measured, implying ×2.8, **but the aggregate hides the gradient that is the actual defect.** What it does NOT settle: the ten RATIOS — occupational data is not coded by the land use it serves.
 - **SCOPE BARELY MATTERS IN THE SERVICING CENSUS — 1.05×, against the stewardship census's 41×.** The broad scope adds ~29% more workers and ~34% more area and they nearly cancel. This census is robust to its own judgement in a way the stewardship one is not, and that contrast is the reason to trust it further.
 - **THE ROLE-MIX TRAP AVOIDED BY NAMING, NOT FILTERING.** A regex for "inspector" returns `519061 Inspectors, Testers, Sorters, Samplers and Weighers` — **598.1k of MANUFACTURING QC**, which would nearly quadruple the inspection function alone. Excluded with its reason, alongside Lawyers (900.7k, no role-mix fraction), Compliance Officers (430.3k, four unrelated domains) and Operating Engineers (507.1k — construction CREATES the built environment rather than holding it, the same production-vs-condition line that excludes logging from forest stewardship). **The two censuses are disjoint and a test enforces it**: stewardship is what the LAND demands, servicing is what the BUILT ENVIRONMENT demands.
 - **TWO GATES FIRED ON THIS WORK AND BOTH WERE RIGHT**: the reference-module isolation list rejected `reference/servicing.py` until registered (the same list that had fallen behind on `care_demand` and `land_stewardship`), and the shadow ratchet caught `SHIPPED_SCALE_FACTOR` — now `GUF_USE_SCALE_FACTOR` in `data.py`, tagged with what Phase 2 found and why the value did NOT move on it.
-- **THE ECOLOGICAL SCALE-RESOLUTION GATE, AND IT FOUND A FIFTH INSTANCE ON ITS FIRST RUN** (`tests/test_ecological_scale_resolution.py`). The defect had been found FOUR times by four different routes and never by a gate: the pipeline, `scenarios/sweep.py`, the dashboard's fiscal path, and `core/autarky`. The gate walks the AST for any function with a `population` in scope that calls into the ecological scale without stating a frame — and immediately caught **`research/thermal_solvency.solvency_at_epsilon`**, which four manual passes had missed. Exemptions are DECLARED with reasons and checked to name functions that exist (the `unused_innocuous_names` lesson); the scan asserts it still reaches ≥8 call sites so it cannot go blind; and it is verified to bite on a synthetic offender.
+
+**THE ECOLOGICAL SCALE-RESOLUTION GATE, AND IT FOUND A FIFTH INSTANCE ON ITS FIRST RUN** (`tests/test_ecological_scale_resolution.py`). The defect had been found FOUR times by four different routes and never by a gate: the pipeline, `scenarios/sweep.py`, the dashboard's fiscal path, and `core/autarky`. The gate walks the AST for any function with a `population` in scope that calls into the ecological scale without stating a frame — and immediately caught **`research/thermal_solvency.solvency_at_epsilon`**, which four manual passes had missed. Exemptions are DECLARED with reasons and checked to name functions that exist (the `unused_innocuous_names` lesson); the scan asserts it still reaches ≥8 call sites so it cannot go blind; and it is verified to bite on a synthetic offender.
 - **THE FIFTH INSTANCE REVERSED A RECORDED THERMAL CLAIM BY THREE ORDERS OF MAGNITUDE.** `test_flow_more_than_triples_the_ecological_domain` recorded a load ratio of **3.5** — "the drawdown obligation is ~2.5 ecological baselines, so the domain more than triples". Against a frame-consistent baseline it is **~1,626×**. The thermal obligation does not triple the ecological domain, it SWAMPS it — which sharpens rather than contradicts the existing note that the "38× margin" verdict passes because the obligation is negligible: **the obligation being compared against was itself the negligible one.**
 - **BOTH `physics` CONSTANTS NOW DO WORK, AND THE PLANCK TERM STOPPED BEING PROSE.** `SIGMA_SB` was read by nothing; "Planck-only ≈ 3.2" lived as a COMMENT in `data.py`'s λ note and in `thermal_path_c.json`, governing the model from inside prose — the `WORLD_POPULATION` / `SLU_HECTARES` shape again. New `research/thermal_lambda.planck_feedback()` derives **λ_P = 4σT³ = 3.761 W·m⁻²·K⁻¹** from `SIGMA_SB` × new `EARTH_EMISSION_TEMPERATURE_K`, and `lambda_admissibility()` makes it a CEILING on λ: net feedbacks are amplifying, so λ < λ_Planck is required and a λ at or above it is not a tuning question but a physical impossibility. **Shipped λ = 1.2 is admissible at 0.319 of the bound, implying 2.561 W·m⁻²·K⁻¹ of net amplifying feedback** — the quantity a reader can check against the literature. **This is the only physical anchor λ has**, and λ is by the repo's own note "THE most leveraged parameter after delta_T_lo". The bound is deliberately LOOSE (blackbody 3.761 against the real ≈3.2), erring toward admitting too much λ rather than too little.
 - **THE SHORTFALL TABLE'S VERDICT WAS STALE THREE WAYS AND MISSING ITS CAVEAT.** Its format strings printed `0.00` for both the intensity and the share once the frame fix made them small; it asserted *"Nothing in this repo measures stewardship hours"* when `scenarios/land_stewardship` had existed since 2026-08-16; and it offered the 1/5/10/25% target shares without saying they are **REFERENCE POINTS, NOT TARGETS**. Under the adopted partition there is positive reason to expect the domain small — GUF carries the recurring cost and the domain carries a stock — so the table answers *"how far is the anchor from any share you might have assumed"*, never *"what is it failing to hit"*. The verdict now also records that **the factor moved 464× on 2026-08-17 with no new evidence**: the requirement never changed, the anchor was being flattered, and a frame fix ENLARGING an anomaly is what a masked defect looks like when the mask comes off.
@@ -755,13 +682,15 @@ TEH lifecycle, automation arc.
 - **THE GATE'S OWN FIRST VERSION WAS TOO NARROW, AND I HAD REPORTED THE WRONG THING.** It descended only into TOP-LEVEL `_`-prefixed keys, having inferred that convention from the two files that use it — so it reported `thermal_path_c.json` and `multiplier_reference_bounds.json` as carrying **no method metadata at all**. They carry **19 review-worthy claims between them**, under nested underscore keys (`climate_parameters._c5_correction`, `national_data._WARNING`, `derived_outputs._superseded`, `world_energy_owid_2024._method`) and under plain descriptive ones (`outer_normalization.reason`, `.character`, `warning`). **The gate had generalised a convention from two examples and enforced it as universal.** Traversal now descends into every dict and list: **19 registered claims → 40**, i.e. more than half were invisible.
 - **TWO CLAIMS VERIFIED RATHER THAN RUBBER-STAMPED.** `multiplier_reference_bounds.json::warning` — *"Do NOT re-derive any of these per vintage. Re-derivation restores the circularity."* — is HONOURED: `reference/onet_multipliers` loads the frozen bounds via `load_reference_bounds()` and recomputes nothing. And `thermal_path_c.json`'s `lambda_feedback.note` carrying "Planck-only ~3.2" is CONSISTENT with the newly derived blackbody bound of 3.761, which is an upper bound on the real Planck response — the gap the `planck_feedback` docstring states explicitly. **That note was one of the two places the Planck term lived as prose before it was derived.**
 - **A top-level `_method` was added to both files as a SUMMARY that asserts nothing new**, pointing at the nested fields which remain the authority. Added because a file documenting itself only under nested keys is a file a reader — and the first version of this gate — will call undocumented. **The gate immediately caught both new `_method` keys as unreviewed claims**, which is it working on its author.
-- **THE DATASET-GOVERNANCE GATE — the class the provenance gate structurally cannot reach** (`tests/test_dataset_governance.py`, 11 tests). `ETA_LAND_MASK_THRESHOLD` was correctly tagged, fully provenance-audited, and **contradicted by the dataset it governed**. The provenance gate proves a constant is DOCUMENTED; it cannot prove the data agrees with it.
+
+**THE DATASET-GOVERNANCE GATE — the class the provenance gate structurally cannot reach** (`tests/test_dataset_governance.py`, 11 tests). `ETA_LAND_MASK_THRESHOLD` was correctly tagged, fully provenance-audited, and **contradicted by the dataset it governed**. The provenance gate proves a constant is DOCUMENTED; it cannot prove the data agrees with it.
 - **IT CANNOT DETECT CONTRADICTION AND DOES NOT CLAIM TO.** A gate that claimed to read two English sentences and judge them would be worse than none, because it would license not looking. What it does is make the LOOKING a **fingerprinted, required act**: every review-worthy claim must be in a register naming the constants checked and the outcome (`CONSISTENT` / `CONTRADICTED` / `NO_CONSTANT_DEPENDS`), and **the claim text is sha256-fingerprinted, so a regenerated dataset with a changed stated method breaks the build until the constants are re-checked.** A review that cannot go stale is not a control — the η claim was written correctly once and then diverged while both sides sat still.
 - **TWO COMPLEMENTARY TRIGGERS, AND NEITHER SUBSUMES THE OTHER.** **NEGATION**: the claim says what the method did NOT do — where a constant asserting the positive hides, and the only trigger that reaches the η case. **NAMES A CONSTANT**: the claim mentions a `data.py` constant directly — unambiguous where it applies, and it **MISSES η entirely**, because `eta_land.json` names `ETA_BASIS` and `A_LAND_CLAIMED_M2` but never named the threshold it superseded. *A dataset can supersede a constant without mentioning it.*
 - **THE GATE FOUND TWO UNREVIEWED PAIRS ON ITS FIRST RUNS, both verified CONSISTENT**: `eta_land.json::_normalisation.basis` asserts A_LAND_CLAIMED_M2 = 1.35e14 (constant agrees exactly), and `cumulative_emissions.json::_why` asserts `CDR_ALLOCATION_BASIS = 'responsibility'` (it is). The second is the strongest form the named-constant trigger catches — a claim asserting a VALUE, where divergence would be a straight contradiction rather than a judgement call. **`CONTRADICTED` is not a parking space**: a constant a dataset contradicts must carry `superseded_by:`, checked. Both mechanisms verified to bite by breaking them.
 - **ALL THREE ORPHANS RESOLVED, AND ONE OF THEM WAS CONTRADICTED BY ITS OWN DATASET.** `SIGMA_SB` wired via the Planck bound (above). **`INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT` wired**: `infrastructure_statutory_floor` DOCUMENTED the derivation `(12 / interval_months) · crew_hours_per_visit` in its own docstring and nothing implemented it, so the 23 CFR 650 interval was unreachable — new `statutory_hours_per_unit_year()` reproduces BOTH worked examples exactly (8.0 h/asset·yr, and 448,816 h/yr through the floor), and no currency enters the chain, which is what made that floor doctrine-invariant. **`ETA_LAND_MASK_THRESHOLD` RETIRED, NOT WIRED**: its `form:` asserted "the ERA5 mask is a fraction, so a THRESHOLD IS REQUIRED", while the η dataset that actually shipped states in its own `_method.weighting` that it used the continuous land FRACTION and **explicitly not a binary threshold**. The generation step answered the question the constant was posed to settle and answered it the other way, so §5 decision 1 was superseded in practice while still being carried as live governance. **Wiring it would have REINTRODUCED the all-or-nothing coastal treatment the data deliberately avoided** and silently moved every per-collective η. It now carries `superseded_by:` and correctly has no consumers — the gate refused both a bogus tag and a `superseded_by` pointing at a JSON file rather than a module, which is the gate working.
 - **THE THREE ORPHANED CONSTANTS ARE NOT PLACEHOLDERS — they are real work unwired.** `SIGMA_SB` is `physics` (a constant of nature, now wired); `INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT` is `convention` adopted from **23 CFR 650**, a US federal regulation; `ETA_LAND_MASK_THRESHOLD` is `normative`, a stated governance decision on whether partly-marine cells bear an obligation. None is debt to clean up; two remain assets not plugged in.
-- **CODEBASE SWEEP FOR REPEATING FAILURES (2026-08-17). 14 LITERAL DEFAULTS BOUND, A FOURTH FRAME BYPASS FOUND IN `core/`, AND BOTH PHYSICS CONSTANTS COMPROMISED.**
+
+**CODEBASE SWEEP FOR REPEATING FAILURES (2026-08-17). 14 LITERAL DEFAULTS BOUND, A FOURTH FRAME BYPASS FOUND IN `core/`, AND BOTH PHYSICS CONSTANTS COMPROMISED.**
 - **THE `= 1500.0` PATTERN IS STILL LIVE IN 14 PLACES.** Value-equality alone returns 214 candidates and is unusable (the repo already knew that); adding a NAME match cuts it to 14 real ones and every one bound with **zero test movement**, confirming pure duplication: `natural_decay_rate=0.005` (×2), `failure_rate=0.005`, `age_factor_max=2.0` (×2), `base_maint_rate=0.025` (×2), `ecological_threshold=0.40`, `capital_stock_teh=2e9` (×2), `u_floor=0.5`, `txx_per_gmst=1.48`, `a_earth=5.101e14` (×2). **The precision filter is the finding: name AND value, not value alone.**
 - **BOTH OF THE REPO'S ONLY TWO `physics` CONSTANTS FAIL TO GOVERN ANYTHING.** `A_EARTH_M2` was restated as the literal `510100000000000.0` in two thermal functions (now bound); **`SIGMA_SB` is read by NOTHING at all** — not by `data.py`, not by the thermal layer, not by a test, and it is not duplicated as a literal either. The headline "only 2 of 229 constants are physics" is true and neither of them was doing any work.
 - **A FOURTH FRAME BYPASS, AND THE FIRST INSIDE `core/`.** `autarky.autarky_reference` called `ecological_eoh(ecosystem_health)` with no area on the line AFTER `personal_eoh(population, ...)`, then summed them — so B₀'s ecological term was IDENTICAL at 1M and at 335M. **B₀ per capita is now frame-invariant** (1952.4015 at both). Magnitude small (0.04%) *precisely because* the ecological domain is tiny; the form was wrong regardless, and B₀ is the reference the overbuild test is measured against. After the pipeline, `scenarios/sweep.py` and the dashboard's fiscal path.
@@ -772,7 +701,8 @@ TEH lifecycle, automation arc.
 - **TWO PARAMETERS WERE STRANDED AT THE WALL PHASE 0 CLEARED — AND ONE WAS THE LARGEST LEVER IN THE MODEL.** `personal_standard` (Block I's standards selector) and `ecological_health_response` (the 4e partition switch) reached `total_eoh` and stopped at `eoh_to_teh_pipeline`. **survival → sufficiency moves total EOH 2.09×, more than any domain base**, and `implementation_guide.md` told institutions to pass it *while* telling them to run the pipeline — two instructions that could not both be followed. Both now plumbed; the guide is corrected and the intake table gains **land area**, which had been missing since the ecological domain was keyed to it.
 - **THREE REGISTERED SCENARIOS WERE UNRUNNABLE AND 2,976 TESTS WERE BLIND TO IT.** `demographic_shock` passed an argument the function does not take; `maintenance_crisis` and `recovery` omitted required ones. All three raised `TypeError` on every invocation and **pre-dated this session** (verified against `099ff13`). The suite exercised the scenario FUNCTIONS and nothing exercised the DISPATCH, so a scenario could be registered, advertised by `scenario list`, and completely broken with every unit test green. **`tests/test_cli_dispatch.py` walks the registry itself** rather than a hand-maintained list — the `OPERATIVE_LAYERS` lesson — and was verified to bite by reintroducing the original bug. 33/33 scenarios now run.
 - **ONE LOADER OVER THE MLU CSV, and the duplicate was semantic not cosmetic.** `reference/servicing` had grown its own dict loader beside `land_stewardship`'s row loader, and **they disagreed on whether the aggregate "Total land" row belongs in a mapping — it does not, because summing such a mapping DOUBLES the area.** Canonical `land_hectares_by_class()` now sits beside `load_land_use()`; servicing delegates. **No live figure was wrong** — every consumer either summed named classes or skipped the row — **but `land_tenure` already carried `if name == "Total land": continue`, which is a duplicate announcing itself.** Removing the duplicate removed the workaround. Pinned by `test_the_classes_partition_total_land_exactly`: if the aggregate ever leaks back the sum doubles and every area-weighted figure downstream halves.
-- **PHASE 4 SIGNED OFF IN FULL (author, 2026-08-17), `notes/guf-restoration-derivation.md`.** ADOPTED: (1) the pristine/current partition — GUF carries the FLOW at maintain-current, the domain carries the STOCK at the pristine gap plus thermal; (2) unowned land is a FEDERATION obligation, nothing uncollected, federal land the central case; (3) the frame is declared — the default ecological area resolves from the population; (4) degradation is booked where it is CAUSED, not where it is felt. **NOT adopted and still open: every quantity the phases named without measuring** — the pristine-gap condition inventory (NRI transition matrices), the tenure split (BLM PLS surface acres), the service volumes V_s (i-Tree/FIA), ρ by use category (NLCD imperviousness). **The `GUF_USE_*` ×100 also STANDS**: Phase 2 measured how far it sits from a servicing census and deliberately did not move it, because a census settles a LEVEL and the defect is a DENSITY GRADIENT. **PUBLICATION CAVEAT: the ecological domain is now small BY CONSTRUCTION, so the backable claim is "the standing ecological obligation is small because balanced systems are self-maintaining; the care cost sits in GUF" — NOT "nature is fine". GUF's own magnitude is still fitted rather than derived.**
+
+**PHASE 4 SIGNED OFF IN FULL (author, 2026-08-17), `notes/guf-restoration-derivation.md`.** ADOPTED: (1) the pristine/current partition — GUF carries the FLOW at maintain-current, the domain carries the STOCK at the pristine gap plus thermal; (2) unowned land is a FEDERATION obligation, nothing uncollected, federal land the central case; (3) the frame is declared — the default ecological area resolves from the population; (4) degradation is booked where it is CAUSED, not where it is felt. **NOT adopted and still open: every quantity the phases named without measuring** — the pristine-gap condition inventory (NRI transition matrices), the tenure split (BLM PLS surface acres), the service volumes V_s (i-Tree/FIA), ρ by use category (NLCD imperviousness). **The `GUF_USE_*` ×100 also STANDS**: Phase 2 measured how far it sits from a servicing census and deliberately did not move it, because a census settles a LEVEL and the defect is a DENSITY GRADIENT. **PUBLICATION CAVEAT: the ecological domain is now small BY CONSTRUCTION, so the backable claim is "the standing ecological obligation is small because balanced systems are self-maintaining; the care cost sits in GUF" — NOT "nature is fine". GUF's own magnitude is still fitted rather than derived.**
 - **PHASE 4e DONE (2026-08-17, author sign-off): THE HEALTH RESPONSE RELOCATED, AND THE DOMAIN IS NOW HEALTH-INVARIANT.** `ecological_eoh` read `rate / ecosystem_health`, so falling health raised the STANDING obligation — the wrong side of the partition, since degraded condition is disturbance and disturbance is an attributable reset cost. **Decompose first, and the decomposition moves nothing**: `rate/health = rate + rate·(1−health)/health`, i.e. `standing` + `degradation_response`. Then assign: standing stays, degradation and spike go to GUF via `health_response` ∈ {domain, guf}, default `domain` reproducing every pre-4e number exactly (the `thermal_obligation` opt-in precedent).
 - **THE DECOMPOSITION CARRIES THE PARTITION'S OWN SIGNATURE.** At health = 1.0 the degradation response is **EXACTLY ZERO** — land in balance owes nothing beyond its standing obligation, arriving as ALGEBRA rather than as an assertion. And the relocated share rises monotonically with degradation: **0% pristine → 10% at health 0.9 → 30% at 0.7 → 72.6% at 0.3.** That rise is the property justifying the relocation; had it not risen, calling the health response a disturbance measure would have been wrong.
 - **AFTER 4e THE ECOLOGICAL DOMAIN IS HEALTH-INVARIANT** — it owes the same whatever condition the land is in, because condition changes what the HOLDER owes, not what the domain does. Before 4e the domain rose **3.6×** from health 1.0 to 0.3. The obligation is CONSERVED at every health (`domain_after + relocated == domain_before`), so only its address changes. **Both stocks stay put** — thermal and restoration are untouched, which is the test that the partition is being APPLIED rather than the domain merely being emptied.
@@ -786,7 +716,8 @@ TEH lifecycle, automation arc.
 - **THE SHIPPED DEFAULT IS NO LONGER AN OUTLIER — IT COINCIDES WITH THE `global` FRAME** to float precision, because `LAND_HECTARES_PER_CAPITA` is the planetary ratio. Table spread 464× → **1.385×**, which is the honest 1.65-vs-2.285 ha/person difference rather than a frame nobody chose.
 - **TWO PATHS NOW DIFFER BY DESIGN AND IT IS TESTED, NOT SILENT**: `ecological_eoh` alone has no population and keeps the declared US reference frame; `total_eoh` has one and uses it. They agree exactly once the same area is supplied, which is what the test asserts — the remedy for the hazard rather than the hazard.
 - **HONEST CONSEQUENCE FOR THE FEDERATION**: a federation whose collectives differ ONLY in `ecosystem_health` now has essentially no terms of trade between them (exchange rates deviate from unity by ~1e-6, was ~1e-3). Ecosystem health is a far weaker lever on the ledger than it was, which is the same defect seen from the Coasean layer.
-- **PHASE 3 DONE: RESTORATION COST DERIVED FROM PHYSICS, AND IT CORRECTED MY OWN EARLIER BOUNDING.** `reference/restoration.py` + `scenarios/restoration_cost.py` + `eoh scenario run restoration_cost`, 19 tests, REPORTING ONLY. Restoration is a SEQUENCE of ASAE field operations and every pass resolves through `hours_per_acre` — grassland seeding (disk ×2 → drill → pack → 3 yr mow+spray) costs **1.79–4.81 h/ha lifetime**, old-field succession **0.87–2.57**. **The Phase-0 bounding had ASSUMED 100 h/ha; the guess was 21–115× TOO HIGH**, so the legacy backlog at 100 Mha/50 yr is **0.005–0.029 h/person·yr** against personal's ~1,301 — restoration is not where the ecological domain is hiding, by two further orders of magnitude than the bounding already showed.
+
+**PHASE 3 DONE: RESTORATION COST DERIVED FROM PHYSICS, AND IT CORRECTED MY OWN EARLIER BOUNDING.** `reference/restoration.py` + `scenarios/restoration_cost.py` + `eoh scenario run restoration_cost`, 19 tests, REPORTING ONLY. Restoration is a SEQUENCE of ASAE field operations and every pass resolves through `hours_per_acre` — grassland seeding (disk ×2 → drill → pack → 3 yr mow+spray) costs **1.79–4.81 h/ha lifetime**, old-field succession **0.87–2.57**. **The Phase-0 bounding had ASSUMED 100 h/ha; the guess was 21–115× TOO HIGH**, so the legacy backlog at 100 Mha/50 yr is **0.005–0.029 h/person·yr** against personal's ~1,301 — restoration is not where the ecological domain is hiding, by two further orders of magnitude than the bounding already showed.
 - **WHY THE GUESS WAS SO FAR OUT, and it is the strongest argument yet for the currency-free rule: MOST OF A RESTORATION'S DOLLAR COST IS NOT LABOUR.** It is seed, plant material, design, survey and land acquisition — so reasoning from a remembered cost-per-acre and converting at a wage prices all of that as labour. **The same defect that made NRCS EQIP unusable** (its dollar column mixes implementation cost with foregone income), reached this time from the INSIDE by making the error and then measuring it. Restoration-project cost databases were deliberately not used for exactly this reason.
 - **THE κ COMPARISON PHASE 3 EXISTED FOR: BIOLOGICAL REPLACEMENT IS 12–69× CHEAPER IN LABOUR THAN ENGINEERED.** Amortised over 50 yr against the declared carbon volume, restoration implies **κ_carbon 0.009–0.048 h/tonne against the shipped 0.6** — and `GUF_ECO_KAPPA_CARBON` is direct-air-capture operator staffing, i.e. the ENGINEERED route to the same service. **That gap is not an inconsistency to reconcile; it is the measurement of how much cheaper it is to let a system do the work than to build a machine that does.** The author's reframing arriving as a number from a direction nobody aimed at it. CONDITIONAL on a placeholder V_s — the restoration side is physics, the service side is not.
 - **THREE CLASSES EXCLUDED NOT ZEROED, each naming the FIELD and not merely a source**: tree planting (seedlings per person-day × stocking density), wetland hydrology (m³ per machine-hour by material class — earthworks is volumetric and is NOT an ASAE field operation, so borrowing a neighbouring implement's efficiency would be the guessing the module refuses), monitoring (plots per person-day — **the same quantity `monitoring_capability` scales in the ecological domain**, so pricing it would connect two layers that currently do not meet).
@@ -952,53 +883,50 @@ TEH lifecycle, automation arc.
 
 ## Test file index
 
-| File | Source module | What it covers |
-|------|--------------|----------------|
-| `test_eoh_generation.py` | `core/eoh_generation.py` | personal_eoh, infrastructure_eoh, ecological_eoh, knowledge_eoh, total_eoh, domain_labor_requirements, epsilon_delta_sensitivity, eoh_to_essential_domains |
-| `test_eoh_fulfillment.py` | `core/eoh_fulfillment.py` | human_eoh_share, registered_eoh, teh_created, teh_supply, capital_writedown, human_eoh_per_domain, eoh_to_teh_pipeline |
-| `test_eoh_dynamics.py` | `core/eoh_dynamics.py` | eoh_compounding, regenerative_offset, eoh_reduction_ratio, rank_investment_candidates, optimal_investment, maintenance_strategy_compare, deferred_eoh_paydown, regenerative_investment_required |
-| `test_registration.py` | `core/registration.py` | care/production/stewardship/personal/knowledge registration shares, total_registration_share, validate_registration_trajectory |
-| `test_multipliers.py` | `core/multipliers.py` | population_weighted_mean_multiplier, multiplier_band_check, tier_multiplier, epoch_alpha_weights, scarcity_score, validate_training_duration, detect_artificial_scarcity, tier_expiry_check, reclassification_impact |
-| `test_conditions.py` | `core/conditions.py` | condition_i_check, condition_ii_check, balance_check, condition_iii_balance_growth_check, condition_iv_check, dashboard_snapshot, domain_eoh_coverage |
-| `test_dashboard.py` | `core/dashboard.py` | eoh_health_indicators, fiscal_health_check, system_dashboard |
-| `test_fiscal.py` | `core/fiscal.py` | levy_collection, stewardship_allocation, ecological_allocation, sufficiency_guarantee, trust_management, fiscal_snapshot, care_stipend, min_levy_for_solvency, accumulation_ceiling_commitment |
-| `test_prices.py` | `core/prices.py` | teh_price, basket_price, purchasing_power, floor_purchasing_power, domain_scarcity_multiplier, full_price_monotonicity_audit, cpi_goods_destruction |
-| `test_capital.py` | `core/capital.py` | make_asset, asset_condition, writedown_trigger, execute_writedown, birth_event, death_event, maturation_update, estate_dissolution, aggregate_personal_eoh_fulfilled |
-| `test_population.py` | `core/population.py` | age_group_for_age, aging, population_eoh_curve, population_lifecycle_snapshot, cohort_aging_trajectory |
-| `test_workforce.py` | `core/workforce.py` | competency_reserve, competency_check, minimum_hours_allocation, automation_failure_scenario, apply_death_redistribution, competency_to_knowledge_eoh_delta |
-| `test_simulation.py` | `core/simulation.py` | make_economy_state, simulate_period, run_simulation; TEH lifecycle D1–D6 |
-| `test_trajectory.py` | `core/trajectory.py` | canonical_age_distribution, canonical_physical_state, compute_epsilon, effective_capital_from_epsilon |
-| `test_civilization_epsilon.py` | `core/civilization.py` | civilization_epsilon, machine_eoh_from_capital, CAPITAL_MACHINE_PROFILES |
-| `test_params.py` | `params.py` | EohParams defaults, temporary() context manager, params-driven pipeline |
-| `test_land_guf.py` | `land/guf.py` | GUF framework: all 14 functions, boundary verification, worked example, min_income_for_access |
-| `land/test_collective.py` | `land/collective.py` | compute_collective_guf, parcel schema validation, archetype factories, subsidy/cap logic |
-| `land/test_calibration.py` | `land/calibration.py` | guf_rate_calibration convergence and direction, guf_lvi_weight_sensitivity variants |
-| `scenarios/test_sweep.py` | `scenarios/sweep.py` | epsilon_sweep |
-| `scenarios/test_shocks.py` | `scenarios/shocks.py` | automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock |
-| `scenarios/test_maintenance.py` | `scenarios/maintenance.py` | deferred_maintenance_crisis, care_registration_delay |
-| `scenarios/test_recovery.py` | `scenarios/recovery.py` | maintenance_recovery_schedule, minimum_fulfillment_for_recovery |
-| `scenarios/test_sensitivity.py` | `scenarios/sensitivity.py` | fiscal_parameter_sweep, eoh_arc_sensitivity, epsilon_delta_sensitivity re-export |
-| `scenarios/test_long_run.py` | `scenarios/long_run.py` | canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory |
-| `scenarios/test_indust_overshoot.py` | `scenarios/indust_overshoot.py` | indust_overshoot_baseline, indust_recovery_trajectory |
-| `scenarios/test_guf_stress.py` | `scenarios/guf_stress.py` | guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress |
-| `scenarios/test_multiplier.py` | `scenarios/multiplier.py`, `core/simulation.py` | m_below_band_drift, m_above_band_drift, m_band_sweep, mean_multiplier_schedule in run_simulation |
-| `scenarios/test_feasibility.py` | `scenarios/feasibility.py` | feasibility ceiling, age-weight trap, over-determination verdict, subsistence sweep, ε crossover |
-| `scenarios/test_thermal_load.py` | `scenarios/thermal_load.py` | thermal_load_arc, thermal_load_verdict — obligation reachability, negligible-in-ledger flag, low-ε coverage gap |
-| `test_reference_data.py` | `reference/practitioners.py`, `reference/workforce.py` | practitioner history well-formedness, scarcity_score compat, workforce snapshot compat, layer isolation |
-| `test_corridor.py` | `research/corridor.py` | survival_floor_epsilon, contestability_ceiling (adopted §8.9), contestability_ceiling_bare_chi (superseded), contestability_axes, thermal_ceiling, corridor, corridor_stability |
-| `test_contestability.py`, `test_recalibration.py`, `test_formation.py`, `test_membership.py` | `research/contestability.py`, `recalibration.py`, `formation.py`, `membership.py` | §8 → §8.9c: χ and its retirement, exit_financing, φ policies, formation feedback, membership terms |
-| `test_thermal*.py` (7 files) | `research/thermal*.py` | P0 bound, Path C + η, λ determinacy map, overage/debt, drawdown chain, solvency gate, capital dual-output + derived ε_current |
-| `test_epsilon_inverse.py` | `research/epsilon_inverse.py` | capital_for_epsilon round-trip, monotonicity, mix_spread |
-| `test_infrastructure_floor.py` | `scenarios/infrastructure_floor.py` | statutory floor, doctrine invariance (floor_spread = 1.000) |
-| `test_reference_multiplier.py` | `reference/onet_multipliers.py`, `scenarios/measured.py`, `multiplier_sensitivity.py` | measured registry load, repricing to ε, rank/pairwise robustness, Monte Carlo |
-| `scenarios/test_food_conservation.py` | `scenarios/food_conservation.py` | stage decomposition, derived hours-per-worker, uncounted-sector headroom, per-person-15+ series trap |
-| `test_personal_floor.py` | `core/eoh_generation.personal_statutory_floor`, `reference/atus_time_use.py`, `reference/personal_basket.py`, `scenarios/personal_floor.py` | currency-free floor, unreachable-vs-zero + step-in entitlements, ATUS extract (day closes to 1440, 2020 flagged), identity report leaves extraction unattributed |
-| `scenarios/test_land_tenure.py` | `scenarios/land_tenure.py`, `core/eoh_generation.ecological_eoh`, `scenarios/restoration_cost.pristine_gap_obligation` | the pristine/current partition: the domain's two STOCK terms, the gap obligation's governing equation, the inventory having no default; and the tenure rule: exhaustive split, `uncollected == 0`, federal land as the central case |
-| `scenarios/test_restoration_cost.py` | `reference/restoration.py`, `scenarios/restoration_cost.py` | restoration from ASAE field capacity: every operation resolves through the standard, the governing equation reproduced, unpriced classes name their FIELD, the Phase-0 guess corrected 21–115×, biological-vs-engineered κ asserted as a SIGN |
-| `scenarios/test_servicing_census.py` | `reference/servicing.py`, `scenarios/servicing_census.py` | the servicing census: measured inputs, the isolated attribution, the manufacturing-QC false positive excluded by name, disjointness from stewardship, scope robustness (1.05× vs stewardship's 41×), the shape finding, `TestCensusChangesNothing` |
-| `scenarios/test_guf_magnitude.py` | `scenarios/guf_magnitude.py`, `reference/servicing.SCALING_BASIS` | GUF's magnitude: the scaling-basis judgement declared and complete, the two cuts of the census reconciling exactly, the fee tracking a MINORITY of the cost structure, subdivision invariance across the arc (the falsification, run), the completed target and the withdrawn rural comparison, the amenity band's robust sign, the conservation credit clipped to zero, `TestMagnitudeChangesNothing` |
-| `scenarios/test_frame.py` | `scenarios/frame.py` | jurisdiction frames: values BOUND not restated, the undeclared shipped pairing, share frame-invariance across a 335x population gap, capital intensity as the third extensive quantity, `TestFrameChangesNothing` |
-| `scenarios/test_land_stewardship.py` | `reference/land_stewardship.py`, `scenarios/land_stewardship.py` | the US stewardship census: MLU land use, the ASSUMED occupation→land-class attribution, agency role mix, ASAE field capacity, the amenity weight and its band, coverage-inflation guard, CLI dispatch smoke test |
-| `test_exchange.py` | `research/exchange.py` | exchange accounting: the frame that refuses to be half-stated (no default land area, piecemeal override refused), the frame reaching BOTH core calls, the parity floor and the capital heterogeneity that actually drives it, the recorded degeneracy of the ecosystem-health lever, double-entry balance-to-zero, the named FX seam and conservation at rate = 1, and the exact N=1 anchor |
-| `test_claims_register.py` | `CLAUDE.md` (its checkable claims) | the claims register: every LIVE claim in this file that the code can answer, checked against the code — parameter defaults, the empty ecological domain, provenance and shadow counts, the GUF revenue line, the remote-end zero, the clipped conservation credit. Plus the open-item discipline: an item is struck through (closed) or declared with what would settle it; a third state — open, unlisted and quietly false — is what it forbids. Historical entries are deliberately NOT checked; states its own gaps and fails if that admission is edited out |
-| `test_provenance.py` | `utils/provenance.py`, `hours_eoh/data.py` (all constants), `docs/parameter_provenance.md`, `reference/data/constant_provenance.csv` | tag-block parser (family globs, orphans, continuations, closed vocabulary) against synthetic source; **the coverage gate** against the real `data.py` with no allowlist — every constant tagged, every CHOSEN has a pointer, every constant has units, CSV and generated doc tables current, no block without a doc home; curated derived-prose figures |
+**89 test files. The name rule covers 64 of them:** `tests/test_<module>.py`
+covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
+the package. Those are deliberately not listed — the mapping *is* the filename,
+and a list of function names restated here is a list that goes stale. (The
+previous version of this table listed 50 of 88 files and read as complete.)
+
+The 25 files the rule does not cover are all listed below, plus two that do
+follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
+superseded form and a cross-layer floor respectively. Most are **gates**: they check a
+property of the repo rather than a module's behaviour, which is exactly what a
+name-derived index cannot express — and they are the safeguard surface, so they
+are the ones worth knowing by name.
+
+### Gates — they check the repo, not a module
+
+| File | What it enforces |
+|------|------------------|
+| `test_claims_register.py` | **This file.** Every LIVE claim in CLAUDE.md the code can answer, checked against the code; a claim whose anchor text is edited fails loudly. Plus the open-item discipline: an item is struck through (closed) or declared with what would settle it. |
+| `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. |
+| `test_confidence.py` | The confidence ratchet — the count of placeholder/bounded constants *without* a confidence figure may not rise. |
+| `test_dataset_governance.py` | A dataset's stated method against the constants it governs, sha256-fingerprinted so a regenerated file breaks the build until the constants are re-checked. |
+| `test_parameter_wiring.py` | A parameter that is accepted, changes nothing at any configuration tried, and that no test passes by name. |
+| `test_ecological_scale_resolution.py` | Every caller entering the ecological scale chain with a population in scope states its frame. |
+| `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
+| `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
+| `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
+| `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
+| `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
+| `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
+
+### Cross-cutting, or named differently from the module
+
+| File | Covers |
+|------|--------|
+| `test_automation_response.py` | Phase 2 per-component automation — the care contradiction's fix |
+| `test_capability_vs_observable.py` | The machine-capability index vs the observed machine share |
+| `test_civilization_epsilon.py` | `core/civilization.py` — endogenous ε from capital state |
+| `test_coasean_phase2.py`, `test_coasean_phase3.py`, `test_coasean_phase4.py` | `research/coasean.py`, phases 2–4 |
+| `test_eta_land.py` | The shipped η table and its loader (`reference/data/eta_land.json`) |
+| `test_grib_scan.py` | `utils/grib_scan.py` — the header-only GRIB locator |
+| `test_land_guf.py` | `land/guf.py` — all functions across the arc, boundary verification, worked example |
+| `test_maintain_vs_replace.py` | B3 — maintain vs replace with the embodied-energy pulse (`research/thermal_capital.py`) |
+| `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
+| `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
+| `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
+| `test_corridor.py` | `research/corridor.py` — including `contestability_ceiling_bare_chi`, kept as the superseded form |
+| `test_personal_floor.py` | The currency-free personal floor across `core/`, `reference/` and `scenarios/` |

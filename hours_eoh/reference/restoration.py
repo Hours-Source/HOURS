@@ -1,7 +1,7 @@
 """
 Restoration cost from physics — labour-hours to return a hectare to function.
 
-Phase 3 of notes/guf-restoration-derivation.md. This is the quantity a
+Phase 3 of the GUF restoration-cost derivation. This is the quantity a
 reset-cost derivation of GUF's ecological term needs, and it is derived the only
 way that has worked in this repo: ASAE field capacity, `width × speed ×
 efficiency`, with no price anywhere in the chain.

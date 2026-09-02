@@ -404,10 +404,12 @@ class Ledger:
     runs negative (it has supplied TEH to the economy) and `destruction` runs
     positive (it has absorbed TEH). Both are correct signs, not errors.
 
-    Condition III (zero interest) is a property this ledger can CHECK but does
-    not enforce by construction: balances change only by posting, so a balance
-    that grew without an entry is impossible, and `condition_iii_holds()` tests
-    that every credit into a member account is traceable to labour or transfer.
+    Condition III (zero interest) is a property this ledger MAKES CHECKABLE but
+    neither enforces nor currently checks: balances change only by posting, so a
+    balance that grew without an entry is impossible. What is NOT implemented is
+    the stronger test — that every credit into a member account is traceable to
+    labour or transfer. `balances_to_zero()` checks double-entry balance, which
+    is a different property; do not read it as a Condition III check.
 
     Worked example
     --------------

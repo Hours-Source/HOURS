@@ -567,7 +567,7 @@ H_MIN_ALLOCATION: dict[str, float] = {
 # epistemic pointer is a charter decision.
 #
 # The band is also the load-bearing surface of the skill-differential wound in
-# notes/historical-autopsy.md, so mislabelling it as physics hid the one number
+# the historical autopsy, so mislabelling it as physics hid the one number
 # most in need of argument.
 # ---------------------------------------------------------------------------
 # provenance-block: Multipliers — constitutional band (Condition II)
@@ -577,7 +577,7 @@ H_MIN_ALLOCATION: dict[str, float] = {
 # decided_by: a charter decision on the tolerable spread of labour valuation.
 #   The measured route now exists and disagrees usefully: the O*NET/BLS
 #   reference multiplier (mult-5.1.0) produces a population-weighted mean from
-#   measured factors, and handoffs/multipliers-v5/FALSIFIABILITY.md records
+#   measured factors, and the multiplier falsifiability pass records
 #   that the band PASS is a construction artifact of the normalization (±2.8×
 #   across normalizations) with no empirical content. So the band cannot be
 #   validated against the measurement — it can only be chosen and then
@@ -615,7 +615,7 @@ M_BAND_TARGET: float = 2.1
 #   constraint AGE_WEIGHT_ELDERLY and GUF_ECO_KAPPA_CARBON are bound under.
 #   TestMeasuredMeanIsBoundToTheRegistry fails whichever side moves alone.
 # note: TIER B — the registry is a large, well-sourced measurement, but it is US
-#   employment, and handoffs/multipliers-v5/FALSIFIABILITY.md records that the
+#   employment, and the multiplier falsifiability pass records that the
 #   BAND pass is a construction artifact of the normalization (±2.8× across
 #   normalizations). So this value is evidence about the workforce and is NOT
 #   evidence that the band is right; it lands inside [1.8, 2.1] on its own
@@ -661,8 +661,8 @@ ALPHA_IMPACT_RESILIENCE_WEIGHT:      float = 0.25  # emergency reserve capacity
 # The FLOOR-semantics map adopted from the O*NET/BLS v5.1 measurement pass
 # (reference epoch 2026-07-29). This SUPERSEDES the additive
 # m = 1 + Σαᵢ·fᵢ form for the reference multiplier: author-signed-off
-# 2026-07-30 (see notes/hours-reconciliation.md §3, handoffs/multipliers-v5
-# KNOWN_ISSUES §3 — the additive floor term mechanically crushed the ladder).
+# 2026-07-30 (see the reconciliation §3, and the multiplier registry's known
+# issues §3 — the additive floor term mechanically crushed the ladder).
 # The additive tier_multiplier()/epoch_alpha_weights() are retained, deprecated,
 # for backward compatibility.
 #
@@ -689,7 +689,7 @@ M_FLOOR:          float = 1.0    # constitutional floor multiplier (measured min
 # resolves_by: an O*NET/BLS vintage refresh re-solves it mechanically. It is
 #   NOT a knob — re-deriving it per vintage restores the circularity the
 #   freeze exists to break. Note the consequence recorded in
-#   handoffs/multipliers-v5/ FALSIFIABILITY.md: because R is solved to make
+#   the multiplier falsifiability pass: because R is solved to make
 #   the band pass, the band pass carries no empirical content. The rank
 #   ordering and pairwise ratios do.
 M_GEOMETRIC_R:    float = 3.2    # DERIVED-THEN-FROZEN spread ratio (solved at reference epoch)
@@ -824,7 +824,7 @@ ARTIFICIAL_SCARCITY_PASS_RATE_FLOOR: float = 0.30 # below this always flagged
 ARTIFICIAL_SCARCITY_QUALITY_THRESHOLD: float = 0.20 # min quality differential to justify low pass rate
 # tag: normative | units: years
 # form: the sunset clock — a tier assessment that never expires becomes a
-#   property right, which is the failure mode notes/historical-autopsy.md
+#   property right, which is the failure mode the historical autopsy
 #   names.
 # decided_by: a charter decision on revalidation cadence, with abundant
 #   precedent in professional recertification cycles (commonly 2–10 years).
@@ -1374,7 +1374,7 @@ INFRA_AGE_FACTOR_MAX: float = 2.0      # multiplier at end of design life. physi
 # year from a physical condition census, with NO money→hours conversion in the
 # path. This is the measured, auditable half; discretionary maintenance ambition
 # above it is a policy choice and enters the fulfilment/fiscal layer, never the
-# floor. Motivated by handoffs/Infrastructure: the monetized capital_stock_teh
+# floor. Motivated by the infrastructure-floor handoff: the monetized capital_stock_teh
 # path is convention-dominated 10× while every physical knob reads ×1.000 — the
 # floor is ~5.9× better determined and its residual is timesheet-measurable.
 #
@@ -1495,7 +1495,7 @@ US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
 #   expression because ECOLOGICAL_BASE_RATE is defined above and the pairing is
 #   what must not drift; same treatment as GUF_ECO_KAPPA_CARBON.
 # decided_by: RETAGGED `derived` -> `convention` 2026-09-01 (author sign-off,
-#   notes/ecological-intensity-base-stuck.md, option b). The tag and the
+#   the ecological-intensity tag decision, option b). The tag and the
 #   pointer had been contradicting each other: `derived` says a live computed
 #   value, while `resolves_by` opens "SUPERSEDED BY PHASE 4f". Both were true.
 #   Phase 4f moved the recurring ecological obligation to GUF and the derived
@@ -1948,7 +1948,7 @@ KNOWLEDGE_EPS_EXPONENT: float = 2.0    # how steeply knowledge EOH grows with ε
 # hours, with skill_decay_rate as the annual renewal fraction. The docstrings
 # now say so. No value changed — this is a labelling correction, and it is the
 # reason the O*NET route fits: that data supplies exactly a training STOCK and
-# a renewal RATE. See notes/knowledge-eoh-closure.md.
+# a renewal RATE. See the knowledge-base closure note.
 #
 # KNOWLEDGE_REFERENCE_POPULATION exists because knowledge EOH was
 # population-INVARIANT: the same absolute number was returned at 1M and at 300M
@@ -2335,7 +2335,9 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 
 # ---------------------------------------------------------------------------
 # Fiscal architecture defaults (single source of truth)
-# Used in: params.py, fiscal.py, dashboard.py, stress.py, prices.py
+# Consumed across the fiscal, simulation and scenario layers — fiscal.py is the
+# principal consumer. Not enumerated: the list had gone stale (it named a
+# deleted core/stress.py and prices.py, which reads none of these).
 # ---------------------------------------------------------------------------
 # provenance-block: Fiscal architecture
 # tag: normative | units: fraction of labor income
@@ -2669,7 +2671,7 @@ CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of deve
 # ---------------------------------------------------------------------------
 # Ground Use Fee (GUF) — land/guf.py constants
 # Template: NLSA Technical Manual TM-0042, Seventh Edition
-#   (notes/Ground_Use_Fee_Framework_Template.md)
+#   (the NLSA Ground Use Fee template)
 # Mission Statement: §"Land is held by the collective … stewardship leases …
 # the fee reflects real costs rather than speculative value."
 #
@@ -2702,7 +2704,7 @@ CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of deve
 #   the ε→0.99 end duplicated α's own stated rationale (combined discount 273×
 #   for one mechanism), and the ε=0 floor was a claim about institutional
 #   COLLECTION CAPACITY pointing opposite to α's cost claim. See
-#   handoffs/guf_redefinition.md §17.
+#   the GUF term-basis audit §17.
 # resolves_by: a ground-fee-vs-automation panel across jurisdictions at
 #   differing automation levels. Nothing in the repo constrains the rise and
 #   fall speeds independently of one another, so sweep them jointly until it
@@ -3117,7 +3119,7 @@ GUF_SERVICE_PROFILE_DECLARED: dict[str, float] = {
 #   `conservation` sits at 0.95 and `industrial_heavy` at 0.02: the ordering IS
 #   the claim, and it is the same shape as the 27× disturbance gradient the
 #   stewardship census found independently (federal parks 0.161 → urban 4.349
-#   h/ha·yr, notes/guf-restoration-derivation.md §2c).
+#   h/ha·yr, the GUF restoration-cost derivation §2c).
 #   Before this existed, ρ defaulted to 0.0 EVERYWHERE — asserting that every
 #   parcel, including conservation land, displaces its services totally. That is
 #   the upper bound on E, not a neutral default.
@@ -3336,7 +3338,7 @@ GUF_EOH_ACCUMULATION_THRESHOLD:   float = 0.30  # 30% unfulfilled ecological EOH
 
 # ---------------------------------------------------------------------------
 # Dashboard health indicator thresholds
-# Dashboard.py owns the logic; data.py is the single numeric source.
+# core/dashboard.py owns the logic; data.py is the single numeric source.
 # Stress tests also reference COMPOUNDING_CRIT.
 #
 # EVERY CONSTANT IN THIS BLOCK IS CHOSEN, and that is the honest reading rather
@@ -3501,7 +3503,7 @@ CONTESTABILITY_G_PRIV: float = 0.03             # assumed private capital growth
 #   anchored only TRANSITIVELY, and a `derived` tag here inherits a placeholder
 #   two steps down. What the change buys is one fewer independent unknown and the
 #   removal of a 2× internal contradiction, not a better-grounded number. See
-#   notes/placeholder-inversion-audit.md on the transitive form of the
+#   the placeholder-inversion audit on the transitive form of the
 #   anti-circularity rule.
 CONTESTABILITY_CAPITAL_YIELD_RATE: float = 0.20 # automated-capital annual yield rate = 1/ν − δ
 # tag: normative | units: years of federation tenure
@@ -3933,7 +3935,7 @@ MEMBERSHIP_DIVIDEND_POLICY_WARN: float = 0.25   # distributing < 25% of the pro-
 #
 # The uncounted vector: all degraded energy must exit through thermal emission
 # to space, and that capacity is fixed and non-restorable by labor. See
-# handoffs/Thermal_Sink_EOH_Implementation_Handoff_1_0.md. P0 / finding F2 is the
+# the thermal-sink implementation handoff. P0 / finding F2 is the
 # provable ceiling bound (E29): the highest automation ε the thermal budget
 # permits, computable from constants + existing inventory with NO new measurement.
 #

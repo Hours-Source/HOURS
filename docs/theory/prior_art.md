@@ -25,8 +25,10 @@ the page says so and says what would settle it.
     original inflation-impossibility result is not deleted — it is documented
     here as the ε→1 limit case.
 
-The underlying research is `notes/historical-autopsy.md` (adversarial due
-diligence) and `notes/hours-reconciliation.md` (the design decision it forced).
+This rests on two pieces of unpublished working research: an adversarial
+historical autopsy of labour-currency schemes, and the reconciliation that
+autopsy forced. Their conclusions are stated here; the working documents
+themselves are not part of the repository.
 
 ---
 
@@ -251,7 +253,7 @@ cannot be a better committee.
 
 ## What this framework does differently
 
-The reconciliation (`notes/hours-reconciliation.md`) found that the framework ran
+The reconciliation found that the framework ran
 on two engines pulling against each other: **objectivity** (price *is* measured
 labour content; inflation impossible by definition) and **transparency plus
 discovery** (an auditable floor with a market above it). Every place the framework
@@ -404,7 +406,8 @@ already in the repo rather than hypothetical:
 
 ## Sources
 
-Verify before citing in print. Fuller notes in `notes/historical-autopsy.md`.
+Verify before citing in print. Each entry below is stated with its own dates
+and figures so it can be checked without the underlying autopsy.
 
 - **Warren's Time Store** — Cincinnati, 1827–1830; "cost the limit of price".
 - **Owen's NELE** — opened 3 Sept 1832, Gray's Inn Road; ~445,501 labour-hours in

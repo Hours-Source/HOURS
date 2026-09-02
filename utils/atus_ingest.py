@@ -4,7 +4,7 @@ ATUS 2003–2025 ingest — raw microdata → the shipped annual extract.
 Run this ONCE when the raw BLS files change; the repo ships only the small
 derived CSVs it writes. The raw multi-year files are ~2.9 GB and live in
 `rawdata/atus/` which is gitignored, exactly as the O*NET build lives in
-`handoffs/multipliers-v5/` while the repo ships `multiplier_registry_v5.csv`.
+the multiplier handoff while the repo ships `multiplier_registry_v5.csv`.
 
     python3 utils/atus_ingest.py [--raw rawdata/atus] [--out hours_eoh/reference/data]
 

@@ -1,6 +1,9 @@
 # Diagrams
 
-Fifteen diagrams rendered from Mermaid source. Source `.mmd` files are in `diagrams/` (gitignored); rendered SVGs are committed to `docs/images/`.
+Fifteen diagrams rendered from Mermaid source. The rendered SVGs are committed to
+`docs/images/` and are what this page shows. The `.mmd` sources live in `diagrams/`,
+which is gitignored — so the commands below are for maintainers who hold the
+sources, not steps a reader of this page needs to run.
 
 To re-render a single diagram:
 ```bash

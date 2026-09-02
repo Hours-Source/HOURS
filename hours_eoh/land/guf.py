@@ -30,7 +30,7 @@ where:
 takes more human hours, so the fee is highest at subsistence and declines as
 automation takes over the work. The bell shape it replaced — low at both ends,
 peak at ε=0.40 — was an artifact of two far-end assumptions that did not
-survive audit (`psi_application`, handoffs/guf_redefinition.md §17).
+survive audit (`psi_application`, the GUF term-basis audit §17).
 
 GUF revenue is circulatory TEH flowing to the Trust. At moderate-to-high ε
 it may become the Trust's dominant revenue source, replacing the contracting
@@ -93,7 +93,7 @@ USE_CATEGORIES: dict[str, float] = {
 
 # ---------------------------------------------------------------------------
 # Term basis registry — what each term of the master equation IS
-# handoffs/guf_redefinition.md §10 step 1 ("adopt E as a step")
+# the GUF term-basis audit §10 step 1 ("adopt E as a step")
 # ---------------------------------------------------------------------------
 
 #: The closed vocabulary of definitional bases a fee term may rest on. These are
@@ -115,7 +115,7 @@ FEE_BASES: tuple[str, ...] = (
 #: WHAT EACH TERM OF NLSA Eq. 1 IS, declared rather than inferred.
 #:
 #: `spec_direction` is scored against the inverted-Goldilocks spec
-#: (handoffs/guf_redefinition.md §1): cheap remote, expensive in serviced
+#: (the GUF term-basis audit §1): cheap remote, expensive in serviced
 #: sprawl, cheap dense. "aligned" moves the fee the way the spec wants as
 #: density rises; "inverted" moves it the wrong way; "neutral" is
 #: density-independent.
@@ -144,7 +144,7 @@ TERM_BASIS: dict[str, dict[str, str]] = {
         "epsilon_response": "alpha",
         "why": (
             "The second scaling basis, adopted 2026-08-30 by author decision "
-            "(notes/guf-per-parcel-term.md). 44.5% of measured servicing hours "
+            "(the per-parcel-term decision). 44.5% of measured servicing hours "
             "follow the count of separately-held parcels, not ground area — "
             "title search, building inspection, the refuse round — and A is an "
             "AREA unit, so no value of any coefficient could reach them. It "
@@ -348,7 +348,7 @@ def epsilon_scaling(epsilon: float) -> float:
     but `psi_application` defaults to `retired` and the shipped fee no longer
     uses it. The two justifications below are recorded as the claims that were
     audited and did not survive; do not restore them without reading
-    handoffs/guf_redefinition.md §17.
+    the GUF term-basis audit §17.
 
       ~~At subsistence (ε=0), institutional capacity is minimal and the formal
       fee approaches a floor.~~ A claim about whether a fee can be COLLECTED,
@@ -884,7 +884,7 @@ def ground_use_fee(
     GUF(p) = max(floor, [Ψ_b·base_fee + Ψ_e·E(p,ε) + Ψ_i·I(p,ε)] × Ω(p) + P(ε))
 
     THE PER-PARCEL TERM P(ε) (adopted 2026-08-30, author decision;
-    notes/guf-per-parcel-term.md):
+    the per-parcel-term decision):
 
         P(ε) = parcel_rate · α(ε)                                  [TEH/year]
 

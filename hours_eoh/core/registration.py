@@ -10,7 +10,7 @@ Three labor categories, each with different registration trajectories:
   - Stewardship: rises through mid-automation as monitoring capacity develops
   - Care: follows a sigmoid driven by collective demand for human capital quality
 
-**ε=0 calibration (open design question — see min3 in design_gaps_review.md)**:
+**ε=0 calibration (open design question)**:
 ε=0 is subsistence per the mission statement — "the formal monetary economy is
 small," "personal EOH on-ledger is near-zero," "TEH barely circulates." The
 current non-personal baselines (production ~70%, stewardship ~20%) imply a

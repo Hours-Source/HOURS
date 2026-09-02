@@ -6,7 +6,7 @@ Why this exists
 ---------------
 The v5.1 reference multiplier is measured (O*NET/BLS), but a handful of its
 constants remain CHOSEN — the four factor weights, the impact sub-domain weights,
-and the ε-weighting. `handoffs/multipliers-v5/FALSIFIABILITY.md` establishes the
+and the ε-weighting. the multiplier falsifiability pass establishes the
 correct question to ask of them: NOT "does the band still pass" (the absolute
 scale is a construction artifact — a band pass carries almost no empirical
 content), but "does the RANK ORDERING and do the PAIRWISE RATIOS survive?" —

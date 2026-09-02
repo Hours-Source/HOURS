@@ -295,7 +295,7 @@ def reclassification_impact(
 #
 # The map has no free parameters: FLOOR is constitutional, R and the z-range are
 # DERIVED-THEN-FROZEN at the reference epoch, curvature is deleted. See
-# handoffs/multipliers-v5/FALSIFIABILITY.md — the rank ordering and pairwise
+# the multiplier falsifiability pass — the rank ordering and pairwise
 # ratios are the measurements; the absolute range/spread/band pass are
 # construction artifacts of the normalization choice.
 # ---------------------------------------------------------------------------
@@ -337,7 +337,7 @@ def composite_from_factors(
     Raises:
         ValueError: if any factor is outside [0, 1].
 
-    Reference: handoffs/multipliers-v5/methodology_params.yaml §multiplier_map;
+    Reference: the multiplier methodology parameters §multiplier_map;
     reconciliation §3 (floor semantics).
     """
     factors = {"training": training, "demand": demand,
@@ -368,7 +368,8 @@ def impact_composite_from_subdomains(
     The outer-normalization is an affine rescale (rank- and spacing-preserving)
     that makes the stated sub-domain weights operative — without it a composite
     of near-orthogonal parts concentrates toward the middle and the stated
-    weights become fiction (see reference_bounds.json → outer_normalization).
+    weights become fiction (see `reference/data/multiplier_reference_bounds.json`
+    → outer_normalization).
     `lo`/`hi` are FROZEN; `weights` is exposed for the sensitivity harness (the
     impact sub-domain split is CHOSEN, uncalibrated).
 
@@ -387,7 +388,7 @@ def impact_composite_from_subdomains(
     Raises:
         ValueError: if any sub-component is outside [0, 1] or hi ≤ lo.
 
-    Reference: handoffs/multipliers-v5/methodology_params.yaml §factors.impact.
+    Reference: the multiplier methodology parameters §factors.impact.
     """
     subs = {"dependency": dependency, "substitutability": substitutability,
             "harm": harm, "temporal": temporal}
@@ -445,7 +446,8 @@ def reference_multiplier(
     Raises:
         ValueError: if z_hi ≤ z_lo.
 
-    Reference: handoffs/multipliers-v5/reference_bounds.json; README semantics;
+    Reference: `reference/data/multiplier_reference_bounds.json` (shipped mirror of
+    the multiplier handoff's bounds file, which is local-only); README semantics;
     reconciliation §3.
     """
     if z_hi <= z_lo:
@@ -486,7 +488,7 @@ def epoch_factor_weights(
     Returns:
         (w_training, w_demand, w_scarcity, w_impact) summing to 1.0.
 
-    Reference: handoffs/multipliers-v5/methodology_params.yaml §factors.weights_by_epsilon.
+    Reference: the multiplier methodology parameters §factors.weights_by_epsilon.
     """
     anchors = sorted(M_EPOCH_WEIGHT_ANCHORS.items())
     lo_eps, lo_w = anchors[0]
@@ -518,7 +520,7 @@ def epoch_factor_weights(
 # Retained for backward compatibility. SUPERSEDED for the reference multiplier
 # by the geometric map above (reference_multiplier / composite_from_factors),
 # author sign-off 2026-07-30. The additive floor term "1.0 +" mechanically
-# compresses the ladder (handoffs/multipliers-v5/KNOWN_ISSUES §3); the measured
+# compresses the ladder (the multiplier registry's known issues §3); the measured
 # pass adopts the geometric map instead. New code should prefer
 # reference_multiplier(); this function and epoch_alpha_weights() are kept so
 # existing callers and the alpha-coefficient interpretation remain available.

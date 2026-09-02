@@ -51,7 +51,7 @@ away; it RELOCATES it from an unexamined 0.10 into a named component with an
 epistemic pointer (Eurostat CVTS). `renewal_doctrine_comparison()` reports the
 arc under each doctrine so the sensitivity is visible rather than buried.
 
-Three routes to ε_ref (notes/knowledge-eoh-closure.md §4):
+Three routes to ε_ref (the knowledge-base closure note §4):
   1. capital inventory  → ε ≈ 0.78–1.00, SATURATED and unusable; see Finding A
   2. labour residual    → ε = 0.391, corroborates the standing 0.40, no new data
   3. the chosen 0.40
@@ -62,7 +62,7 @@ The kbs·cpu·d response is never reimplemented here — it is obtained by calli
 `knowledge_eoh` itself at unit base, so this module cannot drift from the
 function it is calibrating.
 
-Reference: notes/knowledge-eoh-closure.md; Block K-II.
+Reference: the knowledge-base closure note; Block K-II.
 """
 
 from __future__ import annotations

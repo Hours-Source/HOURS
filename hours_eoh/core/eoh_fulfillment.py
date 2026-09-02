@@ -288,7 +288,7 @@ def teh_supply(
 #: exactly; `per_component` applies the floors in PERSONAL_AUTOMATION_FLOORS.
 AUTOMATION_RESPONSES: tuple[str, ...] = ("uniform", "per_component")
 
-#: ADOPTED 2026-09-01 (author sign-off, notes/phase-2-per-component-automation.md).
+#: ADOPTED 2026-09-01 (author sign-off, the Phase 2 per-component-automation decision).
 #: `per_component` is now the DEFAULT. `uniform` stays reachable and is what
 #: every figure published before this date was computed at — the Phase 4d/4e/4f
 #: pattern, where the superseded policy survives under its own name so a stale
@@ -703,7 +703,7 @@ def eoh_to_teh_pipeline(
     # truth. Two paths therefore computed knowledge EOH 4× apart, and the `arc`
     # table printed its knowledge/total columns from one and teh_created from the
     # other. Binding it moves pipeline total 2.38× and teh_created 2.16× at
-    # ε=0.99 — see notes/placeholder-inversion-audit.md.
+    # ε=0.99 — see the placeholder-inversion audit.
     skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
     capital_eoh_eliminated: float = 0.0,
     capital_personal_eoh_fulfilled: float = 0.0,

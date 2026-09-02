@@ -49,8 +49,8 @@ is ε-invariant in its priced components (a physical requirement does not depend
 on the automation level) and a step function in which components have a delivery
 path at all.
 
-Reference: handoffs/personal_eoh/HANDOFF_personal_eoh_base.md §0.2, §2, §3.3;
-notes/knowledge-eoh-closure.md Finding B.
+Reference: the personal-obligation handoff §0.2, §2, §3.3;
+the knowledge-base closure note Finding B.
 """
 
 from __future__ import annotations

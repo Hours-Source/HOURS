@@ -47,7 +47,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                         "automation level instead of the frozen ε_ref = 0.40, "
                         "and run the arc with it. THE DOMINANT UNCERTAINTY in "
                         "the knowledge domain: 7.13x across [0.2, 0.6]. "
-                        "See notes/knowledge-eoh-closure.md §4")
+                        "See the knowledge-base closure note §4")
     p.set_defaults(func=run)
 
 
