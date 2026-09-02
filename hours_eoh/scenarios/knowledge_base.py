@@ -636,7 +636,14 @@ def labour_residual_epsilon(
         )
 
     def unmet(epsilon: float) -> float:
-        return (1.0 - epsilon) * _total_eoh_per_capita(epsilon, knowledge_base, population)
+        # PER-DOMAIN since the Phase 2 adoption (2026-09-01). This used a flat
+        # (1 - epsilon) on the total, which is the superseded `uniform` policy —
+        # and leaving it would have solved the fixed point against a labour
+        # requirement the model no longer makes, silently. The personal domain
+        # carries its own human fraction; the other three keep (1 - epsilon).
+        from hours_eoh.core.eoh_fulfillment import human_eoh_per_domain
+        domains = _domain_eoh(epsilon, knowledge_base, population)
+        return human_eoh_per_domain(domains, epsilon)["total"] / population
 
     if unmet(0.0) < observed_hours_per_capita:
         return None
@@ -676,6 +683,26 @@ def _total_eoh_per_capita(
         knowledge_base=knowledge_base,
         skill_decay_rate=SKILL_TRANSMISSION_RATE,
     )["total"] / population
+
+
+def _domain_eoh(epsilon: float, knowledge_base: float, population: float) -> dict:
+    """Per-domain gross EOH on the canonical arc at a stated knowledge base."""
+    from hours_eoh.core.eoh_generation import total_eoh
+    from hours_eoh.core.trajectory import canonical_physical_state
+
+    state = canonical_physical_state(epsilon)
+    return total_eoh(
+        population=population,
+        capital_stock=state["capital_stock_teh"],
+        capital_age_ratio=state["capital_age_ratio"],
+        ecosystem_health=state["ecosystem_health"],
+        monitoring_capability=state["monitoring_capability"],
+        age_distribution=state["age_distribution"],
+        knowledge_complexity=state["knowledge_base_size"],
+        knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+        knowledge_base=knowledge_base,
+        skill_decay_rate=SKILL_TRANSMISSION_RATE,
+    )
 
 
 def epsilon_ref_fixed_point(

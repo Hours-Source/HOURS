@@ -531,6 +531,14 @@ COMPETENCY_THRESHOLD: float = 0.155  # 15.5% of workforce, per Mission Statement
 # tag: placeholder | units: hours per year
 # form: 5 h/wk × 52 wk. Below some floor a practitioner stops maintaining
 #   competency, which is structural; the level is the choice.
+# note: MEASURED 2026-09-02 — IT NEVER BINDS ANYWHERE ON THE ARC. Required
+#   labour runs 3,238.7 h/worker·yr at capability 0 down to 341.2 at 0.99 on a
+#   1M-person frame at 70% employment, so it is still 1.3× this floor at the
+#   top of the arc. Read correctly that is a POSITIVE result rather than an
+#   unused constant: the model never reaches an automation level at which
+#   ordinary work falls below the point where practitioners keep their skills.
+#   It also answers a different question from H_REF — competency retention, not
+#   labour supply — so the two do not belong on one ladder.
 # resolves_by: measured skill-retention against practice hours by domain — the
 #   currency-of-practice literature in aviation and surgery measures exactly
 #   this and reports domain-specific thresholds, which is the point: one
@@ -1482,10 +1490,35 @@ ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem healt
 # resolves_by: nothing — this is a published measurement. It moves only when
 #   ERS revises the series (5-year cycle).
 US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
-# tag: derived | units: labour-hours per hectare per year at pristine health
+# tag: convention | units: labour-hours per hectare per year at pristine health
 # form: ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES. Bound by TEST rather than
 #   expression because ECOLOGICAL_BASE_RATE is defined above and the pairing is
 #   what must not drift; same treatment as GUF_ECO_KAPPA_CARBON.
+# decided_by: RETAGGED `derived` -> `convention` 2026-09-01 (author sign-off,
+#   notes/ecological-intensity-base-stuck.md, option b). The tag and the
+#   pointer had been contradicting each other: `derived` says a live computed
+#   value, while `resolves_by` opens "SUPERSEDED BY PHASE 4f". Both were true.
+#   Phase 4f moved the recurring ecological obligation to GUF and the derived
+#   value of the standing term is 0.0, so this is the per-hectare intensity of a
+#   REFERENCE FRAME nothing currently charges — which is what `convention`
+#   means, and what the eight CANONICAL_* constants carry it for.
+# note: `retired` WAS NOT AVAILABLE, and the reason is structural rather than a
+#   preference. This is a parameter default in SEVEN places across `core/`
+#   (eoh_to_teh_pipeline, ecological_scale, ecological_eoh,
+#   ecological_eoh_breakdown, total_eoh, ecological_allocation,
+#   fiscal_snapshot), and the provenance gate refuses `retired` for a constant
+#   `core/` reads as a default — a retired constant `core/` reads is a second
+#   parameter running in parallel. `baseline_in:` is unavailable for the same
+#   reason: its first condition is "never a parameter default anywhere",
+#   described in this scheme's own words as the condition the exemption cannot
+#   waive. Checked 2026-09-01: SKILL_DECAY_RATE, which that rule was written
+#   from, has ZERO parameter defaults today, so this is currently the only
+#   constant in the state and a new tag for one instance was declined.
+# note: THE VALUE IS UNCHANGED AND STILL IDENTITY-BOUND. US_MAINLAND_HECTARES x
+#   this reproduces ECOLOGICAL_BASE_RATE exactly, and the test that pins it is
+#   untouched. It is inert on shipped paths ONLY because Phase 4f emptied the
+#   domain — supply an ecological stock and the whole chain is live again, which
+#   is a return to use and not a regression.
 # note: THIS IS THE DOMAIN-BALANCE DEFECT, QUANTIFIED. Before this constant
 #   existed, `ecological_eoh` took no area and no population — it returned
 #   base_rate/health and nothing scaled it, making ecological the ONLY domain
@@ -1896,7 +1929,7 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 471581037.4589498  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.407885 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 392689985.6546800  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.446277 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2120,13 +2153,48 @@ SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continui
 # ---------------------------------------------------------------------------
 # provenance-block: Reference and workforce
 # tag: convention | units: hours/year per worker
-# form: a stated normalizer — 50 weeks × 40 h. Used to convert workforce-hours
-#   to TEH, not a claim about how long anyone works.
-# resolves_by: n/a as a convention. If it were read as a measurement of actual
-#   hours worked it would be wrong in most jurisdictions (OECD average annual
-#   hours run ~1,400–2,200), which is precisely why it is tagged as the
-#   denominator it is.
-H_REF: int = 2000  # reference work-year hours per worker
+# form: 40 h × 52 wk — the calendar, with NO leave policy in the base. Used to
+#   convert workforce-hours to TEH; not a claim about how long anyone works.
+# decided_by: author, 2026-09-02. Was 2000 (50 wk × 40 h), which had a two-week
+#   leave policy baked into a value whose own form called it "a stated
+#   normalizer". A normalizer carrying a policy is not one: every deviation
+#   measured against it silently nets that policy out. 2080 is the calendar and
+#   carries none, so leave, part-time, actual hours and surge all become
+#   REPORTED deviations against a policy-free base — the same move as pricing a
+#   maintenance requirement without a currency in the chain.
+#   This also closes a documented defect: BASE_LIFETIME_EARNINGS_TEH already
+#   used 2080 and said so, so the repo carried two work-year conventions. It is
+#   now bound to this constant and the arithmetic is unchanged.
+# note: THIS IS US-NOMINAL AND IS A DECLARED JURISDICTION CHOICE, not a
+#   universal. EU statutory leave of 4–6 weeks gives 1,760–1,880 h/yr. Note the
+#   near-coincidence worth remembering: EU-nominal (~1,880 at 5 weeks) and the
+#   US MEASURED ACTUAL (1,874.4, ATUS-derived) agree to 0.3% — the old 2000 sat
+#   between the two nominals, which is plausibly why it was chosen. See
+#   WORK_YEAR_REFERENCE_POINTS for the band this is the denominator of.
+# resolves_by: n/a as a convention. Read as a measurement of hours actually
+#   worked it would be wrong in most jurisdictions (OECD annual hours run
+#   ~1,400–2,200), which is precisely why it is tagged as the denominator it is.
+H_REF: int = 2080  # reference work-year hours per worker (40 h × 52 wk)
+
+# tag: convention | units: dimensionless (fraction of H_REF)
+# form: reference points on the work-year, expressed against the policy-free
+#   nominal. They are a REPORTING BAND, not alternatives to H_REF: a caller
+#   quoting an hours figure should say which point it sits on.
+# decided_by: author, 2026-09-02, alongside the H_REF move. Shipping one number
+#   invites it to be read as a measurement; shipping the band makes the
+#   deviation from nominal visible, which is the SCOPES precedent.
+# note: `measured_actual` is ATUS-derived average paid hours per EMPLOYED
+#   worker (see scenarios/food_conservation.hours_per_worker_year, 1874.4288).
+#   It is an ACTUALS answer to a CAPACITY question and must not be used as a
+#   supply ceiling — multiplying it by working-age population assumes full
+#   employment, which overstates labour supply by the unemployment and
+#   non-participation rates together.
+WORK_YEAR_REFERENCE_POINTS: dict[str, float] = {
+    "nominal":        1.000,   # 40 h × 52 wk — H_REF itself
+    "eu_nominal":     0.904,   # 5 weeks statutory leave
+    "measured_actual": 0.901,  # ATUS, per employed worker
+    "reduced_20pct":  0.800,   # if everyone worked a fifth less
+}
 
 # ---------------------------------------------------------------------------
 # TEH destruction defaults and ε-scaling slopes
@@ -2240,15 +2308,30 @@ ESTATE_PERSONAL_RESERVE_YEARS:  float = 10.0   # years of basket costs preserved
 #   multiplier cap and a 3.5× accumulation cap are two different answers to
 #   the same question and have not been reconciled.
 ACCUMULATION_CEILING_MULTIPLIER: float = 3.5       # × base lifetime earnings
+# tag: convention | units: years
+# form: the career length the lifetime-earnings reference is built on.
+# decided_by: author, 2026-09-02 — extracted so BASE_LIFETIME_EARNINGS_TEH can
+#   be an expression rather than a restated product.
+# note: DELIBERATELY NOT BOUND to SKILL_WORKING_LIFE_YEARS (37.5). They are
+#   different quantities — this is the span a lifetime-earnings reference is
+#   quoted over, that is measured cohort exit from the labour force — and
+#   binding them would move this value 10.7% on a claim nobody has made. The
+#   previous note here said the two were "close (40)", which went stale when
+#   that constant was measured down to 37.5.
+# resolves_by: whether a lifetime-earnings reference should span the measured
+#   working life or a longer nominal career is a convention question, not a
+#   measurement one.
+BASE_CAREER_YEARS: float = 42.0
+
 # tag: derived | units: TEH over a career
-# form: 2080 TEH/yr × 42-yr career at a 1× multiplier = 87,360. Note the 2080
-#   differs from H_REF's 2000 (2080 = 40 h × 52 wk, with no leave), so the
-#   repo carries two work-year conventions; this one is the FTE-hours
-#   convention the multiplier registry also uses.
-# resolves_by: n/a — arithmetic from a stated career length and work-year. The
-#   career length (42 yr) is close to SKILL_WORKING_LIFE_YEARS (40) and should
-#   probably be bound to it rather than restated.
-BASE_LIFETIME_EARNINGS_TEH:      float = 87_360.0  # 2080 TEH/yr × 42-yr career at 1× multiplier
+# form: H_REF × BASE_CAREER_YEARS at a 1× multiplier = 87,360.
+# note: BOUND, not restated (2026-09-02). This used the literal 2080 while
+#   H_REF was 2000, and its own form recorded that the repo therefore carried
+#   two work-year conventions. H_REF is now 2080 and this is an expression, so
+#   the two cannot diverge again. The VALUE IS UNCHANGED — 2080 × 42 = 87,360
+#   either way, which is what made the defect survivable and invisible.
+# resolves_by: n/a — arithmetic from a stated career length and work-year.
+BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 
 # ---------------------------------------------------------------------------
 # Fiscal architecture defaults (single source of truth)

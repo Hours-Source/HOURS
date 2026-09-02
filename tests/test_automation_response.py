@@ -1,9 +1,11 @@
 """
 Phase 2 — per-component automation, the care contradiction's fix.
 
-OPT-IN AND DEFAULT-OFF. `automation_response="uniform"` reproduces every
-pre-Phase-2 number exactly; `"per_component"` honours the declared floors. The
-flip is a charter decision and is NOT taken here — the Phase 4d/4e/4f pattern.
+ADOPTED 2026-09-01 (author sign-off, notes/phase-2-per-component-automation.md).
+`per_component` is the DEFAULT; `uniform` stays reachable and reproduces every
+pre-flip number exactly — the Phase 4d/4e/4f pattern, where the superseded
+policy survives under its own name so a published figure can be REPRODUCED
+rather than merely disbelieved.
 
 Discipline:
   * ε=0 is the control — with nothing automated a floor ON automation cannot
@@ -37,35 +39,45 @@ def _eoh() -> dict:
             "ecological": 0.0, "knowledge": 5.0e7}
 
 
-class TestTheDefaultChangesNothing:
+class TestTheAdoptedDefault:
     """
-    The opt-in guarantee. If this ever fails, Phase 2 has been adopted by
-    accident rather than by decision.
+    ADOPTED 2026-09-01 (author sign-off). `per_component` is the default and
+    `uniform` stays reachable — the Phase 4d/4e/4f pattern, where the superseded
+    policy survives under its own name so a figure published before the flip can
+    be REPRODUCED rather than merely disbelieved.
+
+    This class asserted the opposite until the flip, and both halves are kept:
+    the adopted default, and that the old one still reconstructs exactly.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
-    def test_uniform_is_exactly_one_minus_epsilon(self, epsilon):
-        assert personal_human_fraction(epsilon) == 1.0 - epsilon
+    def test_uniform_is_still_exactly_one_minus_epsilon(self, epsilon):
+        """The superseded policy, reachable and unchanged."""
         assert personal_human_fraction(epsilon, "uniform") == 1.0 - epsilon
 
     @pytest.mark.parametrize("epsilon", ARC)
-    def test_the_split_is_unchanged_at_the_default(self, epsilon):
+    def test_the_default_is_per_component_everywhere_it_is_offered(self, epsilon):
+        import inspect
+        for fn in (personal_human_fraction, human_eoh_per_domain,
+                   eoh_to_teh_pipeline):
+            default = (inspect.signature(fn)
+                       .parameters["automation_response"].default)
+            assert default == "per_component", fn.__name__
         r = human_eoh_per_domain(_eoh(), epsilon)
-        assert r["automation_response"] == "uniform"
-        for d in _DOMAINS:
-            assert r[d] == _eoh()[d] * (1.0 - epsilon)
+        assert r["automation_response"] == "per_component"
 
     @pytest.mark.parametrize("epsilon", ARC)
-    def test_the_pipeline_is_unchanged_at_the_default(self, epsilon):
-        import inspect
-        default = (inspect.signature(eoh_to_teh_pipeline)
-                   .parameters["automation_response"].default)
-        assert default == "uniform"
-        a = eoh_to_teh_pipeline(epsilon=epsilon)["teh_created"]
-        b = eoh_to_teh_pipeline(
-            epsilon=epsilon, automation_response="uniform"
-        )["teh_created"]
-        assert a == b
+    def test_only_the_personal_domain_differs_from_the_old_policy(self, epsilon):
+        """
+        The flip touches personal EOH and nothing else — no floor is measured
+        for the other three domains and none was invented.
+        """
+        new = human_eoh_per_domain(_eoh(), epsilon)
+        old = human_eoh_per_domain(_eoh(), epsilon, automation_response="uniform")
+        for d in ("infrastructure", "ecological", "knowledge"):
+            assert new[d] == old[d]
+        if epsilon > 0.0:
+            assert new["personal"] > old["personal"]
 
 
 class TestTheControlAtZeroAutomation:
@@ -121,7 +133,7 @@ class TestPerComponentHonoursTheDeclaredFloors:
         Nothing measures a floor for infrastructure, ecological or knowledge,
         and inventing one would be the guessing this refuses.
         """
-        a = human_eoh_per_domain(_eoh(), 0.99)
+        a = human_eoh_per_domain(_eoh(), 0.99, automation_response="uniform")
         b = human_eoh_per_domain(_eoh(), 0.99, automation_response="per_component")
         assert b["personal"] > a["personal"]
         for d in ("infrastructure", "ecological", "knowledge"):
@@ -207,7 +219,9 @@ class TestItIsReachableFromTheDocumentedEntryPoint:
 
     @pytest.mark.parametrize("epsilon", ARC)
     def test_the_switch_reaches_teh_created(self, epsilon):
-        a = eoh_to_teh_pipeline(epsilon=epsilon)["teh_created"]
+        a = eoh_to_teh_pipeline(
+            epsilon=epsilon, automation_response="uniform"
+        )["teh_created"]
         b = eoh_to_teh_pipeline(
             epsilon=epsilon, automation_response="per_component"
         )["teh_created"]

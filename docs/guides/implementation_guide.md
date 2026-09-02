@@ -31,7 +31,7 @@ guide's own worked example, by a factor of 92.8.
 
 ## 1. What inputs the model needs
 
-The EOH → TEH pipeline takes seven physical-state fields. Here is what each
+The EOH → TEH pipeline takes eight physical-state fields. Here is what each
 represents and where to find it in real-world data:
 
 | Field | Type | Units | Real-world data source |
@@ -44,6 +44,7 @@ represents and where to find it in real-world data:
 | `age_distribution` | dict | fractions summing to 1.0 | Census age pyramid, grouped into the buckets in `AGE_GROUP_RANGES`; see `AGE_GROUP_FRACTIONS` |
 | `knowledge_base_size` | float | relative (1.0 = ε=0 reference) | Harder to measure; use national R&D stock relative to a subsistence baseline, or leave at canonical default |
 | `ecological_area_hectares` | float | hectares | **The land your collective is responsible for stewarding.** Your own cadastre, or the GUF parcel inventory (`land/collective.py`) if you have run a GUF assessment — it already carries area per parcel. Omit it and the model derives the area from your population at `LAND_HECTARES_PER_CAPITA` (a planetary average, and the wrong number for any actual collective). Pass `ecological_hectares_per_capita=` instead if you know your ratio but not your absolute area. |
+| `available_labor_eoh` | float | EOH-hours per year | **The labour your collective actually has.** `employment × annual hours per worker`, from your labour force survey; include unpaid household and care labour if your register admits it. **Do not use working-age population** — an hours-per-worker figure multiplied by the working-age band assumes full employment and overstates supply by the non-participation and unemployment rates together. Omit the field entirely and the pipeline assumes every hour of human-carried obligation gets worked; see the note below, which is the single most consequential default in this table. |
 
 > **The ecological domain is stocks-only, and is zero unless you supply one.**
 > Phases 4e and 4f (adopted 2026-08-28/29) moved BOTH recurring ecological terms
@@ -89,6 +90,29 @@ represents and where to find it in real-world data:
 > matching the 18.1× urban overshoot `scenarios/servicing_census` measured
 > independently. Run `eoh scenario run servicing_census` for the comparison that
 > actually constrains the fee's magnitude.
+
+> **Supply `available_labor_eoh`, or you are measuring demand and calling it
+> fulfilment.**
+> The framework's claim is a chain — *physical obligation → verified fulfilment
+> → monetary claim* — and the middle link is the one you have to supply. The
+> register enforces that an obligation existed: nothing mints without one, and
+> offering more hours than the obligation requires mints nothing further. What
+> the pipeline cannot know on its own is whether the work was **done**.
+>
+> `available_labor_eoh` defaults to unsupplied. On that path the pipeline mints
+> from the human obligation that is *demanded*, not the part actually *served*.
+> At its sharpest: run the pipeline with `population=0` and it still mints,
+> because infrastructure and knowledge obligations do not depend on anyone
+> existing. Supply `available_labor_eoh=0.0` on the same call and it mints
+> exactly nothing, booking the whole obligation as deferred.
+>
+> Both paths are legitimate — a demand figure is what you want when sizing an
+> obligation — but they are different quantities and only one of them is
+> fulfilment. `result["labor_constrained"]` tells you which produced your figure,
+> and `result["deferred_personal"]` / `result["deferred_total"]` report the
+> shortfall rather than absorbing it. Two rationing doctrines are available:
+> `survival_first` (the default — personal obligation is served first, so a
+> non-zero `deferred_personal` is a severe reading) and `pro_rata`.
 
 **State your frame.** Population, land area and capital stock are one frame and
 must travel together: they are all extensive, so pairing one jurisdiction's
@@ -301,10 +325,28 @@ result = eoh_to_teh_pipeline(
     ecosystem_health=your_state["ecosystem_health"],
     monitoring_capability=your_state["monitoring_capability"],
     knowledge_complexity_per_unit=your_state["knowledge_complexity_per_unit"],
+    # WITHOUT THIS the two lines below report demand, not fulfilment.
+    available_labor_eoh=your_state["available_labor_eoh"],
 )
-# result["teh_created"]    → TEH entering circulation this period
-# result["human_eoh"]      → labor demand on human workers (h/yr)
-# result["registered_eoh"] → officially recognized labor (h/yr)
+# result["teh_created"]      → TEH entering circulation this period
+# result["human_eoh"]        → labor carried by humans (h/yr)
+# result["registered_eoh"]   → officially recognized labor (h/yr)
+#
+# result["labor_constrained"] → False means fulfilment was ASSUMED, not verified
+# result["deferred_total"]    → obligation nobody had the hours to meet
+#
+# NOTE once the constraint binds, result["human_eoh"] is what was SERVED, not
+#      what was owed. The obligation is human_eoh + deferred_total. Reading
+#      human_eoh alone under a binding constraint reports your labour supply
+#      back to you.
+#
+# result["human_fraction"]      → share of obligation people carry. NOT 1 - ε:
+#                                 since Phase 2 the personal domain has its own
+#                                 automation floor. The old quantity is reported
+#                                 as result["uniform_split_factor"].
+# result["machine_capability"]  → the index you supplied (alias: "epsilon")
+# result["epsilon_observable"]  → the machine share the split actually implies,
+#                                 which is BELOW the index you gave it
 ```
 
 ### Step 5: Run fiscal_snapshot()
@@ -383,7 +425,17 @@ capital_stock_teh  = 8_000_000_000 # 8B TEH (≈ 1,600 TEH/person)
 capital_age_ratio  = 0.42
 ecosystem_health   = 0.65          # moderately degraded
 monitoring_cap     = 0.60
-epsilon            = 0.28          # current automation level
+epsilon            = 0.28          # machine CAPABILITY index (alias for
+                                   # machine_capability=); the OBSERVED machine
+                                   # share comes back below and is lower
+# YOUR labour force survey. Derived from this example's own demography so the
+# two cannot disagree, and note the EMPLOYMENT RATE: hours-per-worker applies to
+# people who work, not to the working-age band.
+#   from hours_eoh.data import H_REF          # 2,080 h/yr, the policy-free
+#                                             # nominal (40 h x 52 wk)
+employment_rate    = 0.70          # employed / working-age — YOUR labour survey
+workers            = 5_000_000 * 0.630 * employment_rate     # 2,205,000
+labour_hours       = workers * 2_080.0                       # H_REF
 trust_balance      = 150_000_000_000  # 30,000 TEH/person
 
 # population, land and capital are ONE FRAME and must travel together.
@@ -405,7 +457,27 @@ pipe = eoh_to_teh_pipeline(
     monitoring_capability=monitoring_cap,
     age_distribution=age_dist,
     ecological_area_hectares=land_hectares,
+    available_labor_eoh=labour_hours,
 )
+# Check which path produced these figures before quoting any of them:
+#   pipe["labor_constrained"] is True  -> fulfilment was verified against labour
+#   pipe["deferred_total"]             -> obligation your labour could not meet
+#
+# THIS EXAMPLE DOES NOT CLEAR, AND THAT IS THE POINT OF SHOWING IT.
+# The human obligation is 5.535e9 EOH/yr against 2,205,000 workers — about
+# 2,510 h each per year. No point in WORK_YEAR_REFERENCE_POINTS reaches that,
+# nominal included, so the shortfall stands at every work-year the framework
+# carries and pipe["deferred_total"] is non-zero.
+#
+# That is expected rather than alarming. Hold this capital stock and demography
+# fixed and the obligation is met from capability ~0.47 upward; the example
+# runs at 0.28. Compute your own clearing point rather than quoting one — it
+# depends on your capital stock, your demography and your land, and the package
+# default from `eoh scenario run feasibility` is a DIFFERENT configuration with
+# a different answer.
+#
+# Do NOT raise the labour figure until the deferral disappears. The deferral is
+# the finding, and suppressing it is exactly what this field exists to prevent.
 
 # --- Run fiscal snapshot ---
 # The ecological obligation is passed straight through from the pipeline, so the

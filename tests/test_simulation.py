@@ -786,9 +786,12 @@ class TestHumanEohByDomainInPeriodResult:
         """Sum of human domain EOH must equal total_eoh × (1 - ε)."""
         eps = 0.40
         _, result = simulate_period(self._s(eps=eps))
+        # NOT total_eoh × (1 - eps) since the Phase 2 adoption (2026-09-01):
+        # the personal domain carries its own human fraction. The identity that
+        # survives is that the reported sum equals the reported parts.
         human_sum = sum(result["human_eoh_by_domain"].values())
-        expected  = result["total_eoh"] * (1.0 - eps)
-        assert human_sum == pytest.approx(expected, rel=1e-4)
+        assert human_sum == pytest.approx(result["human_eoh"], rel=1e-9)
+        assert human_sum >= result["total_eoh"] * (1.0 - eps)
 
     def test_at_zero_epsilon_human_equals_gross(self):
         """At ε=0, human EOH equals gross EOH (no automation)."""

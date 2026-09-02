@@ -125,6 +125,23 @@ _DECLARED: dict[tuple[str, str], str] = {
         "population, and with the domain empty there is nothing for the area to\n"
         "scale. It stays reachable because supplying a stock makes it live again."
     ),
+    # THE ENTRY POINT BECAME PROBEABLE ON 2026-09-01, AND THAT IS THE FINDING.
+    # This gate only probes functions callable with no arguments (see the filter
+    # below). `eoh_to_teh_pipeline` required `epsilon`, so the ONE function the
+    # implementation guide tells an institution to run had never been covered.
+    # Giving `epsilon` a default — for the capability/observable rename — closed
+    # that hole as a side effect, and the gate immediately found these two.
+    # They are the same two fields, inert for the same Phase 4e/4f reason, one
+    # layer up. Everything else on the entry point is live or exercised.
+    ("eoh_to_teh_pipeline", "ecological_intensity"): (
+        "same as total_eoh — Phase 4e/4f emptied the domain. Newly VISIBLE here "
+        "rather than newly inert: the pipeline was unprobeable until its required "
+        "argument gained a default."
+    ),
+    ("eoh_to_teh_pipeline", "ecological_hectares_per_capita"): (
+        "same as total_eoh — Phase 4e/4f. Newly visible for the same reason as "
+        "the line above."
+    ),
     ("formation_feedback_simulation", "capacity_floor"): (
         "gates §8.9b charter escalation, which CLAUDE.md records as NEVER firing "
         "at canonical defaults. Inert here is the recorded finding."
@@ -311,8 +328,21 @@ class TestNoUndeclaredInertParameter:
         """
         A ratchet, not a blanket rule: 11 pre-date the gate. Lowering the count
         means wiring or exercising one, which is a real fix.
+
+        RAISED 10 → 12 ON 2026-09-01, AND THE REASON IS COVERAGE, NOT DEBT.
+        The probe only reaches functions callable with no arguments, so
+        `eoh_to_teh_pipeline` — the one function the implementation guide tells an
+        institution to run — was never probed at all: it required `epsilon`.
+        Giving that parameter a default, for the capability/observable rename,
+        made the entry point visible for the first time, and the two ecological
+        intake fields already declared on `total_eoh` appeared again one layer up.
+
+        Nothing became inert. The gate started looking somewhere it had never
+        looked. A rise from honesty is not the failure this counter guards
+        against — a rise from a fresh copy is — and the difference cannot be
+        detected automatically, which is exactly why it is written here.
         """
-        assert len(_DECLARED) <= 10
+        assert len(_DECLARED) <= 12
 
 
 class TestTheGateItselfIsHonest:

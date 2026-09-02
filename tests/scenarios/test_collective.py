@@ -226,8 +226,12 @@ class TestArcCoherence:
         income has collapsed — and lowest where the labour economy is largest.
 
         `land/guf.py` says GUF "may become the Trust's dominant revenue source,
-        replacing the contracting labor levy base". That is true at the ends and
-        FALSE in the 0.7–0.9 band on this frame, where the fee is subordinate.
+        replacing the contracting labor levy base". That was true at BOTH ends
+        of the arc and false in the middle; since the Phase 2 adoption it is
+        true only at SUBSISTENCE. The claim's own mechanism — a contracting
+        levy base — is what per-component automation removes, because care
+        resists automation and keeps labour income alive at high ε.
+
         The LEVEL is frame-dependent — it moves with the population paired
         against the parcels, which is precisely the pairing this module makes
         explicit — so the shape is pinned here and the level is not.
@@ -238,11 +242,17 @@ class TestArcCoherence:
             ["fiscal"]["trust"]["guf_over_levy"]
             for e in arc
         ]
-        assert ratios != sorted(ratios), "the ratio is not monotone rising"
-        trough = ratios.index(min(ratios))
-        assert 0 < trough < len(arc) - 1, f"the minimum must be interior: {ratios}"
-        assert ratios[0] > ratios[trough], "high at subsistence"
-        assert ratios[-1] > ratios[trough], "and rising again at post-scarcity"
+        # MONOTONE FALLING SINCE 2026-09-01, and the U-shape is withdrawn.
+        # It was U-shaped because the levy COLLAPSED at post-scarcity, so the
+        # fee overtook it again at the top. Adopting per-component automation
+        # stops that collapse: care resists automation, so human labour and
+        # therefore labour income survive at high ε, and the levy base with
+        # them. The fee now falls against the levy all the way up.
+        assert ratios == sorted(ratios, reverse=True), (
+            f"expected a monotone fall now the levy base does not collapse: {ratios}"
+        )
+        assert ratios[0] > 10.0, "still far above the levy at subsistence"
+        assert ratios[-1] < 1.0, "and below it at post-scarcity"
 
     def test_the_fee_never_vanishes_across_the_arc(self):
         """

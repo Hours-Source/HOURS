@@ -354,7 +354,13 @@ def anchor_sensitivity(
 
     units: ε dimensionless; base in hours at KNOWLEDGE_REFERENCE_POPULATION.
 
-    WHY THIS IS MEASURED BEFORE PHASE 2 AND NOT AFTER. The anchor has been
+    ADOPTED 2026-09-01. This measured the cost BEFORE the flip; the flip has
+    since been taken, so `non_uniform_reproduces_shipped` is now the True one.
+    It is retained rather than retired because it is what makes the adopted
+    anchor reproducible from first principles — and because a search that can
+    only confirm the current state is not a search.
+
+    WHY THIS WAS MEASURED BEFORE PHASE 2 AND NOT AFTER. The anchor has been
     re-derived six times and every previous move was tiny — +0.13%, +0.00047%,
     0.00% — precisely because the domains it balances against are tiny. This
     would be the first move against the 91–97% domain, and the question is
@@ -478,6 +484,11 @@ def anchor_sensitivity(
         "base_non_uniform":    base_n,
         "shipped_base":        reference,
         "uniform_reproduces_shipped": abs(base_u / reference - 1.0) < 1e-6,
+        # ADOPTED 2026-09-01: the shipped anchor is now the NON-uniform one, so
+        # this is the flag that should read True and the one above should not.
+        # Both are reported rather than the pair being swapped, so the move can
+        # be seen rather than inferred.
+        "non_uniform_reproduces_shipped": abs(base_n / reference - 1.0) < 1e-6,
         "base_move":  move,
         "converged":  conv_u and conv_n,
         "labour_at_top": {

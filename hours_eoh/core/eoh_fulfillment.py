@@ -12,6 +12,33 @@ Model the full pipeline:
 The critical distinction from the old model: EOH is the *input*.
 Labor supply is the *response* to EOH demand, not the starting point.
 
+CAPABILITY vs OBSERVED — TWO QUANTITIES, ONE NAME UNTIL 2026-09-01
+------------------------------------------------------------------
+`epsilon` has been doing two jobs. As an INPUT it says what machines are capable
+of taking; as an OBSERVABLE it is defined as the machine share of obligation,
+`machine_eoh / total_eoh`. Under `automation_response="uniform"` these are
+identical by construction — the split is exactly (1-ε) on every domain, so the
+share recovered from the split is the number fed in, and the distinction cannot
+be seen.
+
+**Phase 2 separated them.** Because the personal domain now retains a floored
+human share, the observed machine share is strictly BELOW the supplied index
+everywhere except zero:
+
+    capability   0.00    0.40    0.90    0.99    →1
+    observed     0.00    0.365   0.825   0.909   0.917
+
+So the input is a **machine-capability index** and ε proper is the **observed
+share**. Both are reported; `observable_epsilon()` derives the second from the
+first, and `observable_epsilon_ceiling()` gives the limit — which is why the arc
+stops short of 1 as a consequence of the declared floors rather than as a
+convention.
+
+`epsilon=` remains accepted everywhere as the historical name for the capability
+index, and nothing that passed it before behaves differently. What changed is
+that the derived quantity is now reported beside it instead of being assumed
+equal to it.
+
 Mission Statement: §"EOH as demand signal", §"The dual ledger",
 §"Condition I — Ledger Identity", §"Guardrail II — Capital write-down"
 """
@@ -200,11 +227,28 @@ def teh_supply(
     teh_destroyed_total: float,
 ) -> float:
     """
-    Net TEH in existence: cumulative creation minus cumulative destruction.
+    Net TEH in existence for an UNENDOWED economy: cumulative creation minus
+    cumulative destruction.
 
-    This is the operational definition of Condition I (Ledger Identity).
-    The total supply must always equal cumulative creation minus cumulative
-    destruction, with no exceptions.
+    This is the operational definition of Condition I (Ledger Identity) for a
+    collective that began at zero.
+
+    SCOPE — READ THIS BEFORE USING IT (2026-09-01). **This function has no
+    callers, and it raises on the shipped model's canonical trajectory.** The
+    simulated economy starts with a founding endowment — a Trust balance plus
+    embodied capital that no registered fulfilment created — so `simulate_period`
+    computes `teh_endowment + created - destroyed` instead, and destruction
+    legitimately exceeds creation for a long initial stretch while that founding
+    stock is retired. Handed those cumulative flows, the guard below fires.
+
+    The doctrine quoted under Reference is NOT amended here: for a collective
+    founded at zero this function is exactly right, and the identity it states is
+    the bound the framework's value-anchor argument wants. What is recorded is
+    that the shipped model is not that collective, and that the two accounts have
+    to be told apart. `tests/test_stock_is_bounded.py` pins both — the endowed
+    identity that holds every period, and this function's refusal of the endowed
+    trajectory — and fails if this acquires a caller, since that would be either
+    a bug or a decision to model an endowment-free economy.
 
     Spending and levies are circulatory — they move TEH between accounts but
     do not appear here. Only terminal consumption and capital write-down remove
@@ -223,7 +267,8 @@ def teh_supply(
 
     Reference: Mission Statement §"Condition I — Ledger Identity" — "The total
     supply must always equal cumulative creation minus cumulative destruction,
-    with no exceptions."
+    with no exceptions." Quoted as written; see SCOPE above for how a founding
+    endowment sits against it.
     """
     tol = max(teh_created_total * 1e-9, 1e-6)  # floating-point tolerance
     if teh_destroyed_total > teh_created_total + tol:
@@ -243,10 +288,16 @@ def teh_supply(
 #: exactly; `per_component` applies the floors in PERSONAL_AUTOMATION_FLOORS.
 AUTOMATION_RESPONSES: tuple[str, ...] = ("uniform", "per_component")
 
+#: ADOPTED 2026-09-01 (author sign-off, notes/phase-2-per-component-automation.md).
+#: `per_component` is now the DEFAULT. `uniform` stays reachable and is what
+#: every figure published before this date was computed at — the Phase 4d/4e/4f
+#: pattern, where the superseded policy survives under its own name so a stale
+#: figure can be reproduced rather than merely disbelieved.
+
 
 def personal_human_fraction(
     epsilon: float,
-    automation_response: str = "uniform",
+    automation_response: str = "per_component",
 ) -> float:
     """
     The share of personal EOH that stays human-carried at automation level ε.
@@ -310,23 +361,126 @@ def personal_human_fraction(
     return total
 
 
+def _resolve_capability(epsilon: float | None, machine_capability: float | None,
+                        default: float | None = None) -> float:
+    """
+    Accept either name for the machine-capability index; refuse both.
+
+    `epsilon=` is the historical name and still works. `machine_capability=` is
+    the name the quantity earns after 2026-09-01 (see the CAPABILITY vs OBSERVED
+    block above). Supplying both with different values RAISES rather than
+    silently preferring one — the `total_eoh` base-vs-area precedent. Supplying
+    both with the SAME value is permitted, since a caller migrating names should
+    not be punished for being explicit.
+    """
+    if epsilon is not None and machine_capability is not None:
+        if epsilon != machine_capability:
+            raise ValueError(
+                f"epsilon={epsilon} and machine_capability={machine_capability} "
+                f"are two names for one quantity and disagree; supply one"
+            )
+        return float(epsilon)
+    value = machine_capability if machine_capability is not None else epsilon
+    if value is None:
+        if default is None:
+            raise ValueError("supply epsilon= or machine_capability=")
+        return float(default)
+    return float(value)
+
+
+def observable_epsilon(
+    total_eoh_dict: dict,
+    machine_capability: float,
+    automation_response: str = "per_component",
+) -> float:
+    """
+    The OBSERVED machine share of gross obligation — ε as the theory defines it.
+
+    Governing equation:
+
+        ε_obs = (total_eoh - human_eoh) / total_eoh
+
+    where `human_eoh` is what `human_eoh_per_domain` actually allocates to
+    people at the given capability. units: dimensionless, [0, 1).
+
+    WHY THIS IS NOT THE INPUT. Under `uniform` the split is exactly (1-c) on
+    every domain, so ε_obs == c identically and the distinction is invisible.
+    Under `per_component` the personal domain keeps a floored human share, so
+    **ε_obs < c everywhere except c = 0**. Feeding c = 0.99 through the canonical
+    state returns ε_obs ≈ 0.9085 — a gap of 0.081. The parameter is a statement
+    about machines; this is the statement about the ledger.
+
+    Worked example: at the canonical arc points the gap runs +0.000 (c=0),
+    +0.035 (c=0.40), +0.081 (c=0.99).
+
+    RELATION TO `trajectory.compute_epsilon`. That function normalises by the
+    fully-recognised collective potential, so it additionally carries the
+    registration boundary. This one is the machine share of GROSS obligation and
+    is what the fulfilment split can answer on its own. They coincide when
+    registration is complete; neither supersedes the other.
+
+    Raises:
+        ValueError: if the supplied obligation totals to zero, where the share
+            is undefined rather than zero.
+    """
+    domains = ("personal", "infrastructure", "ecological", "knowledge")
+    total = sum(total_eoh_dict.get(d, 0.0) for d in domains)
+    if total <= 0.0:
+        raise ValueError("observable epsilon is undefined at zero obligation")
+    human = human_eoh_per_domain(
+        total_eoh_dict, machine_capability,
+        automation_response=automation_response,
+    )["total"]
+    return (total - human) / total
+
+
+def observable_epsilon_ceiling(
+    total_eoh_dict: dict,
+    automation_response: str = "per_component",
+) -> float:
+    """
+    The highest observed machine share the declared floors permit.
+
+    Governing equation: `observable_epsilon(eoh, 1.0, response)` — the limit as
+    machine capability goes to its maximum. units: dimensionless.
+
+    THIS IS WHY ε DOES NOT REACH 1. Under `uniform` the ceiling is exactly 1.0:
+    nothing stops automation. Under `per_component` the personal domain retains
+    `Σ share_c · floor_c` of its obligation for people whatever the machines can
+    do, so the ceiling is `1 - personal_share · Σ share_c · floor_c` and sits
+    strictly below 1. The arc's endpoint is therefore a CONSEQUENCE of the
+    declared floors rather than a convention.
+
+    Worked example: on the canonical ε=0.99 state the ceiling is ≈0.917.
+
+    IT IS A LOWER BOUND ON THE RESIDUAL, and therefore an UPPER bound on itself.
+    Only care carries a measured floor; nutrition, shelter and health carry none,
+    which is an admission and not a zero. Every floor added lowers this ceiling.
+    """
+    return observable_epsilon(total_eoh_dict, 1.0, automation_response)
+
+
 def human_eoh_per_domain(
     total_eoh_dict: dict,
-    epsilon: float = 0.40,
-    automation_response: str = "uniform",
+    epsilon: float | None = None,
+    automation_response: str = "per_component",
+    machine_capability: float | None = None,
 ) -> dict:
     """
     Per-domain human-labor EOH from a total_eoh() result dict.
 
     total_eoh() returns gross domain totals (full physical obligation) but not
-    the human-labor portions. This helper applies (1-ε) to each domain, making
+    the human-labor portions. This helper splits each domain, making
     domain-specific human workforce demand explicit for stewardship planning,
     fiscal allocation, and scarcity detection.
 
     Args:
         total_eoh_dict: Return dict from total_eoh(). Must contain keys:
                         "personal", "infrastructure", "ecological", "knowledge".
-        epsilon: Automation level [0.0, 0.99].
+        epsilon: Historical name for `machine_capability`; still accepted.
+        machine_capability: Machine capability index [0.0, 0.99] — what machines
+                        CAN take, not what they are observed to have taken.
+        automation_response: "per_component" (default) or "uniform".
 
     Returns:
         dict: {
@@ -335,22 +489,34 @@ def human_eoh_per_domain(
           "ecological":     float,
           "knowledge":      float,
           "total":          float,
-          "human_fraction": float,   (= 1 - ε)
-          "epsilon":        float,
+          "human_fraction": float,   (human EOH / gross EOH — the real share)
+          "uniform_split_factor": float,  (= 1 - c; applied to the non-personal
+                          domains. Equal to "human_fraction" only under
+                          `uniform`, which is why one name served both before.)
+          "personal_human_fraction": float,
+          "human_fraction_observed": float,  (= total / gross — the real share)
+          "machine_capability":      float,  (the input, honestly named)
+          "epsilon_observable":      float,  (the DERIVED machine share)
+          "epsilon":        float,   (deprecated alias for machine_capability)
         }
 
-    Reference: Mission Statement §"EOH and automation" — human_fraction = (1-ε)
-    applies uniformly across all four entropy domains.
+    THE TWO ε KEYS ARE NOT THE SAME QUANTITY, and after Phase 2 they differ.
+    `epsilon`/`machine_capability` is what was supplied; `epsilon_observable` is
+    what the resulting split implies. Reporting only the first is how a parameter
+    comes to be quoted as an outcome. See `observable_epsilon`.
 
-    PHASE 2 (2026-08-30): `automation_response="per_component"` gives the
-    PERSONAL domain its own human fraction from `personal_human_fraction`, which
-    honours the declared automation floors. The other three domains keep the
-    uniform split — nothing in this repo measures a floor for them, and
-    inventing one would be the guessing this module refuses. Default `uniform`
-    reproduces every pre-Phase-2 number exactly.
+    Reference: Mission Statement §"EOH and automation".
+
+    PHASE 2 (adopted 2026-09-01): `automation_response="per_component"` is the
+    DEFAULT and gives the PERSONAL domain its own human fraction from
+    `personal_human_fraction`, honouring the declared automation floors. The
+    other three domains keep the uniform split — nothing in this repo measures a
+    floor for them, and inventing one would be the guessing this module refuses.
+    `"uniform"` remains reachable and reproduces every pre-flip number exactly.
     """
-    human_fraction = 1.0 - epsilon
-    personal_fraction = personal_human_fraction(epsilon, automation_response)
+    capability = _resolve_capability(epsilon, machine_capability, default=0.40)
+    human_fraction = 1.0 - capability
+    personal_fraction = personal_human_fraction(capability, automation_response)
     domains = ("personal", "infrastructure", "ecological", "knowledge")
     per_domain = {
         d: total_eoh_dict.get(d, 0.0) * (
@@ -358,13 +524,25 @@ def human_eoh_per_domain(
         )
         for d in domains
     }
+    human_total = sum(per_domain.values())
+    gross = sum(total_eoh_dict.get(d, 0.0) for d in domains)
+    observed = (gross - human_total) / gross if gross > 0.0 else 0.0
     return {
         **per_domain,
-        "total":          sum(per_domain.values()),
-        "human_fraction": human_fraction,
+        "total":          human_total,
+        # `human_fraction` MEANS the share of obligation people carry. Before
+        # Phase 2 that was (1 - c) on every domain and the two readings coincided;
+        # now the personal domain has its own floor, so (1 - c) is the split
+        # factor applied to the OTHER three and is no longer the human fraction
+        # of anything. It is reported under a name that says what it is.
+        "human_fraction": (human_total / gross) if gross > 0.0 else 0.0,
+        "uniform_split_factor": human_fraction,
         "personal_human_fraction": personal_fraction,
+        "human_fraction_observed": (human_total / gross) if gross > 0.0 else 0.0,
         "automation_response":     automation_response,
-        "epsilon":        epsilon,
+        "machine_capability":      capability,
+        "epsilon_observable":      observed,
+        "epsilon":        capability,
     }
 
 
@@ -509,7 +687,7 @@ def labor_constrained_fulfillment(
 # ---------------------------------------------------------------------------
 
 def eoh_to_teh_pipeline(
-    epsilon: float,
+    epsilon: float | None = None,
     population: float = 1_000_000.0,
     age_distribution: dict | None = None,
     capital_stock: float = CAPITAL_STOCK_DEFAULT,
@@ -568,8 +746,13 @@ def eoh_to_teh_pipeline(
     # be reached from the documented entry point is a switch nobody exercises.
     ecological_health_response: str = "guf",
     ecological_standing_response: str = "guf",
-    automation_response: str = "uniform",
+    automation_response: str = "per_component",
     knowledge_base: float = KNOWLEDGE_EOH_BASE,
+    # THE MACHINE-CAPABILITY INDEX under its own name (2026-09-01). `epsilon=`
+    # still works and is unchanged; this is the same quantity said honestly, and
+    # supplying both with different values raises. See the CAPABILITY vs OBSERVED
+    # block at the top of this module.
+    machine_capability: float | None = None,
 ) -> dict:
     """
     End-to-end EOH → human share → registered → TEH creation in one call.
@@ -634,7 +817,8 @@ def eoh_to_teh_pipeline(
           "total_eoh":                float,
           "eoh_by_domain":            dict,   (personal/infrastructure/ecological/knowledge)
           "human_eoh":                float,  (total across all domains)
-          "human_fraction":           float,  (= 1 - ε)
+          "human_fraction":           float,  (human EOH / gross EOH)
+          "uniform_split_factor":     float,  (= 1 - c)
           "registration_share":       float,  (effective composite: registered/human)
           "registration_by_domain":   dict,   (personal: float, non_personal: float)
           "registered_eoh":           float,  (total)
@@ -683,6 +867,10 @@ def eoh_to_teh_pipeline(
         personal_eoh_registration_share as _personal_reg_share,
     )
 
+    # Resolve the two names for the capability index back into one local, so the
+    # body below is unchanged and there is exactly one place the precedence lives.
+    epsilon = _resolve_capability(epsilon, machine_capability)
+
     eoh_dict = _total_eoh(
         epsilon=epsilon,
         population=population,
@@ -717,11 +905,18 @@ def eoh_to_teh_pipeline(
         knowledge_base=knowledge_base,
     )
 
-    # Per-domain human EOH via the existing helper (uniform (1-ε) per domain)
+    # Per-domain human EOH via the existing helper
     hd                 = human_eoh_per_domain(
         eoh_dict, epsilon, automation_response=automation_response
     )
     personal_eoh_val   = eoh_dict["personal"]
+
+    # THE OBSERVED MACHINE SHARE, CAPTURED BEFORE THE LABOUR CONSTRAINT.
+    # A labour shortfall is DEFERRED, not machine-fulfilled, so computing the
+    # share after rationing would credit machines with obligation that simply
+    # went unserved. What machines take does not depend on whether the people
+    # exist to do the rest.
+    epsilon_observed   = hd["epsilon_observable"]
 
     # Labor constraint (opt-in). Without it the pipeline assumes every hour of
     # human-carried EOH gets worked — a demand figure reported as fulfillment.
@@ -780,6 +975,12 @@ def eoh_to_teh_pipeline(
 
     return {
         "epsilon":           epsilon,
+        # The same value as "epsilon", said honestly: this is what machines CAN
+        # take. "epsilon_observable" is what the split implies they DID take, and
+        # after Phase 2 the two differ. Quoting the first as an outcome is the
+        # defect this pair exists to prevent.
+        "machine_capability":  epsilon,
+        "epsilon_observable":  epsilon_observed,
         "total_eoh":         eoh_dict["total"],
         "eoh_by_domain": {
             "personal":       personal_eoh_val,
@@ -788,7 +989,13 @@ def eoh_to_teh_pipeline(
             "knowledge":      eoh_dict["knowledge"],
         },
         "human_eoh":          human_total,
-        "human_fraction":     1.0 - epsilon,
+        # See the split helper: this is the share people CARRY, not the
+        # split factor. They differ once any domain has an automation floor,
+        # and reporting the factor under this name understated human labour
+        # by 5.8x at the top of the arc.
+        "human_fraction":     (human_total / eoh_dict["total"]
+                               if eoh_dict["total"] > 0.0 else 0.0),
+        "uniform_split_factor": 1.0 - epsilon,
         "registration_share": effective_share,
         "registration_by_domain": {
             "personal":       pers_share,

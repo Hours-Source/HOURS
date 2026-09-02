@@ -92,10 +92,10 @@ def _domain_is_empty_by_default() -> bool:
     return ecological_eoh(0.70, 0.40, area_hectares=1.65e6) == 0.0
 
 
-def _provenance_is_288_of_288() -> bool:
+def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 292 and total == 292
+    return tagged == 294 and total == 294
 
 
 def _shadow_count_is_33() -> bool:
@@ -130,6 +130,94 @@ def _conservation_credit_is_clipped() -> bool:
     return r["guf_formula"] < 0.0 and r["guf_applied"] == 0.0
 
 
+# --- 2026-09-01: the Phase 2 adoption and the value-anchor hardening ----------
+
+def _per_component_is_the_default() -> bool:
+    import inspect
+    from hours_eoh.core.eoh_fulfillment import (
+        eoh_to_teh_pipeline, human_eoh_per_domain, personal_human_fraction)
+    return all(
+        inspect.signature(fn).parameters["automation_response"].default
+        == "per_component"
+        for fn in (personal_human_fraction, human_eoh_per_domain,
+                   eoh_to_teh_pipeline)
+    )
+
+
+def _ecological_intensity_is_convention() -> bool:
+    from utils import provenance as pv
+    scan = pv.scan(pv.DATA_PY.read_text(encoding="utf-8"))
+    rec = next(r for r in scan.records if r.name == "ECOLOGICAL_INTENSITY_BASE")
+    return rec.tag == "convention"
+
+
+def _there_is_exactly_one_mint() -> bool:
+    import ast
+    root = CLAUDE_MD.parent
+    sites = []
+    for layer in ("core", "land", "scenarios"):
+        for path in sorted((root / "hours_eoh" / layer).rglob("*.py")):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id == "teh_created"):
+                    sites.append(path)
+    return len(sites) == 1
+
+
+def _teh_supply_is_orphaned_and_refuses_the_shipped_trajectory() -> bool:
+    import ast
+    from hours_eoh.core.eoh_fulfillment import teh_supply
+    from hours_eoh.core.simulation import make_economy_state, run_simulation
+    root = CLAUDE_MD.parent
+    for layer in ("core", "land", "scenarios", "research"):
+        for path in sorted((root / "hours_eoh" / layer).rglob("*.py")):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Name)
+                        and node.func.id == "teh_supply"):
+                    return False
+    rows = run_simulation(make_economy_state(), n_periods=40)["period_results"]
+    try:
+        teh_supply(sum(r["teh_created"] for r in rows),
+                   sum(r["teh_destroyed"] for r in rows))
+    except ValueError:
+        return True
+    return False
+
+
+def _no_constant_is_currency_denominated() -> bool:
+    import re
+    from utils import provenance as pv
+    money = re.compile(r"\b(usd|dollar|eur|currency|wage)\b|\$", re.I)
+    scan = pv.scan(pv.DATA_PY.read_text(encoding="utf-8"))
+    return not any(r.units and money.search(r.units) for r in scan.records)
+
+
+def _the_uniform_ceiling_is_exactly_one() -> bool:
+    import inspect
+    from hours_eoh.core.eoh_fulfillment import observable_epsilon_ceiling
+    from hours_eoh.core.eoh_generation import total_eoh
+    from hours_eoh.core.trajectory import canonical_physical_state
+    accepted = inspect.signature(total_eoh).parameters
+    dom = total_eoh(**{k: v for k, v in canonical_physical_state(0.99).items()
+                       if k in accepted})
+    return (abs(observable_epsilon_ceiling(dom, "uniform") - 1.0) < 1e-12
+            and observable_epsilon_ceiling(dom, "per_component") < 1.0)
+
+
+def _human_fraction_is_the_real_share() -> bool:
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    r = eoh_to_teh_pipeline(epsilon=0.99)
+    return (abs(r["human_fraction"] - r["human_eoh"] / r["total_eoh"]) < 1e-12
+            and r["human_fraction"] > r["uniform_split_factor"])
+
+
+def _the_wiring_ratchet_is_twelve() -> bool:
+    from tests.test_parameter_wiring import _DECLARED
+    return len(_DECLARED) == 12
+
+
 #: Every live claim, its predicate, and what drifts if it goes unchecked.
 #: HISTORICAL entries are deliberately absent — they were true when written and
 #: are meant to stay as written.
@@ -153,9 +241,14 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 292/292",
-        check=_provenance_is_288_of_288,
-        why="the coverage figure quoted to institutions; it moved 265 -> 288 in one week.",
+        anchor="provenance 294/294",
+        check=_provenance_is_complete,
+        why=(
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294. "
+            "Anchored to the CURRENT entry, not a historical one: the old anchor "
+            "matched six lines, five of them history, so the claim was checking a "
+            "live number against text that must never be updated."
+        ),
     ),
     Claim(
         anchor="shadow ratchet at 33",
@@ -183,8 +276,78 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
             "false, and the open decision would read as still open when it is not."
         ),
     ),
+    # --- 2026-09-01 -------------------------------------------------------
+    Claim(
+        anchor="`automation_response` defaults to **`per_component`**",
+        check=_per_component_is_the_default,
+        why=(
+            "Phase 2's adoption. The flip is the care contradiction's fix and "
+            "reverting it silently would restore a known contradiction as the "
+            "default while every arc figure kept its new value."
+        ),
+    ),
+    Claim(
+        anchor="`ECOLOGICAL_INTENSITY_BASE` retagged `derived` → `convention`",
+        check=_ecological_intensity_is_convention,
+        why=(
+            "the tag said `derived` while its own pointer said SUPERSEDED. If it "
+            "drifts back the two halves disagree again, which is the state the "
+            "sign-off was asked for."
+        ),
+    ),
+    Claim(
+        anchor="exactly ONE mint call site across `core/`, `land/` and `scenarios/`",
+        check=_there_is_exactly_one_mint,
+        why=(
+            "the whole defence against labour vouchers. A second mint path is a "
+            "monetary-architecture change, not a refactor."
+        ),
+    ),
+    Claim(
+        anchor="It has ZERO callers, and it raises on the shipped model's own canonical trajectory",
+        check=_teh_supply_is_orphaned_and_refuses_the_shipped_trajectory,
+        why=(
+            "`teh_supply` states the bound the value-anchor argument WANTS and "
+            "describes an economy with no endowment. A caller appearing, or the "
+            "guard ceasing to fire, means the two accounts have silently merged."
+        ),
+    ),
+    Claim(
+        anchor="**no constant in `data.py` is denominated in currency**",
+        check=_no_constant_is_currency_denominated,
+        why=(
+            "the correction that 'no price in the chain' distinguishes nothing. "
+            "A currency-denominated constant would make it a real distinction "
+            "again and needs its own review."
+        ),
+    ),
+    Claim(
+        anchor="against **exactly 1.000** under `uniform`",
+        check=_the_uniform_ceiling_is_exactly_one,
+        why=(
+            "the arc endpoint is a CONSEQUENCE of the automation floors, not a "
+            "convention. If the uniform ceiling stopped being 1.0, the floors "
+            "would no longer be what caps it and the derivation would be lost."
+        ),
+    ),
+    Claim(
+        anchor="**`human_fraction` now means what it says**",
+        check=_human_fraction_is_the_real_share,
+        why=(
+            "it reported the split factor and understated human labour 5.8x at "
+            "the documented entry point. Reverting is invisible except here."
+        ),
+    ),
+    Claim(
+        anchor="Ratchet 10 → 12 on pure coverage",
+        check=_the_wiring_ratchet_is_twelve,
+        why=(
+            "the rise was COVERAGE, not new debt — the entry point became "
+            "probeable. If the count moves again the reason must be recorded, "
+            "because no counter can tell an honest rise from a fresh copy."
+        ),
+    ),
 )
-
 
 # ---------------------------------------------------------------------------
 

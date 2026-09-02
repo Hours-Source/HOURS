@@ -242,9 +242,9 @@ class TestPartitionChangesNothing:
 
     def test_shipped_totals_are_untouched(self):
         expected = {
-            0.0:  1440375494.3322387,
-            0.40: 1627859348.3850467,
-            0.99: 2798477482.3689537,
+            0.0:  1438271732.9507914,
+            0.40: 1604246730.6396835,
+            0.99: 2593728655.5720005,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -339,17 +339,17 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
         partition says it belongs.
         """
         expected = {
-            0.0:  1440375494.3322387,
-            0.40: 1627859348.3850467,
-            0.99: 2798477482.3689537,
+            0.0:  1438271732.9507914,
+            0.40: 1604246730.6396835,
+            0.99: 2593728655.5720005,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
         # the pre-4f arc is still reachable, and is what every earlier figure used
         legacy = {
-            0.0:  1440377033.9517233,
-            0.40: 1627860888.0045314,
-            0.99: 2798479021.988438,
+            0.0:  1438273272.570276,
+            0.40: 1604248270.2591681,
+            0.99: 2593730195.1914854,
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,

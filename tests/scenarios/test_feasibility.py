@@ -84,24 +84,29 @@ def test_epsilon_zero_is_infeasible_on_the_repos_own_constants():
     """No external data: H_REF × workforce_fraction vs PERSONAL_EOH_BASE."""
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.5,
                           epsilon=0.0)
-    assert c["supply_per_capita"] == pytest.approx(1000.0)
+    # 1000.0 until 2026-09-02, when H_REF moved 2000 -> 2080: the old value had
+    # a two-week leave policy baked into a stated normalizer, and the base is
+    # now the policy-free calendar. Supply rises 4%, which LOOSENS the test —
+    # so the finding surviving is worth more than it was before.
+    assert c["supply_per_capita"] == pytest.approx(1040.0)
     assert c["feasible"] is False
     # 2.29 at PERSONAL_EOH_BASE = 1500; 1.55 after the 2026-08-06 reprice to
-    # 1000. Still over-determined — the reprice narrowed the gap, it did not
-    # close it, and the residual is now reported as deferred_personal rather
-    # than surfacing as an unexplained infeasibility.
-    assert c["demand_supply_ratio"] == pytest.approx(1.4404, rel=0.01)
+    # 1000; 1.4404 before the H_REF move. Still over-determined at every one of
+    # them — three independent changes in the loosening direction have narrowed
+    # the gap and none has closed it.
+    assert c["demand_supply_ratio"] == pytest.approx(1.3830, rel=0.01)
 
 
 def test_implied_ceiling_is_far_below_the_shipped_base():
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.5,
                           epsilon=0.0)
-    # The ceiling is (L − R)/w. The SUPPLY term L has never moved; R, the
-    # non-personal requirement, grew when Block K-IV put knowledge on its
-    # measured footing, so the ceiling fell 626.6 → 618.3. Small, and in the
-    # tightening direction: a bigger apparatus obligation leaves less labour
-    # for the biological one.
-    assert c["implied_base_ceiling"] == pytest.approx(674.47, rel=0.01)
+    # The ceiling is (L − R)/w. R, the non-personal requirement, grew when Block
+    # K-IV put knowledge on its measured footing, so the ceiling fell
+    # 626.6 → 618.3 → 674.47. The SUPPLY term L had never moved until
+    # 2026-09-02, when H_REF went 2000 → 2080 and lifted it 4%: 674.47 → 705.60.
+    # That is the first time this ceiling has risen, and it is still 29% below
+    # the shipped base.
+    assert c["implied_base_ceiling"] == pytest.approx(705.60, rel=0.01)
     # > 1.5 until the elderly revalue; 1.42 still means the shipped base is
     # 42% above what the labour supply can serve at ε=0.
     assert c["base_overshoot"] > 1.35
@@ -291,7 +296,7 @@ def test_closed_form_understates_the_crossover():
     # non-personal load narrows without closing.
     # crossover 0.425 → 0.335: less personal demand to automate away, so the
     # arc reaches feasibility earlier.
-    assert actual == pytest.approx(0.3793, abs=0.005)
+    assert actual == pytest.approx(0.36795, abs=0.005)
     assert actual - naive > 0.05
 
 

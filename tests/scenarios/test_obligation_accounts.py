@@ -269,8 +269,14 @@ class TestTheAnchorMoveIsMeasuredBeforePhase2:
         """
         r = anchor_sensitivity()
         assert r["converged"] is True
-        assert r["uniform_reproduces_shipped"] is True
-        assert r["base_uniform"] == pytest.approx(r["shipped_base"], rel=1e-9)
+        # THE CONTROL INVERTED ON ADOPTION (2026-09-01). Before the flip the
+        # UNIFORM branch had to reproduce the shipped anchor; now the
+        # per-component one does, and the uniform branch must NOT — which is a
+        # stronger check than before, because it says the flip actually reached
+        # the constant rather than only the code.
+        assert r["non_uniform_reproduces_shipped"] is True
+        assert r["uniform_reproduces_shipped"] is False
+        assert r["base_non_uniform"] == pytest.approx(r["shipped_base"], rel=1e-9)
 
     def test_the_control_flag_can_report_FALSE(self):
         """

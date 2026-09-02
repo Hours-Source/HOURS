@@ -15,6 +15,7 @@ from hours_eoh.core.eoh_fulfillment import (
     capital_writedown,
     teh_supply,
     human_eoh_per_domain,
+    personal_human_fraction,
     eoh_to_teh_pipeline,
     labor_constrained_fulfillment,
 )
@@ -164,8 +165,15 @@ class TestHumanEohPerDomain:
     def test_human_fraction_applied_to_each_domain(self):
         eoh = total_eoh(0.40)
         result = human_eoh_per_domain(eoh, epsilon=0.40)
-        for domain in ("personal", "infrastructure", "ecological", "knowledge"):
+        # (1-eps) applies to the three domains with no measured automation
+        # floor. PERSONAL carries its own fraction since the Phase 2 adoption
+        # (2026-09-01) — asserted against the function that computes it rather
+        # than a literal, so the two cannot drift.
+        for domain in ("infrastructure", "ecological", "knowledge"):
             assert result[domain] == pytest.approx(eoh[domain] * 0.60, rel=1e-9)
+        assert result["personal"] == pytest.approx(
+            eoh["personal"] * personal_human_fraction(0.40), rel=1e-9
+        )
 
     def test_total_equals_sum_of_domains(self):
         eoh = total_eoh(0.40)
@@ -209,16 +217,54 @@ class TestEohToTehPipeline:
                     "mean_multiplier", "teh_created"):
             assert key in result, f"Missing key: {key}"
 
-    def test_human_fraction_equals_one_minus_epsilon(self):
+    def test_the_split_factor_is_one_minus_epsilon(self):
+        """
+        RETARGETED 2026-09-01, and the rename is the point. `human_fraction` used
+        to hold (1 - ε) and this test asserted it. After Phase 2 that quantity is
+        the split factor applied to the three domains WITHOUT an automation floor
+        — it is not the fraction of obligation people carry, and reporting it
+        under that name understated human labour by 5.8x at ε=0.99.
+
+        Both are now pinned: the factor keeps its value under a name that says
+        what it is, and `human_fraction` means what it says.
+        """
         for eps in KEY_EPSILONS:
             result = eoh_to_teh_pipeline(epsilon=eps)
-            assert result["human_fraction"] == pytest.approx(1.0 - eps)
+            assert result["uniform_split_factor"] == pytest.approx(1.0 - eps)
+
+    def test_human_fraction_is_the_share_people_actually_carry(self):
+        for eps in KEY_EPSILONS:
+            result = eoh_to_teh_pipeline(epsilon=eps)
+            assert result["human_fraction"] == pytest.approx(
+                result["human_eoh"] / result["total_eoh"], rel=1e-12
+            )
+
+    def test_the_two_coincide_under_uniform_and_diverge_otherwise(self):
+        """
+        THE CONTROL. One name served both readings because they were identical
+        under the superseded response; if they ever coincide again under
+        `per_component`, the floors have stopped biting.
+        """
+        for eps in KEY_EPSILONS:
+            same = eoh_to_teh_pipeline(epsilon=eps, automation_response="uniform")
+            assert same["human_fraction"] == pytest.approx(
+                same["uniform_split_factor"], rel=1e-9
+            )
+        top = eoh_to_teh_pipeline(epsilon=0.99)
+        assert top["human_fraction"] > top["uniform_split_factor"]
 
     def test_human_eoh_consistent(self):
-        """human_eoh must equal total_eoh × (1 - ε)."""
+        """
+        human_eoh is the SUM of the per-domain human shares, which is no longer
+        total_eoh × (1 - ε): since 2026-09-01 the personal domain carries its own
+        fraction. Asserted as the identity it actually is — the sum of the parts
+        — so it stays true whatever the automation response.
+        """
         result = eoh_to_teh_pipeline(epsilon=0.40)
-        assert result["human_eoh"] == pytest.approx(
-            result["total_eoh"] * (1.0 - 0.40), rel=1e-6
+        by_domain = human_eoh_per_domain(result["eoh_by_domain"], 0.40)
+        assert result["human_eoh"] == pytest.approx(by_domain["total"], rel=1e-9)
+        assert result["human_eoh"] > result["total_eoh"] * (1.0 - 0.40), (
+            "per-component automation leaves MORE human labour than uniform"
         )
 
     def test_teh_created_consistent(self):
@@ -326,7 +372,7 @@ class TestEohToTehPipeline:
         # 0.253 → 0.228 with the 2026-08-10 knowledge re-anchor: the registration
         # composite is weighted by domain EOH and knowledge grew 1.397×.
         #
-        # 0.228 → 0.358 on 2026-08-15 (author sign-off), and this one is a BUG
+        # 0.228 → 0.3842 on 2026-08-15 (author sign-off), and this one is a BUG
         # FIX rather than a recalibration. This pipeline was passing a bare 0.10
         # literal for skill_decay_rate into total_eoh(), overriding that
         # function's own SKILL_TRANSMISSION_RATE (0.025) default, which Block
@@ -337,7 +383,7 @@ class TestEohToTehPipeline:
         # volume-weighted composite, so it drags LESS and the composite rises
         # toward the labour curve. The mechanism this test documents is
         # unchanged; only knowledge's weight in it moved.
-        assert mid == pytest.approx(0.358, abs=0.01)
+        assert mid == pytest.approx(0.3842, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""
@@ -662,13 +708,13 @@ class TestPipelineScaleOverrides:
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
         expected_total = {
-            0.0:  1440375494.3322387,
-            0.40: 1627859348.3850467,
-            0.99: 2798477482.3689537,
+            0.0:  1438271732.9507914,
+            0.40: 1604246730.6396835,
+            0.99: 2593728655.5720005,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 348069411.8218143
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 358076239.22772837
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """
