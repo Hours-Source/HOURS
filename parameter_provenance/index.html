@@ -4196,7 +4196,7 @@ of total EOH should be quoted.</p>
 <td><code>ECOLOGICAL_INTENSITY_BASE</code></td>
 <td>0.000653171902629</td>
 <td>labour-hours per hectare per year at pristine health</td>
-<td>derived<br>form: ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES. Bound by TEST rather than expression because ECOLOGICAL_BASE_RATE is defined above and the pairing is what must not drift; same treatment as GUF_ECO_KAPPA_CARBON.</td>
+<td>convention<br>form: ECOLOGICAL_BASE_RATE / US_MAINLAND_HECTARES. Bound by TEST rather than expression because ECOLOGICAL_BASE_RATE is defined above and the pairing is what must not drift; same treatment as GUF_ECO_KAPPA_CARBON.</td>
 <td>SUPERSEDED BY PHASE 4f — see ECOLOGICAL_BASE_RATE above. This field used to name scenarios/land_stewardship.census_report(), and the census does read ~625x this value at the declared scope. That comparison is still TRUE and no longer RELEVANT: those hours are GUF's under the adopted partition, so matching them here would double-count. The derived value is 0.0 and what remains is a sign-off, not a measurement.<br>THIS IS THE DOMAIN-BALANCE DEFECT, QUANTIFIED. Before this constant existed, <code>ecological_eoh</code> took no area and no population — it returned base_rate/health and nothing scaled it, making ecological the ONLY domain with no extensive quantity behind it (personal scales with population, infrastructure with capital, knowledge with the corpus). Spread over the land it is nominally the obligation for, the shipped anchor is 6.5317e-4 h/ha/yr — <strong>2.35 SECONDS per hectare per year</strong>. Introducing it changes NO number: area x intensity reproduces ECOLOGICAL_BASE_RATE exactly at the reference frame, so this commit fixes the FORM and leaves the LEVEL for the census to move. Note this disagrees 464x with <code>scenarios/ecological_floor .implied_stewardship_intensity</code>, which reports 0.37 h/ha/yr — the SAME anchor over a different area (1e6 people x 1.65 ha). Both are correct and the disagreement IS the point: an anchor keyed to nothing implies whatever per-hectare figure the area you supply happens to produce.</td>
 </tr>
 <tr>
@@ -4328,7 +4328,7 @@ constant the generated tables cannot see.</p>
 <tbody>
 <tr>
 <td><code>KNOWLEDGE_EOH_BASE</code></td>
-<td>471581037.459</td>
+<td>392689985.655</td>
 <td>embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION</td>
 <td>derived-then-FROZEN<br>form: recovered from the O<em>NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε</em>)·cpu(ε<em>). Anchor and base are solved TOGETHER at the fixed point ε</em> = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. FROZEN against data-vintage churn; it FOLLOWS internal drift, because a change to any constant inside total_eoh changes the derivation's own inputs. Re-anchored 2026-08-09 (Finding E, ε<em> 0.4522), 2026-08-10 (the AGE_GROUPS elderly revalue, ε</em> 0.3828), 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at 37.5, ε<em> 0.38689) and 2026-08-17 (the Phase-4b frame resolution, ε</em> 0.386619). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST REASSURING: a 6.7% rise in the renewal rate moved this constant by −2.0%, because the fixed point absorbs most of it. The coupling is real and it is damped, which is the property a one-shot anchor could not demonstrate. THE FOURTH IS SMALLER STILL — +0.13% — and it says something about the model rather than about this constant: the ecological domain was corrected DOWNWARD by 464× and the knowledge base barely moved, because ecological is so small a share of total_eoh that even a 464× error in it is nearly invisible to everything downstream. That is the domain-balance defect restated as a sensitivity, and it converged in ONE iteration. THE FIFTH IS THE SMALLEST OF ALL — +0.00047%, 2026-08-28, when Phase 4f relocated the whole STANDING ecological obligation to GUF. Removing an entire domain term moved this constant in its seventh significant figure, and it converged in one iteration again. Read the two together: the fourth re-anchor said a 464× error in the ecological domain was nearly invisible downstream; the fifth says deleting the domain's recurring term outright is nearly invisible too. Both are the same sensitivity finding, and after 4f it is no longer a defect — it is the partition, which puts that obligation in GUF where it scales with land held rather than with the ledger.</td>
 <td>an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting.</td>
@@ -4503,7 +4503,7 @@ arithmetic is still correct; it answers a question the partition has closed.</p>
 <code>python3 utils/eoh_cli.py scenario run ecological_floor</code>.</p>
 </blockquote>
 <h3 id="current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times">Current (post-K-IV, re-anchored to the ε_ref fixed point seven times)<a class="headerlink" href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times" title="Permanent link">&para;</a></h3>
-<p>Canonical-arc figures, re-measured 2026-09-01 from
+<p>Canonical-arc figures, re-measured 2026-09-01 (after the Phase 2 adoption) from
 <code>python3 utils/eoh_cli.py --no-color arc --domain-shares --points 100</code>:</p>
 <table>
 <thead>
@@ -4517,21 +4517,21 @@ arithmetic is still correct; it answers a question the partition has closed.</p>
 <tbody>
 <tr>
 <td>personal</td>
-<td>99.1%</td>
-<td>85.8%</td>
-<td><strong>48.3%</strong></td>
+<td>99.2%</td>
+<td>87.1%</td>
+<td><strong>52.1%</strong></td>
 </tr>
 <tr>
 <td>infrastructure</td>
 <td>0.0%</td>
 <td>5.3%</td>
-<td>8.0%</td>
+<td>8.6%</td>
 </tr>
 <tr>
 <td>knowledge</td>
-<td>0.9%</td>
-<td>9.0%</td>
-<td>43.8%</td>
+<td>0.8%</td>
+<td>7.6%</td>
+<td>39.3%</td>
 </tr>
 <tr>
 <td>ecological</td>
@@ -4544,15 +4544,18 @@ arithmetic is still correct; it answers a question the partition has closed.</p>
 <p><em>THE CROSSING REVERSED, AND THE WARNING BELOW IT IS WHAT PREDICTED THAT.</em> On
 2026-08-16 this table read knowledge 47.1% against personal 45.2% and called
 knowledge the largest single domain at the top of the arc. It is now personal
-48.3% against knowledge 43.8%. Two changes on 2026-09-01 did it, and both moved
+52.1% against knowledge 39.3%. THREE changes on 2026-09-01 did it, all moving
 the same way: <code>AGE_WEIGHT_CHILD</code> took the MTUS self-maintenance measurement for
-ages 6–14 (1.5 → 1.82), which raises personal; and the ε_ref fixed point
-re-anchored <code>KNOWLEDGE_EOH_BASE</code> <strong>−9.94%</strong> with it, which lowers knowledge.*</p>
+ages 6–14 (1.5 → 1.82), which raises personal; Phase 2 adopted per-component
+automation, which raises it again because care resists automation; and the ε_ref
+fixed point re-anchored <code>KNOWLEDGE_EOH_BASE</code> twice with them, <strong>−9.94% then
+−16.73%</strong>, which lowers knowledge both times.*</p>
 <p><em>The previous edition of this paragraph said the crossing was not robust — "do
 not build an argument on which side is ahead" — because the two domains sat two
 points apart on an anchor that had moved four times for reasons having nothing
-to do with the knowledge domain. </em><em>The anchor has now moved seven times and the
-ordering has flipped back.</em><em> The caution stands, unchanged and now demonstrated:
+to do with the knowledge domain. </em><em>The anchor has now moved EIGHT times and the
+ordering has flipped back, by 12.8 points rather than the 2 it flipped by
+before.</em><em> The caution stands, unchanged and now demonstrated:
 read this as "personal and knowledge are the same order of magnitude at the top
 of the arc", not as a ranking. Infrastructure never exceeds 8.0%.</em></p>
 <p><em>The ε = 0 column reads 98.9% personal / 0.0% infrastructure because Block III
@@ -5374,7 +5377,7 @@ are asserted.</p>
 <td>260</td>
 <td>hours per year</td>
 <td>placeholder<br>form: 5 h/wk × 52 wk. Below some floor a practitioner stops maintaining competency, which is structural; the level is the choice.</td>
-<td>measured skill-retention against practice hours by domain — the currency-of-practice literature in aviation and surgery measures exactly this and reports domain-specific thresholds, which is the point: one economy-wide 260 cannot be right for both a surgeon and a farmhand.</td>
+<td>measured skill-retention against practice hours by domain — the currency-of-practice literature in aviation and surgery measures exactly this and reports domain-specific thresholds, which is the point: one economy-wide 260 cannot be right for both a surgeon and a farmhand.<br>MEASURED 2026-09-02 — IT NEVER BINDS ANYWHERE ON THE ARC. Required labour runs 3,238.7 h/worker·yr at capability 0 down to 341.2 at 0.99 on a 1M-person frame at 70% employment, so it is still 1.3× this floor at the top of the arc. Read correctly that is a POSITIVE result rather than an unused constant: the model never reaches an automation level at which ordinary work falls below the point where practitioners keep their skills. It also answers a different question from H_REF — competency retention, not labour supply — so the two do not belong on one ladder.</td>
 </tr>
 <tr>
 <td><code>H_MIN_ALLOCATION</code></td>
@@ -5406,10 +5409,17 @@ imply a precision nothing supplies, which is its own tell.</p>
 <tbody>
 <tr>
 <td><code>H_REF</code></td>
-<td>2000</td>
+<td>2080</td>
 <td>hours/year per worker</td>
-<td>convention<br>form: a stated normalizer — 50 weeks × 40 h. Used to convert workforce-hours to TEH, not a claim about how long anyone works.</td>
-<td>n/a as a convention. If it were read as a measurement of actual hours worked it would be wrong in most jurisdictions (OECD average annual hours run ~1,400–2,200), which is precisely why it is tagged as the denominator it is.</td>
+<td>convention<br>form: 40 h × 52 wk — the calendar, with NO leave policy in the base. Used to convert workforce-hours to TEH; not a claim about how long anyone works.</td>
+<td>n/a as a convention. Read as a measurement of hours actually worked it would be wrong in most jurisdictions (OECD annual hours run ~1,400–2,200), which is precisely why it is tagged as the denominator it is.<br>THIS IS US-NOMINAL AND IS A DECLARED JURISDICTION CHOICE, not a universal. EU statutory leave of 4–6 weeks gives 1,760–1,880 h/yr. Note the near-coincidence worth remembering: EU-nominal (~1,880 at 5 weeks) and the US MEASURED ACTUAL (1,874.4, ATUS-derived) agree to 0.3% — the old 2000 sat between the two nominals, which is plausibly why it was chosen. See WORK_YEAR_REFERENCE_POINTS for the band this is the denominator of.</td>
+</tr>
+<tr>
+<td><code>WORK_YEAR_REFERENCE_POINTS</code></td>
+<td><dict: 4 keys></td>
+<td>dimensionless (fraction of H_REF)</td>
+<td>convention<br>form: reference points on the work-year, expressed against the policy-free nominal. They are a REPORTING BAND, not alternatives to H_REF: a caller quoting an hours figure should say which point it sits on.</td>
+<td>—<br><code>measured_actual</code> is ATUS-derived average paid hours per EMPLOYED worker (see scenarios/food_conservation.hours_per_worker_year, 1874.4288). It is an ACTUALS answer to a CAPACITY question and must not be used as a supply ceiling — multiplying it by working-age population assumes full employment, which overstates labour supply by the unemployment and non-participation rates together.</td>
 </tr>
 </tbody>
 </table>
@@ -5597,11 +5607,18 @@ anonymous literals in <code>eoh_fulfillment.py</code> and <code>simulation.py</c
 <td><strong>decided by</strong> a charter decision on the maximum permitted accumulation — the framework's most direct statement about tolerable wealth concentration, and it belongs in deliberation. Note it interacts with M_MAX: a 6× multiplier cap and a 3.5× accumulation cap are two different answers to the same question and have not been reconciled.<br><em>no measurement settles this</em></td>
 </tr>
 <tr>
+<td><code>BASE_CAREER_YEARS</code></td>
+<td>42.0</td>
+<td>years</td>
+<td>convention<br>form: the career length the lifetime-earnings reference is built on.</td>
+<td>whether a lifetime-earnings reference should span the measured working life or a longer nominal career is a convention question, not a measurement one.<br>DELIBERATELY NOT BOUND to SKILL_WORKING_LIFE_YEARS (37.5). They are different quantities — this is the span a lifetime-earnings reference is quoted over, that is measured cohort exit from the labour force — and binding them would move this value 10.7% on a claim nobody has made. The previous note here said the two were "close (40)", which went stale when that constant was measured down to 37.5.</td>
+</tr>
+<tr>
 <td><code>BASE_LIFETIME_EARNINGS_TEH</code></td>
 <td>87360.0</td>
 <td>TEH over a career</td>
-<td>derived<br>form: 2080 TEH/yr × 42-yr career at a 1× multiplier = 87,360. Note the 2080 differs from H_REF's 2000 (2080 = 40 h × 52 wk, with no leave), so the repo carries two work-year conventions; this one is the FTE-hours convention the multiplier registry also uses.</td>
-<td>n/a — arithmetic from a stated career length and work-year. The career length (42 yr) is close to SKILL_WORKING_LIFE_YEARS (40) and should probably be bound to it rather than restated.</td>
+<td>derived<br>form: H_REF × BASE_CAREER_YEARS at a 1× multiplier = 87,360.</td>
+<td>n/a — arithmetic from a stated career length and work-year.<br>BOUND, not restated (2026-09-02). This used the literal 2080 while H_REF was 2000, and its own form recorded that the repo therefore carried two work-year conventions. H_REF is now 2080 and this is an expression, so the two cannot diverge again. The VALUE IS UNCHANGED — 2080 × 42 = 87,360 either way, which is what made the defect survivable and invisible.</td>
 </tr>
 </tbody>
 </table>

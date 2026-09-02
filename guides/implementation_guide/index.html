@@ -1770,7 +1770,7 @@ functions, and that is where the frame comes apart. It came apart in this
 guide's own worked example, by a factor of 92.8.</p>
 <hr />
 <h2 id="1-what-inputs-the-model-needs">1. What inputs the model needs<a class="headerlink" href="#1-what-inputs-the-model-needs" title="Permanent link">&para;</a></h2>
-<p>The EOH → TEH pipeline takes seven physical-state fields. Here is what each
+<p>The EOH → TEH pipeline takes eight physical-state fields. Here is what each
 represents and where to find it in real-world data:</p>
 <table>
 <thead>
@@ -1830,6 +1830,12 @@ represents and where to find it in real-world data:</p>
 <td>hectares</td>
 <td><strong>The land your collective is responsible for stewarding.</strong> Your own cadastre, or the GUF parcel inventory (<code>land/collective.py</code>) if you have run a GUF assessment — it already carries area per parcel. Omit it and the model derives the area from your population at <code>LAND_HECTARES_PER_CAPITA</code> (a planetary average, and the wrong number for any actual collective). Pass <code>ecological_hectares_per_capita=</code> instead if you know your ratio but not your absolute area.</td>
 </tr>
+<tr>
+<td><code>available_labor_eoh</code></td>
+<td>float</td>
+<td>EOH-hours per year</td>
+<td><strong>The labour your collective actually has.</strong> <code>employment × annual hours per worker</code>, from your labour force survey; include unpaid household and care labour if your register admits it. <strong>Do not use working-age population</strong> — an hours-per-worker figure multiplied by the working-age band assumes full employment and overstates supply by the non-participation and unemployment rates together. Omit the field entirely and the pipeline assumes every hour of human-carried obligation gets worked; see the note below, which is the single most consequential default in this table.</td>
+</tr>
 </tbody>
 </table>
 <blockquote>
@@ -1871,6 +1877,26 @@ Set the same revenue against the servicing census and it reads ~21× <strong>ove
 matching the 18.1× urban overshoot <code>scenarios/servicing_census</code> measured
 independently. Run <code>eoh scenario run servicing_census</code> for the comparison that
 actually constrains the fee's magnitude.</p>
+<p><strong>Supply <code>available_labor_eoh</code>, or you are measuring demand and calling it
+fulfilment.</strong>
+The framework's claim is a chain — <em>physical obligation → verified fulfilment
+→ monetary claim</em> — and the middle link is the one you have to supply. The
+register enforces that an obligation existed: nothing mints without one, and
+offering more hours than the obligation requires mints nothing further. What
+the pipeline cannot know on its own is whether the work was <strong>done</strong>.</p>
+<p><code>available_labor_eoh</code> defaults to unsupplied. On that path the pipeline mints
+from the human obligation that is <em>demanded</em>, not the part actually <em>served</em>.
+At its sharpest: run the pipeline with <code>population=0</code> and it still mints,
+because infrastructure and knowledge obligations do not depend on anyone
+existing. Supply <code>available_labor_eoh=0.0</code> on the same call and it mints
+exactly nothing, booking the whole obligation as deferred.</p>
+<p>Both paths are legitimate — a demand figure is what you want when sizing an
+obligation — but they are different quantities and only one of them is
+fulfilment. <code>result["labor_constrained"]</code> tells you which produced your figure,
+and <code>result["deferred_personal"]</code> / <code>result["deferred_total"]</code> report the
+shortfall rather than absorbing it. Two rationing doctrines are available:
+<code>survival_first</code> (the default — personal obligation is served first, so a
+non-zero <code>deferred_personal</code> is a severe reading) and <code>pro_rata</code>.</p>
 </blockquote>
 <p><strong>State your frame.</strong> Population, land area and capital stock are one frame and
 must travel together: they are all extensive, so pairing one jurisdiction's
@@ -2091,10 +2117,28 @@ uncertainty.</p>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"ecosystem_health"</span><span class="p">],</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"monitoring_capability"</span><span class="p">],</span>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">knowledge_complexity_per_unit</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"knowledge_complexity_per_unit"</span><span class="p">],</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">)</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># result["teh_created"]    → TEH entering circulation this period</span>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># result["human_eoh"]      → labor demand on human workers (h/yr)</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># result["registered_eoh"] → officially recognized labor (h/yr)</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="c1"># WITHOUT THIS the two lines below report demand, not fulfilment.</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">available_labor_eoh</span><span class="o">=</span><span class="n">your_state</span><span class="p">[</span><span class="s2">"available_labor_eoh"</span><span class="p">],</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">)</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># result["teh_created"]      → TEH entering circulation this period</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="c1"># result["human_eoh"]        → labor carried by humans (h/yr)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="c1"># result["registered_eoh"]   → officially recognized labor (h/yr)</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1">#</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="c1"># result["labor_constrained"] → False means fulfilment was ASSUMED, not verified</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="c1"># result["deferred_total"]    → obligation nobody had the hours to meet</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="c1">#</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="c1"># NOTE once the constraint binds, result["human_eoh"] is what was SERVED, not</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="c1">#      what was owed. The obligation is human_eoh + deferred_total. Reading</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="c1">#      human_eoh alone under a binding constraint reports your labour supply</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="c1">#      back to you.</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="c1">#</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="c1"># result["human_fraction"]      → share of obligation people carry. NOT 1 - ε:</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="c1">#                                 since Phase 2 the personal domain has its own</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="c1">#                                 automation floor. The old quantity is reported</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="c1">#                                 as result["uniform_split_factor"].</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="c1"># result["machine_capability"]  → the index you supplied (alias: "epsilon")</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="c1"># result["epsilon_observable"]  → the machine share the split actually implies,</span>
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="c1">#                                 which is BELOW the index you gave it</span>
 </span></code></pre></div>
 <h3 id="step-5-run-fiscal_snapshot">Step 5: Run fiscal_snapshot()<a class="headerlink" href="#step-5-run-fiscal_snapshot" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>
@@ -2161,56 +2205,86 @@ diverge at all.</p>
 </span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">capital_age_ratio</span>  <span class="o">=</span> <span class="mf">0.42</span>
 </span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">ecosystem_health</span>   <span class="o">=</span> <span class="mf">0.65</span>          <span class="c1"># moderately degraded</span>
 </span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">monitoring_cap</span>     <span class="o">=</span> <span class="mf">0.60</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">epsilon</span>            <span class="o">=</span> <span class="mf">0.28</span>          <span class="c1"># current automation level</span>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">trust_balance</span>      <span class="o">=</span> <span class="mi">150_000_000_000</span>  <span class="c1"># 30,000 TEH/person</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="c1"># population, land and capital are ONE FRAME and must travel together.</span>
-</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>
-</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">age_dist</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>    <span class="s2">"infant"</span><span class="p">:</span>      <span class="mf">0.065</span><span class="p">,</span>
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>    <span class="s2">"child"</span><span class="p">:</span>       <span class="mf">0.180</span><span class="p">,</span>
-</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>    <span class="s2">"working_age"</span><span class="p">:</span> <span class="mf">0.630</span><span class="p">,</span>
-</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>    <span class="s2">"elderly"</span><span class="p">:</span>     <span class="mf">0.125</span><span class="p">,</span>
-</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="p">}</span>
-</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>
-</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="c1"># --- Run the pipeline ---</span>
-</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
-</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
-</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
-</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
-</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
-</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
-</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">monitoring_cap</span><span class="p">,</span>
-</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">age_dist</span><span class="p">,</span>
-</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>    <span class="n">ecological_area_hectares</span><span class="o">=</span><span class="n">land_hectares</span><span class="p">,</span>
-</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="p">)</span>
-</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>
-</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="c1"># --- Run fiscal snapshot ---</span>
-</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a><span class="c1"># The ecological obligation is passed straight through from the pipeline, so the</span>
-</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="c1"># two calls cannot describe different jurisdictions. Equivalent here:</span>
-</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a><span class="c1">#   ecological_area_hectares=land_hectares</span>
-</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
-</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">trust_balance</span><span class="p">,</span>
-</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span>
-</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
-</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
-</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
-</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
-</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
-</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>    <span class="n">eco_eoh_override</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"eoh_by_domain"</span><span class="p">][</span><span class="s2">"ecological"</span><span class="p">],</span>
-</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="p">)</span>
-</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>
-</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="c1"># --- Run contestability check (the ADOPTED §8.9 test) ---</span>
-</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a><span class="n">exit_fin</span> <span class="o">=</span> <span class="n">exit_financing</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">)</span>
-</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a>
-</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a><span class="c1"># --- Interpret ---</span>
-</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total EOH demand:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'total_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr"</span><span class="p">)</span>
-</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Human EOH burden:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'human_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr  (= total × (1−ε))"</span><span class="p">)</span>
-</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TEH created:       </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B TEH/yr"</span><span class="p">)</span>
-</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fiscal solvent:    </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Trust end:         </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'trust'</span><span class="p">][</span><span class="s1">'trust_end'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">B TEH"</span><span class="p">)</span>
-</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Exit financeable:  </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'exit_financeable'</span><span class="p">]</span><span class="si">}</span><span class="s2">  "</span>
-</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a>      <span class="sa">f</span><span class="s2">"via </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">]</span><span class="si">}</span><span class="s2">  (t_exit </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'t_labor_years'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> yr)"</span><span class="p">)</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">epsilon</span>            <span class="o">=</span> <span class="mf">0.28</span>          <span class="c1"># machine CAPABILITY index (alias for</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>                                   <span class="c1"># machine_capability=); the OBSERVED machine</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>                                   <span class="c1"># share comes back below and is lower</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="c1"># YOUR labour force survey. Derived from this example's own demography so the</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="c1"># two cannot disagree, and note the EMPLOYMENT RATE: hours-per-worker applies to</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="c1"># people who work, not to the working-age band.</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="c1">#   from hours_eoh.data import H_REF          # 2,080 h/yr, the policy-free</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="c1">#                                             # nominal (40 h x 52 wk)</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="n">employment_rate</span>    <span class="o">=</span> <span class="mf">0.70</span>          <span class="c1"># employed / working-age — YOUR labour survey</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="n">workers</span>            <span class="o">=</span> <span class="mi">5_000_000</span> <span class="o">*</span> <span class="mf">0.630</span> <span class="o">*</span> <span class="n">employment_rate</span>     <span class="c1"># 2,205,000</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="n">labour_hours</span>       <span class="o">=</span> <span class="n">workers</span> <span class="o">*</span> <span class="mf">2_080.0</span>                       <span class="c1"># H_REF</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="n">trust_balance</span>      <span class="o">=</span> <span class="mi">150_000_000_000</span>  <span class="c1"># 30,000 TEH/person</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="c1"># population, land and capital are ONE FRAME and must travel together.</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a><span class="n">age_dist</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="s2">"infant"</span><span class="p">:</span>      <span class="mf">0.065</span><span class="p">,</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="s2">"child"</span><span class="p">:</span>       <span class="mf">0.180</span><span class="p">,</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>    <span class="s2">"working_age"</span><span class="p">:</span> <span class="mf">0.630</span><span class="p">,</span>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>    <span class="s2">"elderly"</span><span class="p">:</span>     <span class="mf">0.125</span><span class="p">,</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="p">}</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="c1"># --- Run the pipeline ---</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>    <span class="n">capital_stock</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>    <span class="n">monitoring_capability</span><span class="o">=</span><span class="n">monitoring_cap</span><span class="p">,</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="n">age_distribution</span><span class="o">=</span><span class="n">age_dist</span><span class="p">,</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>    <span class="n">ecological_area_hectares</span><span class="o">=</span><span class="n">land_hectares</span><span class="p">,</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>    <span class="n">available_labor_eoh</span><span class="o">=</span><span class="n">labour_hours</span><span class="p">,</span>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="p">)</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a><span class="c1"># Check which path produced these figures before quoting any of them:</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a><span class="c1">#   pipe["labor_constrained"] is True  -&gt; fulfilment was verified against labour</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a><span class="c1">#   pipe["deferred_total"]             -&gt; obligation your labour could not meet</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="c1">#</span>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a><span class="c1"># THIS EXAMPLE DOES NOT CLEAR, AND THAT IS THE POINT OF SHOWING IT.</span>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="c1"># The human obligation is 5.535e9 EOH/yr against 2,205,000 workers — about</span>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a><span class="c1"># 2,510 h each per year. No point in WORK_YEAR_REFERENCE_POINTS reaches that,</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a><span class="c1"># nominal included, so the shortfall stands at every work-year the framework</span>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a><span class="c1"># carries and pipe["deferred_total"] is non-zero.</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a><span class="c1">#</span>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a><span class="c1"># That is expected rather than alarming. Hold this capital stock and demography</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a><span class="c1"># fixed and the obligation is met from capability ~0.47 upward; the example</span>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a><span class="c1"># runs at 0.28. Compute your own clearing point rather than quoting one — it</span>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="c1"># depends on your capital stock, your demography and your land, and the package</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a><span class="c1"># default from `eoh scenario run feasibility` is a DIFFERENT configuration with</span>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a><span class="c1"># a different answer.</span>
+</span><span id="__span-8-67"><a id="__codelineno-8-67" name="__codelineno-8-67" href="#__codelineno-8-67"></a><span class="c1">#</span>
+</span><span id="__span-8-68"><a id="__codelineno-8-68" name="__codelineno-8-68" href="#__codelineno-8-68"></a><span class="c1"># Do NOT raise the labour figure until the deferral disappears. The deferral is</span>
+</span><span id="__span-8-69"><a id="__codelineno-8-69" name="__codelineno-8-69" href="#__codelineno-8-69"></a><span class="c1"># the finding, and suppressing it is exactly what this field exists to prevent.</span>
+</span><span id="__span-8-70"><a id="__codelineno-8-70" name="__codelineno-8-70" href="#__codelineno-8-70"></a>
+</span><span id="__span-8-71"><a id="__codelineno-8-71" name="__codelineno-8-71" href="#__codelineno-8-71"></a><span class="c1"># --- Run fiscal snapshot ---</span>
+</span><span id="__span-8-72"><a id="__codelineno-8-72" name="__codelineno-8-72" href="#__codelineno-8-72"></a><span class="c1"># The ecological obligation is passed straight through from the pipeline, so the</span>
+</span><span id="__span-8-73"><a id="__codelineno-8-73" name="__codelineno-8-73" href="#__codelineno-8-73"></a><span class="c1"># two calls cannot describe different jurisdictions. Equivalent here:</span>
+</span><span id="__span-8-74"><a id="__codelineno-8-74" name="__codelineno-8-74" href="#__codelineno-8-74"></a><span class="c1">#   ecological_area_hectares=land_hectares</span>
+</span><span id="__span-8-75"><a id="__codelineno-8-75" name="__codelineno-8-75" href="#__codelineno-8-75"></a><span class="n">snap</span> <span class="o">=</span> <span class="n">fiscal_snapshot</span><span class="p">(</span>
+</span><span id="__span-8-76"><a id="__codelineno-8-76" name="__codelineno-8-76" href="#__codelineno-8-76"></a>    <span class="n">trust_balance</span><span class="o">=</span><span class="n">trust_balance</span><span class="p">,</span>
+</span><span id="__span-8-77"><a id="__codelineno-8-77" name="__codelineno-8-77" href="#__codelineno-8-77"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"teh_created"</span><span class="p">],</span>
+</span><span id="__span-8-78"><a id="__codelineno-8-78" name="__codelineno-8-78" href="#__codelineno-8-78"></a>    <span class="n">capital_stock_teh</span><span class="o">=</span><span class="n">capital_stock_teh</span><span class="p">,</span>
+</span><span id="__span-8-79"><a id="__codelineno-8-79" name="__codelineno-8-79" href="#__codelineno-8-79"></a>    <span class="n">capital_age_ratio</span><span class="o">=</span><span class="n">capital_age_ratio</span><span class="p">,</span>
+</span><span id="__span-8-80"><a id="__codelineno-8-80" name="__codelineno-8-80" href="#__codelineno-8-80"></a>    <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">,</span>
+</span><span id="__span-8-81"><a id="__codelineno-8-81" name="__codelineno-8-81" href="#__codelineno-8-81"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+</span><span id="__span-8-82"><a id="__codelineno-8-82" name="__codelineno-8-82" href="#__codelineno-8-82"></a>    <span class="n">ecosystem_health</span><span class="o">=</span><span class="n">ecosystem_health</span><span class="p">,</span>
+</span><span id="__span-8-83"><a id="__codelineno-8-83" name="__codelineno-8-83" href="#__codelineno-8-83"></a>    <span class="n">eco_eoh_override</span><span class="o">=</span><span class="n">pipe</span><span class="p">[</span><span class="s2">"eoh_by_domain"</span><span class="p">][</span><span class="s2">"ecological"</span><span class="p">],</span>
+</span><span id="__span-8-84"><a id="__codelineno-8-84" name="__codelineno-8-84" href="#__codelineno-8-84"></a><span class="p">)</span>
+</span><span id="__span-8-85"><a id="__codelineno-8-85" name="__codelineno-8-85" href="#__codelineno-8-85"></a>
+</span><span id="__span-8-86"><a id="__codelineno-8-86" name="__codelineno-8-86" href="#__codelineno-8-86"></a><span class="c1"># --- Run contestability check (the ADOPTED §8.9 test) ---</span>
+</span><span id="__span-8-87"><a id="__codelineno-8-87" name="__codelineno-8-87" href="#__codelineno-8-87"></a><span class="n">exit_fin</span> <span class="o">=</span> <span class="n">exit_financing</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">population</span><span class="o">=</span><span class="n">population</span><span class="p">)</span>
+</span><span id="__span-8-88"><a id="__codelineno-8-88" name="__codelineno-8-88" href="#__codelineno-8-88"></a>
+</span><span id="__span-8-89"><a id="__codelineno-8-89" name="__codelineno-8-89" href="#__codelineno-8-89"></a><span class="c1"># --- Interpret ---</span>
+</span><span id="__span-8-90"><a id="__codelineno-8-90" name="__codelineno-8-90" href="#__codelineno-8-90"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total EOH demand:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'total_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr"</span><span class="p">)</span>
+</span><span id="__span-8-91"><a id="__codelineno-8-91" name="__codelineno-8-91" href="#__codelineno-8-91"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Human EOH burden:  </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'human_eoh'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B h/yr  (= total × (1−ε))"</span><span class="p">)</span>
+</span><span id="__span-8-92"><a id="__codelineno-8-92" name="__codelineno-8-92" href="#__codelineno-8-92"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TEH created:       </span><span class="si">{</span><span class="n">pipe</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">B TEH/yr"</span><span class="p">)</span>
+</span><span id="__span-8-93"><a id="__codelineno-8-93" name="__codelineno-8-93" href="#__codelineno-8-93"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fiscal solvent:    </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-8-94"><a id="__codelineno-8-94" name="__codelineno-8-94" href="#__codelineno-8-94"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Trust end:         </span><span class="si">{</span><span class="n">snap</span><span class="p">[</span><span class="s1">'trust'</span><span class="p">][</span><span class="s1">'trust_end'</span><span class="p">]</span><span class="o">/</span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">B TEH"</span><span class="p">)</span>
+</span><span id="__span-8-95"><a id="__codelineno-8-95" name="__codelineno-8-95" href="#__codelineno-8-95"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Exit financeable:  </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'exit_financeable'</span><span class="p">]</span><span class="si">}</span><span class="s2">  "</span>
+</span><span id="__span-8-96"><a id="__codelineno-8-96" name="__codelineno-8-96" href="#__codelineno-8-96"></a>      <span class="sa">f</span><span class="s2">"via </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'channel'</span><span class="p">]</span><span class="si">}</span><span class="s2">  (t_exit </span><span class="si">{</span><span class="n">exit_fin</span><span class="p">[</span><span class="s1">'t_labor_years'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> yr)"</span><span class="p">)</span>
 </span></code></pre></div>
 <blockquote>
 <p><strong>Do not use <code>contestability_margin()</code> (the bare χ = P/K_entry) for a reported
