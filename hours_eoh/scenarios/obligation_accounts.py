@@ -74,6 +74,7 @@ from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import (
     ARC_REPORTING_POINTS,
     CARE_AUTOMATION_FLOOR,
+    PERSONAL_AUTOMATION_FLOORS,
     PERSONAL_EOH_COMPONENTS,
 )
 
@@ -371,7 +372,13 @@ def anchor_sensitivity(
     148.8 h/person·yr, a factor of **5.16** — the difference between "labour has
     effectively ended" and "most of a month of care work per person per year".
 
-    THE MOVE IS A LOWER BOUND. Only care is floored here, using the fiscal
+    NO LONGER A LOWER BOUND FOR THE REASON IT WAS. This read only care until
+    2026-09-03; it now reads every entry in `PERSONAL_AUTOMATION_FLOORS`, so it
+    tracks whatever has been adopted. It remains a lower bound on the FULL
+    treatment while shelter and health carry no floor.
+
+    (Historical note, kept because the reasoning still holds.) Only care was
+    floored here, using the fiscal
     layer's own floor and the basket's own share. `PERSONAL_EOH_COMPONENTS` gives
     health an abatability of 0.60 and nutrition 0.85, so a fuller treatment
     floors more components, raises required labour further, and moves the anchor
@@ -389,8 +396,15 @@ def anchor_sensitivity(
     from hours_eoh.scenarios.knowledge_base import knowledge_base_from_registry
 
     pop = 1.0e6
-    s_care = PERSONAL_EOH_COMPONENTS["care"]["share"]
-    f = CARE_AUTOMATION_FLOOR
+    # Every floored component, not `care` alone. The first version modelled the
+    # single entry the table then had, and its own docstring called the result a
+    # LOWER bound for exactly that reason. When nutrition was adopted on
+    # 2026-09-03 the shipped anchor moved past what this could reproduce and the
+    # control silently reported False on BOTH branches — a control that cannot
+    # report True is as useless as one that cannot report False. Reading the
+    # table keeps the reimplementation independent (which is the point) without
+    # letting it model a different economy from the one it checks.
+    floors = dict(PERSONAL_AUTOMATION_FLOORS)
 
     def _domains(eps: float, base: float) -> dict:
         st = canonical_physical_state(eps)
@@ -411,8 +425,11 @@ def anchor_sensitivity(
         d = _domains(eps, base)
         if uniform:
             return (1.0 - eps) * d["total"] / pop
-        care_hf = f + (1.0 - f) * (1.0 - eps)
-        personal_hf = s_care * care_hf + (1.0 - s_care) * (1.0 - eps)
+        personal_hf = 0.0
+        for name, spec in PERSONAL_EOH_COMPONENTS.items():
+            share = float(spec["share"])
+            floor = floors.get(name, 0.0)
+            personal_hf += share * (floor + (1.0 - floor) * (1.0 - eps))
         rest = d["infrastructure"] + d["ecological"] + d["knowledge"]
         return (personal_hf * d["personal"] + (1.0 - eps) * rest) / pop
 

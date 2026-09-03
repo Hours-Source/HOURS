@@ -34,7 +34,9 @@ from hours_eoh.core.eoh_fulfillment import (
 )
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.trajectory import canonical_physical_state
-from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
+from hours_eoh.data import (
+    CARE_AUTOMATION_FLOOR, PERSONAL_AUTOMATION_FLOORS, PERSONAL_EOH_COMPONENTS,
+)
 
 ARC = (0.0, 0.40, 0.90, 0.99)
 _DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
@@ -122,10 +124,27 @@ class TestTheCeilingIsAConsequenceOfTheFloors:
         assert observable_epsilon_ceiling(dom, "uniform") == pytest.approx(1.0, abs=1e-12)
         assert observable_epsilon_ceiling(dom, "per_component") < 0.99
 
-    def test_the_residual_traces_to_care(self):
+    def test_the_residual_traces_to_the_floored_components(self):
+        """
+        At full capability the human residual is exactly the share-weighted sum
+        of the floors. Written over the TABLE rather than over `care` alone:
+        the first version hardcoded the single entry the table then had and
+        broke when nutrition was adopted on 2026-09-03.
+        """
+        expected = sum(
+            float(PERSONAL_EOH_COMPONENTS[name]["share"]) * floor
+            for name, floor in PERSONAL_AUTOMATION_FLOORS.items()
+        )
+        assert personal_human_fraction(1.0, "per_component") == pytest.approx(expected)
+
+    def test_care_is_still_part_of_that_residual(self):
+        """The original claim, kept: care alone cannot account for all of it."""
         care = PERSONAL_EOH_COMPONENTS["care"]
-        assert personal_human_fraction(1.0, "per_component") == pytest.approx(
-            float(care["share"]) * CARE_AUTOMATION_FLOOR
+        care_only = float(care["share"]) * CARE_AUTOMATION_FLOOR
+        total = personal_human_fraction(1.0, "per_component")
+        assert 0.0 < care_only < total, (
+            "care must contribute to the residual without exhausting it, now "
+            "that a second component carries a floor"
         )
 
     def test_the_ceiling_depends_on_the_obligation_MIX(self):

@@ -181,7 +181,7 @@ class TestTheDefaultIsTheMeasuredMedian:
         """
         from hours_eoh.scenarios.arc_stability import stationary_band
         assert stationary_band(standard="sufficiency")["lower"] == pytest.approx(
-            0.382, abs=5e-4
+            0.380, abs=5e-4
         )
         assert stationary_band(standard="survival")["lower"] == pytest.approx(
             0.0, abs=5e-4

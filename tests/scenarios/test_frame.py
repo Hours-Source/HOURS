@@ -165,9 +165,9 @@ class TestFrameChangesNothing:
         # a regression — what this class guards is that nothing moves WITHOUT a
         # recorded mechanism.
         expected = {
-            0.0:  1438271732.9507914,
-            0.40: 1604246730.6396835,
-            0.99: 2593728655.5720005,
+            0.0:  1437433591.3146708,
+            0.40: 1594839428.9158642,
+            0.99: 2512156421.097694,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want

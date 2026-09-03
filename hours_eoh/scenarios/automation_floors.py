@@ -58,15 +58,23 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     CHILDCARE_CODES_MTUS, COMPONENT_CODES_MTUS, MAPPING_TOLERANCE,
-    PERSONAL_AUTOMATION_FLOORS,
+    PERSONAL_AUTOMATION_FLOORS, PERSONAL_EOH_COMPONENTS,
 )
 from hours_eoh.reference import atus_time_use as atus
 from hours_eoh.reference import mtus_time_use as mtus
 from hours_eoh.scenarios.component_shares import COMPONENT_CODES
 
-#: Components carrying no entry in `PERSONAL_AUTOMATION_FLOORS`. `care` is
-#: excluded because its floor is a charter decision, not a measurement gap.
-UNFLOORED: tuple[str, ...] = ("nutrition", "shelter", "health")
+#: Components carrying no entry in `PERSONAL_AUTOMATION_FLOORS`, DERIVED from
+#: the table rather than restated beside it — a hardcoded list went stale the
+#: moment nutrition was adopted on 2026-09-03, which is the `= 1500.0` shape.
+UNFLOORED: tuple[str, ...] = tuple(
+    c for c in PERSONAL_EOH_COMPONENTS if c not in PERSONAL_AUTOMATION_FLOORS
+)
+
+#: Components this module can measure a series for, floored or not. Nutrition
+#: stays here after adoption: the series is what the floor was derived FROM, so
+#: dropping it would remove the evidence for the value now shipped.
+MEASURABLE: tuple[str, ...] = ("nutrition", "shelter", "health")
 
 #: The two household activities whose automation is both canonical and OLDER
 #: than the survey window. If these do not fall, the window is measuring a
@@ -193,7 +201,7 @@ def floor_direction() -> dict[str, dict]:
     marketisation and supports nothing in either direction.
     """
     out = {}
-    for component in UNFLOORED:
+    for component in MEASURABLE:
         rows = activity_trends(component)
         rose = [r for r in rows if r["direction"] == "rose"]
         fell = [r for r in rows if r["direction"] == "fell"]
@@ -1129,7 +1137,7 @@ def report() -> dict:
         "processing_sensitivity": processing_sensitivity(),
         "anchored_processing": anchored_processing_estimate(),
         "components": floor_direction(),
-        "trends": {c: activity_trends(c) for c in UNFLOORED},
+        "trends": {c: activity_trends(c) for c in MEASURABLE},
         "produces_a_floor_value": False,
         "what_would_settle_it": (
             "cross-development time use (HETUS/MTUS), which supplies the CAPITAL "

@@ -1926,10 +1926,17 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   whole obligation; Finding B). tests/test_knowledge_base.py asserts the
 #   frozen value still matches the live derivation, so a registry refresh
 #   fails loudly rather than drifting.
+# note: RE-ANCHORED AN EIGHTH TIME, 2026-09-03: 392,689,985.65 -> 361,259,674.30
+#   (-8.00%), epsilon* 0.446277 -> 0.464313, converged in 7 iterations. Cause:
+#   `NUTRITION_AUTOMATION_FLOOR` was adopted, which raises the human share of
+#   the personal domain and therefore the labour residual the anchor is solved
+#   against. This constant's own test says to expect exactly that and NOT to
+#   work around it. The move is the second largest after Phase 2's -16.73%, and
+#   for the same reason: it is driven by the 91-97% domain.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 392689985.6546800  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.446277 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 361259674.3001518  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.464313 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2490,6 +2497,47 @@ COMPONENT_CODES_MTUS: dict[str, tuple[int, ...]] = {
 MAPPING_TOLERANCE: float = 0.20
 
 # tag: placeholder | units: dimensionless human-labour fraction
+# form: the share of the nutrition obligation that stays human-carried however
+#   high automation goes. Derived, not chosen:
+#     floor = (US production + US processing) / (unassisted production + unassisted processing)
+#   counting TOTAL human labour, paid and unpaid, so marketisation cannot move
+#   it — a restaurant cook is human labour. Numerator from
+#   `scenarios/food_conservation` (BLS employment + ATUS unpaid); unassisted
+#   production from LSMS-ISA (330.9 h/person-yr, 7 countries, measured);
+#   unassisted processing ANCHORED on the largest measured low-capital food
+#   preparation in MTUS (FR1966, 472.6 h/person-yr). Computed live by
+#   `automation_floors.anchored_processing_estimate()`.
+# confidence: 45 — three of the four terms are measured (US paid and unpaid
+#   labour, the LSMS production benchmark, the MTUS processing anchor) and one
+#   is not: NO available frame is truly unassisted, since FR1966 and ZA2010 both
+#   have mills and electricity. So the anchor is a LOWER bound on unassisted
+#   processing and this value is an UPPER bound on the floor, of unknown
+#   tightness. That is what the 45 is: the construction is sound and every input
+#   is real, but the answer is a ceiling rather than a point.
+# errs: HIGH — and that is the safe direction for a floor. Set too high, the
+#   model over-provisions human labour; set too low, it asserts nutrition can be
+#   automated away and the obligation goes unserved. The same asymmetry that put
+#   AGE_WEIGHT_CHILD at the top of its band.
+# note: SERVICE IS EXCLUDED (author decision, 2026-09-03) and the reason is
+#   structural. A floor is a LOWER bound and food service has no upper one —
+#   there is no cap on how elaborately a meal can be prepared and presented, and
+#   what those hours command is a market price. An unbounded quantity cannot be
+#   a floor; it is discovery ABOVE it, which is the `floor_price` /
+#   `market_premium` split. Including service would give 0.548.
+# note: DELIBERATELY NOT `normative` (author policy, 2026-09-03). A value that
+#   could change when the data arrives is not a commitment, however carefully it
+#   was decided. Promoting it would remove the `resolves_by` the scheme requires
+#   of a placeholder and hide the fact that it is still open.
+# resolves_by: hours per person per year on food PROCESSING at genuinely low
+#   capital — threshing, winnowing, pounding, milling, drying, storage, fuel
+#   collection, water for cooking, and cooking itself. NOT obtainable from
+#   LSMS-ISA, which measures the harvest and not the meal (the personal-
+#   obligation handoff says so in as many words). Raw LSMS WASH modules reach
+#   water and fuel — 2 of the 9 activities; a time-use survey at low capital
+#   reaches all of them.
+NUTRITION_AUTOMATION_FLOOR: float = 0.2808
+
+# tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction
 #   that stays human-carried however high epsilon goes. Only `care` is listed,
 #   bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A
@@ -2596,6 +2644,7 @@ MAPPING_TOLERANCE: float = 0.20
 #   services), which has no clean MTUS counterpart. Absent, not zero.
 PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
     "care": CARE_AUTOMATION_FLOOR,
+    "nutrition": NUTRITION_AUTOMATION_FLOOR,
 }
 # tag: normative | units: full-infant-rate dependent equivalents
 # form: the per-provider cap on care stipend —

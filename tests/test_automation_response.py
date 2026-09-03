@@ -177,27 +177,36 @@ class TestAnAutomationFloorIsNotAnAbatability:
 
     def test_the_floors_table_covers_only_what_is_measured(self):
         """
-        One floor is measured. The absence of the other three is an ADMISSION,
-        not a zero, and the constant's tag block says so.
+        TWO floors now: care (a charter decision) and nutrition (adopted
+        2026-09-03 from the food-system labour construction). The absence of the
+        other two is still an ADMISSION, not a zero, and the constant's tag
+        block says so.
         """
-        assert set(PERSONAL_AUTOMATION_FLOORS) == {"care"}
+        assert set(PERSONAL_AUTOMATION_FLOORS) == {"care", "nutrition"}
         missing = set(PERSONAL_EOH_COMPONENTS) - set(PERSONAL_AUTOMATION_FLOORS)
-        assert missing == {"nutrition", "shelter", "health"}
+        assert missing == {"shelter", "health"}, (
+            "shelter and health carry no floor; adding one moves the arc the "
+            "same way nutrition just did, so the shipped figures still err LOW"
+        )
 
     def test_an_unlisted_component_reduces_to_uniform(self):
-        """A component with no floor must behave exactly as today."""
-        floor_free_share = sum(
-            float(s["share"]) for n, s in PERSONAL_EOH_COMPONENTS.items()
-            if n not in PERSONAL_AUTOMATION_FLOORS
-        )
+        """
+        A component with no floor must behave exactly as the uniform split does.
+
+        Written over EVERY floored component rather than over `care` alone: the
+        first version hardcoded the one entry the table then had, and broke the
+        moment nutrition was adopted. Summing the table cannot go stale.
+        """
         eps = 0.99
-        care = PERSONAL_EOH_COMPONENTS["care"]
-        f = PERSONAL_AUTOMATION_FLOORS["care"]
-        expected = (
-            float(care["share"]) * (f + (1.0 - f) * (1.0 - eps))
-            + floor_free_share * (1.0 - eps)
-        )
+        expected = 0.0
+        for name, spec in PERSONAL_EOH_COMPONENTS.items():
+            share = float(spec["share"])
+            floor = PERSONAL_AUTOMATION_FLOORS.get(name, 0.0)
+            expected += share * (floor + (1.0 - floor) * (1.0 - eps))
         assert personal_human_fraction(eps, "per_component") == pytest.approx(expected)
+
+        unfloored = set(PERSONAL_EOH_COMPONENTS) - set(PERSONAL_AUTOMATION_FLOORS)
+        assert unfloored, "the test is vacuous if every component is floored"
 
     def test_adding_a_floor_can_only_raise_the_human_fraction(self):
         """

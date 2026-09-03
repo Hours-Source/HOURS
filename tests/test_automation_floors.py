@@ -43,10 +43,25 @@ class TestItProducesNoFloorValue:
                         "it has just argued the data cannot support"
                     )
 
-    def test_the_unfloored_components_are_still_unfloored(self) -> None:
+    def test_unfloored_is_derived_from_the_table_not_restated(self) -> None:
+        """
+        A hardcoded list went stale the moment nutrition was adopted. Deriving
+        it means the two cannot disagree — the `= 1500.0` lesson.
+        """
         for component in af.UNFLOORED:
             assert component not in data.PERSONAL_AUTOMATION_FLOORS
-        assert set(data.PERSONAL_AUTOMATION_FLOORS) == {"care"}
+        assert set(af.UNFLOORED) == (
+            set(data.PERSONAL_EOH_COMPONENTS) - set(data.PERSONAL_AUTOMATION_FLOORS)
+        )
+
+    def test_nutrition_stays_measurable_after_adoption(self) -> None:
+        """
+        The series is what the floor was derived FROM, so dropping it once the
+        value shipped would remove the evidence for the value.
+        """
+        assert "nutrition" in af.MEASURABLE
+        assert "nutrition" not in af.UNFLOORED
+        assert af.activity_trends("nutrition")
 
 
 class TestTheAsymmetryIsLoadBearing:
@@ -136,7 +151,7 @@ class TestTheMeasurementItself:
         assert rep["n_years"] == 22
 
     def test_trends_use_only_codes_inside_the_component(self) -> None:
-        for component in af.UNFLOORED:
+        for component in af.MEASURABLE:
             prefixes = COMPONENT_CODES[component]
             for row in af.activity_trends(component):
                 assert row["code"][:4] in prefixes
@@ -222,7 +237,7 @@ class TestFloorsChangeNothing:
         assert dict(data.PERSONAL_AUTOMATION_FLOORS) == before
 
     def test_no_returned_number_is_nan(self) -> None:
-        for component in af.UNFLOORED:
+        for component in af.MEASURABLE:
             for row in af.activity_trends(component):
                 assert not math.isnan(row["change"])
 
@@ -795,12 +810,27 @@ class TestTheNutritionFloorEstimate:
         assert r["marketisation_cannot_move_it"] is True
         assert 0.0 < r["paid_share"] < 1.0, "both buckets must be non-empty"
 
-    def test_it_is_neither_a_measurement_nor_adopted(self) -> None:
+    def test_it_is_adopted_but_still_not_a_measurement(self) -> None:
+        """
+        ADOPTED 2026-09-03. It remains an ESTIMATE — a ceiling on an assumed
+        term — and is tagged `placeholder` with a confidence rather than
+        promoted to `normative`, because a value that moves when the data
+        arrives is not a commitment.
+        """
+        from utils import provenance as pv
         r = af.nutrition_floor_estimate()
         assert r["is_a_measurement"] is False
-        assert r["is_adopted"] is False
-        assert "nutrition" not in af.PERSONAL_AUTOMATION_FLOORS
-        assert af.report()["produces_a_floor_value"] is False
+        assert r["is_adopted"] is True
+        assert af.PERSONAL_AUTOMATION_FLOORS["nutrition"] == pytest.approx(
+            data.NUTRITION_AUTOMATION_FLOOR, rel=1e-12
+        )
+        record = next(
+            x for x in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
+            if x.name == "NUTRITION_AUTOMATION_FLOOR"
+        )
+        assert record.tag == "placeholder", "an estimate is not a commitment"
+        assert record.confidence, "an adopted placeholder must state its confidence"
+        assert record.resolves_by, "and what would settle it"
 
     def test_it_refuses_to_run_without_the_measured_benchmark(self) -> None:
         """Inventing a denominator is the failure this module exists to avoid."""

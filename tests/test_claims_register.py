@@ -95,7 +95,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 299 and total == 299
+    return tagged == 300 and total == 300
 
 
 def _shadow_count_is_33() -> bool:
@@ -241,10 +241,10 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 299/299",
+        anchor="provenance 300/300",
         check=_provenance_is_complete,
         why=(
-            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299. "
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300. "
             "Anchored to the CURRENT entry, not a historical one: the old anchor "
             "matched six lines, five of them history, so the claim was checking a "
             "live number against text that must never be updated."
