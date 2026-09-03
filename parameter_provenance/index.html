@@ -1123,9 +1123,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times" class="md-nav__link">
+  <a href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-nine-times" class="md-nav__link">
     <span class="md-ellipsis">
-      Current (post-K-IV, re-anchored to the ε_ref fixed point seven times)
+      Current (post-K-IV, re-anchored to the ε_ref fixed point nine times)
     </span>
   </a>
   
@@ -2396,9 +2396,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times" class="md-nav__link">
+  <a href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-nine-times" class="md-nav__link">
     <span class="md-ellipsis">
-      Current (post-K-IV, re-anchored to the ε_ref fixed point seven times)
+      Current (post-K-IV, re-anchored to the ε_ref fixed point nine times)
     </span>
   </a>
   
@@ -4328,10 +4328,10 @@ constant the generated tables cannot see.</p>
 <tbody>
 <tr>
 <td><code>KNOWLEDGE_EOH_BASE</code></td>
-<td>392689985.655</td>
+<td>298675342.966</td>
 <td>embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION</td>
 <td>derived-then-FROZEN<br>form: recovered from the O<em>NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε</em>)·cpu(ε<em>). Anchor and base are solved TOGETHER at the fixed point ε</em> = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. FROZEN against data-vintage churn; it FOLLOWS internal drift, because a change to any constant inside total_eoh changes the derivation's own inputs. Re-anchored 2026-08-09 (Finding E, ε<em> 0.4522), 2026-08-10 (the AGE_GROUPS elderly revalue, ε</em> 0.3828), 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at 37.5, ε<em> 0.38689) and 2026-08-17 (the Phase-4b frame resolution, ε</em> 0.386619). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST REASSURING: a 6.7% rise in the renewal rate moved this constant by −2.0%, because the fixed point absorbs most of it. The coupling is real and it is damped, which is the property a one-shot anchor could not demonstrate. THE FOURTH IS SMALLER STILL — +0.13% — and it says something about the model rather than about this constant: the ecological domain was corrected DOWNWARD by 464× and the knowledge base barely moved, because ecological is so small a share of total_eoh that even a 464× error in it is nearly invisible to everything downstream. That is the domain-balance defect restated as a sensitivity, and it converged in ONE iteration. THE FIFTH IS THE SMALLEST OF ALL — +0.00047%, 2026-08-28, when Phase 4f relocated the whole STANDING ecological obligation to GUF. Removing an entire domain term moved this constant in its seventh significant figure, and it converged in one iteration again. Read the two together: the fourth re-anchor said a 464× error in the ecological domain was nearly invisible downstream; the fifth says deleting the domain's recurring term outright is nearly invisible too. Both are the same sensitivity finding, and after 4f it is no longer a defect — it is the partition, which puts that obligation in GUF where it scales with land held rather than with the ledger.</td>
-<td>an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT. Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20× from the per-capita route. What the fixed point does NOT fix: the anchor is still 937.3 h/person·yr of US PAID labour, so it removes the self-inconsistency, not the US-specificity or the paid-labour convention — and the full-labour reading has no solution at all (supply exceeds the whole obligation; Finding B). tests/test_knowledge_base.py asserts the frozen value still matches the live derivation, so a registry refresh fails loudly rather than drifting.</td>
+<td>an O<em>NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>RE-ANCHORED AN EIGHTH AND NINTH TIME ON 2026-09-03, both by the floors table. Eighth: 392,689,985.65 -&gt; 361,259,674.30 (-8.00%), epsilon</em> 0.446277 -&gt; 0.464313, when NUTRITION_AUTOMATION_FLOOR was adopted. Ninth: 361,259,674.30 -&gt; 298,675,342.97 (-17.32%), epsilon* -&gt; 0.506816, when CARE_AUTOMATION_FLOOR was raised 0.15 -&gt; 0.2808. The ninth is the LARGEST move this constant has ever made — larger than Phase 2's -16.73% — because care is 62.1% of the personal domain and personal is 91-97% of the total. Both raise the human share of personal EOH and therefore the labour residual the anchor is solved against. This constant's own test says to expect exactly that and NOT to work around it.</td>
 </tr>
 <tr>
 <td><code>KNOWLEDGE_EPS_EXPONENT</code></td>
@@ -4374,6 +4374,20 @@ constant the generated tables cannot see.</p>
 <td>fraction of stock renewed per year by continuing practice</td>
 <td>bounded<br>form: the recurring hours a WORKING practitioner spends staying current — the term O*NET structurally cannot supply, because it measures the hours to REACH competency, never the hours to HOLD it. ~30 h/worker·yr economy-wide against an 11,001 h stock gives 0.0027, from the licensure scale (US state boards mandate 20–50 h per two-year cycle for licensed occupations, ~a quarter of employment) and Eurostat CVTS (~25 h per participating employee·yr at ~40% participation).</td>
 <td><strong>band</strong> ≈10–30 h/worker·yr economy-wide — US state boards mandate 20–50 h per two-year cycle for licensed occupations (~a quarter of employment), and Eurostat CVTS reports ~25 h per participating employee·yr at ~40% participation. Against the measured 11,001 h/worker stock that is ≈0.0009–0.0027.<br><strong>errs</strong> LOW. At the top of that band, and then EXCLUDED from the shipped default anyway, so the adopted renewal rate understates the obligation by ~10.8% deliberately — the same posture the thermal layer takes when it withholds a budget whose sign is undetermined: prefer a defensible understatement to an unbacked completion.<br>Eurostat CVTS (paid training hours per employee, all sectors), the single public series that measures this term directly.<br>THE LEAST-GROUNDED NUMBER IN BLOCK K-III, and EXCLUDED FROM THE DEFAULT — not denied. skill_renewal_rate() still returns the sum and a caller who wants the fuller obligation passes it. The adopted default therefore UNDERSTATES renewal by ~10.8%, deliberately, so no CHOSEN number rides in the shipped arc — the same posture the thermal layer takes when it withholds a budget whose sign is undetermined.</td>
+</tr>
+<tr>
+<td><code>PHYSICAL_CAPACITY_CEILING_H_YR</code></td>
+<td>8766.0</td>
+<td>hours per person per year</td>
+<td>physics<br>form: SECONDS_PER_YEAR / 3600 — the hours that ELAPSE in a year, and so the bound no labour supply can exceed. Bound by TEST rather than expression because SECONDS_PER_YEAR is declared below this point (the GUF_ECO_KAPPA_CARBON precedent). This is not a claim about how long anyone works: it is the statement that a person cannot supply more labour than time passes, which no policy, technology or charter changes.</td>
+<td>n/a — structural<br>THE SUSTAINABLE CEILING IS FAR BELOW THIS AND IS EMPIRICAL. Nobody works without sleeping and nobody holds a peak indefinitely, so the binding limit in practice is endurance, not the calendar. The highest level in the 50 MTUS frames is 3,035 h/adult-yr (BG1965) — 34.6% of this bound — against a median of 26.6%. Use this to REJECT an impossible intake value, never as a target and never as a plausible one.</td>
+</tr>
+<tr>
+<td><code>MEASURED_CAPACITY_H_YR</code></td>
+<td>2335.751835</td>
+<td>hours per adult per year</td>
+<td>measured (Tier A)<br>form: the median of 50 MTUS frames over 1965-2024 across ten countries — paid work plus unpaid domestic work plus childcare, ages 18-69, weighted by PROPWT. Computed by <code>reference.mtus_time_use.capacity_frames()</code> and bound by TEST rather than expression, since data.py sits below reference/.</td>
+<td>—<br>IT REPLACES H_REF ON THE FEASIBILITY PATH (2026-09-03, author decision). H_REF is a paid-work calendar year whose own tag block warns that read as hours actually worked it "would be wrong in most jurisdictions", and 45 of the 50 measured frames exceed it. The correction narrows the epsilon=0 deficit from 15.3% to 2.6% and does NOT close it: the over-determination survives its own fix, which is why the fix is worth making.</td>
 </tr>
 </tbody>
 </table>
@@ -4502,8 +4516,8 @@ arithmetic is still correct; it answers a question the partition has closed.</p>
 <p>Reproduce with <code>python3 utils/eoh_cli.py arc --domain-shares</code> and
 <code>python3 utils/eoh_cli.py scenario run ecological_floor</code>.</p>
 </blockquote>
-<h3 id="current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times">Current (post-K-IV, re-anchored to the ε_ref fixed point seven times)<a class="headerlink" href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-seven-times" title="Permanent link">&para;</a></h3>
-<p>Canonical-arc figures, re-measured 2026-09-01 (after the Phase 2 adoption) from
+<h3 id="current-post-k-iv-re-anchored-to-the-_ref-fixed-point-nine-times">Current (post-K-IV, re-anchored to the ε_ref fixed point nine times)<a class="headerlink" href="#current-post-k-iv-re-anchored-to-the-_ref-fixed-point-nine-times" title="Permanent link">&para;</a></h3>
+<p>Canonical-arc figures, re-measured 2026-09-03 (after the care-floor raise) from
 <code>python3 utils/eoh_cli.py --no-color arc --domain-shares --points 100</code>:</p>
 <table>
 <thead>
@@ -4517,21 +4531,21 @@ arithmetic is still correct; it answers a question the partition has closed.</p>
 <tbody>
 <tr>
 <td>personal</td>
-<td>99.2%</td>
-<td>87.1%</td>
-<td><strong>52.1%</strong></td>
+<td>99.4%</td>
+<td>88.7%</td>
+<td><strong>57.5%</strong></td>
 </tr>
 <tr>
 <td>infrastructure</td>
 <td>0.0%</td>
-<td>5.3%</td>
-<td>8.6%</td>
+<td>5.4%</td>
+<td>9.5%</td>
 </tr>
 <tr>
 <td>knowledge</td>
-<td>0.8%</td>
-<td>7.6%</td>
-<td>39.3%</td>
+<td>0.6%</td>
+<td>5.9%</td>
+<td>33.0%</td>
 </tr>
 <tr>
 <td>ecological</td>
@@ -4550,6 +4564,18 @@ ages 6–14 (1.5 → 1.82), which raises personal; Phase 2 adopted per-component
 automation, which raises it again because care resists automation; and the ε_ref
 fixed point re-anchored <code>KNOWLEDGE_EOH_BASE</code> twice with them, <strong>−9.94% then
 −16.73%</strong>, which lowers knowledge both times.*</p>
+<p><em>AND THE GAP WIDENED TWICE MORE ON 2026-09-03, by the same mechanism.</em> First
+<code>NUTRITION_AUTOMATION_FLOOR</code> was adopted at 0.2808, so a second personal
+component resists automation — anchor re-solved an <strong>eighth</strong> time, <strong>−8.00%</strong>,
+personal 52.1% → 53.8%. Then <code>CARE_AUTOMATION_FLOOR</code> was raised 0.15 → 0.2808
+to the ordering bound, and because care is <strong>62.1% of the personal domain</strong> the
+anchor moved a <strong>ninth</strong> time and by the largest step it has ever taken,
+<strong>−17.32%</strong> — larger than Phase 2's −16.73%. Personal 53.8% → <strong>57.5%</strong>,
+knowledge 37.3% → 33.0%.</p>
+<p>Every move in this table since 2026-08-16 has run the same direction. That is
+the point of the warning below rather than a coincidence: the ordering is not
+robust, it has reversed once and widened four times, and each widening came
+from measuring or bounding a floor that had been left at zero or picked.*</p>
 <p><em>The previous edition of this paragraph said the crossing was not robust — "do
 not build an argument on which side is ahead" — because the two domains sat two
 points apart on an anchor that had moved four times for reasons having nothing
@@ -5237,10 +5263,17 @@ are asserted.</p>
 </tr>
 <tr>
 <td><code>CARE_AUTOMATION_FLOOR</code></td>
-<td>0.15</td>
+<td>0.2808</td>
 <td>fraction of the full care rate</td>
-<td>normative<br>form: care_stipend's automation factor is FLOOR + (1 − FLOOR) × (1 − ε) so the stipend falls with automation to this residual and no further.</td>
-<td><strong>decided by</strong> the claim that some fraction of care is RELATIONAL and cannot be automated at any ε — a commitment about what care IS, not a measurement of what machines can do. Block II reached the same conclusion from the other side: care is the least abatable component (84.4% of the residual at full abatement), so a non-zero floor here is consistent with the abatement model rather than an independent assertion.<br><em>no measurement settles this</em><br>migrated from core/fiscal.py 2026-08-28 as a shadow constant. Whether 0.15 is the right residual is arguable; that the residual is non-zero is the load-bearing part, and it is what the tests pin.</td>
+<td>placeholder<br>form: the residual share of care that stays human-carried however high automation goes. <code>care_stipend</code>'s automation factor is FLOOR + (1 − FLOOR) × (1 − ε) so the stipend falls with automation to this residual and no further, and <code>PERSONAL_AUTOMATION_FLOORS</code> binds the generation layer to the same value.</td>
+<td><strong>errs</strong> LOW — and deliberately so. This is a floor ON the floor: the ordering gives a lower bound, not a level, and every piece of evidence points the same way past it. Care did not fall once paid carers are counted (2025 total human care exceeds 2003 unpaid alone by 8.3%), what fell has no machine substitute, and what rose is the most relational activity in the table. A care floor set too low asserts that relational care can be automated away and the obligation goes unserved, which is the unsafe direction.<br>the share of care hours whose value depends on a HUMAN performing them — the same FIELD <code>PERSONAL_AUTOMATION_FLOORS</code> names, and unreachable by the construction that settled nutrition. There is no unassisted care benchmark: low-capital MTUS frames do LESS childcare than the US (ZA2010 106.9 against US 174.7 h/person-15+·yr), so the denominator runs backwards. A stated-preference instrument — would this hour be acceptable from a machine — is the route, and no such survey is in this repo.<br>THE PREVIOUS VALUE WAS 0.15 and its own note said "whether 0.15 is the right residual is arguable; that the residual is non-zero is the load-bearing part". The nutrition adoption made the arguable part visible: 0.15 put the least-automatable component below the most-automatable one.</td>
+</tr>
+<tr>
+<td><code>CHILDCARE_CODES_MTUS</code></td>
+<td>(28, 29, 30, 31)</td>
+<td>MTUS harmonised activity codes</td>
+<td>measured (Tier A)<br>form: the MTUS codes composing ACT_CHCARE, the file's own childcare aggregate. Recovered by solving against that aggregate rather than against an outside target, and EXACT on all 46 samples (ratio 1.0000, min = max), which extends the two-sample derivation in <code>utils/mtus_ingest.py</code>. This is the strongest identification in the MTUS work: it recovers MTUS's own definition instead of fitting one.</td>
+<td>—<br>US1995 and US1998 are visible outliers on this series — 32.43 and 54.44 min/day against a US median of 28.93, on n = 1,020 and 1,786. They do not touch the 1965 and 2024 endpoints the trend is read from, and they are REPORTED rather than dropped.</td>
 </tr>
 <tr>
 <td><code>COMPONENT_CODES_MTUS</code></td>
@@ -5257,11 +5290,18 @@ are asserted.</p>
 <td>—</td>
 </tr>
 <tr>
+<td><code>NUTRITION_AUTOMATION_FLOOR</code></td>
+<td>0.2808</td>
+<td>dimensionless human-labour fraction</td>
+<td>placeholder<br>form: the share of the nutrition obligation that stays human-carried however high automation goes. Derived, not chosen: floor = (US production + US processing) / (unassisted production + unassisted processing) counting TOTAL human labour, paid and unpaid, so marketisation cannot move it — a restaurant cook is human labour. Numerator from <code>scenarios/food_conservation</code> (BLS employment + ATUS unpaid); unassisted production from LSMS-ISA (330.9 h/person-yr, 7 countries, measured); unassisted processing ANCHORED on the largest measured low-capital food preparation in MTUS (FR1966, 472.6 h/person-yr). Computed live by <code>automation_floors.anchored_processing_estimate()</code>.</td>
+<td><strong>errs</strong> HIGH — and that is the safe direction for a floor. Set too high, the model over-provisions human labour; set too low, it asserts nutrition can be automated away and the obligation goes unserved. The same asymmetry that put AGE_WEIGHT_CHILD at the top of its band.<br>hours per person per year on food PROCESSING at genuinely low capital — threshing, winnowing, pounding, milling, drying, storage, fuel collection, water for cooking, and cooking itself. NOT obtainable from LSMS-ISA, which measures the harvest and not the meal (the personal- obligation handoff says so in as many words). Raw LSMS WASH modules reach water and fuel — 2 of the 9 activities; a time-use survey at low capital reaches all of them.<br>DELIBERATELY NOT <code>normative</code> (author policy, 2026-09-03). A value that could change when the data arrives is not a commitment, however carefully it was decided. Promoting it would remove the <code>resolves_by</code> the scheme requires of a placeholder and hide the fact that it is still open.</td>
+</tr>
+<tr>
 <td><code>PERSONAL_AUTOMATION_FLOORS</code></td>
-<td>{'care': 0.15}</td>
+<td>{'care': 0.2808, 'nutrition': 0.2808}</td>
 <td>dimensionless human-labour fraction</td>
 <td>placeholder<br>form: the floor on the human share of a personal-EOH component — the fraction that stays human-carried however high epsilon goes. Only <code>care</code> is listed, bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A component that is ABSENT carries no floor and behaves exactly as the uniform (1 - epsilon) split does today.</td>
-<td>a time-use split of each component's activities into those whose value depends on a HUMAN performing them and those where only the output matters. FIELD: the share of hours in the first class. The repo already carries the bridge — <code>scenarios/component_shares</code> maps ATUS tier-2 codes onto these four components — so what is missing is the relational/substitutable split WITHIN each component, not the mapping to them. That split is a declared JUDGEMENT and must be isolated the way STEWARDSHIP_ATTRIBUTIONS isolates its occupation→land-class attribution; it is not read off the data. Note the ceiling errs HIGH: every floor added lowers observable_epsilon_ceiling (0.9124 shipped; 0.8589 with all three filled at care's own value).<br>CARE AND HEALTH REMAIN UNMEASURED, and care is the largest component at 62.1% of the desk shares. Its floor is DECIDED, not measured. MTUS puts meals inside its personal-care block where this repo's definition excludes them, and health is dominated by ATUS 0804 (using health services) with no clean MTUS counterpart. Absent, not zero.</td>
+<td>a time-use split of each component's activities into those whose value depends on a HUMAN performing them and those where only the output matters. FIELD: the share of hours in the first class. The repo already carries the bridge — <code>scenarios/component_shares</code> maps ATUS tier-2 codes onto these four components — so what is missing is the relational/substitutable split WITHIN each component, not the mapping to them. That split is a declared JUDGEMENT and must be isolated the way STEWARDSHIP_ATTRIBUTIONS isolates its occupation→land-class attribution; it is not read off the data. Note the ceiling errs HIGH: every floor added lowers observable_epsilon_ceiling (0.9124 shipped; 0.8589 with all three filled at care's own value).<br>HEALTH REMAINS UNMEASURED. It is dominated by ATUS 0804 (using health services), which has no clean MTUS counterpart. Absent, not zero.</td>
 </tr>
 <tr>
 <td><code>PROVIDER_CAP_EQUIVALENTS</code></td>
