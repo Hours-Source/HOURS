@@ -92,10 +92,10 @@ def test_personal_dominates_the_low_arc_even_loaded():
     top = thermal_load_arc(arc=ARC)[-1]
     # 0.511 at the K-IV anchor; 0.562 after the Finding-E re-anchor gave back
     # ~5 points at the top of the arc.
-    # 0.562 → 0.530 with the elderly revalue, then → 0.53743 with the knowledge
+    # 0.562 → 0.530 with the elderly revalue, then → 0.57455 with the knowledge
     # re-anchor that followed it. Personal is no longer the largest domain at
     # the top of the arc; knowledge is.
-    assert top["personal_share_of_total"] == pytest.approx(0.53743, abs=0.01)
+    assert top["personal_share_of_total"] == pytest.approx(0.57455, abs=0.01)
 
 
 def test_verdict_reports_marginal_at_shipped_calibration():

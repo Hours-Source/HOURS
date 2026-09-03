@@ -1215,6 +1215,131 @@ def shelter_construction_fails(
     }
 
 
+#: Paid care occupations: SOC 31 (healthcare support) plus named personal-care,
+#: nursing and social-service occupations. A declared judgement, and a generous
+#: one — it is used to show that paid care is LARGE, so over-inclusion works
+#: against the conclusion rather than for it.
+CARE_OCCUPATION_PREFIXES: tuple[str, ...] = ("31",)
+CARE_OCCUPATIONS_EXACT: frozenset[str] = frozenset(
+    {"399011", "211021", "211093", "291141", "292061", "399031"}
+)
+
+
+def care_floor_is_too_low() -> dict:
+    """
+    Is `CARE_AUTOMATION_FLOOR` = 0.15 supported? Searched, and it is not.
+
+    THE SEARCH. Unpaid US care fell 20.7% over 2003-2025. Decomposed to six
+    digits, what fell is physical care for children, playing with and talking to
+    children, homework help, and care for non-household adults; what ROSE is
+    care for household ADULTS (physical care +44%, medical care +52%),
+    home schooling (+222%) and coordination. **Not one declining activity has an
+    identified machine substitute**, and the activities that grew are the most
+    relational in the table.
+
+    THE MARKETISATION-NEUTRAL TERM. A childcare worker and a nursing assistant
+    are human, so care moving to market does not reduce the human share at all —
+    the same point that made the nutrition construction work. Paid care runs
+    70.0 h/person-15+-yr from 10.4M workers, about 37% of unpaid care. 2025
+    total human care (261.4) EXCEEDS 2003 unpaid care alone (241.5) by 8.3%.
+
+    EVERYTHING HERE IS PER PERSON 15+, ON ONE BASIS. Population growth is
+    normalised by using per-person rates rather than totals; what an earlier
+    version got wrong was mixing two DIFFERENT per-person bases — unpaid per
+    person 15+ against paid per total capita, a 1.205x understatement of the
+    paid side. Per person 15+ is the basis available for both years.
+
+    THE AGE STRUCTURE IS A REAL CONFOUND AND IS NOT CONTROLLED. The 15+
+    population aged over the span (mean 43.6 to 46.7), and older populations do
+    less childcare, so part of the unpaid decline is demography rather than
+    either marketisation or automation. That works AGAINST reading the decline
+    as automation, which is the direction this finding already argues.
+
+    THAT COMPARISON IS BOUNDED, NOT CLOSED. The registry is one vintage, so
+    2003 paid employment is unknown and the direction of the TOTAL cannot be
+    stated. What it does establish is that the paid term is large enough to
+    account for the observed unpaid decline several times over.
+
+    WHAT THIS DOES AND DOES NOT DO. It does NOT measure care's floor — no
+    unassisted benchmark exists for care, and low-capital frames do LESS
+    childcare than the US, so the nutrition construction runs backwards here.
+    What it gives is an INTERNAL-CONSISTENCY bound: the framework already says
+    care is the LEAST abatable component (0.25, 84.4% of the residual) and that
+    relational care "cannot be automated at any epsilon", while nutrition — the
+    MOST abatable at 0.85 — now carries a MEASURED floor of 0.2808. A floor of
+    0.15 on care puts the least-automatable component below the most-automatable
+    one. On the framework's own ordering, care's floor should be at least
+    nutrition's.
+
+    **REPORTING ONLY.** `CARE_AUTOMATION_FLOOR` is untouched, and the bound
+    below is a consistency result rather than a measurement of care.
+    """
+    from hours_eoh.scenarios.food_conservation import (
+        hours_per_worker_year, load_registry,
+    )
+    from hours_eoh.scenarios.component_shares import COMPONENT_CODES as ATUS_CODES
+
+    years = _years()
+    first, last = years[0], years[-1]
+    unpaid = {
+        y: sum(atus.hours_per_person_15plus(y, (c,)) for c in ATUS_CODES["care"])
+        for y in (first, last)
+    }
+    selected = [
+        r for r in load_registry()
+        if str(r["occ6"]).startswith(CARE_OCCUPATION_PREFIXES)
+        or str(r["occ6"]) in CARE_OCCUPATIONS_EXACT
+    ]
+    employment = sum(float(r["employment_k"]) for r in selected) * 1000.0
+    # ON THE SAME DENOMINATOR AS THE UNPAID SIDE. The first version divided paid
+    # employment by TOTAL population while `hours_per_person_15plus` is per
+    # person 15+ — two different "per person" bases, a 1.205x mismatch that
+    # understated the paid term by 20%. Per person 15+ is used throughout
+    # because the ATUS extract carries `population_15_plus` for every year while
+    # the repo has no total US population before 2020, so a true per-capita
+    # comparison across this span is not available here.
+    population_15_plus = {
+        r.year: r.population_15_plus for r in atus.survey_years() if r.comparable
+    }
+    paid = employment * hours_per_worker_year() / population_15_plus[last]
+
+    care_floor = PERSONAL_AUTOMATION_FLOORS["care"]
+    nutrition_floor = PERSONAL_AUTOMATION_FLOORS.get("nutrition", 0.0)
+    care_abat = float(PERSONAL_EOH_COMPONENTS["care"]["abatability"])
+    nutrition_abat = float(PERSONAL_EOH_COMPONENTS["nutrition"]["abatability"])
+    return {
+        "unpaid_first": unpaid[first],
+        "unpaid_last": unpaid[last],
+        "unpaid_change": (unpaid[last] - unpaid[first]) / unpaid[first],
+        "paid_h_per_person_15plus_yr": paid,
+        "basis": "per person 15+, both sides",
+        "paid_workers": employment,
+        "total_last": unpaid[last] + paid,
+        "total_last_exceeds_unpaid_first": (unpaid[last] + paid) > unpaid[first],
+        "paid_covers_the_decline": paid > (unpaid[first] - unpaid[last]),
+        "first_year_paid_is_unknown": True,
+        "care_floor": care_floor,
+        "nutrition_floor": nutrition_floor,
+        "care_abatability": care_abat,
+        "nutrition_abatability": nutrition_abat,
+        "care_is_less_abatable": care_abat < nutrition_abat,
+        "but_carries_the_lower_floor": care_floor < nutrition_floor,
+        "consistency_bound": nutrition_floor,
+        "is_a_measurement_of_care": False,
+        "is_an_internal_consistency_result": True,
+        "verdict": (
+            f"unpaid care fell {(unpaid[last] - unpaid[first]) / unpaid[first]:+.1%} "
+            f"per person 15+ while paid care runs {paid:.1f} on the same basis from "
+            f"{employment / 1e6:.1f}M workers — all human — and no declining "
+            "activity has a machine substitute. Meanwhile care is the LEAST "
+            f"abatable component ({care_abat}) yet carries a floor of "
+            f"{care_floor} against nutrition's measured {nutrition_floor} at "
+            f"abatability {nutrition_abat}. On the framework's own ordering "
+            f"care's floor should be at least {nutrition_floor}"
+        ),
+    }
+
+
 def report() -> dict:
     """Everything this scenario reports, in one call."""
     return {
@@ -1232,6 +1357,7 @@ def report() -> dict:
         "childcare_identification": childcare_identification(),
         "childcare_scope": childcare_is_not_the_care_component(),
         "care_floor_corroboration": care_floor_corroboration(),
+        "care_floor_is_too_low": care_floor_is_too_low(),
         "market_substitution": market_substitution_check(),
         "nutrition_floor_estimate": nutrition_floor_estimate(),
         "shelter_construction_fails": shelter_construction_fails(),

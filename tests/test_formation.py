@@ -123,7 +123,7 @@ class TestNullAnchor:
         # Those two have come apart, and the open question belongs to the
         # canonical constant, not to this module: 0.02/yr was calibrated when
         # total EOH was ~12% smaller at mid-arc and 70% smaller at the top.
-        assert v["delay_years"] == pytest.approx(-10.5, abs=1.5)
+        assert v["delay_years"] == pytest.approx(-8.5, abs=1.5)
         assert not v["stalled"]
         assert v["invariant_holds"]
 

@@ -816,6 +816,14 @@ def _dispatch(args: argparse.Namespace) -> object:
         af_out["shelter_blocker"] = (
             "denominator" if sf["denominator_is_the_blocker"] else "numerator"
         )
+        ct = rep["care_floor_is_too_low"]
+        af_out["care_floor_search"] = ct["verdict"]
+        af_out["care_basis"] = ct["basis"]
+        af_out["care_consistency_bound"] = (
+            f"care floor {ct['care_floor']} vs the ordering bound "
+            f"{ct['consistency_bound']} — a CONSISTENCY result, not a "
+            "measurement of care"
+        )
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out

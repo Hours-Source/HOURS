@@ -205,8 +205,8 @@ class TestTheQuotedFiguresAreStillTrue:
 
     def test_the_phase_2_factors(self):
         s = phase_2_sensitivity(0.99)
-        assert s["factor_at_desk"] == pytest.approx(10.22, abs=0.02)
-        assert s["factor_at_observed"] == pytest.approx(4.82, abs=0.02)
+        assert s["factor_at_desk"] == pytest.approx(18.2547, abs=0.02)
+        assert s["factor_at_observed"] == pytest.approx(8.1426, abs=0.02)
 
     def test_the_direction_figures(self):
         d = abatability_direction()

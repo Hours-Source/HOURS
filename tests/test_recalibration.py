@@ -106,7 +106,7 @@ class TestPhiActual:
         # φ → 1 still survives only asymptotically.
         r = phi_actual(0.99, "dilution")
         assert r["cap_binding"]
-        assert 0.73 < r["phi"] < 0.78
+        assert 0.72 < r["phi"] < 0.78
         assert r["phi_target"] > 0.98
 
     def test_dilution_non_decreasing(self):
@@ -365,11 +365,13 @@ class TestCommonsIncomeStatement:
         # 1.050 → 1.074 after the knowledge re-anchor grew total EOH at high ε and
         # with it machine output. THE SIGN IS THE CLAIM and it is unchanged:
         # dilution still pays MORE than the purchase model.
-        assert d_charter / d_purchase == pytest.approx(1.074, abs=0.02)
-        # Threshold follows the same base: 2,162 at the K-IV anchor, 1,924 now.
-        # > 1,900 until the elderly revalue cut total EOH and with it machine
-        # output; 1,797 still clears the purchase-model comparison this guards.
-        assert d_charter > 1_750.0
+        assert d_charter / d_purchase == pytest.approx(1.0332, abs=0.02)
+        # Threshold follows the same base, and has been cut four times by
+        # anchor moves rather than by any change to the doctrine: 2,162 at the
+        # K-IV anchor, then 1,924, then 1,797, and 1,692 after the care floor
+        # was raised on 2026-09-03. What this guards is the purchase-model
+        # comparison above, not the level.
+        assert d_charter > 1_650.0
 
     def test_target_acquisition_infeasible_window_low_eps(self):
         # §8.9a honest finding: dφ/dε outruns tiny machine output early.
@@ -707,11 +709,11 @@ class TestRecalibratedArc:
         # Tracks the levy/dividend base Y = eps*total_eoh, which the Finding-E
         # re-anchor shrank at the top of the arc (2,896 -> 2,633 h/person.yr).
         # 1831.45 → 1689.87: machine output is ε × total EOH and total EOH fell
-        # 7.7% at ε=0.99 with the elderly revalue. → 1733.4249 when the working
+        # 7.7% at ε=0.99 with the elderly revalue. → 1638.0914 when the working
         # life was measured: the renewal rate rose 6.7%, so knowledge EOH grew
         # and the levy/dividend base grew with it. The dividend tracks the
         # total obligation, so it moves whenever ANY domain does.
-        assert last["dividend_per_capita"] == pytest.approx(1733.4249, rel=1e-4)
+        assert last["dividend_per_capita"] == pytest.approx(1638.0914, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing

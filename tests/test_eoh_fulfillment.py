@@ -383,7 +383,7 @@ class TestEohToTehPipeline:
         # volume-weighted composite, so it drags LESS and the composite rises
         # toward the labour curve. The mechanism this test documents is
         # unchanged; only knowledge's weight in it moved.
-        assert mid == pytest.approx(0.3842, abs=0.01)
+        assert mid == pytest.approx(0.41406, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
         """Pipeline personal share must exactly match personal_eoh_registration_share()."""
@@ -708,13 +708,13 @@ class TestPipelineScaleOverrides:
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
         expected_total = {
-            0.0:  1437433591.3146708,
-            0.40: 1594839428.9158642,
-            0.99: 2512156421.097694,
+            0.0:  1435764675.812418,
+            0.40: 1576107521.31858,
+            0.99: 2349729021.2400055,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 362311723.3242218
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 371362534.6835287
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """

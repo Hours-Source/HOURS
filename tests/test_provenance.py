@@ -801,7 +801,7 @@ def test_domain_balance_table_restates_the_shares_the_model_computes():
     """
     doc = pv.PROVENANCE_DOC.read_text(encoding="utf-8")
 
-    marker = "### Current (post-K-IV, re-anchored to the ε_ref fixed point eight times)"
+    marker = "### Current (post-K-IV, re-anchored to the ε_ref fixed point nine times)"
     assert marker in doc, (
         "the Current domain-balance section was renamed — this test no longer "
         "checks anything, so update the marker deliberately"

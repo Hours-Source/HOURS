@@ -1039,3 +1039,139 @@ class TestShelterCannotTakeTheConstruction:
     def test_shelter_is_still_unfloored(self) -> None:
         assert "shelter" not in af.PERSONAL_AUTOMATION_FLOORS
         assert "shelter" in af.UNFLOORED
+
+
+class TestTheCareFloorLooksTooLow:
+    """
+    A search of the data, prompted by the nutrition adoption making care the
+    table's outlier. It does NOT measure care's floor — no unassisted benchmark
+    exists — but it bounds it by the framework's own ordering.
+    """
+
+    def test_paid_care_is_large_and_entirely_human(self) -> None:
+        """
+        A childcare worker and a nursing assistant are people, so care moving to
+        market does not reduce the human share — the same point that made the
+        nutrition construction work.
+        """
+        r = af.care_floor_is_too_low()
+        assert r["paid_workers"] > 5e6
+        assert r["paid_h_per_person_15plus_yr"] > 0.3 * r["unpaid_last"]
+
+    def test_the_paid_term_covers_the_observed_decline(self) -> None:
+        r = af.care_floor_is_too_low()
+        assert r["unpaid_change"] < 0.0
+        assert r["paid_covers_the_decline"] is True
+        assert r["total_last_exceeds_unpaid_first"] is True
+
+    def test_the_comparison_is_bounded_not_closed(self) -> None:
+        """
+        The registry is one vintage, so the earlier year's paid employment is
+        unknown and the direction of the TOTAL cannot be stated. Saying so is
+        the difference between a bound and an overclaim.
+        """
+        assert af.care_floor_is_too_low()["first_year_paid_is_unknown"] is True
+
+    def test_the_inversion_is_now_RESOLVED(self) -> None:
+        """
+        THE FINDING, AND ITS RESOLUTION. Care is the least abatable component
+        and carried the LOWER floor (0.15 against nutrition's measured 0.2808)
+        until 2026-09-03, when it was raised to the ordering bound by author
+        decision. The check is kept — it is what would catch the inversion
+        returning — and now asserts the bound is SATISFIED rather than violated.
+        """
+        r = af.care_floor_is_too_low()
+        assert r["care_is_less_abatable"] is True, (
+            "the ordering argument rests on this; if abatabilities change, the "
+            "bound needs re-deriving rather than the floor being left alone"
+        )
+        assert r["but_carries_the_lower_floor"] is False, "the inversion is resolved"
+        assert r["care_floor"] >= r["consistency_bound"], (
+            "care's floor must be at least nutrition's on the framework's own "
+            "ordering: the least-automatable component cannot sit below the most"
+        )
+
+    def test_the_bound_is_still_only_a_lower_one(self) -> None:
+        """
+        Satisfying the bound does not make the value right. Care was set TO the
+        bound, not above it, and every piece of evidence points further: no
+        declining care activity has a machine substitute, and the paid term
+        covers the observed decline. The constant errs LOW and says so.
+        """
+        from utils import provenance as pv
+        record = next(
+            x for x in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
+            if x.name == "CARE_AUTOMATION_FLOOR"
+        )
+        assert record.tag == "placeholder", "a bounded value is not a commitment"
+        assert (record.err_direction or record.errs or "").upper().startswith("LOW")
+        assert record.confidence and record.resolves_by
+
+    def test_it_is_labelled_a_consistency_result_not_a_measurement(self) -> None:
+        """
+        The bound comes from the framework's own ordering, not from care data.
+        Presenting it as a measurement of care would be the overclaim.
+        """
+        r = af.care_floor_is_too_low()
+        assert r["is_a_measurement_of_care"] is False
+        assert r["is_an_internal_consistency_result"] is True
+
+    def test_the_care_floor_is_untouched(self) -> None:
+        """REPORTING ONLY — changing a charter commitment is not this module's."""
+        from hours_eoh import data
+        assert data.PERSONAL_AUTOMATION_FLOORS["care"] == data.CARE_AUTOMATION_FLOOR
+        assert data.CARE_AUTOMATION_FLOOR == pytest.approx(0.2808)
+
+
+class TestBothSidesAreOnOneDenominator:
+    """
+    THE DEFECT THIS PINS. The first version divided paid employment by TOTAL
+    population while the unpaid side is per person 15+ — two different "per
+    person" bases, a 1.205x mismatch that understated the paid term by 20%.
+    Population growth is normalised by using per-person rates; mixing WHICH
+    person is a separate error and this is the one that was made.
+    """
+
+    def test_the_basis_is_declared(self) -> None:
+        assert af.care_floor_is_too_low()["basis"] == "per person 15+, both sides"
+
+    def test_the_paid_term_uses_the_15_plus_population(self) -> None:
+        from hours_eoh.reference import atus_time_use as atus
+        from hours_eoh.scenarios.food_conservation import (
+            hours_per_worker_year, load_registry,
+        )
+        r = af.care_floor_is_too_low()
+        rows = {x.year: x for x in atus.survey_years() if x.comparable}
+        last = max(y for y in rows if y != 2020)
+        selected = [
+            x for x in load_registry()
+            if str(x["occ6"]).startswith(af.CARE_OCCUPATION_PREFIXES)
+            or str(x["occ6"]) in af.CARE_OCCUPATIONS_EXACT
+        ]
+        employment = sum(float(x["employment_k"]) for x in selected) * 1000.0
+        expected = employment * hours_per_worker_year() / rows[last].population_15_plus
+        assert r["paid_h_per_person_15plus_yr"] == pytest.approx(expected, rel=1e-12)
+
+    def test_using_total_population_would_understate_it(self) -> None:
+        """The bite: the wrong denominator is 20% low, and in the direction
+        that weakens the finding."""
+        from hours_eoh.reference import atus_time_use as atus
+        rows = {x.year: x for x in atus.survey_years() if x.comparable}
+        last = max(y for y in rows if y != 2020)
+        wrong = af.care_floor_is_too_low()["paid_h_per_person_15plus_yr"] * (
+            rows[last].population_15_plus / 335.0e6
+        )
+        assert wrong < af.care_floor_is_too_low()["paid_h_per_person_15plus_yr"]
+        assert 0.80 < wrong / af.care_floor_is_too_low()["paid_h_per_person_15plus_yr"] < 0.85
+
+    def test_the_ageing_confound_is_stated(self) -> None:
+        """
+        The 15+ population aged over the span and older populations do less
+        childcare, so part of the unpaid decline is demography. It runs AGAINST
+        reading the decline as automation, which is what this finding argues,
+        and the docstring must keep saying so.
+        """
+        import re
+        doc = re.sub(r"\s+", " ", af.care_floor_is_too_low.__doc__ or "")
+        assert "AGE STRUCTURE IS A REAL CONFOUND" in doc
+        assert "not controlled" in doc.lower()

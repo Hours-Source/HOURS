@@ -296,7 +296,7 @@ def test_closed_form_understates_the_crossover():
     # non-personal load narrows without closing.
     # crossover 0.425 → 0.335: less personal demand to automate away, so the
     # arc reaches feasibility earlier.
-    assert actual == pytest.approx(0.36795, abs=0.005)
+    assert actual == pytest.approx(0.35553, abs=0.005)
     assert actual - naive > 0.05
 
 

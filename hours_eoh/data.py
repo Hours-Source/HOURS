@@ -1926,17 +1926,20 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   whole obligation; Finding B). tests/test_knowledge_base.py asserts the
 #   frozen value still matches the live derivation, so a registry refresh
 #   fails loudly rather than drifting.
-# note: RE-ANCHORED AN EIGHTH TIME, 2026-09-03: 392,689,985.65 -> 361,259,674.30
-#   (-8.00%), epsilon* 0.446277 -> 0.464313, converged in 7 iterations. Cause:
-#   `NUTRITION_AUTOMATION_FLOOR` was adopted, which raises the human share of
-#   the personal domain and therefore the labour residual the anchor is solved
-#   against. This constant's own test says to expect exactly that and NOT to
-#   work around it. The move is the second largest after Phase 2's -16.73%, and
-#   for the same reason: it is driven by the 91-97% domain.
+# note: RE-ANCHORED AN EIGHTH AND NINTH TIME ON 2026-09-03, both by the floors
+#   table. Eighth: 392,689,985.65 -> 361,259,674.30 (-8.00%), epsilon* 0.446277
+#   -> 0.464313, when NUTRITION_AUTOMATION_FLOOR was adopted. Ninth:
+#   361,259,674.30 -> 298,675,342.97 (-17.32%), epsilon* -> 0.506816, when
+#   CARE_AUTOMATION_FLOOR was raised 0.15 -> 0.2808. The ninth is the LARGEST
+#   move this constant has ever made — larger than Phase 2's -16.73% — because
+#   care is 62.1% of the personal domain and personal is 91-97% of the total.
+#   Both raise the human share of personal EOH and therefore the labour residual
+#   the anchor is solved against. This constant's own test says to expect
+#   exactly that and NOT to work around it.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 361259674.3001518  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.464313 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 298675342.9656758  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.506816 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2421,20 +2424,49 @@ SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarante
 #   It is the floor's floor, so it binds precisely where the model is least
 #   tested: ε→1, with human labour income near zero.
 SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
-# tag: normative | units: fraction of the full care rate
-# form: care_stipend's automation factor is
+# tag: placeholder | units: fraction of the full care rate
+# form: the residual share of care that stays human-carried however high
+#   automation goes. `care_stipend`'s automation factor is
 #     FLOOR + (1 − FLOOR) × (1 − ε)
-#   so the stipend falls with automation to this residual and no further.
-# decided_by: the claim that some fraction of care is RELATIONAL and cannot be
-#   automated at any ε — a commitment about what care IS, not a measurement of
-#   what machines can do. Block II reached the same conclusion from the other
-#   side: care is the least abatable component (84.4% of the residual at full
-#   abatement), so a non-zero floor here is consistent with the abatement model
-#   rather than an independent assertion.
-# note: migrated from core/fiscal.py 2026-08-28 as a shadow constant. Whether
-#   0.15 is the right residual is arguable; that the residual is non-zero is
-#   the load-bearing part, and it is what the tests pin.
-CARE_AUTOMATION_FLOOR:        float = 0.15
+#   so the stipend falls with automation to this residual and no further, and
+#   `PERSONAL_AUTOMATION_FLOORS` binds the generation layer to the same value.
+# confidence: 20 — RAISED FROM A PICKED NUMBER TO A BOUNDED ONE, 2026-09-03
+#   (author decision), but not measured. Set to NUTRITION_AUTOMATION_FLOOR by
+#   the framework's own ordering: care is the LEAST abatable component (0.25,
+#   and 84.4% of the residual at full abatement) while nutrition is the MOST
+#   (0.85), so care's floor cannot coherently sit below nutrition's measured
+#   0.2808. The 20 is that ordering plus the corroborating series — US
+#   childcare moved −0.5% across 59 years and no declining care activity has an
+#   identified machine substitute — and nothing more. It is not a measurement
+#   OF CARE; `automation_floors.care_floor_is_too_low()` computes the bound and
+#   flags itself `is_an_internal_consistency_result`.
+# errs: LOW — and deliberately so. This is a floor ON the floor: the ordering
+#   gives a lower bound, not a level, and every piece of evidence points the
+#   same way past it. Care did not fall once paid carers are counted (2025 total
+#   human care exceeds 2003 unpaid alone by 8.3%), what fell has no machine
+#   substitute, and what rose is the most relational activity in the table. A
+#   care floor set too low asserts that relational care can be automated away
+#   and the obligation goes unserved, which is the unsafe direction.
+# note: NO LONGER `normative`, and that is the substantive change. It was tagged
+#   as a charter commitment whose decided_by read "nothing measures an
+#   irreducible entitlement — arguing it is the point". That was right while
+#   nothing else in the floors table could be compared against it. Now something
+#   can. Per the standing policy (author, 2026-09-03): a value that could change
+#   when the data arrives is not a commitment, so it carries a confidence and a
+#   `resolves_by` instead of a decider. The CLAIM that the residual is non-zero
+#   remains a commitment; the LEVEL never was one.
+# note: THE PREVIOUS VALUE WAS 0.15 and its own note said "whether 0.15 is the
+#   right residual is arguable; that the residual is non-zero is the
+#   load-bearing part". The nutrition adoption made the arguable part visible:
+#   0.15 put the least-automatable component below the most-automatable one.
+# resolves_by: the share of care hours whose value depends on a HUMAN performing
+#   them — the same FIELD `PERSONAL_AUTOMATION_FLOORS` names, and unreachable by
+#   the construction that settled nutrition. There is no unassisted care
+#   benchmark: low-capital MTUS frames do LESS childcare than the US
+#   (ZA2010 106.9 against US 174.7 h/person-15+·yr), so the denominator runs
+#   backwards. A stated-preference instrument — would this hour be acceptable
+#   from a machine — is the route, and no such survey is in this repo.
+CARE_AUTOMATION_FLOOR:        float = 0.2808
 
 # tag: measured | units: MTUS harmonised activity codes | tier: A
 # form: the MTUS codes composing ACT_CHCARE, the file's own childcare
