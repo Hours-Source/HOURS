@@ -8,8 +8,11 @@ see what is left for machines to take. MTUS spans 1965-2024 across ten
 countries, which is the capital variation that window lacks.
 
 WHAT IS EXTRACTED. One row per sample: the weighted mean minutes per day of
-`ACT_UNDOM` (unpaid domestic work) and `ACT_CHCARE` (childcare), plus the
-respondent count. That is an AGGREGATE — nutrition and shelter together — so it
+`ACT_UNDOM` (unpaid domestic work), `ACT_CHCARE` (childcare), `ACT_WORK` (paid
+work), plus `ACT_TRAVEL` and `ACT_EDUCA` — the two whose membership in
+"entropy-resistance labour" is arguable — and the respondent count. The three
+core columns are shipped as SEPARATE columns rather than pre-summed, so a
+caller varies the definition instead of inheriting one. That is an AGGREGATE — nutrition and shelter together — so it
 cannot give per-component floors. It answers the prior question: does household
 labour respond to capital at all, and where did the response happen.
 
@@ -67,6 +70,9 @@ def ingest(esp: pathlib.Path, out_dir: pathlib.Path) -> pathlib.Path:
 
     undom: dict[str, float] = collections.defaultdict(float)
     chcare: dict[str, float] = collections.defaultdict(float)
+    work: dict[str, float] = collections.defaultdict(float)
+    travel: dict[str, float] = collections.defaultdict(float)
+    educa: dict[str, float] = collections.defaultdict(float)
     day: dict[str, float] = collections.defaultdict(float)
     weight: dict[str, float] = collections.defaultdict(float)
     count: collections.Counter[str] = collections.Counter()
@@ -87,6 +93,9 @@ def ingest(esp: pathlib.Path, out_dir: pathlib.Path) -> pathlib.Path:
             sample = row["SAMPLE"]
             undom[sample] += w * _num(row.get("ACT_UNDOM"))
             chcare[sample] += w * _num(row.get("ACT_CHCARE"))
+            work[sample] += w * _num(row.get("ACT_WORK"))
+            travel[sample] += w * _num(row.get("ACT_TRAVEL"))
+            educa[sample] += w * _num(row.get("ACT_EDUCA"))
             day[sample] += w * sum(_num(row.get(c)) for c in ACT_COLUMNS)
             weight[sample] += w
             count[sample] += 1
@@ -104,7 +113,8 @@ def ingest(esp: pathlib.Path, out_dir: pathlib.Path) -> pathlib.Path:
         writer.writerow([
             "sample", "country", "year", "n_respondents",
             "undom_minutes_per_day", "chcare_minutes_per_day",
-            "day_minutes",
+            "work_minutes_per_day", "travel_minutes_per_day",
+            "educa_minutes_per_day", "day_minutes",
         ])
         for sample in sorted(undom):
             w = weight[sample]
@@ -112,6 +122,9 @@ def ingest(esp: pathlib.Path, out_dir: pathlib.Path) -> pathlib.Path:
                 sample, country[sample], year[sample], count[sample],
                 f"{undom[sample] / w:.4f}",
                 f"{chcare[sample] / w:.4f}",
+                f"{work[sample] / w:.4f}",
+                f"{travel[sample] / w:.4f}",
+                f"{educa[sample] / w:.4f}",
                 f"{day[sample] / w:.4f}",
             ])
     return path

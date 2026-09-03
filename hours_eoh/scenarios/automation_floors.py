@@ -56,7 +56,9 @@ model currently assumes for it. The level is not recoverable here.
 
 from __future__ import annotations
 
-from hours_eoh.data import COMPONENT_CODES_MTUS, MAPPING_TOLERANCE
+from hours_eoh.data import (
+    CHILDCARE_CODES_MTUS, COMPONENT_CODES_MTUS, MAPPING_TOLERANCE,
+)
 from hours_eoh.reference import atus_time_use as atus
 from hours_eoh.reference import mtus_time_use as mtus
 from hours_eoh.scenarios.component_shares import COMPONENT_CODES
@@ -383,6 +385,149 @@ def cross_country() -> dict:
     }
 
 
+#: `childcare` is reachable by the series functions but is NOT in
+#: COMPONENT_CODES_MTUS, because it does not map to a model component at the
+#: bar the other two clear. Kept separate so nothing can claim it does.
+_EXTRA_CODE_SETS: dict[str, tuple[int, ...]] = {"childcare": CHILDCARE_CODES_MTUS}
+
+
+def _mtus_codes_for(name: str) -> tuple[int, ...]:
+    """MTUS codes for a component or for one of the extra sets."""
+    if name in COMPONENT_CODES_MTUS:
+        return COMPONENT_CODES_MTUS[name]
+    return _EXTRA_CODE_SETS[name]
+
+
+def _median_abs_change(rep: dict) -> float:
+    """
+    Median absolute change across countries.
+
+    Used instead of "does a majority fall": with seven countries a majority
+    test turns 4-3 into a replication and 3-4 into none, which is a coin toss
+    dressed as a finding. The magnitudes are not close — childcare moves 0.024
+    at the median against nutrition's 0.163 — and that is the contrast.
+    """
+    changes = sorted(abs(row["change"]) for row in rep["countries"].values())
+    mid = len(changes) // 2
+    if len(changes) % 2:
+        return changes[mid]
+    return (changes[mid - 1] + changes[mid]) / 2.0
+
+
+def childcare_identification() -> dict:
+    """
+    Verify the childcare code set against MTUS's OWN aggregate.
+
+    This is a different and stronger kind of check than
+    `validate_code_mapping()`: that one asks whether a code set reproduces an
+    ATUS component, which is an outside target and can only ever be
+    approximate. This one recovers MTUS's own definition, so it can be exact —
+    and it is, on every sample.
+    """
+    aggregate = {
+        str(r["sample"]): float(r["chcare_minutes_per_day"])
+        for r in mtus.domestic_by_sample()
+    }
+    ratios = {}
+    for sample in mtus.codes_by_sample():
+        target = aggregate.get(sample, 0.0)
+        if target <= 0.0:
+            continue
+        ratios[sample] = mtus.code_minutes(sample, CHILDCARE_CODES_MTUS) / target
+    values = list(ratios.values())
+    return {
+        "codes": CHILDCARE_CODES_MTUS,
+        "n_samples": len(values),
+        "mean_ratio": sum(values) / len(values),
+        "min_ratio": min(values),
+        "max_ratio": max(values),
+        "exact_everywhere": all(abs(r - 1.0) < 0.005 for r in values),
+        "target": "the file's own ACT_CHCARE aggregate, not an outside survey",
+    }
+
+
+def childcare_is_not_the_care_component() -> dict:
+    """
+    How much of the model's `care` this actually covers — measured, so the
+    scope limit travels with the series rather than sitting in a comment.
+
+    The model's care is household AND non-household, children AND adults. The
+    residual has no MTUS home: adult and non-household care are not carried as
+    a separate harmonised aggregate, so no finer reading recovers them, and
+    searching the code space for a set that happens to hit ATUS care would be
+    fitting rather than identifying.
+    """
+    from hours_eoh.scenarios.component_shares import COMPONENT_CODES as ATUS_CODES
+    care = ATUS_CODES["care"]
+    household = tuple(c for c in care if c.startswith("03"))
+    full, hh = [], []
+    for year in _years():
+        sample = f"US{year}"
+        if sample not in mtus.codes_by_sample():
+            continue
+        table = atus.minutes_per_day(year)
+        minutes = mtus.code_minutes(sample, CHILDCARE_CODES_MTUS)
+        full.append(minutes / sum(table.get(c, 0.0) for c in care))
+        hh.append(minutes / sum(table.get(c, 0.0) for c in household))
+    mean_full = sum(full) / len(full)
+    return {
+        "n_years": len(full),
+        "share_of_atus_care": mean_full,
+        "spread": max(full) - min(full),
+        "ratio_to_household_members_only": sum(hh) / len(hh),
+        "clears_the_mapping_bar": abs(mean_full - 1.0) <= MAPPING_TOLERANCE / 4,
+        "admitted_as_a_component": "childcare" in COMPONENT_CODES_MTUS,
+        "what_is_missing": (
+            "adult care and non-household care, which MTUS does not carry as a "
+            "separate harmonised aggregate"
+        ),
+    }
+
+
+def care_floor_corroboration() -> dict:
+    """
+    Childcare against nutrition, over the same spans and the same instrument.
+
+    `CARE_AUTOMATION_FLOOR` is `normative` — a charter commitment that some
+    fraction of care is relational and cannot be automated at any level. No
+    dataset was ever cited for it. This does not measure the floor, but it does
+    ask whether the series behaves the way a high floor would predict, using a
+    component measured the same way as a contrast.
+
+    The marketisation confound runs the RIGHT way here, which is unusual. Paid
+    daycare and residential care move care OUT of unpaid time, so observed
+    unpaid childcare should fall even if nothing were automated. It does not
+    fall. That makes flatness harder to explain away, not easier.
+    """
+    child = component_long_series("childcare", "US")
+    nutrition = component_long_series("nutrition", "US")
+    rep_child = replication("childcare")
+    rep_nut = replication("nutrition")
+    return {
+        "us_childcare_change": child["change"],
+        "us_nutrition_change": nutrition["change"],
+        "us_span": child["span"],
+        "childcare_countries_falling": f"{rep_child['n_fell']}/{rep_child['n_countries']}",
+        "nutrition_countries_falling": f"{rep_nut['n_fell']}/{rep_nut['n_countries']}",
+        "childcare_is_flatter": abs(child["change"]) < abs(nutrition["change"]),
+        "childcare_replicates_a_fall": rep_child["replicates"],
+        "childcare_median_abs_change": _median_abs_change(rep_child),
+        "nutrition_median_abs_change": _median_abs_change(rep_nut),
+        "consistent_with_a_high_floor": (
+            _median_abs_change(rep_child) < _median_abs_change(rep_nut) / 2.0
+        ),
+        "is_a_measurement_of_the_floor": False,
+        "verdict": (
+            f"US childcare moved {child['change']:+.1%} across "
+            f"{child['span'][0]}-{child['span'][1]} against nutrition's "
+            f"{nutrition['change']:+.1%} on the same instrument, and falls in "
+            f"only {rep_child['n_fell']} of {rep_child['n_countries']} countries "
+            f"against nutrition's {rep_nut['n_fell']}. That is what a high "
+            "automation floor predicts; it does not measure one"
+        ),
+    }
+
+
 def validate_code_mapping() -> dict[str, dict]:
     """
     Check the MTUS→component mapping against ATUS on the years both cover.
@@ -436,7 +581,7 @@ def component_long_series(component: str, country: str = "US") -> dict:
         2003  32.13      2003 -> 2024   +29.0%   the ATUS window sees only this
         2024  41.46      minimum 30.98 in 2005 = 0.511 of the 1965 level
     """
-    codes = COMPONENT_CODES_MTUS[component]
+    codes = _mtus_codes_for(component)
     table = mtus.codes_by_sample()
     series = sorted(
         (int(s[2:]), mtus.code_minutes(s, codes))
@@ -532,7 +677,7 @@ def replication(component: str = "nutrition") -> dict:
         ZA 2000-2010  65.1 -> 66.4    +2.1%   flat, lowest capital here
         BG 1965-2001  45.4 -> 76.2   +67.7%   institutional break, declared
     """
-    codes = COMPONENT_CODES_MTUS[component]
+    codes = _mtus_codes_for(component)
     table = mtus.codes_by_sample()
     by_country: dict[str, list[tuple[int, float]]] = {}
     for sample in table:
@@ -633,6 +778,9 @@ def report() -> dict:
         "component_bounds": component_floor_bounds(),
         "replication": {c: replication(c) for c in COMPONENT_CODES_MTUS},
         "convergence": {c: developed_convergence(c) for c in COMPONENT_CODES_MTUS},
+        "childcare_identification": childcare_identification(),
+        "childcare_scope": childcare_is_not_the_care_component(),
+        "care_floor_corroboration": care_floor_corroboration(),
         "components": floor_direction(),
         "trends": {c: activity_trends(c) for c in UNFLOORED},
         "produces_a_floor_value": False,

@@ -72,7 +72,7 @@ from typing import Any
 
 from hours_eoh.core.autarky import overbuild_check
 from hours_eoh.core.eoh_generation import personal_base_for
-from hours_eoh.data import ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
+from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
@@ -147,7 +147,7 @@ def stability_at(
     epsilon: float = 0.40,
     capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
     population: float = 1.0e6,
-    adult_capacity_h_yr: float = 2000.0,
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     standard: str = "sufficiency",
 ) -> dict:
     """

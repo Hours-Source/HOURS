@@ -1043,7 +1043,7 @@ def skill_renewal_rate(
 
     WHAT THE SPLIT REVEALS. The components sum to 0.0277, against the shipped
     0.10. Against the measured 11,001 h/worker stock (reference/onet_knowledge)
-    that is 305 h/worker·yr versus 1,100 — 15.2% of the H_REF 2,000 h work-year
+    that is 305 h/worker·yr versus 1,100 — 14.7% of the H_REF 2,080 h work-year
     versus **55.0%**. The shipped rate asserts that every worker spends more than
     half of every working year, forever, re-acquiring knowledge they already
     have. This function reports the discrepancy rather than reconciling it away.

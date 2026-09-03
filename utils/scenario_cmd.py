@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "capacity_frames":     "measured_capacity_frames() — the feasibility test against MEASURED labour capacity, 50 MTUS frames over 1965-2024; H_REF understates 45 of 50 and the over-determination survives the correction; REPORTING ONLY",
     "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
@@ -699,6 +700,28 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
 
+    if name == "capacity_frames":
+        from hours_eoh.scenarios.feasibility import measured_capacity_frames
+        r = measured_capacity_frames()
+        cf_out: dict = {
+            "h_ref":                    r["h_ref"],
+            "frames":                   r["n_frames"],
+            "exceeding_h_ref":          f"{r['n_exceeding_h_ref']}/{r['n_frames']} ({r['share_exceeding_h_ref']:.0%})",
+            "below_h_ref":              ", ".join(r["below_h_ref"]),
+            "hours_per_adult_required": r["hours_per_adult_required"],
+            "clearing_at_epsilon_0":    f"{r['n_clearing_at_zero']}/{r['n_frames']}",
+            "clearing":                 ", ".join(r["clearing"]),
+            "default_is_measured_median": r["default_is_measured_median"],
+            "verdict":                  r["verdict"],
+        }
+        for s in ("US1965", "US2024", "FR1966", "NL1975"):
+            row = r["frames"][s]
+            cf_out[f"frame_{s}"] = (
+                f"{row['capacity_h_yr']:,.0f} h/adult-yr, ratio "
+                f"{row['demand_supply_ratio']:.3f}, feasible={row['feasible_at_zero']}"
+            )
+        return cf_out
+
     if name == "automation_floors":
         from hours_eoh.scenarios.automation_floors import report as af_report
         rep = af_report()
@@ -749,6 +772,17 @@ def _dispatch(args: argparse.Namespace) -> object:
                 f"{d['low']:.1f}-{d['high']:.1f} min/day = {d['band_ratio']:.2f}x "
                 f"across {len(d['members'])} ({', '.join(d['members'])})"
             )
+        ci, cs, cf = rep["childcare_identification"], rep["childcare_scope"], rep["care_floor_corroboration"]
+        af_out["childcare_codes"] = (
+            f"{ci['codes']} = ACT_CHCARE exactly on {ci['n_samples']} samples "
+            f"(ratio {ci['mean_ratio']:.4f})"
+        )
+        af_out["childcare_scope"] = (
+            f"{cs['share_of_atus_care']:.3f} of ATUS care — NOT the care component; "
+            f"missing {cs['what_is_missing']}"
+        )
+        af_out["care_floor_corroboration"] = cf["verdict"]
+        af_out["care_floor_is_measured"] = cf["is_a_measurement_of_the_floor"]
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out

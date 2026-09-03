@@ -432,7 +432,7 @@ def renewal_doctrine_comparison(
     THE CREDIBILITY TEST, and it is the reason the split was worth doing: each
     doctrine implies a number of hours per worker per year spent renewing
     knowledge, and that number is checkable against a work-year. The shipped
-    0.10 implies **55.0% of the H_REF 2,000 h work-year, every year, forever**.
+    0.10 implies **52.9% of the H_REF 2,080 h work-year, every year, forever**.
     The split implies 15.2%. Nothing in any time-use or training series supports
     the former. This is reported, not silently corrected — `SKILL_DECAY_RATE` is
     still the default everywhere.

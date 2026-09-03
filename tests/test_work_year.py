@@ -45,9 +45,24 @@ class TestTheBaseCarriesNoLeavePolicy:
         assert H_REF != 2000
 
     def test_the_decision_is_recorded_where_the_value_is(self):
-        block = DATA_PY.read_text(encoding="utf-8")
-        i = block.index("H_REF: int =")
-        head = block[max(0, i - 2000):i]
+        """
+        Checked against the WHOLE contiguous comment run above the value, not a
+        fixed window of characters. The first version looked back 2,000 chars,
+        which is a proxy for "in the block" that breaks the moment the block
+        legitimately grows — as it did on 2026-09-03, when H_REF gained a note
+        about being misread as a capacity default. A threshold that fails on
+        honest growth gets widened until it means nothing.
+
+        The parsed record is not the right instrument either: the scanner keeps
+        only the LAST `note:`, so an assertion against `record.note` silently
+        stops seeing every earlier one.
+        """
+        lines = DATA_PY.read_text(encoding="utf-8").splitlines()
+        i = next(n for n, l in enumerate(lines) if l.startswith("H_REF: int ="))
+        start = i
+        while start > 0 and lines[start - 1].lstrip().startswith("#"):
+            start -= 1
+        head = "\n".join(lines[start:i])
         assert "decided_by" in head, "a convention change needs its decision recorded"
         assert "US-NOMINAL" in head, (
             "2080 is the US convention; EU statutory leave gives 1,760-1,880. "

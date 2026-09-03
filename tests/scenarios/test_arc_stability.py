@@ -397,11 +397,22 @@ class TestItIsComparableToTheNeighbouringQuestions:
         """
         from hours_eoh.core.eoh_generation import total_eoh
         from hours_eoh.research.corridor import survival_floor
+        from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+
+        # BOTH SIDES ON ONE LABOUR FRAME. This previously handed the corridor a
+        # hardcoded 1.0e9 EOH-hours — the CLI's own default, which is 1,000
+        # h/person-yr at this population, i.e. the retired H_REF x 0.5 pair —
+        # while `stationary_band` computed its supply from its own default. The
+        # two were never on the same frame and the inequality held by luck: it
+        # broke the moment the capacity default was repointed on 2026-09-03.
+        # The claim is about the RELATION between the two questions, so the
+        # labour supply has to be shared for the comparison to mean anything.
+        population = 1.0e6
+        available_labor = labor_supply_per_capita() * population
         for standard in STANDARDS:
-            # The same path `utils/corridor_cmd._band` takes.
-            eoh = total_eoh(epsilon=0.40, population=1.0e6,
+            eoh = total_eoh(epsilon=0.40, population=population,
                             personal_standard=standard)
-            floor = survival_floor(eoh, 1.0e9)["epsilon_floor"]
+            floor = survival_floor(eoh, available_labor)["epsilon_floor"]
             band = stationary_band(standard=standard)
             assert band["lower"] >= floor - 1e-9, (
                 f"at {standard!r} the stationary band starts BELOW the survival "

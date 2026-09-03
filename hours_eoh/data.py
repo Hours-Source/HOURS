@@ -2148,6 +2148,45 @@ SKILL_TRANSMISSION_RATE: float = 1.0 / SKILL_WORKING_LIFE_YEARS  # derived — 0
 #   the single public series that measures this term directly.
 SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continuing practice. CHOSEN
 
+# tag: physics | units: hours per person per year
+# form: SECONDS_PER_YEAR / 3600 — the hours that ELAPSE in a year, and so the
+#   bound no labour supply can exceed. Bound by TEST rather than expression
+#   because SECONDS_PER_YEAR is declared below this point (the
+#   GUF_ECO_KAPPA_CARBON precedent). This is not a claim about how long anyone
+#   works: it is the statement that a person cannot supply more labour than
+#   time passes, which no policy, technology or charter changes.
+# note: THE SUSTAINABLE CEILING IS FAR BELOW THIS AND IS EMPIRICAL. Nobody works
+#   without sleeping and nobody holds a peak indefinitely, so the binding limit
+#   in practice is endurance, not the calendar. The highest level in the 50 MTUS
+#   frames is 3,035 h/adult-yr (BG1965) — 34.6% of this bound — against a median
+#   of 26.6%. Use this to REJECT an impossible intake value, never as a target
+#   and never as a plausible one.
+PHYSICAL_CAPACITY_CEILING_H_YR: float = 8766.0
+
+# tag: measured | units: hours per adult per year | tier: A
+# form: the median of 50 MTUS frames over 1965-2024 across ten countries — paid
+#   work plus unpaid domestic work plus childcare, ages 18-69, weighted by
+#   PROPWT. Computed by `reference.mtus_time_use.capacity_frames()` and bound by
+#   TEST rather than expression, since data.py sits below reference/.
+# note: NO `band:` FIELD, deliberately — that marks a value PICKED inside
+#   measured bounds, which is `bounded`, and this is the median of the
+#   distribution itself. The distribution RANGES 1,958.58 (NL1975) to 3,035.09
+#   (BG1965), a spread of 1.55x. The inputs are hours people DID work, which is
+#   a floor on capacity, so if anything the median understates what could be
+#   supplied — the conservative direction for a feasibility test.
+# note: THIS IS A REFERENCE FRAME, NOT A CLAIM ABOUT ANY COLLECTIVE. It is
+#   defaulted for the reason `population` is defaulted to 1e6: an arithmetic
+#   that cannot run produces nothing to check, and a test needs a value. A
+#   collective's real capacity is an INTAKE FIELD — the measured spread is
+#   1.55x, far too wide for a default to stand in for one.
+# note: IT REPLACES H_REF ON THE FEASIBILITY PATH (2026-09-03, author decision).
+#   H_REF is a paid-work calendar year whose own tag block warns that read as
+#   hours actually worked it "would be wrong in most jurisdictions", and 45 of
+#   the 50 measured frames exceed it. The correction narrows the epsilon=0
+#   deficit from 15.3% to 2.6% and does NOT close it: the over-determination
+#   survives its own fix, which is why the fix is worth making.
+MEASURED_CAPACITY_H_YR: float = 2335.751835
+
 # ---------------------------------------------------------------------------
 # Reference hours
 # ---------------------------------------------------------------------------
@@ -2390,6 +2429,30 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   the load-bearing part, and it is what the tests pin.
 CARE_AUTOMATION_FLOOR:        float = 0.15
 
+# tag: measured | units: MTUS harmonised activity codes | tier: A
+# form: the MTUS codes composing ACT_CHCARE, the file's own childcare
+#   aggregate. Recovered by solving against that aggregate rather than against
+#   an outside target, and EXACT on all 46 samples (ratio 1.0000, min = max),
+#   which extends the two-sample derivation in `utils/mtus_ingest.py`. This is
+#   the strongest identification in the MTUS work: it recovers MTUS's own
+#   definition instead of fitting one.
+# note: THIS IS CHILDCARE, NOT THE `care` COMPONENT, and the distinction is
+#   load-bearing. The model's care covers household AND non-household members,
+#   children AND adults. Measured against ATUS on 21 overlapping US years this
+#   set is 0.827 of ATUS care (spread 0.113) and 1.099 of the household-member
+#   codes alone (spread 0.064) — both outside the 5% bar nutrition (1.015) and
+#   shelter (0.976) clear, so it is NOT admitted to COMPONENT_CODES_MTUS.
+# note: THE RESIDUAL HAS NO MTUS HOME. Adult care and non-household care are not
+#   carried as a separate harmonised aggregate anywhere in the twelve ACT_*
+#   columns; they fall inside blocks that mix them with unrelated activity.
+#   That is structural, not a gap a finer search would close, and searching the
+#   code space for a set that happens to hit ATUS care would be fitting.
+# note: US1995 and US1998 are visible outliers on this series — 32.43 and 54.44
+#   min/day against a US median of 28.93, on n = 1,020 and 1,786. They do not
+#   touch the 1965 and 2024 endpoints the trend is read from, and they are
+#   REPORTED rather than dropped.
+CHILDCARE_CODES_MTUS: tuple[int, ...] = (28, 29, 30, 31)
+
 # tag: derived | units: MTUS harmonised activity codes
 # form: the MTUS six-digit activity codes making up each personal-EOH
 #   component, IDENTIFIED rather than assumed. US samples appear in both MTUS
@@ -2513,11 +2576,24 @@ MAPPING_TOLERANCE: float = 0.20
 #   in how much cooking is BOUGHT. Food-away-from-home spending would separate
 #   them and is not in this repo. Per-component upper bounds meanwhile:
 #   nutrition <= 0.511 of its 1965 level, shelter <= 0.624.
-# note: CARE AND HEALTH REMAIN UNMEASURED, and care is the largest component at
-#   62.1% of the desk shares. Its floor is DECIDED, not measured. MTUS puts
-#   meals inside its personal-care block where this repo's definition excludes
-#   them, and health is dominated by ATUS 0804 (using health services) with no
-#   clean MTUS counterpart. Absent, not zero.
+# note: CARE IS PART-MEASURED AND THE PART BEHAVES AS THE FLOOR PREDICTS —
+#   2026-09-02. `CHILDCARE_CODES_MTUS` is EXACT against MTUS's own aggregate on
+#   all 46 samples, but childcare is only 0.827 of ATUS care and the residual —
+#   adult and non-household care — has no MTUS home at all, so it is NOT
+#   admitted as a component. What the part shows: US childcare moved **-0.5%
+#   across 1965-2024** against nutrition's -31.6% on the same instrument, with
+#   a median absolute change across countries of 0.024 against 0.163. Childcare
+#   did not respond to 59 years of capital deepening where nutrition halved.
+# note: AND THE CONFOUND RUNS THE HELPFUL WAY HERE, which is unusual. Paid
+#   daycare and residential care move care OUT of unpaid time, so observed
+#   unpaid childcare should FALL even with no automation at all. It does not.
+#   That makes the flatness harder to explain away rather than easier, and it
+#   is independent support for CARE_AUTOMATION_FLOOR being non-zero — a
+#   constant that is `normative` and has never had a dataset behind it. It
+#   corroborates the commitment; it does not measure the level, and
+#   `care_floor_corroboration()` says so in its own return value.
+# note: HEALTH REMAINS UNMEASURED. It is dominated by ATUS 0804 (using health
+#   services), which has no clean MTUS counterpart. Absent, not zero.
 PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
     "care": CARE_AUTOMATION_FLOOR,
 }

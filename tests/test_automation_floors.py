@@ -575,3 +575,96 @@ class TestTheConvergence:
 
     def test_it_still_produces_no_floor_value(self) -> None:
         assert af.report()["produces_a_floor_value"] is False
+
+
+class TestChildcareIsIdentifiedExactly:
+    """
+    The strongest identification in this work, and for a different reason from
+    the others: it recovers MTUS's OWN definition rather than approximating an
+    outside survey's, so it can be exact — and is.
+    """
+
+    def test_it_reproduces_the_files_own_aggregate_on_every_sample(self) -> None:
+        r = af.childcare_identification()
+        assert r["exact_everywhere"] is True
+        assert r["min_ratio"] == pytest.approx(1.0, abs=0.005)
+        assert r["max_ratio"] == pytest.approx(1.0, abs=0.005)
+        assert r["n_samples"] >= 40
+
+    def test_a_wrong_code_set_is_rejected(self) -> None:
+        original = af.CHILDCARE_CODES_MTUS
+        try:
+            af.CHILDCARE_CODES_MTUS = (28, 29)          # type: ignore[misc]
+            assert af.childcare_identification()["exact_everywhere"] is False
+        finally:
+            af.CHILDCARE_CODES_MTUS = original          # type: ignore[misc]
+
+
+class TestChildcareIsNotTheCareComponent:
+    """
+    The scope limit is measured and travels with the series. Care is 62.1% of
+    the personal component, so overstating what is measured here would be the
+    most consequential overclaim available in this module.
+    """
+
+    def test_it_does_not_clear_the_mapping_bar(self) -> None:
+        s = af.childcare_is_not_the_care_component()
+        assert s["clears_the_mapping_bar"] is False
+        assert 0.7 < s["share_of_atus_care"] < 0.95
+
+    def test_it_is_not_admitted_as_a_component(self) -> None:
+        """Structural, not a comment: it is kept out of the validated map."""
+        assert "childcare" not in af.COMPONENT_CODES_MTUS
+        assert "childcare" in af._EXTRA_CODE_SETS
+        assert af.childcare_is_not_the_care_component()["admitted_as_a_component"] is False
+
+    def test_what_is_missing_is_named(self) -> None:
+        what = af.childcare_is_not_the_care_component()["what_is_missing"]
+        assert "adult" in what and "non-household" in what
+
+    def test_the_validated_map_still_covers_only_the_two_that_qualify(self) -> None:
+        assert set(af.COMPONENT_CODES_MTUS) == {"nutrition", "shelter"}
+        for v in af.validate_code_mapping().values():
+            assert v["within_tolerance"]
+
+
+class TestTheCareFloorCorroboration:
+    """
+    `CARE_AUTOMATION_FLOOR` is normative — a charter commitment with no dataset
+    behind it. This does not measure it, and says so; it asks whether the
+    series behaves as a high floor would predict.
+    """
+
+    def test_childcare_is_far_flatter_than_nutrition(self) -> None:
+        c = af.care_floor_corroboration()
+        assert c["childcare_is_flatter"] is True
+        assert abs(c["us_childcare_change"]) < 0.05
+        assert c["us_nutrition_change"] < -0.2
+
+    def test_the_contrast_is_magnitude_not_a_majority_vote(self) -> None:
+        """
+        With seven countries a majority test turns 4-3 into a replication and
+        3-4 into nothing, which is a coin toss dressed as a finding.
+        """
+        c = af.care_floor_corroboration()
+        assert c["childcare_median_abs_change"] < c["nutrition_median_abs_change"] / 2.0
+        assert c["consistent_with_a_high_floor"] is True
+
+    def test_it_refuses_to_call_itself_a_measurement(self) -> None:
+        assert af.care_floor_corroboration()["is_a_measurement_of_the_floor"] is False
+
+    def test_the_confound_runs_the_helpful_way_and_is_stated(self) -> None:
+        """
+        Paid daycare moves care OUT of unpaid time, so observed childcare should
+        fall even with no automation. It does not — which makes flatness harder
+        to explain away, not easier. The docstring must keep saying so.
+        """
+        import re
+        doc = re.sub(r"\s+", " ", af.care_floor_corroboration.__doc__ or "")
+        assert "daycare" in doc
+        assert "It does not fall" in doc
+
+    def test_the_normative_floor_is_untouched(self) -> None:
+        from hours_eoh import data
+        assert data.CARE_AUTOMATION_FLOOR == data.PERSONAL_AUTOMATION_FLOORS["care"]
+        assert af.report()["produces_a_floor_value"] is False

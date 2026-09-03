@@ -54,6 +54,9 @@ __all__ = [
     "DOMESTIC_FILE",
     "domestic_by_sample",
     "domestic_series",
+    "LABOUR_AGGREGATES",
+    "measured_capacity",
+    "capacity_frames",
     "NONSTANDARD_DAY_SAMPLES",
     "day_closes",
     "CODES_FILE",
@@ -129,6 +132,9 @@ def domestic_by_sample() -> list[dict[str, float | str | int]]:
                 "n_respondents": int(row["n_respondents"]),
                 "undom_minutes_per_day": float(row["undom_minutes_per_day"]),
                 "chcare_minutes_per_day": float(row["chcare_minutes_per_day"]),
+                "work_minutes_per_day": float(row["work_minutes_per_day"]),
+                "travel_minutes_per_day": float(row["travel_minutes_per_day"]),
+                "educa_minutes_per_day": float(row["educa_minutes_per_day"]),
                 "day_minutes": float(row["day_minutes"]),
             })
     return rows
@@ -168,6 +174,60 @@ def code_minutes(sample: str, codes: tuple[int, ...]) -> float:
     if sample not in table:
         raise KeyError(f"{sample} not in the code extract; have {len(table)} samples")
     return sum(table[sample].get(code, 0.0) for code in codes)
+
+
+#: MINUTES PER DAY -> HOURS PER YEAR. MTUS diaries are a 24-hour day, so the
+#: conversion is the calendar and carries no work-year convention in it — which
+#: is the whole point of using it in place of one.
+_MIN_PER_DAY_TO_H_PER_YEAR: float = 365.25 / 60.0
+
+#: The aggregates summed into measured entropy-resistance labour. Paid work,
+#: unpaid domestic work and childcare — the three that are unambiguously labour
+#: someone performs against an obligation. `ACT_TRAVEL` and `ACT_EDUCA` are
+#: SHIPPED but NOT summed: commuting is arguable and education is investment in
+#: the knowledge domain rather than service of it, and folding either in would
+#: raise every figure by a judgement nobody has made. Vary it by passing
+#: `extra=` rather than by editing this.
+LABOUR_AGGREGATES: tuple[str, ...] = (
+    "work_minutes_per_day", "undom_minutes_per_day", "chcare_minutes_per_day",
+)
+
+
+def measured_capacity(sample: str, extra: tuple[str, ...] = ()) -> float:
+    """
+    Measured entropy-resistance labour, hours per adult per year, ages 18-69.
+
+    This is the quantity `feasibility.labor_supply_per_capita` asks for — "hours
+    per year one adult can devote to entropy-resistance labor" — measured
+    rather than taken from a work-year convention. It counts paid work, unpaid
+    domestic work and childcare; pass `extra` to add `travel_minutes_per_day`
+    or `educa_minutes_per_day`.
+
+    IT IS A FLOOR ON CAPACITY, NOT CAPACITY. These are hours people DID work,
+    and capacity is what they COULD. Using observed as capacity therefore
+    understates it, which is the conservative direction for a feasibility test:
+    it makes clearing harder, not easier.
+
+    Worked example: US1965 reads 263.0 + 170.7 + 28.8 = 462.5 min/day, which is
+    2,815 h/yr. US2024 reads 231.5 + 121.0 + 28.7 = 381.2, or 2,321 h/yr.
+    """
+    rows = {str(r["sample"]): r for r in domestic_by_sample()}
+    if sample not in rows:
+        raise KeyError(f"{sample} not in the MTUS extract; have {len(rows)} samples")
+    row = rows[sample]
+    minutes = sum(float(row[k]) for k in LABOUR_AGGREGATES + extra)
+    return minutes * _MIN_PER_DAY_TO_H_PER_YEAR
+
+
+def capacity_frames(extra: tuple[str, ...] = ()) -> dict[str, float]:
+    """
+    Measured capacity for every MTUS sample: 50 frames over 1965-2024 and ten
+    countries, each a year-and-place a feasibility run can be compared against.
+    """
+    return {
+        str(r["sample"]): measured_capacity(str(r["sample"]), extra)
+        for r in domestic_by_sample()
+    }
 
 
 def domestic_series(country: str) -> list[tuple[int, float]]:

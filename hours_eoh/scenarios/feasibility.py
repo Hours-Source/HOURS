@@ -34,7 +34,7 @@ still be supplied by adults — the weighting raises demand without raising supp
 Any feasibility test run against the 1,500 figure understates the gap by 1.475×.
 
 WHAT THE TEST FINDS (see `over_determination_report`). Using nothing but the
-repo's own constants — H_REF = 2,000 h/yr and workforce_fraction = 0.5, giving
+repo's own constants — H_REF = 2,080 h/yr and workforce_fraction = 0.5, giving
 L = 1,000 h/person·yr — demand at ε = 0 exceeds supply by **2.29×**. Under
 subsistence-population parameters (adult share 0.55–0.60, ethnographic adult
 labor budgets below the modern 2,080-hour reference) the ratio runs 1.5–3.5×.
@@ -67,7 +67,11 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import total_eoh
-from hours_eoh.data import AGE_GROUPS, H_REF, PERSONAL_EOH_BASE
+from hours_eoh.data import (
+    AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE,
+    PHYSICAL_CAPACITY_CEILING_H_YR,
+)
+from hours_eoh.reference import mtus_time_use as mtus
 
 # Ethnographic / subsistence-demography reference band, used for the sweep.
 # Adult share: high-fertility age structures run a smaller working-age share than
@@ -94,7 +98,7 @@ def age_weight_mean(age_groups: dict[str, dict] | None = None) -> float:
 
 
 def labor_supply_per_capita(
-    adult_capacity_h_yr: float = float(H_REF),
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
 ) -> float:
     """
@@ -102,7 +106,11 @@ def labor_supply_per_capita(
 
     Args:
         adult_capacity_h_yr: Hours per year one adult can devote to
-            entropy-resistance labor (> 0).
+            entropy-resistance labor. Must be > 0 and at most
+            PHYSICAL_CAPACITY_CEILING_H_YR — a person cannot supply more
+            labour than time elapses. Defaults to MEASURED_CAPACITY_H_YR, the
+            median of 50 measured MTUS frames; supply your own, because the
+            measured spread across frames is 1.55x.
         adult_share: Fraction of the population able to supply it. None (default)
             reads the working-age fraction from AGE_GROUPS (0.60).
 
@@ -112,13 +120,22 @@ def labor_supply_per_capita(
     Raises:
         ValueError: on non-positive capacity or a share outside (0, 1].
 
-    Worked example: 2,000 h/yr × 0.60 = 1,200 h/person·yr. The repo's own
-    workforce_fraction of 0.50 gives 1,000.
+    Worked example: the shipped default 2,335.75 h/yr × 0.60 = 1,401.5
+    h/person·yr. At the retired H_REF default of 2,080 it was 1,248.0.
     """
     share = AGE_GROUPS["working_age"]["fraction"] if adult_share is None else adult_share
     if adult_capacity_h_yr <= 0.0:
         raise ValueError(
             f"adult_capacity_h_yr must be > 0, got {adult_capacity_h_yr}"
+        )
+    if adult_capacity_h_yr > PHYSICAL_CAPACITY_CEILING_H_YR:
+        # The calendar bound, not an endurance one. Nothing sustains anywhere
+        # near this — the highest measured frame is 3,035 h/adult-yr, 34.6% of
+        # it — so an input above this is an arithmetic slip, not an economy.
+        raise ValueError(
+            f"adult_capacity_h_yr={adult_capacity_h_yr} exceeds the hours that "
+            f"elapse in a year ({PHYSICAL_CAPACITY_CEILING_H_YR}); a person "
+            "cannot supply more labour than time passes"
         )
     if not 0.0 < share <= 1.0:
         raise ValueError(f"adult_share must be in (0, 1], got {share}")
@@ -141,7 +158,7 @@ class FeasibilityCheck(TypedDict):
 
 
 def feasibility_check(
-    adult_capacity_h_yr: float = float(H_REF),
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
     epsilon: float = 0.0,
     population: float = 1_000_000.0,
@@ -256,7 +273,7 @@ def over_determination_report(
 
     Two arms, and the first is the one that matters:
 
-    1. **Self-consistency.** The repo's own supply constants — H_REF = 2,000 and
+    1. **Self-consistency.** The repo's own supply constants — H_REF = 2,080 and
        `workforce_fraction` = 0.5, the same 1e9-for-1M figure the corridor tests
        use as `available_labor_eoh` — against its own demand constants. No
        external data, no ethnography, no judgement call. If this arm fails, the
@@ -329,8 +346,74 @@ def over_determination_report(
     )
 
 
+def measured_capacity_frames(extra: tuple[str, ...] = ()) -> dict:
+    """
+    The feasibility test run against MEASURED labour capacity, frame by frame.
+
+    THE DEFECT THIS EXISTS FOR. `labor_supply_per_capita` asks for "hours per
+    year one adult can devote to entropy-resistance labor" and defaults to
+    `H_REF`. But H_REF's own tag block says, in as many words, that read "as a
+    measurement of hours actually worked it would be wrong in most
+    jurisdictions... which is precisely why it is tagged as the denominator it
+    is." It is a paid-work calendar year — 40 x 52 — standing in for all the
+    labour a person supplies to every domain, most of which is unpaid. The
+    constant warns against exactly this use.
+
+    MTUS supplies the measurement: 50 frames over 1965-2024 and ten countries,
+    each the weighted mean of paid work, unpaid domestic work and childcare for
+    ages 18-69. **45 of the 50 exceed H_REF**, the five that do not being
+    Netherlands 1975-1995.
+
+    AND CORRECTING IT DOES NOT DISSOLVE THE OVER-DETERMINATION, which is why
+    this reports rather than repoints. Only 16 of the 50 frames clear at
+    epsilon = 0; the ones that do are the historically high-labour frames —
+    1960s France and the mid-century US. The model's demand at epsilon = 0 is
+    met by societies working roughly 2,400 h/adult-yr and up, and most measured
+    societies do not. The default is wrong AND the finding survives its
+    correction.
+
+    ADOPTED 2026-09-03 (author decision): the default is now
+    `MEASURED_CAPACITY_H_YR`, the all-frame median. This function stays as the
+    audit of that choice — it shows the whole distribution the median came from
+    and which frames clear.
+    """
+    frames = mtus.capacity_frames(extra)
+    rows = {}
+    for sample, capacity in frames.items():
+        check = feasibility_check(adult_capacity_h_yr=capacity, epsilon=0.0)
+        rows[sample] = {
+            "capacity_h_yr": capacity,
+            "exceeds_h_ref": capacity > float(H_REF),
+            "demand_supply_ratio": check["demand_supply_ratio"],
+            "feasible_at_zero": check["feasible"],
+        }
+    clearing = [s for s, r in rows.items() if r["feasible_at_zero"]]
+    above = [s for s, r in rows.items() if r["exceeds_h_ref"]]
+    required = feasibility_check(epsilon=0.0)["hours_per_adult_required"]
+    return {
+        "frames": rows,
+        "n_frames": len(rows),
+        "n_exceeding_h_ref": len(above),
+        "share_exceeding_h_ref": len(above) / len(rows),
+        "n_clearing_at_zero": len(clearing),
+        "clearing": sorted(clearing),
+        "below_h_ref": sorted(s for s, r in rows.items() if not r["exceeds_h_ref"]),
+        "h_ref": float(H_REF),
+        "hours_per_adult_required": required,
+        "default_is_measured_median": True,
+        "verdict": (
+            f"{len(above)} of {len(rows)} measured frames exceed H_REF="
+            f"{float(H_REF):,.0f}, so the default understates capacity almost "
+            f"everywhere; but only {len(clearing)} of {len(rows)} clear at "
+            f"epsilon=0, because the model's demand needs {required:,.0f} "
+            "h/adult-yr. The default is wrong and the over-determination "
+            "survives correcting it"
+        ),
+    }
+
+
 def feasible_epsilon(
-    adult_capacity_h_yr: float = float(H_REF),
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
     personal_base: float = PERSONAL_EOH_BASE,
     population: float = 1_000_000.0,
