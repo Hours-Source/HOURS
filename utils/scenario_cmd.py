@@ -115,6 +115,7 @@ _SCENARIOS: dict[str, str] = {
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
+    "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
@@ -697,6 +698,39 @@ def _dispatch(args: argparse.Namespace) -> object:
         gm_out["psi_policy | verdict"] = pp["verdict"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
+
+    if name == "automation_floors":
+        from hours_eoh.scenarios.automation_floors import report as af_report
+        rep = af_report()
+        sat = rep["saturation"]
+        af_out: dict = {
+            "window":               f"{rep['window'][0]}-{rep['window'][1]} ({rep['n_years']} comparable years)",
+            "household_size_change": sat["household_size_change"],
+        }
+        for code, probe in sat["probes"].items():
+            af_out[f"probe_{code}"] = (
+                f"{probe['what']}: {probe['hours_first']:.1f} -> {probe['hours_last']:.1f} h/p15+ "
+                f"({probe['change']:+.1%}), beyond household shrinkage: {probe['beyond_household_shrinkage']}"
+            )
+        af_out["saturation_verdict"] = sat["verdict"]
+        for comp, v in rep["components"].items():
+            af_out[f"{comp}_hours"] = f"{v['hours_first']:.1f} -> {v['hours_last']:.1f} ({v['change']:+.1%})"
+            af_out[f"{comp}_supports_nonzero_floor"] = v["supports_nonzero_floor"]
+            af_out[f"{comp}_reading"] = v["reading"]
+        ls, sc = rep["long_series"], rep["saturation_confirmed"]
+        b, cc = rep["aggregate_floor_bound"], rep["cross_country"]
+        af_out["mtus_span"] = f"{ls['country']} {ls['span'][0]}-{ls['span'][1]}: {ls['first']:.1f} -> {ls['last']:.1f} min/day ({ls['change']:+.1%})"
+        af_out["fall_before_atus_window"] = f"{ls['change_before_window']:+.1%} to {ls['window_opens']}"
+        af_out["fall_inside_atus_window"] = f"{ls['change_inside_window']:+.1%} since {ls['window_opens']}"
+        af_out["saturation_confirmed"] = sc["confirmed"]
+        af_out["saturation_verdict_mtus"] = sc["verdict"]
+        af_out["aggregate_floor_upper_bound"] = b["persisting_share"]
+        af_out["why_upper_bound"] = b["why_upper_bound"]
+        af_out["cross_section_is_a_capital_gradient"] = cc["is_a_capital_gradient"]
+        af_out["cross_section_verdict"] = cc["verdict"]
+        af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
+        af_out["what_would_settle_it"] = rep["what_would_settle_it"]
+        return af_out
 
     if name == "component_shares":
         from hours_eoh.scenarios.component_shares import shares_report

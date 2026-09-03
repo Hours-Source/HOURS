@@ -46,10 +46,16 @@ Layer: `reference/` imports nothing from the package — pure data.
 from __future__ import annotations
 
 import csv
+from functools import lru_cache
 import pathlib
 
 __all__ = [
     "DATA_FILE",
+    "DOMESTIC_FILE",
+    "domestic_by_sample",
+    "domestic_series",
+    "NONSTANDARD_DAY_SAMPLES",
+    "day_closes",
     "MTUS_DIARIES",
     "MTUS_COUNTRIES",
     "WORKING_AGE_MINUTES",
@@ -74,6 +80,64 @@ WORKING_AGE_MINUTES = 263.7
 #: The same quantity in the repo's definition, from `scenarios/care_curve`.
 #: The gap is meals — see limit 1 in the module docstring.
 CARE_CURVE_WORKING_AGE_MINUTES = 153.196359550956
+
+
+DOMESTIC_FILE = pathlib.Path(__file__).with_name("data") / "mtus_domestic_by_sample.csv"
+
+#: Samples whose twelve ACT_* aggregates do NOT sum to a 1440-minute day.
+#: DECLARED, not dropped: an extract that silently omits a sample is one whose
+#: coverage cannot be audited. Every row of FR1999 sums to exactly 1680 minutes
+#: — a 28-hour day, uniform across all 15,441 diaries — while its own siblings
+#: FR1985 and FR2009 are exactly 1440. A uniform factor of 7/6 on every row is a
+#: scaling or units defect in the harmonisation, not over-reporting by
+#: respondents, so the COMPOSITION is probably intact and the LEVEL is not. No
+#: correction is applied here: rescaling would assume the composition is right,
+#: which is the assumption most likely to be wrong if the defect is something
+#: else. Use the sample for shares if you must; do not use it for levels.
+NONSTANDARD_DAY_SAMPLES: dict[str, str] = {
+    "FR1999": "every row sums to 1680 minutes (28 h), a uniform 7/6 of a day",
+}
+
+
+def day_closes(sample: str) -> bool:
+    """Whether a sample's aggregates sum to a 1440-minute day."""
+    return sample not in NONSTANDARD_DAY_SAMPLES
+
+
+@lru_cache(maxsize=1)
+def domestic_by_sample() -> list[dict[str, float | str | int]]:
+    """
+    Unpaid domestic work and childcare, minutes per day, one row per MTUS sample.
+
+    Ages 18-69 (the band every one of the 50 samples covers) weighted by
+    `PROPWT`. `day_minutes` is the twelve ACT_* aggregates summed and is 1440.0
+    by construction — the arithmetic check that the units are minutes per day,
+    which matters because MTUS ships no codebook with this extract.
+
+    Derived by `utils/mtus_domestic_ingest.py`; the raw file is gitignored.
+    """
+    rows: list[dict[str, float | str | int]] = []
+    with DOMESTIC_FILE.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            rows.append({
+                "sample": row["sample"],
+                "country": row["country"],
+                "year": int(row["year"]),
+                "n_respondents": int(row["n_respondents"]),
+                "undom_minutes_per_day": float(row["undom_minutes_per_day"]),
+                "chcare_minutes_per_day": float(row["chcare_minutes_per_day"]),
+                "day_minutes": float(row["day_minutes"]),
+            })
+    return rows
+
+
+def domestic_series(country: str) -> list[tuple[int, float]]:
+    """(year, unpaid domestic minutes/day) for one country, oldest first."""
+    return sorted(
+        (int(r["year"]), float(r["undom_minutes_per_day"]))
+        for r in domestic_by_sample()
+        if r["country"] == country
+    )
 
 
 def load_by_age() -> list[dict[str, float]]:

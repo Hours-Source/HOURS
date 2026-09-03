@@ -36,6 +36,7 @@ frame's population, because a sum of person-DAYS is not a population.
 from __future__ import annotations
 
 import argparse
+import re
 import collections
 import csv
 import sys
@@ -55,6 +56,24 @@ NON_COMPARABLE_YEARS: frozenset[int] = frozenset({2020})
 DEFAULT_WEIGHT = "TUFNWGTP"
 
 
+def _activity_labels(raw_dir: Path) -> dict[str, str]:
+    """
+    Official tier-3 activity names, read from the Stata do-file BLS ships beside
+    the microdata. They are carried into the extract so the committed CSV is
+    self-describing: nothing downstream should have to open the gitignored raw
+    directory to find out what a six-digit code means.
+    """
+    do_path = raw_dir / "sum" / "atussum_0325.do"
+    if not do_path.exists():
+        return {}
+    text = do_path.read_text(encoding="utf-8", errors="replace")
+    pattern = re.compile(r'label variable t(\d{6}) +"([^"]*)"')
+    return {
+        m.group(1): m.group(2).strip().rstrip("*").strip()
+        for m in pattern.finditer(text)
+    }
+
+
 def _household_sizes(resp_path: Path) -> dict[str, int]:
     """TUCASEID → TRNUMHOU from the respondent file (the summary file lacks it)."""
     sizes: dict[str, int] = {}
@@ -70,8 +89,8 @@ def _household_sizes(resp_path: Path) -> dict[str, int]:
     return sizes
 
 
-def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
-    """Read the raw summary + respondent files and write the two extracts."""
+def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path, Path]:
+    """Read the raw summary + respondent files and write the three extracts."""
     sum_path = raw_dir / "sum" / "atussum_0325.dat"
     resp_path = raw_dir / "resp" / "atusresp_0325.dat"
     for path in (sum_path, resp_path):
@@ -79,6 +98,7 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
             raise FileNotFoundError(f"missing raw ATUS file: {path}")
 
     sizes = _household_sizes(resp_path)
+    labels = _activity_labels(raw_dir)
 
     with sum_path.open(newline="") as fh:
         reader = csv.reader(fh)
@@ -86,7 +106,7 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
         idx = {name: i for i, name in enumerate(header)}
         # Activity columns are t + 6 digits; tier 2 is the first four of those.
         activities = [
-            (i, name[1:5])
+            (i, name[1:5], name[1:])
             for name, i in idx.items()
             if name.startswith("t") and name[1:].isdigit() and len(name) == 7
         ]
@@ -98,6 +118,12 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
 
         weight_sum: dict[int, float] = collections.defaultdict(float)
         minutes: dict[int, dict[str, float]] = collections.defaultdict(
+            lambda: collections.defaultdict(float)
+        )
+        # The same pass also accumulates the FULL six-digit code. The summary
+        # file's columns are already tier 3; the tier-2 table above is a
+        # truncation of them, so this costs one dict write and no extra I/O.
+        minutes3: dict[int, dict[str, float]] = collections.defaultdict(
             lambda: collections.defaultdict(float)
         )
         n_rows: collections.Counter[int] = collections.Counter()
@@ -118,17 +144,21 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
                 hh_sum[year] += weight * size
                 hh_weight[year] += weight
             bucket = minutes[year]
-            for i, tier2 in activities:
+            bucket3 = minutes3[year]
+            for i, tier2, tier3 in activities:
                 # Short-circuit on the string: most of the 431 activity columns
                 # are "0" for any given respondent, and this skips 111M float()
                 # calls over the file.
                 cell = row[i]
                 if cell != "0":
-                    bucket[tier2] += weight * float(cell)
+                    value = weight * float(cell)
+                    bucket[tier2] += value
+                    bucket3[tier3] += value
 
     out_dir.mkdir(parents=True, exist_ok=True)
     annual_path = out_dir / "atus_annual_0325.csv"
     years_path = out_dir / "atus_years_0325.csv"
+    tier3_path = out_dir / "atus_tier3_0325.csv"
 
     with annual_path.open("w", newline="") as fh:
         writer = csv.writer(fh)
@@ -137,6 +167,21 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
             total = weight_sum[year]
             for tier2 in sorted(minutes[year]):
                 writer.writerow([year, tier2, f"{minutes[year][tier2] / total:.6f}"])
+
+    # The full six-digit table, unrestricted. Deliberately NOT filtered to the
+    # codes any current question needs: an extract cut to fit one hypothesis is
+    # the calibrated-to-target trap in data form, and the cost here is ~250 KB.
+    with tier3_path.open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["year", "tier3", "mean_minutes_per_day", "label"])
+        for year in sorted(minutes3):
+            total = weight_sum[year]
+            for tier3 in sorted(minutes3[year]):
+                writer.writerow([
+                    year, tier3,
+                    f"{minutes3[year][tier3] / total:.6f}",
+                    labels.get(tier3, ""),
+                ])
 
     with years_path.open("w", newline="") as fh:
         writer = csv.writer(fh)
@@ -156,7 +201,7 @@ def ingest(raw_dir: Path, out_dir: Path) -> tuple[Path, Path]:
                 "false" if year in NON_COMPARABLE_YEARS else "true",
             ])
 
-    return annual_path, years_path
+    return annual_path, years_path, tier3_path
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,9 +210,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default="hours_eoh/reference/data", type=Path)
     args = parser.parse_args(argv)
 
-    annual, years = ingest(args.raw, args.out)
-    print(f"wrote {annual}")
-    print(f"wrote {years}")
+    annual, years, tier3 = ingest(args.raw, args.out)
+    for path in (annual, years, tier3):
+        print(f"wrote {path}")
     return 0
 
 

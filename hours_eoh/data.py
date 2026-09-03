@@ -2390,7 +2390,7 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   the load-bearing part, and it is what the tests pin.
 CARE_AUTOMATION_FLOOR:        float = 0.15
 
-# tag: measured | units: dimensionless human-labour fraction | tier: B
+# tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction
 #   that stays human-carried however high epsilon goes. Only `care` is listed,
 #   bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A
@@ -2408,10 +2408,57 @@ CARE_AUTOMATION_FLOOR:        float = 0.15
 #   conservative choice, but "no floor" is an ASSUMPTION and not a finding.
 #   Adding a floor for any of them moves the arc further in the same direction,
 #   so the shipped figure errs LOW.
-# resolves_by: time-use studies separating the RELATIONAL from the physical
-#   component of each obligation, as CARE_AUTOMATION_FLOOR's own pointer names
-#   for care. FIELD: the share of hours whose value depends on a human
-#   performing them, not the share a machine is technically capable of.
+# confidence: 10 — NOTHING IN THIS TABLE IS MEASURED, which is why the tag was
+#   corrected from `measured | tier: B` on 2026-09-02. Its one entry is bound by
+#   expression to CARE_AUTOMATION_FLOOR, which is `normative`: its own decided_by
+#   says it is "a commitment about what care IS, not a measurement of what
+#   machines can do". What supports the entry is corroboration rather than
+#   measurement — Block II reaches the same ordering independently, care being
+#   the least abatable component at 84.4% of the residual at full abatement. The
+#   other three components carry no entry at all. The 10 is that corroboration
+#   and nothing else.
+# note: THE PREVIOUS resolves_by CITED A POINTER THAT CANNOT EXIST. It deferred
+#   to "CARE_AUTOMATION_FLOOR's own pointer", but that constant is `normative`
+#   and the scheme FORBIDS a normative constant a resolves_by — it has none. So
+#   the instrument this table was to be measured against was never named, for
+#   care or for anything else. Naming it is the first step, not the last.
+# resolves_by: a time-use split of each component's activities into those whose
+#   value depends on a HUMAN performing them and those where only the output
+#   matters. FIELD: the share of hours in the first class. The repo already
+#   carries the bridge — `scenarios/component_shares` maps ATUS tier-2 codes onto
+#   these four components — so what is missing is the relational/substitutable
+#   split WITHIN each component, not the mapping to them. That split is a
+#   declared JUDGEMENT and must be isolated the way STEWARDSHIP_ATTRIBUTIONS
+#   isolates its occupation→land-class attribution; it is not read off the data.
+#   Note the ceiling errs HIGH: every floor added lowers observable_epsilon_ceiling
+#   (0.9124 shipped; 0.8589 with all three filled at care's own value).
+# note: THE ACTIVITY SPLIT IS NOT THE BLOCKER — MEASURED 2026-09-02, and the
+#   resolves_by above is therefore necessary but not sufficient.
+#   `scenarios/automation_floors` ran the six-digit ATUS series 2003–2025 against
+#   this question and the window cannot answer it: automation and marketisation
+#   both push observed UNPAID hours down and are inseparable here, so only a RISE
+#   is informative; and the household automation that matters predates the sample
+#   — kitchen clean-up ROSE 15.1% despite dishwashers, while laundry fell 7.8%
+#   against a 4.04% fall in household size. What it does establish is a
+#   DIRECTION: nutrition rose 33.8% and health 21.9% across 22 years of capital
+#   deepening, so a floor of 0.0 — which is what an absent entry means to the
+#   model — is the least supported reading for those two. The level needs the
+#   CAPITAL variation this window lacks.
+# note: AND THE CROSS-SECTION IS NOT THAT VARIATION — measured 2026-09-02, which
+#   narrows the pointer above. MTUS supplies 10 countries over 1965-2024, and
+#   `automation_floors.cross_country()` reads it: Korea has the LOWEST unpaid
+#   domestic time of any country here despite being high-income, Bulgaria ROSE
+#   38.6% across its post-socialist transition as collective provision fell back
+#   on households, and South Africa sits mid-range and flat. Comparing rich
+#   against poor economies at a point in time measures convention, institutions
+#   and culture as much as capital. What DOES work is the same country over a
+#   long span: US unpaid domestic work fell 29.1% from 1965 to 2024, and 94.3%
+#   of that fall is before 2003 at 6.7x the later rate — which is why the ATUS
+#   window sees a flat tail. That bounds the AGGREGATE floor at <= 0.709 of the
+#   1965 level (an UPPER bound: 1965 already had appliances), and it refutes 0.0
+#   for the aggregate. It still constrains no single component, because
+#   `ACT_UNDOM` is nutrition and shelter together. The per-component split needs
+#   the six-digit coding in `rawdata/mtus.dat`, which ships no codebook.
 PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
     "care": CARE_AUTOMATION_FLOOR,
 }

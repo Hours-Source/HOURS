@@ -69,6 +69,7 @@ from typing import NamedTuple
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _ANNUAL_FILE = _DATA_DIR / "atus_annual_0325.csv"
 _YEARS_FILE = _DATA_DIR / "atus_years_0325.csv"
+_TIER3_FILE = _DATA_DIR / "atus_tier3_0325.csv"
 
 #: ATUS annualizing convention: diary minutes/day → hours/year. Named for the
 #: survey, not generically, because `personal_basket.DIET_DAYS_PER_YEAR` is a
@@ -149,6 +150,59 @@ def minutes_per_day(year: int) -> dict[str, float]:
     if year not in table:
         raise KeyError(f"year {year} not in the ATUS extract; have {sorted(table)}")
     return dict(table[year])
+
+
+@lru_cache(maxsize=1)
+def _tier3() -> tuple[dict[int, dict[str, float]], dict[str, str]]:
+    """The six-digit table and the official activity names shipped beside it."""
+    table: dict[int, dict[str, float]] = {}
+    labels: dict[str, str] = {}
+    with _TIER3_FILE.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            code = row["tier3"]
+            table.setdefault(int(row["year"]), {})[code] = float(
+                row["mean_minutes_per_day"]
+            )
+            if row.get("label"):
+                labels[code] = row["label"]
+    return table, labels
+
+
+def tier3_minutes_per_day(year: int) -> dict[str, float]:
+    """
+    Mean minutes per day per person 15+, by SIX-digit activity code.
+
+    The tier-2 table is a truncation of this one: summing every six-digit code
+    sharing a four-digit prefix reproduces the tier-2 cell, to CSV rounding
+    (both are written at six decimal places, so a parent with n children can
+    differ from their sum by up to (n + 1) x 5e-7 — n child roundings plus the
+    parent's own — assert against that bound, not against equality).
+
+    Raises:
+        KeyError: if the year is not in the extract.
+    """
+    table, _ = _tier3()
+    if year not in table:
+        raise KeyError(f"year {year} not in the tier-3 extract; have {sorted(table)}")
+    return dict(table[year])
+
+
+def tier3_labels() -> dict[str, str]:
+    """
+    Official BLS activity names, by six-digit code.
+
+    Carried in the extract at ingest time from the Stata do-file BLS ships with
+    the microdata, so no caller has to open the gitignored raw directory — and
+    so the names are BLS's rather than this repo's paraphrase of them.
+    """
+    _, labels = _tier3()
+    return dict(labels)
+
+
+def tier3_hours_per_person_15plus(year: int, codes: tuple[str, ...]) -> float:
+    """Annual hours per person 15+ for a set of six-digit codes."""
+    table = tier3_minutes_per_day(year)
+    return sum(table.get(code, 0.0) for code in codes) * ATUS_DAYS_PER_YEAR / 60.0
 
 
 def hours_per_person_15plus(year: int, codes: tuple[str, ...]) -> float:
