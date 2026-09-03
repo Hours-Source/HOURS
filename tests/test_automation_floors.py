@@ -479,3 +479,99 @@ class TestTheCodeExtract:
     def test_unknown_sample_raises(self) -> None:
         with pytest.raises(KeyError):
             mtus.code_minutes("XX9999", (18,))
+
+
+class TestTheReplication:
+    """
+    Seven within-country series are seven tests, not one. The cross-SECTION was
+    shown not to be a capital gradient; a within-country span does not have
+    that problem, because the institutions are roughly held and capital moves.
+    """
+
+    def test_nutrition_replicates_across_countries(self) -> None:
+        r = af.replication("nutrition")
+        assert r["replicates"] is True
+        assert r["n_countries"] >= 6
+        assert "US" in r["fell"]
+
+    def test_shelter_replicates_too(self) -> None:
+        assert af.replication("shelter")["replicates"] is True
+
+    def test_the_declared_break_stays_in_the_denominator(self) -> None:
+        """
+        A replication rate computed after dropping the disagreements is not a
+        replication rate. Bulgaria rose; it is flagged and COUNTED.
+        """
+        r = af.replication("nutrition")
+        assert "BG" in r["countries"]
+        assert r["countries"]["BG"]["institutional_break"]
+        assert r["n_countries"] == len(r["fell"]) + len(r["rose"])
+        assert r["replication_rate"] == len(r["fell"]) / r["n_countries"]
+
+    def test_a_rise_without_an_explanation_is_reported_as_such(self) -> None:
+        """
+        South Africa rose and carries no declared break. That is not tidied
+        away — if every exception had a story, the stories would be doing the
+        work rather than the data.
+        """
+        r = af.replication("nutrition")
+        assert "ZA" in r["rose_without_a_declared_break"]
+
+    def test_the_break_is_declared_ahead_of_the_result_not_fitted_to_it(self) -> None:
+        """
+        Only countries in INSTITUTIONAL_BREAK may be discounted, and the list
+        is short and specific. If it ever grows to cover every disagreement,
+        the mechanism has become unfalsifiable.
+        """
+        assert len(af.INSTITUTIONAL_BREAK) <= 2
+        for reason in af.INSTITUTIONAL_BREAK.values():
+            assert len(reason) > 40, "a break must say what changed"
+
+    def test_dropping_the_break_would_inflate_the_rate(self) -> None:
+        """The bite: the honest denominator gives a lower number, and does so."""
+        r = af.replication("nutrition")
+        honest = r["replication_rate"]
+        inflated = len(r["fell"]) / (r["n_countries"] - len(af.INSTITUTIONAL_BREAK))
+        assert inflated > honest
+
+
+class TestTheConvergence:
+    """
+    A single series' minimum is not a floor — nutrition reached it and left.
+    Independent economies settling at a similar LEVEL is the better signature.
+    """
+
+    def test_nutrition_converges_more_tightly_than_shelter(self) -> None:
+        """
+        The asymmetry is the finding: nutrition lands in a narrow band across
+        five economies with different cuisines and histories; shelter does not.
+        Only one of them looks like a floor.
+        """
+        nut = af.developed_convergence("nutrition")
+        shel = af.developed_convergence("shelter")
+        assert nut["band_ratio"] < shel["band_ratio"]
+        assert nut["band_ratio"] < 1.6
+
+    def test_it_refuses_to_call_itself_a_floor_value(self) -> None:
+        for component in af.COMPONENT_CODES_MTUS:
+            d = af.developed_convergence(component)
+            assert d["is_a_floor_value"] is False
+            assert "UNPAID" in d["why_not"]
+
+    def test_the_selection_circularity_is_declared(self) -> None:
+        """
+        Membership is "the countries whose series fell", which is close to
+        "the countries that showed the effect". Stated, not hidden.
+        """
+        d = af.developed_convergence("nutrition")
+        assert d["selection_is_circular"] is True
+        assert set(d["members"]) == set(af.replication("nutrition")["fell"])
+
+    def test_the_band_is_computed_from_the_members_only(self) -> None:
+        d = af.developed_convergence("nutrition")
+        assert d["low"] == min(d["levels"].values())
+        assert d["high"] == max(d["levels"].values())
+        assert "BG" not in d["levels"]
+
+    def test_it_still_produces_no_floor_value(self) -> None:
+        assert af.report()["produces_a_floor_value"] is False

@@ -2493,8 +2493,31 @@ MAPPING_TOLERANCE: float = 0.20
 #   window sees a flat tail. That bounds the AGGREGATE floor at <= 0.709 of the
 #   1965 level (an UPPER bound: 1965 already had appliances), and it refutes 0.0
 #   for the aggregate. It still constrains no single component, because
-#   `ACT_UNDOM` is nutrition and shelter together. The per-component split needs
-#   the six-digit coding in `rawdata/mtus.dat`, which ships no codebook.
+#   `ACT_UNDOM` is nutrition and shelter together.
+# note: THE SIX-DIGIT SPLIT IS BUILT AND IT REPLICATES — measured 2026-09-02,
+#   which supersedes the sentence above about needing it. `COMPONENT_CODES_MTUS`
+#   identifies the codes against ATUS; `automation_floors.replication()` then
+#   runs each within-country span as a separate test. NUTRITION falls in 5 of 7
+#   countries (FR -33.6%, US -31.6%, CA -16.3%, NL -15.9%, KR -7.2%), SHELTER in
+#   6 of 7. Bulgaria rises in both and carries a DECLARED institutional break
+#   (the post-socialist transition returned collective provision to households);
+#   it stays in the denominator. South Africa rises 2.1% on nutrition with NO
+#   declared explanation and is reported as such.
+# note: AND NUTRITION CONVERGES WHERE SHELTER DOES NOT, which is the asymmetry
+#   worth the most here. The five economies whose nutrition fell land in
+#   39.5-51.6 min/day — a 1.31x band across different cuisines, histories and
+#   institutions — while shelter spreads 2.42x over six. Convergence across
+#   independent economies is a better floor signature than any single series'
+#   minimum, which the US reversal already showed is not one. It is STILL NOT a
+#   floor value: every figure is UNPAID time, so the band may be a convergence
+#   in how much cooking is BOUGHT. Food-away-from-home spending would separate
+#   them and is not in this repo. Per-component upper bounds meanwhile:
+#   nutrition <= 0.511 of its 1965 level, shelter <= 0.624.
+# note: CARE AND HEALTH REMAIN UNMEASURED, and care is the largest component at
+#   62.1% of the desk shares. Its floor is DECIDED, not measured. MTUS puts
+#   meals inside its personal-care block where this repo's definition excludes
+#   them, and health is dominated by ATUS 0804 (using health services) with no
+#   clean MTUS counterpart. Absent, not zero.
 PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
     "care": CARE_AUTOMATION_FLOOR,
 }

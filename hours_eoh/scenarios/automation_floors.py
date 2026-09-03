@@ -495,6 +495,130 @@ def component_floor_bounds(country: str = "US") -> dict[str, dict]:
     return out
 
 
+#: Countries whose series is moved by a known institutional change rather than
+#: by capital, DECLARED before the replication is read rather than dropped when
+#: it disagrees. BG spans the post-socialist transition, where collective and
+#: workplace provision of meals, laundry and childcare collapsed back onto
+#: households — a large move in the opposite direction with a cause that is not
+#: automation. They are REPORTED alongside, never excluded from the count.
+INSTITUTIONAL_BREAK: dict[str, str] = {
+    "BG": "1965-2001 spans the post-socialist transition; collective provision "
+          "of meals, laundry and childcare fell back onto households",
+}
+
+
+def replication(component: str = "nutrition") -> dict:
+    """
+    Does the US result hold in other countries? Each within-country series is
+    an independent capital gradient.
+
+    WHY THIS IS THE STRONG FORM. `cross_country()` showed the cross-SECTION is
+    not a capital gradient — comparing rich against poor at a point in time
+    measures convention and institutions too. A within-country series does not
+    have that problem: the institutions are held roughly fixed and capital
+    moves. Seven of them, run separately, is seven tests rather than one.
+
+    THE COUNT IS REPORTED HONESTLY. Countries with a declared institutional
+    break are counted in the denominator and flagged, not removed. A
+    replication rate computed after dropping the disagreements is not one.
+
+    Worked example (nutrition, minutes per day, ages 18-69):
+
+        FR 1966-2009  77.6 -> 51.6   -33.6%
+        US 1965-2024  60.7 -> 41.5   -31.6%
+        CA 1992-2005  47.2 -> 39.5   -16.3%
+        NL 1975-2000  60.3 -> 50.7   -15.9%
+        KR 1999-2009  52.2 -> 48.4    -7.2%
+        ZA 2000-2010  65.1 -> 66.4    +2.1%   flat, lowest capital here
+        BG 1965-2001  45.4 -> 76.2   +67.7%   institutional break, declared
+    """
+    codes = COMPONENT_CODES_MTUS[component]
+    table = mtus.codes_by_sample()
+    by_country: dict[str, list[tuple[int, float]]] = {}
+    for sample in table:
+        if not sample[2:].isdigit():
+            continue
+        by_country.setdefault(sample[:2], []).append(
+            (int(sample[2:]), mtus.code_minutes(sample, codes))
+        )
+    rows = {}
+    for country, points in by_country.items():
+        points = sorted(points)
+        if len(points) < 2:
+            continue
+        (y0, v0), (y1, v1) = points[0], points[-1]
+        rows[country] = {
+            "span": (y0, y1),
+            "first": v0,
+            "last": v1,
+            "change": (v1 - v0) / v0,
+            "fell": v1 < v0,
+            "institutional_break": INSTITUTIONAL_BREAK.get(country),
+        }
+    fell = [c for c, r in rows.items() if r["fell"]]
+    rose = [c for c, r in rows.items() if not r["fell"]]
+    rose_unexplained = [c for c in rose if c not in INSTITUTIONAL_BREAK]
+    return {
+        "component": component,
+        "countries": rows,
+        "n_countries": len(rows),
+        "n_fell": len(fell),
+        "fell": sorted(fell),
+        "rose": sorted(rose),
+        "rose_without_a_declared_break": sorted(rose_unexplained),
+        "replication_rate": len(fell) / len(rows),
+        "replicates": len(fell) > len(rows) / 2,
+        "verdict": (
+            f"{len(fell)} of {len(rows)} within-country series fall; the "
+            f"{len(rose)} that do not are {', '.join(sorted(rose))}, of which "
+            f"{len(INSTITUTIONAL_BREAK.keys() & set(rose))} carries a declared "
+            "institutional break"
+        ),
+    }
+
+
+def developed_convergence(component: str = "nutrition") -> dict:
+    """
+    Do the high-capital economies converge on a level?
+
+    A single series' minimum is not a floor — nutrition reached 31.0 in 2005
+    and left. But if independent economies with different cuisines, histories
+    and institutions settle at a similar LEVEL, that is a much better floor
+    signature than any one of them reaching a low point.
+
+    THIS IS NOT YET A FLOOR VALUE, and the reason is stated rather than left
+    for a reader to find: every figure here is UNPAID time, so a convergence in
+    unpaid cooking may be a convergence in how much cooking is bought rather
+    than in an irreducible core. Food-away-from-home spending would separate
+    them and is not in this repo.
+
+    "Developed" is taken as the countries WITHOUT a declared institutional
+    break and above the median capital of this sample — which this module
+    cannot measure, so it uses the ones whose series FELL, i.e. the ones that
+    showed a capital response at all. That is a stated circularity, not a
+    hidden one.
+    """
+    rep = replication(component)
+    members = sorted(rep["fell"])
+    levels = {c: rep["countries"][c]["last"] for c in members}
+    lo, hi = min(levels.values()), max(levels.values())
+    return {
+        "component": component,
+        "members": members,
+        "levels": levels,
+        "low": lo,
+        "high": hi,
+        "band_ratio": hi / lo if lo > 0 else float("nan"),
+        "selection_is_circular": True,
+        "is_a_floor_value": False,
+        "why_not": (
+            "every figure is UNPAID time; a convergence in unpaid cooking may "
+            "be a convergence in how much is bought, and food-away-from-home "
+            "spending is not in this repo"
+        ),
+    }
+
+
 def report() -> dict:
     """Everything this scenario reports, in one call."""
     return {
@@ -507,6 +631,8 @@ def report() -> dict:
         "cross_country": cross_country(),
         "code_mapping": validate_code_mapping(),
         "component_bounds": component_floor_bounds(),
+        "replication": {c: replication(c) for c in COMPONENT_CODES_MTUS},
+        "convergence": {c: developed_convergence(c) for c in COMPONENT_CODES_MTUS},
         "components": floor_direction(),
         "trends": {c: activity_trends(c) for c in UNFLOORED},
         "produces_a_floor_value": False,

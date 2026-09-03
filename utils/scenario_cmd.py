@@ -738,6 +738,17 @@ def _dispatch(args: argparse.Namespace) -> object:
                 f"<= {b['floor_upper_bound']:.3f} of {b['baseline_year']} "
                 f"(minimum {b['minimum_year']}, reversed since: {b['reversed_after_minimum']})"
             )
+        for comp, r in rep["replication"].items():
+            af_out[f"{comp}_replication"] = (
+                f"{r['n_fell']}/{r['n_countries']} countries fall "
+                f"({r['replication_rate']:.0%}); rose: {', '.join(r['rose']) or 'none'}"
+                f"; unexplained: {', '.join(r['rose_without_a_declared_break']) or 'none'}"
+            )
+        for comp, d in rep["convergence"].items():
+            af_out[f"{comp}_convergence"] = (
+                f"{d['low']:.1f}-{d['high']:.1f} min/day = {d['band_ratio']:.2f}x "
+                f"across {len(d['members'])} ({', '.join(d['members'])})"
+            )
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out
