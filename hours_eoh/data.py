@@ -2390,6 +2390,42 @@ SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
 #   the load-bearing part, and it is what the tests pin.
 CARE_AUTOMATION_FLOOR:        float = 0.15
 
+# tag: derived | units: MTUS harmonised activity codes
+# form: the MTUS six-digit activity codes making up each personal-EOH
+#   component, IDENTIFIED rather than assumed. US samples appear in both MTUS
+#   and ATUS, so the same population-year is coded twice and independently; a
+#   code set is the component it claims to be only if its level tracks the ATUS
+#   family across every overlapping year. Measured by
+#   `automation_floors.validate_code_mapping()`: nutrition (18,19) reproduces
+#   ATUS 0202 at a mean ratio of 1.0147 over 21 years (spread 0.037), and
+#   shelter (20,21,22) reproduces 0201+0203+0204+0207+0208 at 0.9757 (spread
+#   0.068). No number here is fitted — the codes were picked, then checked.
+# note: THE RESIDUAL'S SIGN IS NOT PREDICTED. MTUS is read at ages 18-69 and
+#   ATUS at 15+; excluding teenagers pushes the MTUS figure up and excluding
+#   the over-69s pushes it down. Only the MAGNITUDE is evidence.
+# note: an earlier version validated shelter against ATUS 0201 ALONE and read a
+#   28% excess. The mapping was right and the target was wrong — the model's
+#   shelter is 0201 PLUS maintenance. The check now uses the model's own
+#   component definition so the target cannot be hand-picked again.
+# note: care and health carry no MTUS code set. MTUS puts meals inside its
+#   personal-care block where the repo's definition excludes them, and the
+#   health component is dominated by ATUS 0804 (using health services), which
+#   has no clean MTUS counterpart. Absent, not zero.
+COMPONENT_CODES_MTUS: dict[str, tuple[int, ...]] = {
+    "nutrition": (18, 19),
+    "shelter":   (20, 21, 22),
+}
+
+# tag: convention | units: dimensionless ratio
+# form: how far a code set's level may sit from the ATUS component it claims to
+#   be before the mapping is rejected. Loose on purpose: it exists to catch a
+#   mapping that is WRONG, not to certify one as precise, and the two shipped
+#   sets clear it by a factor of four. The tighter 0.05 used for
+#   `mapping_is_strong` is a reporting distinction, not a gate.
+# decided_by: a stated tolerance on a falsifiable check. Verified reachable —
+#   mapping nutrition to the sleep code fails it.
+MAPPING_TOLERANCE: float = 0.20
+
 # tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction
 #   that stays human-carried however high epsilon goes. Only `care` is listed,

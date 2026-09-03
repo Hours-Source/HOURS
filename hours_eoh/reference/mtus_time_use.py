@@ -56,6 +56,9 @@ __all__ = [
     "domestic_series",
     "NONSTANDARD_DAY_SAMPLES",
     "day_closes",
+    "CODES_FILE",
+    "codes_by_sample",
+    "code_minutes",
     "MTUS_DIARIES",
     "MTUS_COUNTRIES",
     "WORKING_AGE_MINUTES",
@@ -129,6 +132,42 @@ def domestic_by_sample() -> list[dict[str, float | str | int]]:
                 "day_minutes": float(row["day_minutes"]),
             })
     return rows
+
+
+CODES_FILE = pathlib.Path(__file__).with_name("data") / "mtus_codes_by_sample.csv"
+
+
+@lru_cache(maxsize=1)
+def codes_by_sample() -> dict[str, dict[int, float]]:
+    """
+    Minutes per day by MTUS activity code, per sample, ages 18-69.
+
+    The six-digit episode file carries 56-67 distinct codes per sample against
+    the twelve `ACT_*` aggregates, which is what separates nutrition from
+    shelter. NO MAPPING IS APPLIED HERE — the codes ship raw and the
+    code→component judgement lives in `scenarios/automation_floors`, declared
+    and validated there.
+
+    AT1992, FR1985 and FR1999 are ABSENT: `SERIAL` is empty in those three
+    samples so the episode join cannot reach them. Recorded rather than hidden.
+
+    Derived by `utils/mtus_code_ingest.py`; the 3.1 GB raw file is gitignored.
+    """
+    out: dict[str, dict[int, float]] = {}
+    with CODES_FILE.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            out.setdefault(row["sample"], {})[int(row["code"])] = float(
+                row["minutes_per_day"]
+            )
+    return out
+
+
+def code_minutes(sample: str, codes: tuple[int, ...]) -> float:
+    """Minutes per day for a set of activity codes in one sample."""
+    table = codes_by_sample()
+    if sample not in table:
+        raise KeyError(f"{sample} not in the code extract; have {len(table)} samples")
+    return sum(table[sample].get(code, 0.0) for code in codes)
 
 
 def domestic_series(country: str) -> list[tuple[int, float]]:

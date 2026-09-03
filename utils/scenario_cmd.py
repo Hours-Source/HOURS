@@ -728,6 +728,16 @@ def _dispatch(args: argparse.Namespace) -> object:
         af_out["why_upper_bound"] = b["why_upper_bound"]
         af_out["cross_section_is_a_capital_gradient"] = cc["is_a_capital_gradient"]
         af_out["cross_section_verdict"] = cc["verdict"]
+        for comp, v in rep["code_mapping"].items():
+            af_out[f"{comp}_mtus_codes"] = (
+                f"{v['codes']} vs ATUS {v['atus_target']}: ratio {v['mean_ratio']:.4f} "
+                f"over {v['n_years']} yr (spread {v['spread']:.4f})"
+            )
+        for comp, b in rep["component_bounds"].items():
+            af_out[f"{comp}_floor_upper_bound"] = (
+                f"<= {b['floor_upper_bound']:.3f} of {b['baseline_year']} "
+                f"(minimum {b['minimum_year']}, reversed since: {b['reversed_after_minimum']})"
+            )
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out

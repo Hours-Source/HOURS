@@ -370,3 +370,112 @@ class TestTheWindowYearIsBoundNotRestated:
         source = inspect.getsource(af)
         assert "ATUS_WINDOW_OPENS" not in source
         assert "= 2003" not in source
+
+
+class TestTheSixDigitCodingSeparatesTheComponents:
+    """
+    The mapping is a declared judgement, but unlike most it is FALSIFIABLE: US
+    samples are coded independently by MTUS and ATUS, so the same
+    population-year is measured twice.
+    """
+
+    def test_each_mapping_reproduces_its_atus_component(self) -> None:
+        for component, v in af.validate_code_mapping().items():
+            assert v["within_tolerance"], (
+                f"{component}: MTUS {v['codes']} reads {v['mean_ratio']:.3f} of "
+                f"ATUS {v['atus_target']} — the codes are not that component"
+            )
+            assert v["residual_is_small"]
+
+    def test_it_holds_across_many_years_not_one(self) -> None:
+        """One year agreeing is a coincidence; twenty-one is an identification."""
+        for v in af.validate_code_mapping().values():
+            assert v["n_years"] >= 15
+            assert v["spread"] < 0.15
+
+    def test_the_target_is_the_models_own_component_not_a_hand_pick(self) -> None:
+        """
+        The first version compared shelter against ATUS 0201 alone and read a
+        28% excess. The mapping was right; the target was wrong. Validating
+        against COMPONENT_CODES removes the choice.
+        """
+        from hours_eoh.scenarios.component_shares import COMPONENT_CODES
+        for component, v in af.validate_code_mapping().items():
+            assert tuple(v["atus_target"]) == tuple(COMPONENT_CODES[component])
+
+    def test_a_wrong_mapping_is_rejected(self) -> None:
+        """The check must be able to fail, or it certifies nothing."""
+        original = dict(af.COMPONENT_CODES_MTUS)
+        try:
+            af.COMPONENT_CODES_MTUS["nutrition"] = (2,)      # sleep
+            assert not af.validate_code_mapping()["nutrition"]["within_tolerance"]
+        finally:
+            af.COMPONENT_CODES_MTUS.clear()
+            af.COMPONENT_CODES_MTUS.update(original)
+
+
+class TestThePerComponentBounds:
+
+    def test_nutrition_fell_then_reversed(self) -> None:
+        """
+        The shape the ATUS window could not see: nutrition fell sharply to a
+        minimum in the mid-2000s and has risen since. ATUS opens in 2003, so it
+        sees only the recovery — which is why it reported a RISE.
+        """
+        s = af.component_long_series("nutrition")
+        assert s["change_before_window"] < -0.2, "a large fall before the window"
+        assert s["change_inside_window"] > 0.0, "a rise inside it"
+        assert s["reversed_after_minimum"] is True
+
+    def test_the_bound_is_an_upper_bound_and_says_so(self) -> None:
+        for component, b in af.component_floor_bounds().items():
+            assert b["is_upper_bound"] is True
+            assert 0.0 < b["floor_upper_bound"] < 1.0
+            assert b["minimum_year"] >= b["baseline_year"]
+
+    def test_the_bounds_refute_a_zero_floor(self) -> None:
+        """
+        An absent entry in PERSONAL_AUTOMATION_FLOORS means 0.0 to the model.
+        Every component measured here has visited a strictly positive minimum.
+        """
+        for b in af.component_floor_bounds().values():
+            assert b["refutes_a_zero_floor"] is True
+
+    def test_a_bound_still_is_not_a_floor_value(self) -> None:
+        """A minimum that was reached and then left is not a level it cannot pass."""
+        bounds = af.component_floor_bounds()
+        assert any(b["reversed_after_minimum"] for b in bounds.values())
+        assert af.report()["produces_a_floor_value"] is False
+
+    def test_the_component_split_is_finer_than_the_aggregate(self) -> None:
+        """The whole point: ACT_UNDOM could not separate these."""
+        bounds = af.component_floor_bounds()
+        assert len(bounds) >= 2
+        assert len({round(b["floor_upper_bound"], 3) for b in bounds.values()}) > 1
+
+
+class TestTheCodeExtract:
+
+    def test_three_samples_are_absent_for_a_stated_reason(self) -> None:
+        """SERIAL is empty in these, so the episode join cannot reach them."""
+        table = mtus.codes_by_sample()
+        for sample in ("AT1992", "FR1985", "FR1999"):
+            assert sample not in table
+        assert len(table) >= 40
+
+    def test_the_coding_is_finer_than_the_twelve_aggregates(self) -> None:
+        for sample, codes in mtus.codes_by_sample().items():
+            assert len(codes) > 12, f"{sample} has only {len(codes)} codes"
+
+    def test_every_retained_diary_closed_to_a_full_day(self) -> None:
+        """
+        The ingest drops any diary not summing to 1440, so each sample's codes
+        must sum to a full day. This is the arithmetic gate on a derived
+        fixed-width layout that ships no codebook.
+        """
+        for sample, codes in mtus.codes_by_sample().items():
+            assert sum(codes.values()) == pytest.approx(1440.0, abs=0.5), sample
+
+    def test_unknown_sample_raises(self) -> None:
+        with pytest.raises(KeyError):
+            mtus.code_minutes("XX9999", (18,))

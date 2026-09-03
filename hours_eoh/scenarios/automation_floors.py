@@ -56,6 +56,7 @@ model currently assumes for it. The level is not recoverable here.
 
 from __future__ import annotations
 
+from hours_eoh.data import COMPONENT_CODES_MTUS, MAPPING_TOLERANCE
 from hours_eoh.reference import atus_time_use as atus
 from hours_eoh.reference import mtus_time_use as mtus
 from hours_eoh.scenarios.component_shares import COMPONENT_CODES
@@ -382,6 +383,118 @@ def cross_country() -> dict:
     }
 
 
+def validate_code_mapping() -> dict[str, dict]:
+    """
+    Check the MTUS→component mapping against ATUS on the years both cover.
+
+    The identification strategy: US samples are in both surveys, so the same
+    population-year is coded twice, independently. If a set of MTUS codes is
+    the component it claims to be, its level must track the ATUS family across
+    every overlapping year — not once, which any coincidence supplies.
+
+    THE SIGN OF THE RESIDUAL IS NOT PREDICTED, and an earlier version of this
+    docstring wrongly claimed it was. MTUS here is ages 18-69 and ATUS is 15+:
+    excluding teenagers pushes the MTUS figure UP, and excluding the over-69s —
+    retired, at home, doing more housework — pushes it DOWN. Both operate and
+    neither obviously dominates, so only the MAGNITUDE is evidence. Nutrition
+    reads 1.015 and shelter 0.976; both are small, and that is the claim.
+    """
+    years = [y for y in _years() if f"US{y}" in mtus.codes_by_sample()]
+    out: dict[str, dict] = {}
+    for component, codes in COMPONENT_CODES_MTUS.items():
+        target = COMPONENT_CODES[component]
+        ratios = []
+        for year in years:
+            table = atus.minutes_per_day(year)
+            atus_minutes = sum(table.get(c, 0.0) for c in target)
+            if atus_minutes <= 0.0:
+                continue
+            ratios.append(mtus.code_minutes(f"US{year}", codes) / atus_minutes)
+        mean = sum(ratios) / len(ratios)
+        out[component] = {
+            "codes": codes,
+            "atus_target": target,
+            "n_years": len(ratios),
+            "mean_ratio": mean,
+            "spread": max(ratios) - min(ratios),
+            "within_tolerance": abs(mean - 1.0) <= MAPPING_TOLERANCE,
+            "residual_is_small": abs(mean - 1.0) <= 0.05,
+        }
+    return out
+
+
+def component_long_series(component: str, country: str = "US") -> dict:
+    """
+    One component's unpaid hours across the whole MTUS span.
+
+    This is what `long_series()` could not do: `ACT_UNDOM` is nutrition and
+    shelter together, and the six-digit coding separates them.
+
+    Worked example (US nutrition, minutes per day, ages 18-69):
+
+        1965  60.65      1965 -> 2003   -47.0%
+        2003  32.13      2003 -> 2024   +29.0%   the ATUS window sees only this
+        2024  41.46      minimum 30.98 in 2005 = 0.511 of the 1965 level
+    """
+    codes = COMPONENT_CODES_MTUS[component]
+    table = mtus.codes_by_sample()
+    series = sorted(
+        (int(s[2:]), mtus.code_minutes(s, codes))
+        for s in table
+        if s.startswith(country) and s[2:].isdigit()
+    )
+    if len(series) < 2:
+        raise ValueError(f"{country} has fewer than two samples in the code extract")
+    (y0, v0), (y1, v1) = series[0], series[-1]
+    ymin, vmin = min(series, key=lambda p: p[1])
+    opens = atus_window_opens()
+    inside = [p for p in series if p[0] >= opens]
+    yw, vw = inside[0] if inside else (y1, v1)
+    return {
+        "component": component,
+        "country": country,
+        "series": series,
+        "first": v0, "last": v1, "span": (y0, y1),
+        "change": (v1 - v0) / v0,
+        "change_before_window": (vw - v0) / v0,
+        "change_inside_window": (v1 - vw) / vw,
+        "minimum": vmin, "minimum_year": ymin,
+        "floor_upper_bound": vmin / v0,
+        "reversed_after_minimum": v1 > vmin,
+    }
+
+
+def component_floor_bounds(country: str = "US") -> dict[str, dict]:
+    """
+    Per-component UPPER bounds on the automation floor.
+
+    The bound is the lowest level ever observed, as a share of the earliest.
+    It is an UPPER bound twice over, and both directions are the same way:
+    the baseline year already carried household automation, and marketisation
+    removes unpaid hours that automation did not. So the true floor is below
+    this, and a floor of 0.0 — what an absent entry means to the model — is not
+    what the data shows.
+
+    It is still not a floor VALUE. A minimum that was reached and then left is
+    a level the series visited, not one it cannot pass.
+    """
+    out = {}
+    for component in COMPONENT_CODES_MTUS:
+        s = component_long_series(component, country)
+        v = validate_code_mapping()[component]
+        out[component] = {
+            "floor_upper_bound": s["floor_upper_bound"],
+            "minimum_year": s["minimum_year"],
+            "baseline_year": s["span"][0],
+            "is_upper_bound": True,
+            "refutes_a_zero_floor": s["floor_upper_bound"] > 0.0,
+            "mapping_mean_ratio": v["mean_ratio"],
+            "mapping_is_strong": abs(v["mean_ratio"] - 1.0) <= 0.05,
+            "reversed_after_minimum": s["reversed_after_minimum"],
+        }
+    return out
+
+
 def report() -> dict:
     """Everything this scenario reports, in one call."""
     return {
@@ -392,6 +505,8 @@ def report() -> dict:
         "saturation_confirmed": saturation_confirmed(),
         "aggregate_floor_bound": aggregate_floor_bound(),
         "cross_country": cross_country(),
+        "code_mapping": validate_code_mapping(),
+        "component_bounds": component_floor_bounds(),
         "components": floor_direction(),
         "trends": {c: activity_trends(c) for c in UNFLOORED},
         "produces_a_floor_value": False,
