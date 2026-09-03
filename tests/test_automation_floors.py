@@ -668,3 +668,285 @@ class TestTheCareFloorCorroboration:
         from hours_eoh import data
         assert data.CARE_AUTOMATION_FLOOR == data.PERSONAL_AUTOMATION_FLOORS["care"]
         assert af.report()["produces_a_floor_value"] is False
+
+
+class TestTheMarketSubstitutionCheck:
+    """
+    The convergence's stated limit, partly addressed. If the rise in home
+    preparation were the market unwinding into the observation, buying prepared
+    food would move WITH it. It moves against.
+    """
+
+    def test_preparation_and_bought_food_move_opposite_ways(self) -> None:
+        r = af.market_substitution_check()
+        assert r["preparation_rose"] is True
+        assert r["bought_food_fell"] is True
+        assert r["moves_against_each_other"] is True
+        assert r["rise_is_marketisation"] is False
+
+    def test_groceries_move_with_preparation_not_against_it(self) -> None:
+        """Cooking at home needs ingredients; the two should rise together."""
+        s = af.market_substitution_check()["series"]
+        assert s["groceries"]["change"] > 0.0
+        assert s["preparation"]["change"] > 0.0
+
+    def test_eating_is_the_control_and_is_flat(self) -> None:
+        """
+        Substitution changes where food is PREPARED, not how much is eaten. If
+        total eating moved sharply, something other than substitution is going
+        on and neither reading would be safe.
+        """
+        r = af.market_substitution_check()
+        assert r["eating_is_roughly_flat"] is True
+
+    def test_eating_is_excluded_from_the_away_composite(self) -> None:
+        """
+        Eating happens wherever the food came from, so it says nothing about
+        who prepared it. Including it would make the composite move with meals
+        rather than with the market.
+        """
+        assert "110101" not in af.FOOD_AWAY_CODES
+        assert set(af.FOOD_AWAY_CODES) & set(af.GROCERY_CODES) == set()
+
+    def test_it_states_the_two_things_it_does_not_cover(self) -> None:
+        """
+        The window opens in 2003, so the 1965-2005 FALL — where the converged
+        level came from — is outside it; and it is one country while the
+        convergence is a cross-country claim.
+        """
+        r = af.market_substitution_check()
+        assert r["covers_the_fall"] is False
+        assert r["is_cross_country"] is False
+        assert r["window"][0] >= 2003
+
+    def test_the_convergence_records_it_as_partial(self) -> None:
+        d = af.developed_convergence("nutrition")
+        assert d["substitution_tested_for_us"] is True
+        assert d["substitution_tested_cross_country"] is False
+        assert d["is_a_floor_value"] is False, (
+            "a partial answer to one of two limits does not make this a value"
+        )
+
+
+class TestTheNutritionFloorEstimate:
+    """
+    The one construction here that marketisation cannot move, because it counts
+    PAID AND UNPAID human labour. A restaurant cook is human labour.
+    """
+
+    def test_service_is_excluded_and_the_estimate_is_the_lower_reading(self) -> None:
+        r = af.nutrition_floor_estimate()
+        assert r["service_excluded"] is True
+        assert r["estimate"] == r["estimate_excluding_service"]
+        assert r["estimate"] < r["superseded_reading_including_service"]
+
+    def test_the_superseded_reading_survives(self) -> None:
+        """
+        The 14-point difference the decision resolves stays visible, on the
+        pattern the Psi policies and `uniform` set: a decided-against reading
+        is kept reachable so the decision can be re-examined, not erased.
+        """
+        r = af.nutrition_floor_estimate()
+        assert r["decision_cost"] == pytest.approx(
+            r["superseded_reading_including_service"] - r["estimate"], rel=1e-12
+        )
+        assert r["decision_cost"] > 0.10
+
+    def test_the_reason_is_that_service_is_unbounded(self) -> None:
+        """
+        Structural, not a preference: a floor is a LOWER bound and elaboration
+        has no upper one, so service is a market price above the floor rather
+        than part of it.
+        """
+        import re
+        r = af.nutrition_floor_estimate()
+        assert r["service_is_unbounded"] is True
+        doc = re.sub(r"\s+", " ", af.nutrition_floor_estimate.__doc__ or "")
+        assert "no upper one" in doc or "no cap" in doc
+        assert "market_premium" in doc
+
+    def test_service_is_what_splits_it(self) -> None:
+        """
+        The unassisted benchmark has ZERO service — a subsistence economy has no
+        restaurants — so service hours are an activity that did not previously
+        exist, not labour that survived automation. Both readings are defensible
+        and they differ, which is why no point estimate is given.
+        """
+        r = af.nutrition_floor_estimate()
+        assert r["unassisted_service_is_zero"] is True
+        assert r["decision_cost"] > 0.10
+
+    def test_production_is_the_measured_part(self) -> None:
+        """Automation took essentially all of production; that half is measured."""
+        r = af.nutrition_floor_estimate()
+        assert r["production_retained"] < 0.05
+        assert r["unassisted_production_benchmark"] > 0.0
+
+    def test_the_assumed_term_is_flagged_as_assumed(self) -> None:
+        assert af.nutrition_floor_estimate()["unassisted_processing_is_assumed"] is True
+
+    def test_marketisation_cannot_move_it(self) -> None:
+        """
+        The reason this construction exists. Paid and unpaid are both counted,
+        so shifting cooking between home and restaurant moves hours between
+        buckets and leaves the total alone.
+        """
+        r = af.nutrition_floor_estimate()
+        assert r["marketisation_cannot_move_it"] is True
+        assert 0.0 < r["paid_share"] < 1.0, "both buckets must be non-empty"
+
+    def test_it_is_neither_a_measurement_nor_adopted(self) -> None:
+        r = af.nutrition_floor_estimate()
+        assert r["is_a_measurement"] is False
+        assert r["is_adopted"] is False
+        assert "nutrition" not in af.PERSONAL_AUTOMATION_FLOORS
+        assert af.report()["produces_a_floor_value"] is False
+
+    def test_it_refuses_to_run_without_the_measured_benchmark(self) -> None:
+        """Inventing a denominator is the failure this module exists to avoid."""
+        import hours_eoh.scenarios.food_conservation as fcmod
+        original = fcmod.conservation_test
+
+        def blank(*a, **k):
+            out = original(*a, **k)
+            out["stages"] = [
+                {**s, "lsms_hours": None} if s["stage"] == "production" else s
+                for s in out["stages"]
+            ]
+            return out
+
+        fcmod.conservation_test = blank        # type: ignore[assignment]
+        try:
+            with pytest.raises(ValueError, match="no denominator|benchmark"):
+                af.nutrition_floor_estimate()
+        finally:
+            fcmod.conservation_test = original  # type: ignore[assignment]
+
+    def test_the_band_brackets_the_independent_mtus_bound(self) -> None:
+        """
+        REPORTED, NOT ASSERTED AS CORROBORATION. The MTUS route gives an upper
+        bound of ~0.511 on a different quantity — unpaid preparation against its
+        own 1965 level, not total labour against an unassisted benchmark. That
+        it lands inside this band is worth noticing and is NOT evidence the two
+        agree, because they do not measure the same thing.
+        """
+        r = af.nutrition_floor_estimate()
+        low = r["estimate"]
+        high = r["superseded_reading_including_service"]
+        mtus_bound = af.component_floor_bounds()["nutrition"]["floor_upper_bound"]
+        assert low < mtus_bound < high
+
+
+class TestTheEstimateErrsHigh:
+    """
+    The one assumption in the estimate is that unassisted processing equals
+    current US processing. `reference/personal_basket` says processing plausibly
+    EXCEEDS production in hand-powered systems, so the assumption is low and the
+    estimate is a ceiling. That direction is the finding, not a caveat.
+    """
+
+    def test_the_shipped_assumption_is_the_most_generous_one(self) -> None:
+        s = af.processing_sensitivity()
+        assert s["shipped_is_the_highest"] is True
+        assert s["errs"] == "HIGH"
+
+    def test_a_plausible_processing_term_pushes_it_well_down(self) -> None:
+        s = af.processing_sensitivity()["floors"]
+        assert s["equal_to_production"] < s["assumed_equal_to_current_us"]
+        assert s["twice_production"] < 0.30
+
+    def test_the_estimate_carries_its_direction(self) -> None:
+        assert af.nutrition_floor_estimate()["errs"] == "HIGH"
+
+    def test_the_resolving_field_is_named_not_just_the_source(self) -> None:
+        """
+        F-001: a pointer that names a SOURCE without naming the FIELD in it has
+        not been checked. This names the variable, the stratum and the scope.
+        """
+        field = af.PROCESSING_TERM_FIELD
+        assert "hours per person" in field
+        assert "at low capital" in field
+        for activity in ("threshing", "milling", "fuel collection", "cooking"):
+            assert activity in field
+        assert af.nutrition_floor_estimate()["resolves_by"] == field
+        assert "time-use" in field.lower(), (
+            "the field must name the instrument that CAN reach it, not only "
+            "the one that cannot"
+        )
+
+    def test_the_direction_agrees_with_the_reference_module(self) -> None:
+        """
+        The claim that processing exceeds production is not this module's; it is
+        `personal_basket`'s, and this test fails if that statement is removed
+        rather than letting the direction float free of its source.
+        """
+        import re
+        from hours_eoh.reference import personal_basket
+        doc = re.sub(r"\s+", " ", personal_basket.__doc__ or "")
+        assert "processing plausibly exceeds production labour" in doc
+
+
+class TestTheProcessingTermIsAnchoredNotAssumed:
+    """
+    The correction that came from checking a claim instead of asserting it. The
+    resolving field was described as "a single variable in LSMS"; the handoff
+    says ATUS "measures the processing/preparation term directly, WHICH LSMS
+    CANNOT". MTUS supplies a measured anchor instead.
+    """
+
+    def test_the_anchors_all_exceed_the_assumed_term(self) -> None:
+        """
+        Low-capital food preparation runs 396-473 h/person-yr against the US
+        220.5 the estimate assumes. Every anchor makes the denominator bigger
+        and the floor smaller.
+        """
+        r = af.anchored_processing_estimate()
+        for sample, row in r["anchors"].items():
+            assert row["processing_h_yr"] > 300.0, sample
+            assert row["floor"] < r["assumed_estimate"], sample
+
+    def test_every_anchor_yields_an_upper_bound(self) -> None:
+        """
+        None of these frames is unassisted — South Africa 2010 has mills,
+        electricity and shops — so true unassisted processing exceeds all of
+        them and the true floor is below all of these.
+        """
+        r = af.anchored_processing_estimate()
+        assert r["every_anchor_is_a_lower_bound"] is True
+        assert r["so_every_floor_is_an_upper_bound"] is True
+
+    def test_the_tightest_bound_comes_from_the_largest_anchor(self) -> None:
+        """
+        The opposite of the usual intuition: more unassisted processing means a
+        bigger denominator and a smaller floor.
+        """
+        r = af.anchored_processing_estimate()
+        largest = max(r["anchors"], key=lambda k: r["anchors"][k]["processing_h_yr"])
+        assert r["tightest_anchor"] == largest
+        assert r["tightest_bound"] == min(
+            v["floor"] for v in r["anchors"].values()
+        )
+
+    def test_the_field_no_longer_claims_lsms_can_supply_it(self) -> None:
+        """
+        The correction, pinned. Saying LSMS could supply this made the gap look
+        cheap, and it was wrong in exactly that direction.
+        """
+        field = af.PROCESSING_TERM_FIELD
+        assert "NOT obtainable from LSMS" in field
+        assert "harvest and not the meal" in field
+        assert "2 of the 9" in field, "the partial WASH route must stay bounded"
+
+    def test_the_handoff_still_says_lsms_cannot(self) -> None:
+        """
+        The claim is the handoff's, not this module's. If that sentence is ever
+        removed, this correction has lost its source and must be re-checked.
+        """
+        import pathlib, re
+        doc = pathlib.Path(
+            "handoffs/personal_eoh/HANDOFF_personal_eoh_base.md"
+        )
+        if not doc.exists():          # handoffs/ is gitignored
+            pytest.skip("handoff not present in this checkout")
+        text = re.sub(r"\s+", " ", doc.read_text(encoding="utf-8", errors="replace"))
+        assert "which LSMS cannot" in text

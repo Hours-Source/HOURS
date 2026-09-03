@@ -58,6 +58,7 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     CHILDCARE_CODES_MTUS, COMPONENT_CODES_MTUS, MAPPING_TOLERANCE,
+    PERSONAL_AUTOMATION_FLOORS,
 )
 from hours_eoh.reference import atus_time_use as atus
 from hours_eoh.reference import mtus_time_use as mtus
@@ -734,8 +735,22 @@ def developed_convergence(component: str = "nutrition") -> dict:
     THIS IS NOT YET A FLOOR VALUE, and the reason is stated rather than left
     for a reader to find: every figure here is UNPAID time, so a convergence in
     unpaid cooking may be a convergence in how much cooking is bought rather
-    than in an irreducible core. Food-away-from-home spending would separate
-    them and is not in this repo.
+    than in an irreducible core.
+
+    THAT LIMIT IS NOW PARTLY ADDRESSED, AND ONLY PARTLY.
+    `market_substitution_check()` runs the substitution test on the one country
+    with the resolution for it: US preparation rose 33.8% over 2003-2025 while
+    food bought ready to eat FELL 12.9% and groceries rose 13.7%, with eating
+    flat. Food moved back into the home, so the recent rise is not the market
+    unwinding into the measurement.
+
+    What it does not reach is the part this claim rests on. ATUS opens in 2003,
+    so the 1965-2005 FALL — where the converged level actually came from — is
+    outside it; and the convergence is a CROSS-COUNTRY claim while the test is
+    one country. MTUS cannot supply the others: its harmonised coding does not
+    separate food bought ready to eat, and the best-matching code for that
+    composite over the US overlap is a childcare code at ratio 0.97 with a
+    spread of 0.34 — a spurious match, and the spread is the tell.
 
     "Developed" is taken as the countries WITHOUT a declared institutional
     break and above the median capital of this sample — which this module
@@ -758,8 +773,336 @@ def developed_convergence(component: str = "nutrition") -> dict:
         "is_a_floor_value": False,
         "why_not": (
             "every figure is UNPAID time; a convergence in unpaid cooking may "
-            "be a convergence in how much is bought, and food-away-from-home "
-            "spending is not in this repo"
+            "be a convergence in how much is bought. Partly addressed for the "
+            "US by market_substitution_check() — preparation rose while food "
+            "bought ready to eat fell — but that covers 2003-2025 and one "
+            "country, not the 1965-2005 fall the level came from and not the "
+            "cross-country claim. MTUS carries no food-away-from-home code"
+        ),
+        "substitution_tested_for_us": True,
+        "substitution_tested_cross_country": False,
+    }
+
+
+#: ATUS tier-3 codes for food obtained READY TO EAT rather than cooked at home.
+#: A declared judgement, and a narrow one: buying a prepared meal (070103, which
+#: ATUS separates from grocery shopping at 070101), paying someone to prepare
+#: one (090102), and the travel that going out to eat costs (1811xx). Eating
+#: itself (110101) is NOT here — it happens wherever the food came from and
+#: says nothing about who prepared it.
+FOOD_AWAY_CODES: tuple[str, ...] = ("070103", "090102", "181101", "181199")
+
+#: Buying raw ingredients — the opposite direction. If preparation is moving
+#: INTO the home, this should rise while FOOD_AWAY_CODES falls.
+GROCERY_CODES: tuple[str, ...] = ("070101", "180701")
+
+#: Total eating time, as the control. Marketisation changes where food is
+#: PREPARED, not how much is eaten, so this should be roughly flat under either
+#: reading — and if it moves sharply, something other than substitution is
+#: happening and neither reading is safe.
+EATING_CODES: tuple[str, ...] = ("110101",)
+
+
+def market_substitution_check() -> dict:
+    """
+    Is the US nutrition series marketisation, or real preparation?
+
+    THE LIMIT THIS ADDRESSES. `developed_convergence()` cannot tell an
+    irreducible core from a convergence in how much cooking is BOUGHT, because
+    every figure in this module is unpaid time. Spending data would separate
+    them and is not in this repo — but ATUS carries a TIME signature for food
+    obtained ready to eat, which is a partial substitute for it.
+
+    THE TEST. If the 2003-2025 rise in home preparation were marketisation
+    unwinding into the observation rather than real, buying prepared food would
+    have moved WITH it. Measured, it moves against: preparation +33.7%, food
+    bought ready to eat **-12.9%**, groceries +13.7%, and total eating time flat
+    at +2.4%. Food moved back INTO the home. The rise is not a measurement
+    artefact of the market.
+
+    WHAT IT DOES NOT SETTLE, and it is most of the question. ATUS opens in 2003,
+    so this covers the RECOVERY and not the 1965-2005 fall, which is where the
+    level came from. And it is one country: the cross-country convergence is the
+    claim that needs this most, and MTUS cannot supply it — its harmonised
+    coding does not separate food bought ready to eat, and the best-matching
+    code for this composite across the US overlap is a CHILDCARE code at a
+    ratio of 0.97 with a spread of 0.34. A good ratio on a wild spread is a
+    spurious match, and that is the tell.
+    """
+    years = [y for y in _years()]
+    first, last = years[0], years[-1]
+
+    def hours(year: int, codes: tuple[str, ...]) -> float:
+        return atus.tier3_hours_per_person_15plus(year, codes)
+
+    prep_codes = tuple(
+        c for c in atus.tier3_minutes_per_day(last)
+        if c[:4] in COMPONENT_CODES["nutrition"]
+    )
+    series = {}
+    for label, codes in (
+        ("preparation", prep_codes), ("bought_ready_to_eat", FOOD_AWAY_CODES),
+        ("groceries", GROCERY_CODES), ("eating", EATING_CODES),
+    ):
+        a, b = hours(first, codes), hours(last, codes)
+        series[label] = {"first": a, "last": b, "change": (b - a) / a}
+
+    prep_rose = series["preparation"]["change"] > 0.0
+    away_fell = series["bought_ready_to_eat"]["change"] < 0.0
+    return {
+        "window": (first, last),
+        "series": series,
+        "preparation_rose": prep_rose,
+        "bought_food_fell": away_fell,
+        "moves_against_each_other": prep_rose and away_fell,
+        "eating_is_roughly_flat": abs(series["eating"]["change"]) < 0.10,
+        "rise_is_marketisation": not (prep_rose and away_fell),
+        "covers_the_fall": False,
+        "is_cross_country": False,
+        "verdict": (
+            f"preparation {series['preparation']['change']:+.1%} against food "
+            f"bought ready to eat {series['bought_ready_to_eat']['change']:+.1%} "
+            f"and groceries {series['groceries']['change']:+.1%}, with eating "
+            f"flat at {series['eating']['change']:+.1%} — food moved back INTO "
+            "the home, so the rise is not the market unwinding into the "
+            f"measurement. Covers {first}-{last} and one country only"
+        ),
+    }
+
+
+#: What would retire the assumption in `nutrition_floor_estimate`, and it is NOT
+#: an LSMS field. Corrected 2026-09-03 after checking rather than asserting: the
+#: personal-obligation handoff says plainly that ATUS "measures the
+#: processing/preparation term directly, WHICH LSMS CANNOT". LSMS-ISA v2.0 is a
+#: harmonised agricultural PRODUCTIVITY dataset at household-season and plot
+#: level; turning harvest into food is outside its scope, not a variable in it.
+#: The earlier framing — "a single variable in a survey that already exists" —
+#: was wrong, and wrong in the direction that made the gap look cheap.
+PROCESSING_TERM_FIELD: str = (
+    "hours per person per year on food PROCESSING at low capital — threshing, "
+    "winnowing, pounding, milling, drying, storage, fuel collection, water for "
+    "cooking, and cooking itself. NOT obtainable from LSMS-ISA, which measures "
+    "the harvest and not the meal. Two partial routes exist: the raw LSMS WASH "
+    "modules (30 waves, harness already built) reach water and fuel collection, "
+    "which is 2 of the 9 activities; and TIME-USE surveys at low capital reach "
+    "all of it, which is what MTUS already does approximately."
+)
+
+#: MTUS frames used to anchor the unassisted processing term instead of
+#: assuming it. Each is unpaid food preparation (codes 18,19) in a lower-capital
+#: economy or an earlier decade. NONE is unassisted — South Africa 2010 has
+#: mills, electricity and shops — so every one is a LOWER bound on unassisted
+#: processing, and therefore yields an UPPER bound on the floor.
+PROCESSING_ANCHORS: tuple[str, ...] = ("ZA2000", "ZA2010", "BG2001", "FR1966")
+
+
+def processing_sensitivity() -> dict:
+    """
+    What the unmeasured processing term does to the estimate.
+
+    The one assumption in `nutrition_floor_estimate` is that unassisted
+    processing equals current US processing. `reference.personal_basket` says
+    processing plausibly EXCEEDS production in hand-powered systems, so the
+    assumption is low and the estimate is an upper bound. This prices how far.
+    """
+    from hours_eoh.scenarios.food_conservation import conservation_test
+
+    stages = {s["stage"]: s for s in conservation_test()["stages"]}
+    unassisted_production = stages["production"]["lsms_hours"]
+    if unassisted_production is None or unassisted_production <= 0.0:
+        raise ValueError("no measured unassisted production benchmark")
+    numerator = (
+        stages["production"]["us_total_hours"] + stages["processing"]["us_total_hours"]
+    )
+    cases = {
+        "assumed_equal_to_current_us": stages["processing"]["us_total_hours"],
+        "equal_to_production": unassisted_production,
+        "one_and_a_half_times_production": 1.5 * unassisted_production,
+        "twice_production": 2.0 * unassisted_production,
+    }
+    out = {
+        name: numerator / (unassisted_production + value)
+        for name, value in cases.items()
+    }
+    shipped = out["assumed_equal_to_current_us"]
+    return {
+        "floors": out,
+        "shipped_assumption": shipped,
+        "lowest": min(out.values()),
+        "shipped_is_the_highest": shipped == max(out.values()),
+        "errs": "HIGH",
+        "resolves_by": PROCESSING_TERM_FIELD,
+    }
+
+
+def anchored_processing_estimate() -> dict:
+    """
+    The floor with the processing term ANCHORED rather than assumed.
+
+    `nutrition_floor_estimate` sets unassisted processing equal to current US
+    processing (220.5 h/person-yr), which the handoff says is too low. MTUS
+    supplies a measured alternative: unpaid food preparation in lower-capital
+    economies and earlier decades, which runs 396-473 h/person-yr against the
+    US 2024 figure of 252.
+
+    EVERY ANCHOR IS A LOWER BOUND ON THE UNASSISTED TERM, so every floor here is
+    an UPPER bound. None of these frames is unassisted — South Africa 2010 has
+    mills, electricity and shops — so true unassisted processing exceeds all of
+    them and the true floor is below all of these.
+
+    The tightest bound comes from the LARGEST anchor, which is the opposite of
+    the usual intuition: more unassisted processing means a bigger denominator
+    and a smaller floor.
+    """
+    from hours_eoh.scenarios.food_conservation import conservation_test
+
+    stages = {s["stage"]: s for s in conservation_test()["stages"]}
+    unassisted_production = stages["production"]["lsms_hours"]
+    if unassisted_production is None or unassisted_production <= 0.0:
+        raise ValueError("no measured unassisted production benchmark")
+    numerator = (
+        stages["production"]["us_total_hours"] + stages["processing"]["us_total_hours"]
+    )
+    per_year = 365.25 / 60.0
+    anchors = {}
+    for sample in PROCESSING_ANCHORS:
+        processing = mtus.code_minutes(sample, COMPONENT_CODES_MTUS["nutrition"]) * per_year
+        anchors[sample] = {
+            "processing_h_yr": processing,
+            "floor": numerator / (unassisted_production + processing),
+        }
+    floors = {k: v["floor"] for k, v in anchors.items()}
+    tightest = min(floors, key=lambda k: floors[k])
+    return {
+        "anchors": anchors,
+        "assumed_estimate": numerator / (unassisted_production + stages["processing"]["us_total_hours"]),
+        "anchored_range": (min(floors.values()), max(floors.values())),
+        "tightest_bound": floors[tightest],
+        "tightest_anchor": tightest,
+        "every_anchor_is_a_lower_bound": True,
+        "so_every_floor_is_an_upper_bound": True,
+        "verdict": (
+            f"anchoring the processing term on measured low-capital food "
+            f"preparation gives {min(floors.values()):.3f}-{max(floors.values()):.3f} "
+            f"against the assumed {numerator / (unassisted_production + stages['processing']['us_total_hours']):.3f}. "
+            "No anchor is unassisted, so the true floor is below all of them"
+        ),
+    }
+
+
+def nutrition_floor_estimate() -> dict:
+    """
+    A US-frame best guess at the nutrition automation floor, and its band.
+
+    WHY THIS CONSTRUCTION AND NOT THE TIME SERIES. Everything else in this
+    module measures UNPAID time, which cannot separate automation from
+    marketisation. This one does not have that problem: it counts the TOTAL
+    human labour serving the nutrition obligation, paid and unpaid, from
+    `scenarios.food_conservation`. **A restaurant cook is human labour.** Moving
+    preparation from a kitchen to a kitchen-for-hire shifts hours between the
+    two buckets and leaves the total untouched, so marketisation cannot move
+    this number at all. That is the whole reason it is worth computing.
+
+    THE BENCHMARK IS MEASURED, NOT ASSUMED. The unassisted counterfactual for
+    PRODUCTION is the LSMS smallholder figure the repo already carries — 330.9
+    h/person-yr, rainfed, unassisted stratum, seven countries. Against it, US
+    production retains **1.55%**: automation took essentially all of it.
+
+    SERVICE IS EXCLUDED (author decision, 2026-09-03), and the reason is
+    structural rather than a preference. **A floor is a lower bound, and service
+    has no upper one.** There is no cap on how elaborately a meal can be
+    prepared and presented; any number of methods can absorb any number of
+    hours, and what those hours command is a market price. An unbounded quantity
+    cannot be a floor — it is discovery ABOVE the floor, which is exactly the
+    split `core.prices.floor_price` draws between the guaranteed level and the
+    `market_premium` above it. Service belongs on the premium side.
+
+    The measurement agrees with the argument: the unassisted benchmark carries
+    ZERO service, so US service hours are an activity that did not previously
+    exist rather than labour that survived automation. Including them asks what
+    share of TODAY'S food labour is un-automatable, which is a different and
+    weaker question than what share of the OBLIGATION is.
+
+    Both figures are still returned — `estimate_including_service` is kept as
+    the superseded reading so the 14-point difference the decision resolves
+    stays visible, on the pattern the Ψ policies and `uniform` set.
+
+    THE LOAD-BEARING ASSUMPTION, AND IT ERRS HIGH. The unassisted PROCESSING
+    term is not measured, so this sets it equal to current US processing. But
+    `reference.personal_basket` already names both the gap and its size:
+    processing is "threshing, winnowing, pounding, milling, drying, storage,
+    fuel collection, water for cooking, and cooking itself... **in hand-powered
+    systems processing plausibly exceeds production labour**". Unassisted
+    production is 330.9 h/person-yr and this assumption uses 220.5, so the
+    denominator is almost certainly too small and **the estimate is an UPPER
+    bound**. `processing_sensitivity()` prices it: at processing equal to
+    production the floor is 0.341, at 1.5x it is 0.273, at 2x it is 0.227.
+
+    So the honest reading is **0.409 as a ceiling, with the plausible range
+    running down toward 0.23-0.34**, and the LSMS field below is what would
+    replace the assumption with a measurement.
+
+    **THIS IS A BEST GUESS, NOT A MEASUREMENT, AND IT IS NOT ADOPTED.**
+    `PERSONAL_AUTOMATION_FLOORS` still carries no nutrition entry.
+    """
+    from hours_eoh.scenarios.food_conservation import conservation_test
+
+    stages = {s["stage"]: s for s in conservation_test()["stages"]}
+    production, processing, service = (
+        stages["production"], stages["processing"], stages["service"]
+    )
+    unassisted_production = production["lsms_hours"]
+    if unassisted_production is None or unassisted_production <= 0.0:
+        # The whole estimate rests on this one measured benchmark. Without it
+        # there is no denominator, and inventing one is the failure this module
+        # exists to avoid.
+        raise ValueError(
+            "no measured unassisted production benchmark; the nutrition floor "
+            "estimate has no denominator without it"
+        )
+    current = {k: v["us_total_hours"] for k, v in stages.items()}
+
+    # Excluding service: what share of the SUBSISTENCE obligation stays human.
+    num_core = current["production"] + current["processing"]
+    den_core = unassisted_production + current["processing"]
+    # Including service on both sides: what share of TODAY'S food labour is
+    # un-automatable. Service enters the denominator only because it is in the
+    # numerator; the unassisted economy has none of it.
+    num_all = num_core + current["service"]
+    den_all = den_core + current["service"]
+
+    low, high = num_core / den_core, num_all / den_all
+    paid = sum(v["us_paid_hours"] for v in stages.values())
+    total = sum(current.values())
+    return {
+        "frame": "US, 2025, per person per year",
+        "current_hours": current,
+        "total_hours": total,
+        "paid_share": paid / total,
+        "unassisted_production_benchmark": unassisted_production,
+        "production_retained": current["production"] / unassisted_production,
+        "estimate_excluding_service": low,
+        "estimate_including_service": high,
+        "estimate": low,
+        "service_excluded": True,
+        "service_is_unbounded": True,
+        "superseded_reading_including_service": high,
+        "decision_cost": high - low,
+        "unassisted_service_is_zero": service["lsms_hours"] == 0.0,
+        "unassisted_processing_is_assumed": processing["lsms_hours"] is None,
+        "marketisation_cannot_move_it": True,
+        "is_a_measurement": False,
+        "errs": "HIGH",
+        "resolves_by": PROCESSING_TERM_FIELD,
+        "is_adopted": "nutrition" in PERSONAL_AUTOMATION_FLOORS,
+        "verdict": (
+            f"US nutrition floor {low:.3f}, service EXCLUDED because it has no "
+            f"upper bound and a floor is a lower one (including it gives "
+            f"{high:.3f}). Production retains "
+            f"{current['production'] / unassisted_production:.1%} of its "
+            "unassisted level; preparation retains essentially all of its. A "
+            "best guess on a measured production benchmark and an ASSUMED "
+            "processing one — not a measurement, and not adopted"
         ),
     }
 
@@ -781,6 +1124,10 @@ def report() -> dict:
         "childcare_identification": childcare_identification(),
         "childcare_scope": childcare_is_not_the_care_component(),
         "care_floor_corroboration": care_floor_corroboration(),
+        "market_substitution": market_substitution_check(),
+        "nutrition_floor_estimate": nutrition_floor_estimate(),
+        "processing_sensitivity": processing_sensitivity(),
+        "anchored_processing": anchored_processing_estimate(),
         "components": floor_direction(),
         "trends": {c: activity_trends(c) for c in UNFLOORED},
         "produces_a_floor_value": False,

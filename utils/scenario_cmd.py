@@ -783,6 +783,34 @@ def _dispatch(args: argparse.Namespace) -> object:
         )
         af_out["care_floor_corroboration"] = cf["verdict"]
         af_out["care_floor_is_measured"] = cf["is_a_measurement_of_the_floor"]
+        ms = rep["market_substitution"]
+        for k, v in ms["series"].items():
+            af_out[f"food_{k}"] = f"{v['first']:.1f} -> {v['last']:.1f} h/p15+/yr ({v['change']:+.1%})"
+        af_out["rise_is_marketisation"] = ms["rise_is_marketisation"]
+        af_out["substitution_verdict"] = ms["verdict"]
+        nf = rep["nutrition_floor_estimate"]
+        af_out["nutrition_floor_estimate"] = (
+            f"{nf['estimate']:.3f} (US frame, service EXCLUDED; including it "
+            f"gives {nf['superseded_reading_including_service']:.3f}); "
+            f"production retains {nf['production_retained']:.1%}"
+        )
+        ps = rep["processing_sensitivity"]
+        af_out["nutrition_floor_errs"] = (
+            f"{nf['errs']} — the unassisted processing term is ASSUMED equal to "
+            f"current US processing; at processing equal to production the floor "
+            f"is {ps['floors']['equal_to_production']:.3f}, at 2x it is "
+            f"{ps['floors']['twice_production']:.3f}"
+        )
+        an = rep["anchored_processing"]
+        af_out["nutrition_floor_anchored"] = (
+            f"{an['anchored_range'][0]:.3f}–{an['anchored_range'][1]:.3f} with the "
+            f"processing term ANCHORED on measured low-capital food prep "
+            f"(tightest {an['tightest_bound']:.3f} from {an['tightest_anchor']}); "
+            "every anchor is a lower bound, so every floor is an upper one"
+        )
+        af_out["nutrition_floor_resolves_by"] = nf["resolves_by"]
+        af_out["nutrition_floor_is_adopted"] = nf["is_adopted"]
+        af_out["nutrition_floor_verdict"] = nf["verdict"]
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out
