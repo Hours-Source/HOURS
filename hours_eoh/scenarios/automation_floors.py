@@ -1115,6 +1115,106 @@ def nutrition_floor_estimate() -> dict:
     }
 
 
+#: Occupations that could plausibly bear on HOUSEHOLD shelter. Kept as a list
+#: rather than a filter because the point of `shelter_construction_fails` is
+#: that the household share of each is unknown — and, as it turns out, does not
+#: matter.
+SHELTER_CANDIDATE_OCCUPATIONS: tuple[str, ...] = (
+    "372011", "372012", "516011", "499031", "493023", "493021",
+    "499071", "472031", "472152", "472111",
+)
+
+
+def shelter_construction_fails(
+    only_samples: tuple[str, ...] | None = None,
+) -> dict:
+    """
+    Why the nutrition construction does NOT transfer to shelter. A NEGATIVE
+    RESULT, recorded so it is not attempted twice.
+
+    THE PREDICTED BLOCKER WAS THE NUMERATOR, AND IT IS NOT THE PROBLEM. Food had
+    clean SOC blocks — agriculture, food processing, food prep and serving — all
+    unambiguously serving the food obligation. Shelter has no household-scoped
+    equivalent: a janitor cleaning an office serves nobody's personal shelter
+    obligation, and carpenters and plumbers mix construction (which this repo
+    already excludes as creation rather than upkeep) with household repair. So
+    the household share of every candidate occupation is unknown.
+
+    It turns out not to matter. Paid shelter labour is small against unpaid:
+    sweeping the assumed household share from 5% to 100% — a 20x range — moves
+    the floor only 0.577 to 0.682, because unpaid shelter is 265 h/person-yr and
+    the entire candidate pool at 100% is 52.
+
+    THE DENOMINATOR IS WHAT FAILS. Nutrition had ONE measured benchmark: the
+    LSMS unassisted stratum, defined by what it lacks — no improved seed, no
+    inorganic fertiliser, no irrigation, no tractor. Shelter has no such stratum,
+    only proxy countries, and they do not order by capital. The candidate frames
+    span 2.50x (192.3 h/person-yr in KR2009 to 481.1 in BG2001), giving floors
+    from 0.583 to **1.460** — and a floor above 1.0 is not a floor at all. It
+    would mean US shelter labour exceeds its own unassisted level.
+
+    This is the same shape as `cross_country()`'s result and `developed_
+    convergence`'s: shelter does not converge (2.42x band) and Korea is the
+    outlier in both. A construction needs a DEFINED unassisted stratum, not a
+    poor country used as a stand-in.
+    """
+    from hours_eoh.scenarios.food_conservation import load_registry, hours_per_worker_year
+    from hours_eoh.scenarios.component_shares import COMPONENT_CODES as ATUS_CODES
+
+    registry = {r["occ6"]: r for r in load_registry()}
+    employment = sum(
+        float(registry[c]["employment_k"]) * 1000.0
+        for c in SHELTER_CANDIDATE_OCCUPATIONS if c in registry
+    )
+    population = 335.0e6
+    hours = hours_per_worker_year()
+    year = _years()[-1]
+    unpaid = sum(
+        atus.hours_per_person_15plus(year, (c,)) for c in ATUS_CODES["shelter"]
+    )
+    per_year = 365.25 / 60.0
+    # `only_samples` exists so the impossible-floor branch is REACHABLE: on the
+    # full set the flag is always True, so a test against it alone cannot tell a
+    # computed result from a hard-coded one. Restricting to high benchmarks must
+    # flip it to False.
+    benchmarks = {
+        s: mtus.code_minutes(s, COMPONENT_CODES_MTUS["shelter"]) * per_year
+        for s in mtus.codes_by_sample()
+        if s[2:].isdigit() and (only_samples is None or s in only_samples)
+    }
+    if not benchmarks:
+        raise ValueError("no benchmark samples selected")
+    mid_paid = employment * hours * 0.30 / population
+    floors = {s: (unpaid + mid_paid) / v for s, v in benchmarks.items()}
+
+    share_sweep = {
+        share: (unpaid + employment * hours * share / population)
+        / max(benchmarks.values())
+        for share in (0.05, 0.15, 0.30, 0.50, 1.00)
+    }
+    lo_b, hi_b = min(benchmarks.values()), max(benchmarks.values())
+    return {
+        "unpaid_h_yr": unpaid,
+        "paid_at_full_pool_h_yr": employment * hours / population,
+        "numerator_share_sweep": share_sweep,
+        "numerator_sweep_span": max(share_sweep.values()) - min(share_sweep.values()),
+        "benchmark_range": (lo_b, hi_b),
+        "benchmark_span_ratio": hi_b / lo_b,
+        "floor_range": (min(floors.values()), max(floors.values())),
+        "some_benchmark_gives_a_floor_above_one": max(floors.values()) > 1.0,
+        "numerator_is_the_blocker": False,
+        "denominator_is_the_blocker": True,
+        "verdict": (
+            f"the household share barely matters — sweeping it 5%-100% moves the "
+            f"floor only {max(share_sweep.values()) - min(share_sweep.values()):.3f} "
+            f"— but the benchmark spans {hi_b / lo_b:.2f}x and yields floors from "
+            f"{min(floors.values()):.3f} to {max(floors.values()):.3f}, the upper "
+            "end being impossible. Shelter has no defined unassisted stratum, "
+            "only proxy countries that do not order by capital"
+        ),
+    }
+
+
 def report() -> dict:
     """Everything this scenario reports, in one call."""
     return {
@@ -1134,6 +1234,7 @@ def report() -> dict:
         "care_floor_corroboration": care_floor_corroboration(),
         "market_substitution": market_substitution_check(),
         "nutrition_floor_estimate": nutrition_floor_estimate(),
+        "shelter_construction_fails": shelter_construction_fails(),
         "processing_sensitivity": processing_sensitivity(),
         "anchored_processing": anchored_processing_estimate(),
         "components": floor_direction(),

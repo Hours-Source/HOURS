@@ -980,3 +980,62 @@ class TestTheProcessingTermIsAnchoredNotAssumed:
             pytest.skip("handoff not present in this checkout")
         text = re.sub(r"\s+", " ", doc.read_text(encoding="utf-8", errors="replace"))
         assert "which LSMS cannot" in text
+
+
+class TestShelterCannotTakeTheConstruction:
+    """
+    A negative result, recorded so it is not attempted twice — and the blocker
+    is not the one that was predicted.
+    """
+
+    def test_the_numerator_is_not_the_blocker(self) -> None:
+        """
+        The household share of every candidate occupation is unknown, which
+        looked like the problem. It is not: paid shelter labour is small
+        against unpaid, so a 20x sweep in the assumed share barely moves the
+        answer.
+        """
+        r = af.shelter_construction_fails()
+        assert r["numerator_is_the_blocker"] is False
+        assert r["numerator_sweep_span"] < 0.15
+        assert r["paid_at_full_pool_h_yr"] < r["unpaid_h_yr"] / 4.0
+
+    def test_the_denominator_is(self) -> None:
+        r = af.shelter_construction_fails()
+        assert r["denominator_is_the_blocker"] is True
+        assert r["benchmark_span_ratio"] > 2.0
+
+    def test_some_benchmark_gives_an_impossible_floor(self) -> None:
+        """
+        A floor above 1.0 would mean US shelter labour exceeds its own
+        unassisted level. That is the tell that no benchmark here is one.
+        """
+        r = af.shelter_construction_fails()
+        assert r["some_benchmark_gives_a_floor_above_one"] is True
+        assert r["floor_range"][1] > 1.0
+        assert r["some_benchmark_gives_a_floor_above_one"] is (r["floor_range"][1] > 1.0)
+
+    def test_the_flag_is_computed_not_asserted(self) -> None:
+        """
+        THE MUTATION THAT DID NOT BITE. Hard-coding the flag True passed, because
+        on the full sample set it IS True and the test checked the fact and the
+        flag separately. Restricting to the high benchmarks makes the False
+        branch reachable, so a hard-coded flag now fails.
+        """
+        high = af.shelter_construction_fails(only_samples=("BG2001", "ZA2000", "FR1966"))
+        assert high["floor_range"][1] < 1.0
+        assert high["some_benchmark_gives_a_floor_above_one"] is False
+
+    def test_it_agrees_with_the_convergence_result(self) -> None:
+        """
+        The same shape twice: shelter does not converge and its cross-section
+        is not a capital gradient. If shelter ever DID converge, this negative
+        result would need re-examining rather than standing.
+        """
+        conv = af.developed_convergence("shelter")
+        nut = af.developed_convergence("nutrition")
+        assert conv["band_ratio"] > nut["band_ratio"]
+
+    def test_shelter_is_still_unfloored(self) -> None:
+        assert "shelter" not in af.PERSONAL_AUTOMATION_FLOORS
+        assert "shelter" in af.UNFLOORED

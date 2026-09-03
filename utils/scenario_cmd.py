@@ -811,6 +811,11 @@ def _dispatch(args: argparse.Namespace) -> object:
         af_out["nutrition_floor_resolves_by"] = nf["resolves_by"]
         af_out["nutrition_floor_is_adopted"] = nf["is_adopted"]
         af_out["nutrition_floor_verdict"] = nf["verdict"]
+        sf = rep["shelter_construction_fails"]
+        af_out["shelter_construction"] = sf["verdict"]
+        af_out["shelter_blocker"] = (
+            "denominator" if sf["denominator_is_the_blocker"] else "numerator"
+        )
         af_out["produces_a_floor_value"] = rep["produces_a_floor_value"]
         af_out["what_would_settle_it"] = rep["what_would_settle_it"]
         return af_out
