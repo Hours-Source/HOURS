@@ -45,7 +45,8 @@ recalled. Regenerate with `eoh provenance check`.
 
 - **126 of 138 placeholder/bounded constants carry no confidence figure.** *(caveat)*
   Ratcheted; may not rise.
-- **Three of four personal automation floors are absent.** *(pointer)* See
+- **Two of four personal automation floors carry a value; both are improved
+  placeholders, neither settled.** *(pointer)* See
   [personal.md § Open](personal.md#open).
 - **The three-curves-one-shape lead is untouched.** *(person)* Three constants make the same
   claim — labour content declines to an irreducible floor — with exponents spread
@@ -58,8 +59,13 @@ recalled. Regenerate with `eoh provenance check`.
   claim. *Settles by:* an author decision on whether they are.
 - **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is opt-in, which is
   the wrong shape for a circularity check — every failure found so far was one
-  nobody thought to declare. The right-hand side of each assignment is already an
-  exact dependency statement readable with `ast`.
+  nobody thought to declare. **Scope corrected 2026-09-04, measured:** "the
+  right-hand side of each assignment is already an exact dependency statement"
+  holds for **12 of 300** top-level assignments — the other 288 are bare
+  literals, which is why `form:` is prose in 206 places. So the route is small;
+  but `band_from:` is declared **once**, so deriving those 12 takes the
+  circularity check from one edge to twelve. Bounded, no external data, and the
+  gain lands on the check it was written for.
 - **The scan is `data.py`-only.** *(caveat)* "300/300 tagged" means 300 constants *in
   `data.py`*; the 33 shadow constants are invisible to every count published.
 

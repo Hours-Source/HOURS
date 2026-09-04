@@ -42,9 +42,19 @@ recalled. None of these lines is gated; check the constant before quoting it.
 
 ## Open
 
-- **Three of four personal automation floors are absent** *(gap)* — only care and
-  nutrition are measured. *Settles by:* the share of hours whose value depends on
-  a HUMAN performing them, not the share a machine could technically take.
+- **Two of four personal automation floors carry a value, and neither is
+  settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS; shelter and
+  health carry nothing. Both were built by FOLLOWING their own `resolves_by`,
+  and neither route closed: nutrition is an UPPER bound (confidence 45,
+  `errs: HIGH`), care an ordering-derived LOWER bound (confidence 20,
+  `errs: LOW`) gated by `test_the_inversion_is_now_RESOLVED` *(gated)*. **The
+  routes replaced a first guess with a bounded one and made the `resolves_by`
+  more precise — which is what following a pointer usually buys, and it is not
+  closure.** Detail: [improved-not-settled](#improved-not-settled).
+  *Settles by:* nutrition — hours per person-year on food PROCESSING at
+  genuinely low capital, the nine activities raw LSMS WASH reaches two of; care
+  — a stated-preference instrument (would this hour be acceptable from a
+  machine), and no such survey is in this repo.
 - **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
@@ -56,8 +66,14 @@ recalled. None of these lines is gated; check the constant before quoting it.
   **together** — one acquisition, not five fieldwork items.
 - **Type-specific abatement** *(gap)* — which capital abates which component. Abatement
   is currently driven by TOTAL capital per capita.
-- **Adopting abatement as the DEFAULT generation path** *(gap)*, which retires the
-  `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
+- **Adopting abatement as the DEFAULT generation path** *(person)*, which retires
+  the `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
+  **Retyped `gap` → `person` 2026-09-04**, on measurement: abatement is not a
+  `standard` option — `personal_standard` accepts `collapsed|sufficiency|survival`
+  only — so this is not selecting an existing path but changing how personal EOH
+  is GENERATED on the documented entry point. That is a theory commitment under
+  the §5 guardrail, not local work, and it needs the author. *Settles by:* author
+  sign-off on the generation path, after which the wiring is ordinary work.
 
 ## Cross-area entries
 
@@ -73,11 +89,20 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="improved-not-settled"></a>
+
+**THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT WAS WRONG IN TWO FILES** (2026-09-04). Found by the first review run against the typed `## Open` sections. No code changed; three prose sites corrected.
+- **THE COUNT CONTRADICTED ITSELF INSIDE ONE SENTENCE.** "Three of four personal automation floors are absent — only care and nutrition are measured": if only two are measured, two are absent. `PERSONAL_EOH_COMPONENTS` has four components, `PERSONAL_AUTOMATION_FLOORS` has two, absent are shelter and health. `provenance.md`'s pointer repeated the wrong count; `CLAUDE.md` had it right.
+- **AND "MEASURED" WAS THE WRONG WORD FOR BOTH.** Both constants are tagged `placeholder` with an open `resolves_by`, and both blocks say so — care's: *"no such survey is in this repo"*; nutrition's: *"DELIBERATELY NOT `normative` … Promoting it would … hide the fact that it is still open."* The standing measurement debt described two placeholders as measured, which is a provenance tag word used loosely in the one file that is loaded every session.
+- **WHAT FOLLOWING THE `resolves_by` ACTUALLY BOUGHT.** Nutrition anchors four terms, three measured (US paid and unpaid labour, the LSMS production benchmark, the MTUS FR1966 processing anchor at 472.6 h/person·yr) — but no frame is truly unassisted, since FR1966 and ZA2010 both have mills and electricity, so it is an UPPER bound of unknown tightness. Care could not use that construction at all: low-capital MTUS frames do LESS childcare than the US (ZA2010 106.9 against US 174.7 h/person-15+·yr), so the denominator runs backwards; it is an ordering-derived LOWER bound whose own function flags the output `is_an_internal_consistency_result`. **Neither route closed. Both replaced a first guess with a bounded one and returned a SHARPER `resolves_by` than the one they were given** — nutrition's nine named activities against raw LSMS WASH's two, care's stated-preference instrument in place of a benchmark that cannot exist. That is the normal yield of following a pointer, and calling it settlement is the error.
+- **A FOURTH FINDING WAS MINE AND IT WAS WRONG.** I reported the two floors as an unbound copy of one value (both 0.2808, failure mode 4) on the strength of a grep that found no ordering assertion. Mutation found one immediately: raising nutrition to 0.40 fails `TestTheCareFloorLooksTooLow::test_the_inversion_is_now_RESOLVED`. **The equality is derived, documented AND gated; a grep proving absence proved nothing.** Searches establish presence; only mutation establishes enforcement.
+
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 18 entries, newest first | |
+| 19 entries, newest first | |
 |---|---|
+| [improved-not-settled](#improved-not-settled) | THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT… |
 | [circularity-check-atus-cannot-resolve-b](#circularity-check-atus-cannot-resolve-b) | THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EAR… |
 | [care-raised-to-ordering-bound](#care-raised-to-ordering-bound) | CARE RAISED TO THE ORDERING BOUND, AND IT LEFT `normative` |
 | [nutrition-floor-adopted](#nutrition-floor-adopted) | THE NUTRITION FLOOR IS ADOPTED AT 0.2808 — THREE OF FOUR COMPONENTS WERE 0.0 |

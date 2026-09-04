@@ -374,7 +374,7 @@ someone remembering it, which is what this section is for.
     bytecode question before a logic one. `git status` cannot verify restoration
     of an untracked file.
 
-13. **VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** *(corpus F-027)* Four times in one
+13. **VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** *(corpus F-027, F-040)* Four times in one
     session the numbers were checked and the sentence about them was not: a false
     crossover, a "clears with 6% to spare" that held only under an unstated
     full-employment assumption, a figure half-sourced from a gitignored artifact,
@@ -382,6 +382,12 @@ someone remembering it, which is what this section is for.
     made it read as though it had been. *Do:* for every "because X", evaluate X
     and check its DIRECTION. And do not restate a derived figure in prose — that
     drift has been caught nine times; return it from the function instead.
+    **The reader half of that rule: when REVIEWING, call the function too.** A
+    κ ratio re-derived from the rounded prose figure gave 67× where
+    `implied_kappa()` returns 69.17×, one call away. And **name the instrument
+    with every finding** — one review produced four wrong conclusions and all
+    four were the instrument, not the reasoning; a claim that something is *not*
+    enforced needs a mutation, never a search.
 
 **A checker must state its own gaps** (corpus F-013). An undocumented gap makes
 the checker read as stronger than it is, which is mode 1 one level up. Static and
@@ -488,9 +494,14 @@ this whole structure forbids.**
 - **126 of 138** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
-- **Two of four** personal automation floors are measured — care and nutrition.
-  Shelter and health carry none, which is an ADMISSION and not a zero, so the
-  observable-ε ceiling errs HIGH. → [`record/personal.md § Open`](record/personal.md#open)
+- **Two of four** personal automation floors carry a value at all — care and
+  nutrition, both still `placeholder`. **Following their `resolves_by` did not
+  settle them; it improved them and sharpened what would.** Nutrition is a
+  four-term construction that is an UPPER bound because no unassisted frame
+  exists; care is an ordering-derived LOWER bound its own function flags as an
+  internal-consistency result. Shelter and health carry none, which is an
+  ADMISSION and not a zero, so the observable-ε ceiling errs HIGH.
+  → [`record/personal.md § Open`](record/personal.md#open)
 - The three-curves-one-shape lead: three constants make the same claim with
   exponents spread 2.9× and floors 4×. **One measurement may settle four.**
   → [`record/provenance.md § Open`](record/provenance.md#open)
@@ -519,7 +530,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 39 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 40 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
