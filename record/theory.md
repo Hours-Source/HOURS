@@ -1,0 +1,103 @@
+# Positions awaiting the author
+
+**Scope.** The value anchor, the anchor comparison, the discovery layer above the
+floor, registration capture, the intake guide, and the sign-offs already
+published.
+
+**These are not gates.** Every item here needs argument or an author decision,
+not a measurement or a test. The §3 guardrail governs: theory changes go behind a
+labelled PR for AWol to approve, and are never silently rewritten in docstrings.
+
+Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
+
+---
+
+## Live state — what is settled
+
+- **Workstreams C and F are signed off and published** (2026-08-15, author
+  decision): the price-as-floor reframing, system-wide inflation-impossibility
+  demoted to a within-collective floor property with an ε→1 asymptote, and the
+  objectivity → transparency language pass. Adopted on the grounds that they are
+  the more defensible case — **a weaker true claim beats a stronger false one.**
+  The original theorem is documented as the limit case, not deleted, per the §5
+  guardrail.
+- **Four retirements in `notes/value-anchor.md` §1 are signed off** (2026-09-02):
+  "backed by human labor" → "backed by the capacity to fulfil obligations";
+  "entropy is measured in time" → the numeraire framing; ε as the share that no
+  longer depends on human agency; and trust relocating rather than disappearing.
+- **The base is held blind to ecosystem condition, as a charter commitment**
+  (2026-09-02). See [ecological.md § Live state](ecological.md#live-state) — the
+  obligation is not dropped, it is ASSIGNED to GUF.
+- **The framework cannot claim its frame is "most defensible".** Phase 0 of the
+  anchor comparison classifies eight anchors from their own definitions without
+  modelling a rival: two indeterminate, two indifferent by design, and of those
+  whose base moves with physical activity, **`mutual credit` and `HOURS` hold all
+  three properties.** The differentiator is SCALE, not structure. Pinned as
+  not-unique.
+
+## Open
+
+- **`notes/value-anchor.md` §2 is not signed off for publication.** Specifically:
+  whether it ships as drafted, and whether the corrected CENSUS-vs-VALUATION
+  framing is accepted — it replaces "no price in the chain", which measurement
+  showed is true of both routes and distinguishes nothing. *Settles by:* author
+  decision. See
+  [verification.md#doctrine-invariance-was-circular](verification.md#doctrine-invariance-was-circular).
+- **The discovery layer is a 120-line stub with 3 functions** (`research/desire.py`).
+  The stock identity bounds the guaranteed portion; what a unit commands ABOVE
+  the floor has no theory, so every claim about purchasing power is scoped to the
+  floor and `floor_claim_across_the_arc` flags its own result as internal.
+  *Settles by:* a theorem, not code.
+- **Registration capture is measured and unmodelled.** Unit elasticity on the
+  money supply, and the only lever that moves it — so whoever controls what counts
+  controls issuance, which is the failure mode discretionary issuance is
+  criticised for. **The contestability arc addresses EXIT; this is VOICE.**
+  *Settles by:* a governance model of the register, which does not exist.
+- **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** Phase 0 may be
+  sufficient; building further is monetary economics rather than entropy
+  accounting, and is the surface growth the review's §15 warns about. **Do not
+  build without a reason to.**
+- **`teh_supply` is pinned, not decided** — wire it, retire it, or leave it. A
+  test fails if it acquires a caller, which is the safe holding state. See
+  [verification.md § Live state](verification.md#live-state).
+
+## Cross-area entries
+
+| Entry | Also | Why |
+|---|---|---|
+| [anchor-comparison-phase-0](#anchor-comparison-phase-0) | [ecological](ecological.md#live-state), [fulfilment](fulfilment.md#live-state) | HOURS' own row is the only one computed, and it includes the axis where this anchor loses: ecosystem halves → minting 0.0% |
+| [intake-guide-fulfilment-warning](#intake-guide-fulfilment-warning) | [fulfilment § Live state](fulfilment.md#live-state) | The `available_labor_eoh` default is the single most consequential entry in the intake table |
+
+---
+
+## History
+
+Newest first, verbatim as written. Anchors are stable — link to a specific entry
+as `record/theory.md#<slug>`.
+
+<a id="intake-guide-fulfilment-warning"></a>
+
+**THE INTAKE GUIDE CARRIES THE FULFILMENT WARNING — AND REVIEWING IT FOUND FIVE DEFECTS, THREE OF THEM MINE** (2026-09-02). `docs/guides/implementation_guide.md`: an eighth intake field, the demand-vs-fulfilment note, corrected outputs, and a worked example that now runs verbatim. 3,802 pass, mypy clean on 89 files. **No code changed.**
+- **THE GAP IT CLOSES.** The mint gate established that `available_labor_eoh` defaults to unsupplied, so the pipeline mints from obligation DEMANDED rather than SERVED — and the one document written for analysts had **zero mentions of the field**. It told institutions to run the pipeline and never said that without it they are measuring demand. The intake table now carries it, with the note that this is the single most consequential default in the table.
+- **AND THE INTAKE ROW WARNS AGAINST THE EXACT ERROR I MADE DRAFTING IT.** `hours_per_worker_year` is per EMPLOYED worker; my first example multiplied it by WORKING-AGE population, which assumes full employment. The example "cleared with 6% to spare" only because of that. **The author caught it by reading the arithmetic**, not from a failing test — the numbers were internally consistent and wrong.
+- **MY CAUSAL EXPLANATION WAS ALSO FALSE, AND THAT IS THE MORE INSTRUCTIVE ONE.** I wrote that the example fails because ε=0.28 sits below the feasibility crossover. `feasible_epsilon()` returns **0.158** — 0.28 is ABOVE it. The real answer is that **this example clears at ≥0.4655** on its own capital stock and demography, and the package default is a different configuration entirely. **I had verified every number around the claim and not the claim itself**: an explanation asserted in the same breath as figures that were checked reads as though it were checked too.
+- **A FOUR-ROW TABLE OF DERIVED FIGURES WAS DELETED RATHER THAN CORRECTED.** Two of its four rows already disagreed with the code — rounded hours printed beside deferrals computed at unrounded ones. Restating four computed numbers in a comment is the drift this repo has caught nine times; the guide now states the SHAPE (no point in `WORK_YEAR_REFERENCE_POINTS` reaches the required 2,510 h/worker) and one anchor figure.
+- **AND A CONFUSION A READER WOULD HAVE HIT.** Once the labour constraint binds, `human_eoh` reports what was **SERVED**, not what was owed — 4.586e9 against an obligation of 5.535e9. **Reading it alone under a binding constraint reports your own labour supply back to you.** Documented: the obligation is `human_eoh + deferred_total`, and the identity is verified.
+- **THE EXAMPLE DOES NOT CLEAR, AND IT SHIPS THAT WAY.** 2,510 h/worker·yr required against 2,080 nominal; `deferred_total` 948,627,409. The guide says explicitly not to raise the labour figure until the deferral disappears, because the deferral is the finding. It also tells an institution to compute its OWN clearing point rather than quote the package default.
+
+<a id="anchor-comparison-phase-0"></a>
+
+**THE ANCHOR COMPARISON, PHASE 0 — AND HOURS IS NOT UNIQUE** (2026-09-02). `research/anchor_determinacy.py` + `tests/test_anchor_determinacy.py`, 24 tests, 3,802 pass, mypy clean on 89 files. **REPORTING ONLY — no rival is simulated and no shipped number moves.**
+- **THE FRAMEWORK'S COMPARATIVE CLAIM HAD BEEN ARGUED AND NEVER CHECKED.** "Human productive capacity is a more defensible reference frame than commodity scarcity, discretionary issuance or credit" rested on a prose table. **A comparison whose rivals you model yourself is the easiest thing in this repo to fake** — pick a weak version of each and the conclusion writes itself, which is the calibrated-to-target failure at the scale of a module.
+- **SO NO RIVAL IS MODELLED AT ALL.** Each is classified from its OWN definition at its advocates' strongest reading, and `advocates_say` is a REQUIRED field with a test on it. Gold and bitcoin's entries state indifference as the property being bought; fiat's states discretion as the feature. An AST test asserts the module imports nothing outside `hours_eoh.core.*` — the moment a rival acquires a model, the comparison stops being a classification.
+- **AND THE CHARITY IS WHAT PRODUCES THE FINDING.** Fiat and debt money carry `responsive=None`, not `False`: **an anchor whose issuance is discretionary has no capacity response that follows from what it IS.** Recording that as "unresponsive" would be a claim about monetary policy nobody here is entitled to make — and treating it as indeterminate means the comparison runs **without modelling monetary policy at all**, which is the thing that would have made it worthless.
+- **THE RESULT IS NOT UNIQUENESS, AND THAT IS BETTER.** Of eight anchors: 2 indeterminate (fiat, debt), 2 indifferent by design (gold, bitcoin), and of those whose base moves with physical activity, labour vouchers and energy certificates count activity fulfilling no recognised obligation. **`mutual credit` and `HOURS` hold all three properties** — WIR has run since 1934, registers obligation bilaterally at the moment it is incurred, and its base moves with activity. **The differentiator is SCALE, not structure**: a bilateral obligation does not scale past a network where the parties already know each other. Pinned as not-unique; demoting mutual credit fails 4 tests.
+- **HOURS' OWN ROW IS THE ONLY ONE COMPUTED, and it includes the axis where this anchor loses.** Labour halves → minting **−54.8%** with the obligation unmoved and 554M booked deferred; capital halves → **−3.0%**; **ecosystem halves → 0.0%.** A comparison omitting its own worst axis would be the rigged version of itself.
+- **THREE OF THE FIVE STATED LIMITS WERE THEN NARROWED — none closed, each now SCOPED with its caveat attached.** (1) **The ecological zero is one PATH, not the system**: the relocated obligation rises **2.05×** when health halves, so the base is blind and the ground-use fee is not. (2) **Registration is UNIT ELASTIC on the money supply** (1.000000) and, per the mint gate, the ONLY lever that moves it — so **the property that disqualifies the hole-digger is the property that concentrates capture risk in the register**, and the contestability arc addresses EXIT, not capture. Both readings live in one docstring and a test fails if the capture half is removed. (3) **The guaranteed floor claim strengthens 5.57× across the arc**, monotone — flagged `is_an_internal_consistency_result` because it follows from the framework's own price model and is NOT a claim about market exchange; presenting it as one fails a test.
+- **THE TWO THAT STAY ARE NOT DEFECTS.** Whether a responsive base beats an indifferent one is normative and not computable. Rivals being unmodelled is the DESIGN — closing it is the bloat the review's §15 warned about, and it is what makes the indeterminacy result available without a strawman.
+- **WHAT THIS SETTLES ABOUT THE HEADLINE CLAIM: the framework cannot prove its frame is "most defensible", because that is comparative and the comparison had never been run.** What it can now say is a claim about the SHAPE of the table, computed from the classification rather than restated beside it — and the strongest honest version is narrower and shared with a currency that has been running for ninety years.
+
+<a id="workstreams-c-and-f-signed-off"></a>
+
+**WORKSTREAMS C AND F SIGNED OFF AND PUBLISHED** (2026-08-15, author decision). The theory-flagged positions are no longer pending: **price-as-floor**, **system-wide inflation-impossibility demoted** to a within-collective floor property with an ε→1 asymptote, and the **objectivity → transparency** language pass are adopted *on the grounds that they are the more defensible case* — a weaker true claim beats a stronger false one. The original theorem is documented as the limit case, not deleted, per the §5 guardrail. Published in `docs/theory/prior_art.md`, which carries the sign-off note. **The guardrail at §3 of this file still governs everything else** — §8.8's website-language gate is a separate item and is NOT lifted by this.
+

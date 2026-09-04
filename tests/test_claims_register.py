@@ -42,6 +42,10 @@ it is (the repo's own rule):
   * A claim whose ANCHOR text is edited fails loudly rather than silently
     passing. That is intended: it forces a re-check, exactly as the dataset
     fingerprints do.
+  * The corpus is CLAUDE.md plus `record/*.md`. A claim moved to a file
+    OUTSIDE those two homes stops being checked, silently. `record/README.md`
+    is the index and `tests/test_record_index.py` keeps it honest, but nothing
+    stops a third location being invented.
 """
 
 from __future__ import annotations
@@ -53,7 +57,9 @@ from typing import Callable
 
 import pytest
 
-CLAUDE_MD = pathlib.Path(__file__).resolve().parent.parent / "CLAUDE.md"
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
+RECORD_DIR = REPO_ROOT / "record"
 
 
 @dataclass(frozen=True)
@@ -66,7 +72,19 @@ class Claim:
 
 
 def _text() -> str:
-    return CLAUDE_MD.read_text(encoding="utf-8")
+    """
+    CLAUDE.md PLUS every `record/*.md`.
+
+    The status log was split by subject area on 2026-09-03 (CLAUDE.md was over
+    the 150k-char context limit at 304.5k). A claim does not stop being checked
+    because it moved into `record/` — reading CLAUDE.md alone after the split
+    would have silently retired six anchors and three of the five closed open
+    items, which is precisely the staleness this gate exists to forbid.
+    """
+    parts = [CLAUDE_MD.read_text(encoding="utf-8")]
+    parts += [p.read_text(encoding="utf-8")
+              for p in sorted(RECORD_DIR.glob("*.md"))]
+    return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +171,7 @@ def _ecological_intensity_is_convention() -> bool:
 
 def _there_is_exactly_one_mint() -> bool:
     import ast
-    root = CLAUDE_MD.parent
+    root = REPO_ROOT
     sites = []
     for layer in ("core", "land", "scenarios"):
         for path in sorted((root / "hours_eoh" / layer).rglob("*.py")):
@@ -169,7 +187,7 @@ def _teh_supply_is_orphaned_and_refuses_the_shipped_trajectory() -> bool:
     import ast
     from hours_eoh.core.eoh_fulfillment import teh_supply
     from hours_eoh.core.simulation import make_economy_state, run_simulation
-    root = CLAUDE_MD.parent
+    root = REPO_ROOT
     for layer in ("core", "land", "scenarios", "research"):
         for path in sorted((root / "hours_eoh" / layer).rglob("*.py")):
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
