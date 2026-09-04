@@ -135,12 +135,20 @@ class TestAging:
         assert result["new_age_group"] == "elderly"
         assert result["new_personal_eoh_per_year"] > result["old_personal_eoh_per_year"]
 
-    def test_aging_elderly_eoh_rises_with_epsilon(self):
-        """Elderly personal EOH should be slightly higher at higher ε."""
+    def test_aging_elderly_eoh_is_independent_of_epsilon(self):
+        """
+        RETIRED 2026-09-04. This asserted elderly EOH RISING with ε, on the
+        rationale that "deferred personal care becomes a registered EOH
+        obligation at higher ε" — a REGISTRATION claim implemented as an
+        OBLIGATION multiplier. Registration makes an obligation visible; it
+        does not create one. `total_eoh` never applied the multiplier, so this
+        path and generation disagreed on elderly EOH at the same ε.
+        """
         worker = make_worker(age=70.0)
-        result_low_eps  = aging(worker, epsilon=0.0)
-        result_high_eps = aging(worker, epsilon=0.99)
-        assert result_high_eps["new_personal_eoh_per_year"] > result_low_eps["new_personal_eoh_per_year"]
+        low  = aging(worker, epsilon=0.0)
+        high = aging(worker, epsilon=0.99)
+        assert (high["new_personal_eoh_per_year"]
+                == pytest.approx(low["new_personal_eoh_per_year"], rel=1e-12))
 
     def test_aging_condition_declines(self):
         """Natural aging degrades condition."""
@@ -242,14 +250,18 @@ class TestPopulationEohCurve:
         assert total > 0
         assert math.isfinite(total)
 
-    def test_elderly_eoh_rises_with_epsilon(self):
-        """Elderly per-capita EOH is higher at ε=0.99 than ε=0."""
+    def test_no_age_group_eoh_depends_on_epsilon(self):
+        """
+        RETIRED 2026-09-04 — elderly was the ONLY band with an ε term, and it
+        made this curve disagree with `total_eoh`. Every band is now flat in ε
+        here, which is what makes the two accounts one.
+        """
         curve_0  = population_eoh_curve(STANDARD_DIST, epsilon=0.0)
         curve_99 = population_eoh_curve(STANDARD_DIST, epsilon=0.99)
         eoh_0  = {c["age_group"]: c["eoh_per_capita"] for c in curve_0}
         eoh_99 = {c["age_group"]: c["eoh_per_capita"] for c in curve_99}
-        assert eoh_99["elderly"] > eoh_0["elderly"]
-        assert eoh_99["working_age"] == pytest.approx(eoh_0["working_age"])
+        for band in eoh_0:
+            assert eoh_99[band] == pytest.approx(eoh_0[band], rel=1e-12), band
 
     def test_curve_sorted_by_eoh_per_capita_descending(self):
         """Curve is sorted highest → lowest EOH per capita."""

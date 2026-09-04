@@ -405,11 +405,30 @@ class TestAgeGroupsSplit:
             "working_age": AGE_CAPACITY_WEIGHT_WORKING_AGE,
             "elderly": AGE_CAPACITY_WEIGHT_ELDERLY,
         }
+        # care_share / care_key / self_weight / care_weight added 2026-09-04:
+        # `eoh_weight` bundled two obligations moving on different drivers.
+        # The split is additive — self + care reassembles the shipped weight.
+        from hours_eoh.data import (
+            AGE_CARE_KEY_CHILD, AGE_CARE_KEY_ELDERLY, AGE_CARE_KEY_INFANT,
+            AGE_CARE_KEY_WORKING_AGE, AGE_CARE_SHARE_CHILD,
+            AGE_CARE_SHARE_ELDERLY, AGE_CARE_SHARE_INFANT,
+            AGE_CARE_SHARE_WORKING_AGE,
+        )
+        share = {"infant": AGE_CARE_SHARE_INFANT, "child": AGE_CARE_SHARE_CHILD,
+                 "working_age": AGE_CARE_SHARE_WORKING_AGE,
+                 "elderly": AGE_CARE_SHARE_ELDERLY}
+        key = {"infant": AGE_CARE_KEY_INFANT, "child": AGE_CARE_KEY_CHILD,
+               "working_age": AGE_CARE_KEY_WORKING_AGE,
+               "elderly": AGE_CARE_KEY_ELDERLY}
         assert AGE_GROUPS == {
             name: {"range": AGE_GROUP_RANGES[name],
                    "fraction": AGE_GROUP_FRACTIONS[name],
                    "eoh_weight": weights[name],
-                   "capacity_weight": capacity[name]}
+                   "capacity_weight": capacity[name],
+                   "care_share": share[name],
+                   "care_key": key[name],
+                   "self_weight": weights[name] * (1.0 - share[name]),
+                   "care_weight": weights[name] * share[name]}
             for name in weights
         }
         # 0.60 until the elderly weight was adopted (2026-09-04): 65-69 are

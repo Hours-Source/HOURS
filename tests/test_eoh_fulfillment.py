@@ -708,13 +708,13 @@ class TestPipelineScaleOverrides:
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
         expected_total = {
-            0.0:  1435764675.812418,
-            0.40: 1576107521.31858,
-            0.99: 2349729021.2400055,
+            0.0:  1435740781.5493312,
+            0.40: 1576927332.1096926,
+            0.99: 2349137509.2416563,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 371362534.6835287
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 371524979.1057966
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """

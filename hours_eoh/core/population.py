@@ -27,7 +27,6 @@ import math
 from hours_eoh.data import (
     AGE_GROUPS,
     PERSONAL_EOH_BASE,
-    ELDERLY_EOH_EPSILON_FACTOR,
     HUMAN_CAPITAL_NATURAL_DECAY,
     HUMAN_CAPITAL_ELDERLY_DECAY,
     CAPACITY_DECLINE_ONSET_AGE,
@@ -181,10 +180,14 @@ def aging(
     # Personal EOH is determined by age-group weight
     eoh_weight = AGE_GROUPS[new_group]["eoh_weight"]
     new_personal_eoh = personal_eoh_base * eoh_weight
-    # Automation slightly elevates elderly EOH: deferred personal care becomes
-    # a registered EOH obligation at higher ε
-    if new_group == "elderly":
-        new_personal_eoh *= (1.0 + ELDERLY_EOH_EPSILON_FACTOR * epsilon)
+    # RETIRED 2026-09-04. This multiplied elderly EOH by
+    # (1 + ELDERLY_EOH_EPSILON_FACTOR·ε) on the rationale that "deferred
+    # personal care becomes a registered EOH obligation at higher ε" — which is
+    # a REGISTRATION claim implemented as an OBLIGATION multiplier. Registration
+    # makes an obligation visible; it does not create one
+    # (tests/test_registration_containment.py). And `total_eoh` never applied
+    # it, so this path and the generation path disagreed on elderly EOH at the
+    # same ε — two accounts of one quantity.
 
     old_personal_eoh = float(asset.get("personal_eoh_per_year", 0.0))
 
@@ -276,9 +279,9 @@ def population_eoh_curve(
         group = AGE_GROUPS[group_name]
         eoh_weight = group["eoh_weight"]
 
+        # No elderly ε-multiplier: retired 2026-09-04, see the note above and
+        # `canonical_age_distribution`. This curve now agrees with `total_eoh`.
         eoh_per_capita = base_rate * eoh_weight
-        if group_name == "elderly":
-            eoh_per_capita *= (1.0 + ELDERLY_EOH_EPSILON_FACTOR * epsilon)
 
         total_eoh = eoh_per_capita * float(count)
 

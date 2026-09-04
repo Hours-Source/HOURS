@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 305 and total == 305
+    return tagged == 313 and total == 313
 
 
 def _shadow_count_is_33() -> bool:
@@ -259,7 +259,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 305/305",
+        anchor="provenance 313/313",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300. "
@@ -863,7 +863,7 @@ def _confidence_ratchet_is_126_of_138() -> bool:
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 141, 126)
+    return (len(without), len(soft), BASELINE_WITHOUT) == (125, 141, 125)
 
 
 def _scan_is_data_py_only() -> bool:
@@ -936,7 +936,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("126 of 141 placeholder/bounded constants carry no confidence",
+    OpenItemPredicate("125 of 141 placeholder/bounded constants carry no confidence",
                       "caveat", _confidence_ratchet_is_126_of_138),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",

@@ -192,9 +192,9 @@ class TestKnowledgePopulationScaling:
         net 954.91× against pre-K-IV; the nutrition-floor adoption of
         2026-09-03 then re-anchored the base a further 0.920×.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(7.9646758124e6, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(8.9395521319e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(7.7516302124e8, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(7.9407815493e6, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(8.9127332110e7, rel=1e-6)
+        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(7.7283750924e8, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -203,7 +203,7 @@ class TestKnowledgePopulationScaling:
         post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
         across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(796.46760, rel=1e-3)
+            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(794.07820, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(1.0, epsilon=0.40)

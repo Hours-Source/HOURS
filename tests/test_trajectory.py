@@ -60,15 +60,24 @@ class TestCanonicalAgeDistribution:
         assert "working_age" in dist
         assert "infant" in dist
 
-    def test_elderly_grows_with_epsilon(self):
-        d0 = canonical_age_distribution(0.0)
-        d9 = canonical_age_distribution(0.90)
-        assert d9["elderly"] > d0["elderly"], "Elderly fraction should grow with ε"
+    def test_the_distribution_is_independent_of_epsilon(self):
+        """
+        RETIRED 2026-09-04. These two tests asserted the opposite — elderly
+        growing and child shrinking with ε — on the argument that automation
+        lengthens lives. That asserted an answer to the morbidity
+        compression/expansion question, which is unsettled and is the pivotal
+        variable for care load. Demography is an intake, not a function of
+        automation. See `tests/test_care_keys.py`.
+        """
+        base = canonical_age_distribution(0.0)
+        for eps in (0.40, 0.90, 0.99):
+            assert canonical_age_distribution(eps) == base, f"drifted at ε={eps}"
 
-    def test_child_shrinks_with_epsilon(self):
-        d0 = canonical_age_distribution(0.0)
-        d9 = canonical_age_distribution(0.90)
-        assert d9["child"] < d0["child"], "Child fraction shrinks as elderly grows"
+    def test_the_shipped_fractions_are_what_is_returned(self):
+        from hours_eoh.data import AGE_GROUPS
+        assert canonical_age_distribution(0.90) == {
+            k: v["fraction"] for k, v in AGE_GROUPS.items()
+        }
 
     def test_shift_is_modest(self):
         d0 = canonical_age_distribution(0.0)

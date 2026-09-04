@@ -452,8 +452,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,046 tests passing (1 skipped), mypy clean on 90 source files** (verified
-2026-09-04). Provenance **305/305**, shadow ratchet **33**, confidence ratchet
+**4,057 tests passing (1 skipped), mypy clean on 90 source files** (verified
+2026-09-04). Provenance **313/313**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -491,7 +491,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- **126 of 141** placeholder/bounded constants carry no confidence figure;
+- **125 of 141** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and
@@ -536,13 +536,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**93 test files. The name rule covers 65 of them:** `tests/test_<module>.py`
+**94 test files. The name rule covers 65 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 28 files the rule does not cover are all listed below, plus two that do
+The 29 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -554,6 +554,7 @@ are the ones worth knowing by name.
 | File | What it enforces |
 |------|------------------|
 | `test_claims_register.py` | **This file.** Every LIVE claim in CLAUDE.md the code can answer, checked against the code; a claim whose anchor text is edited fails loudly. Plus the open-item discipline: an item is struck through (closed) or declared with what would settle it, and every `## Open` bullet in `record/` states its KIND — `gap` / `held` / `caveat` / `person` / `pointer`, so a do-not-build decision is not read as backlog. |
+| `test_care_keys.py` | The two care drivers split — dependant care tracks fertility, frailty care tracks morbidity — `self_weight + care_weight == eoh_weight` exactly, the shares bound by test to their ATUS source, and the retired elderly ε-drift read by nothing. |
 | `test_registration_containment.py` | Registration RELOCATES obligation and never creates it — registered ≤ human ≤ gross per domain across the arc, and `total_eoh` accepts no registration parameter, so the ledger cannot manufacture the demand that justifies the TEH it mints. |
 | `test_record_index.py` | The `record/` index globbed from disk, not hand-kept: every area file linked from `record/README.md`, no README row claiming an area is migrated while the file is a stub, and every generated entry index current. |
 | `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. |

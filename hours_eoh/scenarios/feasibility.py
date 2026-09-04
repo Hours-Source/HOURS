@@ -91,7 +91,7 @@ def age_weight_mean(age_groups: dict[str, dict] | None = None) -> float:
 
     units: dimensionless. Default AGE_GROUPS gives w = 1.475.
     ε-behavior: constant in ε (the age structure drifts with ε only through
-    ELDERLY_EOH_EPSILON_FACTOR, which this reference form deliberately ignores so
+    the retired elderly ε-drift, which this reference form always ignored, so
     the ceiling is a clean function of the shipped weights).
     """
     groups = AGE_GROUPS if age_groups is None else age_groups

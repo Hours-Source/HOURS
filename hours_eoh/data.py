@@ -172,6 +172,48 @@ AGE_WEIGHT_CHILD: float = 1.82
 #   re-measure the population ATUS already covers.
 AGE_WEIGHT_ELDERLY: float = 1.48
 
+# tag: measured | units: dimensionless care share of a band's obligation | family: AGE_CARE_SHARE_*
+# form: care_minutes / (self_minutes + care_minutes) per band, ATUS 2021-2025,
+#   computed live by `scenarios.care_curve.implied_weights()` and pinned here by
+#   `tests/test_care_keys.py` — bound by TEST because `data.py` is the base layer
+#   and cannot import a scenario (failure mode 4's stated remedy).
+# note: THE RATIO TRANSFERS, THE LEVEL DOES NOT. Applied to the SHIPPED
+#   `eoh_weight`, not to the implied one: the measured levels (2.553 infant,
+#   1.354 child) are lower bounds and differ from the shipped weights, so this
+#   splits the shipped weight into self and care WITHOUT restating it. Same move
+#   as `mtus_time_use.band_ratio`, for the same reason.
+# note: WHY THE SPLIT EXISTS. `eoh_weight` was ONE scalar per band carrying two
+#   obligations that move on entirely different drivers — dependant care tracks
+#   FERTILITY and household composition, frailty care tracks LONGEVITY and
+#   morbidity. Bundled, neither could be measured against its own source, and
+#   ELDERLY_EOH_EPSILON_FACTOR asserted a single answer for both at once.
+# errs: LOW for the elderly share — 30.5 min/day is a mean over 35 years of age
+#   and EXCLUDES the institutional population by construction, which is where
+#   the terminal-window load concentrates. The two ATUS routes for this figure
+#   disagree 7.1x (`care_demand.elderly_route_disagreement`), unreconciled.
+AGE_CARE_SHARE_INFANT: float = 1.000000
+AGE_CARE_SHARE_CHILD: float = 0.887261
+AGE_CARE_SHARE_WORKING_AGE: float = 0.043861
+AGE_CARE_SHARE_ELDERLY: float = 0.128292
+
+# tag: convention | units: none, a classification label | family: AGE_CARE_KEY_*
+# form: which driver a band's care obligation moves on. `dependant` for care
+#   received by a minor: they are not impaired, they are young, and the load
+#   tracks fertility and household composition. `frailty` for care received by
+#   an adult: an adult receiving care is doing so because of impairment, and the
+#   load tracks morbidity — which is where an actuarial table plugs in and where
+#   the compression/expansion question lives.
+# note: THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share,
+#   dependant care is ~83% of measured care and frailty care ~12% (the balance
+#   is working-age care, itself frailty-keyed). An LTC actuarial table therefore
+#   settles about an eighth of care; it does not settle care.
+# decided_by: AWol 2026-09-04 — a classification, not a measurement. No dataset
+#   says which driver a band belongs to; the age ranges do.
+AGE_CARE_KEY_INFANT: str = "dependant"
+AGE_CARE_KEY_CHILD: str = "dependant"
+AGE_CARE_KEY_WORKING_AGE: str = "frailty"
+AGE_CARE_KEY_ELDERLY: str = "frailty"
+
 # tag: convention | units: inclusive age bounds in years
 # form: the band MEASURED_CAPACITY_H_YR is measured over, restated here because
 #   the constant it qualifies lives here and the qualifier must travel with it.
@@ -285,12 +327,20 @@ AGE_GROUPS: dict[str, dict] = {
         "fraction": AGE_GROUP_FRACTIONS[name],
         "eoh_weight": weight,
         "capacity_weight": capacity,
+        "care_share": care_share,
+        "care_key": care_key,
+        "self_weight": weight * (1.0 - care_share),
+        "care_weight": weight * care_share,
     }
-    for name, weight, capacity in (
-        ("infant", AGE_WEIGHT_INFANT, AGE_CAPACITY_WEIGHT_INFANT),
-        ("child", AGE_WEIGHT_CHILD, AGE_CAPACITY_WEIGHT_CHILD),
-        ("working_age", AGE_WEIGHT_WORKING_AGE, AGE_CAPACITY_WEIGHT_WORKING_AGE),
-        ("elderly", AGE_WEIGHT_ELDERLY, AGE_CAPACITY_WEIGHT_ELDERLY),
+    for name, weight, capacity, care_share, care_key in (
+        ("infant", AGE_WEIGHT_INFANT, AGE_CAPACITY_WEIGHT_INFANT,
+         AGE_CARE_SHARE_INFANT, AGE_CARE_KEY_INFANT),
+        ("child", AGE_WEIGHT_CHILD, AGE_CAPACITY_WEIGHT_CHILD,
+         AGE_CARE_SHARE_CHILD, AGE_CARE_KEY_CHILD),
+        ("working_age", AGE_WEIGHT_WORKING_AGE, AGE_CAPACITY_WEIGHT_WORKING_AGE,
+         AGE_CARE_SHARE_WORKING_AGE, AGE_CARE_KEY_WORKING_AGE),
+        ("elderly", AGE_WEIGHT_ELDERLY, AGE_CAPACITY_WEIGHT_ELDERLY,
+         AGE_CARE_SHARE_ELDERLY, AGE_CARE_KEY_ELDERLY),
     )
 }
 
@@ -2032,10 +2082,16 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   Both raise the human share of personal EOH and therefore the labour residual
 #   the anchor is solved against. This constant's own test says to expect
 #   exactly that and NOT to work around it.
+# note: RE-ANCHORED A TENTH TIME, -0.30% (2026-09-04), by retiring the elderly
+#   ε-drift. Removing it RAISES personal EOH per capita at ε>0 — the drift
+#   moved population from a heavier weight (child 1.82) to a lighter one
+#   (elderly 1.48), so its stated direction was never its arithmetic — which
+#   raises total EOH and lowers the labour residual this anchor is solved
+#   against. The smallest of the ten moves, and mechanical.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 298675342.9656758  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.506816 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 297779308.09991723  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.507504 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2924,9 +2980,40 @@ BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours sa
 # form: automation improves medicine, so lives lengthen and the elderly
 #   fraction grows. Direction is arguable; the magnitude is asserted, and it
 #   is secondary to the dominant ε effect in the fulfillment split.
-# resolves_by: a longitudinal life-expectancy series against a measured
-#   automation index.
-ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # elderly EOH rises this fraction per ε unit
+# note: RETIRED 2026-09-04 (author decision), and NOT for its size — the whole
+#   effect was at most −0.128% on personal EOH per capita. Three reasons:
+#   (1) IT ASSERTED AN ANSWER TO AN UNSETTLED QUESTION. Whether longer lives
+#   mean more frail years or the same frail window arriving later is unresolved
+#   and differs by country and condition. Its own form field conceded
+#   "direction is arguable; the magnitude is asserted".
+#   (2) ONE CONSTANT, TWO MECHANISMS, COMPOSED — failure mode 11.
+#   `trajectory.canonical_age_distribution` used it to SHIFT population from
+#   `child` to `elderly`; `population.py` used it TWICE as an INTENSITY
+#   multiplier on elderly EOH, on the different rationale that "deferred
+#   personal care becomes a registered EOH obligation at higher ε". A
+#   demographic claim and a registration claim sharing one scalar.
+#   (3) THE TWO PATHS DISAGREED. `total_eoh` never applied the intensity
+#   multiplier, so generation and `population_eoh_curve` reported different
+#   elderly EOH at the same ε — two accounts of one quantity. And the
+#   registration rationale is a containment violation in spirit: registration
+#   makes an obligation visible, it does not create one.
+#   Its stated direction was also not its arithmetic — "elderly EOH rises"
+#   while the shift LOWERED total personal EOH, moving people from a heavier
+#   weight (child 1.82) to a lighter one (elderly 1.48).
+# superseded_by: AGE_CARE_KEY_ELDERLY + AGE_CARE_SHARE_ELDERLY — the care
+#   obligation is now split by DRIVER, so a morbidity trajectory is supplied
+#   against the `frailty` key rather than asserted for both keys at once by one
+#   scalar.
+# confidence: 0 — nothing reads it. `tests/test_care_keys.py` pins that, which
+#   is what makes the retirement real rather than announced; the tag stays
+#   `placeholder` because the scheme has no `retired` value and the gate refuses
+#   one for a constant any layer still declares.
+# resolves_by: nothing settles THIS constant; it was a stand-in for a morbidity
+#   model and the replacement is a socket for one, not a better value for it.
+#   What would settle the QUESTION it stood in for: disability prevalence by age
+#   (Sullivan-method HLE tables) against a longitudinal series, supplied through
+#   the `frailty` care key.
+ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # RETIRED — read nothing from this
 # tag: placeholder | units: fraction shift per ε unit
 # form: infant personal EOH declines with automation — formula feeding,
 #   monitoring and sanitation displace caregiver hours. This is the abatement

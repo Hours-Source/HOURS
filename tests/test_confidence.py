@@ -48,7 +48,7 @@ SOFT_TAGS = frozenset({"placeholder", "bounded"})
 #: revisiting a constant and stating what is measured in it, which is real work
 #: and not a rename. 131 when the field shipped; 126 after the first leverage
 #: review annotated the five biggest levers.
-BASELINE_WITHOUT = 126
+BASELINE_WITHOUT = 125
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

@@ -272,7 +272,7 @@ class TestBand:
         AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.50681635379791260, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.5075036859512329, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -462,7 +462,7 @@ class TestKIVAdoption:
         # 1.089×, back above the K-IV figure; the 2026-09-01 child-weight
         # measurement moved the fixed point a SEVENTH time and it now sits at
         # 0.962× — the largest re-anchor of the seven by an order of magnitude.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.986753430e8, rel=1e-6)
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.977793081e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """
@@ -541,7 +541,7 @@ class TestEpsilonRefFixedPoint:
         r = epsilon_ref_fixed_point(937.3)
         assert r["converged"] is True
         # 0.4522 → 0.50682 with the 2026-08-10 elderly revalue.
-        assert r["epsilon_fixed_point"] == pytest.approx(0.506816, abs=0.001)
+        assert r["epsilon_fixed_point"] == pytest.approx(0.507504, abs=0.001)
 
     def test_the_fixed_point_reproduces_the_shipped_constant(self):
         """

@@ -37,7 +37,6 @@ from __future__ import annotations
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
     AGE_GROUPS,
-    ELDERLY_EOH_EPSILON_FACTOR,
     CANONICAL_CAPITAL_GROWTH_SLOPE,
     CANONICAL_MONITORING_CAPABILITY_BASE,
     CANONICAL_MONITORING_CAPABILITY_SLOPE,
@@ -55,32 +54,48 @@ from hours_eoh.data import (
 
 def canonical_age_distribution(epsilon: float) -> dict[str, float]:
     """
-    Age distribution on the canonical arc at automation level ε.
+    Age distribution on the canonical arc — INDEPENDENT of ε since 2026-09-04.
 
-    Better medicine at higher automation → longer lives → growing elderly fraction.
-    The shift is modest (≤5% of the child fraction) and secondary to the dominant
-    ε-effect, which is in the human_eoh_share() fulfillment split.
+    THE ε-DRIFT IS RETIRED, and `epsilon` is retained only so callers do not
+    break. It moved population from `child` to `elderly` at a fixed fraction
+    per ε unit, on the argument that "automation improves medicine, so lives
+    lengthen and the elderly fraction grows". The retired constant's own tag
+    block in `data.py` carries the full reason; it is not named here, because a
+    retired constant named in `core/` reads as a live consumer to the
+    provenance gate — which is the gate working.
 
-    This function was formerly an anonymous inline calculation inside personal_eoh().
-    Now it is explicit so that callers who want ε-adjusted age composition can
-    request it, while callers with measured actual demographics pass their own dict.
+    Three reasons it went, none of them its size:
+
+      * IT ASSERTED AN ANSWER TO AN UNSETTLED QUESTION. Whether longer lives
+        mean more frail years (morbidity expansion) or the same frail window
+        arriving later (compression) is unresolved, differs by country and by
+        condition, and is the pivotal variable for care load. A placeholder
+        scalar is not the place to settle it — its own tag block conceded
+        "direction is arguable; the magnitude is asserted".
+      * IT BUNDLED TWO DRIVERS IN ONE NUMBER. The shift moved people from the
+        `dependant` care key to the `frailty` key, so a single scalar asserted
+        both a fertility-side and a morbidity-side change at once. That is the
+        composition failure mode 11 names, and the care-key split exists to
+        end it.
+      * ITS STATED DIRECTION WAS NOT ITS ARITHMETIC. The comment read "elderly
+        EOH rises this fraction per ε unit"; the effect was to LOWER total
+        personal EOH per capita, because it moved population from a heavier
+        weight (child, 1.82) to a lighter one (elderly, 1.48). Max −0.128%.
+
+    Removing it raises personal EOH per capita by at most 0.128% at ε≥0.9 and
+    changes nothing at ε=0. Callers with real demographics pass their own dict;
+    callers wanting a morbidity trajectory should supply one rather than
+    receive an assumed one.
 
     Args:
-        epsilon: Automation level [0.0, 0.99].
+        epsilon: Accepted and unused. Retained for call compatibility.
 
     Returns:
         Dict mapping age group name → fraction of population. Sums to 1.0.
 
-    Reference: Mission Statement §"Personal EOH — the entropy of human bodies";
-    §"Humans as capital stock" — aging as capital depreciation.
+    Reference: Mission Statement §"Personal EOH — the entropy of human bodies".
     """
-    dist = {k: v["fraction"] for k, v in AGE_GROUPS.items()}
-    elderly_boost = ELDERLY_EOH_EPSILON_FACTOR * epsilon
-    if "elderly" in dist and "child" in dist:
-        shift = min(elderly_boost * dist["child"], 0.03 * dist["elderly"])
-        dist["elderly"] = dist["elderly"] + shift
-        dist["child"]   = dist["child"]   - shift
-    return dist
+    return {k: v["fraction"] for k, v in AGE_GROUPS.items()}
 
 
 # ---------------------------------------------------------------------------
