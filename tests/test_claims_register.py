@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 300 and total == 300
+    return tagged == 304 and total == 304
 
 
 def _shadow_count_is_33() -> bool:
@@ -259,7 +259,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 300/300",
+        anchor="provenance 304/304",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300. "
@@ -818,12 +818,6 @@ def _ten_ratios_unmeasured() -> bool:
     return not any(t in {"measured", "derived"} for t in tags.values())
 
 
-def _corridor_default_still_1e9() -> bool:
-    src = (REPO_ROOT / "utils" / "corridor_cmd.py").read_text(encoding="utf-8")
-    m = re.search(r"available[-_]labor.{0,400}?default=([0-9.e+]+)", src, re.S)
-    return m is not None and float(m.group(1)) == 1.0e9
-
-
 def _form_edges_not_derived() -> bool:
     """Closure = `band_from:` stops being the only source of edges. It is
     declared ONCE today against 12 expression-derivable assignments."""
@@ -869,7 +863,7 @@ def _confidence_ratchet_is_126_of_138() -> bool:
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 138, 126)
+    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 142, 126)
 
 
 def _scan_is_data_py_only() -> bool:
@@ -925,8 +919,6 @@ class OpenItemPredicate:
 #:   pointer no predicate — the dangling check already covers it
 OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
     OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
-    OpenItemPredicate("`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9",
-                      "gap", _corridor_default_still_1e9),
     OpenItemPredicate("derive `form:` edges from the expressions", "gap",
                       _form_edges_not_derived),
     OpenItemPredicate("Two of four personal automation floors carry a value", "gap",
@@ -944,7 +936,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("126 of 138 placeholder/bounded constants carry no confidence",
+    OpenItemPredicate("126 of 142 placeholder/bounded constants carry no confidence",
                       "caveat", _confidence_ratchet_is_126_of_138),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
@@ -977,7 +969,7 @@ class TestTheOpenItemPredicates:
 
     STATED GAPS:
 
-      * COVERAGE IS 13 OF 42 ITEMS, and the ratchet below only forbids it
+      * COVERAGE IS 13 OF 41 ITEMS, and the ratchet below only forbids it
         FALLING. An item with no predicate is checked by nothing here — the
         same standing this file's `LIVE_CLAIMS` has always had. The gap is
         itself an item with a predicate: `_predicate_coverage_is_incomplete`
@@ -1095,5 +1087,5 @@ class TestTheOpenItemPredicates:
     def test_the_stated_gaps_are_still_stated(self) -> None:
         doc = self.__doc__ or ""
         assert "STATED GAPS" in doc
-        assert "COVERAGE IS 13 OF 42" in doc
+        assert "COVERAGE IS 13 OF 41" in doc
         assert "PROVES THE OBSERVABLE, NOT THE ITEM" in doc

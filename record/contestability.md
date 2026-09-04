@@ -51,8 +51,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   priority policies between share-first and dividend-first are unbuilt.
 - **The investment-disincentive feedback on K(ε) is not simulated** *(gap)*, and is
   flagged as such.
-- **`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9** *(pointer)*, a
-  retired work-year artefact. See [verification.md § Open](verification.md#open).
+- **~~`utils/corridor_cmd.py --available-labor` defaults to 1.0e9~~ — SETTLED
+  2026-09-04** *(pointer)* (bound to the feasibility frame). See
+  [verification.md § Open](verification.md#open).
 
 ## Cross-area entries
 

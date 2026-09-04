@@ -69,7 +69,7 @@ from typing import TypedDict
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import (
     AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE,
-    PHYSICAL_CAPACITY_CEILING_H_YR,
+    PHYSICAL_CAPACITY_CEILING_H_YR, REFERENCE_FRAME_POPULATION,
 )
 from hours_eoh.reference import mtus_time_use as mtus
 
@@ -97,6 +97,29 @@ def age_weight_mean(age_groups: dict[str, dict] | None = None) -> float:
     return sum(g["fraction"] * g["eoh_weight"] for g in groups.values())
 
 
+def capacity_weighted_adult_share() -> float:
+    """
+    a = Σ_g fraction_g · capacity_weight_g — the supply-side mirror of the
+    obligation's age weighting.
+
+    WHY THIS IS DERIVED AND NOT READ OFF ONE GROUP. `AGE_GROUPS` weights how
+    much obligation each age group GENERATES (infant 3.0, elderly 1.48). Until
+    2026-09-04 supply was the bare `working_age` fraction, which asserted that
+    the elderly supply exactly zero while generating 1.48x the obligation —
+    true of the arithmetic, stated nowhere. It also stood as a literal in THREE
+    functions here, so the assertion was made three times and bound nowhere.
+
+    Deriving it changes no number — the shipped capacity weights give 0.60
+    exactly — and changes one behaviour: a shift in the age distribution now
+    moves supply and demand TOGETHER. `demographic_shock` moved only demand.
+
+    The weights are `placeholder`, `errs: LOW`: child and elderly are zero to
+    preserve the shipped arithmetic, not because zero was measured, so this
+    share is a LOWER bound on what a population can supply.
+    """
+    return sum(g["fraction"] * g["capacity_weight"] for g in AGE_GROUPS.values())
+
+
 def labor_supply_per_capita(
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
@@ -112,7 +135,10 @@ def labor_supply_per_capita(
             median of 50 measured MTUS frames; supply your own, because the
             measured spread across frames is 1.55x.
         adult_share: Fraction of the population able to supply it. None (default)
-            reads the working-age fraction from AGE_GROUPS (0.60).
+            derives it from the per-age `capacity_weight` in AGE_GROUPS via
+            `capacity_weighted_adult_share()` — 0.60 on the shipped weights,
+            and a LOWER bound, because child and elderly weights are zero by
+            admission rather than by measurement.
 
     Returns:
         L in h/person·yr.
@@ -123,7 +149,7 @@ def labor_supply_per_capita(
     Worked example: the shipped default 2,335.75 h/yr × 0.60 = 1,401.5
     h/person·yr. At the retired H_REF default of 2,080 it was 1,248.0.
     """
-    share = AGE_GROUPS["working_age"]["fraction"] if adult_share is None else adult_share
+    share = capacity_weighted_adult_share() if adult_share is None else adult_share
     if adult_capacity_h_yr <= 0.0:
         raise ValueError(
             f"adult_capacity_h_yr must be > 0, got {adult_capacity_h_yr}"
@@ -156,6 +182,51 @@ class FeasibilityCheck(TypedDict):
     hours_per_adult_required: float   # what closing the gap on the SUPPLY side costs
     deficit_share: float              # what closing NEITHER side implies: unmet obligation
 
+
+def demographic_margin(
+    epsilon: float = 0.0,
+    population: float = REFERENCE_FRAME_POPULATION,
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+) -> dict[str, float]:
+    """
+    How far the population is from the point where it cannot maintain itself.
+
+    WHY A MARGIN AND NOT A FLOOR. The survival floor is a STEP in one ratio,
+    not a curve. Personal obligation per capita is near-flat in ε (1,352.8 at
+    ε=0 against 1,351.1 at ε=0.9), so ε_suff is 0 while supply covers demand
+    and rises only once it does not. Reporting "ε_suff = 0.000, nothing binds"
+    is true and says nothing about how close the step is: on the shipped
+    demography the answer is **2.13 percentage points of adult share**.
+
+    The critical share is a·crit = P/c — the adult share at which capacity
+    exactly meets the personal obligation. Below it the population cannot
+    maintain itself unaided and the shortfall must be machine-fulfilled; above
+    it, ε_suff = 0 BY CONSTRUCTION, which is the correct answer rather than a
+    degenerate one. A population that exists has been meeting its personal
+    obligation off-ledger, or there would be no population.
+
+    Returns keys: `adult_share`, `critical_adult_share`, `margin_pp`,
+    `supply_per_capita`, `personal_demand_per_capita`, `covers` — and
+    `margin_pp` is the one to quote.
+
+    units: shares dimensionless; margin in PERCENTAGE POINTS of adult share;
+    per-capita quantities in h/person·yr. ε-behaviour: defined across
+    [0, 0.99]; the margin widens with ε as the machine share takes obligation.
+    """
+    from hours_eoh.core.eoh_generation import total_eoh
+
+    a = capacity_weighted_adult_share()
+    supply = labor_supply_per_capita(adult_capacity_h_yr)
+    demand = total_eoh(epsilon=epsilon, population=population)["personal"] / population
+    a_crit = demand / adult_capacity_h_yr
+    return {
+        "adult_share": a,
+        "critical_adult_share": a_crit,
+        "margin_pp": (a - a_crit) * 100.0,
+        "supply_per_capita": supply,
+        "personal_demand_per_capita": demand,
+        "covers": float(supply >= demand),
+    }
 
 def feasibility_check(
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
@@ -219,7 +290,7 @@ def feasibility_check(
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
 
-    share = AGE_GROUPS["working_age"]["fraction"] if adult_share is None else adult_share
+    share = capacity_weighted_adult_share() if adult_share is None else adult_share
     supply = labor_supply_per_capita(adult_capacity_h_yr, share)
     w = age_weight_mean()
 
@@ -614,7 +685,7 @@ def implied_human_hours(
         dict with human_per_capita, human_per_adult_year, human_per_adult_day,
         personal_base, machine_eoh_per_capita.
     """
-    share = AGE_GROUPS["working_age"]["fraction"] if adult_share is None else adult_share
+    share = capacity_weighted_adult_share() if adult_share is None else adult_share
     inv = total_eoh(epsilon=0.0, population=population, personal_base=personal_base)
     residual = ((inv["infrastructure"] + inv["ecological"] + inv["knowledge"])
                 / population)

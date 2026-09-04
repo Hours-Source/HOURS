@@ -172,6 +172,40 @@ AGE_WEIGHT_CHILD: float = 1.82
 #   re-measure the population ATUS already covers.
 AGE_WEIGHT_ELDERLY: float = 1.48
 
+# tag: placeholder | units: dimensionless share of adult capacity, per age group | family: AGE_CAPACITY_WEIGHT_*
+# form: the SUPPLY-side mirror of the AGE_WEIGHT_* constants. Those weight how
+#   much personal obligation an age group GENERATES; these weight how much
+#   capacity it SUPPLIES. Until 2026-09-04 only the demand side was weighted,
+#   and supply was the bare `working_age` fraction — which asserted, without
+#   saying so, that the elderly supply exactly zero while generating 1.48x the
+#   obligation. The shipped values reproduce that assertion EXACTLY (0.60), so
+#   nothing moves; what changes is that the assertion is now visible, and that
+#   a demographic shock moves supply and demand together instead of only one.
+# confidence: 15 — the ORDERING is defensible (an infant supplies nothing, a
+#   working-age adult is the numeraire) and the LEVELS for child and elderly are
+#   not measured at all. They are set to 0.0 to preserve the shipped arithmetic,
+#   not because zero was measured.
+# errs: LOW — a zero here understates supply, which makes every feasibility test
+#   HARDER to pass. That is the safe direction: the failure to avoid is a model
+#   that reports a population as self-sustaining when it is not. A 12-year-old
+#   and a 70-year-old both do most of their own self-maintenance, so the true
+#   values are above zero and the shipped supply is a LOWER bound.
+# note: NOT `normative`. Zero is an ADMISSION that nothing measured it, not a
+#   commitment that these groups supply nothing. Per the standing policy
+#   (author, 2026-09-03) a value that could change when the data arrives carries
+#   a confidence and a `resolves_by` rather than a decider.
+# resolves_by: self-maintenance hours by age, which this repo already holds —
+#   `reference/data/mtus_self_maintenance_by_age.csv` (977,809 diaries,
+#   `reference/mtus_time_use.band_ratio`). What it gives directly is
+#   self-maintenance per band relative to working age; what it does NOT give is
+#   how much capacity beyond self-maintenance each band can supply to others,
+#   which is the quantity these weights actually name. The band ratio bounds
+#   them from below.
+AGE_CAPACITY_WEIGHT_INFANT: float = 0.0
+AGE_CAPACITY_WEIGHT_CHILD: float = 0.0
+AGE_CAPACITY_WEIGHT_WORKING_AGE: float = 1.0
+AGE_CAPACITY_WEIGHT_ELDERLY: float = 0.0
+
 # tag: derived | units: composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants
 # form: assembled from the four constants above, which is the point — this
 #   dict was ONE constant carrying FOUR different epistemic states (a chosen
@@ -189,12 +223,13 @@ AGE_GROUPS: dict[str, dict] = {
         "range": AGE_GROUP_RANGES[name],
         "fraction": AGE_GROUP_FRACTIONS[name],
         "eoh_weight": weight,
+        "capacity_weight": capacity,
     }
-    for name, weight in (
-        ("infant", AGE_WEIGHT_INFANT),
-        ("child", AGE_WEIGHT_CHILD),
-        ("working_age", AGE_WEIGHT_WORKING_AGE),
-        ("elderly", AGE_WEIGHT_ELDERLY),
+    for name, weight, capacity in (
+        ("infant", AGE_WEIGHT_INFANT, AGE_CAPACITY_WEIGHT_INFANT),
+        ("child", AGE_WEIGHT_CHILD, AGE_CAPACITY_WEIGHT_CHILD),
+        ("working_age", AGE_WEIGHT_WORKING_AGE, AGE_CAPACITY_WEIGHT_WORKING_AGE),
+        ("elderly", AGE_WEIGHT_ELDERLY, AGE_CAPACITY_WEIGHT_ELDERLY),
     )
 }
 

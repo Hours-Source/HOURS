@@ -385,6 +385,8 @@ class TestAgeGroupsSplit:
     def test_the_composite_is_byte_identical_to_its_parts(self):
         """The split is ADDITIVE: it renames nothing and moves no number."""
         from hours_eoh.data import (
+            AGE_CAPACITY_WEIGHT_CHILD, AGE_CAPACITY_WEIGHT_ELDERLY,
+            AGE_CAPACITY_WEIGHT_INFANT, AGE_CAPACITY_WEIGHT_WORKING_AGE,
             AGE_GROUP_FRACTIONS, AGE_GROUP_RANGES, AGE_WEIGHT_CHILD,
             AGE_WEIGHT_ELDERLY, AGE_WEIGHT_INFANT, AGE_WEIGHT_WORKING_AGE,
         )
@@ -392,12 +394,25 @@ class TestAgeGroupsSplit:
             "infant": AGE_WEIGHT_INFANT, "child": AGE_WEIGHT_CHILD,
             "working_age": AGE_WEIGHT_WORKING_AGE, "elderly": AGE_WEIGHT_ELDERLY,
         }
+        # The SUPPLY mirror, added 2026-09-04. Demand was age-weighted and
+        # supply was not, which asserted that the elderly supply zero while
+        # generating 1.48x the obligation — true of the arithmetic, stated
+        # nowhere. The shipped weights reproduce the old bare `working_age`
+        # share (0.60) exactly, so this stays an ADDITIVE split.
+        capacity = {
+            "infant": AGE_CAPACITY_WEIGHT_INFANT,
+            "child": AGE_CAPACITY_WEIGHT_CHILD,
+            "working_age": AGE_CAPACITY_WEIGHT_WORKING_AGE,
+            "elderly": AGE_CAPACITY_WEIGHT_ELDERLY,
+        }
         assert AGE_GROUPS == {
             name: {"range": AGE_GROUP_RANGES[name],
                    "fraction": AGE_GROUP_FRACTIONS[name],
-                   "eoh_weight": weights[name]}
+                   "eoh_weight": weights[name],
+                   "capacity_weight": capacity[name]}
             for name in weights
         }
+        assert sum(AGE_GROUP_FRACTIONS[n] * capacity[n] for n in weights) == 0.60
 
     def test_each_part_carries_its_own_epistemic_state(self):
         """The whole point of the split, asserted against the real data.py."""

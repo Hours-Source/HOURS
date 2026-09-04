@@ -46,9 +46,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     band.add_argument("--epsilon", type=float, default=0.40, metavar="ε",
                       help="ε at which the EOH inventory is taken (default: 0.40)")
     band.add_argument("--population", type=float, default=1_000_000.0)
-    band.add_argument("--available-labor", type=float, default=1.0e9,
+    band.add_argument("--available-labor", type=float, default=None,
                       dest="available_labor", metavar="EOH",
-                      help="Human labor capacity, EOH-hours/yr (default: 1e9)")
+                      help="Human labor capacity, EOH-hours/yr. Default: DERIVED "
+                           "as labor_supply_per_capita() x population — one "
+                           "account of L, shared with the feasibility path. The "
+                           "retired literal 1e9 implied a 42.8%% adult share, "
+                           "which no population has.")
     band.add_argument("--standard", choices=["survival", "collapsed", "sufficiency"],
                       default="survival",
                       help="Personal-EOH standard for the LOWER bound (default: "
@@ -100,8 +104,18 @@ def _band(args: argparse.Namespace) -> None:
         from hours_eoh.core.eoh_generation import total_eoh
         eoh = total_eoh(epsilon=args.epsilon, population=args.population,
                         personal_standard=args.standard)
+    # ONE ACCOUNT OF L. `scenarios/feasibility.labor_supply_per_capita` is the
+    # framed one — c·a, adult capacity times the capacity-weighted adult share —
+    # and `arc_stability` already used it. This CLI carried a bare 1e9 instead:
+    # 71% of the framed value, implying an adult share of 42.8% that no country
+    # has. Two accounts of one quantity (corpus F-008). Bound here rather than in
+    # `research/corridor.py`, which must not import `scenarios/` — utils may.
+    from hours_eoh.scenarios.feasibility import (
+        demographic_margin, labor_supply_per_capita)
+    available_labor = (labor_supply_per_capita() * args.population
+                       if args.available_labor is None else args.available_labor)
     floors = [
-        survival_floor(eoh, args.available_labor),
+        survival_floor(eoh, available_labor),
         overbuild_floor(args.capital_stock, args.population),
     ]
 
@@ -134,6 +148,24 @@ def _band(args: argparse.Namespace) -> None:
     print(f"  width: {rep['width']:+.3f}")
     print(f"  success (feasible AND sufficiency reachable): "
           f"{green('yes') if rep['success'] else red('no')}")
+    print()
+
+    # A FLOOR OF 0.000 SAYS "NOTHING BINDS" AND HIDES HOW CLOSE THE STEP IS.
+    # ε_suff is a STEP in one ratio, not a curve: personal obligation per capita
+    # is near-flat in ε, so the floor is 0 while capacity covers the obligation
+    # and rises only once it does not. The distance to that step is the quantity
+    # a reader needs, and on the shipped demography it is 2.13 percentage points.
+    marg = demographic_margin(epsilon=args.epsilon, population=args.population)
+    print(bold("Demographic margin"))
+    print(f"  adult share (capacity-weighted): {marg['adult_share']:.4f}")
+    print(f"  critical share  P/c            : {marg['critical_adult_share']:.4f}")
+    covers = marg["covers"] >= 1.0
+    print(f"  margin: {marg['margin_pp']:+.2f} pp of adult share  "
+          + (green("capacity covers the obligation")
+             if covers else red("capacity does NOT cover the obligation")))
+    print(f"  L = {marg['supply_per_capita']:,.1f} h/person·yr"
+          f"   vs personal obligation {marg['personal_demand_per_capita']:,.1f}"
+          f"   (L {'derived' if args.available_labor is None else 'OVERRIDDEN'})")
     print()
 
     print(bold("Floors"))
