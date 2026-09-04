@@ -43,24 +43,24 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
-- **126 of 138 placeholder/bounded constants carry no confidence figure.**
+- **126 of 138 placeholder/bounded constants carry no confidence figure.** *(caveat)*
   Ratcheted; may not rise.
-- **Three of four personal automation floors are absent.** See
+- **Three of four personal automation floors are absent.** *(pointer)* See
   [personal.md § Open](personal.md#open).
-- **The three-curves-one-shape lead is untouched.** Three constants make the same
+- **The three-curves-one-shape lead is untouched.** *(person)* Three constants make the same
   claim — labour content declines to an irreducible floor — with exponents spread
   2.9× and floors 4×. **If they are one quantity, one measurement settles four
   constants.** They are at least not independent evidence for one another.
   *Settles by:* deciding whether they describe one activity or four.
-- **`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates `INFRA_MAINT_RATE`**
+- **`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates `INFRA_MAINT_RATE`** *(person)*
   as an unbound literal 1,087 lines away. Reported, not bound — binding would
   ASSERT the aggregate and the catch-all are one quantity, which is a theory
   claim. *Settles by:* an author decision on whether they are.
-- **`derive `form:` edges from the expressions.** `band_from:` is opt-in, which is
+- **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is opt-in, which is
   the wrong shape for a circularity check — every failure found so far was one
   nobody thought to declare. The right-hand side of each assignment is already an
   exact dependency statement readable with `ast`.
-- **The scan is `data.py`-only.** "300/300 tagged" means 300 constants *in
+- **The scan is `data.py`-only.** *(caveat)* "300/300 tagged" means 300 constants *in
   `data.py`*; the 33 shadow constants are invisible to every count published.
 
 ## Cross-area entries

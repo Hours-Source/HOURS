@@ -37,27 +37,27 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **`notes/value-anchor.md` §2 is not signed off for publication.** Specifically:
+- **`notes/value-anchor.md` §2 is not signed off for publication.** *(person)* Specifically:
   whether it ships as drafted, and whether the corrected CENSUS-vs-VALUATION
   framing is accepted — it replaces "no price in the chain", which measurement
   showed is true of both routes and distinguishes nothing. *Settles by:* author
   decision. See
   [verification.md#doctrine-invariance-was-circular](verification.md#doctrine-invariance-was-circular).
-- **The discovery layer is a 120-line stub with 3 functions** (`research/desire.py`).
+- **The discovery layer is a 120-line stub with 3 functions** *(person)* (`research/desire.py`).
   The stock identity bounds the guaranteed portion; what a unit commands ABOVE
   the floor has no theory, so every claim about purchasing power is scoped to the
   floor and `floor_claim_across_the_arc` flags its own result as internal.
   *Settles by:* a theorem, not code.
-- **Registration capture is measured and unmodelled.** Unit elasticity on the
+- **Registration capture is measured and unmodelled.** *(person)* Unit elasticity on the
   money supply, and the only lever that moves it — so whoever controls what counts
   controls issuance, which is the failure mode discretionary issuance is
   criticised for. **The contestability arc addresses EXIT; this is VOICE.**
   *Settles by:* a governance model of the register, which does not exist.
-- **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** Phase 0 may be
+- **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may be
   sufficient; building further is monetary economics rather than entropy
   accounting, and is the surface growth the review's §15 warns about. **Do not
   build without a reason to.**
-- **`teh_supply` is pinned, not decided** — wire it, retire it, or leave it. A
+- **`teh_supply` is pinned, not decided** *(held)* — wire it, retire it, or leave it. A
   test fails if it acquires a caller, which is the safe holding state. See
   [verification.md § Live state](verification.md#live-state).
 

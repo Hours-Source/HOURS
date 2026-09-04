@@ -44,14 +44,14 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **Underwriting governance** — who decides, and on what terms.
-- **Supply-curve calibration** for `research/formation.py`'s linear private
+- **Underwriting governance** *(person)* — who decides, and on what terms.
+- **Supply-curve calibration** *(gap)* for `research/formation.py`'s linear private
   supply between `FORMATION_HURDLE_RATE_MIN` and `FORMATION_FULL_SUPPLY_RATE`.
-- **Typed-capital integration** with `core/civilization.py`; intermediate
+- **Typed-capital integration** *(gap)* with `core/civilization.py`; intermediate
   priority policies between share-first and dividend-first are unbuilt.
-- **The investment-disincentive feedback on K(ε) is not simulated**, and is
+- **The investment-disincentive feedback on K(ε) is not simulated** *(gap)*, and is
   flagged as such.
-- **`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9**, a
+- **`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9** *(pointer)*, a
   retired work-year artefact. See [verification.md § Open](verification.md#open).
 
 ## Cross-area entries

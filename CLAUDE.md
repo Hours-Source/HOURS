@@ -363,7 +363,7 @@ someone remembering it, which is what this section is for.
     term whether it carries its own response to the shared driver, then ask
     whether another term already implements your stated rationale.
 
-12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033)* The
+12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033, F-039)* The
     reporting-position check passed a deliberate breakage: "lands under a literal
     key" accepts any dict value. Worse, **a mutation that does not execute is a
     false pass** — an edit inside `if epsilon is not None` while the test called
@@ -400,7 +400,7 @@ corpus when you need to CHECK for a mode, not to recognise one.** Validate with
 Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
 F-037) — written because the mapping made contact with the gap, not backfilled.
 Modes 1–3 and 6–13 each name findings that already existed. The corpus also
-holds 20 findings with no mode here, most of them `kind: method`, which is a
+holds 14 findings with no mode here, most of them `kind: method`, which is a
 different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
@@ -446,7 +446,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**3,977 tests passing (1 skipped), mypy clean on 90 source files** (verified
+**3,989 tests passing (1 skipped), mypy clean on 90 source files** (verified
 2026-09-04). Provenance **300/300**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -454,8 +454,10 @@ the contestability closure and Coasean Phase 3.
 **The status log was split by subject area on 2026-09-03/04** (`b2892ac`) — this
 file went 304,528 → ~40,000 chars against a 150,000 limit, and its history is
 now `record/`, indexed below. Two gates live outside the repo because what they
-check does: `python3 ~/.claude/corpus/check.py` (the portable agent corpus, and
-that every `F-0NN` cited above resolves) and
+check does: `python3 ~/.claude/corpus/check.py` (the portable agent corpus,
+that every `F-0NN` cited above resolves, and that every count of that corpus
+asserted in this file and in session memory matches the live figure — the two
+totals above drifted 32 → 38 with every gate on both sides green) and
 `python3 ~/.claude/corpus/check_memory.py` (session-memory pointers, commit
 shas, and that nothing is filed in two stores). Neither can run in CI. See
 [`record/verification.md#the-record-split`](record/verification.md#the-record-split).
@@ -517,19 +519,19 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 32 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 39 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
 ## Test file index
 
-**89 test files. The name rule covers 64 of them:** `tests/test_<module>.py`
+**92 test files. The name rule covers 65 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 25 files the rule does not cover are all listed below, plus two that do
+The 27 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -540,7 +542,8 @@ are the ones worth knowing by name.
 
 | File | What it enforces |
 |------|------------------|
-| `test_claims_register.py` | **This file.** Every LIVE claim in CLAUDE.md the code can answer, checked against the code; a claim whose anchor text is edited fails loudly. Plus the open-item discipline: an item is struck through (closed) or declared with what would settle it. |
+| `test_claims_register.py` | **This file.** Every LIVE claim in CLAUDE.md the code can answer, checked against the code; a claim whose anchor text is edited fails loudly. Plus the open-item discipline: an item is struck through (closed) or declared with what would settle it, and every `## Open` bullet in `record/` states its KIND — `gap` / `held` / `caveat` / `person` / `pointer`, so a do-not-build decision is not read as backlog. |
+| `test_record_index.py` | The `record/` index globbed from disk, not hand-kept: every area file linked from `record/README.md`, no README row claiming an area is migrated while the file is a stub, and every generated entry index current. |
 | `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. |
 | `test_confidence.py` | The confidence ratchet — the count of placeholder/bounded constants *without* a confidence figure may not rise. |
 | `test_dataset_governance.py` | A dataset's stated method against the constants it governs, sha256-fingerprinted so a regenerated file breaks the build until the constants are re-checked. |
@@ -565,6 +568,7 @@ are the ones worth knowing by name.
 | `test_grib_scan.py` | `utils/grib_scan.py` — the header-only GRIB locator |
 | `test_land_guf.py` | `land/guf.py` — all functions across the arc, boundary verification, worked example |
 | `test_maintain_vs_replace.py` | B3 — maintain vs replace with the embodied-energy pulse (`research/thermal_capital.py`) |
+| `test_measured_capacity.py` | The measured labour capacity behind `feasibility.labor_supply_per_capita`, the DIRECTION of `H_REF`'s error as its stand-in, and that correcting it does not dissolve the over-determination |
 | `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
 | `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |

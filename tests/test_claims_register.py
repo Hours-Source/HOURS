@@ -498,3 +498,307 @@ class TestTheGateIsHonestAboutItself:
         doc = __doc__ or ""
         assert "STATED GAPS" in doc
         assert "test count" in doc and "mypy" in doc
+
+
+# ---------------------------------------------------------------------------
+# The kind of an open item
+# ---------------------------------------------------------------------------
+
+class TestEveryOpenItemIsTyped:
+    """
+    An `## Open` section is not a work queue, and treating it as one is how a
+    gate manufactures work the repo has already decided against.
+
+    WHAT THE MEASUREMENT FOUND. The 54 bullets under `## Open` are five
+    different things. CLAUDE.md's twelve say of themselves "An index, not the
+    items themselves"; of the 42 in `record/`, five more are pure
+    cross-references, so one item was reachable three ways (`teh_supply`, in
+    CLAUDE.md, theory.md and verification.md). And four are items the repo has
+    explicitly decided NOT to close: "Anchor comparison Phases 1-3 are HELD
+    DELIBERATELY... Do not build without a reason to", "declared limits, not
+    gaps to close opportunistically", "Reported, not bound - binding would
+    ASSERT... a theory claim". A session told there are "54 open items" reads
+    four do-not-build decisions as a backlog.
+
+    So the kind is the part a reader acts on, and it is now stated:
+
+        gap      work; a named acquisition or build closes it
+        held     decided NOT to do; BUILDING it is the error
+        caveat   a standing property of the model, not work at all
+        person   waiting on a human decision; no code state changes
+        pointer  the item is filed elsewhere; follow the link
+
+    THE MARKER IS THE `*(gated)*` IDIOM the area files already use in 21
+    places, so this reads native rather than as a second notation.
+
+    WHY THIS SECTION AND NOT THE OTHER ONE. `TestTheOpenItemsAreDeclared`
+    above matches `- **STILL OPEN`, and all six of those lines are sub-bullets
+    under `## History` - where the marker correctly means "open as of this
+    entry", and where history is verbatim and must not be retyped. That gate
+    has never seen an `## Open` section. This one covers the convention
+    `record/README.md` rule 2 actually establishes; the two do not overlap.
+
+    STATED GAPS, because a checker that reads as broader than it is licenses
+    not looking:
+
+      * THE KIND IS AUTHORED, NOT DERIVED. Nothing here stops a `gap` being
+        retyped `held` to silence it. What makes that hold is that retyping is
+        a visible act in a diff - the same argument `record/verification.md`
+        makes for leaving the shadow ratchet's bound un-meta-ratcheted. That
+        is the real ceiling on this mechanism and it is not closeable from
+        inside.
+      * NO PREDICATE IS CHECKED YET. This gate says an item is TYPED. It does
+        not say a `gap` is still open, that nobody built a `held`, or that a
+        `caveat`'s figure is current - the settle path still declared in
+        `record/verification.md § Open`. Typing is what makes those predicates
+        writable, because the kind decides which DIRECTION each one points; it
+        is not a substitute for them.
+      * CLAUDE.md's `## Open` IS NOT SCANNED FOR KINDS. It is an index, and
+        it already types its rows by group heading ("Held deliberately - do not
+        build without a reason to"), so nothing here checks the kind of those
+        rows. `TestClosingAnItemLeavesEvidence` below DOES read them: a closure
+        written in the index is still a closure and must show its evidence.
+    """
+
+    KINDS = frozenset({"gap", "held", "caveat", "person", "pointer"})
+    _KIND = re.compile(r"\*\((gap|held|caveat|person|pointer)\)\*")
+    _ANYMARK = re.compile(r"\*\(([a-z]+)\)\*")
+
+    def _items(self) -> list[tuple[str, str]]:
+        """`[(file, bullet text)]` for every bullet under an `## Open` heading."""
+        out: list[tuple[str, str]] = []
+        for path in sorted(RECORD_DIR.glob("*.md")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            heads = [i for i, l in enumerate(lines)
+                     if l.strip().lower().startswith("## open")]
+            if not heads:
+                continue
+            start = heads[0]
+            end = next((i for i in range(start + 1, len(lines))
+                        if lines[i].startswith("## ")), len(lines))
+            buf: list[str] = []
+            for i in range(start + 1, end + 1):
+                line = lines[i] if i < end else "- "
+                if line.startswith("- ") and buf:
+                    out.append((path.name, " ".join(buf)))
+                    buf = []
+                if line.startswith("- ") or (buf and line.startswith("  ")):
+                    buf.append(line.strip())
+        return out
+
+    def test_every_open_item_states_its_kind(self) -> None:
+        untyped = [(f, t[:100]) for f, t in self._items()
+                   if not self._KIND.search(t)]
+        assert not untyped, (
+            "these `## Open` items carry no kind marker:\n  "
+            + "\n  ".join(f"{f}: {t}" for f, t in untyped)
+            + f"\n\nAdd one of {sorted(self.KINDS)} in the `*(kind)*` form, "
+            "after the bullet's bold lead. `held` means BUILDING it is the "
+            "error, which is the distinction this exists for."
+        )
+
+    def test_no_item_claims_two_kinds(self) -> None:
+        """One item, one kind. Two is the shape that let `psi` diverge from
+        `psi_applied` - two accounts of one quantity."""
+        doubled = [(f, t[:80]) for f, t in self._items()
+                   if len(self._KIND.findall(t)) > 1]
+        assert not doubled, f"items carrying more than one kind: {doubled}"
+
+    def test_the_vocabulary_is_closed(self) -> None:
+        """
+        An open vocabulary is not a vocabulary. `*(gated)*` is the pre-existing
+        marker and is deliberately allowed through - it says a LIVE-STATE line
+        is checked, which is a different axis from an open item's kind.
+        """
+        allowed = self.KINDS | {"gated"}
+        stray = {m for _, t in self._items()
+                 for m in self._ANYMARK.findall(t)} - allowed
+        assert not stray, (
+            f"unknown marker(s) in an `## Open` item: {sorted(stray)}. "
+            f"The vocabulary is {sorted(self.KINDS)} - widen it deliberately "
+            "or fix the typo."
+        )
+
+    def test_every_pointer_names_a_file_that_exists(self) -> None:
+        """
+        A `pointer` whose target is gone is the dangling half of a duplicate -
+        what `test_every_declaration_names_an_item_that_exists` catches for
+        declarations, applied to the five items filed in two places.
+        """
+        dangling = []
+        for f, t in self._items():
+            if "*(pointer)*" not in t:
+                continue
+            targets = re.findall(r"\[([a-z_]+\.md)[^\]]*\]", t)
+            if not targets:
+                dangling.append((f, t[:80], "names no target file"))
+            for name in targets:
+                if not (RECORD_DIR / name).is_file():
+                    dangling.append((f, t[:80], f"target {name} does not exist"))
+        assert not dangling, f"pointer items with no live target: {dangling}"
+
+    def test_the_scan_is_not_vacuous(self) -> None:
+        """
+        A scan over zero bullets passes and guards nothing - and this one runs
+        over a directory glob, so a rename could silently empty it. The counts
+        are lower bounds, not pins: items close, and the gate must not fire
+        when they do.
+        """
+        items = self._items()
+        assert len(items) >= 30, f"only {len(items)} open items found - glob broken?"
+        kinds = [m.group(1) for _, t in items if (m := self._KIND.search(t))]
+        assert kinds.count("held") >= 1, (
+            "no `held` item found. If every do-not-build decision really has "
+            "been retired, delete this assertion deliberately - the kind that "
+            "justifies the whole mechanism is the one that must not vanish "
+            "quietly."
+        )
+        assert len(set(kinds)) >= 3, f"only {sorted(set(kinds))} in use"
+
+    def test_the_stated_gaps_are_still_stated(self) -> None:
+        """The admissions above are load-bearing: without them this gate reads
+        as staleness detection, which is exactly what it does NOT do yet."""
+        doc = self.__doc__ or ""
+        assert "STATED GAPS" in doc
+        assert "AUTHORED, NOT DERIVED" in doc
+        assert "NO PREDICATE IS CHECKED YET" in doc
+
+
+class TestClosingAnItemLeavesEvidence:
+    """
+    The transition rules from `record/README.md` convention 2, enforced.
+
+    An open item has three ways to stop being open, and only one of them is
+    honest. It can be STRUCK (closed, kept visible), it can be RETYPED (a `gap`
+    becoming `held` is work disappearing without anything landing), or it can be
+    quietly deleted — which removes the only reason anyone believes the item was
+    real. These check the first two. Nothing here can check deletion; git can.
+
+    WHY `held` IS THE ONE THAT NEEDS A REASON. Every other transition leaves a
+    trace someone would notice: a struck line is visible, a closed gap has a
+    history entry. Retyping a `gap` to `held` looks like housekeeping and means
+    "we decided not to do this" — so the cost of making that move is writing
+    down why. All four `held` items already do; this makes that a floor rather
+    than a habit.
+
+    STATED GAPS:
+
+      * THE STRUCK-ITEM CHECKS GUARD ONE ITEM TODAY. `## Open` sections in
+        `record/` contain no closed items yet; the single instance is in
+        CLAUDE.md. A near-vacuous gate is worth saying out loud — it is
+        verified against that one real instance, and
+        `test_the_closure_form_has_an_instance` fails if it reaches zero, so it
+        cannot quietly become a check over nothing.
+      * NOTHING HERE NOTICES WORK LANDING AND THE LINE NOT BEING STRUCK. That
+        is the residual the per-item predicate exists for, still declared in
+        `record/verification.md § Open`. These gates check the FORM of a
+        transition that was made, never that a transition was DUE.
+    """
+
+    _STRUCK = re.compile(r"~~")
+    _DATE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
+    _WHAT = re.compile(r"\([^)]{4,}\)")
+    _LINK = re.compile(r"\]\([^)]+\)")
+
+    def _open_bullets(self) -> list[tuple[str, str]]:
+        """Every `## Open` bullet in CLAUDE.md AND `record/`.
+
+        Wider than `TestEveryOpenItemIsTyped._items`, deliberately: CLAUDE.md's
+        section is an index and carries no KINDS, but a closure written there is
+        still a closure and must show its evidence.
+        """
+        out: list[tuple[str, str]] = []
+        for path in [CLAUDE_MD] + sorted(RECORD_DIR.glob("*.md")):
+            lines = path.read_text(encoding="utf-8").splitlines()
+            heads = [i for i, l in enumerate(lines)
+                     if l.strip().lower().startswith(("## open", "### open"))]
+            for start in heads:
+                end = next((i for i in range(start + 1, len(lines))
+                            if lines[i].startswith(("## ", "### "))), len(lines))
+                buf: list[str] = []
+                for i in range(start + 1, end + 1):
+                    line = lines[i] if i < end else "- "
+                    if line.startswith("- ") and buf:
+                        out.append((path.name, " ".join(buf)))
+                        buf = []
+                    if line.startswith("- ") or (buf and line.startswith("  ")):
+                        buf.append(line.strip())
+        return out
+
+    def _closed(self) -> list[tuple[str, str]]:
+        return [(f, t) for f, t in self._open_bullets() if self._STRUCK.search(t)]
+
+    def test_a_closed_item_says_when_it_closed(self) -> None:
+        bad = [(f, t[:90]) for f, t in self._closed() if not self._DATE.search(t)]
+        assert not bad, (
+            "these closed items carry no date:\n  "
+            + "\n  ".join(f"{f}: {t}" for f, t in bad)
+            + "\n\nUse the form `**~~<item>~~ — SETTLED <YYYY-MM-DD>** (<what "
+            "decided it>)`. A closure with no date cannot be aged."
+        )
+
+    def test_a_closed_item_says_what_closed_it(self) -> None:
+        """
+        THE FIRST VERSION OF THIS PASSED A DELIBERATE BREAKAGE. Removing
+        "(author decision, charter)" left the check green, because
+        `](record/ecological.md#live-state)` is also a parenthesis four
+        characters long — the markdown link satisfied the assertion that a
+        DECIDER was named. Link targets are stripped before looking, which is
+        failure mode 2: an assertion the surrounding syntax enforces.
+        """
+        bad = [(f, t[:90]) for f, t in self._closed()
+               if not self._WHAT.search(self._LINK.sub("]", t))]
+        assert not bad, (
+            "these closed items do not name what decided them:\n  "
+            + "\n  ".join(f"{f}: {t}" for f, t in bad)
+            + "\n\n'SETTLED' with no decider is a status note, and a status "
+            "note outliving its decision is this repo's most repeated failure."
+        )
+
+    def test_a_closed_item_points_at_its_evidence(self) -> None:
+        """The § Open line is STATE; the history entry is EVIDENCE. A closure
+        with no link asserts the second without providing it."""
+        bad = [(f, t[:90]) for f, t in self._closed() if not self._LINK.search(t)]
+        assert not bad, (
+            "these closed items link to nothing:\n  "
+            + "\n  ".join(f"{f}: {t}" for f, t in bad)
+            + "\n\nPoint at the history entry that closed it."
+        )
+
+    def test_the_closure_form_has_an_instance(self) -> None:
+        """
+        A form check over zero closures passes and guards nothing. Today there
+        is exactly one; if closures ever reach zero the convention has been
+        abandoned or the scan has broken, and either is worth a failure.
+        """
+        assert self._closed(), (
+            "no closed item found in any `## Open` section. Closed items are "
+            "struck through and KEPT VISIBLE — if one was deleted, restore it; "
+            "the shape is the finding."
+        )
+
+    def test_every_held_item_says_why_it_is_held(self) -> None:
+        """
+        `held` means BUILDING it is the error. Retyping a `gap` to `held` is the
+        one transition that makes work vanish with nothing landing, so it costs
+        a justification.
+        """
+        thin = []
+        for f, t in self._open_bullets():
+            if "*(held)*" not in t:
+                continue
+            rest = t.split("*(held)*", 1)[1].strip(" —-,.")
+            if len(rest) < 80:
+                thin.append((f, t[:90], len(rest)))
+        assert not thin, (
+            "these `held` items do not say why they are held:\n  "
+            + "\n  ".join(f"{f} ({n} chars after the marker): {t}" for f, t, n in thin)
+            + "\n\n`held` is a decision NOT to do something. State the reason, "
+            "or type it `gap` and leave it as work."
+        )
+
+    def test_the_stated_gaps_are_still_stated(self) -> None:
+        doc = self.__doc__ or ""
+        assert "STATED GAPS" in doc
+        assert "GUARD ONE ITEM TODAY" in doc
+        assert "NOTHING HERE NOTICES WORK LANDING" in doc

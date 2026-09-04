@@ -45,22 +45,22 @@ GUF's own magnitude is still fitted rather than derived.
 
 ## Open
 
-- **The pristine-gap condition inventory.** `pristine_gap_obligation` has no
+- **The pristine-gap condition inventory.** *(gap)* `pristine_gap_obligation` has no
   default inventory and a test pins that. Phase 3 gives cost per hectare
   restored; this needs hectares needing restoration. *Settles by:* USDA NRI, the
   land cover/use transition matrices, keyed to exactly the transitions the
   Phase-3 sequences price.
-- **The tenure split.** ERS is a use survey with no tenure split; 7 of 9 classes
+- **The tenure split.** *(gap)* ERS is a use survey with no tenure split; 7 of 9 classes
   are undeclared and default to wholly member-held, which understates the
   federation's obligation. *Settles by:* BLM Public Land Statistics, surface acres
   by tenure.
-- **The service volumes V_s.** The package ships no measured per-hectare service
+- **The service volumes V_s.** *(gap)* The package ships no measured per-hectare service
   profile; `E` defaults to 0 and the term is reachable, not active. *Settles by:*
   i-Tree / FIA.
-- **ρ by use category.** `GUF_SERVICE_RETENTION_BY_USE` ships an ordering, not
+- **ρ by use category.** *(gap)* `GUF_SERVICE_RETENTION_BY_USE` ships an ordering, not
   magnitudes. *Settles by:* NLCD Percent Developed Imperviousness — measured,
   gridded, already aligned to land class.
-- **`ECOLOGICAL_BASE_RATE` vs `CDR_LABOR_HOURS_PER_TONNE`.** If a discrepancy
+- **`ECOLOGICAL_BASE_RATE` vs `CDR_LABOR_HOURS_PER_TONNE`.** *(caveat)* If a discrepancy
   remains between the thermal and land layers it is now that constant's to
   answer — the ecological anchor can no longer absorb it.
 

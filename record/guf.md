@@ -40,18 +40,18 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **The ten `GUF_USE_*` ratios.** Both censuses aggregate over LAND CLASSES while
+- **The ten `GUF_USE_*` ratios.** *(gap)* Both censuses aggregate over LAND CLASSES while
   the fee table is indexed by USE CATEGORY. *Settles by:* occupational data coded
   by the land use it serves, or a change to the fee's definition. Declared in
   `tests/test_claims_register.py::DECLARED_OPEN`, so this one cannot go stale
   silently. See [guf-magnitude-options-1-2](#guf-magnitude-options-1-2) and
   [ten-ratios-decomposed](#ten-ratios-decomposed).
-- **`P_service` — the service-point denominator.** `numunits` is contaminated by
+- **`P_service` — the service-point denominator.** *(gap)* `numunits` is contaminated by
   other columns pasted in county by county; mechanism-based exclusion cleans the
   tail but not the numerator, and the gap cannot be imputed. *Settles by:* Census
   housing-unit estimates by county (residential share only; commercial service
   points remain a separate gap).
-- **`u_parcel`'s `resolves_by` is half satisfied.** The parcel count exists; the
+- **`u_parcel`'s `resolves_by` is half satisfied.** *(gap)* The parcel count exists; the
   restriction to `SERVICED_LAND_CLASSES` does not, so the rate is a LOWER bound.
   *Settles by:* the `usedesc` normalisation project.
 

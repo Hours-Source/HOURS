@@ -43,13 +43,13 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **Dynamic stability is unbuilt.** `arc_stability` answers stationarity, NOT
+- **Dynamic stability is unbuilt.** *(pointer)* `arc_stability` answers stationarity, NOT
   whether the coupled capital→automation→income→formation loop oscillates.
   Nothing tests for limit cycles. See
   [verification.md § Open](verification.md#open).
-- **Type-specific abatement** — which capital abates which component. See
+- **Type-specific abatement** *(pointer)* — which capital abates which component. See
   [personal.md § Open](personal.md#open).
-- **The discovery layer above the floor is a 120-line stub.** Every claim about
+- **The discovery layer above the floor is a 120-line stub.** *(pointer)* Every claim about
   purchasing power is scoped to the floor. *Settles by:* a theorem, not code.
   See [theory.md § Open](theory.md#open).
 

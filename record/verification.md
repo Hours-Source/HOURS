@@ -49,20 +49,25 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **The compensating-mechanism audit** (review §15) is unbuilt.
-- **Dynamic stability / oscillation** (review §6) is unbuilt. `arc_stability`
+- **The compensating-mechanism audit** *(gap)* (review §15) is unbuilt.
+- **Dynamic stability / oscillation** *(gap)* (review §6) is unbuilt. `arc_stability`
   answers stationarity, **not** whether the coupled capital→automation→income→
   formation loop oscillates. Nothing tests for limit cycles.
-- **The claims register checks that an open item is DECLARED, never that it is
-  still OPEN.** That gap let a `STILL OPEN` line sit stale for a day while the
-  file asserted the adoption two entries above it — the first instance the
-  register did not catch. *Settles by:* a predicate per open item, which is the
-  same shape as `LIVE_CLAIMS` and has not been built.
-- **The shadow ratchet cannot catch its own bound being loosened.** `len(_DECLARED)
+- **The claims register still checks that an open item is DECLARED, never that
+  it is still OPEN.** *(gap)* That gap let a `STILL OPEN` line sit stale for a day while
+  the file asserted the adoption two entries above it. Every `## Open` bullet
+  now states its KIND *(gated)* — `gap` / `held` / `caveat` / `person` /
+  `pointer` — which is what makes the predicate writable, because the kind
+  decides which DIRECTION it points: a `gap` fires when its closure lands, a
+  **`held` fires when someone builds it anyway**, a `caveat` when its own figure
+  drifts, a `pointer` when its target is gone. *Settles by:* those predicates,
+  same shape as `LIVE_CLAIMS`, still unbuilt — typing is the precondition, not
+  the thing.
+- **The shadow ratchet cannot catch its own bound being loosened.** *(held)* `len(_DECLARED)
   <= 8` passes if the bound is simply raised — verified, that mutation does not
   bite. Recorded rather than papered over: raising it is a visible act in a diff,
   and a meta-ratchet moves the same problem up one level.
-- **`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9**, the
+- **`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9** *(gap)*, the
   fourth artefact of the retired work-year convention. Declared, not yet changed.
 
 ## Cross-area entries
@@ -85,6 +90,17 @@ for the two gates filed there.
 ---
 
 ## History
+<a id="open-items-are-typed"></a>
+
+**THE OPEN-ITEM GATE HAD NEVER SEEN AN `## Open` SECTION — AND THE 54 ITEMS IN THEM ARE FIVE DIFFERENT THINGS** (2026-09-04). `TestEveryOpenItemIsTyped` in `tests/test_claims_register.py`, 6 tests, all six verified by breaking them. 42 `## Open` bullets across nine area files now state a KIND. 3,977 pass, mypy clean on 90 files.
+- **THE GATE WAS POLICING HISTORY, NOT OPEN ITEMS.** `_ITEM = r"^- \*\*(~~)?STILL OPEN"` matches **6 lines and all 6 are sub-bullets under `## History`** — where the marker correctly means "open as of this entry" and history is verbatim. The `## Open` sections that `README.md` rule 2 establishes had **never been checked by anything**. The stated gap ("DECLARED, never still OPEN") was real but second-order; the first-order problem was that the scan pointed somewhere else. **A gate named for what it should check is not evidence it checks it.**
+- **AND IMPORTING ALL 54 WOULD HAVE MANUFACTURED WORK THE REPO HAS DECIDED AGAINST.** 12 are CLAUDE.md index rows ("An index, not the items themselves"), 5 more are pure cross-references — `teh_supply` was reachable three ways. Of the ~36 distinct items, **4 say in plain English not to build them**: "HELD DELIBERATELY… Do not build without a reason to", "declared limits, not gaps to close opportunistically", "Reported, not bound — binding would ASSERT… a theory claim". **A session told "54 open items" reads four do-not-build decisions as backlog** — mode 7 running backwards, a declaration manufacturing work rather than a note outliving its decision.
+- **SO THE KIND IS THE PART A READER ACTS ON, and it decides which DIRECTION a predicate points.** `gap` fires when its closure lands; **`held` fires when someone builds it anyway** — an inverse check nothing in the repo had; `caveat` when its own figure drifts; `pointer` when its target is gone; `person` carries none and must say why. Typing is the precondition for the declared settle path, not a substitute for it, and the gate says so.
+- **THE CEILING IS STATED RATHER THAN PAPERED OVER: the kind is AUTHORED, not derived.** Nothing stops a `gap` being retyped `held` to silence it. What holds is that retyping is a visible act in a diff — the same argument this file already makes for leaving the shadow ratchet's bound un-meta-ratcheted.
+- **`git checkout` DESTROYED THE WORK BEING TESTED, TWICE.** Restoring a bite-test mutation with `git checkout <file>` reverts to HEAD — which discarded the markers and then the whole new test class, and three bites then "failed the right test" for the wrong reason against a half-tagged tree. **F-016 with a different instrument: the tree you restored is not the tree you were testing.** Redone with `cp` from outside the repo.
+- **THE CLOSURE GATES' OWN BITE ROUND FOUND A WEAK CHECK AND A BLIND PROBE.** `test_a_closed_item_says_what_closed_it` passed a deliberate breakage: `_WHAT = \([^)]{4,}\)` was satisfied by `](record/ecological.md#live-state)` — **the markdown link's parentheses stood in for the decider the assertion claimed to require**, mode 2 in a check written the same hour. And the probe reporting "mutation present" was `grep`, which is line-based, while the parenthetical **wraps across a newline** — so grep read 0 occurrences before and after, and the false pass looked like a weak gate. Both fixed; link targets are now stripped before looking, and the presence probe reads the joined bullet.
+- **AND ONE BITE WAS A FALSE PASS TWICE OVER.** A same-length `sed` left pytest's rewrite cache valid (same size, same-second mtime), so the mutation never executed; clearing `__pycache__` was not enough because the second attempt's `sed` **also rewrote the assertion string**, moving the check along with its target. **A mutation that edits the checker as well as the checked cannot fail.**
+
 <a id="the-record-split"></a>
 
 **THE STATUS LOG SPLIT BY SUBJECT AREA — AND THE END-TO-END CHECKS FOUND THREE DEFECTS THE GATES DID NOT** (2026-09-03/04, merged `b2892ac`). `CLAUDE.md` **304,528 → 40,215** chars against a 150,000 limit; nine area files under `record/`, 85 entries, **0 deleted**. 3,977 tests pass, mypy clean on 90 files.
@@ -98,8 +114,9 @@ for the two gates filed there.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 11 entries, newest first | |
+| 12 entries, newest first | |
 |---|---|
+| [open-items-are-typed](#open-items-are-typed) | THE OPEN-ITEM GATE HAD NEVER SEEN AN `## Open` SECTION — AND THE 54 ITEMS IN THEM ARE FIVE DIFF… |
 | [the-record-split](#the-record-split) | THE STATUS LOG SPLIT BY SUBJECT AREA — AND THE END-TO-END CHECKS FOUND THREE DEFECTS THE GATES… |
 | [stock-is-an-identity](#stock-is-an-identity) | THE STOCK IS AN IDENTITY, NOT A BOUND — AND THE PROPOSITION THE ANCHOR RESTED ON WAS FALSE AT F… |
 | [doctrine-invariance-was-circular](#doctrine-invariance-was-circular) | THE DOCTRINE-INVARIANCE EVIDENCE WAS CIRCULAR, AND THE CLAIM IT SUPPORTED WAS THE WRONG ONE |

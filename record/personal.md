@@ -42,21 +42,21 @@ recalled. None of these lines is gated; check the constant before quoting it.
 
 ## Open
 
-- **Three of four personal automation floors are absent** — only care and
+- **Three of four personal automation floors are absent** *(gap)* — only care and
   nutrition are measured. *Settles by:* the share of hours whose value depends on
   a HUMAN performing them, not the share a machine could technically take.
-- **`ABATEMENT_HALF_CAPITAL_TEH`** (confidence 5) sets the PACE of abatement and
+- **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
-- **`PERSONAL_EOH_COMPONENTS`** (confidence 25) — the four component shares are
+- **`PERSONAL_EOH_COMPONENTS`** *(gap)* (confidence 25) — the four component shares are
   the original desk estimate's own terms. ATUS reads care at 25.7% against the
   desk 62.1%, but observed ≠ obligation and care has been marketised.
   *Settles by:* HETUS/MTUS across development levels, which would settle the
   shares, the abatabilities, K_half, the extraction wedge and the infant band
   **together** — one acquisition, not five fieldwork items.
-- **Type-specific abatement** — which capital abates which component. Abatement
+- **Type-specific abatement** *(gap)* — which capital abates which component. Abatement
   is currently driven by TOTAL capital per capita.
-- **Adopting abatement as the DEFAULT generation path**, which retires the
+- **Adopting abatement as the DEFAULT generation path** *(gap)*, which retires the
   `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
 
 ## Cross-area entries

@@ -33,21 +33,21 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 ## Open
 
 - **`CDR_LABOR_HOURS_PER_TONNE` (0.6, Tier D) now owns any residual discrepancy
-  between the thermal and land layers.** The ecological anchor can no longer
+  between the thermal and land layers.** *(gap)* The ecological anchor can no longer
   absorb it — Phase 4f settled that disjunct. *Settles by:* operator staffing data
   beyond the current n=1.
-- **The `GUF_ECO_KAPPA_*` constants are engineered-route figures.** Restoration
+- **The `GUF_ECO_KAPPA_*` constants are engineered-route figures.** *(caveat)* Restoration
   implies κ_carbon 0.009–0.048 h/tonne against a shipped 0.6 — a 12–69× gap that
   is a MEASUREMENT of how much cheaper biological replacement is, not an
   inconsistency to reconcile. CONDITIONAL on a placeholder V_s. See
   [ecological.md#phase-3-restoration-cost](ecological.md#phase-3-restoration-cost).
-- **λ_equilibrium is not assessable from this data**, and marginal-capacity η was
+- **λ_equilibrium is not assessable from this data** *(held)*, and marginal-capacity η was
   built three ways and none is usable. Both are declared limits, not gaps to
   close opportunistically.
-- **Capital thermal intensities are Path-D placeholders** — they need IEA/LCA
+- **Capital thermal intensities are Path-D placeholders** *(gap)* — they need IEA/LCA
   data.
 - **The capital-profile SCALE is unchecked against any real inventory, and looks
-  ~3× out.** Running the US through `epsilon_current_from_inventory()` gives
+  ~3× out.** *(gap)* Running the US through `epsilon_current_from_inventory()` gives
   ε = 0.777–1.000 (saturated) against `capital_for_epsilon(0.40)` = 4,204
   TEH/capita — the US 2.2–4.7× over, which is not credible at ε≈0.95 while
   158M people work. `mix_spread(0.40)` is only 1.30×, **so the MIX is not the

@@ -97,8 +97,44 @@ fails if it is raised far enough to stop guarding.
 1. **Live state first.** What is true now, in as few lines as it takes. Where a
    line is enforced by `tests/test_claims_register.py`, it is marked *(gated)* —
    that line cannot go stale silently.
-2. **Open items next**, each with what would settle it. An item that is open,
-   unlisted and quietly false is the state this whole structure forbids.
+2. **Open items next**, each with what would settle it, and each stating its
+   KIND in the same `*(...)*` form: **`*(gap)*`** work a named acquisition or
+   build closes · **`*(held)*`** decided NOT to do, where BUILDING it is the
+   error · **`*(caveat)*`** a standing property of the model, not work ·
+   **`*(person)*`** waiting on a human, no code state changes ·
+   **`*(pointer)*`** filed elsewhere, follow the link. An item that is open,
+   unlisted and quietly false is the state this whole structure forbids — and
+   an item typed as work the repo has decided against is the same failure
+   pointing the other way. `tests/test_claims_register.py` requires the kind;
+   it does not yet check whether the item is still open.
+
+   **When an item closes or its kind changes**, the § Open line carries the
+   STATE and the history entry carries the EVIDENCE — never the reverse, and
+   never only one of them:
+
+   - **A `gap` that closes is struck in place, not deleted**, in the form the
+     repo already uses: `- **~~<the item>~~ — SETTLED <date>** (<what decided
+     it>).` plus a pointer to the history entry that closed it. Deleting it
+     removes the only reason anyone believes the item was real — convention 3
+     applied to open items.
+   - **A `gap` retyped `held` must gain its reason in the same edit.** This is
+     the silencing move — the one transition that makes work disappear without
+     anything landing — so the cost of making it is writing down why. All four
+     `held` items today do state it ("Do not build without a reason to";
+     "declared limits, not gaps to close opportunistically"; "Recorded rather
+     than papered over").
+   - **A `held` retyped `gap` needs the decision recorded**, because something
+     the repo decided against is being reopened. A history entry with an
+     anchor, cited from the item.
+   - **A `caveat` whose figure moves is the wrong shape to begin with.** Do not
+     restate a derived figure in prose — compute it, or register it in
+     `LIVE_CLAIMS` so it cannot drift silently. That drift is failure mode 13.
+   - **A `person` item that gets its decision** becomes a struck closure or a
+     `gap`, citing the decision. It never simply disappears.
+
+   **What none of this catches: work landing and nobody striking the line.**
+   No text convention can — that is what the per-item predicate is for, and it
+   stays declared in [`verification.md § Open`](verification.md#open).
 3. **History last**, newest first, **verbatim**. Entries are not rewritten when
    they are superseded — a superseded entry is collapsed to its headline with a
    pointer to what replaced it, and the body stays. Deleting the evidence would
