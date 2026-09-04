@@ -267,7 +267,7 @@ area — the instance counts below span every area in the repo. `gated by:` name
 the test that now catches the pattern; a mode with no gate is caught only by
 someone remembering it, which is what this section is for.
 
-1. **THE UNPINNED QUANTITY** — "no tests failed" usually means "nothing tested
+1. **THE UNPINNED QUANTITY** *(corpus F-004)* — "no tests failed" usually means "nothing tested
    it". Four load-bearing numbers changed with a green suite: `GUF_PSI_NORM`
    (fee curve −5.7% across the arc, 0 failures), `RECAL_FOUNDING_LABOR_HOURS`
    (labour arm 1.5× longer, 0), `DEFAULT_SEGMENTS` (Condition II mean −4.93%, 0),
@@ -277,7 +277,7 @@ someone remembering it, which is what this section is for.
    constant; if it is zero, add the pin in the same change and say so.
    `gated by:` nothing directly — `test_tolerances.py` covers only the inverse.
 
-2. **THE ASSERTION ENFORCED BY THE IMPLEMENTATION** — normalisers (`/ total`),
+2. **THE ASSERTION ENFORCED BY THE IMPLEMENTATION** *(corpus F-006)* — normalisers (`/ total`),
    clamps (`max(FLOOR, x)`) and residuals (`1 − a − b − c`) manufacture their own
    invariant. All three tests of `epoch_alpha_weights` passed with the eight α
    constants set to absurd values. `floor_spread == 1.000` cannot fail — the
@@ -285,7 +285,7 @@ someone remembering it, which is what this section is for.
    claims — monotonicity, where a peak sits, which term dominates at each end —
    then break a constant and watch it fail.
 
-3. **MEASURED WHERE THE DEFECT IS INVISIBLE** — the ε=0.40 trap. A β mismatch
+3. **MEASURED WHERE THE DEFECT IS INVISIBLE** *(corpus F-007, F-028)* — the ε=0.40 trap. A β mismatch
    cancelled exactly at 0.40 because κ = κ_ref there by construction, and every
    existing test ran at 0.40. `teh_per_capita` could drop `/ population` entirely
    and 57 tests passed, because every collective compared had the same
@@ -293,7 +293,7 @@ someone remembering it, which is what this section is for.
    sides DIFFER in the quantity being divided out; evaluate at 0, 0.40, 0.90,
    0.99, never at 0.40 alone.
 
-4. **THE COPY OF A VALUE WHOSE SOURCE IS ELSEWHERE** — six instances and
+4. **THE COPY OF A VALUE WHOSE SOURCE IS ELSEWHERE** *(corpus F-036)* — six instances and
    counting: `= 1500.0` in five generators surviving the `PERSONAL_EOH_BASE`
    reprice; `skill_decay_rate = 0.10` running the pipeline 4× the direct path;
    `TRANSMISSION_WORKING_LIFE_YEARS`; `mean_multiplier`; the US population under
@@ -304,7 +304,7 @@ someone remembering it, which is what this section is for.
    by test where they do not. But binding ASSERTS the two are one quantity — if
    that is a theory claim, report it instead.
 
-5. **THE STRANDED PARAMETER** — reaches `total_eoh` and stops at
+5. **THE STRANDED PARAMETER** *(corpus F-037, F-026)* — reaches `total_eoh` and stops at
    `eoh_to_teh_pipeline`, which is the path the implementation guide tells
    institutions to run. Four instances: `personal_standard` (worth 2.09× on total
    EOH), `ecological_health_response`, `knowledge_base_size`,
@@ -312,7 +312,7 @@ someone remembering it, which is what this section is for.
    reachable from the documented entry point and a test moves an output through
    it. `gated by:` `tests/test_parameter_wiring.py`
 
-6. **THE FRAME SEAM** — a quantity that must travel with the population/land
+6. **THE FRAME SEAM** *(corpus F-002, F-005, F-030)* — a quantity that must travel with the population/land
    frame and does not. Seven instances, including `CAPITAL_STOCK_DEFAULT` and
    `TRUST_BASE_TEH`, both declared "at the 1M reference population" and consumed
    by callers that moved the population without moving them. *The tell:* grep the
@@ -320,7 +320,7 @@ someone remembering it, which is what this section is for.
    frame-invariant share is the check that it is stated.
    `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain only)
 
-7. **THE STATUS NOTE OUTLIVING ITS DECISION** — nine instances. `land_stewardship`
+7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
    shipping in docstrings and runtime verdicts at the Phase 4f adoption. *Do:*
    compute ratios live rather than restating them in prose; when a decision
@@ -329,7 +329,7 @@ someone remembering it, which is what this section is for.
    That gap let a `STILL OPEN` line sit stale for a day while the file asserted
    the adoption two entries up.
 
-8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.**
+8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029)*
    `SKILL_WORKING_LIFE_YEARS` pointed at BLS Employee Tenure: median years with
    the *current employer* (3.9) against working life (37.5) — wrong by 2.6× and
    wrong in mechanism. Reading pointers in full dissolved about half the
@@ -339,7 +339,7 @@ someone remembering it, which is what this section is for.
    department, the field names the quantity.** *Do:* open the source and check it
    measures the quantity before binding anything to it.
 
-9. **CALIBRATED TO THE TARGET IT IS CHECKED AGAINST** — `DEFAULT_SEGMENTS`' means
+9. **CALIBRATED TO THE TARGET IT IS CHECKED AGAINST** *(corpus F-018, F-032)* — `DEFAULT_SEGMENTS`' means
    were set so the weighted mean landed exactly on the band ceiling, making
    `in_band: True` unfalsifiable. Same class: `GUF_USE_*`, `TRUST_BASE_TEH`,
    `CAPITAL_MACHINE_PROFILES`, `ECOLOGICAL_SPIKE_INTENSITY`. *Do:* ask **both**
@@ -347,7 +347,7 @@ someone remembering it, which is what this section is for.
    `LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration;
    `settlement_report`'s breach was unconditionally true before a single trade.
 
-10. **THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** — latent until a default
+10. ** *(corpus F-008)*THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** — latent until a default
     moves. `ground_use_fee` returned `psi = Ψ(ε)` while applying something else,
     and `guf_rate_calibration` multiplied by the reported value to solve for a
     coefficient the fee never uses. `human_fraction` meant the split factor and
@@ -355,7 +355,7 @@ someone remembering it, which is what this section is for.
     point. *Do:* when a computation gains a mode parameter, audit every value it
     REPORTS against every value it USES; ship the raw form under a different key.
 
-11. **THE DOUBLE APPLICATION** — two terms, one mechanism, composed. `U`'s
+11. ** *(corpus F-024)*THE DOUBLE APPLICATION** — two terms, one mechanism, composed. `U`'s
     `labor_content_scaling` and `Ψ` both encoded "labour costs collapse";
     combined, the flow leg was discounted 273× for one mechanism. **Neither
     function is wrong alone and both docstrings are honest** — the defect exists
@@ -363,7 +363,7 @@ someone remembering it, which is what this section is for.
     term whether it carries its own response to the shared driver, then ask
     whether another term already implements your stated rationale.
 
-12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** The
+12. ** *(corpus F-015, F-016, F-012, F-033)*THE GATE THAT DOESN'T BITE — verify by breaking it, always.** The
     reporting-position check passed a deliberate breakage: "lands under a literal
     key" accepts any dict value. Worse, **a mutation that does not execute is a
     false pass** — an edit inside `if epsilon is not None` while the test called
@@ -374,7 +374,7 @@ someone remembering it, which is what this section is for.
     bytecode question before a logic one. `git status` cannot verify restoration
     of an untracked file.
 
-13. **VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** Four times in one
+13. ** *(corpus F-027)*VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** Four times in one
     session the numbers were checked and the sentence about them was not: a false
     crossover, a "clears with 6% to spare" that held only under an unstated
     full-employment assumption, a figure half-sourced from a gitignored artifact,
@@ -383,11 +383,25 @@ someone remembering it, which is what this section is for.
     and check its DIRECTION. And do not restate a derived figure in prose — that
     drift has been caught nine times; return it from the function instead.
 
-**A checker must state its own gaps.** An undocumented gap makes the checker read
-as stronger than it is, which is mode 1 one level up. Static and runtime checks
-are complementary, never redundant: static is TOTAL but SHALLOW (all code,
-position only); runtime is DEEP but NARROW (exact flow through loops and calls,
-only the paths a caller drives).
+**A checker must state its own gaps** (corpus F-013). An undocumented gap makes
+the checker read as stronger than it is, which is mode 1 one level up. Static and
+runtime checks are complementary, never redundant: static is TOTAL but SHALLOW
+(all code, position only); runtime is DEEP but NARROW (exact flow through loops
+and calls, only the paths a caller drives).
+
+**The `corpus F-0NN` markers above are not citations for their own sake.** This
+section and the agent corpus at `~/.claude/corpus/` are the same knowledge at two
+altitudes: here is the tell, loaded every session; there is the full finding with
+its `instance:`, its `cost:`, and above all its `detect:` — the probe to run,
+written so someone who has never seen this model can run it. **Reach for the
+corpus when you need to CHECK for a mode, not to recognise one.** Validate with
+`python3 ~/.claude/corpus/check.py`.
+
+Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
+F-037) — written because the mapping made contact with the gap, not backfilled.
+Modes 1–3 and 6–13 each name findings that already existed. The corpus also
+holds 20 findings with no mode here, most of them `kind: method`, which is a
+different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
 

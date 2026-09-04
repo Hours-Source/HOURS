@@ -73,6 +73,20 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="circularity-check-atus-cannot-resolve-b"></a>
+
+**THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EARLIER RECOMMENDATION** (2026-08-06, promoted from session memory 2026-09-03). Verbatim, with one bullet since overtaken — see the note beneath.
+
+
+- **ε=0 ENDPOINT is B-free** (zero machine capital ⇒ ε=0 whatever B is; verified). **INTERIOR is not**: B is the scale factor of the whole ε axis — same capital, B 500→2500 moves ε 0.327→0.071.
+- **ATUS ALONE CANNOT RESOLVE B — that was my error.** Observed hours are FULFILLED EOH, not total. Calibrating B from them sets D:=L, so demand/supply ≡ 1.000 by construction, `feasibility_check` goes vacuous, and ε_personal is forced to 0. ATUS in a capital-rich society measures the HUMAN RESIDUAL (1−ε)·D.
+- **Non-circular route = the accounting identity**: `B = (M + H − R)/w`, ε = M/(M+H) as a by-product. Works because **M is B-free** (capital inventory × CAPITAL_MACHINE_PROFILES elimination rates) — two instruments, one unknown. `scenarios/feasibility.identify_base()`. Gives **B = 390–926**, independently inside the feasibility band 396–1,006. Two methods sharing no assumption, both excluding 1,500.
+- **Residual assumption D = M + H ⇒ LOWER bound, and it INVERTS where to calibrate**: the ε≈0 anchor fixes the ENDPOINT cleanly but is the WORST place to measure B (deficit largest and unobservable — paid in mortality, not diaries). A CAPITAL-RICH society is the BEST place. Opposite of the intuition.
+- **Defending B=1500 = asserting 41–62% of the personal obligation is permanently UNSERVED.** Third resolution alongside lower-demand / raise-supply; possibly partly true; must be stated not buried. `deficit_share` now prices it.
+- **OVERIDENTIFYING TEST — the first refutable claim the personal domain has had.** `implied_human_hours()`: fixed B ⇒ falsifiable H(K) path. B=1500 predicts **7.1 h/adult·day** of entropy labour at ADVANCED capital (10.0 at basic); no time-use survey reports that. B≈600–900 predicts 1–5 h/day, in range. Run PER DOMAIN it tests the uniform-(1−ε) assumption → converts the ε-vector question (§12.1) from theory to measurement.
+- **REPRICING HAZARD**: `p.temporary(personal_eoh_base=…)` does NOT reach `total_eoh()` (bound as an arg default at import); `core/population.py:462` uses the constant directly. The most leveraged constant in the model is not sweepable today.
+
+- **VERIFIED 2026-09-03, and the last bullet is now half true.** `total_eoh` takes an explicit `personal_base` parameter and it is LIVE — `personal_base=500.0` halves the personal domain, measured. What remains true is the *route*: the constants are still bound as argument defaults at import (`core/population.py:118, 238`), so a sweep driven through the `EohParams` object does not reach them. The parameter exists; the param-object path does not use it. Left verbatim above with the correction here rather than edited, because a status note outliving its decision is the shape this record exists to make visible (corpus F-009).
 
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/personal.md#<slug>`.

@@ -46,6 +46,16 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   close opportunistically.
 - **Capital thermal intensities are Path-D placeholders** — they need IEA/LCA
   data.
+- **The capital-profile SCALE is unchecked against any real inventory, and looks
+  ~3× out.** Running the US through `epsilon_current_from_inventory()` gives
+  ε = 0.777–1.000 (saturated) against `capital_for_epsilon(0.40)` = 4,204
+  TEH/capita — the US 2.2–4.7× over, which is not credible at ε≈0.95 while
+  158M people work. `mix_spread(0.40)` is only 1.30×, **so the MIX is not the
+  problem; the SCALE is** — and the capital→ε loop, the thermal ceiling and the
+  corridor all ride on it. *Settles by:* BEA Fixed Assets Table 1.1 (stock) plus
+  2.1/3.1ES by asset type — one table over from the flow table already used,
+  which gives the inventory but does **not** by itself resolve the 3×. Detail:
+  [finding-a-capital-profile-scale](#finding-a-capital-profile-scale).
 
 ## Cross-area entries
 
@@ -171,3 +181,9 @@ HONEST RESULTS (not tuned): well-invested collective (all-standard, 1902 TEH/per
 
 COMMITTED 2026-08-04 in d13613e on research/measurement-spine (whole thermal+corridor+capital arc). See [[project-thermal-sink-vector]] [[project-infrastructure-eoh-floor]] [[project-multiplier-v5-adoption]]. Open: intensities need Path-B measurement (IEA/LCA) before magnitudes are load-bearing; typed-Asset (core/capital.py) routing still not done; ε-vector Mission Statement amendment still sign-off-gated; whole staged bundle needs a branch decision (user wanted capital on a new branch after multiplier work).
 
+<a id="finding-a-capital-profile-scale"></a>
+
+**FINDING A — CAPITAL-PROFILE SCALE IS UNCHECKED AGAINST ANY REAL INVENTORY** (2026-08-08, promoted from session memory 2026-09-03; the ledger filed it as *"belongs to thermal/corridor"* and it sat unpromoted for four weeks). Verbatim.
+
+
+Running the US through `epsilon_current_from_inventory()`: BEA NIPA **Table 5.2.5 is a FLOW table** (investment + CFC per year), so a stock needs `K = CFC/δ` on 2024 CFC $4,796.7B. USD/TEH derived from the registry itself — mean wage **$66,213** ÷ 2,080 h ÷ mean multiplier **1.9964** = **$15.95/TEH** ($16.58 at 2,000 h; ~$21 with benefits, since wages ≠ compensation; user's 17.5 is sound and conservative). Result: K = $64–107T → **9,091–18,182 TEH/capita → ε = 0.777–1.000, SATURATED**. Against `capital_for_epsilon(0.40)` = **4,204 TEH/capita**: the US is **2.2–4.7× over**. A US at ε≈0.95 is not credible (ε=0.99 is "prices collapsed, human labour near-zero"; 158M people work), and Block II's 84.4%-care residual points the same way. **So the profile `teh_per_capita` tier scale or the `personal_fulfillment_rate` values are miscalibrated by ~3×** — and the capital→ε loop closed by the 2026-08-05 audit, plus the thermal ceiling and corridor, all ride on it. `mix_spread(0.40)` = only 1.30×, so the MIX is not the problem; the SCALE is. **Unblocked by BEA Fixed Assets Table 1.1 (stock) + 2.1/3.1ES (by asset type)** — same agency, one table over from `handoffs/us_inventory/`; gives the inventory but does NOT by itself resolve the 3×.
