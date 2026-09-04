@@ -240,7 +240,32 @@ CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
 AGE_CAPACITY_WEIGHT_INFANT: float = 0.0
 AGE_CAPACITY_WEIGHT_CHILD: float = 0.0
 AGE_CAPACITY_WEIGHT_WORKING_AGE: float = 1.0
-AGE_CAPACITY_WEIGHT_ELDERLY: float = 0.0
+# tag: instance | units: dimensionless share of the elderly band inside the
+#   capacity measurement window
+# form: n(65..69) / n(65..100) on US 2025 single-year ages —
+#   `reference/data/census_age_2020_2025.csv`, the same extract
+#   `reference.care_demand.population_shares` reads. NOT zero, and not 1.0:
+#   `MEASURED_CAPACITY_H_YR` is measured over CAPACITY_MEASUREMENT_BAND (18-69),
+#   so the part of the elderly band inside that window supplies at the pooled
+#   adult rate by construction, and the part above 69 is outside the quantity.
+# note: ADOPTED 2026-09-04 (author decision). It was shipped at 0.0 the same day
+#   and reported by `capacity_band_alignment()` rather than taken, on the ground
+#   that correcting supply alone would dissolve the ε=0 over-determination while
+#   `AGE_WEIGHT_ELDERLY` remains a LOWER bound — a one-sided fix. THE AUTHOR
+#   OVERRODE THAT ON THE GROUND THAT THE ALIGNED FIGURE IS CLOSER TO WHAT IS
+#   OBSERVED, and the objection is not withdrawn: it is recorded here and in
+#   `record/personal.md`. The demand side is still understated by an unmeasured
+#   amount, so the ε=0 surplus this produces is an UPPER bound on the true one.
+# note: THIS IS AN INSTANCE VALUE AND MUST TRAVEL WITH `AGE_GROUP_FRACTIONS`.
+#   Both describe one age structure. A collective supplying its own fractions
+#   and keeping this default has mixed two demographies — the frame seam this
+#   repo has found in seven places.
+# supplied_by: the deploying collective's own age structure — the share of its
+#   65+ population that falls inside CAPACITY_MEASUREMENT_BAND. Supply it with
+#   AGE_GROUP_FRACTIONS, from the same source; the two describe one demography.
+# default: 0.3083, US 2025 single-year ages (n(65..69)/n(65..100) =
+#   19,921,459 / 64,617,088).
+AGE_CAPACITY_WEIGHT_ELDERLY: float = 0.3083
 
 # tag: derived | units: composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants
 # form: assembled from the four constants above, which is the point — this

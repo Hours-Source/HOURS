@@ -90,22 +90,71 @@ class TestTheDefaultUnderstatesCapacity:
         assert sum(v > float(H_REF) for v in frames.values()) > len(frames) / 2
 
 
-class TestTheFindingSurvivesTheCorrection:
+class TestTheFindingDidNotSurviveTheBandCorrection:
     """
-    The load-bearing test. If correcting the default made ε=0 feasible
-    everywhere, the correction would be doing suspicious work.
+    THE OVER-DETERMINATION IS GONE, AND WHAT REMOVED IT IS RECORDED HERE.
+
+    This class was `TestTheFindingSurvivesTheCorrection` and it asserted the
+    opposite: fewer than half the frames clearing at ε=0, and US2024 among
+    those that do not. Aligning the supply band to the band its capacity is
+    measured on (`AGE_CAPACITY_WEIGHT_ELDERLY` 0.0 → 0.3083, adopted
+    2026-09-04, author decision) moved the count **17/50 → 43/50** and flipped
+    **US2024 from not-clearing to clearing**.
+
+    WHAT THAT COST, STATED PLAINLY. The retrodiction went with it. The model
+    used to say a society working 1965 hours meets its personal obligation
+    unaided and one working 2024 hours does not; it no longer says that. That
+    was the framework's sharpest empirical claim about modern time use.
+
+    AND THE OBJECTION IS NOT WITHDRAWN. This file's own docstring warned that
+    "a fix that made the finding vanish would be the more suspicious outcome",
+    and the correction is ONE-SIDED: supply rose by a measured 5.83pp of adult
+    share while `AGE_WEIGHT_ELDERLY` = 1.48 remains a documented LOWER bound,
+    because the institutionalised elderly are outside the ATUS frame. So the
+    surplus these tests now pin is an UPPER bound on the true one, and a
+    symmetric correction — measuring the elderly obligation against the
+    institutional population — could restore some or all of the finding.
+    Nobody knows, because only one side has been measured.
+
+    These tests therefore pin the NEW state and the REASON, so that the day the
+    demand side is measured, the comparison is available rather than lost.
     """
 
-    def test_most_frames_still_do_not_clear_at_zero(self) -> None:
+    #: 17/50 under the pre-adoption share of 0.60. Pinned so the flip is a
+    #: visible number rather than a remembered one.
+    N_CLEARING_BEFORE_BAND_ALIGNMENT = 17
+
+    def test_most_frames_now_clear_at_zero(self) -> None:
         r = measured_capacity_frames()
-        assert r["n_clearing_at_zero"] < r["n_frames"] / 2
+        assert r["n_clearing_at_zero"] > r["n_frames"] / 2, (
+            "fewer than half the frames clear again. If the demand side was "
+            "raised, this is the over-determination returning and the history "
+            "entry should say so; if the supply share was reverted, say that."
+        )
+
+    def test_the_flip_is_the_band_alignment_and_nothing_else(self) -> None:
+        """
+        Re-runs the pre-adoption share directly. If this stops reproducing 17,
+        something OTHER than the band alignment has moved the frame counts and
+        the attribution in the history entry is wrong.
+        """
+        frames = mtus.capacity_frames()
+        before = sum(
+            1 for c in frames.values()
+            if feasibility_check(adult_capacity_h_yr=c, adult_share=0.60)["feasible"]
+        )
+        assert before == self.N_CLEARING_BEFORE_BAND_ALIGNMENT
 
     def test_the_frames_that_clear_are_the_high_labour_ones(self) -> None:
         r = measured_capacity_frames()
         clearing = r["clearing"]
         assert "US1965" in clearing
         assert "FR1966" in clearing
-        assert "US2024" not in clearing
+        assert "US2024" in clearing, (
+            "US2024 no longer clears. That would restore the retrodiction — "
+            "check whether the demand side was measured, which is the "
+            "symmetric correction record/personal.md § Open asks for."
+        )
 
     def test_clearing_is_exactly_capacity_above_the_requirement(self) -> None:
         """No separate criterion: a frame clears iff it supplies the hours."""
@@ -114,16 +163,24 @@ class TestTheFindingSurvivesTheCorrection:
         for sample, row in r["frames"].items():
             assert row["feasible_at_zero"] is (row["capacity_h_yr"] >= need), sample
 
-    def test_1965_us_clears_and_2024_us_does_not(self) -> None:
+    def test_the_retrodiction_held_only_under_the_unaligned_band(self) -> None:
         """
-        The retrodiction, pinned. A society working 1965 hours meets the
-        model's obligation with no automation; one working 2024 hours does not.
+        THE CLAIM THAT WAS LOST, KEPT RUNNABLE. Under the pre-adoption share
+        both halves held: 1965 clears, 2024 does not. Under the adopted share
+        both clear. Asserting BOTH states is the only way a reader can see what
+        the adoption changed without re-deriving it, and it is the comparison
+        the symmetric correction will need.
         """
-        us65 = feasibility_check(adult_capacity_h_yr=mtus.measured_capacity("US1965"))
-        us24 = feasibility_check(adult_capacity_h_yr=mtus.measured_capacity("US2024"))
-        assert us65["feasible"] is True
-        assert us24["feasible"] is False
-        assert us65["demand_supply_ratio"] < 1.0 < us24["demand_supply_ratio"]
+        c65 = mtus.measured_capacity("US1965")
+        c24 = mtus.measured_capacity("US2024")
+        before65 = feasibility_check(adult_capacity_h_yr=c65, adult_share=0.60)
+        before24 = feasibility_check(adult_capacity_h_yr=c24, adult_share=0.60)
+        assert before65["feasible"] is True and before24["feasible"] is False
+        assert before65["demand_supply_ratio"] < 1.0 < before24["demand_supply_ratio"]
+
+        after65 = feasibility_check(adult_capacity_h_yr=c65)
+        after24 = feasibility_check(adult_capacity_h_yr=c24)
+        assert after65["feasible"] is True and after24["feasible"] is True
 
 
 class TestTheDefaultIsTheMeasuredMedian:
@@ -159,29 +216,41 @@ class TestTheDefaultIsTheMeasuredMedian:
             assert "adult_capacity_h_yr: float = 2000.0" not in source
             assert "adult_capacity_h_yr: float = 2080" not in source
 
-    def test_the_verdict_is_unchanged_and_the_deficit_narrowed(self) -> None:
+    def test_the_capacity_fix_narrowed_the_deficit_and_the_band_fix_closed_it(self) -> None:
         """
-        The finding SURVIVES its own fix, which is why the fix was worth
-        making. Under H_REF the ratio was 1.1525; measured it is ~1.026. It
-        narrowed and it did not close.
+        TWO CORRECTIONS, AND ONLY THE SECOND CLOSED IT — which is the honest
+        account of a result that used to read as one number.
+
+        Under H_REF the ε=0 ratio was 1.1525. Measuring capacity (2026-09-03)
+        took it to ~1.026: narrowed, not closed, and this file was written to
+        say so. Aligning the supply band to the capacity band (2026-09-04) took
+        it to ~0.942: closed. The capacity fix is symmetric — it corrects a
+        quantity measured on its own terms. The band fix is NOT: supply moved
+        by a measured 5.83pp while demand stays a documented lower bound.
         """
         check = feasibility_check(epsilon=0.0)
-        assert check["feasible"] is False
-        assert 1.0 < check["demand_supply_ratio"] < 1.10
+        assert check["feasible"] is True
+        assert 0.90 < check["demand_supply_ratio"] < 1.0
         at_h_ref = feasibility_check(epsilon=0.0, adult_capacity_h_yr=float(H_REF))
         assert check["demand_supply_ratio"] < at_h_ref["demand_supply_ratio"]
+        # the capacity fix ALONE, on the pre-adoption share: narrowed, not closed
+        capacity_only = feasibility_check(epsilon=0.0, adult_share=0.60)
+        assert 1.0 < capacity_only["demand_supply_ratio"] < 1.10
+        assert capacity_only["feasible"] is False
 
     def test_the_stationary_band_is_pinned_at_its_level(self) -> None:
         """
-        PINNED BECAUSE IT MOVED. The sufficiency band's floor was 0.491 under
-        the stale 2000.0 literal and is 0.382 under the measured median — a
-        shift of about a fifth of the band's width that NO test would have
-        caught, because the arc_stability tests assert shape (`lower > 0`) and
-        never level. Pinning the level is what makes the next move visible.
+        PINNED BECAUSE IT MOVED, AND IT HAS MOVED AGAIN. The sufficiency band's
+        floor was 0.491 under the stale 2000.0 literal, 0.382 under the measured
+        median, 0.374 after the per-component automation default, and is 0.309
+        with the supply band aligned (2026-09-04). Each move was invisible to
+        the arc_stability tests, which assert shape (`lower > 0`) and never
+        level — pinning the level is what makes the next one visible, and this
+        is the third time that has paid.
         """
         from hours_eoh.scenarios.arc_stability import stationary_band
         assert stationary_band(standard="sufficiency")["lower"] == pytest.approx(
-            0.374, abs=5e-4
+            0.309, abs=5e-4
         )
         assert stationary_band(standard="survival")["lower"] == pytest.approx(
             0.0, abs=5e-4
@@ -267,25 +336,30 @@ class TestTheCapacityBandIsNotTheSupplyBand:
         )
         assert r["share_measured"] > r["share_selected"]
 
-    def test_the_correction_would_close_the_deficit_and_is_not_taken(self) -> None:
+    def test_the_bands_now_agree_and_the_report_measures_nothing(self) -> None:
         """
-        Both halves matter. If the correction stopped mattering, the report is
-        noise; if the shipped path ever silently took it, the over-determination
-        would have been dissolved by a one-sided fix.
+        ADOPTED 2026-09-04. The report was written to hold a correction the
+        shipped path did not take; the path now takes it, so the gap it
+        measures must be zero. A reporting function whose finding has been
+        adopted and which still reports a gap is two accounts of one quantity.
         """
-        from hours_eoh.scenarios.feasibility import (
-            capacity_band_alignment, feasibility_check)
+        from hours_eoh.scenarios.feasibility import capacity_band_alignment
         r = capacity_band_alignment()
-        assert r["ratio_as_shipped"] > 1.0 >= r["ratio_band_aligned"], (
-            "the band correction no longer flips ε=0 feasibility — re-read the "
-            "report before quoting it."
+        gap_pp = (r["adult_share_band_aligned"] - r["adult_share_used"]) * 100.0
+        assert 0.0 <= gap_pp < 1.0, (
+            f"the band gap is {gap_pp:.2f}pp, was 5.83 before adoption and "
+            "0.61 after. A gap near 5.8 means AGE_CAPACITY_WEIGHT_ELDERLY was "
+            "reverted; a gap above 1 means AGE_GROUP_FRACTIONS drifted from the "
+            "census structure the weight was derived on."
         )
-        assert feasibility_check(epsilon=0.0)["feasible"] is False, (
-            "the shipped path now reports ε=0 as feasible. If that came from "
-            "the band correction, it was adopted one-sidedly while "
-            "AGE_WEIGHT_ELDERLY is still a lower bound."
+        assert r["feasible_as_shipped"] == r["feasible_band_aligned"], (
+            "the residual gap now flips ε=0 feasibility — it is no longer a "
+            "rounding difference between a convention and a census."
         )
 
-    def test_the_shipped_share_is_unchanged_by_the_report(self) -> None:
+    def test_the_shipped_share_carries_the_elderly_inside_the_capacity_band(self) -> None:
+        from hours_eoh.data import AGE_CAPACITY_WEIGHT_ELDERLY, AGE_GROUPS
         from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
-        assert capacity_weighted_adult_share() == 0.60
+        assert AGE_CAPACITY_WEIGHT_ELDERLY == 0.3083
+        expected = 0.60 + AGE_GROUPS["elderly"]["fraction"] * AGE_CAPACITY_WEIGHT_ELDERLY
+        assert capacity_weighted_adult_share() == pytest.approx(expected)

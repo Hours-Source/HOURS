@@ -64,10 +64,17 @@ def test_supply_is_capacity_times_share():
     assert labor_supply_per_capita(2000.0, 0.55) == pytest.approx(1100.0)
 
 
-def test_supply_defaults_to_the_models_own_working_age_share():
+def test_supply_defaults_to_the_models_own_capacity_weighted_share():
+    """
+    The default share was the bare `working_age` fraction until 2026-09-04. It
+    is now Σ fraction·capacity_weight, which carries the 65-69 who sit inside
+    the band `MEASURED_CAPACITY_H_YR` is measured over.
+    """
+    from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
     assert labor_supply_per_capita(2000.0) == pytest.approx(
-        2000.0 * AGE_GROUPS["working_age"]["fraction"]
+        2000.0 * capacity_weighted_adult_share()
     )
+    assert capacity_weighted_adult_share() > AGE_GROUPS["working_age"]["fraction"]
 
 
 def test_supply_rejects_bad_inputs():
@@ -193,9 +200,20 @@ def test_sweep_covers_a_capacity_above_the_modern_reference():
     # The capacity it would need is not a working year anyone observes.
     assert max(SUBSISTENCE_CAPACITY_BAND) / 365.0 > 7.0
 
-    # At the repo's own labour constants the answer is still no.
+    # AT THE REPO'S OWN CONSTANTS THE ANSWER FLIPPED ON 2026-09-04, and the
+    # contrast with the corner above is the whole point of keeping both. The
+    # SUBSISTENCE band's most generous corner still does not clear (ratio
+    # 1.004, adult share 0.55) while the shipped default does (ratio 0.942,
+    # adult share 0.652) — so the difference is entirely the adult share, not
+    # the capacity. That is the band alignment, adopted with the objection
+    # recorded in record/personal.md: supply moved by a measured 5.83pp while
+    # AGE_WEIGHT_ELDERLY remains a documented lower bound.
     shipped = feasibility_check(epsilon=0.0)
-    assert shipped["feasible"] is False
+    assert shipped["feasible"] is True
+    assert shipped["demand_supply_ratio"] < generous["demand_supply_ratio"], (
+        "the shipped configuration is no longer more favourable than the "
+        "subsistence corner; the adult share has moved back down."
+    )
 
 
 def test_implied_ceiling_band_brackets_the_user_estimate():
@@ -394,7 +412,15 @@ def test_identification_rejects_bad_inputs():
 def test_shipped_base_predicts_an_unobserved_working_day():
     """B=1500 predicts 7.1 h/adult/day of entropy labour at advanced capital."""
     p = implied_human_hours(machine_eoh_per_capita=741.4, personal_base=1500.0)
-    assert p["human_per_adult_day"] == pytest.approx(6.28, abs=0.2)
+    # 6.28 until 2026-09-04; 5.76 once the supply share carried the 65-69 who
+    # are inside the capacity band. The same obligation spread over more adults
+    # is fewer hours EACH — the claim is that the day is unobserved, and 5.76
+    # h/adult/day every day of the year still is.
+    assert p["human_per_adult_day"] == pytest.approx(5.76, abs=0.2)
+    assert p["human_per_adult_day"] * 365.0 / 7.0 > 40.0, (
+        "the implied week has fallen below a full-time job; the claim that the "
+        "shipped base predicts an UNOBSERVED working day needs re-checking."
+    )
 
 
 def test_predicted_hours_fall_as_capital_rises():
@@ -412,3 +438,26 @@ def test_a_lower_base_predicts_observable_hours():
 def test_prediction_is_never_negative():
     p = implied_human_hours(machine_eoh_per_capita=1e6, personal_base=600.0)
     assert p["human_per_capita"] == 0.0
+
+
+def test_tol_still_changes_the_answer_where_the_search_actually_runs():
+    """
+    THE WIRING RATCHET CAUGHT THIS ON 2026-09-04 AND WAS RIGHT TO.
+
+    `feasible_epsilon(tol=)` went inert on the shipped defaults the moment the
+    supply band was aligned: ε=0 became feasible, so the bisection returns
+    immediately and the tolerance never enters. That is not a dead parameter —
+    it is a parameter whose branch the new default no longer reaches, which is
+    exactly the shape corpus F-016 warns about from the other direction.
+
+    So it is exercised where the search runs: a capacity low enough that ε=0
+    does not clear. Declaring it inert instead would have loosened a ratchet
+    that is at its bound, to hide a default change.
+    """
+    lo = feasible_epsilon(adult_capacity_h_yr=1200.0, tol=1e-2)
+    hi = feasible_epsilon(adult_capacity_h_yr=1200.0, tol=1e-6)
+    assert lo != hi, "tol no longer moves the bisection even where it runs"
+    assert abs(lo - hi) < 1e-2
+    assert 0.0 < hi < 1.0
+    # and it is genuinely zero on the shipped defaults, which is why it went inert
+    assert feasible_epsilon() == 0.0

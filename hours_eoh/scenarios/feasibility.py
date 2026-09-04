@@ -243,9 +243,17 @@ def capacity_band_alignment(
     a's numerator excludes them: L = c·a understates hours per capita, and the
     arithmetic that would be right is c times the 18-69 share.
 
-    WHY THIS DOES NOT SHIP AS A FIX, and the reason is the important part.
-    Correcting the supply band alone makes ε=0 feasible — the over-determination
-    the repo has carried since August closes. `tests/test_measured_capacity.py`
+    ADOPTED 2026-09-04 (author decision), and this now reports a SATISFIED
+    alignment rather than an outstanding one: `AGE_CAPACITY_WEIGHT_ELDERLY` is
+    0.3083, so the shipped share carries the 65-69 who sit inside c's window.
+    What remains is the residual between the shipped `AGE_GROUP_FRACTIONS` — a
+    convention — and the census age structure, which is a smaller and different
+    frame question.
+
+    WHY IT DID NOT SHIP AS A FIX FIRST, because the objection stands.
+    Correcting the supply band alone made ε=0 feasible — the over-determination
+    the repo carried since August closed, frames clearing went 17/50 to 43/50,
+    and the retrodiction (1965 clears, 2024 does not) was lost with it. `tests/test_measured_capacity.py`
     warns in as many words that "a fix that made the finding vanish would be the
     more suspicious outcome", and it is right here: `AGE_WEIGHT_ELDERLY` = 1.48
     is documented in its own tag block as a **lower bound**, because the
@@ -267,8 +275,14 @@ def capacity_band_alignment(
     wlo, whi = AGE_GROUPS["working_age"]["range"]
     shares = population_shares(
         {"selected": (wlo, whi), "measured": (lo, hi)}, year=year)
+    # THE BAND-ALIGNED SHARE IS THE CENSUS SHARE INSIDE THE CAPACITY WINDOW,
+    # read directly. The first version of this computed it as
+    # `a_used - selected + measured`, which was right only while the elderly
+    # capacity weight was 0.0; once the weight was adopted that expression
+    # added the same people twice and reported a 0.71 share. A correction is
+    # not a delta to be re-applied — it is a target to be compared against.
     a_used = capacity_weighted_adult_share()
-    a_band = a_used - shares["selected"] + shares["measured"]
+    a_band = shares["measured"]
     base = feasibility_check(epsilon=epsilon)
     aligned = feasibility_check(epsilon=epsilon, adult_share=a_band)
     return {

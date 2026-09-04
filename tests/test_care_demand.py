@@ -412,7 +412,16 @@ class TestAgeGroupsSplit:
                    "capacity_weight": capacity[name]}
             for name in weights
         }
-        assert sum(AGE_GROUP_FRACTIONS[n] * capacity[n] for n in weights) == 0.60
+        # 0.60 until the elderly weight was adopted (2026-09-04): 65-69 are
+        # inside the band MEASURED_CAPACITY_H_YR is measured over, so they were
+        # in c's denominator and outside a's numerator.
+        assert sum(AGE_GROUP_FRACTIONS[n] * capacity[n]
+                   for n in weights) == pytest.approx(0.652411)
+        assert capacity["infant"] == capacity["child"] == 0.0, (
+            "under-18s are outside CAPACITY_MEASUREMENT_BAND by definition; a "
+            "non-zero weight here needs entropy-resistance labour measured for "
+            "them, not self-maintenance (corpus F-001)."
+        )
 
     def test_each_part_carries_its_own_epistemic_state(self):
         """The whole point of the split, asserted against the real data.py."""

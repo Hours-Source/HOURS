@@ -42,14 +42,13 @@ recalled. None of these lines is gated; check the constant before quoting it.
 
 ## Open
 
-- **The capacity band is 18-69 and the supply band is 18-64** *(person)* —
-  `MEASURED_CAPACITY_H_YR` is measured over 18-69; the adult share it multiplies
-  selects 18-64. **5.83 pp of adult share**, REPORTING ONLY via
-  `capacity_band_alignment()` *(gated)*. Correcting supply ALONE dissolves the
-  ε=0 over-determination, and would be one-sided — `AGE_WEIGHT_ELDERLY` is a
-  LOWER bound. Detail: [capacity-band-mismatch](#capacity-band-mismatch).
-  *Settles by:* an author decision on aligning the bands, ideally with the
-  elderly obligation measured against the institutional population first.
+- **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
+  2026-09-04** *(person)* (author decision: the aligned figure is closer to what
+  is observed). `AGE_CAPACITY_WEIGHT_ELDERLY` 0.0 → 0.3083. **The objection
+  stands and is not withdrawn**: supply moved by a measured 5.83pp while
+  `AGE_WEIGHT_ELDERLY` is a documented LOWER bound, so the ε=0 surplus is an
+  UPPER bound on the true one. Detail:
+  [band-alignment-adopted](#band-alignment-adopted).
 - **Two of four personal automation floors carry a value, and neither is
   settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS; shelter and
   health carry nothing. Following each `resolves_by` did not close it: nutrition
@@ -92,6 +91,15 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="band-alignment-adopted"></a>
+
+**THE SUPPLY BAND IS ALIGNED TO THE CAPACITY BAND — AND IT COST THE RETRODICTION** (2026-09-04, author decision, `SHA`). `AGE_CAPACITY_WEIGHT_ELDERLY` 0.0 → 0.3083, adult share 0.6000 → 0.652411, L 1,401.5 → 1,523.9 h/person·yr. 4,046 pass, mypy clean on 90 files, provenance 305/305, confidence ratchet held at 126. **17 tests changed; no test was deleted.**
+- **THE DECISION, AND THE OBJECTION IT OVERRODE.** `MEASURED_CAPACITY_H_YR` is measured over ages 18-69; the adult share selected 18-64, so 65-69 sat in c's denominator and outside a's numerator — 5.83pp on US 2025 single-year ages. Reported first and NOT taken, because correcting supply alone is one-sided while `AGE_WEIGHT_ELDERLY` = 1.48 is a documented lower bound (the institutionalised elderly are outside the ATUS frame). **The author adopted it on the ground that the aligned figure is closer to what is observed. The objection is recorded, not withdrawn:** the ε=0 surplus this produces is an UPPER bound on the true one, and a symmetric correction could restore some of what follows.
+- **WHAT IT COST, AND THIS IS THE ENTRY'S REASON FOR EXISTING.** The ε=0 feasibility ratio went **1.0245 → 0.9422**: the over-determination the repo carried since August is closed. Frames clearing at ε=0 went **17/50 → 43/50**. And **US2024 flipped from not-clearing to clearing, so the retrodiction is gone** — the model no longer says a society working 2024 hours fails to meet its personal obligation unaided while one working 1965 hours meets it. That was the framework's sharpest empirical claim about modern time use.
+- **THE CLAIM IS KEPT RUNNABLE RATHER THAN DELETED.** `test_the_retrodiction_held_only_under_the_unaligned_band` asserts BOTH states — 1965 clears and 2024 does not at a=0.60; both clear at the adopted share — so a reader sees what the adoption changed without re-deriving it, and the comparison the symmetric correction will need is already written. `TestTheFindingSurvivesTheCorrection` became `TestTheFindingDidNotSurviveTheBandCorrection` and pins 17 as the before-count.
+- **THREE PINS MOVED THAT ONLY EXIST BECAUSE SOMEONE PINNED A LEVEL.** The sufficiency band floor 0.374 → 0.309 — its FOURTH move, each invisible to `arc_stability`'s own tests, which assert shape and never level. The implied working day 6.28 → 5.76 h/adult/day. The subsistence corner still does NOT clear at 1.004 while the shipped default does at 0.942, **so the difference between them is entirely the adult share and not the capacity** — which is the cleanest statement of what was adopted.
+- **AND TWO GATES CAUGHT THIS CHANGE, WHICH IS WHAT THEY ARE FOR.** The shadow ratchet refused `CAPACITY_MEASUREMENT_BAND` declared outside `data.py`. The wiring ratchet found `feasible_epsilon(tol=)` gone inert — **not a dead parameter, a branch the new default no longer reaches**: ε=0 now clears, so the bisection returns before the tolerance is read. Exercised at a capacity where the search runs, rather than declared inert, because declaring it would have loosened a ratchet at its bound to hide a default change.
+
 <a id="capacity-band-mismatch"></a>
 
 **THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WOULD DISSOLVE THE OVER-DETERMINATION** (2026-09-04). `capacity_band_alignment()` + `CAPACITY_MEASUREMENT_BAND`, 4 tests, REPORTING ONLY. Provenance 305/305. No shipped number moves.
@@ -111,8 +119,9 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 20 entries, newest first | |
+| 21 entries, newest first | |
 |---|---|
+| [band-alignment-adopted](#band-alignment-adopted) | THE SUPPLY BAND IS ALIGNED TO THE CAPACITY BAND — AND IT COST THE RETRODICTION |
 | [capacity-band-mismatch](#capacity-band-mismatch) | THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WO… |
 | [improved-not-settled](#improved-not-settled) | THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT… |
 | [circularity-check-atus-cannot-resolve-b](#circularity-check-atus-cannot-resolve-b) | THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EAR… |

@@ -452,7 +452,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,044 tests passing (1 skipped), mypy clean on 90 source files** (verified
+**4,046 tests passing (1 skipped), mypy clean on 90 source files** (verified
 2026-09-04). Provenance **305/305**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -491,7 +491,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- **126 of 142** placeholder/bounded constants carry no confidence figure;
+- **126 of 141** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and
@@ -580,7 +580,7 @@ are the ones worth knowing by name.
 | `test_grib_scan.py` | `utils/grib_scan.py` — the header-only GRIB locator |
 | `test_land_guf.py` | `land/guf.py` — all functions across the arc, boundary verification, worked example |
 | `test_maintain_vs_replace.py` | B3 — maintain vs replace with the embodied-energy pulse (`research/thermal_capital.py`) |
-| `test_measured_capacity.py` | The measured labour capacity behind `feasibility.labor_supply_per_capita`, the DIRECTION of `H_REF`'s error as its stand-in, and that correcting it does not dissolve the over-determination |
+| `test_measured_capacity.py` | The measured labour capacity behind `feasibility.labor_supply_per_capita`, the DIRECTION of `H_REF`'s error as its stand-in, and — since the 2026-09-04 band alignment — that the over-determination is CLOSED, what closed it, and the retrodiction that went with it, both states kept runnable |
 | `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
 | `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |

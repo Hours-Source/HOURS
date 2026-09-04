@@ -863,7 +863,7 @@ def _confidence_ratchet_is_126_of_138() -> bool:
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 142, 126)
+    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 141, 126)
 
 
 def _scan_is_data_py_only() -> bool:
@@ -936,7 +936,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("126 of 142 placeholder/bounded constants carry no confidence",
+    OpenItemPredicate("126 of 141 placeholder/bounded constants carry no confidence",
                       "caveat", _confidence_ratchet_is_126_of_138),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",

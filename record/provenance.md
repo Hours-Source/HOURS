@@ -43,7 +43,7 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
-- **126 of 142 placeholder/bounded constants carry no confidence figure.** *(caveat)*
+- **126 of 141 placeholder/bounded constants carry no confidence figure.** *(caveat)*
   Ratcheted; may not rise.
 - **Two of four personal automation floors carry a value; both are improved
   placeholders, neither settled.** *(pointer)* See
