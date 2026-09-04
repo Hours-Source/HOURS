@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 304 and total == 304
+    return tagged == 305 and total == 305
 
 
 def _shadow_count_is_33() -> bool:
@@ -259,7 +259,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 304/304",
+        anchor="provenance 305/305",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300. "

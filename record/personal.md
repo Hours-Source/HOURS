@@ -42,38 +42,41 @@ recalled. None of these lines is gated; check the constant before quoting it.
 
 ## Open
 
+- **The capacity band is 18-69 and the supply band is 18-64** *(person)* —
+  `MEASURED_CAPACITY_H_YR` is measured over 18-69; the adult share it multiplies
+  selects 18-64. **5.83 pp of adult share**, REPORTING ONLY via
+  `capacity_band_alignment()` *(gated)*. Correcting supply ALONE dissolves the
+  ε=0 over-determination, and would be one-sided — `AGE_WEIGHT_ELDERLY` is a
+  LOWER bound. Detail: [capacity-band-mismatch](#capacity-band-mismatch).
+  *Settles by:* an author decision on aligning the bands, ideally with the
+  elderly obligation measured against the institutional population first.
 - **Two of four personal automation floors carry a value, and neither is
   settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS; shelter and
-  health carry nothing. Both were built by FOLLOWING their own `resolves_by`,
-  and neither route closed: nutrition is an UPPER bound (confidence 45,
-  `errs: HIGH`), care an ordering-derived LOWER bound (confidence 20,
-  `errs: LOW`) gated by `test_the_inversion_is_now_RESOLVED` *(gated)*. **The
-  routes replaced a first guess with a bounded one and made the `resolves_by`
-  more precise — which is what following a pointer usually buys, and it is not
-  closure.** Detail: [improved-not-settled](#improved-not-settled).
-  *Settles by:* nutrition — hours per person-year on food PROCESSING at
-  genuinely low capital, the nine activities raw LSMS WASH reaches two of; care
-  — a stated-preference instrument (would this hour be acceptable from a
-  machine), and no such survey is in this repo.
+  health carry nothing. Following each `resolves_by` did not close it: nutrition
+  is an UPPER bound (conf. 45, `errs: HIGH`), care an ordering-derived LOWER
+  bound (conf. 20, `errs: LOW`) gated by `test_the_inversion_is_now_RESOLVED`
+  *(gated)*. **Both replaced a first guess with a bounded one and returned a
+  sharper `resolves_by` — the normal yield of a pointer, and not closure.**
+  Detail: [improved-not-settled](#improved-not-settled). *Settles by:* food
+  PROCESSING hours at genuinely low capital (nutrition); a stated-preference
+  instrument (care), and no such survey is in this repo.
 - **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
-- **`PERSONAL_EOH_COMPONENTS`** *(gap)* (confidence 25) — the four component shares are
-  the original desk estimate's own terms. ATUS reads care at 25.7% against the
-  desk 62.1%, but observed ≠ obligation and care has been marketised.
-  *Settles by:* HETUS/MTUS across development levels, which would settle the
-  shares, the abatabilities, K_half, the extraction wedge and the infant band
-  **together** — one acquisition, not five fieldwork items.
+- **`PERSONAL_EOH_COMPONENTS`** *(gap)* (confidence 25) — the four shares are the
+  desk estimate's own terms; ATUS reads care at 25.7% against the desk 62.1%,
+  but observed ≠ obligation. *Settles by:* HETUS/MTUS across development levels,
+  which settles the shares, the abatabilities, K_half, the extraction wedge and
+  the infant band **together** — one acquisition, not five.
 - **Type-specific abatement** *(gap)* — which capital abates which component. Abatement
   is currently driven by TOTAL capital per capita.
-- **Adopting abatement as the DEFAULT generation path** *(person)*, which retires
-  the `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
+- **Adopting abatement as the DEFAULT generation path** *(person)* — retires the
+  `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
   **Retyped `gap` → `person` 2026-09-04**, on measurement: abatement is not a
-  `standard` option — `personal_standard` accepts `collapsed|sufficiency|survival`
-  only — so this is not selecting an existing path but changing how personal EOH
-  is GENERATED on the documented entry point. That is a theory commitment under
-  the §5 guardrail, not local work, and it needs the author. *Settles by:* author
-  sign-off on the generation path, after which the wiring is ordinary work.
+  `standard` option (`personal_standard` takes `collapsed|sufficiency|survival`),
+  so adopting it changes how personal EOH is GENERATED on the documented entry
+  point — a theory commitment under the §5 guardrail. *Settles by:* author
+  sign-off; the wiring after it is ordinary work.
 
 ## Cross-area entries
 
@@ -89,6 +92,14 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="capacity-band-mismatch"></a>
+
+**THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WOULD DISSOLVE THE OVER-DETERMINATION** (2026-09-04). `capacity_band_alignment()` + `CAPACITY_MEASUREMENT_BAND`, 4 tests, REPORTING ONLY. Provenance 305/305. No shipped number moves.
+- **THE ASK WAS TO MEASURE THE CHILD AND ELDERLY CAPACITY WEIGHTS FROM MTUS, AND THE SHIPPED EXTRACT CANNOT.** `measured_capacity` counts **paid work, unpaid domestic work and childcare** over ages 18-69; `load_by_age` counts **non-sleep self-maintenance**, ages 0-90. Different fields. Dividing one by the other is corpus F-001 — a pointer naming a source without naming the field — **and the `resolves_by` I wrote on `AGE_CAPACITY_WEIGHT_*` two commits earlier did exactly that**, naming the right dataset and the wrong column. Corrected in place.
+- **WHAT THE LOOK FOUND INSTEAD IS A LIVE ARITHMETIC DEFECT.** c is measured over **18-69** and a selects **18-64**, so 65-69 are in c's denominator and outside a's numerator. On US 2025 single-year ages that is **5.83 percentage points** — nearly 3× the entire 2.13pp demographic margin. `child` and `infant` at 0.0 are correct BY THE DEFINITION of c (nobody under 18 is in the quantity being scaled); `elderly` at 0.0 contradicts it.
+- **AND IT IS NOT ADOPTED, WHICH IS THE FINDING.** Aligning the bands takes the ε=0 feasibility ratio **1.0245 → 0.9338**: infeasible to feasible, closing the over-determination the repo has carried since August. `tests/test_measured_capacity.py` says in as many words that "a fix that made the finding vanish would be the more suspicious outcome" — and it is right, because the correction is ONE-SIDED. `AGE_WEIGHT_ELDERLY` = 1.48 is documented in its own tag block as a **lower bound**: the institutionalised elderly are outside the ATUS frame entirely. Supply is understated by 5.83pp and demand is understated by an amount nobody has measured. **Moving the measurable side because it is the measurable side is how a model gets fitted to a target.**
+- **SO THE SURVIVABILITY QUESTION IS STILL OPEN, and now for a stated reason.** Whether paid plus unpaid labour covers the obligation at ε=0 cannot be answered while the two sides are measured on bands that do not match and one side is a known lower bound. What CAN be said: the shipped answer (infeasible by 2.45%) rests on a supply figure that is definitionally too low, so the deficit is smaller than shipped and its sign is not established.
+
 <a id="improved-not-settled"></a>
 
 **THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT WAS WRONG IN TWO FILES** (2026-09-04). Found by the first review run against the typed `## Open` sections. No code changed; three prose sites corrected.
@@ -100,8 +111,9 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 19 entries, newest first | |
+| 20 entries, newest first | |
 |---|---|
+| [capacity-band-mismatch](#capacity-band-mismatch) | THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WO… |
 | [improved-not-settled](#improved-not-settled) | THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT… |
 | [circularity-check-atus-cannot-resolve-b](#circularity-check-atus-cannot-resolve-b) | THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EAR… |
 | [care-raised-to-ordering-bound](#care-raised-to-ordering-bound) | CARE RAISED TO THE ORDERING BOUND, AND IT LEFT `normative` |

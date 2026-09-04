@@ -70,6 +70,7 @@ from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import (
     AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE,
     PHYSICAL_CAPACITY_CEILING_H_YR, REFERENCE_FRAME_POPULATION,
+    CAPACITY_MEASUREMENT_BAND,
 )
 from hours_eoh.reference import mtus_time_use as mtus
 
@@ -226,6 +227,60 @@ def demographic_margin(
         "supply_per_capita": supply,
         "personal_demand_per_capita": demand,
         "covers": float(supply >= demand),
+    }
+
+def capacity_band_alignment(
+    epsilon: float = 0.0,
+    year: int | None = None,
+) -> dict[str, float]:
+    """
+    REPORTING ONLY — the supply band against the band its capacity was measured on.
+
+    THE MISMATCH. `MEASURED_CAPACITY_H_YR` is hours per adult per year over ages
+    **18-69** (paid work, unpaid domestic work and childcare). The adult share it
+    is multiplied by selects **18-64**, because `capacity_weight` is 1.0 for
+    `working_age` and 0.0 for `elderly`. So c's denominator includes 65-69 and
+    a's numerator excludes them: L = c·a understates hours per capita, and the
+    arithmetic that would be right is c times the 18-69 share.
+
+    WHY THIS DOES NOT SHIP AS A FIX, and the reason is the important part.
+    Correcting the supply band alone makes ε=0 feasible — the over-determination
+    the repo has carried since August closes. `tests/test_measured_capacity.py`
+    warns in as many words that "a fix that made the finding vanish would be the
+    more suspicious outcome", and it is right here: `AGE_WEIGHT_ELDERLY` = 1.48
+    is documented in its own tag block as a **lower bound**, because the
+    institutionalised elderly are outside the ATUS frame entirely. So the
+    DEMAND side is understated too, by an unmeasured amount, and closing the
+    deficit by correcting only the supply side is the asymmetric fix that
+    flatters. Both sides move; only one of them is measurable today.
+
+    Returns the two shares, the census-derived gap, and what the correction
+    would do to the feasibility ratio — so the size of the effect is on the
+    record without being adopted.
+
+    units: shares dimensionless; ratios dimensionless. ε-behaviour: defined
+    across [0, 0.99]; the gap is ε-independent, the ratios are not.
+    """
+    from hours_eoh.reference.care_demand import population_shares
+
+    lo, hi = CAPACITY_MEASUREMENT_BAND
+    wlo, whi = AGE_GROUPS["working_age"]["range"]
+    shares = population_shares(
+        {"selected": (wlo, whi), "measured": (lo, hi)}, year=year)
+    a_used = capacity_weighted_adult_share()
+    a_band = a_used - shares["selected"] + shares["measured"]
+    base = feasibility_check(epsilon=epsilon)
+    aligned = feasibility_check(epsilon=epsilon, adult_share=a_band)
+    return {
+        "share_selected": shares["selected"],
+        "share_measured": shares["measured"],
+        "gap_pp": (shares["measured"] - shares["selected"]) * 100.0,
+        "adult_share_used": a_used,
+        "adult_share_band_aligned": a_band,
+        "ratio_as_shipped": base["demand_supply_ratio"],
+        "ratio_band_aligned": aligned["demand_supply_ratio"],
+        "feasible_as_shipped": float(base["feasible"]),
+        "feasible_band_aligned": float(aligned["feasible"]),
     }
 
 def feasibility_check(

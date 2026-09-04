@@ -172,6 +172,21 @@ AGE_WEIGHT_CHILD: float = 1.82
 #   re-measure the population ATUS already covers.
 AGE_WEIGHT_ELDERLY: float = 1.48
 
+# tag: convention | units: inclusive age bounds in years
+# form: the band MEASURED_CAPACITY_H_YR is measured over, restated here because
+#   the constant it qualifies lives here and the qualifier must travel with it.
+#   `reference.mtus_time_use.measured_capacity` states it in prose — "hours per
+#   adult per year, ages 18-69" — and there is no constant there to bind to, so
+#   this is a RESTATEMENT and `tests/test_measured_capacity.py` pins the pair.
+# note: IT DOES NOT MATCH AGE_GROUP_RANGES["working_age"] = (18, 64), and that
+#   mismatch is the point of naming it. The adult share multiplied by
+#   MEASURED_CAPACITY_H_YR selects 18-64 while the capacity itself is measured
+#   over 18-69, so 65-69 sit in the denominator of c and outside the numerator
+#   of a. Measured and reported by
+#   `scenarios.feasibility.capacity_band_alignment()`, deliberately not adopted.
+# decided_by: not a measurement — the band the MTUS capacity extract was cut on.
+CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
+
 # tag: placeholder | units: dimensionless share of adult capacity, per age group | family: AGE_CAPACITY_WEIGHT_*
 # form: the SUPPLY-side mirror of the AGE_WEIGHT_* constants. Those weight how
 #   much personal obligation an age group GENERATES; these weight how much
@@ -194,13 +209,34 @@ AGE_WEIGHT_ELDERLY: float = 1.48
 #   commitment that these groups supply nothing. Per the standing policy
 #   (author, 2026-09-03) a value that could change when the data arrives carries
 #   a confidence and a `resolves_by` rather than a decider.
-# resolves_by: self-maintenance hours by age, which this repo already holds —
-#   `reference/data/mtus_self_maintenance_by_age.csv` (977,809 diaries,
-#   `reference/mtus_time_use.band_ratio`). What it gives directly is
-#   self-maintenance per band relative to working age; what it does NOT give is
-#   how much capacity beyond self-maintenance each band can supply to others,
-#   which is the quantity these weights actually name. The band ratio bounds
-#   them from below.
+# note: THE FIRST `resolves_by` HERE WAS THE WRONG FIELD (corrected 2026-09-04).
+#   It named `mtus_self_maintenance_by_age.csv` — the right dataset, the wrong
+#   column. That extract measures NON-SLEEP SELF-MAINTENANCE; the capacity these
+#   weights scale is `measured_capacity`, which counts PAID WORK, UNPAID
+#   DOMESTIC WORK AND CHILDCARE over ages 18-69. Dividing one by the other would
+#   be corpus F-001 — a pointer that names a source without naming the field.
+#   The shipped by-age extract cannot settle these weights.
+# note: `child` and `infant` are 0.0 BY THE DEFINITION OF c, not by absence of
+#   measurement: `MEASURED_CAPACITY_H_YR` is measured over 18-69, so nobody
+#   under 18 is inside the quantity being scaled. Real children do domestic
+#   work, so the supply is still understated — `errs: LOW` holds — but the zero
+#   is a frame consequence rather than an admission.
+# note: `elderly` = 0.0 CONTRADICTS c's OWN BAND, which is the live defect here:
+#   65-69 ARE inside the 18-69 window c is measured over, so the arithmetic
+#   drops them from the numerator while keeping them in the denominator. On US
+#   2025 single-year ages that is 5.83 percentage points of adult share.
+#   Measured and reported by `scenarios.feasibility.capacity_band_alignment()`
+#   and DELIBERATELY NOT ADOPTED: correcting supply alone makes ε=0 feasible and
+#   closes the standing over-determination, while `AGE_WEIGHT_ELDERLY` = 1.48 is
+#   documented as a LOWER bound, so demand is understated too by an unmeasured
+#   amount. A one-sided fix that dissolves the finding is the outcome
+#   `tests/test_measured_capacity.py` warns against by name.
+# resolves_by: entropy-resistance labour BY AGE BAND — paid work plus unpaid
+#   domestic work plus childcare, the same three fields `measured_capacity`
+#   counts, tabulated for under-18 and over-64 rather than pooled over 18-69.
+#   MTUS carries the underlying diaries; the shipped extract does not carry that
+#   cut. Settling the elderly weight needs only the band split, which is a
+#   narrower ask than the child weight.
 AGE_CAPACITY_WEIGHT_INFANT: float = 0.0
 AGE_CAPACITY_WEIGHT_CHILD: float = 0.0
 AGE_CAPACITY_WEIGHT_WORKING_AGE: float = 1.0

@@ -227,3 +227,65 @@ class TestCapacityHasAPhysicalCeiling:
     def test_the_default_sits_inside_the_measured_range(self) -> None:
         frames = mtus.capacity_frames().values()
         assert min(frames) < MEASURED_CAPACITY_H_YR < max(frames)
+
+
+class TestTheCapacityBandIsNotTheSupplyBand:
+    """
+    c is measured over 18-69; a selects 18-64. Reported, not corrected.
+
+    THE DEFECT IS ARITHMETIC, NOT EPISTEMIC. `MEASURED_CAPACITY_H_YR` is hours
+    per adult per year over ages 18-69 — 65-69 are in its denominator. The adult
+    share it is multiplied by gives `elderly` a capacity weight of 0.0, so the
+    same people are outside a's numerator. L = c·a therefore understates hours
+    per capita by the 65-69 share, which is 5.83 percentage points on US 2025
+    single-year ages.
+
+    AND IT IS DELIBERATELY NOT FIXED. Correcting supply alone takes the ε=0
+    feasibility ratio from 1.0245 to 0.9338 — the over-determination this file's
+    own docstring says must not vanish. It would vanish for a one-sided reason:
+    `AGE_WEIGHT_ELDERLY` = 1.48 is documented as a LOWER bound, because the
+    institutionalised elderly are outside the ATUS frame, so demand is
+    understated too by an amount nobody has measured. These tests pin the gap,
+    its direction, and the fact that the shipped path does NOT take it.
+    """
+
+    def test_the_two_bands_disagree(self) -> None:
+        from hours_eoh.data import AGE_GROUP_RANGES, CAPACITY_MEASUREMENT_BAND
+        assert CAPACITY_MEASUREMENT_BAND != AGE_GROUP_RANGES["working_age"], (
+            "the bands now agree — if the capacity extract was re-cut to 18-64, "
+            "or the working-age range widened, this report is obsolete and the "
+            "elderly capacity weight should be revisited with it."
+        )
+
+    def test_the_gap_is_the_65_to_69_share_and_is_positive(self) -> None:
+        from hours_eoh.scenarios.feasibility import capacity_band_alignment
+        r = capacity_band_alignment()
+        assert r["gap_pp"] > 0.0, (
+            "the measured band must be WIDER than the selected one; a negative "
+            "gap means c is measured on fewer people than a selects, which "
+            "would overstate supply rather than understate it."
+        )
+        assert r["share_measured"] > r["share_selected"]
+
+    def test_the_correction_would_close_the_deficit_and_is_not_taken(self) -> None:
+        """
+        Both halves matter. If the correction stopped mattering, the report is
+        noise; if the shipped path ever silently took it, the over-determination
+        would have been dissolved by a one-sided fix.
+        """
+        from hours_eoh.scenarios.feasibility import (
+            capacity_band_alignment, feasibility_check)
+        r = capacity_band_alignment()
+        assert r["ratio_as_shipped"] > 1.0 >= r["ratio_band_aligned"], (
+            "the band correction no longer flips ε=0 feasibility — re-read the "
+            "report before quoting it."
+        )
+        assert feasibility_check(epsilon=0.0)["feasible"] is False, (
+            "the shipped path now reports ε=0 as feasible. If that came from "
+            "the band correction, it was adopted one-sidedly while "
+            "AGE_WEIGHT_ELDERLY is still a lower bound."
+        )
+
+    def test_the_shipped_share_is_unchanged_by_the_report(self) -> None:
+        from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
+        assert capacity_weighted_adult_share() == 0.60
