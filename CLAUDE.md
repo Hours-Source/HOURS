@@ -493,8 +493,10 @@ gitignored artifact, and a causal explanation asserted beside figures that *were
 checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
-the section above, and it is recorded as F-027 in the local agent corpus
-(`notes/agents/`, gitignored).
+the section above, and it is recorded as F-027 in the agent corpus at
+**`~/.claude/corpus/`** — 32 findings, 4 roles, portable and outside every repo,
+citing this one through `anchor:` + `repo: HOURS`. Validate with
+`python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
 ## Test file index
 
