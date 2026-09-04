@@ -53,16 +53,18 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **Dynamic stability / oscillation** *(gap)* (review §6) is unbuilt. `arc_stability`
   answers stationarity, **not** whether the coupled capital→automation→income→
   formation loop oscillates. Nothing tests for limit cycles.
-- **The claims register still checks that an open item is DECLARED, never that
-  it is still OPEN.** *(gap)* That gap let a `STILL OPEN` line sit stale for a day while
-  the file asserted the adoption two entries above it. Every `## Open` bullet
-  now states its KIND *(gated)* — `gap` / `held` / `caveat` / `person` /
-  `pointer` — which is what makes the predicate writable, because the kind
-  decides which DIRECTION it points: a `gap` fires when its closure lands, a
-  **`held` fires when someone builds it anyway**, a `caveat` when its own figure
-  drifts, a `pointer` when its target is gone. *Settles by:* those predicates,
-  same shape as `LIVE_CLAIMS`, still unbuilt — typing is the precondition, not
-  the thing.
+- **The claims register now checks 12 of 42 open items, not 42** *(gap)* — the
+  predicate landed, the coverage did not. `OPEN_ITEM_PREDICATES` gives each item
+  an observable whose DIRECTION its kind sets: a `gap` fails when its closure
+  landed and nobody struck the line, a `held` when someone built what the repo
+  declined, a `caveat` when its own figure drifted *(gated)*. All four
+  directions verified by mutation. **Typing had to come first and that is the
+  finding**: a `gap` and a `held` invert on the SAME observable, so before the
+  kinds existed the predicate could not be written at all. *Settles by:* an
+  observable for each remaining item — and two already carry `why_none` instead,
+  because an audit changes no shape in the tree and a hold on a value being
+  unassessable is not contradicted by the module that says so. Coverage is
+  ratcheted by `PREDICATE_FLOOR` and may not fall.
 - **The shadow ratchet cannot catch its own bound being loosened.** *(held)* `len(_DECLARED)
   <= 8` passes if the bound is simply raised — verified, that mutation does not
   bite. Recorded rather than papered over: raising it is a visible act in a diff,

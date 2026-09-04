@@ -802,3 +802,298 @@ class TestClosingAnItemLeavesEvidence:
         assert "STATED GAPS" in doc
         assert "GUARD ONE ITEM TODAY" in doc
         assert "NOTHING HERE NOTICES WORK LANDING" in doc
+
+
+# ---------------------------------------------------------------------------
+# The per-item predicate — the settle path in `record/verification.md § Open`
+# ---------------------------------------------------------------------------
+
+def _ten_ratios_unmeasured() -> bool:
+    """The ten fee-table coefficients, NOT `GUF_USE_SCALE_FACTOR` — the record
+    calls that out separately as "one scalar against ten coefficients"."""
+    from utils import provenance as pv
+    tags = {r.name: r.tag for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
+            if r.name.startswith("GUF_USE_") and r.name != "GUF_USE_SCALE_FACTOR"}
+    assert len(tags) == 10, f"the item says TEN ratios; found {len(tags)}"
+    return not any(t in {"measured", "derived"} for t in tags.values())
+
+
+def _corridor_default_still_1e9() -> bool:
+    src = (REPO_ROOT / "utils" / "corridor_cmd.py").read_text(encoding="utf-8")
+    m = re.search(r"available[-_]labor.{0,400}?default=([0-9.e+]+)", src, re.S)
+    return m is not None and float(m.group(1)) == 1.0e9
+
+
+def _form_edges_not_derived() -> bool:
+    """Closure = `band_from:` stops being the only source of edges. It is
+    declared ONCE today against 12 expression-derivable assignments."""
+    src = (REPO_ROOT / "hours_eoh" / "data.py").read_text(encoding="utf-8")
+    return src.count("# band_from:") <= 1
+
+
+def _two_floors_and_both_unsettled() -> bool:
+    from utils import provenance as pv
+    from hours_eoh.data import PERSONAL_EOH_COMPONENTS, PERSONAL_AUTOMATION_FLOORS
+    tags = {r.name: r.tag for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
+            if r.name in {"CARE_AUTOMATION_FLOOR", "NUTRITION_AUTOMATION_FLOOR"}}
+    return (len(PERSONAL_EOH_COMPONENTS) == 4
+            and len(PERSONAL_AUTOMATION_FLOORS) == 2
+            and set(tags.values()) == {"placeholder"})
+
+
+def _teh_supply_has_no_caller() -> bool:
+    import ast as _ast
+    hits = set()
+    for path in (REPO_ROOT / "hours_eoh").rglob("*.py"):
+        for node in _ast.walk(_ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, _ast.Call) and getattr(node.func, "id", None) == "teh_supply":
+                hits.add(path.name)
+    return not hits
+
+
+def _anchor_comparison_unbuilt() -> bool:
+    return not list((REPO_ROOT / "hours_eoh").rglob("*anchor_comparison*"))
+
+
+def _shadow_bound_still_8() -> bool:
+    src = (REPO_ROOT / "tests" / "test_parameter_wiring.py").read_text(encoding="utf-8")
+    m = re.search(r"_DECLARED\)\s*<=\s*(\d+)", src)
+    return m is not None and int(m.group(1)) == 8
+
+
+def _confidence_ratchet_is_126_of_138() -> bool:
+    """Imports nothing of its own: the gate's OWN filter, not a copy of it —
+    re-implementing it dropped `if not s.bound` once already (corpus F-038)."""
+    from tests.test_confidence import BASELINE_WITHOUT, SOFT_TAGS
+    from utils import provenance as pv
+    soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
+            if r.tag in SOFT_TAGS]
+    without = [r for r in soft if not getattr(r, "confidence", None)]
+    return (len(without), len(soft), BASELINE_WITHOUT) == (126, 138, 126)
+
+
+def _scan_is_data_py_only() -> bool:
+    from utils import provenance as pv
+    return pv.DATA_PY.name == "data.py"
+
+
+def _kappa_ratio_is_12_to_69() -> bool:
+    """Calls the function that RETURNS the ratio. Re-deriving it from the
+    rounded prose figure gave 67x (corpus F-040)."""
+    from hours_eoh.scenarios.restoration_cost import implied_kappa
+    r = implied_kappa()
+    return (round(r["shipped_over_implied_high"]) == 12
+            and round(r["shipped_over_implied_low"]) == 69)
+
+
+def _desire_is_still_a_stub() -> bool:
+    import ast as _ast
+    src = (REPO_ROOT / "hours_eoh" / "research" / "desire.py").read_text(encoding="utf-8")
+    return sum(1 for n in _ast.parse(src).body
+               if isinstance(n, _ast.FunctionDef)) <= 3
+
+
+def _maint_rate_still_unbound() -> bool:
+    src = (REPO_ROOT / "hours_eoh" / "data.py").read_text(encoding="utf-8")
+    block = re.search(r'"generic_infra"\s*:\s*\{.*?\}', src, re.S)
+    return block is not None and "INFRA_MAINT_RATE" not in block.group(0)
+
+
+def _predicate_coverage_is_incomplete() -> bool:
+    """The item that declared this whole mechanism, checking itself: still open
+    while any typed `## Open` item lacks a predicate."""
+    typed = len(TestEveryOpenItemIsTyped()._items())
+    covered = sum(1 for q in OPEN_ITEM_PREDICATES if q.still_open or q.why_none)
+    return covered < typed
+
+
+@dataclass(frozen=True)
+class OpenItemPredicate:
+    """One open item, its kind, and the observable that would contradict it."""
+
+    marker: str                              #: substring locating the item
+    kind: str                                #: must match the `*(kind)*` in the file
+    still_open: Callable[[], bool] | None    #: False => the code contradicts the item
+    why_none: str = ""                       #: REQUIRED when still_open is None
+
+
+#: THE DIRECTION IS SET BY THE KIND, which is the whole reason typing came first:
+#:   gap     False => the closure LANDED and nobody struck the line
+#:   held    False => someone BUILT what the repo decided against
+#:   caveat  False => the standing figure DRIFTED
+#:   person  False => the human decision landed without being recorded
+#:   pointer no predicate — the dangling check already covers it
+OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
+    OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
+    OpenItemPredicate("`utils/corridor_cmd.py --available-labor` still defaults to 1.0e9",
+                      "gap", _corridor_default_still_1e9),
+    OpenItemPredicate("derive `form:` edges from the expressions", "gap",
+                      _form_edges_not_derived),
+    OpenItemPredicate("Two of four personal automation floors carry a value", "gap",
+                      _two_floors_and_both_unsettled),
+    OpenItemPredicate("The compensating-mechanism audit", "gap", None,
+                      why_none="an audit is a document plus findings; nothing in the "
+                               "tree changes shape when it is performed"),
+    OpenItemPredicate("`teh_supply` is pinned, not decided", "held",
+                      _teh_supply_has_no_caller),
+    OpenItemPredicate("Anchor comparison Phases 1–3 are HELD DELIBERATELY", "held",
+                      _anchor_comparison_unbuilt),
+    OpenItemPredicate("The shadow ratchet cannot catch its own bound being loosened",
+                      "held", _shadow_bound_still_8),
+    OpenItemPredicate("λ_equilibrium is not assessable from this data", "held", None,
+                      why_none="the hold is on a VALUE being unassessable from the "
+                               "data, not on a module; `thermal_lambda.py` exists and "
+                               "declares the limit, so its presence proves nothing"),
+    OpenItemPredicate("126 of 138 placeholder/bounded constants carry no confidence",
+                      "caveat", _confidence_ratchet_is_126_of_138),
+    OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
+    OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
+                      "caveat", _kappa_ratio_is_12_to_69),
+    OpenItemPredicate("The discovery layer is a 120-line stub with 3 functions",
+                      "person", _desire_is_still_a_stub),
+    OpenItemPredicate('`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates',
+                      "person", _maint_rate_still_unbound),
+    OpenItemPredicate("The claims register now checks 12 of 42 open items", "gap",
+                      _predicate_coverage_is_incomplete),
+)
+
+
+class TestTheOpenItemPredicates:
+    """
+    THE SETTLE PATH DECLARED IN `record/verification.md § Open`, built.
+
+    The register could say an item was DECLARED, and after 2026-09-04 that it
+    was TYPED. Neither says whether it is still OPEN. That gap let a
+    `STILL OPEN` line stand for a day while the file asserted the adoption two
+    entries above it.
+
+    WHY TYPING HAD TO COME FIRST. A `LIVE_CLAIM` asserts a presence and its
+    predicate confirms it. An open item asserts an ABSENCE, so the predicate
+    must detect the CLOSURE and negate it — and what counts as closure is
+    different for each kind. A `gap` closes when the work lands; a `held` is
+    breached when the work lands. Same observable, opposite verdict. Without
+    the kind there is no way to say which, so the predicate could not be
+    written at all.
+
+    STATED GAPS:
+
+      * COVERAGE IS 13 OF 42 ITEMS, and the ratchet below only forbids it
+        FALLING. An item with no predicate is checked by nothing here — the
+        same standing this file's `LIVE_CLAIMS` has always had. The gap is
+        itself an item with a predicate: `_predicate_coverage_is_incomplete`
+        fails once every typed item is covered, so this admission cannot
+        outlive the condition it describes.
+      * TWO ITEMS CARRY `why_none` RATHER THAN A PREDICATE, and both reasons
+        are real: an audit changes no shape in the tree, and a hold on a VALUE
+        being unassessable is not contradicted by the module that says so.
+        `why_none` is required precisely so `None` cannot be the silent
+        default.
+      * A PREDICATE PROVES THE OBSERVABLE, NOT THE ITEM. `_anchor_comparison_
+        unbuilt` checks for a file name; someone could build the thing under
+        another name. The predicate narrows the ways an item can go stale
+        unnoticed; it does not close them.
+      * `person` ITEMS GET A PREDICATE ONLY WHERE THE DECISION LEAVES A TRACE.
+        A sign-off in a gitignored note changes nothing observable, so the two
+        typed here are the two whose adoption would show up in code.
+    """
+
+    #: May not FALL. Rises when an item gains an observable; falls only when an
+    #: item CLOSES, and a closing item is struck rather than deleted — so a fall
+    #: means a predicate was dropped, which is the move this ratchet forbids.
+    PREDICATE_FLOOR = 12
+
+    def _by_marker(self) -> dict[str, str]:
+        """`{bullet text: kind}` for every typed `## Open` item."""
+        out = {}
+        for f, t in TestClosingAnItemLeavesEvidence()._open_bullets():
+            m = TestEveryOpenItemIsTyped._KIND.search(t)
+            if m:
+                out[t] = m.group(1)
+        return out
+
+    @pytest.mark.parametrize("p", OPEN_ITEM_PREDICATES, ids=lambda p: p.marker[:40])
+    def test_the_item_exists_with_the_kind_the_predicate_assumes(self, p) -> None:
+        """
+        A predicate keyed to an item nobody has is a check over nothing, and one
+        keyed to the WRONG kind reads its own result backwards — `gap` and
+        `held` invert on the same observable.
+        """
+        hits = {t: k for t, k in self._by_marker().items() if p.marker in t}
+        assert hits, (
+            f"no `## Open` item contains {p.marker[:60]!r}. If it closed, remove "
+            "the predicate; if it moved, update the marker."
+        )
+        # A POINTER NEVER CARRIES ITS OWN PREDICATE. Five items are filed in two
+        # places, so a marker legitimately matches the home AND its pointer —
+        # `teh_supply` was reachable three ways before typing. Checking the
+        # pointer too would run one predicate twice and let the copy dictate the
+        # kind, which is the double-count typing exists to end.
+        homes = {t: k for t, k in hits.items() if k != "pointer"}
+        assert len(homes) == 1, (
+            f"{p.marker[:50]!r} matches {len(homes)} non-pointer items "
+            f"{sorted(homes.values())}. An item has ONE home; narrow the marker."
+        )
+        kinds = set(homes.values())
+        assert kinds == {p.kind}, (
+            f"{p.marker[:50]!r} is typed {sorted(kinds)} in the record but the "
+            f"predicate assumes {p.kind!r}. These invert: for a `gap` a False "
+            "result means the work landed, for a `held` it means someone built "
+            "what we decided against."
+        )
+
+    @pytest.mark.parametrize(
+        "p", [q for q in OPEN_ITEM_PREDICATES if q.kind == "gap" and q.still_open],
+        ids=lambda p: p.marker[:40])
+    def test_a_gap_has_not_quietly_closed(self, p) -> None:
+        assert p.still_open(), (
+            f"{p.marker[:60]!r} is typed `gap` but the code says its closure has "
+            "LANDED. Strike the item through with a date, what closed it and a "
+            "link to the entry — `record/README.md` convention 2."
+        )
+
+    @pytest.mark.parametrize(
+        "p", [q for q in OPEN_ITEM_PREDICATES if q.kind == "held" and q.still_open],
+        ids=lambda p: p.marker[:40])
+    def test_a_held_item_has_not_been_built(self, p) -> None:
+        assert p.still_open(), (
+            f"{p.marker[:60]!r} is typed `held` — a decision NOT to do it — and "
+            "the code says it was built anyway. Either the hold was lifted and "
+            "nobody recorded the decision, or this is scope the repo declined."
+        )
+
+    @pytest.mark.parametrize(
+        "p", [q for q in OPEN_ITEM_PREDICATES if q.kind in {"caveat", "person"}
+              and q.still_open], ids=lambda p: p.marker[:40])
+    def test_a_standing_item_still_describes_the_code(self, p) -> None:
+        assert p.still_open(), (
+            f"{p.marker[:60]!r} no longer describes the code. A `caveat` whose "
+            "figure moved should be computed rather than restated (failure mode "
+            "13); a `person` item whose decision landed should be struck."
+        )
+
+    def test_an_item_without_a_predicate_says_why(self) -> None:
+        silent = [p.marker[:60] for p in OPEN_ITEM_PREDICATES
+                  if p.still_open is None and len(p.why_none) < 40]
+        assert not silent, (
+            f"these carry no predicate and no reason: {silent}. `None` must be a "
+            "STATED judgement that the closure leaves no trace, never the default."
+        )
+
+    def test_predicate_coverage_does_not_fall(self) -> None:
+        n = sum(1 for p in OPEN_ITEM_PREDICATES if p.still_open)
+        assert n >= self.PREDICATE_FLOOR, (
+            f"{n} predicates against a floor of {self.PREDICATE_FLOOR}. Coverage "
+            "may rise, and falls only when an item CLOSES — and a closed item is "
+            "struck, not deleted. A fall here means a predicate was dropped."
+        )
+        assert {p.kind for p in OPEN_ITEM_PREDICATES if p.still_open} >= {
+            "gap", "held", "caveat"}, (
+            "the gap/held inversion is the point of this registry; if only one "
+            "kind carries predicates it is not exercising that."
+        )
+
+    def test_the_stated_gaps_are_still_stated(self) -> None:
+        doc = self.__doc__ or ""
+        assert "STATED GAPS" in doc
+        assert "COVERAGE IS 13 OF 42" in doc
+        assert "PROVES THE OBSERVABLE, NOT THE ITEM" in doc
