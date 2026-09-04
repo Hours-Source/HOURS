@@ -347,7 +347,7 @@ someone remembering it, which is what this section is for.
    `LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration;
    `settlement_report`'s breach was unconditionally true before a single trade.
 
-10. ** *(corpus F-008)*THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** — latent until a default
+10. **THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** *(corpus F-008)* — latent until a default
     moves. `ground_use_fee` returned `psi = Ψ(ε)` while applying something else,
     and `guf_rate_calibration` multiplied by the reported value to solve for a
     coefficient the fee never uses. `human_fraction` meant the split factor and
@@ -355,7 +355,7 @@ someone remembering it, which is what this section is for.
     point. *Do:* when a computation gains a mode parameter, audit every value it
     REPORTS against every value it USES; ship the raw form under a different key.
 
-11. ** *(corpus F-024)*THE DOUBLE APPLICATION** — two terms, one mechanism, composed. `U`'s
+11. **THE DOUBLE APPLICATION** *(corpus F-024)* — two terms, one mechanism, composed. `U`'s
     `labor_content_scaling` and `Ψ` both encoded "labour costs collapse";
     combined, the flow leg was discounted 273× for one mechanism. **Neither
     function is wrong alone and both docstrings are honest** — the defect exists
@@ -363,7 +363,7 @@ someone remembering it, which is what this section is for.
     term whether it carries its own response to the shared driver, then ask
     whether another term already implements your stated rationale.
 
-12. ** *(corpus F-015, F-016, F-012, F-033)*THE GATE THAT DOESN'T BITE — verify by breaking it, always.** The
+12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033)* The
     reporting-position check passed a deliberate breakage: "lands under a literal
     key" accepts any dict value. Worse, **a mutation that does not execute is a
     false pass** — an edit inside `if epsilon is not None` while the test called
@@ -374,7 +374,7 @@ someone remembering it, which is what this section is for.
     bytecode question before a logic one. `git status` cannot verify restoration
     of an untracked file.
 
-13. ** *(corpus F-027)*VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** Four times in one
+13. **VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** *(corpus F-027)* Four times in one
     session the numbers were checked and the sentence about them was not: a false
     crossover, a "clears with 6% to spare" that held only under an unstated
     full-employment assumption, a figure half-sourced from a gitignored artifact,

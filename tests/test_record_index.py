@@ -323,3 +323,39 @@ class TestTheLiveSurfaceStaysASummary:
                     if not is_stub(p.read_text(encoding="utf-8"))}
         assert {n for n, _, _, _ in report()} == migrated
         assert all(h > 0 and e > 0 for _, _, h, e in report())
+
+
+class TestTheFailureModesCiteTheCorpus:
+    """
+    CLAUDE.md's failure modes and the portable corpus are the same knowledge at
+    two altitudes; the `*(corpus F-0NN)*` markers are the join. This checks the
+    FORM only — resolution needs the corpus, which lives outside every repo, so
+    `~/.claude/corpus/check.py` checks that half.
+
+    IT EXISTS BECAUSE THE CITATIONS WENT IN WRONG AND NOTHING NOTICED. The first
+    pass inserted them by string index, and for the two-digit modes the index
+    found the OPENING `**` rather than the closing one — so modes 10-13 rendered
+    as an empty bold followed by stray italics, and the markers were present,
+    countable, and malformed. Counting them found 13; parsing them found 9.
+    """
+
+    _MODE = re.compile(r"^\s*(\d+)\. \*\*(.+?)\*\* \*\(corpus ((?:F-\d{3}(?:, )?)+)\)\*",
+                       re.M | re.S)
+
+    def _section(self) -> str:
+        text = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        return text[text.index("## Recurring failure modes"):
+                    text.index("---\n\n## Current status")]
+
+    def test_every_numbered_mode_carries_a_wellformed_citation(self) -> None:
+        sec = self._section()
+        numbered = {m.group(1) for m in re.finditer(r"^\s*(\d+)\. \*\*", sec, re.M)}
+        cited = {m.group(1) for m in self._MODE.finditer(sec)}
+        assert numbered == cited, (
+            f"modes with no PARSEABLE corpus citation: {sorted(numbered - cited, key=int)}. "
+            "A marker that is present but malformed counts as present to a grep "
+            "and as absent to a reader — check the placement, not the count."
+        )
+
+    def test_there_are_modes_to_check(self) -> None:
+        assert len(self._MODE.findall(self._section())) >= 13
