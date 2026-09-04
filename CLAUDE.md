@@ -446,10 +446,19 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**3,970 tests passing (1 skipped), mypy clean on 90 source files** (verified
-2026-09-03). Provenance **300/300**, shadow ratchet **33**, confidence ratchet
+**3,977 tests passing (1 skipped), mypy clean on 90 source files** (verified
+2026-09-04). Provenance **300/300**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
+
+**The status log was split by subject area on 2026-09-03/04** (`b2892ac`) — this
+file went 304,528 → ~40,000 chars against a 150,000 limit, and its history is
+now `record/`, indexed below. Two gates live outside the repo because what they
+check does: `python3 ~/.claude/corpus/check.py` (the portable agent corpus, and
+that every `F-0NN` cited above resolves) and
+`python3 ~/.claude/corpus/check_memory.py` (session-memory pointers, commit
+shas, and that nothing is filed in two stores). Neither can run in CI. See
+[`record/verification.md#the-record-split`](record/verification.md#the-record-split).
 
 Per-area state — the adopted defaults, what is true now, and which lines are
 gated — is at the top of each `record/<area>.md`. It is not repeated here,
