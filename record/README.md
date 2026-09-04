@@ -63,10 +63,34 @@ index only — no history.
 ### Adding an entry to an existing area
 
 Append to that file's `## History`, **newest first**, prefixed with
-`<a id="a-short-slug"></a>` and a blank line. Then update `## Live state` if the
-entry changed what is true, and `## Open` if it opened or closed an item. Do not
-put the entry in `CLAUDE.md` — that section is state and open items only, and an
-entry there is the append-only growth this split undid.
+`<a id="a-short-slug"></a>` and a blank line. Then run
+
+```bash
+python3 utils/record_index.py --write   # regenerate the per-file entry index
+python3 utils/record_index.py           # the size report
+```
+
+and update `## Live state` if the entry changed what is true, `## Open` if it
+opened or closed an item. Do not put the entry in `CLAUDE.md` — that section is
+state and open items only, and an entry there is the append-only growth this
+split undid.
+
+### Size: history is unbounded, the summary is not
+
+**There is deliberately no ceiling on `## History`.** History is the evidence
+that stops a defect being rediscovered; capping it trades a known cost — a large
+read — for an unknown one, a lesson nobody can reach. What degrades as a file
+grows is navigability, and the generated index answers that instead.
+
+**The live surface — everything above `## History` — is budgeted at 6,000
+chars.** Nine files written independently landed between 4,058 and 4,996 with no
+coordination, whether the area had 3 entries or 18, so the budget codifies a
+regularity rather than imposing one. It binds on nothing today. It exists to
+catch the one regression that matters: an area file growing a SECOND history
+inside its own summary, which is exactly how `CLAUDE.md` reached 304,500 chars.
+If a summary outgrows it, move the detail into an entry and leave a pointer —
+raising the budget is the wrong repair, and `test_the_budget_is_not_vacuous`
+fails if it is raised far enough to stop guarding.
 
 ## Conventions inside an area file
 

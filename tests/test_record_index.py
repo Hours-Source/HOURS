@@ -23,6 +23,13 @@ subject, and pointed at from the other area — so a dangling `#slug` silently
 sends a reader nowhere, and is the same class as a `resolves_by` naming a source
 that does not carry the quantity.
 
+It also holds the LIVE SURFACE to a budget while leaving history unbounded.
+That asymmetry is the whole design: history is the evidence that stops a defect
+being rediscovered, so capping it would trade a known cost (a large read) for an
+unknown one (a lesson nobody can reach). What degrades as a file grows is
+NAVIGABILITY, and `utils/record_index.py` answers that with a generated index
+rather than a deletion.
+
 STATED GAPS. This does not check that an area file's *content* belongs to its
 area, and it does not check that every entry left in CLAUDE.md has an area to
 go to. The migration is manual and the README row is the record of it. It also
@@ -234,3 +241,85 @@ class TestAnEntryIsFiledOnce:
                         clashes.append(f"{key!r}: {seen[key]} and {path.name}")
                     seen[key] = path.name
         assert not clashes, "entries duplicated across area files:\n  " + "\n  ".join(clashes)
+
+
+class TestEveryFileCanBeNavigated:
+    """
+    85 entries across nine files, 89% of `record/` by bytes. An index is what
+    lets a reader jump to one instead of scanning 50k of prose — and it is
+    GENERATED, so unlike the hand-kept index that went stale within an hour in
+    this repo's own history, it cannot drift from what it indexes.
+    """
+
+    def test_every_migrated_file_carries_a_current_index(self) -> None:
+        from utils.record_index import is_stub, rebuilt
+        stale = []
+        for path in _area_files():
+            text = path.read_text(encoding="utf-8")
+            if is_stub(text):
+                continue
+            if rebuilt(text) != text:
+                stale.append(path.name)
+        assert not stale, (
+            f"these record/ indexes are stale: {stale}. "
+            "Run `python3 utils/record_index.py --write`. Never hand-edit the "
+            "generated region — the marker says so, and a hand-edited index is "
+            "a second account of the entries it lists (corpus F-008)."
+        )
+
+    def test_the_index_lists_every_entry_and_invents_none(self) -> None:
+        from utils.record_index import entries, is_stub, split_history
+        import re
+        for path in _area_files():
+            text = path.read_text(encoding="utf-8")
+            if is_stub(text):
+                continue
+            _, hist = split_history(text)
+            anchors = {a for a, _ in entries(hist)}
+            listed = set(re.findall(r"^\| \[([a-z0-9-]+)\]\(#", hist, re.M))
+            assert listed == anchors, (
+                f"record/{path.name}: index lists {sorted(listed - anchors)} "
+                f"that do not exist and omits {sorted(anchors - listed)}"
+            )
+
+
+class TestTheLiveSurfaceStaysASummary:
+    """
+    Nine files written independently landed between 4,058 and 4,996 chars of
+    live surface, with no coordination and regardless of whether the area has 3
+    entries or 18. The budget codifies that regularity; it binds on nothing
+    today, which is the point. It catches the regression where an area file
+    grows a SECOND history inside its own summary — which is precisely how
+    CLAUDE.md reached 304,500 chars.
+    """
+
+    def test_each_live_surface_is_within_budget(self) -> None:
+        from utils.record_index import LIVE_SURFACE_MAX, report
+        over = [(n, live) for n, live, _, _ in report() if live > LIVE_SURFACE_MAX]
+        assert not over, (
+            f"live surface over budget ({LIVE_SURFACE_MAX:,} chars): {over}. "
+            "Move the detail into an entry under `## History` and leave a "
+            "pointer — do not raise the budget to fit a summary that has "
+            "become a second history."
+        )
+
+    def test_the_budget_is_not_vacuous(self) -> None:
+        """A budget far above every real value would pass while guarding nothing."""
+        from utils.record_index import LIVE_SURFACE_MAX, report
+        largest = max(live for _, live, _, _ in report())
+        assert LIVE_SURFACE_MAX < largest * 2, (
+            "the live-surface budget has drifted far above what any file uses; "
+            "it now passes unconditionally"
+        )
+
+    def test_the_size_report_covers_every_migrated_file(self) -> None:
+        """
+        REPORTING ONLY — there is deliberately no history ceiling. This asserts
+        the reporter itself cannot go silently blind, which is the failure a
+        report with nothing checking it always has.
+        """
+        from utils.record_index import is_stub, report
+        migrated = {p.name for p in _area_files()
+                    if not is_stub(p.read_text(encoding="utf-8"))}
+        assert {n for n, _, _, _ in report()} == migrated
+        assert all(h > 0 and e > 0 for _, _, h, e in report())
