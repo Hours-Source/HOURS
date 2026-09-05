@@ -94,7 +94,7 @@ Filed here on primary subject; each also bears on another area.
 ## History
 <a id="capital-weighted"></a>
 
-**K WEIGHTED BY WHAT ACTUALLY SERVES THE PERSONAL OBLIGATION — AND THE PACE CONSTANT GOES WITH IT** (2026-09-05, `SHA`). `personal_serving_capital` + `capital_weighting` in `scenarios/abatement_split.py`, 6 tests, REPORTING ONLY. 4,114 pass, mypy clean on 93 files. Nothing shipped moves.
+**K WEIGHTED BY WHAT ACTUALLY SERVES THE PERSONAL OBLIGATION — AND THE PACE CONSTANT GOES WITH IT** (2026-09-05, `3d53685`). `personal_serving_capital` + `capital_weighting` in `scenarios/abatement_split.py`, 6 tests, REPORTING ONLY. 4,114 pass, mypy clean on 93 files. Nothing shipped moves.
 - **THE TYPING WAS NEVER MISSING, ONLY UNUSED.** `CAPITAL_MACHINE_PROFILES` has carried `personal_fulfillment_rate` per type all along — medical 0.22, water 0.18, agricultural 0.18, transportation 0.06, computing 0.01, environmental monitoring 0.00. `a(K)` reduces the PERSONAL obligation and took TOTAL capital, so on that input a data centre abated water-hauling.
 - **ONLY 11.3% OF CAPITAL IS PERSONAL-SERVING, AND IT IS STABLE.** 0.1121–0.1136 across all four tiers, a spread of 0.15pp, so the correction is a clean rescaling rather than a tier-dependent one. At the standard tier that is **215 of 1,902 TEH/capita**.
 - **CORRECTING K DROPS a(K) BY 2.4–6.5×**, most at low capital: minimal 0.1294 → 0.0198 (6.5×), standard 0.2938 → 0.0792 (3.7×), advanced 0.3704 → 0.1566 (2.4×). It compounds with the removal split — a(K) was running on ~8.9× too much capital AND up to 5.4× too generous a ceiling.
