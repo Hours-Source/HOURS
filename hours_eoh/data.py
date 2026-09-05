@@ -1345,10 +1345,15 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   sensitivity with any abatement figure until it does.
 
 # tag: bounded | units: hours/year per working-age-equivalent
-# band: 390–1006 h/yr per working-age-equivalent, from two instruments sharing
-#   no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence
-#   parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M
-#   comes from a capital inventory and is B-FREE.
+# band: 427–1092 h/yr per working-age-equivalent, from two instruments sharing
+#   no assumption: the supply ceiling (L−R)/w across subsistence parameters, and
+#   the accounting identity B = (M+H−R)/w, whose M comes from a capital
+#   inventory and is B-FREE. RE-DERIVED 2026-09-04 from 390–1006, and with no
+#   new data: w fell 1.475 → 1.3528 across two age-weight measurements and a
+#   lower w raises the ceiling arm, which the block below said was owed. The
+#   band is computed live by `feasibility.over_determination_report()` and
+#   pinned by `tests/scenarios/test_feasibility.py::TestTheBandIsLive` — it was
+#   restated here and went stale once already.
 # errs: HIGH. Set at the TOP of the band on an asymmetric loss function: too
 #   low hides a real shortfall (the model reports feasible, capital is
 #   under-built, and the deficit is paid in unserved biological obligation),
@@ -1368,11 +1373,11 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   shortfall (model reports feasible, capital under-built, deficit paid in
 #   unserved biological obligation), too high only over-builds capital. Erring
 #   high is the mortality-minimising error. Per working-age-EQUIVALENT: × w =
-#   1.3016 gives the per-capita claim of 1,301.6 h/person·yr. (w was 1.475
-#   until the AGE_GROUPS elderly revalue of 2026-08-10. The band above was
-#   derived at the OLD w and has not been re-derived; a lower w raises the
-#   supply-ceiling arm B ≤ (L−R)/w, so the band is now conservative rather
-#   than wrong, and re-deriving it is owed.)
+#   1.3528 gives the per-capita claim of 1,352.8 h/person·yr. (w has been 1.475,
+#   then 1.3016, now 1.3528 — THREE values restated in prose across this block
+#   and `scenarios/feasibility.py`, all of which went stale from changes
+#   elsewhere. The band re-derivation this note used to say was owed is done,
+#   above; both are now pinned to the live computation rather than restated.)
 # confidence: 40 — and this is THE MOST LEVERAGED CONSTANT IN THE MODEL, so the
 #   figure matters more here than anywhere else. Measured 2026-09-01 by
 #   perturbation: elasticity 0.94 on total EOH at ε=0, against 0.20 for the

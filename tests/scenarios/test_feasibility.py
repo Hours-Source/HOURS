@@ -130,11 +130,34 @@ def test_supply_side_resolution_demands_an_implausible_working_day():
     assert c["hours_per_adult_required"] / 365.0 > 6.0  # h/day, no rest days
 
 
-def test_report_flags_over_determination():
+def test_report_no_longer_flags_over_determination_on_the_measured_path():
+    """
+    THE VERDICT FLIPPED ON 2026-09-04, AND NOT BECAUSE THE MODEL GOT BETTER AT
+    ANYTHING. The self-consistency arm ran on `H_REF × 0.5 = 1,040
+    h/person·yr` — the paid-work calendar year times the same 1e9-for-1M
+    convention the corridor CLI carried — which is 68% of the measured supply.
+    The 2026-09-03 capacity migration replaced `H_REF` on the feasibility path
+    and missed this caller, so the report published OVER-DETERMINED from a
+    supply basis the repo had already retired.
+
+    THIS IS THE THIRD CHANGE TO DISSOLVE THE OVER-DETERMINATION AND ALL THREE
+    WENT THE FLATTERING WAY: the capacity migration narrowed it, the band
+    alignment closed it on the shipped path, and this one closes it on the
+    report's own arm. The first and third correct a supply figure to one the
+    repo already adopted; the second was one-sided and its objection stands in
+    `record/personal.md`. Recorded together because the pattern is worth more
+    than any of them alone.
+
+    The old arm stays reachable and still returns OVER-DETERMINED.
+    """
     r = over_determination_report()
-    assert r["over_determined"] is True
-    assert "OVER-DETERMINED" in r["verdict"]
-    assert "cannot both hold" in r["verdict"]
+    assert r["over_determined"] is False
+    assert "CONSISTENT" in r["verdict"]
+
+    old = over_determination_report(workforce_fraction=0.5)
+    assert old["over_determined"] is True
+    assert "OVER-DETERMINED" in old["verdict"]
+    assert "cannot both hold" in old["verdict"]
 
 
 # ---------------------------------------------------------------------------
@@ -510,3 +533,80 @@ class TestTheDocumentedFiguresAreLive:
         doc = inspect.getsource(f)
         assert f"({AGE_WEIGHT_INFANT}×)" in doc
         assert f"({AGE_WEIGHT_ELDERLY}×)" in doc
+
+
+class TestTheBandIsLive:
+    """
+    The ceiling check the existence argument actually supports.
+
+    `implied_base_ceiling` is NOT a derivation of the personal obligation — it
+    is linear in the adult share (888 at a=0.55, 975 at 0.60, 1,065 at the
+    shipped 0.652411, 1,147 at 0.70) and moves whenever the SUPPLY frame moves,
+    which it did on 2026-09-04 without anything about human maintenance
+    changing. So it cannot be adopted as the value: setting the base to its own
+    ceiling fits the constant to the target its test checks against and makes
+    feasibility unfalsifiable by construction — corpus F-018, which this repo
+    has already committed twice (`GUF_USE_SCALE_FACTOR`, `DEFAULT_SEGMENTS`).
+
+    What it supports is a ONE-SIDED CHECK: the shipped base must sit inside the
+    band. That is falsifiable, it currently passes, and it would have failed
+    before the band alignment — the ceiling was 974.7 against a shipped 1,000.
+    Nothing asserted it then.
+
+    STATED GAP: inside-the-band is a weak claim. The band spans 427–1092, a
+    factor of 2.6, and `PERSONAL_EOH_BASE` is the most leveraged constant in
+    the model (elasticity 0.94 on total EOH at ε=0). Passing this says the base
+    is not impossible, not that it is right. What would settle the point inside
+    the band is `personal_statutory_floor`, at 6.9% coverage.
+    """
+
+    def test_the_shipped_base_sits_inside_the_band(self) -> None:
+        from hours_eoh.data import PERSONAL_EOH_BASE
+        lo, hi = over_determination_report()["ceiling_band"]
+        assert lo <= PERSONAL_EOH_BASE <= hi, (
+            f"PERSONAL_EOH_BASE={PERSONAL_EOH_BASE} is outside the evidence band "
+            f"[{lo:.0f}, {hi:.0f}]. Above it, the base is incompatible with every "
+            "labour supply in the subsistence sweep; below it, the band moved."
+        )
+
+    def test_the_documented_band_matches_the_live_one(self) -> None:
+        """It was restated in `data.py` as 390–1006 and went stale on a change
+        to `w` made elsewhere. Restated figures are pinned or removed."""
+        import pathlib
+        lo, hi = over_determination_report()["ceiling_band"]
+        block = pathlib.Path(__file__).resolve().parents[2] / "hours_eoh" / "data.py"
+        src = block.read_text(encoding="utf-8")
+        assert f"# band: {lo:.0f}–{hi:.0f} h/yr per working-age-equivalent" in src, (
+            f"data.py's stated band has drifted from the live {lo:.0f}–{hi:.0f}."
+        )
+
+    def test_the_self_arm_runs_on_the_measured_path(self) -> None:
+        """
+        The self-consistency arm used `H_REF × 0.5 = 1,040` — the paid-work
+        calendar year times the same 1e9-for-1M convention the corridor CLI
+        carried. That is 68% of the measured supply, and it is what produced the
+        OVER-DETERMINED verdict. The 2026-09-03 capacity migration replaced
+        `H_REF` on the feasibility path and missed this caller.
+        """
+        r = over_determination_report()
+        assert r["self_consistency"]["supply_per_capita"] == pytest.approx(
+            labor_supply_per_capita(), rel=1e-12)
+        assert r["over_determined"] is False
+        # the retired arm stays reachable and still reproduces the old verdict
+        old = over_determination_report(workforce_fraction=0.5)
+        assert old["over_determined"] is True
+        assert old["self_consistency"]["supply_per_capita"] == pytest.approx(1040.0)
+
+    def test_the_ceiling_is_a_supply_quantity_not_a_demand_one(self) -> None:
+        """The reason it must not be adopted: it tracks the adult share."""
+        seen = [feasibility_check(epsilon=0.0, adult_share=a)["implied_base_ceiling"]
+                for a in (0.55, 0.60, 0.70)]
+        assert seen == sorted(seen), "the ceiling should rise with the adult share"
+        assert seen[-1] / seen[0] > 1.25, (
+            "the ceiling barely moves with supply — if that is real it is closer "
+            "to a demand quantity than this docstring claims."
+        )
+
+    def test_the_stated_gap_is_still_stated(self) -> None:
+        doc = self.__doc__ or ""
+        assert "STATED GAP" in doc and "not that it is right" in doc

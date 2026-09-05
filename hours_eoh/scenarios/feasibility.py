@@ -414,7 +414,7 @@ class OverDeterminationReport(TypedDict):
 def over_determination_report(
     capacities: tuple[float, ...] = SUBSISTENCE_CAPACITY_BAND,
     shares: tuple[float, float] = SUBSISTENCE_ADULT_SHARE_BAND,
-    workforce_fraction: float = 0.5,
+    workforce_fraction: float | None = None,
 ) -> OverDeterminationReport:
     """
     The full test: is (PERSONAL_EOH_BASE, labor supply) an over-determined pair?
@@ -438,15 +438,28 @@ def over_determination_report(
     Args:
         capacities: Adult annual labor capacities to sweep.
         shares: (low, high) adult population shares.
-        workforce_fraction: The repo's own labor-participation parameter, used
-            for the self-consistency arm.
+        workforce_fraction: RETIRED as the self-consistency basis (2026-09-04).
+            None (default) runs the self arm on the MEASURED path —
+            `MEASURED_CAPACITY_H_YR` and the capacity-weighted adult share, the
+            same L every other feasibility caller uses. Pass a float to
+            reproduce the old arm, which was `H_REF` x 0.5 = 1,040 h/person·yr:
+            the paid-work calendar year times a participation figure that is the
+            same 1e9-for-1M convention the corridor CLI carried, retired there
+            on 2026-09-04. That arm is 68% of the measured supply and it is what
+            produced the OVER-DETERMINED verdict; the capacity migration of
+            2026-09-03 replaced `H_REF` on the feasibility path and missed this
+            caller.
 
     Returns:
         OverDeterminationReport.
     """
-    self_arm = feasibility_check(
-        adult_capacity_h_yr=float(H_REF), adult_share=workforce_fraction, epsilon=0.0,
-    )
+    if workforce_fraction is None:
+        self_arm = feasibility_check(epsilon=0.0)
+    else:
+        self_arm = feasibility_check(
+            adult_capacity_h_yr=float(H_REF), adult_share=workforce_fraction,
+            epsilon=0.0,
+        )
     cases = [
         feasibility_check(adult_capacity_h_yr=c, adult_share=s, epsilon=0.0)
         for c in capacities for s in shares
@@ -458,9 +471,8 @@ def over_determination_report(
 
     if over:
         verdict = (
-            f"OVER-DETERMINED. On the repo's own constants (H_REF={H_REF:g} × "
-            f"workforce_fraction={workforce_fraction:g} = "
-            f"{self_arm['supply_per_capita']:.0f} h/person·yr), demand at ε=0 is "
+            f"OVER-DETERMINED. On a supply of "
+            f"{self_arm['supply_per_capita']:.0f} h/person·yr, demand at ε=0 is "
             f"{self_arm['total_demand_per_capita']:.0f} — a factor of "
             f"{self_arm['demand_supply_ratio']:.2f}. PERSONAL_EOH_BASE would have "
             f"to be ≤ {self_arm['implied_base_ceiling']:.0f} to be compatible "
