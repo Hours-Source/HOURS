@@ -14,7 +14,7 @@ computable from constants the repo already ships.
 
     demand per capita       D(ε) = (1 − ε) · [ w · B  +  R ]
         B   PERSONAL_EOH_BASE, h/yr per working-age-EQUIVALENT
-        w   Σ(fraction × eoh_weight) over AGE_GROUPS = 1.475 — the age weighting
+        w   Σ(fraction × eoh_weight) over AGE_GROUPS = 1.3528 — the age weighting
             that converts B from per-equivalent to per-capita
         R   infrastructure + ecological + knowledge EOH per capita
         ε   machine-fulfilled share; (1 − ε) is what humans must carry
@@ -27,11 +27,12 @@ asks what value of B is COMPATIBLE with the labor supply the same model assumes.
 
 WHY THE AGE WEIGHTING MATTERS AND IS EASY TO MISS. `PERSONAL_EOH_BASE` is *not*
 per capita — it is per working-age-equivalent, and infants (3.0×) and elderly
-(2.5×) are weighted above 1.0. The population-weighted mean w = 1.475, so a base
-of 1,500 asserts **2,213 h/person·yr** of entropy-resistance labor. And because
-the extra weight on infants and elderly is CAREGIVER labor, all 2,213 hours must
-still be supplied by adults — the weighting raises demand without raising supply.
-Any feasibility test run against the 1,500 figure understates the gap by 1.475×.
+(1.48×) are weighted above 1.0. The population-weighted mean w = 1.3528, so a
+base of 1,500 asserts **2,029 h/person·yr** of entropy-resistance labor. And
+because the extra weight on infants and elderly is CAREGIVER labor, all 2,029
+hours must still be supplied by adults — the weighting raises demand without
+raising supply. Any feasibility test run against the 1,500 figure understates
+the gap by 1.3528×.
 
 WHAT THE TEST FINDS (see `over_determination_report`). Using nothing but the
 repo's own constants — H_REF = 2,080 h/yr and workforce_fraction = 0.5, giving
@@ -89,7 +90,14 @@ def age_weight_mean(age_groups: dict[str, dict] | None = None) -> float:
     w = Σ(fraction × eoh_weight) — converts PERSONAL_EOH_BASE from per
     working-age-equivalent to per capita.
 
-    units: dimensionless. Default AGE_GROUPS gives w = 1.475.
+    units: dimensionless. Default AGE_GROUPS gives w = 1.3528.
+
+    THESE FIGURES WERE RESTATED IN PROSE AND THAT IS WHY THEY WENT STALE. w was
+    written as 1.475 in five places in this module and was 1.3528 live — stale
+    since the AGE_WEIGHT_CHILD revalue, not since anything that touched this
+    file, so nothing here would ever have caught it.
+    `tests/scenarios/test_feasibility.py::TestTheDocumentedFiguresAreLive`
+    fails if they diverge again.
     ε-behavior: constant in ε (the age structure drifts with ε only through
     the retired elderly ε-drift, which this reference form always ignored, so
     the ceiling is a clean function of the shipped weights).
@@ -685,8 +693,9 @@ def identify_base(
         ValueError: on negative inputs or a non-positive population.
 
     Worked example: a standard-tier capital inventory gives M ≈ 266 h/person·yr;
-    time use of 2.8 h/adult·day at a 0.60 adult share gives H ≈ 613; R ≈ 76. Then
-    B = (266 + 613 − 76)/1.475 ≈ 544 and ε ≈ 0.30. Compare the shipped 1,500.
+    time use of 2.8 h/adult·day at the 0.6524 adult share gives H ≈ 667; R ≈ 76.
+    Then B = (266 + 667 − 76)/1.3528 ≈ 633 and ε ≈ 0.30. Compare the shipped
+    1,500. (Was 544 at w = 1.475 and a = 0.60; both inputs have since moved.)
     """
     if machine_eoh_per_capita < 0.0 or observed_human_hours_per_capita < 0.0:
         raise ValueError("M and H must be ≥ 0")

@@ -10,8 +10,8 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Live state
 
-Values as of the migration date — verified against `hours_eoh/data.py`, not
-recalled. None of these lines is gated; check the constant before quoting it.
+Verified against `hours_eoh/data.py`, not recalled. Ungated; check the
+constant before quoting it.
 
 - **The standards split.** `PERSONAL_EOH_SURVIVAL` 600 (S_a, hard-bounded by
   labour supply), `PERSONAL_EOH_SUFFICIENCY` 1500 (F_a, may exceed supply — that
@@ -42,23 +42,25 @@ recalled. None of these lines is gated; check the constant before quoting it.
 
 ## Open
 
+- **The frailty care socket is unbuilt, and it settles an eighth of care**
+  *(person)* — `care_key` says WHICH driver a band's care moves on; nothing
+  supplies a morbidity trajectory. Two fields, whose product the model consumes:
+  **frailty-years per capita** × **care hours per frailty-year**, chosen so
+  morbidity COMPRESSION and EXPANSION are expressible — "care hours per elderly
+  person" states neither. **Measured scope:** frailty care is 7.5–11.6% of care;
+  dependant care is 83–86% and needs household composition, not actuarial
+  tables. *Settles by:* an author decision on the intake contract, then LTC
+  tables. Detail: [care-keys-split](#care-keys-split).
 - **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
-  2026-09-04** *(person)* (author decision: the aligned figure is closer to what
-  is observed). `AGE_CAPACITY_WEIGHT_ELDERLY` 0.0 → 0.3083. **The objection
-  stands and is not withdrawn**: supply moved by a measured 5.83pp while
-  `AGE_WEIGHT_ELDERLY` is a documented LOWER bound, so the ε=0 surplus is an
-  UPPER bound on the true one. Detail:
+  2026-09-04** *(person)* (author decision; the objection stands). Detail:
   [band-alignment-adopted](#band-alignment-adopted).
 - **Two of four personal automation floors carry a value, and neither is
   settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS; shelter and
   health carry nothing. Following each `resolves_by` did not close it: nutrition
-  is an UPPER bound (conf. 45, `errs: HIGH`), care an ordering-derived LOWER
-  bound (conf. 20, `errs: LOW`) gated by `test_the_inversion_is_now_RESOLVED`
+  is an UPPER bound (conf. 45), care an ordering-derived LOWER bound (conf. 20)
   *(gated)*. **Both replaced a first guess with a bounded one and returned a
-  sharper `resolves_by` — the normal yield of a pointer, and not closure.**
-  Detail: [improved-not-settled](#improved-not-settled). *Settles by:* food
-  PROCESSING hours at genuinely low capital (nutrition); a stated-preference
-  instrument (care), and no such survey is in this repo.
+  sharper `resolves_by` — the normal yield of a pointer, not closure.** Detail:
+  [improved-not-settled](#improved-not-settled).
 - **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.

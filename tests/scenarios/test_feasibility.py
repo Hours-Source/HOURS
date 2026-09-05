@@ -20,6 +20,7 @@ from hours_eoh.scenarios.feasibility import (
     SUBSISTENCE_ADULT_SHARE_BAND,
     SUBSISTENCE_CAPACITY_BAND,
     age_weight_mean,
+    capacity_weighted_adult_share,
     feasibility_check,
     feasible_epsilon,
     identify_base,
@@ -461,3 +462,51 @@ def test_tol_still_changes_the_answer_where_the_search_actually_runs():
     assert 0.0 < hi < 1.0
     # and it is genuinely zero on the shipped defaults, which is why it went inert
     assert feasible_epsilon() == 0.0
+
+
+class TestTheDocumentedFiguresAreLive:
+    """
+    `w` was written as 1.475 in FIVE places in `feasibility.py` and was 1.3528
+    live — one of them inside a worked derivation, so a stale figure was doing
+    arithmetic in a docstring. It went stale on the AGE_WEIGHT_CHILD revalue,
+    not on anything that touched this module, so no test here would ever have
+    caught it: the drift arrived from outside.
+
+    Failure mode 13 says compute rather than restate. Where prose must carry a
+    number — a module docstring explaining WHY the weighting matters cannot be
+    a function call — the number gets pinned instead.
+
+    STATED GAP: this checks the figures the docstrings state TODAY. It cannot
+    notice a new figure written into prose tomorrow, and there is no general
+    mechanism that would; the general rule stays "return it from the function".
+    """
+
+    def test_the_documented_w_matches_the_live_one(self) -> None:
+        import inspect
+        from hours_eoh.scenarios import feasibility as f
+        src = inspect.getsource(f)
+        w = age_weight_mean()
+        assert f"{w:.4f}" == "1.3528"
+        # every live mention states the current value; 1.475 survives only in
+        # the two places that explicitly label it as the superseded figure
+        stale = [ln.strip() for ln in src.splitlines()
+                 if "1.475" in ln and "stale" not in ln and "Was 544" not in ln]
+        assert not stale, f"un-flagged stale w in: {stale}"
+
+    def test_the_documented_derived_figures_follow_from_it(self) -> None:
+        """The two numbers the module docstring derives FROM w, recomputed."""
+        w = age_weight_mean()
+        assert round(1500.0 * w) == 2029, "the '1,500 asserts N h/person·yr' line"
+        a = capacity_weighted_adult_share()
+        h = 2.8 * 365.0 * a
+        assert round(h) == 667, "the worked example's H"
+        assert round((266.0 + h - 76.0) / w) == 633, "the worked example's B"
+
+    def test_the_documented_elderly_weight_is_the_shipped_one(self) -> None:
+        """The module said elderly was weighted 2.5x; it is 1.48."""
+        from hours_eoh.data import AGE_WEIGHT_ELDERLY, AGE_WEIGHT_INFANT
+        import inspect
+        from hours_eoh.scenarios import feasibility as f
+        doc = inspect.getsource(f)
+        assert f"({AGE_WEIGHT_INFANT}×)" in doc
+        assert f"({AGE_WEIGHT_ELDERLY}×)" in doc
