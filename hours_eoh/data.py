@@ -214,6 +214,19 @@ AGE_CARE_KEY_CHILD: str = "dependant"
 AGE_CARE_KEY_WORKING_AGE: str = "frailty"
 AGE_CARE_KEY_ELDERLY: str = "frailty"
 
+# tag: convention | units: multiples of the standard capital tier
+# form: the capital sweep `scenarios.deflation_loop` runs. Chosen to reach BOTH
+#   ends of the arc — ε below 0.10 at the bottom and above 0.90 at the top —
+#   because the interesting behaviour is at both and a sweep narrow around the
+#   reference capital reports "no effect" and is wrong: abatement's dampening
+#   crosses over at about 1.9x reference and only appears above it.
+# note: A SWEEP RANGE IS A CHOICE AND THIS ONE DECIDES THE ANSWER, which is why
+#   it is named rather than inlined. `test_the_sweep_reaches_both_ends_of_the_arc`
+#   fails if it stops spanning the arc.
+# decided_by: AWol 2026-09-05 — a sweep range, not a measurement. No dataset
+#   says how far to look; the arc's own endpoints do.
+DEFLATION_SWEEP_SCALES: tuple[float, ...] = (0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 10.0)
+
 # tag: convention | units: inclusive age bounds in years
 # form: the band MEASURED_CAPACITY_H_YR is measured over, restated here because
 #   the constant it qualifies lives here and the qualifier must travel with it.
