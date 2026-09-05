@@ -459,9 +459,48 @@ class TestFloorVsConstants:
         assert floor_vs_constants()["age_weight"] == pytest.approx(1.3528)
 
     def test_floor_sits_below_every_standard(self):
-        """The only ordering compatible with 30% coverage."""
+        """The only ordering compatible with 6.9% coverage (the docstring said
+        30% and coverage has been 6.9% since the basket was itemised)."""
         shares = floor_vs_constants()["floor_share_of"]
         assert all(0.0 < value < 1.0 for value in shares.values())
+
+    def test_the_floor_cannot_falsify_the_base_and_the_gap_is_coverage(self):
+        """
+        THE FLOOR IS THE FALSIFIER, NOT THE DEFAULT — and at this coverage it
+        falsifies nothing. It is a strict LOWER bound, so it can only refute a
+        constant by EXCEEDING it, and it prices one component of seven.
+
+        The ordering below is therefore not evidence that the constants are
+        right. It is what 6.9% coverage forces, and quoting it as agreement
+        would be reading a coverage artefact as a corroboration — the shape
+        `floor_share_of` exists to make visible.
+        """
+        r = floor_vs_constants()
+        assert r["coverage"] == pytest.approx(0.069, abs=5e-4)
+        assert r["floor_priced_per_capita"] < r["constants_per_capita"]["PERSONAL_EOH_SURVIVAL"], (
+            "the floor now exceeds the survival standard — it has started to "
+            "bind, and the constants it sits under must be re-read rather than "
+            "assumed corroborated."
+        )
+        assert "falsifies nothing yet" in r["verdict"]
+
+    def test_what_the_unpriced_remainder_would_have_to_deliver(self):
+        """
+        The threshold, stated so nobody has to re-derive it: the floor binds on
+        `PERSONAL_EOH_BASE` when priced hours exceed the base's per-capita
+        claim. Care alone is 62.1% of the basket by share and is unpriced, so
+        whether the remainder clears that gap is a question about CARE, not
+        about coverage in the abstract.
+        """
+        r = floor_vs_constants()
+        gap = r["constants_per_capita"]["PERSONAL_EOH_BASE"] - r["floor_priced_per_capita"]
+        assert gap > 0.0
+        assert gap == pytest.approx(1021.9, abs=1.0), (
+            "the gap between the priced floor and the base has moved; it is "
+            "quoted in record/personal.md and in this test's docstring."
+        )
+        care = [c for c in FULL_BASKET if c["component"] == "care"][0]
+        assert care["hours_per_unit"] is None and care["share"] > 0.60
 
     def test_standards_stay_ordered(self):
         constants = floor_vs_constants()["constants_per_capita"]

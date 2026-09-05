@@ -125,6 +125,8 @@ hours_eoh/
     measured.py        measured_segments, measured_mean_multiplier, run_measured_simulation (O*NET/BLS registry)
     multiplier_sensitivity.py  reconstruct, sweep_factor_weights, monte_carlo_factor_weights, sensitivity_report
     infrastructure_floor.py    census_from_condition_counts, doctrine_floor_invariance (B+D currency-free floor)
+    frailty.py         frailty_care_load, morbidity_direction — the frailty care INTAKE;
+                       no default, because a shipped care number is a rationing rule
     thermal_load.py    thermal_load_arc, thermal_load_verdict — the planetary obligation carried in the ledger
     feasibility.py     labor_supply_per_capita, feasibility_check, over_determination_report, feasible_epsilon
     personal_floor.py  obligation_floor, identity_report, floor_vs_constants — normative floor vs measured hours
@@ -452,7 +454,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,071 tests passing (1 skipped), mypy clean on 90 source files** (verified
+**4,086 tests passing (1 skipped), mypy clean on 90 source files** (verified
 2026-09-04). Provenance **314/314**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -536,7 +538,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**94 test files. The name rule covers 65 of them:** `tests/test_<module>.py`
+**95 test files. The name rule covers 66 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
