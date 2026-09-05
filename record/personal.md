@@ -42,25 +42,20 @@ constant before quoting it.
 
 ## Open
 
-- **The frailty care socket is unbuilt, and it settles an eighth of care**
-  *(person)* — `care_key` says WHICH driver a band's care moves on; nothing
-  supplies a morbidity trajectory. Two fields, whose product the model consumes:
-  **frailty-years per capita** × **care hours per frailty-year**, chosen so
-  morbidity COMPRESSION and EXPANSION are expressible — "care hours per elderly
-  person" states neither. **Measured scope:** frailty care is 7.5–11.6% of care;
-  dependant care is 83–86% and needs household composition, not actuarial
-  tables. *Settles by:* an author decision on the intake contract, then LTC
-  tables. Detail: [care-keys-split](#care-keys-split).
+- **The frailty socket has no intake** *(person)* — `scenarios/frailty.py`
+  ships the contract (frailty-years per capita × care hours per frailty-year,
+  no default, `source` required) and nothing supplies it. It settles ~an eighth
+  of care; dependant care is 83–86% and needs household composition, not
+  actuarial tables. *Settles by:* disability/ADL prevalence by age plus LTC
+  continuance data. Detail: [care-keys-split](#care-keys-split).
 - **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
   2026-09-04** *(person)* (author decision; the objection stands). Detail:
   [band-alignment-adopted](#band-alignment-adopted).
 - **Two of four personal automation floors carry a value, and neither is
-  settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS; shelter and
-  health carry nothing. Following each `resolves_by` did not close it: nutrition
-  is an UPPER bound (conf. 45), care an ordering-derived LOWER bound (conf. 20)
-  *(gated)*. **Both replaced a first guess with a bounded one and returned a
-  sharper `resolves_by` — the normal yield of a pointer, not closure.** Detail:
-  [improved-not-settled](#improved-not-settled).
+  settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS (an UPPER
+  and an ordering-derived LOWER bound); shelter and health carry nothing.
+  **Following each `resolves_by` returned a sharper `resolves_by`, not closure.**
+  Detail: [improved-not-settled](#improved-not-settled).
 - **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
@@ -71,13 +66,17 @@ constant before quoting it.
   the infant band **together** — one acquisition, not five.
 - **Type-specific abatement** *(gap)* — which capital abates which component. Abatement
   is currently driven by TOTAL capital per capita.
-- **Adopting abatement as the DEFAULT generation path** *(person)* — retires the
-  `PERSONAL_EOH_BASE` collapsed placeholder and moves numbers suite-wide.
-  **Retyped `gap` → `person` 2026-09-04**, on measurement: abatement is not a
-  `standard` option (`personal_standard` takes `collapsed|sufficiency|survival`),
-  so adopting it changes how personal EOH is GENERATED on the documented entry
-  point — a theory commitment under the §5 guardrail. *Settles by:* author
-  sign-off; the wiring after it is ordinary work.
+- **Adopting abatement as the DEFAULT generation path is BLOCKED on three
+  things, none of them wiring** *(person)* — `abated_personal_base` exists and
+  says it is what `PERSONAL_EOH_BASE` stands in for, so it reads as ready.
+  **(1) No personal-EOH-reducing capital type**: `a(K)` takes TOTAL capital
+  while its examples are taps and sanitation, and `K_half` was chosen against
+  that K. **(2) The abatabilities are DEFINED as removal and never measured
+  against that definition** — desk terms at confidence 25. **(3) It reverses a
+  stated invariant**: capital elimination is non-personal-only, explicitly to
+  prevent a deflationary loop nobody has run. B(K) at reference fails 37 tests;
+  B(0)=1500 exceeds the band's 1092. *Settles by:* (2) first — cheapest, and it
+  decides whether (3) is real. Detail: [abatement-blocked](#abatement-blocked).
 
 ## Cross-area entries
 
@@ -93,6 +92,16 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="abatement-blocked"></a>
+
+**ABATEMENT AS THE DEFAULT GENERATION PATH IS BLOCKED, AND THE CHEAPEST BLOCKER IS A DEFINITION NOBODY MEASURED AGAINST** (2026-09-05). No code changed; the item is retyped from ready-to-wire to blocked, with what would unblock it.
+- **IT READS AS WIRING AND IS NOT.** `abated_personal_base` exists and its own docstring says "This is the quantity `PERSONAL_EOH_BASE` stands in for. Once abatement is adopted as the default generation path, the collapsed placeholder retires." Everything about that is true and none of it makes the change safe.
+- **(1) THERE IS NO PERSONAL-EOH-REDUCING CAPITAL TYPE.** `a(K)` takes TOTAL capital per capita while its own examples are "a tap replaces water hauling" and "sanitation cuts the disease burden". `ASSET_TYPES` types capital by DECAY only — `maint_rate`, `threshold_age`, `compound_exp` over bridge/software/ecosystem/building/power_grid/generic_infra — so **nothing separates a tap from a data centre**, and on that input a data centre abates water-hauling. `K_half` = 1000 was CHOSEN against the total-capital K, so re-scoping K recalibrates the pace constant too; it is not a substitution.
+- **(2) THE ABATABILITIES ARE DEFINED AS REMOVAL AND WERE NEVER MEASURED AGAINST THAT DEFINITION — the cheapest blocker and the one that decides the others.** `eoh_fulfillment` states the distinction precisely: *"AN AUTOMATION FLOOR IS NOT AN ABATABILITY. `abatability` is the most infrastructure can REMOVE — a(K), ε-free by construction. This is who does what REMAINS. They compose."* So ε uses `PERSONAL_AUTOMATION_FLOORS` and a(K) uses `abatability`: **different fields, and there is no double-count.** But REMOVAL is a strong claim. A pipe means the hauling never happens — removal. A washing machine means the washing still happens and a machine does it — that is who does what remains, which is ε's field, not this one. The shipped 0.90/0.85/0.60/0.25 are `PERSONAL_EOH_COMPONENTS`' desk terms at **confidence 25** and nothing has checked that they measure removal rather than the broader "capital helps".
+- **(3) IT REVERSES A STATED INVARIANT WITH A MONETARY REASON.** `total_eoh` applies capital elimination to non-personal domains only, explicitly *"to prevent the deflationary feedback loop where capital growth reduces biological obligations and dampens TEH creation"*. For a currency denominated in obligations that is a real hazard — the money supply contracts exactly when the economy is most productive — and **nobody has run the loop.** Whether it bites depends entirely on (2): removal genuinely shrinks the obligation, and anything that is not removal shrinks it for work still being done.
+- **THE MEASURED SIZE, so the cascade is not a surprise.** Moving the base to B(K)=1051.7 at the reference capital — a static +5.2% — fails **37 tests across 12 files**, and the real change makes the base a FUNCTION of capital rather than a constant. B(0)=1500 also sits above the evidence band's ceiling of 1092, so `test_the_shipped_base_sits_inside_the_band` needs a decision: B(K) inside the band at the operating K fails at low capital, which may be correct behaviour — the record already says F_a "may exceed supply, and that gap is why collectives form".
+- **HOW TO SPLIT (2), which is the actual next piece of work.** The test is operational and the basket already has the structure for it: the basket is `quantity_per_person_year × hours_per_unit`, so **REMOVAL reduces the QUANTITY** (fewer disease episodes, fewer care-person-years) while **capital-does-it reduces the HUMAN SHARE of the hours**, which is ε's channel. Per component, ask which factor moves: sanitation → health quantity falls, removal. Piped water → the hauling task ceases, removal. A powered mill → the milling still happens, so it is not removal. That classification is doable against the component definitions the repo already holds, needs no new acquisition, and it is what turns a(K) from an asserted ceiling into a measured one.
+
 <a id="thermal-merged-base-framed"></a>
 
 **THERMAL MERGED INTO SHELTER, AND THE BASE DECLARES ITS CLIMATE** (2026-09-04, author decision, `5b4e842`). Basket 8 → 7 components; `PERSONAL_EOH_BASE_CLIMATE_FRAME` added. 4,071 pass, mypy clean on 90 files, provenance 314/314. Coverage unmoved at 6.9% — the priced component is not in the shelter bucket.
@@ -150,8 +159,9 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 24 entries, newest first | |
+| 25 entries, newest first | |
 |---|---|
+| [abatement-blocked](#abatement-blocked) | ABATEMENT AS THE DEFAULT GENERATION PATH IS BLOCKED, AND THE CHEAPEST BLOCKER IS A DEFINITION N… |
 | [thermal-merged-base-framed](#thermal-merged-base-framed) | THERMAL MERGED INTO SHELTER, AND THE BASE DECLARES ITS CLIMATE |
 | [ceiling-check-and-band](#ceiling-check-and-band) | THE CEILING BECOMES A CHECK, THE BAND IS RE-DERIVED, AND THE OVER-DETERMINATION VERDICT WAS RUN… |
 | [care-keys-split](#care-keys-split) | CARE HAS TWO DRIVERS AND THEY SHARED ONE NUMBER — SPLIT, AND THE ε-DRIFT RETIRED |
