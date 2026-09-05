@@ -1344,6 +1344,27 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   (inventory, time-use) pairs pins both a_max and K_half at once. Report the
 #   sensitivity with any abatement figure until it does.
 
+# tag: instance | units: none — a named agro-ecological / climate stratum
+# form: the zone PERSONAL_EOH_BASE describes. Not a modifier ON the base: the
+#   base has always been a figure for SOME climate and never said which, and
+#   naming it is what makes the base and its falsifier commensurable.
+# note: THE DEFAULT IS THE ZONE THE ONLY PRICED COMPONENT WAS MEASURED IN, so
+#   base and falsifier now refer to the same place. `reference.personal_basket.
+#   LSMS_AGRO_ECOLOGY` states it: rainfed tropical and sub-tropical Sub-Saharan
+#   Africa — Sahelian, tropical highland, tropical savanna; single or bimodal
+#   rainfed growing seasons, no irrigation, no frost-limited season.
+# note: A COLLECTIVE OUTSIDE THAT ZONE MUST SUPPLY BOTH THIS AND A BASE. They
+#   travel together, like AGE_GROUP_FRACTIONS and AGE_CAPACITY_WEIGHT_ELDERLY:
+#   keeping the shipped base while declaring another zone asserts that personal
+#   maintenance costs the same at every latitude, which is the claim the
+#   shelter row's degree-day intensity exists to deny.
+# supplied_by: the deploying collective's own agro-ecological zone, stated the
+#   way LSMS_AGRO_ECOLOGY states this one — growing-season structure, irrigation
+#   and frost, plus heating and cooling degree-days for the shelter term.
+# default: "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)", matching the
+#   only priced component.
+PERSONAL_EOH_BASE_CLIMATE_FRAME: str = "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)"
+
 # tag: bounded | units: hours/year per working-age-equivalent
 # band: 427–1092 h/yr per working-age-equivalent, from two instruments sharing
 #   no assumption: the supply ceiling (L−R)/w across subsistence parameters, and
@@ -1397,6 +1418,23 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   RAISES the supply-ceiling arm, so the band is wider than stated rather than
 #   wrong. Re-deriving it is owed and would raise this figure without any new
 #   data.
+# note: IT DECLARES A CLIMATE FRAME AS OF 2026-09-04, and it had to.
+#   `PERSONAL_EOH_BASE_CLIMATE_FRAME` names the zone this figure describes.
+#   The falsifier was already climate-indexed and this was not: the ONE priced
+#   basket component, nutrition production, is measured in rainfed tropical and
+#   sub-tropical Sub-Saharan Africa and its own note says it "does not transfer
+#   without restratification by agro-ecological zone". So the check was
+#   stratified and the checked was a global scalar — a frame mismatch that
+#   existed at 6.9% coverage rather than arriving at some future one, and was
+#   masked only because a 6.9% floor cannot falsify anything. Every further
+#   component priced makes it bite, whichever one is priced next.
+# note: THE MISMATCH WAS NOT THERMAL'S DOING. The earlier reading was that
+#   costing thermal would break the single global scalar; in fact nutrition
+#   already had, being the first and only component priced. Of eight basket
+#   components, six were climate-conditioned through DELIVERY, one through the
+#   QUANTITY (thermal, since merged into shelter) and one not at all — care,
+#   which is 62.1% of the obligation. There is no climate-free component to
+#   price first.
 # resolves_by: the capital-inventory + time-use identity, NOT time-use data
 #   alone — see the circularity section in docs/parameter_provenance.md.
 #   Partial progress: core/eoh_generation.personal_statutory_floor() now
@@ -1404,7 +1442,7 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
 #   seven basket components is priced (nutrition production, 330.9
 #   h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this
 #   value.
-PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent. CHOSEN — resolves_by: capital-inventory + time-use identity
+PERSONAL_EOH_BASE: float   = 1000.0     # hours/year per working-age-equivalent, AT THE STATED CLIMATE FRAME. CHOSEN — resolves_by: capital-inventory + time-use identity
 
 # THE BASKET QUANTITIES. What the personal obligation is FOR, in units that
 # cannot be renegotiated. `PERSONAL_EOH_BASE` is unfalsifiable while the basket

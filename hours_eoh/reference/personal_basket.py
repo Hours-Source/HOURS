@@ -294,7 +294,7 @@ def survival_core(
         "quantity_per_person_year": water_litres_per_year,
         "unit": "litres",
         "hours_per_unit": None,
-        "share": _share("shelter", 4),
+        "share": _share("shelter", 3),
         # resolves_by: DHS water-collection time (~90 countries, has trips/day
         # and container volume) in preference to the LSMS WASH modules, which
         # lack both in many waves. The LSMS merge harness is built and dry-run
@@ -307,23 +307,40 @@ def survival_core(
         "quantity_per_person_year": shelter_m2_per_person,
         "unit": "m2",
         "hours_per_unit": None,
-        "share": _share("shelter", 4),
-    },
-    {
-        "component": "thermal",
-        "quantity_per_person_year": thermal_degree_days_per_year,
-        "unit": "degree_days",
-        "hours_per_unit": None,
-        "share": _share("shelter", 4),
-        # LATITUDE-DEPENDENT. Costing this makes the floor climate-indexed, which
-        # is correct and means PERSONAL_EOH_BASE cannot remain a global scalar.
+        "share": _share("shelter", 3),
+        "degree_days_per_year": thermal_degree_days_per_year,
+        # THERMAL MERGED IN HERE 2026-09-04, and for three reasons.
+        #
+        # (1) DEGREE-DAYS IS NOT A PER-PERSON QUANTITY. It is a property of a
+        # place: a village of 100 and a city of a million in one climate both
+        # face 2,500. The basket's form is Σ quantity_per_person_year ×
+        # hours_per_unit, and exactly one row violated it — which is what
+        # CLIMATE_CONDITIONING already recorded by marking thermal
+        # `quantity_is_climate` while every other component is `delivery`.
+        #
+        # (2) THERMAL HAS NO QUANTITY OF ITS OWN; IT BORROWS SHELTER'S. The
+        # physical form is m² × degree-days × hours per (m²·degree-day) at a
+        # stated envelope, so degree-days is an INTENSITY on shelter's quantity.
+        # It is carried here as `degree_days_per_year` for exactly that use and
+        # is NOT multiplied into the floor — `hours_per_unit` is still None.
+        #
+        # (3) THEY ARE SUBSTITUTES AND THE BASKET SUMS. Insulation is shelter
+        # capital, heating is thermal flow; a better envelope RAISES shelter
+        # hours and LOWERS thermal hours. The true cost is the minimum over that
+        # trade-off, and two additive line items can only add one point from
+        # each curve — wrong wherever the envelope is not already optimal.
+        #
+        # The consequence the thermal row used to state still holds and is now
+        # stated once instead of twice: costing this makes the floor
+        # climate-indexed, so PERSONAL_EOH_BASE must declare which climate it
+        # is for. That is a `person` item, not a defect of this row.
     },
     {
         "component": "sanitation",
         "quantity_per_person_year": SANITATION_SERVICE_YEARS,
         "unit": "service_years",
         "hours_per_unit": None,
-        "share": _share("shelter", 4),
+        "share": _share("shelter", 3),
     },
     {
         "component": "care",
@@ -426,7 +443,7 @@ CLIMATE_CONDITIONING: dict[str, str] = {
     "nutrition_processing": "delivery",
     "water": "delivery",
     "shelter": "delivery",
-    "thermal": "quantity_is_climate",
+    
     "sanitation": "delivery",
     "care": "none",
     "health": "delivery",

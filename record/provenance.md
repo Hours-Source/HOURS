@@ -13,7 +13,7 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **313 constants in `data.py`, all tagged** — `provenance 313/313` *(gated)*.
+- **314 constants in `data.py`, all tagged** — `provenance 314/314` *(gated)*.
   placeholder 120 (40.0%), normative 68 (22.7%), convention 34 (11.3%), measured
   23 (7.7%), bounded 18 (6.0%), derived 16 (5.3%), instance 12 (4.0%),
   derived-then-FROZEN 6 (2.0%), **physics 3 (1.0%)**.
@@ -66,7 +66,7 @@ recalled. Regenerate with `eoh provenance check`.
   but `band_from:` is declared **once**, so deriving those 12 takes the
   circularity check from one edge to twelve. Bounded, no external data, and the
   gain lands on the check it was written for.
-- **The scan is `data.py`-only.** *(caveat)* "313/313 tagged" means 313 constants *in
+- **The scan is `data.py`-only.** *(caveat)* "314/314 tagged" means 314 constants *in
   `data.py`*; the 33 shadow constants are invisible to every count published.
 
 ## Cross-area entries

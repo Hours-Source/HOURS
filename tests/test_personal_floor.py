@@ -586,12 +586,52 @@ class TestClimateProvenance:
             )
             assert CLIMATE_NOTES.get(name), f"{name} has no climate note"
 
-    def test_thermal_is_the_one_place_climate_is_the_quantity(self):
-        quantity_kind = [
-            name for name, kind in CLIMATE_CONDITIONING.items()
-            if kind == "quantity_is_climate"
-        ]
-        assert quantity_kind == ["thermal"]
+    def test_climate_now_enters_through_exactly_one_channel(self):
+        """
+        MERGED 2026-09-04. `thermal` was the one component where climate was the
+        QUANTITY rather than the delivery cost, and that was the defect, not a
+        feature: degree-days is a property of a PLACE, not a per-person
+        quantity, so one row violated the basket's own form
+        (Σ quantity_per_person_year × hours_per_unit). A village of 100 and a
+        city of a million in one climate both face 2,500.
+
+        Thermal is now an intensity on shelter's quantity — m² × degree-days ×
+        hours per (m²·degree-day) — carried as `degree_days_per_year` on the
+        shelter row. That also makes the substitution representable: insulation
+        is shelter capital and heating is thermal flow, they TRADE OFF, and two
+        additive line items could only add one point from each curve.
+
+        The consequence is unchanged and now stated once: costing shelter makes
+        the floor climate-indexed, so `PERSONAL_EOH_BASE` must declare which
+        climate it is for.
+        """
+        assert "thermal" not in CLIMATE_CONDITIONING
+        assert set(CLIMATE_CONDITIONING.values()) == {"delivery", "none"}, (
+            "a component has reintroduced a climate channel other than delivery; "
+            "the basket's quantities are meant to be per-person and global, with "
+            "only the productivities stratified by zone."
+        )
+
+    def test_the_shelter_row_carries_the_degree_days(self):
+        shelter = [c for c in FULL_BASKET if c["component"] == "shelter"]
+        assert len(shelter) == 1
+        assert shelter[0]["degree_days_per_year"] > 0.0
+        assert shelter[0]["unit"] == "m2", (
+            "shelter's quantity must stay per-person; degree-days is an "
+            "intensity on it, not a quantity of its own."
+        )
+        assert shelter[0]["hours_per_unit"] is None, (
+            "shelter is priced. The degree-day intensity must enter "
+            "hours_per_unit, and PERSONAL_EOH_BASE must state its climate."
+        )
+
+    def test_no_component_quantity_is_a_property_of_a_place(self):
+        """The form the merge restored: every quantity scales with people."""
+        for c in FULL_BASKET:
+            assert c["unit"] in {
+                "kcal", "litres", "m2", "service_years", "person_years",
+                "schedules",
+            }, f"{c['component']}: {c['unit']} is not a per-person unit"
 
     def test_care_is_climate_invariant(self):
         """
@@ -630,3 +670,62 @@ class TestClimateProvenance:
         # Both routes are priced off the same seven countries, so the tight
         # spread cannot be read as climate generality.
         assert climate_conditioning()["countries"] == LSMS_COUNTRIES
+
+
+class TestTheBaseDeclaresItsClimate:
+    """
+    The base and its falsifier now refer to the same place.
+
+    THE MISMATCH THIS CLOSES. `PERSONAL_EOH_BASE` was a single global float.
+    The only priced basket component — nutrition production — is measured in
+    rainfed tropical and sub-tropical Sub-Saharan Africa and its own note says
+    it "does not transfer without restratification by agro-ecological zone". So
+    the check was stratified and the checked was global: you cannot falsify a
+    global scalar with a Sahelian measurement without saying which climate the
+    scalar is for. That mismatch existed at 6.9% coverage, not at some future
+    one, and was masked only because a 6.9% floor cannot falsify anything.
+
+    AND IT WAS NOT THERMAL'S DOING. The earlier reading — that costing thermal
+    would break the single global scalar — had the wrong culprit: nutrition
+    already had, being the first component priced. Of the components, all but
+    care are climate-conditioned, and care is 62.1% of the obligation, so there
+    is no climate-free component to price first.
+
+    STATED GAP: declaring the frame makes the two commensurable. It does not
+    make the base right for that zone — 1,000 is still CHOSEN, at the top of a
+    427–1092 band, and only `personal_statutory_floor` at 6.9% coverage can
+    settle the point inside it.
+    """
+
+    def test_the_frame_matches_the_priced_components_stratum(self) -> None:
+        from hours_eoh.data import PERSONAL_EOH_BASE_CLIMATE_FRAME
+        from hours_eoh.reference.personal_basket import LSMS_AGRO_ECOLOGY
+        frame = PERSONAL_EOH_BASE_CLIMATE_FRAME.lower()
+        assert "ssa" in frame or "sub-tropical" in frame
+        for token in ("rainfed", "tropical"):
+            assert token in frame and token in LSMS_AGRO_ECOLOGY.lower(), (
+                f"the base's declared frame and the priced component's stratum "
+                f"disagree on {token!r} — they must name the same place or the "
+                "floor cannot falsify the base."
+            )
+
+    def test_the_frame_is_declared_at_all(self) -> None:
+        from hours_eoh.data import PERSONAL_EOH_BASE_CLIMATE_FRAME
+        assert len(PERSONAL_EOH_BASE_CLIMATE_FRAME) > 20, (
+            "the frame must NAME a zone. An empty or vague string returns the "
+            "base to being a global scalar that does not say what it describes."
+        )
+
+    def test_the_climate_free_share_is_care_and_it_dominates(self) -> None:
+        """Why there is no safe component to price first."""
+        from hours_eoh.reference.personal_basket import CLIMATE_CONDITIONING
+        free = [n for n, k in CLIMATE_CONDITIONING.items() if k == "none"]
+        assert free == ["care"]
+        share = {c["component"]: c["share"] for c in FULL_BASKET}
+        assert share["care"] > 0.60
+        conditioned = sum(v for k, v in share.items() if k != "care")
+        assert 0.35 < conditioned < 0.40
+
+    def test_the_stated_gap_is_still_stated(self) -> None:
+        doc = self.__doc__ or ""
+        assert "STATED GAP" in doc and "does not\n    make the base right" in doc
