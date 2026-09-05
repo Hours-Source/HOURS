@@ -9,7 +9,7 @@ import pytest
 from hours_eoh.core.eoh_generation import max_abatement
 from hours_eoh.data import PERSONAL_EOH_COMPONENTS
 from hours_eoh.scenarios.abatement_split import (
-    ABATEMENT_KIND, removal_bound, removal_consequence,
+    ABATEMENT_KIND, capital_weighting, removal_bound, removal_consequence,
 )
 
 KINDS = {"relocation", "substitution", "removal"}
@@ -100,3 +100,76 @@ class TestTheConsequenceIsTheResult:
         v = removal_consequence()["verdict"]
         assert "CLEARS" in v and "DOES NOT" in v
         assert "held to its own definition" in v
+
+
+class TestKIsWeightedByWhatServesThePersonalObligation:
+    """
+    `a(K)` reduces the PERSONAL obligation and took TOTAL capital, so a data
+    centre abated water-hauling. The typing was never missing —
+    `CAPITAL_MACHINE_PROFILES` has carried `personal_fulfillment_rate` all
+    along — it was unused.
+    """
+
+    def test_only_about_an_eighth_of_capital_serves_the_personal_obligation(self) -> None:
+        for tier in ("minimal", "basic", "standard", "advanced"):
+            r = capital_weighting(tier)
+            assert 0.10 < r["personal_serving_share"] < 0.13, (
+                f"{tier}: personal-serving share is "
+                f"{r['personal_serving_share']:.1%}. The 11.3% figure is quoted "
+                "in record/personal.md and in the blocked abatement item."
+            )
+
+    def test_the_share_is_stable_across_tiers(self) -> None:
+        """It does not drift with capital level, so the correction is a clean
+        rescaling rather than a tier-dependent one."""
+        shares = [capital_weighting(t)["personal_serving_share"]
+                  for t in ("minimal", "basic", "standard", "advanced")]
+        assert max(shares) - min(shares) < 0.005, shares
+
+    def test_the_correct_k_lowers_abatement_at_every_tier(self) -> None:
+        for tier in ("minimal", "basic", "standard", "advanced"):
+            r = capital_weighting(tier)
+            assert r["a_of_personal_serving"] < r["a_of_total"], tier
+            assert r["ratio"] > 2.0, tier
+
+    def test_the_preserving_k_half_reproduces_the_old_curve_exactly(self) -> None:
+        """
+        The identity that makes `k_half_preserving` meaningful: a(K) is
+        invariant under scaling K and K_half together, so preserving the curve
+        means scaling K_half by the same share — which is precisely why
+        adopting it would be fitting the pace constant to the answer the wrong
+        K produced.
+        """
+        from hours_eoh.core.eoh_generation import abatement_fraction
+        r = capital_weighting()
+        preserved = abatement_fraction(
+            r["capital_personal_serving"], half_capital=r["k_half_preserving"])
+        assert preserved == pytest.approx(r["a_of_total"], rel=1e-12)
+
+    def test_neither_correction_is_adopted(self) -> None:
+        """`ABATEMENT_HALF_CAPITAL_TEH` is untouched: the weighting is a
+        correction, the pace constant is a re-choice, and this module reports
+        rather than decides."""
+        from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH
+        r = capital_weighting()
+        assert ABATEMENT_HALF_CAPITAL_TEH == 1000.0
+        assert r["k_half_shipped"] == 1000.0
+        assert r["k_half_preserving"] < 200.0
+
+    def test_the_weighting_is_stock_semantics_not_condition_weighted(self) -> None:
+        """
+        `machine_eoh_from_capital` multiplies by condition because it computes
+        EOH currently fulfilled; a(K) takes a STOCK. Condition-weighting would
+        give a smaller number again, and mixing the two would be the frame
+        error this repo has found seven times.
+        """
+        from hours_eoh.data import CAPITAL_MACHINE_PROFILES
+        from hours_eoh.scenarios.abatement_split import personal_serving_capital
+        pop = 1_000_000.0
+        cap = {n: "standard" for n, p in CAPITAL_MACHINE_PROFILES.items()
+               if "standard" in p["tiers"]}
+        expected = sum(
+            p["tiers"]["standard"]["teh_per_capita"] * p["personal_fulfillment_rate"]
+            for p in CAPITAL_MACHINE_PROFILES.values() if "standard" in p["tiers"]
+        )
+        assert personal_serving_capital(cap, pop) == pytest.approx(expected)

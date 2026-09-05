@@ -214,3 +214,101 @@ def removal_consequence(capital_per_capita_teh: float | None = None) -> RemovalC
             "definition."
         ),
     }
+
+
+class CapitalWeighting(TypedDict):
+    capital_total_per_capita: float
+    capital_personal_serving: float
+    personal_serving_share: float
+    a_of_total: float
+    a_of_personal_serving: float
+    ratio: float
+    k_half_shipped: float
+    k_half_preserving: float
+    verdict: str
+
+
+def personal_serving_capital(capital_desc: dict, population: float) -> float:
+    """
+    K restricted to capital that serves the PERSONAL obligation.
+
+    Σ teh_value · personal_fulfillment_rate over the capital description —
+    stock semantics, matching what `abatement_fraction` takes. NOT
+    condition-weighted: `machine_eoh_from_capital` multiplies by condition
+    because it is computing EOH currently fulfilled, and a(K) takes a stock.
+    Condition-weighting would give a smaller number again.
+
+    WHY THIS EXISTS. `a(K)` reduces the PERSONAL obligation and takes TOTAL
+    capital, so on that input a data centre abates water-hauling.
+    `CAPITAL_MACHINE_PROFILES` has carried `personal_fulfillment_rate` per type
+    all along — medical 0.22, water 0.18, computing 0.01 — so the typing was
+    never missing, only unused.
+
+    units: TEH per capita.
+    """
+    from hours_eoh.core.civilization import machine_eoh_from_capital
+    from hours_eoh.data import CAPITAL_MACHINE_PROFILES
+
+    resolved = machine_eoh_from_capital(capital_desc, population)
+    total = sum(
+        row["teh_value"] * CAPITAL_MACHINE_PROFILES[name]["personal_fulfillment_rate"]
+        for name, row in resolved["by_type"].items()
+    )
+    return total / population if population else 0.0
+
+
+def capital_weighting(tier: str = "standard", population: float = 1_000_000.0) -> CapitalWeighting:
+    """
+    What weighting K by `personal_fulfillment_rate` does to a(K).
+
+    AND WHY IT CANNOT BE DONE ALONE. `K_half` is the capital at which half the
+    abatable obligation is abated, and it was CHOSEN against TOTAL capital — its
+    own tag block calls it "the least-grounded constant in this block". Redefine
+    K and the choice is void: `k_half_preserving` is what would hold the current
+    curve fixed, and adopting THAT would be fitting the pace constant to the
+    answer the wrong K produced. So this reports both and adopts neither.
+
+    units: TEH per capita; shares and a(K) dimensionless.
+    """
+    from hours_eoh.core.eoh_generation import abatement_fraction
+    from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH, CAPITAL_MACHINE_PROFILES
+
+    capital = {
+        name: tier for name, profile in CAPITAL_MACHINE_PROFILES.items()
+        if tier in profile["tiers"]
+    }
+    resolved_total = sum(
+        profile["tiers"][tier]["teh_per_capita"]
+        for profile in CAPITAL_MACHINE_PROFILES.values() if tier in profile["tiers"]
+    )
+    personal = personal_serving_capital(capital, population)
+    share = personal / resolved_total if resolved_total else 0.0
+
+    a_total = abatement_fraction(resolved_total)
+    a_personal = abatement_fraction(personal)
+    # The K_half that would leave a(K) unchanged on the narrower K. a(K) is
+    # a_max·K/(K+K_half), which is invariant under scaling BOTH by the same
+    # factor — so preserving the curve means K_half scales by the same share.
+    k_half_preserving = ABATEMENT_HALF_CAPITAL_TEH * share
+    return {
+        "capital_total_per_capita": resolved_total,
+        "capital_personal_serving": personal,
+        "personal_serving_share": share,
+        "a_of_total": a_total,
+        "a_of_personal_serving": a_personal,
+        "ratio": a_total / a_personal if a_personal else float("inf"),
+        "k_half_shipped": ABATEMENT_HALF_CAPITAL_TEH,
+        "k_half_preserving": k_half_preserving,
+        "verdict": (
+            f"Only {share:.1%} of capital serves the personal obligation "
+            f"({personal:,.0f} of {resolved_total:,.0f} TEH/capita at the "
+            f"{tier} tier). On the correct K, a(K) falls from {a_total:.4f} to "
+            f"{a_personal:.4f} — a factor of {a_total / a_personal:.1f} — "
+            f"because K_half={ABATEMENT_HALF_CAPITAL_TEH:,.0f} was chosen "
+            "against TOTAL capital and is void once K is redefined. Holding "
+            f"the curve fixed would need K_half≈{k_half_preserving:,.0f}, and "
+            "adopting that would fit the pace constant to the answer the wrong "
+            "K produced. Neither is adopted: the weighting is a correction, the "
+            "pace constant is a re-choice."
+        ),
+    }
