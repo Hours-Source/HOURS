@@ -13,71 +13,74 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Verified against `hours_eoh/data.py`, not recalled. Ungated; check the
 constant before quoting it.
 
-- **The standards split.** `PERSONAL_EOH_SURVIVAL` 600 (S_a, hard-bounded by
-  labour supply), `PERSONAL_EOH_SUFFICIENCY` 1500 (F_a, may exceed supply — that
-  gap is why collectives form), `PERSONAL_EOH_BASE` 1000, the abatement-collapsed
-  operating value, retired when Block II's path becomes the default.
+- **The standards split.** `PERSONAL_EOH_SURVIVAL` 600, `PERSONAL_EOH_SUFFICIENCY`
+  1500 (may exceed supply — that gap is why collectives form), `PERSONAL_EOH_BASE`
+  1000, the abatement-collapsed operating value.
 - **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2808, nutrition: 0.2808}`.** Care was
   raised to the ordering bound and left `normative` for `placeholder |
   confidence: 20 | errs: LOW`; nutrition is `placeholder | confidence: 45 |
   errs: HIGH`. **Shelter and health carry no floor, which is an ADMISSION and not
   a zero** — every further floor lowers the observable-ε ceiling, so the shipped
   figure errs HIGH and a test pins that direction.
-- **Capacity is measured, not a work-year convention.** `MEASURED_CAPACITY_H_YR`
-  = 2,335.751835 (all-frame median of 50 MTUS frames) and
-  `PHYSICAL_CAPACITY_CEILING_H_YR` = 8,766.0 (the calendar, the repo's third
-  `physics` constant). Capacity is an INTAKE field — the measured spread is 1.55×.
+- **Capacity is measured, not a convention.** `MEASURED_CAPACITY_H_YR` =
+  2,335.751835 (median of 50 MTUS frames), ceiling 8,766.0. An INTAKE field —
+  measured spread 1.55×.
 - **`H_REF` = 2,080**, the calendar work-year, policy-free. The retired 2,000
   carried a two-week leave policy inside a stated normalizer.
-- **Age weights:** `AGE_WEIGHT_CHILD` 1.82 (MTUS-measured, band [1.68, 1.82],
-  taken at the high end because `errs: HIGH`), `AGE_WEIGHT_INFANT` 3.0 —
+- **Age weights:** `AGE_WEIGHT_CHILD` 1.82 (MTUS, high end, `errs: HIGH`),
+  `AGE_WEIGHT_INFANT` 3.0 —
   deliberately NOT moved, because an infant's maintenance is the caregiver's work
   and is already counted on the care-received side.
 - **The floor prices ONE component of seven.** Nutrition production, 330.9 h/yr;
   coverage 0.069. Unreachable is EXCLUDED, not costed at zero, and carries its
   reason. The extraction wedge is **not identified** at this coverage.
-- **ε=0 remains over-determined**, and the correction did not remove it: the
-  deficit narrows to 2.6% and the crossover ε to 0.031, with only 16 of 50
-  measured frames clearing at ε=0.
+- **~~ε=0 over-determined~~ — CLOSED 2026-09-04/08** (three readings, none of
+  them physical: capacity migration, band alignment, and the report's self arm
+  found on a retired supply basis). Ratio **0.94**, **43 of 50** frames clear
+  against 17. **All three went the flattering way** and the band alignment's
+  objection stands — [band-alignment-adopted](#band-alignment-adopted).
 
 ## Open
 
-- **The frailty socket has no intake** *(person)* — `scenarios/frailty.py`
-  ships the contract (no default, `source` required); nothing supplies it. It
-  settles ~an eighth of care. *Settles by:* disability/ADL prevalence by age
-  plus LTC continuance. Detail: [care-keys-split](#care-keys-split).
+- **Five constants are blocked on a baseline the surveyed world no longer
+  contains** *(caveat)* — `PERSONAL_ABATABILITY_*`, both automation floors,
+  `ABATEMENT_HALF_CAPITAL_TEH`, `PERSONAL_SIGMOID_DEFAULTS`. Each needs a
+  LOW-CAPITAL COUNTERFACTUAL and says so in its own words. **None unblocks by
+  collecting more**: the baseline is a state development erased, not withheld
+  data, so intake is the only route that does not need it back. Detail:
+  [vanished-baseline](#vanished-baseline).
+- **The frailty socket has no intake** *(person)* — the contract ships, no
+  default; nothing supplies it. ~An eighth of care. *Settles by:* ADL
+  prevalence by age + LTC continuance. [care-keys-split](#care-keys-split).
 - **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
   2026-09-04** *(person)* (author decision; the objection stands). Detail:
   [band-alignment-adopted](#band-alignment-adopted).
-- **Two of four personal automation floors carry a value, and neither is
-  settled** *(gap)* — care and nutrition are IMPROVED PLACEHOLDERS (an UPPER
-  and an ordering-derived LOWER bound); shelter and health carry nothing.
-  **Following each `resolves_by` returned a sharper `resolves_by`, not closure.**
+- **Two of four automation floors carry a value, neither settled** *(gap)* —
+  IMPROVED PLACEHOLDERS: an UPPER and an ordering-derived LOWER bound.
+  **Following each `resolves_by` returned a sharper one, not closure.**
   Detail: [improved-not-settled](#improved-not-settled).
 - **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
-- **`PERSONAL_EOH_COMPONENTS`** *(gap)* (confidence 25) — the four shares are the
-  desk estimate's own terms; ATUS reads care at 25.7% against the desk 62.1%,
-  but observed ≠ obligation. *Settles by:* HETUS/MTUS across development levels,
-  which settles the shares, the abatabilities, K_half, the extraction wedge and
-  the infant band **together** — one acquisition, not five.
-- **Type-specific abatement** *(gap)* — which capital abates which component. Abatement
-  is currently driven by TOTAL capital per capita.
-- **Adopting abatement as the DEFAULT generation path is BLOCKED on three
-  things, none of them wiring** *(person)* — `abated_personal_base` exists and
-  says it is what `PERSONAL_EOH_BASE` stands in for, so it reads as ready.
-  **~~(1) K is 8.9× too large~~ — CONVERTED 2026-09-08**: K is personal-serving
-  capital (11.3%) and `K_half` redenominated to match, moving no number
-  *(gated)*; the PACE is still a bare pick and `pace_sensitivity` reports the
-  **50% swing** it licenses. **(2) The abatabilities are DEFINED as removal and
-  never measured against that definition** — desk terms at confidence 25.
-  **(3) It reverses a stated invariant** to prevent a deflationary loop — RUN
-  2026-09-05 and half right: the dampening is real and grows with capital, the
-  contraction is not abatement's. B(0)=1500 still exceeds the band's 1092.
-  *Settles by:* (2) — now the only measurement blocker left. Detail:
+- **`PERSONAL_EOH_COMPONENTS` shares** *(gap)* (confidence 25) — desk terms;
+  ATUS reads care at 25.7% against 62.1%, but observed ≠ obligation.
+  *Settles by:* HETUS/MTUS across development levels — one acquisition that
+  settles the shares, the abatabilities, K_half and the infant band together.
+- **Type-specific abatement** *(gap)* — which capital abates which component.
+- **Adopting abatement as the DEFAULT generation path** *(person)* — all three
+  blockers are now measured rather than asserted, and none was wiring.
+  **~~(1) K was 8.9× too large~~** — converted, moving no number *(gated)*.
+  **~~(2) The abatabilities were mistagged~~** — they are an `instance`, a delta
+  from a local baseline with a tested ordering *(gated)*. **~~(3) The
+  deflationary loop~~** — run, and half right: the dampening is real and grows
+  with capital, the contraction is not abatement's. What REMAINS: the pace is a
+  bare pick licensing a **50% swing** *(gated)*, and B(0)=1500 still exceeds the
+  band's 1,092, so the ceiling check needs a decision. *Settles by:* the
+  identity route at two or more capital levels — which the vanished baseline
+  above says cannot be collected here. Detail:
   [abatement-blocked](#abatement-blocked),
-  [pace-converted-and-swept](#pace-converted-and-swept).
+  [pace-converted-and-swept](#pace-converted-and-swept),
+  [removal-audit](#removal-audit).
 
 ## Cross-area entries
 
@@ -93,6 +96,16 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="vanished-baseline"></a>
+
+**THE ABATABILITIES ARE AN INSTANCE, AND FIVE CONSTANTS ARE BLOCKED ON A BASELINE DEVELOPMENT ERASED** (2026-09-08). `PERSONAL_ABATABILITY_*` split out and retagged, 5 tests. 4,130 pass, mypy clean on 93 files, provenance 320/320. Byte-identical: no number moves.
+- **THE TABLE'S OWN CONFIDENCE NOTE ASKED FOR THE SPLIT AND NOBODY DID IT.** `PERSONAL_EOH_COMPONENTS` said *"the two halves of this table are not equal, which one figure cannot express. The SHARES have a measurement against them… The ABATABILITIES have nothing."* One tag was carrying two epistemic states — the `AGE_GROUPS` defect, in a table that diagnosed itself and stayed whole.
+- **INSTANCE, NOT PLACEHOLDER, AND THE POINTERS SAID SO FIRST.** Every abatability's `resolves_by` names a DELTA FROM A LOCAL BASELINE — "food-system time-use across development levels", "hauling-time reduction", "disease burden attributable to WASH converted to care hours avoided". **A tap removes hauling only where hauling happens**, so there is no universal value to measure; the number is a property of where the collective STANDS. It was a placeholder awaiting a measurement that does not exist to be made — the same diagnosis `BASKET_THERMAL_DEGREE_DAYS_PER_YEAR` gave itself: "an instance quantity wearing a placeholder's clothes".
+- **THE DEFAULT STILL CARRIES A FALSIFIABLE CLAIM, WHICH IS WHY THIS IS NOT THE FRAILTY SOCKET.** Frailty has no defensible default — a care number is a rationing rule. Abatability's ORDERING is defensible and TESTED: shelter > nutrition > health > care encodes Block II's anti-correlation prediction, checked by `TestAntiCorrelationPrediction`. So the split is **ordering universal and tested, levels supplied** — the `GUF_SERVICE_RETENTION_BY_USE` shape, "an ordering, not magnitudes".
+- **AND THE PATTERN IS FIVE CONSTANTS, MEASURED RATHER THAN ASSERTED.** A scan of every tag block for a low-capital counterfactual finds `PERSONAL_ABATABILITY_*`, both automation floors, `ABATEMENT_HALF_CAPITAL_TEH` and `PERSONAL_SIGMOID_DEFAULTS` — plus two word-matches that are not this problem (`PRACTICE_EQUIPMENT_WIDTHS_FT`, `CO2_FORCING_COEFFICIENT`). Each says it in its own words: *"no available frame is truly unassisted"*, *"rich-country panels sit at one saturated level"*, *"cross-development variation and this repo ships one country"*, *"the low-ε end needs a low-capital time-use survey"*.
+- **NONE OF THEM UNBLOCKS BY COLLECTING MORE, AND THAT IS THE FINDING.** The baseline is not data someone withholds — **it is a state the surveyed world has largely stopped containing.** Which is exactly why intake is the only route that does not require it to come back: the collective that IS at low capital can observe it, and no amount of rich-country panel data can. `PRACTICE_EQUIPMENT_WIDTHS_FT` already took that route, for the same reason, and its tag names the same LSMS unassisted stratum.
+- **STATED ONCE RATHER THAN FIVE TIMES.** Filing this per-constant would mean the session that re-attempts one of them does not see that four others failed identically — the same argument the failure modes make for living in `CLAUDE.md` rather than routing by area.
+
 <a id="removal-audit"></a>
 
 **THE ABATABILITIES MEASURED AGAINST THEIR OWN DEFINITION — AND THE ANSWER IS THAT THEY CANNOT BE, FOR A REASON WORTH HAVING** (2026-09-08, `41595c2`). `removal_audit` + 6 tests, REPORTING ONLY. 4,125 pass, mypy clean on 93 files.
@@ -208,8 +221,9 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 30 entries, newest first | |
+| 31 entries, newest first | |
 |---|---|
+| [vanished-baseline](#vanished-baseline) | THE ABATABILITIES ARE AN INSTANCE, AND FIVE CONSTANTS ARE BLOCKED ON A BASELINE DEVELOPMENT ERA… |
 | [removal-audit](#removal-audit) | THE ABATABILITIES MEASURED AGAINST THEIR OWN DEFINITION — AND THE ANSWER IS THAT THEY CANNOT BE… |
 | [pace-converted-and-swept](#pace-converted-and-swept) | K AND K_half REDENOMINATED TOGETHER — A UNIT CONVERSION THAT MOVED NO NUMBER — AND THE SENSITIV… |
 | [capital-weighted](#capital-weighted) | K WEIGHTED BY WHAT ACTUALLY SERVES THE PERSONAL OBLIGATION — AND THE PACE CONSTANT GOES WITH IT |

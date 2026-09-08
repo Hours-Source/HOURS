@@ -1312,7 +1312,51 @@ PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficien
 # Baumol case. So the residual personal obligation as ε → 1 should be almost
 # entirely care, and a_max is bounded well below 1 by care's 62% share.
 # ---------------------------------------------------------------------------
-# tag: placeholder | units: share = fraction of the personal obligation; abatability = fraction removable
+# tag: instance | units: dimensionless ceiling, fraction of a component removable | family: PERSONAL_ABATABILITY_*
+# form: the most of each personal component that infrastructure can EVER
+#   remove. Split out of PERSONAL_EOH_COMPONENTS on 2026-09-08 because that
+#   table's own confidence note said one figure could not express its two
+#   halves — "The SHARES have a measurement against them… The ABATABILITIES
+#   have nothing" — and the two now carry their own tags. The assembled dict is
+#   byte-identical; `tests/scenarios/test_abatement_split.py` pins that.
+# note: INSTANCE, NOT PLACEHOLDER, AND THE POINTERS SAID SO BEFORE THE TAG DID.
+#   Every abatability's resolves_by names a DELTA FROM A LOCAL BASELINE —
+#   "food-system time-use across development levels", "hauling-time reduction",
+#   "disease burden attributable to WASH converted to care hours avoided",
+#   "childcare/eldercare time-use across development levels". A tap removes
+#   hauling only where hauling happens, so there is no universal number to
+#   measure: the value is a property of where the collective STANDS, which is
+#   what `instance` means in this scheme. It was a placeholder awaiting a
+#   measurement that does not exist to be made.
+# note: THE ORDERING IS NOT AN INSTANCE AND IS NOT SUPPLIED. shelter > nutrition
+#   > health > care encodes Block II's structural prediction — abatability and
+#   sufficiency are ANTI-CORRELATED, because what infrastructure removes is
+#   survival-shaped work and what it cannot is care, the Baumol case. That is
+#   TESTED by `TestAntiCorrelationPrediction`, so the shipped default carries a
+#   falsifiable claim even though its levels do not. Same shape as
+#   `GUF_SERVICE_RETENTION_BY_USE`, which "ships an ordering, not magnitudes".
+# note: FIVE CONSTANTS ARE BLOCKED ON THE SAME VANISHED BASELINE — these, the
+#   two automation floors, ABATEMENT_HALF_CAPITAL_TEH and
+#   PERSONAL_SIGMOID_DEFAULTS. All need a low-capital counterfactual, and none
+#   can be unblocked by collecting more: rich-country panels sit at one
+#   saturated level and no surveyed frame is truly unassisted. The baseline is
+#   not withheld data, it is a state the surveyed world has largely stopped
+#   containing — which is exactly why the intake route is the only one that
+#   does not require it to come back. `PRACTICE_EQUIPMENT_WIDTHS_FT` already
+#   took this route for the same reason.
+# supplied_by: the collective's own development state — for each component, the
+#   hours currently spent on it and the hours that would remain with the
+#   infrastructure in question in place. That difference IS the abatability,
+#   and only the collective standing at the pre-infrastructure baseline can
+#   observe it.
+# default: the Block II desk ceilings — nutrition 0.85, shelter 0.90, health
+#   0.60, care 0.25 — whose ORDERING is tested and whose LEVELS are not.
+PERSONAL_ABATABILITY_NUTRITION: float = 0.85
+PERSONAL_ABATABILITY_SHELTER: float = 0.90
+PERSONAL_ABATABILITY_HEALTH: float = 0.60
+PERSONAL_ABATABILITY_CARE: float = 0.25
+
+# tag: placeholder | units: share = fraction of the personal obligation
 # form: the shares are the original desk estimate's own four terms
 #   (208/156/208/936 over 1508), so they are internally consistent with
 #   PERSONAL_EOH_SUFFICIENCY rather than independent of it. The abatability
@@ -1322,30 +1366,34 @@ PERSONAL_EOH_SUFFICIENCY: float = 1500.0  # F_a — autarky-referenced sufficien
 #   is survival-shaped work and what it cannot remove is care (the Baumol
 #   case). That prediction is TESTED in TestAntiCorrelationPrediction, not
 #   asserted here — changing these weights falsifies it.
-# confidence: 25 — and the two halves of this table are not equal, which one
-#   figure cannot express. The SHARES have a measurement against them:
+# note: THE ABATABILITIES LEFT THIS TABLE ON 2026-09-08, split into the
+#   PERSONAL_ABATABILITY_* family above and retagged `instance` — every one of
+#   their pointers named a delta from a local baseline, which is not a
+#   measurement awaiting collection. The confidence below was always mostly the
+#   shares; now it is only the shares, and the sentence about two halves that
+#   one figure could not express is resolved rather than restated.
+# confidence: 25 — the SHARES have a measurement against them:
 #   `scenarios/component_shares` reads care at 25.7% of observed personal time
 #   against the desk 62.1%, which is a bound (marketised care leaves unpaid
-#   time use) and not a replacement. The ABATABILITIES have nothing: every one
-#   of their pointers names cross-development variation and this repo ships one
-#   country. Most of the 25 is the shares.
+#   time use) and not a replacement.
 # resolves_by: per-component pointers are on each line below. a_max = Σ share
 #   × abatability = 0.4483 is DERIVED from this table, so it is not a free
 #   parameter; the table is where the judgement lives.
+
 PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     # share:       fraction of the personal obligation (from the desk estimate)
     # abatability: the ceiling — the most of this component infrastructure can
     #              ever remove. CHOSEN, each with an epistemic pointer.
-    "nutrition": {"share": 208.0 / 1508.0, "abatability": 0.85},
+    "nutrition": {"share": 208.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_NUTRITION},
     #   resolves_by: food-system time-use across development levels (subsistence
     #   cultivation + processing vs a distribution network). Highly abatable.
-    "shelter":   {"share": 156.0 / 1508.0, "abatability": 0.90},
+    "shelter":   {"share": 156.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_SHELTER},
     #   resolves_by: WHO/UNICEF JMP water-and-sanitation access studies, which
     #   measure hauling-time reduction directly. The most abatable component.
-    "health":    {"share": 208.0 / 1508.0, "abatability": 0.60},
+    "health":    {"share": 208.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_HEALTH},
     #   resolves_by: GBD disease burden attributable to WASH, converted to care
     #   hours avoided. Partly abatable — prevention scales, treatment less so.
-    "care":      {"share": 936.0 / 1508.0, "abatability": 0.25},
+    "care":      {"share": 936.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_CARE},
     #   resolves_by: childcare/eldercare time-use across development levels.
     #   LEAST abatable and the largest share — this is what bounds a_max.
 }

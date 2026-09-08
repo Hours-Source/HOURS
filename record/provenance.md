@@ -13,7 +13,7 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **316 constants in `data.py`, all tagged** — `provenance 316/316` *(gated)*.
+- **320 constants in `data.py`, all tagged** — `provenance 320/320` *(gated)*.
   placeholder 120 (40.0%), normative 68 (22.7%), convention 34 (11.3%), measured
   23 (7.7%), bounded 18 (6.0%), derived 16 (5.3%), instance 12 (4.0%),
   derived-then-FROZEN 6 (2.0%), **physics 3 (1.0%)**.
@@ -43,6 +43,15 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
+- **29 dict/tuple constants carry ONE tag over several fields; two checked**
+  *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
+  the others. Both splits so far were forced by the bundling misleading:
+  `AGE_GROUPS` held four states under one `placeholder`;
+  `PERSONAL_EOH_COMPONENTS` said "one figure cannot express" its two halves and
+  stayed whole for weeks after saying so. **27 unexamined**, sharpest
+  `CAPITAL_MACHINE_PROFILES` — this session drove a fiscal deduction off one of
+  its rates while the dict reads `placeholder`. *Settles by:* a pass over the
+  29; the test is whether the tag would change if one field were removed.
 - **125 of 141 placeholder/bounded constants carry no confidence figure.** *(caveat)*
   Ratcheted; may not rise.
 - **Two of four personal automation floors carry a value; both are improved
@@ -57,16 +66,13 @@ recalled. Regenerate with `eoh provenance check`.
   as an unbound literal 1,087 lines away. Reported, not bound — binding would
   ASSERT the aggregate and the catch-all are one quantity, which is a theory
   claim. *Settles by:* an author decision on whether they are.
-- **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is opt-in, which is
-  the wrong shape for a circularity check — every failure found so far was one
-  nobody thought to declare. **Scope corrected 2026-09-04, measured:** "the
-  right-hand side of each assignment is already an exact dependency statement"
-  holds for **12 of 300** top-level assignments — the other 288 are bare
-  literals, which is why `form:` is prose in 206 places. So the route is small;
-  but `band_from:` is declared **once**, so deriving those 12 takes the
-  circularity check from one edge to twelve. Bounded, no external data, and the
-  gain lands on the check it was written for.
-- **The scan is `data.py`-only.** *(caveat)* "316/316 tagged" means 316 constants *in
+- **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is
+  opt-in, the wrong shape for a circularity check — every failure found so far
+  was one nobody thought to declare. **Measured 2026-09-04:** the "right-hand
+  side of each assignment is a dependency statement" claim holds for **12 of
+  300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
+  so deriving those 12 takes the check from one edge to twelve.
+- **The scan is `data.py`-only.** *(caveat)* "320/320 tagged" means 320 constants *in
   `data.py`*; the 33 shadow constants are invisible to every count published.
 
 ## Cross-area entries

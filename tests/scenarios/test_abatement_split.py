@@ -308,3 +308,77 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
         import inspect
         from hours_eoh.core.eoh_generation import personal_eoh
         assert "abat" not in str(inspect.signature(personal_eoh))
+
+
+class TestTheAbatabilitiesAreAnInstanceWithATestedOrdering:
+    """
+    Retagged `instance` 2026-09-08, split out of `PERSONAL_EOH_COMPONENTS`.
+
+    Every abatability's own pointer names a DELTA FROM A LOCAL BASELINE — "food
+    system time-use across development levels", "hauling-time reduction",
+    "disease burden attributable to WASH converted to care hours avoided". A tap
+    removes hauling only where hauling happens, so there is no universal number
+    to measure and the value is a property of where the collective stands. It
+    was a placeholder awaiting a measurement that does not exist to be made.
+
+    WHAT THE DEFAULT STILL CARRIES. The ORDERING is not supplied and not an
+    instance: shelter > nutrition > health > care encodes Block II's
+    anti-correlation prediction and is tested. So the shipped default carries a
+    falsifiable claim even though its levels do not — the
+    `GUF_SERVICE_RETENTION_BY_USE` shape, "an ordering, not magnitudes".
+    """
+
+    def test_the_split_is_byte_identical(self) -> None:
+        from hours_eoh.data import (
+            PERSONAL_ABATABILITY_CARE, PERSONAL_ABATABILITY_HEALTH,
+            PERSONAL_ABATABILITY_NUTRITION, PERSONAL_ABATABILITY_SHELTER,
+            PERSONAL_EOH_COMPONENTS,
+        )
+        assert {k: v["abatability"] for k, v in PERSONAL_EOH_COMPONENTS.items()} == {
+            "nutrition": PERSONAL_ABATABILITY_NUTRITION,
+            "shelter": PERSONAL_ABATABILITY_SHELTER,
+            "health": PERSONAL_ABATABILITY_HEALTH,
+            "care": PERSONAL_ABATABILITY_CARE,
+        }
+
+    def test_a_max_stays_derived_and_is_not_a_free_parameter(self) -> None:
+        """
+        `a_max = Σ share × abatability`. It must never become a constant of its
+        own: the table is where the judgement lives, and a separate a_max would
+        be a second account of one quantity that could drift from it.
+        """
+        import hours_eoh.data as data
+        from hours_eoh.core.eoh_generation import max_abatement
+        from hours_eoh.data import PERSONAL_EOH_COMPONENTS
+        assert max_abatement() == pytest.approx(
+            sum(c["share"] * c["abatability"] for c in PERSONAL_EOH_COMPONENTS.values()))
+        assert not [n for n in dir(data) if "A_MAX" in n or "ABATEMENT_MAX" in n], (
+            "a_max has acquired a constant of its own. It is DERIVED from the "
+            "component table; a second account of it can drift from the table."
+        )
+
+    def test_the_ordering_is_what_the_default_carries(self) -> None:
+        from hours_eoh.data import PERSONAL_EOH_COMPONENTS as C
+        assert (C["shelter"]["abatability"] > C["nutrition"]["abatability"]
+                > C["health"]["abatability"] > C["care"]["abatability"]), (
+            "the anti-correlation ordering has broken. That ordering is the "
+            "falsifiable content of the shipped default — without it the "
+            "instance has no defensible default at all."
+        )
+
+    def test_the_ordering_is_anti_correlated_with_share(self) -> None:
+        """Block II's structural prediction, restated where the retag can see
+        it: the largest component is the least abatable."""
+        from hours_eoh.data import PERSONAL_EOH_COMPONENTS as C
+        largest = max(C, key=lambda k: C[k]["share"])
+        assert largest == "care"
+        assert C[largest]["abatability"] == min(c["abatability"] for c in C.values())
+
+    def test_they_are_tagged_instance_and_name_what_supplies_them(self) -> None:
+        from utils import provenance as pv
+        recs = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
+        for name in ("PERSONAL_ABATABILITY_NUTRITION", "PERSONAL_ABATABILITY_SHELTER",
+                     "PERSONAL_ABATABILITY_HEALTH", "PERSONAL_ABATABILITY_CARE"):
+            r = recs[name]
+            assert r.tag == "instance", f"{name} is {r.tag}"
+            assert r.supplied_by and r.default, name

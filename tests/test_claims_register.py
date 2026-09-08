@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 316 and total == 316
+    return tagged == 320 and total == 320
 
 
 def _shadow_count_is_33() -> bool:
@@ -259,7 +259,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 316/316",
+        anchor="provenance 320/320",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300. "
@@ -693,9 +693,22 @@ class TestClosingAnItemLeavesEvidence:
         is the residual the per-item predicate exists for, still declared in
         `record/verification.md § Open`. These gates check the FORM of a
         transition that was made, never that a transition was DUE.
+      * ONLY `## Open` IS SCANNED, SO A CLOSURE WRITTEN IN `## Live state` IS
+        NOT CHECKED. Found by biting this gate on a struck live-state line and
+        watching it stay green: the mutation was present and the scope was
+        wrong, which is the F-016 shape with the TARGET rather than the file as
+        the victim. Deliberate rather than fixed — `## Live state` is state and
+        `## Open` is the register, and widening this to every struck line
+        anywhere would fire on history, which is verbatim by convention.
     """
 
-    _STRUCK = re.compile(r"~~")
+    #: A CLOSED item is one whose BOLD LEAD is struck — `- **~~…`. Not one that
+    #: merely CONTAINS `~~`: an open item may strike individual sub-points while
+    #: staying open, which the abatement item does for its resolved blockers.
+    #: The first version matched `~~` anywhere and read that item as closed,
+    #: repeating exactly the mistake `_ITEM` above had already been fixed for —
+    #: anchor to the bullet structure, not to a substring.
+    _STRUCK = re.compile(r"^- \*\*~~")
     _DATE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
     _WHAT = re.compile(r"\([^)]{4,}\)")
     _LINK = re.compile(r"\]\([^)]+\)")
@@ -726,7 +739,8 @@ class TestClosingAnItemLeavesEvidence:
         return out
 
     def _closed(self) -> list[tuple[str, str]]:
-        return [(f, t) for f, t in self._open_bullets() if self._STRUCK.search(t)]
+        return [(f, t) for f, t in self._open_bullets()
+                if self._STRUCK.match(t.lstrip())]
 
     def test_a_closed_item_says_when_it_closed(self) -> None:
         bad = [(f, t[:90]) for f, t in self._closed() if not self._DATE.search(t)]
@@ -921,7 +935,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
     OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
     OpenItemPredicate("derive `form:` edges from the expressions", "gap",
                       _form_edges_not_derived),
-    OpenItemPredicate("Two of four personal automation floors carry a value", "gap",
+    OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
     OpenItemPredicate("The compensating-mechanism audit", "gap", None,
                       why_none="an audit is a document plus findings; nothing in the "
