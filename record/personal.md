@@ -43,11 +43,9 @@ constant before quoting it.
 ## Open
 
 - **The frailty socket has no intake** *(person)* — `scenarios/frailty.py`
-  ships the contract (frailty-years per capita × care hours per frailty-year,
-  no default, `source` required) and nothing supplies it. It settles ~an eighth
-  of care; dependant care is 83–86% and needs household composition, not
-  actuarial tables. *Settles by:* disability/ADL prevalence by age plus LTC
-  continuance data. Detail: [care-keys-split](#care-keys-split).
+  ships the contract (no default, `source` required); nothing supplies it. It
+  settles ~an eighth of care. *Settles by:* disability/ADL prevalence by age
+  plus LTC continuance. Detail: [care-keys-split](#care-keys-split).
 - **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
   2026-09-04** *(person)* (author decision; the objection stands). Detail:
   [band-alignment-adopted](#band-alignment-adopted).
@@ -69,14 +67,17 @@ constant before quoting it.
 - **Adopting abatement as the DEFAULT generation path is BLOCKED on three
   things, none of them wiring** *(person)* — `abated_personal_base` exists and
   says it is what `PERSONAL_EOH_BASE` stands in for, so it reads as ready.
-  **(1) `a(K)` ignores personal-serving typing that EXISTS**:
-  `personal_fulfillment_rate` makes only **11.3%** of capital personal-serving;
-  a(K) takes total K anyway, and `K_half` was chosen against that. **(2) The abatabilities are DEFINED as removal and never measured
-  against that definition** — desk terms at confidence 25. **(3) It reverses a
-  stated invariant**: capital elimination is non-personal-only, explicitly to
-  prevent a deflationary loop nobody has run. B(K) at reference fails 37 tests;
-  B(0)=1500 exceeds the band's 1092. *Settles by:* (2) first — cheapest, and it
-  decides whether (3) is real. Detail: [abatement-blocked](#abatement-blocked).
+  **~~(1) K is 8.9× too large~~ — CONVERTED 2026-09-08**: K is personal-serving
+  capital (11.3%) and `K_half` redenominated to match, moving no number
+  *(gated)*; the PACE is still a bare pick and `pace_sensitivity` reports the
+  **50% swing** it licenses. **(2) The abatabilities are DEFINED as removal and
+  never measured against that definition** — desk terms at confidence 25.
+  **(3) It reverses a stated invariant** to prevent a deflationary loop — RUN
+  2026-09-05 and half right: the dampening is real and grows with capital, the
+  contraction is not abatement's. B(0)=1500 still exceeds the band's 1092.
+  *Settles by:* (2) — now the only measurement blocker left. Detail:
+  [abatement-blocked](#abatement-blocked),
+  [pace-converted-and-swept](#pace-converted-and-swept).
 
 ## Cross-area entries
 
@@ -92,6 +93,15 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="pace-converted-and-swept"></a>
+
+**K AND K_half REDENOMINATED TOGETHER — A UNIT CONVERSION THAT MOVED NO NUMBER — AND THE SENSITIVITY THE TAG HAS ASKED FOR SINCE BLOCK II** (2026-09-08, `SHA`). `CAPITAL_PERSONAL_SERVING_SHARE` + `pace_sensitivity`, 5 tests. 4,119 pass, mypy clean on 93 files, provenance 316/316.
+- **CONVERSION, NOT RE-CHOICE, AND THE DISTINCTION IS THE WHOLE ANSWER.** a(K) is invariant under scaling K and K_half by the same factor, so `ABATEMENT_HALF_CAPITAL_TEH` 1,000.0 → **112.870662** leaves every abatement figure bit-identical while fixing an incoherence: K became personal-serving capital and K_half was still denominated in total. **Nothing about the pace is asserted by it.** Re-choosing the pace would have been the opposite — an assertion, and a discarded one, because the identity route pins K_half and `a_max` TOGETHER and would overwrite it while saving that run no work.
+- **THE CONVERSION HAD TO BE COUPLED OR IT WOULD HAVE INFLATED a(K) BY 8.9×.** `core/autarky.overbuild_check` passes `capital_stock_teh / population` — TOTAL capital — so redenominating K_half alone would have applied a personal-serving pace to a total K. Every caller now multiplies by the share.
+- **AND IT IS EXACT ONLY AT THE REFERENCE TIER, WHICH IS WHERE "TIER-STABLE" STOPS MEANING "TIER-IDENTICAL".** The share constant is the standard tier's 0.1129; minimal is 0.1136 and basic 0.1121, so one constant leaves a residual of up to **0.5%** in a(K) off-reference. Bounded, asserted in the test rather than hidden, and far inside anything a confidence-5 pace constant supports.
+- **THE SENSITIVITY EXISTED AS AN INSTRUCTION AND NEVER AS CODE.** The tag has said *"Report the sensitivity alongside any abatement figure until it is measured"* since Block II; nothing did, so **every abatement number in this repo has been quoted without it.** `pace_sensitivity` sweeps K_half over two orders of magnitude — the range confidence 5 licenses, since the 5 is "only that the ORDER of magnitude is bounded" — and finds a(K) running **0.0747 to 0.4269** and the abated base **860 to 1,388 h/yr: a 50% swing on a shipped 1,052**.
+- **WHY A SENSITIVITY AND NOT A BETTER VALUE, RECORDED SO IT IS NOT REVISITED.** The constant cannot be improved by accumulation — its own tag records that MTUS/ATUS give 22 years and 21 countries but rich-country panels sit at ONE saturated capital level, so more time-use data does not raise it. **A sensitivity SURVIVES the measurement: it becomes the error bar rather than being replaced by it.** That is the part of this work that is not discarded when the identity route runs.
+
 <a id="capital-weighted"></a>
 
 **K WEIGHTED BY WHAT ACTUALLY SERVES THE PERSONAL OBLIGATION — AND THE PACE CONSTANT GOES WITH IT** (2026-09-05, `3d53685`). `personal_serving_capital` + `capital_weighting` in `scenarios/abatement_split.py`, 6 tests, REPORTING ONLY. 4,114 pass, mypy clean on 93 files. Nothing shipped moves.
@@ -188,8 +198,9 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 28 entries, newest first | |
+| 29 entries, newest first | |
 |---|---|
+| [pace-converted-and-swept](#pace-converted-and-swept) | K AND K_half REDENOMINATED TOGETHER — A UNIT CONVERSION THAT MOVED NO NUMBER — AND THE SENSITIV… |
 | [capital-weighted](#capital-weighted) | K WEIGHTED BY WHAT ACTUALLY SERVES THE PERSONAL OBLIGATION — AND THE PACE CONSTANT GOES WITH IT |
 | [deflation-loop-run](#deflation-loop-run) | THE DEFLATIONARY LOOP RUN AT LAST — THE INVARIANT IS HALF RIGHT |
 | [removal-split](#removal-split) | THE REMOVAL SPLIT: a(K) TAKES THE MOST GENEROUS READING AVAILABLE, AND THE ABATEMENT PATH'S FEA… |

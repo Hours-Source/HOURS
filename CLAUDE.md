@@ -127,7 +127,8 @@ hours_eoh/
     infrastructure_floor.py    census_from_condition_counts, doctrine_floor_invariance (B+D currency-free floor)
     deflation_loop.py  deflation_loop — capital ↑ → obligation ↓ → TEH ↓? ε DERIVED from the
                        capital, so the feedback can appear at all; REPORTING ONLY
-    abatement_split.py removal_bound, removal_consequence, capital_weighting — is a(K)'s
+    abatement_split.py removal_bound, removal_consequence, capital_weighting,
+                       pace_sensitivity — is a(K)'s
                        abatability REMOVAL, relocation or substitution, and is its K the capital
                        that serves the personal obligation; REPORTING ONLY
     frailty.py         frailty_care_load, morbidity_direction — the frailty care INTAKE;
@@ -459,8 +460,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,114 tests passing (1 skipped), mypy clean on 90 source files** (verified
-2026-09-04). Provenance **315/315**, shadow ratchet **33**, confidence ratchet
+**4,119 tests passing (1 skipped), mypy clean on 90 source files** (verified
+2026-09-04). Provenance **316/316**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

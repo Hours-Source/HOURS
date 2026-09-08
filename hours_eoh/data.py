@@ -214,6 +214,22 @@ AGE_CARE_KEY_CHILD: str = "dependant"
 AGE_CARE_KEY_WORKING_AGE: str = "frailty"
 AGE_CARE_KEY_ELDERLY: str = "frailty"
 
+# tag: derived | units: dimensionless share of capital stock
+# form: Σ(tiers[t].teh_per_capita · personal_fulfillment_rate) / Σ teh_per_capita
+#   over CAPITAL_MACHINE_PROFILES at the `standard` tier. Computed from the
+#   profiles rather than restated — `tests/scenarios/test_abatement_split.py`
+#   pins it against the live calculation.
+# note: TIER-STABLE TO 0.15 PERCENTAGE POINTS — 0.1136 minimal, 0.1121 basic,
+#   0.1129 standard, 0.1129 advanced — which is what makes the abatement K a
+#   clean rescaling rather than a tier-dependent correction. The reference tier
+#   is `standard`, matching CAPITAL_STOCK_DEFAULT's frame.
+# note: WHY IT EXISTS. `a(K)` reduces the PERSONAL obligation and was taking
+#   TOTAL capital, so a data centre abated water-hauling. The typing was never
+#   missing — `personal_fulfillment_rate` has been on every profile — only
+#   unused. Callers holding a total capital stock multiply by this to get the K
+#   that `abatement_fraction` actually wants.
+CAPITAL_PERSONAL_SERVING_SHARE: float = 0.1128706625
+
 # tag: convention | units: multiples of the standard capital tier
 # form: the capital sweep `scenarios.deflation_loop` runs. Chosen to reach BOTH
 #   ends of the arc — ε below 0.10 at the bottom and above 0.90 at the top —
@@ -1334,9 +1350,22 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     #   LEAST abatable and the largest share — this is what bounds a_max.
 }
 
-# tag: placeholder | units: TEH of capital per capita
+# tag: placeholder | units: TEH of PERSONAL-SERVING capital per capita
 # form: K_half in a(K) = a_max · K/(K + K_half). It sets the PACE of abatement
 #   along the arc, not its ceiling.
+# note: REDENOMINATED 2026-09-08, 1,000.0 → 112.870662, and it is a UNIT
+#   CONVERSION rather than a re-choice. `a(K)` is invariant under scaling K and
+#   K_half by the same factor, so multiplying by
+#   CAPITAL_PERSONAL_SERVING_SHARE leaves every a(K) BIT-IDENTICAL while fixing
+#   an incoherence: K is now personal-serving capital and K_half was
+#   denominated in total. Nothing about the pace is asserted by this, and the
+#   `resolves_by` below is untouched.
+# note: THE PACE IS STILL A BARE PICK AND RE-CHOOSING IT NOW WOULD BE WASTE —
+#   the identity route settles it and `a_max` TOGETHER, so any interim value is
+#   overwritten by the same run. The discipline this tag asks for instead is a
+#   sensitivity report, which `scenarios.abatement_split.pace_sensitivity`
+#   provides: no abatement figure should be quoted without how far it moves
+#   across this constant's plausible range.
 # note: THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free
 #   parameter the block introduced. Report the sensitivity alongside any
 #   abatement figure until it is measured.
@@ -1349,7 +1378,7 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
 # resolves_by: the identity route run at two or more capital levels — B(K)
 #   measured at matched (inventory, time-use) pairs pins a_max and K_half
 #   together.
-ABATEMENT_HALF_CAPITAL_TEH: float = 1000.0
+ABATEMENT_HALF_CAPITAL_TEH: float = 112.870662
 #   K_half — capital per capita at which HALF of the abatable obligation is
 #   abated. CHOSEN, and the least-grounded constant in this block: it sets the
 #   PACE of abatement along the arc, not its ceiling. resolves_by: the identity

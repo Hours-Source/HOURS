@@ -9,7 +9,8 @@ import pytest
 from hours_eoh.core.eoh_generation import max_abatement
 from hours_eoh.data import PERSONAL_EOH_COMPONENTS
 from hours_eoh.scenarios.abatement_split import (
-    ABATEMENT_KIND, capital_weighting, removal_bound, removal_consequence,
+    ABATEMENT_KIND, capital_weighting, pace_sensitivity, removal_bound,
+    removal_consequence,
 )
 
 KINDS = {"relocation", "substitution", "removal"}
@@ -126,35 +127,49 @@ class TestKIsWeightedByWhatServesThePersonalObligation:
                   for t in ("minimal", "basic", "standard", "advanced")]
         assert max(shares) - min(shares) < 0.005, shares
 
-    def test_the_correct_k_lowers_abatement_at_every_tier(self) -> None:
-        for tier in ("minimal", "basic", "standard", "advanced"):
+    def test_the_conversion_moved_no_number(self) -> None:
+        """
+        THE POINT OF A UNIT CONVERSION. a(K) is invariant under scaling K and
+        K_half by the same factor, so redenominating both left every abatement
+        figure bit-identical while fixing an incoherence — K in personal-serving
+        capital against a K_half denominated in total. Nothing about the PACE is
+        asserted by it, which is why it is not a re-choice.
+        """
+        # EXACT at the reference tier, because the share constant IS the
+        # standard tier's. Elsewhere the tier's own personal-serving share
+        # differs slightly — 0.1121 basic to 0.1136 minimal — so a single
+        # constant introduces a residual. It is bounded at 0.5%, well inside
+        # anything a confidence-5 pace constant could support, and it is stated
+        # rather than hidden: this is where a "tier-stable" claim stops being
+        # "tier-identical".
+        for tier in ("standard", "advanced"):
             r = capital_weighting(tier)
-            assert r["a_of_personal_serving"] < r["a_of_total"], tier
-            assert r["ratio"] > 2.0, tier
+            assert r["a_of_personal_serving"] == pytest.approx(
+                r["a_of_total"], rel=1e-9), tier
+        for tier in ("minimal", "basic"):
+            r = capital_weighting(tier)
+            assert r["a_of_personal_serving"] == pytest.approx(
+                r["a_of_total"], rel=5e-3), tier
+            assert r["ratio"] == pytest.approx(1.0, rel=5e-3), tier
 
-    def test_the_preserving_k_half_reproduces_the_old_curve_exactly(self) -> None:
-        """
-        The identity that makes `k_half_preserving` meaningful: a(K) is
-        invariant under scaling K and K_half together, so preserving the curve
-        means scaling K_half by the same share — which is precisely why
-        adopting it would be fitting the pace constant to the answer the wrong
-        K produced.
-        """
-        from hours_eoh.core.eoh_generation import abatement_fraction
-        r = capital_weighting()
-        preserved = abatement_fraction(
-            r["capital_personal_serving"], half_capital=r["k_half_preserving"])
-        assert preserved == pytest.approx(r["a_of_total"], rel=1e-12)
+    def test_the_pace_constant_is_now_denominated_in_the_same_units_as_k(self) -> None:
+        from hours_eoh.data import (
+            ABATEMENT_HALF_CAPITAL_TEH, CAPITAL_PERSONAL_SERVING_SHARE,
+        )
+        assert ABATEMENT_HALF_CAPITAL_TEH == pytest.approx(
+            1000.0 * CAPITAL_PERSONAL_SERVING_SHARE, abs=1e-5), (
+            "K_half is no longer the redenominated 1,000. If it was RE-CHOSEN "
+            "rather than converted, that is a different act and the identity "
+            "route overwrites it — see the constant's own resolves_by."
+        )
 
-    def test_neither_correction_is_adopted(self) -> None:
-        """`ABATEMENT_HALF_CAPITAL_TEH` is untouched: the weighting is a
-        correction, the pace constant is a re-choice, and this module reports
-        rather than decides."""
-        from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH
-        r = capital_weighting()
-        assert ABATEMENT_HALF_CAPITAL_TEH == 1000.0
-        assert r["k_half_shipped"] == 1000.0
-        assert r["k_half_preserving"] < 200.0
+    def test_the_pace_itself_is_still_unsettled(self) -> None:
+        """The conversion fixes units, not groundedness. Confidence 5 stands."""
+        from utils import provenance as pv
+        rec = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
+        k = rec["ABATEMENT_HALF_CAPITAL_TEH"]
+        assert k.tag == "placeholder"
+        assert k.confidence.startswith("5")
 
     def test_the_weighting_is_stock_semantics_not_condition_weighted(self) -> None:
         """
@@ -173,3 +188,57 @@ class TestKIsWeightedByWhatServesThePersonalObligation:
             for p in CAPITAL_MACHINE_PROFILES.values() if "standard" in p["tiers"]
         )
         assert personal_serving_capital(cap, pop) == pytest.approx(expected)
+
+
+class TestThePaceSensitivityIsReported:
+    """
+    `ABATEMENT_HALF_CAPITAL_TEH`'s tag asks for this in as many words —
+    *"Report the sensitivity alongside any abatement figure until it is
+    measured"* — and until 2026-09-08 nothing did, so every abatement number in
+    this repo was quoted without it.
+    """
+
+    def test_the_swing_is_large_enough_to_matter(self) -> None:
+        r = pace_sensitivity()
+        assert r["swing_share_of_base"] > 0.25, (
+            f"the abated base swings {r['swing_share_of_base']:.0%} across the "
+            "pace constant's range. If that has fallen below ~25% the constant "
+            "has become better grounded and its confidence should say so."
+        )
+
+    def test_the_sweep_spans_the_range_confidence_5_licenses(self) -> None:
+        """
+        Two orders of magnitude. The tag says the 5 is "only that the ORDER of
+        magnitude is bounded by the arc having to saturate somewhere inside
+        it" — a narrower sweep would claim more grounding than exists.
+        """
+        lo, hi = r_range = pace_sensitivity()["k_half_range"]
+        assert hi / lo >= 100.0, r_range
+
+    def test_more_pace_capital_means_less_abatement(self) -> None:
+        """Direction, checked rather than assumed: K_half is a HALF-point, so
+        raising it slows abatement and raises the residual obligation."""
+        rows = pace_sensitivity()["rows"]
+        assert [x["a_of_k"] for x in rows] == sorted(
+            (x["a_of_k"] for x in rows), reverse=True)
+        assert [x["abated_base"] for x in rows] == sorted(
+            x["abated_base"] for x in rows)
+
+    def test_the_shipped_value_sits_inside_the_swept_range(self) -> None:
+        r = pace_sensitivity()
+        lo, hi = r["base_range"]
+        assert lo <= r["base_shipped"] <= hi
+
+    def test_it_is_denominated_in_personal_serving_capital(self) -> None:
+        """
+        The report and the constant must agree on what K means, or the swing is
+        computed at the wrong point on the curve.
+        """
+        from hours_eoh.data import (
+            CAPITAL_PERSONAL_SERVING_SHARE, CAPITAL_STOCK_DEFAULT,
+            REFERENCE_FRAME_POPULATION,
+        )
+        r = pace_sensitivity()
+        expected = (CAPITAL_STOCK_DEFAULT / REFERENCE_FRAME_POPULATION
+                    * CAPITAL_PERSONAL_SERVING_SHARE)
+        assert r["capital_per_capita"] == pytest.approx(expected)

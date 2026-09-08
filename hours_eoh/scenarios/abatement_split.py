@@ -175,7 +175,8 @@ def removal_consequence(capital_per_capita_teh: float | None = None) -> RemovalC
     """
     from hours_eoh.core.eoh_generation import abatement_fraction
     from hours_eoh.data import (
-        CAPITAL_STOCK_DEFAULT, PERSONAL_EOH_SUFFICIENCY, REFERENCE_FRAME_POPULATION,
+        CAPITAL_PERSONAL_SERVING_SHARE, CAPITAL_STOCK_DEFAULT,
+        PERSONAL_EOH_SUFFICIENCY, REFERENCE_FRAME_POPULATION,
     )
     from hours_eoh.scenarios.feasibility import age_weight_mean, labor_supply_per_capita
 
@@ -186,7 +187,8 @@ def removal_consequence(capital_per_capita_teh: float | None = None) -> RemovalC
     supply = labor_supply_per_capita()
 
     def base(a_max: float) -> float:
-        return PERSONAL_EOH_SUFFICIENCY * (1.0 - abatement_fraction(K, a_max=a_max))
+        return PERSONAL_EOH_SUFFICIENCY * (1.0 - abatement_fraction(
+            K * CAPITAL_PERSONAL_SERVING_SHARE, a_max=a_max))
 
     b_ship = base(bound["removal_upper"])
     b_rem = base(bound["removal_lower"])
@@ -271,7 +273,10 @@ def capital_weighting(tier: str = "standard", population: float = 1_000_000.0) -
     units: TEH per capita; shares and a(K) dimensionless.
     """
     from hours_eoh.core.eoh_generation import abatement_fraction
-    from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH, CAPITAL_MACHINE_PROFILES
+    from hours_eoh.data import (
+        ABATEMENT_HALF_CAPITAL_TEH, CAPITAL_MACHINE_PROFILES,
+        CAPITAL_PERSONAL_SERVING_SHARE,
+    )
 
     capital = {
         name: tier for name, profile in CAPITAL_MACHINE_PROFILES.items()
@@ -284,12 +289,17 @@ def capital_weighting(tier: str = "standard", population: float = 1_000_000.0) -
     personal = personal_serving_capital(capital, population)
     share = personal / resolved_total if resolved_total else 0.0
 
-    a_total = abatement_fraction(resolved_total)
+    # a_total: what a(K) gave BEFORE the redenomination — total K against the
+    # old K_half of 1,000. a_personal: what it gives now — personal-serving K
+    # against the redenominated K_half. They are EQUAL by construction, which
+    # is the point: the conversion fixed the units and moved no number.
+    a_total = abatement_fraction(resolved_total, half_capital=ABATEMENT_HALF_CAPITAL_TEH
+                                 / CAPITAL_PERSONAL_SERVING_SHARE)
     a_personal = abatement_fraction(personal)
     # The K_half that would leave a(K) unchanged on the narrower K. a(K) is
     # a_max·K/(K+K_half), which is invariant under scaling BOTH by the same
     # factor — so preserving the curve means K_half scales by the same share.
-    k_half_preserving = ABATEMENT_HALF_CAPITAL_TEH * share
+    k_half_preserving = ABATEMENT_HALF_CAPITAL_TEH
     return {
         "capital_total_per_capita": resolved_total,
         "capital_personal_serving": personal,
@@ -310,5 +320,95 @@ def capital_weighting(tier: str = "standard", population: float = 1_000_000.0) -
             "adopting that would fit the pace constant to the answer the wrong "
             "K produced. Neither is adopted: the weighting is a correction, the "
             "pace constant is a re-choice."
+        ),
+    }
+
+
+class PaceSensitivity(TypedDict):
+    k_half_shipped: float
+    k_half_range: tuple[float, float]
+    capital_per_capita: float
+    a_range: tuple[float, float]
+    base_range: tuple[float, float]
+    base_shipped: float
+    swing_share_of_base: float
+    rows: list[dict]
+    verdict: str
+
+
+def pace_sensitivity(
+    capital_per_capita_teh: float | None = None,
+    decades: tuple[float, ...] = (0.1, 0.25, 0.5, 1.0, 2.0, 4.0, 10.0),
+) -> PaceSensitivity:
+    """
+    How far any abatement figure moves across `ABATEMENT_HALF_CAPITAL_TEH`'s
+    plausible range — the report that constant's own tag block asks for.
+
+    ITS TAG SAYS: *"THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new
+    free parameter the block introduced. Report the sensitivity alongside any
+    abatement figure until it is measured."* Until now nothing did, so every
+    abatement number in this repo has been quoted without it.
+
+    WHY A SENSITIVITY AND NOT A BETTER VALUE. The constant resolves by the
+    identity route run at two or more capital levels, which pins it and `a_max`
+    TOGETHER — so an interim re-choice is overwritten by the same run and saves
+    that run no work. And it cannot be improved by accumulation: the tag records
+    that MTUS/ATUS give 22 years and 21 countries, but rich-country panels sit
+    at ONE saturated capital level, so more time-use data does not raise it.
+    A sensitivity survives the measurement — it becomes the error bar rather
+    than being replaced by it.
+
+    `decades` sweeps K_half by multiples of the shipped value; the default spans
+    two orders of magnitude, which is what confidence 5 ("very nearly a bare
+    pick", order of magnitude bounded only by the arc having to saturate
+    somewhere inside it) actually licenses.
+
+    units: K_half and capital in TEH of personal-serving capital per capita;
+    a(K) dimensionless; base in h/yr per working-age-equivalent.
+    """
+    from hours_eoh.core.eoh_generation import abatement_fraction
+    from hours_eoh.data import (
+        ABATEMENT_HALF_CAPITAL_TEH, CAPITAL_PERSONAL_SERVING_SHARE,
+        CAPITAL_STOCK_DEFAULT, PERSONAL_EOH_SUFFICIENCY, REFERENCE_FRAME_POPULATION,
+    )
+
+    k = (CAPITAL_STOCK_DEFAULT / REFERENCE_FRAME_POPULATION
+         * CAPITAL_PERSONAL_SERVING_SHARE
+         if capital_per_capita_teh is None else capital_per_capita_teh)
+
+    rows = []
+    for mult in decades:
+        kh = ABATEMENT_HALF_CAPITAL_TEH * mult
+        a = abatement_fraction(k, half_capital=kh)
+        rows.append({
+            "k_half_multiple": mult,
+            "k_half": kh,
+            "a_of_k": a,
+            "abated_base": PERSONAL_EOH_SUFFICIENCY * (1.0 - a),
+        })
+
+    a_vals = [r["a_of_k"] for r in rows]
+    b_vals = [r["abated_base"] for r in rows]
+    shipped = PERSONAL_EOH_SUFFICIENCY * (
+        1.0 - abatement_fraction(k, half_capital=ABATEMENT_HALF_CAPITAL_TEH))
+    swing = (max(b_vals) - min(b_vals)) / shipped
+    return {
+        "k_half_shipped": ABATEMENT_HALF_CAPITAL_TEH,
+        "k_half_range": (min(r["k_half"] for r in rows), max(r["k_half"] for r in rows)),
+        "capital_per_capita": k,
+        "a_range": (min(a_vals), max(a_vals)),
+        "base_range": (min(b_vals), max(b_vals)),
+        "base_shipped": shipped,
+        "swing_share_of_base": swing,
+        "rows": rows,
+        "verdict": (
+            f"At K={k:,.0f} TEH/capita of personal-serving capital, sweeping "
+            f"K_half over two orders of magnitude moves a(K) from "
+            f"{min(a_vals):.4f} to {max(a_vals):.4f} and the abated base from "
+            f"{min(b_vals):,.0f} to {max(b_vals):,.0f} h/yr — a swing of "
+            f"{swing:.0%} of the shipped abated base of {shipped:,.0f}. "
+            "That is the range a confidence-5 pace constant licenses, and it is "
+            "the number that belongs beside any abatement figure quoted from "
+            "this repo."
         ),
     }

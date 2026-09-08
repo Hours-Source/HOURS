@@ -86,7 +86,9 @@ def _point(scale: float, population: float) -> LoopPoint:
 
     epsilon = civilization_epsilon(
         {"capital": capital, "population": population})["epsilon"]
-    abated = _d.PERSONAL_EOH_SUFFICIENCY * (1.0 - abatement_fraction(k_per_capita))
+    # personal-serving K, per the 2026-09-08 redenomination — a(K) unchanged
+    abated = _d.PERSONAL_EOH_SUFFICIENCY * (
+        1.0 - abatement_fraction(k_per_capita * _d.CAPITAL_PERSONAL_SERVING_SHARE))
     flat = eoh_to_teh_pipeline(
         epsilon=epsilon, personal_base=_d.PERSONAL_EOH_BASE, population=population)
     abat = eoh_to_teh_pipeline(

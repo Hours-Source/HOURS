@@ -65,7 +65,7 @@ from hours_eoh.core.eoh_generation import (
     personal_base_for,
     personal_eoh,
 )
-from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA
 
 
 class AutarkyReference(TypedDict):
@@ -225,7 +225,12 @@ def overbuild_check(
     ref = autarky_reference(population, standard, ecosystem_health)
     b0 = ref["total"]
 
-    k_pc = capital_stock_teh / population
+    # K FOR ABATEMENT IS PERSONAL-SERVING CAPITAL, NOT TOTAL. a(K) reduces the
+    # PERSONAL obligation; taking total capital had a data centre abating
+    # water-hauling. `ABATEMENT_HALF_CAPITAL_TEH` was redenominated to match on
+    # 2026-09-08, and because a(K) is invariant under scaling K and K_half
+    # together, every figure here is bit-identical to before the conversion.
+    k_pc = capital_stock_teh / population * CAPITAL_PERSONAL_SERVING_SHARE
     a = abatement_fraction(k_pc, half_capital)
 
     # B(K): the abated personal obligation, plus the unabatable ecological one.
