@@ -412,3 +412,102 @@ def pace_sensitivity(
             "this repo."
         ),
     }
+
+
+class RemovalAudit(TypedDict):
+    rows: list[dict]
+    disjointness_established: bool
+    fiscal_double_subtracts: bool
+    verdict: str
+
+
+def removal_audit(population: float = 1_000_000.0) -> RemovalAudit:
+    """
+    Measure the abatabilities against their own definition, with what exists.
+
+    THE DEFINITION, from `eoh_fulfillment`: abatability is "the most
+    infrastructure can REMOVE". Removal means the entropy is not generated —
+    sanitation and the illness does not occur — as distinct from a machine
+    resisting the same entropy, which is ε's channel.
+
+    THE ONE INDEPENDENT MEASUREMENT THE REPO HAS is
+    `CAPITAL_MACHINE_PROFILES.personal_fulfillment_rate`, and it measures the
+    OTHER kind: personal EOH that capital HANDLES, with the obligation standing.
+    `total_eoh` says so — *"Does NOT alter total personal EOH demand — the
+    biological obligation still exists, but capital handles it."*
+
+    WHAT THE AUDIT CAN AND CANNOT CONCLUDE. It cannot validate the
+    abatabilities: no data here distinguishes an obligation that vanished from
+    one a machine met, and the abatabilities are desk terms at confidence 25.
+    What it CAN establish is that the two channels are not shown to be disjoint,
+    and that they are driven by the same assets — `personal_fulfillment_rate` is
+    highest exactly where a(K)'s worked examples live (medical 0.22, water
+    0.18, agricultural 0.18) and near zero where they do not (computing 0.01,
+    environmental monitoring 0.00).
+
+    AND THE CONSEQUENCE IS FISCAL, WHICH IS WHERE IT BITES A PERSON.
+    `fiscal.sufficiency_guarantee` computes the EOH reimbursement as
+    `max(0, raw_eoh_per_person − capital_personal_eoh_fulfilled_per_person)`.
+    If abatement became the generation default, `raw_eoh_per_person` would
+    ALREADY be reduced by a(K) — so the same tap would reduce what a person is
+    owed twice: once as an obligation removed, once as an obligation met.
+    Nothing in the repo forbids that today because abatement is not wired; this
+    records it before it is.
+
+    units: hours per capita per year. ε-behaviour: none — both channels are
+    capital-driven and ε-free.
+    """
+    from hours_eoh.core.civilization import machine_eoh_from_capital
+    from hours_eoh.core.eoh_generation import abatement_fraction, personal_eoh
+    from hours_eoh.data import (
+        CAPITAL_MACHINE_PROFILES, CAPITAL_PERSONAL_SERVING_SHARE,
+        PERSONAL_EOH_SUFFICIENCY,
+    )
+
+    w = personal_eoh(population) / population / _base()
+    rows = []
+    for tier in ("minimal", "basic", "standard", "advanced"):
+        capital = {n: tier for n, p in CAPITAL_MACHINE_PROFILES.items()
+                   if tier in p["tiers"]}
+        fulfilled = (machine_eoh_from_capital(capital, population)
+                     ["annual_personal_eoh_fulfilled"] / population)
+        k_total = sum(p["tiers"][tier]["teh_per_capita"]
+                      for p in CAPITAL_MACHINE_PROFILES.values() if tier in p["tiers"])
+        a = abatement_fraction(k_total * CAPITAL_PERSONAL_SERVING_SHARE)
+        removed = a * PERSONAL_EOH_SUFFICIENCY * w
+        rows.append({
+            "tier": tier,
+            "capital_per_capita": k_total,
+            "a_of_k": a,
+            "claimed_removal": removed,
+            "measured_substitution": fulfilled,
+            "ratio": removed / fulfilled if fulfilled else float("inf"),
+        })
+    worst = max(r["ratio"] for r in rows)
+    best = min(r["ratio"] for r in rows)
+    return {
+        "rows": rows,
+        # Nothing here demonstrates the two channels are disjoint, and that is
+        # the honest verdict rather than an accusation that they overlap.
+        "disjointness_established": False,
+        "fiscal_double_subtracts": True,
+        "verdict": (
+            f"a(K)'s claimed REMOVAL exceeds the measured SUBSTITUTION channel "
+            f"by {best:.1f}-{worst:.1f}x across the capital tiers, converging "
+            "as capital rises. The abatabilities CANNOT be validated as removal "
+            "from repo data — no source here separates an obligation that "
+            "vanished from one a machine met, and they are desk terms at "
+            "confidence 25. What is established is that the two are not shown "
+            "disjoint and are driven by the same assets: "
+            "`personal_fulfillment_rate` peaks at medical 0.22 and water 0.18, "
+            "exactly where a(K)'s worked examples live. The consequence is "
+            "fiscal — `sufficiency_guarantee` already subtracts capital "
+            "fulfilment, so adopting abatement would subtract the same tap "
+            "twice from what a person is owed."
+        ),
+    }
+
+
+def _base() -> float:
+    from hours_eoh.data import PERSONAL_EOH_BASE
+    return PERSONAL_EOH_BASE

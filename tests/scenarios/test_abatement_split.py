@@ -9,8 +9,8 @@ import pytest
 from hours_eoh.core.eoh_generation import max_abatement
 from hours_eoh.data import PERSONAL_EOH_COMPONENTS
 from hours_eoh.scenarios.abatement_split import (
-    ABATEMENT_KIND, capital_weighting, pace_sensitivity, removal_bound,
-    removal_consequence,
+    ABATEMENT_KIND, capital_weighting, pace_sensitivity, removal_audit,
+    removal_bound, removal_consequence,
 )
 
 KINDS = {"relocation", "substitution", "removal"}
@@ -242,3 +242,69 @@ class TestThePaceSensitivityIsReported:
         expected = (CAPITAL_STOCK_DEFAULT / REFERENCE_FRAME_POPULATION
                     * CAPITAL_PERSONAL_SERVING_SHARE)
         assert r["capital_per_capita"] == pytest.approx(expected)
+
+
+class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
+    """
+    Run against the abatabilities' own definition, with what the repo holds.
+    """
+
+    def test_it_does_not_claim_to_validate_the_abatabilities(self) -> None:
+        """
+        THE LOAD-BEARING ADMISSION. No source here separates an obligation that
+        vanished from one a machine met, so the audit reports a relationship
+        between two channels and refuses a verdict on the values themselves.
+        """
+        r = removal_audit()
+        assert r["disjointness_established"] is False
+        assert "CANNOT be validated" in r["verdict"]
+
+    def test_claimed_removal_exceeds_measured_substitution_at_every_tier(self) -> None:
+        for row in removal_audit()["rows"]:
+            assert row["ratio"] > 1.0, row["tier"]
+
+    def test_the_two_channels_converge_as_capital_rises(self) -> None:
+        """
+        The shape that makes overlap plausible rather than merely possible: at
+        advanced capital the two are within 1.5x, so whatever separates them
+        has to be doing most of its work exactly where capital is thickest.
+        """
+        ratios = [r["ratio"] for r in removal_audit()["rows"]]
+        assert ratios == sorted(ratios, reverse=True)
+        assert ratios[-1] < 2.0 < ratios[0]
+
+    def test_substitution_peaks_where_the_removal_examples_live(self) -> None:
+        """
+        `a(K)`'s worked examples are a tap and sanitation.
+        `personal_fulfillment_rate` — the SUBSTITUTION channel — peaks on
+        medical and water capital and is near zero on computing. Same assets,
+        incompatible semantics.
+        """
+        from hours_eoh.data import CAPITAL_MACHINE_PROFILES
+        rate = {n: p["personal_fulfillment_rate"]
+                for n, p in CAPITAL_MACHINE_PROFILES.items()}
+        top = sorted(rate, key=rate.get, reverse=True)[:3]
+        assert set(top) <= {"medical_systems", "water_treatment",
+                            "agricultural_automation", "power_grid"}
+        assert rate["computing_ai"] < 0.05
+        assert rate["environmental_monitoring"] == 0.0
+
+    def test_the_fiscal_layer_already_subtracts_the_other_channel(self) -> None:
+        """
+        Where it would bite a person. `sufficiency_guarantee` reimburses
+        `max(0, raw − capital_personal_eoh_fulfilled)`. If abatement became the
+        generation default, `raw` would already be reduced by a(K) — the same
+        tap subtracted twice from what someone is owed.
+        """
+        import inspect
+        from hours_eoh.core import fiscal
+        src = inspect.getsource(fiscal.sufficiency_guarantee)
+        assert "capital_personal_eoh_fulfilled_per_person" in src
+        assert "max(0.0, raw_eoh_per_person - capital_personal_eoh_fulfilled_per_person)" in src
+        assert removal_audit()["fiscal_double_subtracts"] is True
+
+    def test_abatement_is_still_not_the_generation_default(self) -> None:
+        """The double subtraction is not live, and this is what keeps it so."""
+        import inspect
+        from hours_eoh.core.eoh_generation import personal_eoh
+        assert "abat" not in str(inspect.signature(personal_eoh))
