@@ -163,6 +163,9 @@ hours_eoh/
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
     care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
+    verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the §7 falsifier,
+                       answered: no crossover on the arc under either scaling basis. Frame
+                       DECLARED (US census → per-capita → caller's frame); REPORTING ONLY
 
   research/            Experimental — NOT stable API, not imported by core or scenarios
     investment.py      rank_investment_candidates, optimal_investment
@@ -547,7 +550,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**98 test files. The name rule covers 68 of them:** `tests/test_<module>.py`
+**99 test files. The name rule covers 69 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

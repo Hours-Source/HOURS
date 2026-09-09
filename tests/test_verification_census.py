@@ -223,18 +223,27 @@ class TestItChangesNothing:
     it is not taken here.
     """
 
-    def test_no_module_outside_reference_imports_it(self):
+    def test_only_the_scenario_layer_reads_the_census(self):
+        """
+        `scenarios/verification_cost` is Phase 2 and reads it by design — that
+        is the layer split `servicing.py` / `servicing_census.py` already uses.
+        What must never read it is `core/` or `land/`: the census entering the
+        generation layer IS Phase 3, and Phase 3 needs the author.
+        """
         import pathlib
         root = pathlib.Path(V.__file__).resolve().parents[1]
-        offenders = [
+        readers = {
             p.relative_to(root).as_posix()
             for p in root.rglob("*.py")
             if p.name != "verification.py"
-            and "reference/verification" in p.read_text(encoding="utf-8", errors="ignore")
-        ]
-        assert not offenders, (
-            f"{offenders} import the census. It is reporting only until the "
-            "Phase 3 sign-off says otherwise."
+            and "reference.verification" in p.read_text(encoding="utf-8", errors="ignore")
+        }
+        assert readers <= {"scenarios/verification_cost.py"}, (
+            f"unexpected readers of the census: "
+            f"{sorted(readers - {'scenarios/verification_cost.py'})}"
+        )
+        assert not [r for r in readers if r.startswith(("core/", "land/"))], (
+            "the census reached the generation layer without a Phase 3 sign-off"
         )
 
     def test_it_imports_nothing_outside_the_reference_layer(self):
