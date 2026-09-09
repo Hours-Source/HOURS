@@ -111,6 +111,9 @@ hours_eoh/
                        utilities, inspection and title — disjoint from stewardship by construction
     land_stewardship.py US land use (ERS MLU 2022), federal land-agency workforce (OPM FedScope),
                        ASAE field capacity, the EQIP practice inventory — and what each cannot price
+    capital_inventory.py  THE US CAPITAL STOCK MAPPED ONTO THE MACHINE PROFILES (BEA Fixed
+                       Assets 1.1/2.1/7.1, 2024) — three scopes, BOTH valuation doctrines,
+                       measured ages. NO currency conversion: that is intake
     verification.py    WHAT RUNNING THE REGISTER COSTS: the occupations that decide what counts and
                        check that it was done. Two scopes that BOUND, no weight to tune; disjoint
                        from servicing by construction. REPORTING ONLY, nothing imports it
@@ -163,6 +166,9 @@ hours_eoh/
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
     care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
+    capital_retrodiction.py  READING ε OFF A REAL ECONOMY — and the three judgements it
+                       rests on (doctrine 1.79x, convention 1.45x, scope ~2.5x).
+                       `currency_per_teh` is REQUIRED; the band is not a default. REPORTING ONLY
     verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the §7 falsifier,
                        answered: no crossover on the arc under either scaling basis. Frame
                        DECLARED (US census → per-capita → caller's frame); REPORTING ONLY
@@ -550,13 +556,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**99 test files. The name rule covers 69 of them:** `tests/test_<module>.py`
+**100 test files. The name rule covers 69 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 30 files the rule does not cover are all listed below, plus two that do
+The 31 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -598,6 +604,7 @@ are the ones worth knowing by name.
 | `test_measured_capacity.py` | The measured labour capacity behind `feasibility.labor_supply_per_capita`, the DIRECTION of `H_REF`'s error as its stand-in, and — since the 2026-09-04 band alignment — that the over-determination is CLOSED, what closed it, and the retrodiction that went with it, both states kept runnable |
 | `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
 | `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
+| `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
 | `test_corridor.py` | `research/corridor.py` — including `contestability_ceiling_bare_chi`, kept as the superseded form |

@@ -184,6 +184,7 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.restoration",
     "hours_eoh.reference.parcels",
     "hours_eoh.reference.verification",
+    "hours_eoh.reference.capital_inventory",
 ]
 
 

@@ -46,16 +46,15 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   close opportunistically.
 - **Capital thermal intensities are Path-D placeholders** *(gap)* — they need IEA/LCA
   data.
-- **The capital-profile SCALE is unchecked against any real inventory, and looks
-  ~3× out.** *(gap)* Running the US through `epsilon_current_from_inventory()` gives
-  ε = 0.777–1.000 (saturated) against `capital_for_epsilon(0.40)` = 4,204
-  TEH/capita — the US 2.2–4.7× over, which is not credible at ε≈0.95 while
-  158M people work. `mix_spread(0.40)` is only 1.30×, **so the MIX is not the
-  problem; the SCALE is** — and the capital→ε loop, the thermal ceiling and the
-  corridor all ride on it. *Settles by:* BEA Fixed Assets Table 1.1 (stock) plus
-  2.1/3.1ES by asset type — one table over from the flow table already used,
-  which gives the inventory but does **not** by itself resolve the 3×. Detail:
-  [finding-a-capital-profile-scale](#finding-a-capital-profile-scale).
+- **~~The capital-profile SCALE is unchecked against any real inventory, and
+  looks ~3× out~~ — RETRACTED 2026-09-09.** *(gap)* The stock tables confirm the
+  CFC/δ estimate was already right; the 3× was three undeclared judgements —
+  **doctrine 1.79×** (BEA publishes current-cost AND historical-cost for one
+  physical stock), **convention 1.45×** (currency per TEH), **scope ~2.5×**
+  (productive capital vs every fixed asset). Any two compound past 3×. Across the
+  declared grid the US reads **ε = 0.200–0.757 with 0 of 18 cells saturating**,
+  interior 0.45–0.60. `reference/capital_inventory` + `scenarios/capital_retrodiction`
+  *(gated)*. Detail: [finding-a-capital-profile-scale](#finding-a-capital-profile-scale).
 
 ## Cross-area entries
 
