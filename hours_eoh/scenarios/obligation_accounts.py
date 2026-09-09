@@ -524,6 +524,24 @@ def anchor_sensitivity(
     }
 
 
+def _growth_phrase(first: float, last: float) -> str:
+    """
+    Growth from `first` to `last` as a percentage, or a phrase when there is no
+    percentage to state.
+
+    DELIVERY IS EXACTLY ZERO AT ε = 0 since the capital-path decision
+    (2026-09-09): the canonical arc holds no built apparatus at subsistence, so
+    both delivery components — infrastructure and the knowledge apparatus — are
+    0.0 there. Growth from zero has no percentage, and printing one meant a
+    ZeroDivisionError rather than a wrong number, which is the better failure of
+    the two. The partition still reconciles at ε = 0; only this sentence about it
+    could not be written.
+    """
+    if first == 0.0:
+        return "from nothing" if last > 0.0 else "flat at zero"
+    return f"{last / first - 1.0:+.0%}"
+
+
 def accounts_report(epsilon: float = 0.40, **state: Any) -> dict:
     """
     The Phase 0 report: the three accounts, the crossover, and the uniformity
@@ -547,7 +565,7 @@ def accounts_report(epsilon: float = 0.40, **state: Any) -> dict:
             f"({arc[-1]['obligation'] / arc[0]['obligation'] - 1.0:+.1%}), while "
             f"delivery moves {arc[0]['delivery'] / 1e6:,.1f}M → "
             f"{arc[-1]['delivery'] / 1e6:,.1f}M "
-            f"({arc[-1]['delivery'] / arc[0]['delivery'] - 1.0:+.0%}). "
+            f"({_growth_phrase(arc[0]['delivery'], arc[-1]['delivery'])}). "
             f"Delivery/obligation runs {cross['ratio_at_zero']:.4f} → "
             f"{cross['ratio_at_top']:.4f}"
             + (f", crossing 1.0 at ε≈{cross['crossover_epsilon']:.3f}."

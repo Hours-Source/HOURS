@@ -102,7 +102,11 @@ def test_epsilon_zero_is_infeasible_on_the_repos_own_constants():
     # 1000; 1.4404 before the H_REF move. Still over-determined at every one of
     # them — three independent changes in the loosening direction have narrowed
     # the gap and none has closed it.
-    assert c["demand_supply_ratio"] == pytest.approx(1.3830, rel=0.01)
+    # 1.3084 since 2026-09-09: the capital-path decision resolves an unspecified
+    # stock along the arc, which is ZERO at ε=0, so the infrastructure term
+    # leaves the demand entirely. FOURTH change in the loosening direction and
+    # the finding still holds — the ratio is 1.31, not below 1.
+    assert c["demand_supply_ratio"] == pytest.approx(1.3084, rel=0.01)
 
 
 def test_implied_ceiling_is_far_below_the_shipped_base():
@@ -114,19 +118,27 @@ def test_implied_ceiling_is_far_below_the_shipped_base():
     # 2026-09-02, when H_REF went 2000 → 2080 and lifted it 4%: 674.47 → 705.60.
     # That is the first time this ceiling has risen, and it is still 29% below
     # the shipped base.
-    assert c["implied_base_ceiling"] == pytest.approx(705.60, rel=0.01)
+    # 705.60 → 762.91 on 2026-09-09: the capital-path decision zeroes the
+    # infrastructure requirement at ε=0, so R falls and the ceiling rises again.
+    assert c["implied_base_ceiling"] == pytest.approx(762.91, rel=0.01)
     # > 1.5 until the elderly revalue; 1.42 still means the shipped base is
     # 42% above what the labour supply can serve at ε=0.
-    assert c["base_overshoot"] > 1.35
+    # 1.42 after the elderly revalue; 1.311 since the capital-path decision.
+    # The threshold tracks the value with margin so it can still fail if the
+    # base or the supply frame moves materially — it is not set AT the value.
+    assert c["base_overshoot"] > 1.25
 
 
 def test_supply_side_resolution_demands_an_implausible_working_day():
     """The other way to close it, priced so it can be judged."""
     c = feasibility_check(adult_capacity_h_yr=float(H_REF), adult_share=0.6,
                           epsilon=0.0)
-    assert c["hours_per_adult_required"] == pytest.approx(2400.63, rel=0.01)
+    # 2400.63 → 2267.90 on 2026-09-09 (capital-path decision, R falls at ε=0).
+    assert c["hours_per_adult_required"] == pytest.approx(2267.90, rel=0.01)
     # 7.08 h/day before the elderly revalue, 6.33 after — still every day of
     # the year with no rest days, which is the point.
+    # 7.08 before the elderly revalue, 6.33 after, 6.21 since the capital-path
+    # decision — still every day of the year with no rest days, which is the point.
     assert c["hours_per_adult_required"] / 365.0 > 6.0  # h/day, no rest days
 
 
@@ -189,15 +201,22 @@ def test_subsistence_sweep_clears_only_at_implausible_labour_budgets():
     """
     # 2026-09-01: ONE survivor, not two. AGE_WEIGHT_CHILD took the MTUS
     # self-maintenance measurement for ages 6-14 (1.5 -> 1.82), which raises
-    # per-capita demand, and the second survivor stopped clearing. The finding
-    # hardened rather than moved: fewer corners clear than before.
+    # per-capita demand, and the second survivor stopped clearing.
+    # 2026-09-09: TWO again, by the capital-path decision — an unspecified
+    # capital stock resolves along the arc, which is ZERO at ε=0, so the
+    # infrastructure requirement leaves the subsistence demand entirely.
+    # The count has now gone 0 → 1 → 2 → 1 → 2 on five changes, none of them to
+    # the subsistence question, which is why the ORDERING below carries the
+    # finding and the count does not.
     r = over_determination_report()
     feasible = [c for c in r["subsistence_cases"] if c["feasible"]]
-    assert len(feasible) == 1, [c["supply_per_capita"] for c in feasible]
-    # The survivor sits at the top of the capacity band, not in its middle.
+    assert len(feasible) == 2, [c["supply_per_capita"] for c in feasible]
+    # WHAT ACTUALLY HOLDS ACROSS ALL FIVE: every survivor sits at the TOP of the
+    # capacity band, never in its middle, so "clears only at an implausible
+    # labour budget" is the claim that has never moved.
     for case in feasible:
         assert case["supply_per_capita"] > 1_400.0
-    assert r["best_ratio"] == pytest.approx(0.9233, abs=0.01)
+    assert r["best_ratio"] == pytest.approx(0.8723, abs=0.01)
     assert r["worst_ratio"] > 2.0
 
 
@@ -216,8 +235,15 @@ def test_sweep_covers_a_capacity_above_the_modern_reference():
     generous = feasibility_check(adult_capacity_h_yr=max(SUBSISTENCE_CAPACITY_BAND),
                                  adult_share=min(SUBSISTENCE_ADULT_SHARE_BAND),
                                  epsilon=0.0)
-    assert generous["feasible"] is False
-    assert generous["demand_supply_ratio"] > 1.0
+    # AND THE SOFTENING IS BACK (2026-09-09), by a change to no part of the
+    # personal domain. The capital-path decision resolves an unspecified stock
+    # along the arc, which is ZERO at ε=0, so the infrastructure requirement
+    # leaves the subsistence demand entirely and this corner goes 1.0073 →
+    # 0.9516 — from failing by 0.7% to clearing by 4.8%. Asserted as it now
+    # reads, with the ordering below carrying the claim, because a corner that
+    # has flipped twice on sub-5% moves is not a level worth pinning as a verdict.
+    assert generous["feasible"] is True
+    assert generous["demand_supply_ratio"] < 1.0
     # And it is CLOSE — a corner that fails by 0.7% is not a robust failure,
     # so the claim is that nothing plausible clears, not that nothing can.
     assert generous["demand_supply_ratio"] < 1.05
@@ -250,10 +276,15 @@ def test_implied_ceiling_band_brackets_the_user_estimate():
     lo, hi = r["ceiling_band"]
     # 387.8–998.0 post-K-IV (was 390–1006): the whole band shifted down ~0.8%
     # as the non-personal requirement grew. The conclusion is unchanged.
-    assert 380.0 < lo < 450.0
-    assert 1050.0 < hi < 1200.0
+    # 482.0–1147.3 since 2026-09-09 (capital-path decision: R falls at ε=0, so
+    # both arms of the ceiling rise). Was 387.8–998.0 post-K-IV, 427–1092 after
+    # the band alignment. The conclusion is unchanged at every one of them.
+    assert 450.0 < lo < 520.0
+    assert 1100.0 < hi < 1200.0
     # per-capita form, which is what the hand estimate produces
-    assert 1400.0 < hi * age_weight_mean() < 1550.0
+    # per-capita form, which is what the hand estimate produces. 1,552 h/person·yr
+    # since 2026-09-09, from 1,477 — the same upward move as the band itself.
+    assert 1450.0 < hi * age_weight_mean() < 1650.0
 
 
 # ---------------------------------------------------------------------------
@@ -332,13 +363,19 @@ def test_closed_form_understates_the_crossover():
     # K-IV WIDENED this gap from 0.024 to 0.080, strengthening the test's point:
     # knowledge EOH is now a materially ε-growing term, so treating the
     # inventory as fixed understates the crossover by more than it used to.
-    assert naive == pytest.approx(0.3057, abs=0.005)
+    # 0.3057 → 0.2651 on 2026-09-09: the capital-path decision removes the
+    # infrastructure term from D(0), so the naive estimate falls. The gap to the
+    # true crossover is 0.3282 − 0.2651 = 0.063, and the DIRECTION asserted above
+    # — the closed form understates — is what the test claims and still holds.
+    assert naive == pytest.approx(0.2651, abs=0.005)
     # 0.441 at the K-IV anchor; 0.425 after the Finding-E re-anchor. The CLAIM
     # is the gap against the naive closed form (0.360), which the smaller
     # non-personal load narrows without closing.
     # crossover 0.425 → 0.335: less personal demand to automate away, so the
     # arc reaches feasibility earlier.
-    assert actual == pytest.approx(0.35553, abs=0.005)
+    # 0.35553 → 0.32816 on 2026-09-09: less non-personal demand at ε=0 means
+    # the arc reaches feasibility sooner.
+    assert actual == pytest.approx(0.32816, abs=0.005)
     assert actual - naive > 0.05
 
 
@@ -387,7 +424,12 @@ def test_identity_recovers_the_base_from_M_and_H():
     # 536.2 post-K-IV (was 544.0): R rises, so B = (M + H − R)/w falls. Still
     # comfortably inside the independent supply-ceiling band, which is the
     # point of the two-instrument agreement.
-    assert r["implied_base"] == pytest.approx(587.0538, abs=2.0)
+    # 643.75 since 2026-09-09: the capital-path decision removes the ε=0
+    # infrastructure term from R, and B = (M + H − R)/w rises as R falls. Still
+    # comfortably inside the independent supply-ceiling band (482–1147), which
+    # is the point of the two-instrument agreement — and the band moved WITH it,
+    # so the agreement is not an artefact of both arms sharing the change.
+    assert r["implied_base"] == pytest.approx(643.7457, abs=2.0)
     assert r["implied_epsilon"] == pytest.approx(0.302, abs=0.005)
 
 
@@ -440,7 +482,11 @@ def test_shipped_base_predicts_an_unobserved_working_day():
     # are inside the capacity band. The same obligation spread over more adults
     # is fewer hours EACH — the claim is that the day is unobserved, and 5.76
     # h/adult/day every day of the year still is.
-    assert p["human_per_adult_day"] == pytest.approx(5.76, abs=0.2)
+    # 6.28 → 5.76 → 5.44 (2026-09-09, capital-path decision: less non-personal
+    # demand leaves fewer implied human hours). The claim is that the day is
+    # UNOBSERVED, and 5.44 h/adult/day every day of the year still is — the
+    # week check below is what would catch it stopping being so.
+    assert p["human_per_adult_day"] == pytest.approx(5.4413, abs=0.2)
     assert p["human_per_adult_day"] * 365.0 / 7.0 > 40.0, (
         "the implied week has fallen below a full-time job; the claim that the "
         "shipped base predicts an UNOBSERVED working day needs re-checking."

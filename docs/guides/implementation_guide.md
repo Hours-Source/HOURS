@@ -37,7 +37,7 @@ represents and where to find it in real-world data:
 | Field | Type | Units | Real-world data source |
 |---|---|---|---|
 | `population` | float | persons | Census — total resident population |
-| `capital_stock_teh` | float | TEH (≈ labor-hours of value) | National accounts: gross fixed capital stock, converted at your TEH/dollar exchange rate |
+| `capital_stock_teh` | float | TEH (≈ labor-hours of value) | National accounts: gross fixed capital stock, converted at your TEH/dollar exchange rate. **This is the stock you hold NOW, not an ε=0 baseline** — it is used exactly as supplied and is never rescaled by ε (author decision, 2026-09-09). Omit it and the model fills it from the canonical arc at your ε, which is a reference trajectory rather than your economy. Capital travels with `population` and `ecological_area_hectares` as ONE FRAME: the shipped default is stated at a 1M reference population, so moving the population without moving capital models your jurisdiction with someone else's apparatus. |
 | `capital_age_ratio` | float | [0, 1] | National accounts: average age of fixed assets / average design life (or use 0.5 as default if unavailable) |
 | `ecosystem_health` | float | [0, 1] | Ecosystem Services Index (ESI), Biodiversity Intactness Index (BII), or local ecological monitoring; 0.7 = moderate degradation, 0.9 = near-pristine. **Since Phases 4e/4f this no longer moves the ecological DOMAIN** — see the note below. It still drives the Ground Use Fee, which is where the recurring cost now sits. |
 | `monitoring_capability` | float | [0, 1] | Fraction of deferred ecological EOH your monitoring systems can detect; proxy with your ecological data coverage fraction |
@@ -171,8 +171,13 @@ every canonical result in this repo was produced at them.
   function takes `trust_balance` as an argument, so you need not edit the
   constant — pass your own.
 - **`CAPITAL_STOCK_DEFAULT = 2000000000.0`** — your gross fixed capital stock in
-  TEH. Note it is 2,000 TEH/capita, which describes a *mid-arc* collective; at
-  low ε you would be asserting capital the arc says is not there.
+  TEH, and it is the stock you hold NOW: since 2026-09-09 a supplied stock is
+  used exactly as given and is never rescaled by ε. Note the shipped value is
+  2,000 TEH/capita **at the 1M reference population**, which describes a
+  *mid-arc* collective — so passing it unchanged at low ε asserts capital the arc
+  says is not there, and passing it unchanged at a different population asserts
+  someone else's apparatus. Leave the field unset and the model fills it from the
+  canonical arc at your ε instead.
 - **`CONTESTABILITY_G_PRIV = 0.03`** — your real capital return net of
   depreciation. Piketty's r gives 4–5%, above this default.
 - **`GUF_LVI_W_*`** — land-value sub-index weights. Land value is local by
@@ -263,13 +268,18 @@ eoh = total_eoh(
     knowledge_complexity_per_unit=your_state["knowledge_complexity_per_unit"],
 )
 # eoh["total"] = your jurisdiction's total entropy obligation (h/yr)
-# eoh["personal"] = biological burden (≈ 1,000 × population × 1.475)
+# eoh["personal"] = biological burden (≈ PERSONAL_EOH_BASE × population × w,
+#                   where w is the age-weighted mean — see the check below)
 # eoh["infrastructure"] = capital stock maintenance burden
 ```
 
 Check plausibility: personal EOH should be roughly `PERSONAL_EOH_BASE × population
-× 1.475`, where 1.475 is the age-weighted mean at default demographics. If it's
-wildly off, check that your `age_distribution` fractions sum to 1.0 and match the
+× w`, where `w` is the age-weighted mean at YOUR demographics. Get it from
+`scenarios.feasibility.age_weight_mean()` rather than from a number written here
+— it reads **1.3528** at the shipped defaults, and it was **1.475** until the
+2026-08-10 elderly revalue and the MTUS child measurement moved it. This
+paragraph said 1.475 for a month afterwards. If your figure is wildly off, check
+that your `age_distribution` fractions sum to 1.0 and match the
 `AGE_GROUP_RANGES` keys.
 
 **Which standard are you asking for?** `PERSONAL_EOH_BASE` is the operating value
@@ -464,17 +474,24 @@ pipe = eoh_to_teh_pipeline(
 #   pipe["deferred_total"]             -> obligation your labour could not meet
 #
 # THIS EXAMPLE DOES NOT CLEAR, AND THAT IS THE POINT OF SHOWING IT.
-# The human obligation is 5.535e9 EOH/yr against 2,205,000 workers — about
-# 2,510 h each per year. No point in WORK_YEAR_REFERENCE_POINTS reaches that,
+# The obligation is pipe["human_eoh"] + pipe["deferred_total"] — read it from
+# the call rather than from this comment. Against 2,205,000 workers it needs
+# more hours each per year than ANY point in WORK_YEAR_REFERENCE_POINTS reaches,
 # nominal included, so the shortfall stands at every work-year the framework
 # carries and pipe["deferred_total"] is non-zero.
 #
+# Only the SHAPE is stated here, deliberately. An earlier version of this
+# comment carried three derived figures and all three had gone stale — they
+# still described a configuration two changes back. That drift is failure mode
+# 13, and the remedy the repo already applies elsewhere is to print the number
+# instead of restating it.
+#
 # That is expected rather than alarming. Hold this capital stock and demography
-# fixed and the obligation is met from capability ~0.47 upward; the example
-# runs at 0.28. Compute your own clearing point rather than quoting one — it
-# depends on your capital stock, your demography and your land, and the package
-# default from `eoh scenario run feasibility` is a DIFFERENT configuration with
-# a different answer.
+# fixed and the obligation is met from a capability somewhere near half; the
+# example runs at 0.28. COMPUTE YOUR OWN clearing point rather than quoting one
+# — it depends on your capital stock, your demography and your land, and the
+# package default from `eoh scenario run feasibility` is a DIFFERENT
+# configuration with a different answer.
 #
 # Do NOT raise the labour figure until the deferral disappears. The deferral is
 # the finding, and suppressing it is exactly what this field exists to prevent.
@@ -499,7 +516,15 @@ exit_fin = exit_financing(epsilon, population=population)
 
 # --- Interpret ---
 print(f"Total EOH demand:  {pipe['total_eoh']/1e9:.2f}B h/yr")
-print(f"Human EOH burden:  {pipe['human_eoh']/1e9:.2f}B h/yr  (= total × (1−ε))")
+print(f"Human EOH burden:  {pipe['human_eoh']/1e9:.2f}B h/yr  (= SERVED, not owed)")
+# Under a binding labour constraint human_eoh reports what was SERVED, so
+# reading it alone hands your own labour supply back to you. The obligation is
+# the sum below, and the identity is what makes the deferral visible.
+obligation = pipe["human_eoh"] + pipe["deferred_total"]
+print(f"Human obligation:  {obligation/1e9:.3f}B h/yr  "
+      f"({obligation/workers:,.0f} h per worker · yr against {workers:,.0f} workers)")
+print(f"Deferred:          {pipe['deferred_total']/1e9:.3f}B h/yr  "
+      f"(labour-constrained: {pipe['labor_constrained']})")
 print(f"TEH created:       {pipe['teh_created']/1e9:.2f}B TEH/yr")
 print(f"Fiscal solvent:    {snap['solvent']}")
 print(f"Trust end:         {snap['trust']['trust_end']/1e9:.1f}B TEH")

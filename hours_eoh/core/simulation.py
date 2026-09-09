@@ -50,7 +50,7 @@ def make_economy_state(
     workforce_fraction: float = 0.60,
     trust_balance: float = TRUST_BASE_TEH,
     labor_income_teh: float = 5_000_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
@@ -81,7 +81,9 @@ def make_economy_state(
         labor_income_teh: Recorded labor income from the last completed period (TEH).
                           Written for observability; simulate_period() derives income
                           from the EOH pipeline (teh_created), not from this field.
-        capital_stock_teh: Aggregate capital stock value (TEH at ε=0 baseline).
+        capital_stock_teh: Aggregate ACTUAL capital stock in TEH — the stock this
+                           collective holds now, NOT an ε=0 baseline. When None,
+                           resolved from epsilon along the canonical arc.
         capital_age_ratio: Mean(age / design_life) across all capital assets ∈ [0, 1].
         ecosystem_health: Aggregate ecosystem state ∈ [0, 1].
         deferred_ecological: Accumulated deferred ecological EOH (hours).
@@ -116,7 +118,12 @@ def make_economy_state(
         State dict with all the above keys plus derived "workforce_size".
     """
     from hours_eoh.core.trajectory import canonical_physical_state as _cps
-    _cap_embodied = capital_stock_teh if capital_embodied_teh is None else capital_embodied_teh
+    # capital_stock_teh resolves from ε exactly as monitoring_capability does,
+    # and for the same reason (2026-09-09). It is the ACTUAL stock this state
+    # holds, not an ε=0 baseline: simulate_period grows it and hands it to the
+    # pipeline, which no longer rescales a supplied stock.
+    _capital      = _cps(epsilon)["capital_stock_teh"] if capital_stock_teh is None else capital_stock_teh
+    _cap_embodied = _capital if capital_embodied_teh is None else capital_embodied_teh
     _endowment    = (trust_balance + _cap_embodied) if teh_endowment is None else teh_endowment
     _monitoring   = _cps(epsilon)["monitoring_capability"] if monitoring_capability is None else monitoring_capability
     return {
@@ -126,7 +133,7 @@ def make_economy_state(
         "workforce_size":                population * workforce_fraction,
         "trust_balance":                 trust_balance,
         "labor_income_teh":              labor_income_teh,
-        "capital_stock_teh":             capital_stock_teh,
+        "capital_stock_teh":             _capital,
         "capital_age_ratio":             capital_age_ratio,
         "ecosystem_health":              ecosystem_health,
         "deferred_ecological":           deferred_ecological,

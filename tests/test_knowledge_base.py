@@ -295,7 +295,10 @@ class TestDomainShareProjection:
     def test_knowledge_becomes_material_and_personal_falls(self):
         p = domain_share_projection()
         rows = {r["epsilon"]: r for r in p["rows"]}
-        assert rows[0.0]["personal_share"] == pytest.approx(0.943, abs=0.01)
+        # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
+        # capital stock resolves along the canonical arc, so the infrastructure term
+        # falls at low ε and every ratio computed against total EOH moves with it.
+        assert rows[0.0]["personal_share"] == pytest.approx(0.98947, abs=0.01)
         # 0.489 → 0.457 with the elderly revalue, → 0.445 once the working life
         # was measured. Personal has not moved in either case: the renewal rate
         # rose 6.7%, so KNOWLEDGE grew and took share from everything else.

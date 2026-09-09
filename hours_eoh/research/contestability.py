@@ -50,7 +50,7 @@ Mission Statement: §"Contestability — the invariant the arc must preserve."
 
 from __future__ import annotations
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_generation import total_eoh, resolve_capital_stock
 from hours_eoh.core.fiscal import sufficiency_guarantee
 from hours_eoh.data import (
     AGE_GROUPS, PERSONAL_EOH_BASE, DEP_RATE, DIV_RATE,
@@ -910,7 +910,7 @@ def tau_gradient_check(
 def min_levy_for_pi(
     epsilon: float,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     g_priv: float = CONTESTABILITY_G_PRIV,
 ) -> dict:
     """
@@ -956,6 +956,9 @@ def min_levy_for_pi(
         levy_as_fraction_of_automated_output (None when ε=0),
         feasible, epsilon.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock = resolve_capital_stock(capital_stock, epsilon)
     if not 0.0 <= epsilon <= 0.99:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
@@ -1098,7 +1101,7 @@ def levy_schedule_for_chi(
     n_points: int = 20,
     regime: str = "increasing_returns",
     population: float = 1_000_000.0,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     chi_target: float = CONTESTABILITY_CHI_CRIT,
     trust_start: float = TRUST_BASE_TEH,
     levy_base: str = "capital_yield",
@@ -1167,6 +1170,10 @@ def levy_schedule_for_chi(
         chi_check is contestability_margin() recomputed at trust_target — it
         must satisfy chi ≥ chi_target at every row (asserted in tests).
     """
+    # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
+    # capital_stock arg), so it resolves with no ε — the canonical base — and
+    # this function's numbers are unchanged by the capital-path decision.
+    capital_stock = resolve_capital_stock(capital_stock, None)
     if levy_base not in ("capital_yield", "machine_output"):
         raise ValueError(
             f"levy_base must be 'capital_yield' or 'machine_output', got {levy_base!r}"
@@ -1224,7 +1231,7 @@ def chi_arc(
     regime: str = "increasing_returns",
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
 ) -> list[dict]:
     """
     Arc sweep of the contestability invariant across ε ∈ [0, 0.99].
@@ -1249,6 +1256,10 @@ def chi_arc(
             epsilon, p, k_entry, chi_population_avg, chi_marginal, phi, tau,
             levy_fraction, levy_feasible, status.
     """
+    # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
+    # capital_stock arg), so it resolves with no ε — the canonical base — and
+    # this function's numbers are unchanged by the capital-path decision.
+    capital_stock = resolve_capital_stock(capital_stock, None)
     rows = []
     for i in range(n_points):
         eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40

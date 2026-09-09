@@ -44,7 +44,11 @@ EOH_DEFAULTS: dict[str, Any] = {
     "personal_eoh_base":    PERSONAL_EOH_BASE,   # hours/year, working-age reference
 
     # --- Infrastructure EOH domain ---
-    "capital_stock_teh":       CAPITAL_STOCK_DEFAULT,  # total capital stock in TEH at ε=0
+    # ACTUAL total capital stock in TEH, not an ε=0 baseline (2026-09-09,
+    # capital-path decision): a supplied stock is never rescaled by ε. The
+    # shipped value is the canonical base, stated at the 1M reference
+    # population — see CAPITAL_STOCK_DEFAULT's own tag block on the frame.
+    "capital_stock_teh":       CAPITAL_STOCK_DEFAULT,
     "infra_maintenance_rate":  INFRA_MAINT_RATE,
     "capital_age_ratio":       0.50,              # mean(current_age / design_life)
     "infra_age_factor_max":    INFRA_AGE_FACTOR_MAX,

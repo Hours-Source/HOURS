@@ -46,6 +46,7 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 # Reference annual thermal obligation for a 1M-person collective at ε = 0.40,
 # from research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"] —
@@ -80,7 +81,7 @@ def thermal_load_arc(
     population: float = REFERENCE_POPULATION,
     arc: tuple[float, ...] = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99),
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     ecosystem_health: float = 0.70,
 ) -> list[ThermalLoadRow]:
     """
@@ -137,6 +138,10 @@ def thermal_load_arc(
 
     rows: list[ThermalLoadRow] = []
     for eps in arc:
+        # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε.
+        # Resolved once per point so the four calls below cannot read different
+        # capital for the same ε.
+        cap_at_eps = resolve_capital_stock(capital_stock, eps)
         # COMPUTED AT THE PRE-PARTITION POLICY, and the reason is the module's
         # question. `load_ratio` asks how much the thermal obligation moves the
         # ECOLOGICAL DOMAIN — which presupposes a domain to move. Phases 4e/4f
@@ -146,18 +151,18 @@ def thermal_load_arc(
         # answerable; `thermal_share_of_total`, which measures the effect on the
         # LEDGER rather than on the domain, is unaffected either way.
         base = total_eoh(epsilon=eps, population=population,
-                         capital_stock=capital_stock,
+                         capital_stock=cap_at_eps,
                          ecosystem_health=ecosystem_health,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         loaded = total_eoh(epsilon=eps, population=population,
-                           capital_stock=capital_stock,
+                           capital_stock=cap_at_eps,
                            ecosystem_health=ecosystem_health,
                            thermal_obligation=thermal_obligation,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         pipeline = eoh_to_teh_pipeline(eps, population=population,
-                                       capital_stock=capital_stock,
+                                       capital_stock=cap_at_eps,
                                        ecosystem_health=ecosystem_health,
                                        thermal_obligation=thermal_obligation,
                                        ecological_standing_response="domain",
@@ -168,7 +173,7 @@ def thermal_load_arc(
             population=population,
             trust_balance=trust_balance,
             labor_income=teh_created,
-            capital_stock_teh=capital_stock,
+            capital_stock_teh=cap_at_eps,
             capital_age_ratio=0.5,
             ecosystem_health=ecosystem_health,
             thermal_obligation=thermal_obligation,

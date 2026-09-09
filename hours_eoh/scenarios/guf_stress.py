@@ -42,6 +42,7 @@ from hours_eoh.land.guf import (
     eoh_accumulation_warning,
 )
 from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 _DEFAULT_PARCEL: dict[str, Any] = {
     "area_slu":       3.5,
@@ -62,7 +63,7 @@ def guf_fiscal_integration(
     parcel_configs: list[dict[str, Any]] | None = None,
     trust_balance: float = TRUST_BASE_TEH,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     levy_rates: dict | None = None,
     dep_rate: float = DEP_RATE,
@@ -108,6 +109,9 @@ def guf_fiscal_integration(
           "recommendation":            str,
         }
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     configs = [_DEFAULT_PARCEL] if parcel_configs is None else parcel_configs
 
     parcel_results = [
@@ -407,7 +411,7 @@ def automation_levy_guf_stress(
     n_periods: int = 20,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     levy_rates: dict | None = None,
     median_income: float = 0.0,
@@ -485,8 +489,13 @@ def automation_levy_guf_stress(
         guf_result   = compute_collective_guf(inventory, eps, median_income=median_income)
         guf_net      = guf_result["guf_net_inflow"]
 
+        # (e) 2026-09-09: this walks ε, so an unspecified stock resolves along
+        # the arc at EACH period rather than once — the stewardship cost should
+        # follow the apparatus the arc says exists at that ε, not the one it had
+        # when the run started.
         stew_cost    = stewardship_allocation(
-            capital_stock_teh, capital_age_ratio, eps, bal
+            resolve_capital_stock(capital_stock_teh, eps),
+            capital_age_ratio, eps, bal
         )["teh_allocated"]
         guar_cost    = sufficiency_guarantee(
             population, eps,

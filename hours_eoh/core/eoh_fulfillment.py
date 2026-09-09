@@ -700,7 +700,7 @@ def eoh_to_teh_pipeline(
     epsilon: float | None = None,
     population: float = 1_000_000.0,
     age_distribution: dict | None = None,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,

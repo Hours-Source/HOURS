@@ -37,6 +37,7 @@ from hours_eoh.core.eoh_generation import (
     ecological_eoh,
     knowledge_eoh,
     total_eoh as compute_total_eoh,
+    resolve_capital_stock,
 )
 from hours_eoh.core.fiscal import (
     levy_collection,
@@ -63,7 +64,7 @@ _INV_SEVERITY: dict[int, str] = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
 def automation_failure_shock(
     epsilon: float,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
     knowledge_base_size: float = 10.0,
@@ -105,6 +106,9 @@ def automation_failure_shock(
           "recommendation":       str,
         }
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     from hours_eoh.core.trajectory import canonical_physical_state as _cps
     _state = _cps(epsilon)
 
@@ -207,7 +211,7 @@ def demographic_shock(
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
 ) -> dict:
     """
@@ -235,6 +239,9 @@ def demographic_shock(
     Returns:
         dict with "outcome" ∈ {"STABLE", "DEGRADED", "CRISIS"} and "recommendation".
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     VALID = ("growth", "decline", "aging")
     if shock_type not in VALID:
         raise ValueError(f"shock_type must be one of {VALID}, got '{shock_type}'")
@@ -362,7 +369,7 @@ def ecological_eoh_spike(
     div_rate: float = DIV_RATE,
     population: float = 1_000_000.0,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
 ) -> dict:
     """
@@ -390,6 +397,9 @@ def ecological_eoh_spike(
     Returns:
         dict with "outcome" ∈ {"STABLE", "DEGRADED", "CRISIS"} and "recommendation".
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     eoh_before = ecological_eoh(ecosystem_health_before, epsilon,
                                 base_rate=base_rate,
                                 deferred=deferred_ecological_eoh)
@@ -469,7 +479,7 @@ def labor_income_shock(
     income_fraction: float,
     trust_balance: float = TRUST_BASE_TEH,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
@@ -513,6 +523,9 @@ def labor_income_shock(
           "recommendation":         str,
         }
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     if not 0.0 <= income_fraction <= 1.0:
         raise ValueError(f"income_fraction must be in [0, 1], got {income_fraction}")
 
@@ -593,7 +606,7 @@ def compound_shock(
     automation_fraction_lost: float = 0.0,
     trust_balance: float = TRUST_BASE_TEH,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
@@ -642,6 +655,9 @@ def compound_shock(
           "recommendation":       str,
         }
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     individual_outcomes: dict = {}
     combined_eoh_delta: float = 0.0
 

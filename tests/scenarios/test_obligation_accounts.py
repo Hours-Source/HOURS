@@ -78,8 +78,18 @@ class TestTheShapeTheFourWaySumHides:
         """
         arc = accounts_arc()
         obligation_growth = arc[-1]["obligation"] / arc[0]["obligation"]
-        delivery_growth = arc[-1]["delivery"] / arc[0]["delivery"]
         assert obligation_growth < 1.25, "the obligation should be nearly flat"
+
+        # DELIVERY IS EXACTLY ZERO AT ε = 0 since the capital-path decision
+        # (2026-09-09): the canonical arc holds no apparatus at subsistence. The
+        # finding is STRONGER for it — delivery grows from nothing, not from a
+        # small number — but a ratio to arc[0] can no longer express it, so the
+        # ordering is asserted from the first point that HAS delivery, and the
+        # zero is asserted on its own rather than divided by.
+        assert arc[0]["delivery"] == 0.0, (
+            "the arc's origin should carry no built apparatus")
+        base = next(r for r in arc if r["delivery"] > 0.0)
+        delivery_growth = arc[-1]["delivery"] / base["delivery"]
         assert delivery_growth > 10.0, "delivery should grow by an order of magnitude"
         assert delivery_growth > 10.0 * obligation_growth
 

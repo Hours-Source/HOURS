@@ -118,11 +118,32 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
 
     These tests therefore pin the NEW state and the REASON, so that the day the
     demand side is measured, the comparison is available rather than lost.
+
+    AND ON 2026-09-09 THE COMPARISON WAS LOST ANYWAY, TO A SECOND CHANGE. The
+    capital-path decision (reading (e)) resolves an unspecified capital stock
+    along the canonical arc, which holds NO apparatus at ε=0, so the whole
+    infrastructure term leaves the subsistence demand. Under the pre-adoption
+    share the frame count went 17/50 → 39/50 and **US2024 now clears too**
+    (ratio 0.9774): the retrodiction no longer reproduces under EITHER band, so
+    the "kept runnable" comparison above is no longer runnable.
+
+    That is a second one-sided loosening — it moves demand down without anyone
+    measuring the demand side — and it lands on the axis this class was written
+    to protect. The numbers are pinned below in both states so the loss is a
+    visible number rather than a remembered one, but the comparison itself
+    cannot be recovered from this file: it needs the capital path as well as the
+    band, and only the band was ever a parameter.
     """
 
-    #: 17/50 under the pre-adoption share of 0.60. Pinned so the flip is a
-    #: visible number rather than a remembered one.
-    N_CLEARING_BEFORE_BAND_ALIGNMENT = 17
+    #: 39/50 under the pre-adoption share of 0.60, since the 2026-09-09
+    #: capital-path decision; 17/50 before it. Pinned so each flip is a visible
+    #: number rather than a remembered one — and the docstring above says which
+    #: change produced which, because two now have.
+    N_CLEARING_BEFORE_BAND_ALIGNMENT = 39
+    #: what the same count read before the capital path moved, kept as the
+    #: attribution rather than as a reproducible state: it is NOT recoverable
+    #: from a parameter in this file.
+    N_CLEARING_BEFORE_CAPITAL_PATH = 17
 
     def test_most_frames_now_clear_at_zero(self) -> None:
         r = measured_capacity_frames()
@@ -134,9 +155,12 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
 
     def test_the_flip_is_the_band_alignment_and_nothing_else(self) -> None:
         """
-        Re-runs the pre-adoption share directly. If this stops reproducing 17,
-        something OTHER than the band alignment has moved the frame counts and
-        the attribution in the history entry is wrong.
+        Re-runs the pre-adoption share directly. It DID stop reproducing 17,
+        on 2026-09-09, and the guard worked exactly as written: something other
+        than the band alignment had moved the frame counts. That something is
+        the capital-path decision, named in the class docstring. If this stops
+        reproducing 39, a THIRD change has moved them and the attribution is
+        wrong again.
         """
         frames = mtus.capacity_frames()
         before = sum(
@@ -175,8 +199,14 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
         c24 = mtus.measured_capacity("US2024")
         before65 = feasibility_check(adult_capacity_h_yr=c65, adult_share=0.60)
         before24 = feasibility_check(adult_capacity_h_yr=c24, adult_share=0.60)
-        assert before65["feasible"] is True and before24["feasible"] is False
-        assert before65["demand_supply_ratio"] < 1.0 < before24["demand_supply_ratio"]
+        # BOTH HALVES NOW CLEAR UNDER THE PRE-ADOPTION SHARE TOO (2026-09-09).
+        # This asserted `before24["feasible"] is False` — the surviving half of
+        # the retrodiction — and the capital-path decision removed it: US2024
+        # reads 0.9774, just under. The ORDERING is what remains, and it is
+        # asserted because it is the part that has not moved: 1965 still sits
+        # further below the line than 2024.
+        assert before65["feasible"] is True and before24["feasible"] is True
+        assert before65["demand_supply_ratio"] < before24["demand_supply_ratio"] < 1.0
 
         after65 = feasibility_check(adult_capacity_h_yr=c65)
         after24 = feasibility_check(adult_capacity_h_yr=c24)
@@ -230,13 +260,21 @@ class TestTheDefaultIsTheMeasuredMedian:
         """
         check = feasibility_check(epsilon=0.0)
         assert check["feasible"] is True
-        assert 0.90 < check["demand_supply_ratio"] < 1.0
+        # 0.942 at the band alignment; 0.893 since the capital-path decision
+        # (2026-09-09) took the ε=0 infrastructure term out of the demand.
+        assert 0.85 < check["demand_supply_ratio"] < 1.0
         at_h_ref = feasibility_check(epsilon=0.0, adult_capacity_h_yr=float(H_REF))
         assert check["demand_supply_ratio"] < at_h_ref["demand_supply_ratio"]
         # the capacity fix ALONE, on the pre-adoption share: narrowed, not closed
+        # AND THE CAPACITY-ONLY CASE NOW CLEARS TOO (2026-09-09). It read
+        # 1.026 — narrowed but not closed, which is what this test was written
+        # to say — and the capital-path decision took it to 0.9774. So the
+        # "only the second correction closed it" account above is now the
+        # history of how it was closed, not a state this file can reproduce;
+        # the capacity fix alone no longer leaves a deficit to point at.
         capacity_only = feasibility_check(epsilon=0.0, adult_share=0.60)
-        assert 1.0 < capacity_only["demand_supply_ratio"] < 1.10
-        assert capacity_only["feasible"] is False
+        assert 0.95 < capacity_only["demand_supply_ratio"] < 1.0
+        assert capacity_only["feasible"] is True
 
     def test_the_stationary_band_is_pinned_at_its_level(self) -> None:
         """
@@ -249,8 +287,10 @@ class TestTheDefaultIsTheMeasuredMedian:
         is the third time that has paid.
         """
         from hours_eoh.scenarios.arc_stability import stationary_band
+        # 0.491 → 0.382 → 0.374 → 0.309 → 0.290 (2026-09-09, capital path).
+        # Fifth move, fourth time the level pin made one visible.
         assert stationary_band(standard="sufficiency")["lower"] == pytest.approx(
-            0.310, abs=5e-4
+            0.290, abs=5e-4
         )
         assert stationary_band(standard="survival")["lower"] == pytest.approx(
             0.0, abs=5e-4

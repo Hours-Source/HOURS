@@ -21,6 +21,8 @@ from hours_eoh.data import (
     ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
     BASE_LIFETIME_EARNINGS_TEH,
+    INFRA_MAINT_RATE,
+    INFRA_AGE_FACTOR_MAX,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -998,3 +1000,81 @@ class TestTheDeferredEcologicalRate:
         assert flat == pytest.approx(1.0e6), "rate 0 must not grow the stock"
         assert slow > flat, "a positive rate must grow a supplied stock"
         assert fast > slow, "and a larger rate must grow it faster"
+
+
+class TestTheEngineDoesNotRescaleItsOwnStock:
+    """
+    THE DEFECT THIS PINS, and why no existing test saw it.
+
+    `simulate_period` grows a stock (`new_cap_stock = cap_stock * (1 + rate)`),
+    writes the UNSCALED value back to state, computes the write-down on the
+    UNSCALED value — and handed it to the pipeline WITH ε, which until
+    2026-09-09 treated a supplied stock as an ε=0 baseline and multiplied it by
+    (1 + CANONICAL_CAPITAL_GROWTH_SLOPE × ε). So one variable carried two
+    meanings inside one period: maintenance was charged on 2.00× the capital the
+    state held at ε=0.50, rising to 2.98× at ε=0.99, while the write-down used
+    the stock as written.
+
+    Every existing simulation test passed throughout, because they all read the
+    engine's outputs against each other and none compared the infrastructure
+    charge against the STOCK IT IS A CHARGE ON. That is the comparison here.
+    """
+
+    def test_infrastructure_is_charged_on_the_stock_the_state_holds(self) -> None:
+        from hours_eoh.core.eoh_generation import infrastructure_eoh
+
+        state = make_economy_state(population=1_000_000.0)
+        seen = 0
+        for _ in range(6):
+            state, report = simulate_period(
+                state, epsilon_delta=0.10, capital_investment_rate=0.02)
+            charged = report["eoh_by_domain"]["infrastructure"]
+            on_state = infrastructure_eoh(
+                state["capital_stock_teh"], state["capital_age_ratio"], None)
+            assert charged == pytest.approx(on_state, rel=1e-12), (
+                f"at ε={state['epsilon']:.2f} the engine charged maintenance on "
+                f"{charged / on_state:.4f}× the capital the state holds"
+            )
+            seen += 1
+        # the loop must actually have run past ε=0, or the ratio is 1 for the
+        # trivial reason that nothing was scaled by anything.
+        assert seen == 6 and state["epsilon"] > 0.5
+
+    def test_the_writedown_reads_the_same_stock_as_the_charge(self) -> None:
+        """
+        The two consumers of `new_cap_stock` must agree about what it means.
+        The write-down always read it as the actual stock; the pipeline now does
+        too, so a ratio between them is stable across ε rather than drifting
+        with it.
+        """
+        from hours_eoh.data import (
+            CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE)
+
+        state = make_economy_state(population=1_000_000.0)
+        for _ in range(5):
+            embodied_before = state["capital_embodied_teh"]
+            state, report = simulate_period(
+                state, epsilon_delta=0.15, capital_investment_rate=0.0)
+            stock = state["capital_stock_teh"]
+            eps = state["epsilon"]
+
+            # the CHARGE, inverted back to the stock it was taken on
+            charge = report["eoh_by_domain"]["infrastructure"]
+            charge_stock = charge / (INFRA_MAINT_RATE * (
+                1.0 + (INFRA_AGE_FACTOR_MAX - 1.0) * state["capital_age_ratio"]))
+
+            # the WRITE-DOWN, inverted back to the stock IT was taken on. It is
+            # not reported on its own — it is folded into `teh_destroyed` — but
+            # with investment held at zero it is exactly the fall in embodied
+            # capital: new_embodied = embodied + 0 − writedown.
+            writedown = embodied_before - state["capital_embodied_teh"]
+            writedown_stock = writedown / (
+                CAPITAL_FAILURE_RATE
+                * (1.0 - CAPITAL_WRITEDOWN_MONITORING_SLOPE * eps))
+
+            assert charge_stock == pytest.approx(stock, rel=1e-9)
+            assert writedown_stock == pytest.approx(stock, rel=1e-9)
+            assert charge_stock == pytest.approx(writedown_stock, rel=1e-9), (
+                f"at ε={eps:.2f} the maintenance charge and the write-down "
+                f"disagree about the stock by "
+                f"{charge_stock / writedown_stock:.4f}×")

@@ -361,36 +361,50 @@ class TestBackwardCompat:
             assert p_new == pytest.approx(p_old, rel=1e-9), f"ε={eps}"
 
     def test_infrastructure_eoh_compat(self):
-        """The physical-state path and the legacy ε path now DIFFER by the
-        intercept, and deliberately so (Block III).
+        """The two paths AGREE (2026-09-09, author decision — reading (e)).
 
-        The legacy path treats `self.CAPITAL` as an ε=0 baseline that exists and
-        grows; the arc says the apparatus is built FROM nothing. Both are
-        internally consistent — they start from different premises about whether
-        the caller already has capital. Only the ratio is asserted, since that is
-        the part the two share.
+        Until this decision the ε path treated a supplied stock as an ε=0
+        baseline and scaled it by (1 + 2ε), while `canonical_physical_state`
+        said the arc's capital is 3ε × base. They diverged everywhere but ε=1 —
+        1.50× at ε=0.40 — and this test PINNED the divergence as deliberate.
+
+        ε now FILLS an unspecified stock rather than rescaling a supplied one,
+        so the arc reference and the entry point read the same capital at every
+        ε. That equality is the point of the change, and it is what is asserted.
         """
         for eps in self.EPS_VALUES:
             state = canonical_physical_state(eps)
-            i_new = infrastructure_eoh(
+            i_arc = infrastructure_eoh(
                 state["capital_stock_teh"],
                 capital_age_ratio=state["capital_age_ratio"],
             )
-            i_old = infrastructure_eoh(
-                self.CAPITAL,
+            i_eps = infrastructure_eoh(
+                None,
                 capital_age_ratio=state["capital_age_ratio"],
                 epsilon=eps,
             )
-            # the legacy path carries the caller's baseline; the arc does not
-            assert i_old > i_new or eps == 0.0
-            if eps > 0.0:
-                ratio = i_new / i_old
-                expected = (1.0 + 2.0) * eps / (1.0 + 2.0 * eps)
-                assert ratio == pytest.approx(expected, rel=1e-9), f"ε={eps}"
-        # at ε=0 the arc has no apparatus at all
+            assert i_eps == pytest.approx(i_arc, rel=1e-12), f"ε={eps}"
+        # at ε=0 the arc has no apparatus at all, by either route
+        assert infrastructure_eoh(None, capital_age_ratio=0.3, epsilon=0.0) == 0.0
         assert infrastructure_eoh(
             canonical_physical_state(0.0)["capital_stock_teh"],
             capital_age_ratio=0.3) == 0.0
+
+    def test_a_supplied_stock_is_never_rescaled(self):
+        """The half of reading (e) that the equality test above cannot see.
+
+        `test_infrastructure_eoh_compat` passes capital as None, so it would
+        still pass if a supplied stock were scaled by anything at all. This
+        pins the other half: the SAME supplied stock returns the SAME EOH at
+        every ε, which is what makes `simulate_period`'s tracked stock safe to
+        hand to the pipeline.
+        """
+        levels = [infrastructure_eoh(self.CAPITAL, capital_age_ratio=0.40,
+                                     epsilon=eps) for eps in self.EPS_VALUES]
+        assert len(set(levels)) == 1, (
+            f"a supplied stock moved with ε: {levels}")
+        assert levels[0] == pytest.approx(
+            infrastructure_eoh(self.CAPITAL, capital_age_ratio=0.40), rel=1e-12)
 
     def test_ecological_eoh_compat(self):
         for eps in self.EPS_VALUES:

@@ -32,7 +32,9 @@ from hours_eoh.data import (
     CARE_AUTOMATION_FLOOR, SUFF_GUARANTEE_STRUCTURAL_MIN,
     PROVIDER_CAP_EQUIVALENTS,
 )
-from hours_eoh.core.eoh_generation import infrastructure_eoh, ecological_eoh
+from hours_eoh.core.eoh_generation import (
+    infrastructure_eoh, ecological_eoh, resolve_capital_stock,
+)
 from hours_eoh.core.eoh_fulfillment import human_eoh_share
 
 
@@ -1413,7 +1415,7 @@ def trust_solvency_trajectory(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     epsilon: float = 0.40,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     population: float = 1_000_000.0,
     solvency_floor: float | None = None,
@@ -1467,6 +1469,9 @@ def trust_solvency_trajectory(
     remain solvent under any automation level"; §"The Trust must be maintained
     across the full automation arc."
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     # Auto-compute period costs if not provided
     if stewardship_cost_per_period is None:
         stew_result = stewardship_allocation(
@@ -1575,7 +1580,7 @@ def min_levy_for_solvency(
     epsilon: float = 0.40,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     population: float = 1_000_000.0,
     stewardship_teh: float | None = None,
@@ -1644,6 +1649,9 @@ def min_levy_for_solvency(
     remain solvent under any automation level"; §"Policy calibration requires
     knowing not just outcomes but what inputs are required for a target outcome."
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     ann_dep  = trust_balance * dep_rate
     dividend = ann_dep * div_rate
 

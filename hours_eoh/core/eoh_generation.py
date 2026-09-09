@@ -77,6 +77,40 @@ def _resolve_monitoring_capability(
     return CANONICAL_MONITORING_CAPABILITY_BASE
 
 
+def resolve_capital_stock(
+    capital_stock: float | None,
+    epsilon: float | None,
+) -> float:
+    """
+    Resolve the effective capital stock from optional explicit and epsilon inputs.
+
+    Priority: explicit value > epsilon-derived canonical > canonical base (ε=0 default).
+    The same shape as _resolve_monitoring_capability, and deliberately so: capital
+    was the last physical-state parameter still carrying a hard default and a
+    rescaling branch instead of this resolution.
+
+    **A SUPPLIED STOCK IS THE ACTUAL STOCK AND IS NEVER RESCALED.** Until
+    2026-09-09 `infrastructure_eoh` multiplied a supplied stock by
+    (1 + CANONICAL_CAPITAL_GROWTH_SLOPE × ε) whenever ε was also passed, treating
+    it as an ε=0 baseline. That is not how capital is carried in any standard
+    account — the perpetual inventory identity K' = (1−δ)K + I makes the stock a
+    state variable, and technology enters the production or maintenance term, not
+    the stock — and it is what CLAUDE.md's architecture rule forbids in as many
+    words: generation functions take physical state and do not use ε to proxy
+    unspecified physical assumptions. ε now fills a stock that was NOT supplied
+    rather than rescaling one that was.
+
+    The ε-derived value is `canonical_physical_state(ε)["capital_stock_teh"]`,
+    written out here rather than imported because core/ modules do not import
+    trajectory.py at module scope. `tests/test_trajectory.py` pins the two equal.
+    """
+    if capital_stock is not None:
+        return capital_stock
+    if epsilon is not None:
+        return CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE) * epsilon
+    return CAPITAL_STOCK_DEFAULT
+
+
 # ---------------------------------------------------------------------------
 # Personal EOH — the standards selector
 # ---------------------------------------------------------------------------
@@ -331,7 +365,7 @@ def personal_eoh(
 # ---------------------------------------------------------------------------
 
 def infrastructure_eoh(
-    capital_stock: float,
+    capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
     epsilon: float | None = None,
     base_maint_rate: float = INFRA_MAINT_RATE,
@@ -351,20 +385,29 @@ def infrastructure_eoh(
     obligations — is expressed by passing the actual stock, which grows as
     simulate_period() invests each period.
 
-    **Backward compatibility**: If epsilon is provided, capital_stock is treated
-    as the ε=0 baseline and the canonical capital growth factor is applied:
-    effective_capital = capital_stock × (1 + CANONICAL_CAPITAL_GROWTH_SLOPE × ε).
-    This preserves existing test and cross-sectional analysis behaviour.
-    New simulation code should track actual capital stock and omit epsilon.
+    **A SUPPLIED STOCK IS NEVER RESCALED** (2026-09-09, author decision). ε fills
+    a stock that was NOT supplied; it does not modify one that was. Resolution is
+    `resolve_capital_stock`, on the same priority as every other physical-state
+    parameter here — explicit value > ε-derived canonical > canonical base.
+
+    Until 2026-09-09 this function multiplied a supplied stock by
+    (1 + CANONICAL_CAPITAL_GROWTH_SLOPE × ε) whenever ε was also passed, treating
+    it as an ε=0 baseline. `simulate_period` supplies its tracked stock AND ε, so
+    the engine charged maintenance on capital the state did not hold — 2.0× at
+    ε=0.50 rising to 2.98× at ε=0.99 — while `capital_writedown` read the same
+    variable unscaled. Standard accounts carry capital as a state variable
+    (K' = (1−δ)K + I, which is BEA's own perpetual-inventory method); technology
+    enters the maintenance term, not the stock.
 
     Args:
-        capital_stock: Actual current capital stock in TEH. When epsilon is
-                       provided (legacy), treated as ε=0 baseline and scaled.
+        capital_stock: Actual current capital stock in TEH. When None, resolved
+                       from epsilon along the canonical arc; when supplied, used
+                       as given.
         capital_age_ratio: Mean(current_age / design_life) across assets, ∈ [0, 1].
                            0 = all brand-new; 1 = all at end of design life.
-        epsilon: Optional. When provided, applies canonical capital growth scaling
-                 for backward compatibility. New code should omit this and pass
-                 actual capital stock directly.
+        epsilon: Optional. Used ONLY to fill capital_stock when it is None. It
+                 does not scale a supplied stock and has no other effect here —
+                 age_factor comes from capital_age_ratio alone.
         base_maint_rate: EOH per TEH of capital at age_ratio=0 (fraction/year).
         age_factor_max: Maximum maintenance multiplier at capital_age_ratio=1.
 
@@ -376,11 +419,7 @@ def infrastructure_eoh(
     obligations, shifting the economy toward maintenance."
     """
     age_factor = 1.0 + (age_factor_max - 1.0) * capital_age_ratio
-    if epsilon is not None:
-        # Legacy: capital_stock is ε=0 baseline; apply canonical growth
-        effective_capital = capital_stock * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE * epsilon)
-    else:
-        effective_capital = capital_stock
+    effective_capital = resolve_capital_stock(capital_stock, epsilon)
     return effective_capital * base_maint_rate * age_factor
 
 
@@ -1590,7 +1629,7 @@ def total_eoh(
     epsilon: float | None = None,
     population: float = 1_000_000.0,
     age_distribution: dict[str, float] | None = None,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
@@ -1968,7 +2007,7 @@ def epsilon_delta_sensitivity(
     base_epsilon: float,
     delta_epsilon: float,
     population: float = 1_000_000.0,
-    capital_stock: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     knowledge_complexity: float = 1.0,

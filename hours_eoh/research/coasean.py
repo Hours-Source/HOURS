@@ -99,6 +99,7 @@ from hours_eoh.research.contestability import (
     entry_underwriting,
     tau_gradient_check,
 )
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +182,7 @@ def run_collective_period(
     epsilon: float,
     population: float,
     trust_balance: float,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -206,6 +207,9 @@ def run_collective_period(
     Returns:
         (pipeline_dict, fiscal_dict) — raw outputs of the underlying core calls.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     pipeline = eoh_to_teh_pipeline(
         epsilon,
         population=population,
@@ -231,7 +235,7 @@ def make_federation(
     n: int | None = None,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     ecosystem_health_schedule: list[float] | None = None,
@@ -271,6 +275,9 @@ def make_federation(
     Returns:
         List of Collective objects, one per collective.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     if n is None:
         n = coasean_collective_count(epsilon)
 
@@ -334,7 +341,7 @@ def n1_regression_anchor(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
 ) -> dict[str, Any]:
@@ -370,6 +377,9 @@ def n1_regression_anchor(
           "ref_solvent"        — reference solvent bool
           "fed_solvent"        — federation solvent bool
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     ref_pipeline, ref_fiscal = run_collective_period(
         epsilon,
         population=population,
@@ -976,7 +986,7 @@ def simulate_federation(
     epsilon_trajectory: list[float],
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     heterogeneity: float = 0.10,
     baseline_ecosystem_health: float = 0.70,
@@ -1178,7 +1188,18 @@ def simulate_federation(
     prev_rates: dict[tuple[int, int], float] = {}
 
     trust_t = trust_balance
-    capital_t = capital_stock_teh
+    # (e) 2026-09-09: capital_t is the federation's INITIAL ENDOWMENT and then a
+    # TRACKED stock — it evolves by g_priv below. So an unspecified one resolves
+    # ONCE and with NO ε, to the canonical base, exactly as `trust_balance` and
+    # `population` are fixed reference values rather than points on the arc.
+    #
+    # Resolving it at the trajectory's opening ε instead was tried and is wrong:
+    # these trajectories start at 0.0, the arc holds no capital there, and
+    # capital_t * (1 + g_priv) never leaves zero — so the federation would run
+    # its whole span with no apparatus, heterogeneity would produce no
+    # inter-collective inflation, and the seed would stop mattering. That is a
+    # property of multiplicative growth from zero, not a result about federations.
+    capital_t = resolve_capital_stock(capital_stock_teh, None)
     commons_t = commons_start if commons else 0.0
     prev_tau: float | None = None
     prev_eps: float | None = None

@@ -255,10 +255,13 @@ def test_the_three_standards_give_three_different_floors():
     assert surv == 0.0
     # 0.306 → 0.2449: a lower w means the operating standard demands fewer
     # per-capita hours, so less automation is needed to reach it.
-    assert oper == pytest.approx(0.2449, abs=0.005)
+    assert oper == pytest.approx(0.25927, abs=0.005)
     # 0.530 → 0.4862: the sufficiency standard is unchanged, but a lower w means
     # fewer per-capita hours are owed, so less automation reaches it.
-    assert suff == pytest.approx(0.4862, abs=0.005)
+    # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
+    # capital stock resolves along the canonical arc, so the infrastructure term
+    # falls at low ε and every ratio computed against total EOH moves with it.
+    assert suff == pytest.approx(0.50522, abs=0.005)
     assert surv < oper < suff
 
 

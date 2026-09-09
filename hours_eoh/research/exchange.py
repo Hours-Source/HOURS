@@ -55,6 +55,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 __all__ = [
     "CollectiveFrame",
@@ -677,7 +678,7 @@ class FederationBook:
 def n1_accounting_anchor(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     trust_balance: float = TRUST_BASE_TEH,
     hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
 ) -> dict[str, Any]:
@@ -699,6 +700,14 @@ def n1_accounting_anchor(
         dict with `teh_created_delta`, `pipeline_match`, `solvent_match`,
         `book_balances`, `money_supply_match`, and both sides' raw values.
     """
+    # (e) 2026-09-09: the anchor collective's capital is its ENDOWMENT, so an
+    # unspecified one resolves with NO ε — the canonical base — exactly as
+    # `coasean.simulate_federation` resolves the federation's. Resolving it
+    # along the arc instead gives 0.0 at ε=0, and `CollectiveFrame` refuses a
+    # jurisdiction with no capital: the anchor could not be built at the origin
+    # at all. Which of those two rules should give is a live question for the
+    # exchange layer, not something this decision settles.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, None)
     frame = CollectiveFrame.per_capita_land(
         collective_id=0,
         population=population,

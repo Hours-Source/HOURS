@@ -25,6 +25,7 @@ from hours_eoh.core.eoh_generation import (
     infrastructure_eoh,
     ecological_eoh,
     knowledge_eoh,
+    resolve_capital_stock,
 )
 from hours_eoh.core.registration import (
     care_registration_share,
@@ -37,7 +38,7 @@ from hours_eoh.core.fiscal import fiscal_snapshot
 def epsilon_sweep(
     n_points: int = 100,
     population: float = 1_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
     knowledge_base_size: float = 10.0,
@@ -90,8 +91,14 @@ def epsilon_sweep(
     for i in range(n_points + 1):
         eps = i * 0.99 / n_points
 
+        # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε,
+        # so the sweep still sweeps capital. Resolved once per point and used by
+        # both the infrastructure term and the fiscal snapshot, so the two cannot
+        # read different capital for the same ε.
+        cap_at_eps = resolve_capital_stock(capital_stock_teh, eps)
+
         pers_eoh  = personal_eoh(population, age_distribution, eps)
-        infra_eoh = infrastructure_eoh(capital_stock_teh, capital_age_ratio, eps)
+        infra_eoh = infrastructure_eoh(cap_at_eps, capital_age_ratio, eps)
         # PHASE 4b (2026-08-17): resolve the ecological area FROM THE POPULATION,
         # as total_eoh now does. This module sums its own four domains rather
         # than calling total_eoh, so it was a SECOND live instance of the frame
@@ -123,7 +130,7 @@ def epsilon_sweep(
         fiscal = fiscal_snapshot(
             trust_balance=trust_balance,
             labor_income=max(labor_income_proxy, 1.0),
-            capital_stock_teh=capital_stock_teh,
+            capital_stock_teh=cap_at_eps,
             capital_age_ratio=capital_age_ratio,
             population=population,
             epsilon=eps,

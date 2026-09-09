@@ -146,12 +146,21 @@ def canonical_physical_state(epsilon: float) -> dict:
     monitoring improves (better sensing technology), and knowledge complexity
     grows dramatically (maintaining a larger knowledge base costs more per unit).
 
-    Worked table at ε∈{0, 0.40, 0.90}:
+    THE WORKED TABLE THAT USED TO SIT HERE IS DELETED, not corrected
+    (2026-09-09). It printed capital 2.00 / 3.60 / 5.60 at ε = 0 / 0.40 / 0.90
+    against the 0.0 / 2.4 / 5.4 this function returns — and those stale values
+    were the LEGACY path's, so the arc function's own docstring was documenting
+    the entry point's numbers and hid the divergence in the one place a reader
+    would look it up. Block III corrected the equation and the note above and
+    left the table. Its other four columns were right throughout, which is why
+    nothing caught it.
 
-        ε     capital (B TEH)  eco_health  monitoring  knowledge_size  complexity/unit
-        0.00        2.00          0.900       0.500         1.0              1.00
-        0.40        3.60          0.820       0.700         4.6              2.44
-        0.90        5.60          0.720       0.950         9.1              8.29
+    Restating derived figures in prose is the drift this repo has caught ten
+    times; the shape is stated instead and the numbers come from the call.
+    THE SHAPE: capital is zero at the origin and 3× the base at ε=1; ecosystem
+    health falls, monitoring rises, knowledge size rises linearly and
+    complexity per unit quadratically, so knowledge is the term that dominates
+    the top of the arc.
 
     The constants defining this arc are in data.py under the CANONICAL_* prefix.
     To recalibrate the arc, change those constants — not this function.

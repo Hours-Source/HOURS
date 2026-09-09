@@ -106,12 +106,21 @@ class TestInfrastructureEoh:
         assert eoh_old > eoh_new, "Older capital stock should generate more EOH"
 
     def test_grows_with_epsilon(self):
-        """Higher ε → more capital investment → more infrastructure EOH."""
-        eoh_0  = infrastructure_eoh(CAPITAL, epsilon=0.0)
-        eoh_90 = infrastructure_eoh(CAPITAL, epsilon=0.90)
+        """Higher ε → more capital investment → more infrastructure EOH.
+
+        (e) 2026-09-09: this holds for an UNSPECIFIED stock, which resolves
+        along the canonical arc. It is false — correctly — for a supplied stock,
+        which is the same physical capital whatever ε is, and the second half
+        pins that so the first cannot be read as ε scaling the caller's input.
+        """
+        eoh_0  = infrastructure_eoh(None, epsilon=0.0)
+        eoh_90 = infrastructure_eoh(None, epsilon=0.90)
         assert eoh_90 > eoh_0, (
             "Infrastructure EOH should grow with ε (automation enables more capital)"
         )
+        assert infrastructure_eoh(CAPITAL, epsilon=0.90) == pytest.approx(
+            infrastructure_eoh(CAPITAL, epsilon=0.0)), (
+            "a supplied stock must not move with ε")
 
 
 # ===========================================================================
@@ -357,9 +366,17 @@ class TestEffectiveCapitalFromStock:
         age = 0.50
         rate = 0.025
         age_factor = 1.0 + (2.0 - 1.0) * age
-        expected = effective_capital_from_stock(capital, eps) * rate * age_factor
+        # (e) 2026-09-09: a SUPPLIED stock is never rescaled, so the ε argument
+        # does not reach the capital at all. This used to assert the opposite —
+        # that infrastructure_eoh applied effective_capital_from_stock
+        # internally — which is exactly the behaviour the decision removed.
+        expected = capital * rate * age_factor
         actual   = infrastructure_eoh(capital, age, eps, rate, 2.0)
         assert actual == pytest.approx(expected)
+        # effective_capital_from_stock survives as the explicit baseline-scaler
+        # for a caller who genuinely holds an ε=0 baseline, and still scales.
+        assert effective_capital_from_stock(capital, eps) == pytest.approx(
+            capital * (1.0 + 2.0 * eps))
 
 
 # ===========================================================================
@@ -688,7 +705,18 @@ DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 # Was {0.0: 0.936, 0.40: 0.820, 0.90: 0.517, 0.99: 0.461}.
 # The DEFECT is unchanged — personal still dominates the low arc, and neither
 # revalue addresses its cause.
-_PERSONAL_SHARE_EXPECTED = {0.0: 0.941, 0.40: 0.85763, 0.90: 0.62494, 0.99: 0.56941}
+# MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
+# capital stock now resolves along the canonical arc (3ε × base) instead of the
+# legacy (1 + 2ε) × base, so the infrastructure term falls at low ε and the
+# personal share rises to fill it. The move is largest at the origin, where the
+# arc says a subsistence collective has NO built apparatus:
+#   ε=0.00  0.941   → 0.994   (infrastructure 4.56% → 0.00%)
+#   ε=0.40  0.85763 → 0.883
+#   ε=0.90  0.62494 → 0.628
+#   ε=0.99  0.56941 → 0.576
+# The two upper points barely move, which is the same convergence the capital
+# paths themselves show: they differ by 1.004× at ε=0.99 and totally at ε=0.
+_PERSONAL_SHARE_EXPECTED = {0.0: 0.99416, 0.40: 0.88307, 0.90: 0.62794, 0.99: 0.57605}
 
 
 @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -791,7 +819,8 @@ class TestPersonalStandards:
     def test_survival_is_inside_the_autarky_feasibility_bound(self):
         """S_a is HARD-bounded: a survival standard above labour supply is extinction.
 
-        Bound is (L − R)/w = 627 per-equivalent on the repo's own constants. 600
+        Bound is (L − R)/w = 733 per-equivalent on the repo's own constants (627
+        until the 2026-09-09 capital-path decision zeroed R at ε=0). 600
         is set independently and CHECKED here rather than pinned to the bound —
         a constant that cannot fail its own test says nothing.
         """

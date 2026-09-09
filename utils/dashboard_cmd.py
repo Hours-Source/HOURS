@@ -22,6 +22,7 @@ from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 
 from utils.formatters import bold, green, red, status_color, fmt_float, fmt_eps
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -29,7 +30,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument("--epsilon", type=float, default=0.40, metavar="ε")
     p.add_argument("--population", type=float, default=1_000_000.0)
     p.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH)
-    p.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT)
+    # DEFAULT None since 2026-09-09 (capital-path decision): an unsupplied
+    # stock resolves along the canonical arc at --epsilon, so the dashboard
+    # reads the arc rather than a fixed 2e9 at every ε. Supplying the flag
+    # states YOUR stock and it is used as given.
+    p.add_argument("--capital-stock", type=float, default=None)
     p.add_argument("--ecosystem-health", type=float, default=0.70)
     p.add_argument("--measured", action="store_true",
                    help="Source Condition II from the measured O*NET/BLS registry "
@@ -109,9 +114,12 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
 
 
 def run(args: argparse.Namespace) -> None:
+    # Resolve ONCE, so every panel below reads the same capital at this ε —
+    # `psi` diverging from `psi_applied` is what two resolution points look like.
+    _capital = resolve_capital_stock(args.capital_stock, args.epsilon)
     kwargs = _build_kwargs(
         args.epsilon, args.population, args.trust_balance,
-        args.capital_stock, args.ecosystem_health,
+        _capital, args.ecosystem_health,
         getattr(args, "thermal_obligation", 0.0),
     )
     # Contestability: computed here (research/ layer) and passed into core
@@ -219,14 +227,14 @@ def run(args: argparse.Namespace) -> None:
     print()
     print(bold("Autarky comparison (Block II)"))
     from hours_eoh.core.autarky import overbuild_check as _ob, break_even_epsilon as _be
-    _o = _ob(args.capital_stock, args.population, epsilon=args.epsilon)
+    _o = _ob(_capital, args.population, epsilon=args.epsilon)
     _vcol = green if _o["verdict"] == "pays" else red
     print(f"  verdict: {_vcol(_o['verdict'].upper())}  — {_o['note']}")
     print(f"  B₀ (autarky) {_o['autarky_reference'] / args.population:8.1f}   "
           f"B(K) {_o['obligation_with_apparatus'] / args.population:8.1f}   "
           f"overhead {_o['overhead'] / args.population:7.1f}   h/person·yr")
     print(f"  abatement a(K) = {_o['abatement']:.4f}   "
-          f"break-even ε = {_be(args.capital_stock, args.population):.4f}")
+          f"break-even ε = {_be(_capital, args.population):.4f}")
 
     for flag_key, flag_label in [("red_flags", "Red flags"), ("yellow_flags", "Warnings")]:
         flags = snap.get(flag_key, [])

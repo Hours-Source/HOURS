@@ -248,10 +248,17 @@ class TestPartitionChangesNothing:
     """4d and 4c are structure. No shipped number moves."""
 
     def test_shipped_totals_are_untouched(self):
+            # MOVED 2026-09-09 by the capital-path decision (reading (e)):
+            # an unspecified capital stock resolves along the canonical arc
+            # (3ε × base) instead of the legacy (1 + 2ε) × base. The move is
+            # −5.22% at ε=0 (the arc holds no apparatus at subsistence),
+            # −2.86% at ε=0.40 and −0.03% at ε=0.99, where the two paths meet.
+            # These stay ABSOLUTE pins: the point is that the scenario module
+            # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1435740781.5493312,
-            0.40: 1576927332.1096926,
-            0.99: 2349137509.2416563,
+            0.0:  1360740781.5493312,
+            0.40: 1531927332.1096926,
+            0.99: 2348387509.2416563,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -345,18 +352,25 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
         significant figure, because the domain was already essentially where the
         partition says it belongs.
         """
+            # MOVED 2026-09-09 by the capital-path decision (reading (e)):
+            # an unspecified capital stock resolves along the canonical arc
+            # (3ε × base) instead of the legacy (1 + 2ε) × base. The move is
+            # −5.22% at ε=0 (the arc holds no apparatus at subsistence),
+            # −2.86% at ε=0.40 and −0.03% at ε=0.99, where the two paths meet.
+            # These stay ABSOLUTE pins: the point is that the scenario module
+            # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1435740781.5493312,
-            0.40: 1576927332.1096926,
-            0.99: 2349137509.2416563,
+            0.0:  1360740781.5493312,
+            0.40: 1531927332.1096926,
+            0.99: 2348387509.2416563,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
         # the pre-4f arc is still reachable, and is what every earlier figure used
         legacy = {
-            0.0:  1435742321.1688159,
-            0.40: 1576928871.729177,
-            0.99: 2349139048.8611407,
+            0.0:  1360742321.1688159,
+            0.40: 1531928871.729177,
+            0.99: 2348389048.8611407,
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,

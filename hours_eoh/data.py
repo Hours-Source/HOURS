@@ -1222,8 +1222,11 @@ LABOR_CATEGORY_DEFAULTS: dict[str, float] = {
 # ---------------------------------------------------------------------------
 # provenance-block: EOH generation — personal domain
 # tag: bounded | units: hours/year per working-age-equivalent
-# band: hard upper bound (L−R)/w = 627 h/yr per working-age-equivalent, from
-#   this file's own H_REF × workforce fraction. 600 sits just inside it.
+# band: hard upper bound (L−R)/w = 733 h/yr per working-age-equivalent, from
+#   this file's own H_REF × workforce fraction. 600 sits inside it. Was 627
+#   until 2026-09-09: the capital-path decision zeroes the infrastructure
+#   requirement at ε=0, so R falls and the bound rises — the margin widened
+#   without the standard moving.
 # errs: LOW. Set below the supply bound rather than at it, so it understates
 #   the survival obligation if anything, which keeps ε_suff optimistic.
 #   Deliberate: the bound is CHECKED by scenarios/feasibility.py rather than
@@ -1236,7 +1239,7 @@ LABOR_CATEGORY_DEFAULTS: dict[str, float] = {
 # resolves_by: minimum-subsistence time-allocation studies covering only the
 #   components that kill you if unmet — food, water, shelter, warmth.
 PERSONAL_EOH_SURVIVAL: float    = 600.0   # S_a — autarky-referenced survival standard.
-                                          # CHOSEN. Bounded above by (L−R)/w = 627; checked,
+                                          # CHOSEN. Bounded above by (L−R)/w = 733; checked,
                                           # not pinned. resolves_by: minimum-subsistence
                                           # time-allocation studies (the components that
                                           # kill you if unmet: food, water, shelter, warmth).
@@ -1456,7 +1459,7 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 112.870662
 PERSONAL_EOH_BASE_CLIMATE_FRAME: str = "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)"
 
 # tag: bounded | units: hours/year per working-age-equivalent
-# band: 427–1092 h/yr per working-age-equivalent, from two instruments sharing
+# band: 482–1147 h/yr per working-age-equivalent, from two instruments sharing
 #   no assumption: the supply ceiling (L−R)/w across subsistence parameters, and
 #   the accounting identity B = (M+H−R)/w, whose M comes from a capital
 #   inventory and is B-FREE. RE-DERIVED 2026-09-04 from 390–1006, and with no
@@ -1464,7 +1467,11 @@ PERSONAL_EOH_BASE_CLIMATE_FRAME: str = "SSA rainfed tropical/sub-tropical (LSMS-
 #   lower w raises the ceiling arm, which the block below said was owed. The
 #   band is computed live by `feasibility.over_determination_report()` and
 #   pinned by `tests/scenarios/test_feasibility.py::TestTheBandIsLive` — it was
-#   restated here and went stale once already.
+#   restated here and went stale once already. RE-DERIVED AGAIN 2026-09-09,
+#   from 427–1092, by the capital-path decision: an unspecified capital stock
+#   resolves along the canonical arc, so the non-personal requirement R falls
+#   to zero at ε=0 and the ceiling arm (L−R)/w rises. Fourth move in the
+#   LOOSENING direction and the over-determination still does not clear.
 # errs: HIGH. Set at the TOP of the band on an asymmetric loss function: too
 #   low hides a real shortfall (the model reports feasible, capital is
 #   under-built, and the deficit is paid in unserved biological obligation),

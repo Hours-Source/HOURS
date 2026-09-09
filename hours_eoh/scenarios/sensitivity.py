@@ -28,7 +28,9 @@ from hours_eoh.core.fiscal import fiscal_snapshot
 
 # Re-export the core cross-sectional sensitivity function at the canonical
 # scenarios layer so callers can import from one place.
-from hours_eoh.core.eoh_generation import epsilon_delta_sensitivity  # noqa: F401
+from hours_eoh.core.eoh_generation import (  # noqa: F401
+    epsilon_delta_sensitivity, resolve_capital_stock,
+)
 
 
 def fiscal_parameter_sweep(
@@ -38,7 +40,7 @@ def fiscal_parameter_sweep(
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
     labor_income: float = 2_200_000_000.0,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
 ) -> dict:
@@ -78,6 +80,9 @@ def fiscal_parameter_sweep(
     Raises:
         ValueError: If parameter is not one of the supported names.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction", "capital_age_ratio"}
     if parameter not in SUPPORTED:
         raise ValueError(f"parameter must be one of {SUPPORTED}, got '{parameter}'")

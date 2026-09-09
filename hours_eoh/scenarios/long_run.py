@@ -26,6 +26,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 _DEGRADED_THRESHOLD:    float = 2 / 3   # first insolvency after this fraction of periods → DEGRADED, not CRISIS
 _CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fiscal trajectory is declared converged
@@ -41,7 +42,7 @@ def canonical_arc_trajectory(
     n_periods: int = 20,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -163,7 +164,7 @@ def trust_depletion_stress(
     stressor_profile: dict | None = None,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
 ) -> dict:
     """
     Run a multi-stressor simulation and report when/whether the Trust breaks.
@@ -201,6 +202,9 @@ def trust_depletion_stress(
           "raw":                   dict,    (full run_simulation() result)
         }
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     profile = stressor_profile or {}
     initial_state = make_economy_state(
         epsilon=epsilon,
@@ -270,7 +274,7 @@ def automation_transition_trajectory(
     n_periods: int = 15,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
 ) -> dict:
     """
     Simulate a fixed-rate automation transition and track key economic indicators.

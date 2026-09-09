@@ -713,7 +713,10 @@ class TestRecalibratedArc:
         # life was measured: the renewal rate rose 6.7%, so knowledge EOH grew
         # and the levy/dividend base grew with it. The dividend tracks the
         # total obligation, so it moves whenever ANY domain does.
-        assert last["dividend_per_capita"] == pytest.approx(1638.0914, rel=1e-4)
+        # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
+        # capital stock resolves along the canonical arc, so the infrastructure term
+        # falls at low ε and every ratio computed against total EOH moves with it.
+        assert last["dividend_per_capita"] == pytest.approx(1631.7845, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing

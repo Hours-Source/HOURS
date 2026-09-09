@@ -30,6 +30,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.core.multipliers import multiplier_band_check
 from hours_eoh.core.simulation import make_economy_state, run_simulation
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ def m_below_band_drift(
     correction_magnitude: float | None = None,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -277,6 +278,9 @@ def m_below_band_drift(
 
     Reference: Mission Statement §"Condition II — Multiplier Band"; Roadmap §2.3.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     return _run_drift_scenario(
         band_limit=M_BAND_LOW,
         breach_above=False,
@@ -308,7 +312,7 @@ def m_above_band_drift(
     correction_magnitude: float | None = None,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -343,6 +347,9 @@ def m_above_band_drift(
     Reference: Mission Statement §"Condition II"; §"Anti-gaming safeguard 2 —
     artificial scarcity detection"; Roadmap §2.3.
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     return _run_drift_scenario(
         band_limit=M_BAND_HIGH,
         breach_above=True,
@@ -371,7 +378,7 @@ def m_band_sweep(
     n_periods: int = 10,
     population: float = 1_000_000.0,
     trust_balance: float = TRUST_BASE_TEH,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -408,6 +415,9 @@ def m_band_sweep(
 
     Reference: Mission Statement §"Condition II"; Roadmap §2.3 (inverse query).
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     if m_values is None:
         m_values = [round(1.5 + 0.10 * i, 2) for i in range(11)]
 

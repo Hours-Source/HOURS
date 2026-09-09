@@ -22,6 +22,7 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.prices import basket_price
 from hours_eoh.data import TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 POPULATION = 1_000_000
 TRUST = TRUST_BASE_TEH
@@ -55,7 +56,13 @@ def main() -> None:
         snap = fiscal_snapshot(
             trust_balance=TRUST,
             labor_income=labor_income,
-            capital_stock_teh=CAPITAL_STOCK_DEFAULT * (1.0 + 2.0 * eps),
+            # 2026-09-09: was `CAPITAL_STOCK_DEFAULT * (1.0 + 2.0 * eps)` — the
+            # legacy capital path copied out by hand, with a bare 2.0 where
+            # CANONICAL_CAPITAL_GROWTH_SLOPE lives (failure mode 4). After the
+            # capital-path decision that formula survives nowhere else, and a
+            # supplied stock is no longer rescaled, so the copy would have made
+            # this example the last live caller of a retired path.
+            capital_stock_teh=resolve_capital_stock(None, eps),
             capital_age_ratio=0.30 + 0.20 * eps,
             population=POPULATION,
             epsilon=eps,

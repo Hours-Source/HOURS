@@ -9,7 +9,7 @@ import math
 
 import pytest
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_generation import total_eoh, resolve_capital_stock
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
     JURISDICTION_FRAMES,
@@ -164,10 +164,17 @@ class TestFrameChangesNothing:
         # its fixed point (its tag block says it does). Both are the change, not
         # a regression — what this class guards is that nothing moves WITHOUT a
         # recorded mechanism.
+            # MOVED 2026-09-09 by the capital-path decision (reading (e)):
+            # an unspecified capital stock resolves along the canonical arc
+            # (3ε × base) instead of the legacy (1 + 2ε) × base. The move is
+            # −5.22% at ε=0 (the arc holds no apparatus at subsistence),
+            # −2.86% at ε=0.40 and −0.03% at ε=0.99, where the two paths meet.
+            # These stay ABSOLUTE pins: the point is that the scenario module
+            # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1435740781.5493312,
-            0.40: 1576927332.1096926,
-            0.99: 2349137509.2416563,
+            0.0:  1360740781.5493312,
+            0.40: 1531927332.1096926,
+            0.99: 2348387509.2416563,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -190,7 +197,13 @@ class TestFrameChangesNothing:
                 epsilon=eps,
                 population=f["population"],
                 ecological_area_hectares=f["land_hectares"],
-                capital_stock=CAPITAL_STOCK_DEFAULT
+                # THE ARC'S STOCK AT THIS ε, then scaled (2026-09-09). Passing
+                # the ε=0 base here used to be right because infrastructure_eoh
+                # applied the (1 + 2ε) growth itself; a supplied stock is no
+                # longer rescaled, so the hand-built call has to resolve the arc
+                # first — which is what makes capital the third extensive
+                # quantity rather than a default that happens to travel.
+                capital_stock=resolve_capital_stock(None, eps)
                 * (f["population"] / REFERENCE_FRAME_POPULATION),
             )
             via = at_frame("us_mainland", eps)

@@ -46,6 +46,7 @@ from hours_eoh.data import (
     US_MAINLAND_HECTARES,
     US_REFERENCE_POPULATION,
 )
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 
 
@@ -160,12 +161,22 @@ def at_frame(name: str, epsilon: float, **overrides: float) -> dict:
     # per-capita capital intensity is what the frame holds fixed, not the
     # absolute stock. Found by the frame-invariance test, which failed at 5.7%
     # while both other domains agreed exactly.
+    #
+    # AND IT MUST BE THE STOCK AT THIS ε, not the ε=0 base (2026-09-09). Until
+    # the capital-path decision this line passed `CAPITAL_STOCK_DEFAULT * scale`
+    # and `infrastructure_eoh` then multiplied it by (1 + 2ε) — so the ε growth
+    # arrived from the callee. A supplied stock is no longer rescaled, so
+    # passing the base alone would freeze every declared frame at subsistence
+    # capital while the undeclared default resolved along the arc, and the two
+    # would stop agreeing. Resolve the arc's stock at this ε FIRST, then scale
+    # it by the frame's population: what the frame holds fixed is the per-capita
+    # intensity, at whatever point on the arc it is asked about.
     scale = f["population"] / REFERENCE_FRAME_POPULATION
     kw: dict = {
         "epsilon": epsilon,
         "population": f["population"],
         "ecological_area_hectares": f["land_hectares"],
-        "capital_stock": CAPITAL_STOCK_DEFAULT * scale,
+        "capital_stock": resolve_capital_stock(None, epsilon) * scale,
     }
     # An explicit override wins over the frame — including the ecological scale,
     # so a caller can hold land fixed while sweeping population and see the

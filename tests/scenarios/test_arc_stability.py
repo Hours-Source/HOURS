@@ -101,10 +101,20 @@ class TestWhatTheArcActuallyShows:
         assert r["stationary"] is False
         assert r["obligation_met"] is False
         assert "obligation_met" in r["failing"]
-        assert r["delivery_pays"] is True, (
+        # AND THE APPARATUS IS STILL NOT WHAT FAILS — it is now ABSENT rather
+        # than adequate (2026-09-09). The capital-path decision gives the
+        # canonical arc no capital at ε=0, where the legacy path asserted 2e9
+        # TEH of it, so `delivery_pays` is None: there is no apparatus to earn
+        # its keep, which is a different statement from one that does not.
+        # The diagnosis this test exists to guard is unchanged — what fails at
+        # subsistence is the OBLIGATION — and it is asserted more strictly now,
+        # because `delivery_pays` must not have become a failure.
+        assert r["apparatus_present"] is False
+        assert r["delivery_pays"] is None, (
             "the apparatus is not what fails at subsistence — if this ever "
-            "flips, the low-end diagnosis changes and so does the remedy"
+            "becomes False, the low-end diagnosis changes and so does the remedy"
         )
+        assert "delivery_pays" not in r["failing"]
 
     def test_the_upper_arc_is_stationary(self):
         assert stability_at(0.99)["stationary"] is True
@@ -330,9 +340,15 @@ class TestConditionTwoIsReachableInBothDirections:
         The units error, pinned. `overbuild_check` divides by population itself,
         and its own docstring says "Total apparatus capital".
         """
-        from hours_eoh.data import CAPITAL_STOCK_DEFAULT
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
         r = stability_at(0.40)
-        assert r["capital_stock_teh"] == CAPITAL_STOCK_DEFAULT
+        # BOUND BY EXPRESSION, not to a literal (2026-09-09). This asserted
+        # equality with CAPITAL_STOCK_DEFAULT, which was the ε=0 base standing
+        # in for "the total stock" — true only while the entry point read
+        # capital as a baseline. It now resolves along the arc, so the check is
+        # against the resolver rather than against a constant that is one point
+        # on the path it resolves.
+        assert r["capital_stock_teh"] == resolve_capital_stock(None, 0.40)
         assert r["capital_stock_teh"] > 1.0e8, (
             "a default small enough to be a per-capita figure means the "
             "apparatus is effectively absent and condition 2 cannot bind"

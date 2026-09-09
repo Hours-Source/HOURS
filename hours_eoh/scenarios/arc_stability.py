@@ -71,7 +71,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from hours_eoh.core.autarky import overbuild_check
-from hours_eoh.core.eoh_generation import personal_base_for
+from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
 from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
@@ -145,7 +145,7 @@ def _as_dict(x: Any) -> dict:
 
 def stability_at(
     epsilon: float = 0.40,
-    capital_stock_teh: float = CAPITAL_STOCK_DEFAULT,
+    capital_stock_teh: float | None = None,
     population: float = 1.0e6,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     standard: str = "sufficiency",
@@ -190,6 +190,9 @@ def stability_at(
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     if not 0.0 <= epsilon <= 0.99:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if standard not in STANDARDS:
@@ -218,7 +221,22 @@ def stability_at(
     surplus = supply - obligation - delivery
 
     obligation_met = supply >= obligation
-    delivery_pays = bool(over["obligation_test"])
+
+    # WITH NO APPARATUS THERE IS NOTHING TO EARN ITS KEEP (2026-09-09). The
+    # obligation test is the strict `B(K) + I(K) < B₀`, so at K = 0 it compares
+    # the system against ITSELF — B(K) is the un-abated obligation and I(K) is
+    # zero — and can never hold. Reporting that as `delivery_pays: False` says
+    # the apparatus fails at subsistence; what is true is that there is no
+    # apparatus, which is a different diagnosis with a different remedy.
+    #
+    # This became reachable at the DEFAULT configuration with the capital-path
+    # decision: the canonical arc holds no capital at ε = 0, where the legacy
+    # path asserted 2e9 TEH of it. Declared as an absence rather than folded
+    # into a False — an unbuilt apparatus is not a failing one.
+    apparatus_present = delivery > 0.0 or capital_stock_teh > 0.0
+    delivery_pays: bool | None = (
+        bool(over["obligation_test"]) if apparatus_present else None
+    )
     stock_stationary = surplus >= 0.0
 
     failing = [
@@ -226,11 +244,12 @@ def stability_at(
             ("obligation_met", obligation_met),
             ("delivery_pays", delivery_pays),
             ("stock_stationary", stock_stationary),
-        ) if not ok
+        ) if ok is False
     ]
 
     return {
         "epsilon":            epsilon,
+        "apparatus_present":  apparatus_present,
         "standard":           standard,
         "personal_base":      base,
         "supply_per_capita":  supply,
