@@ -43,15 +43,17 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
-- **29 dict/tuple constants carry ONE tag over several fields; two checked**
+- **30 dict/tuple constants carry ONE tag over several fields; two checked**
   *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
-  the others. Both splits so far were forced by the bundling misleading:
-  `AGE_GROUPS` held four states under one `placeholder`;
-  `PERSONAL_EOH_COMPONENTS` said "one figure cannot express" its two halves and
-  stayed whole for weeks after saying so. **27 unexamined**, sharpest
-  `CAPITAL_MACHINE_PROFILES` — this session drove a fiscal deduction off one of
-  its rates while the dict reads `placeholder`. *Settles by:* a pass over the
-  29; the test is whether the tag would change if one field were removed.
+  the others. **9 of the 30 declare MIXED UNITS in their own `units:` field and
+  all 9 read `placeholder`** (2026-09-09 scan): `ASSET_TYPES`,
+  `CAPITAL_MACHINE_PROFILES`, `CAPITAL_THERMAL_PROFILES`,
+  `LABOR_CATEGORY_DEFAULTS` and the five sigmoid dicts. The record's own test —
+  would the tag change if one field were removed — is now quantitative for
+  `CARE_SIGMOID_DEFAULTS`: one 10% perturbation per field moves the registration
+  share **+0.23% / −0.66% / +2.91% / −5.68%**, a **25× leverage spread** inside
+  one constant, on the quantity that is unit-elastic on the money supply.
+  *Settles by:* a pass over the 30, mixed units first.
 - **125 of 141 placeholder/bounded constants carry no confidence figure.** *(caveat)*
   Ratcheted; may not rise.
 - **Two of four personal automation floors carry a value; both are improved
