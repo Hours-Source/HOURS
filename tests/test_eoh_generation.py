@@ -184,16 +184,16 @@ class TestKnowledgeEoh:
 
     def test_grows_with_epsilon(self):
         """Knowledge EOH becomes dominant at high ε."""
-        eoh_0  = knowledge_eoh(1.0, epsilon=0.0)
-        eoh_40 = knowledge_eoh(1.0, epsilon=0.40)
-        eoh_90 = knowledge_eoh(1.0, epsilon=0.90)
+        eoh_0  = knowledge_eoh(None, epsilon=0.0)
+        eoh_40 = knowledge_eoh(None, epsilon=0.40)
+        eoh_90 = knowledge_eoh(None, epsilon=0.90)
         assert eoh_0 < eoh_40 < eoh_90, (
             "Knowledge EOH must grow monotonically with ε"
         )
 
     def test_finite_at_all_epsilons(self):
         for eps in KEY_EPSILONS:
-            result = knowledge_eoh(1.0, epsilon=eps)
+            result = knowledge_eoh(None, epsilon=eps)
             assert math.isfinite(result), f"knowledge_eoh must be finite at ε={eps}"
             assert result > 0
 
@@ -215,9 +215,18 @@ class TestKnowledgePopulationScaling:
         net 954.91× against pre-K-IV; the nutrition-floor adoption of
         2026-09-03 then re-anchored the base a further 0.920×.
         """
-        assert knowledge_eoh(1.0, epsilon=0.0)  == pytest.approx(7.9407815493e6, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(8.9127332110e7, rel=1e-6)
-        assert knowledge_eoh(1.0, epsilon=0.99) == pytest.approx(7.7283750924e8, rel=1e-6)
+        # AND THE COINCIDENCE IS PINNED AS A COINCIDENCE. These arc figures are
+        # unchanged by the 2026-09-09 knowledge-path change only because the
+        # default corpus is 1.0 and `1.0 × (1 + 9ε)` is exactly the arc. Passing
+        # 1.0 EXPLICITLY now means a corpus frozen at the ε=0 reference and is a
+        # different number — if these two ever agree again, a supplied size has
+        # started being rescaled and the arc pins below stopped testing the arc.
+        assert knowledge_eoh(1.0, epsilon=0.40) != pytest.approx(
+            knowledge_eoh(None, epsilon=0.40), rel=1e-6)
+
+        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.9407815493e6, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.9127332110e7, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.7283750924e8, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -226,13 +235,13 @@ class TestKnowledgePopulationScaling:
         post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
         across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(1.0, epsilon=eps) / pre == pytest.approx(794.07820, rel=1e-3)
+            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(794.07820, rel=1e-3)
 
     def test_scales_linearly_with_population(self):
-        base = knowledge_eoh(1.0, epsilon=0.40)
+        base = knowledge_eoh(None, epsilon=0.40)
         for factor in (0.5, 2.0, 300.0):
             scaled = knowledge_eoh(
-                1.0, epsilon=0.40,
+                None, epsilon=0.40,
                 population=KNOWLEDGE_REFERENCE_POPULATION * factor,
             )
             assert scaled == pytest.approx(base * factor)
@@ -252,11 +261,11 @@ class TestKnowledgePopulationScaling:
             assert values[0] == pytest.approx(values[2])
 
     def test_zero_population_yields_zero_obligation(self):
-        assert knowledge_eoh(1.0, epsilon=0.40, population=0.0) == 0.0
+        assert knowledge_eoh(None, epsilon=0.40, population=0.0) == 0.0
 
     def test_negative_population_rejected(self):
         with pytest.raises(ValueError, match="population must be non-negative"):
-            knowledge_eoh(1.0, epsilon=0.40, population=-1.0)
+            knowledge_eoh(None, epsilon=0.40, population=-1.0)
 
     def test_breakdown_forwards_population(self):
         """The civilisational/apparatus SPLIT is a ratio — invariant — but the
@@ -280,7 +289,7 @@ class TestKnowledgeStockFlowSemantics:
 
     def test_base_rate_is_not_the_epsilon_zero_answer(self):
         """The mislabel that motivated the correction: base != K(0)."""
-        k0 = knowledge_eoh(1.0, epsilon=0.0)
+        k0 = knowledge_eoh(None, epsilon=0.0)
         assert k0 != pytest.approx(KNOWLEDGE_EOH_BASE)
         assert k0 == pytest.approx(KNOWLEDGE_EOH_BASE * SKILL_TRANSMISSION_RATE)
 
@@ -293,11 +302,11 @@ class TestKnowledgeStockFlowSemantics:
     def test_default_rate_is_bound_not_literal(self):
         """Repricing hazard: the default must track the named constant, and
         must be the ADOPTED rate rather than the deprecated placeholder."""
-        assert knowledge_eoh(1.0, epsilon=0.40) == pytest.approx(
-            knowledge_eoh(1.0, SKILL_TRANSMISSION_RATE, epsilon=0.40)
+        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(
+            knowledge_eoh(None, SKILL_TRANSMISSION_RATE, epsilon=0.40)
         )
-        assert knowledge_eoh(1.0, epsilon=0.40) != pytest.approx(
-            knowledge_eoh(1.0, SKILL_DECAY_RATE, epsilon=0.40)
+        assert knowledge_eoh(None, epsilon=0.40) != pytest.approx(
+            knowledge_eoh(None, SKILL_DECAY_RATE, epsilon=0.40)
         )
 
 

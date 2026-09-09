@@ -220,8 +220,13 @@ def _unit_response(epsilon: float, decay: float) -> float:
     kbs(ε) · cpu(ε) · decay, obtained from `knowledge_eoh` at unit base so this
     module can never drift from the function it calibrates.
     """
+    # None, not 1.0 (2026-09-09). This wants the ARC's kbs(ε), and since the
+    # capital-path reading was extended to knowledge a SUPPLIED size is no longer
+    # rescaled — passing 1.0 would now assert a corpus frozen at the ε=0
+    # reference and return kbs(0)·cpu(ε) instead of kbs(ε)·cpu(ε). The value is
+    # unchanged from before the change; only the way of asking for it is.
     return knowledge_eoh(
-        1.0, decay, epsilon=epsilon, base_rate=1.0,
+        None, decay, epsilon=epsilon, base_rate=1.0,
         population=KNOWLEDGE_REFERENCE_POPULATION,
     )
 

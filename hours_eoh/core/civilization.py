@@ -256,7 +256,14 @@ def civilization_epsilon(civ: dict) -> dict:
             workforce_fraction (float):  Active workforce ∈ [0, 1]. Default: 0.60.
             ecosystem_health (float):    Ecosystem state ∈ [0, 1]. Default: 0.70.
             deferred_ecological (float): Accumulated deferred eco EOH. Default: 0.
-            knowledge_complexity (float): kbs relative to ε=0 reference. Default: 1.0.
+            knowledge_complexity (float | None): ACTUAL corpus size relative to
+                the ε=0 reference. Omit it and each call below fills it from
+                the arc at its own ε — which is NOT one value here: the gross
+                denominator is computed without ε (so an omitted corpus reads
+                1.0) while the pipeline is computed at the derived ε (so it
+                reads 1 + 9ε). That asymmetry predates 2026-09-09 and is
+                unchanged by it; it is written down here because the report
+                echoes the INPUT and there is no single applied value to echo.
             age_distribution (dict):     age_group → fraction. Default: None (canonical).
             monitoring_capability (float): Overrides auto-derived value. Default: None.
             trust_balance (float):       Trust fund starting balance. Default: TRUST_BASE_TEH.
@@ -305,7 +312,11 @@ def civilization_epsilon(civ: dict) -> dict:
     workforce_fraction   = float(civ.get("workforce_fraction",   0.60))
     ecosystem_health     = float(civ.get("ecosystem_health",     0.70))
     deferred_ecological  = float(civ.get("deferred_ecological",  0.0))
-    knowledge_complexity = float(civ.get("knowledge_complexity", 1.0))
+    # None when absent, so the arc fills it at this ε (2026-09-09) — a hard
+    # 1.0 would freeze the corpus at the ε=0 reference now that a supplied
+    # size is no longer rescaled.
+    _kc = civ.get("knowledge_complexity")
+    knowledge_complexity = None if _kc is None else float(_kc)
     age_distribution     = civ.get("age_distribution")
     mean_multiplier      = float(civ.get("mean_multiplier",      2.10))
     trust_balance        = float(civ.get("trust_balance",        TRUST_BASE_TEH))
@@ -403,6 +414,9 @@ def civilization_epsilon(civ: dict) -> dict:
             "capital_age_ratio":     capital_age_ratio,
             "ecosystem_health":      ecosystem_health,
             "deferred_ecological":   deferred_ecological,
+            # the SUPPLIED value, not an applied one — see the arg doc above:
+            # the two calls resolve an omitted corpus differently, so a single
+            # applied figure would be wrong for one of them.
             "knowledge_complexity":  knowledge_complexity,
             "monitoring_capability": monitoring_capability,
             "age_distribution":      age_distribution,

@@ -54,7 +54,7 @@ def make_economy_state(
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
-    knowledge_complexity: float = 1.0,
+    knowledge_complexity: float | None = None,
     teh_created_cumulative: float = 0.0,
     teh_destroyed_cumulative: float = 0.0,
     capital_eoh_eliminated: float = 0.0,
@@ -123,6 +123,10 @@ def make_economy_state(
     # holds, not an ε=0 baseline: simulate_period grows it and hands it to the
     # pipeline, which no longer rescales a supplied stock.
     _capital      = _cps(epsilon)["capital_stock_teh"] if capital_stock_teh is None else capital_stock_teh
+    # knowledge_complexity resolves from ε for the same reason (2026-09-09): it
+    # is the ACTUAL corpus size this state holds, `simulate_period` grows it, and
+    # a supplied size is no longer rescaled by the pipeline.
+    _knowledge    = _cps(epsilon)["knowledge_base_size"] if knowledge_complexity is None else knowledge_complexity
     _cap_embodied = _capital if capital_embodied_teh is None else capital_embodied_teh
     _endowment    = (trust_balance + _cap_embodied) if teh_endowment is None else teh_endowment
     _monitoring   = _cps(epsilon)["monitoring_capability"] if monitoring_capability is None else monitoring_capability
@@ -137,7 +141,7 @@ def make_economy_state(
         "capital_age_ratio":             capital_age_ratio,
         "ecosystem_health":              ecosystem_health,
         "deferred_ecological":           deferred_ecological,
-        "knowledge_complexity":          knowledge_complexity,
+        "knowledge_complexity":          _knowledge,
         "teh_created_cumulative":        teh_created_cumulative,
         "teh_destroyed_cumulative":      teh_destroyed_cumulative,
         "capital_eoh_eliminated":        capital_eoh_eliminated,
@@ -307,9 +311,26 @@ def simulate_period(
         from hours_eoh.core.fiscal import aggregate_care_stipend_from_demographics as _agg_care
         care_stipend_aggregate = _agg_care(new_population, eps)
 
-    # ---- 3. Capital dynamics -----------------------------------------------
+    # ---- 3. Capital and corpus dynamics ------------------------------------
     new_cap_age    = min(1.0, cap_age + capital_aging_rate)
     new_cap_stock  = cap_stock * (1.0 + capital_investment_rate)
+    # THE CORPUS GROWS HERE, BESIDE CAPITAL, AND IS CHARGED ON THE SAME PERIOD
+    # (2026-09-09, author decision). It used to grow AFTER the pipeline, so the
+    # pipeline was charged on the pre-growth corpus while the state reported the
+    # post-growth one — the reported value was not the applied value, one period
+    # out, and capital and knowledge ran on opposite period conventions inside
+    # one function.
+    #
+    # ALIGNING THEM ALSO REMOVES A LATENT STABILITY CONDITION, which is why this
+    # is a fix and not a tidy-up. With investment exogenous, as it is here, the
+    # ordering is a pure (1 + growth) level effect and nothing can oscillate. Make
+    # investment ENDOGENOUS — capital funded from the surplus left after the
+    # obligation is served — and the loop becomes BALANCING, where a one-period
+    # lag is the textbook oscillator: the lagged form goes unstable above loop
+    # gain (2 − δ)/b, measured at an investment propensity of ≈94.7 on these
+    # constants, while the same-period form has no such threshold at any gain
+    # tested. See notes/capital-path-decision.md §10.
+    new_know_complexity = know_complexity * (1.0 + knowledge_complexity_growth_rate)
 
     # ---- 4. Ecological dynamics --------------------------------------------
     net_eco_change = ecological_restoration_rate - ecological_degradation_rate
@@ -344,7 +365,7 @@ def simulate_period(
         capital_age_ratio=new_cap_age,
         ecosystem_health=new_eco_health,
         deferred_ecological=new_deferred,
-        knowledge_complexity=know_complexity,
+        knowledge_complexity=new_know_complexity,
         capital_eoh_eliminated=cap_eoh_elim,
         capital_personal_eoh_fulfilled=cap_pers_fulfil,
         infrastructure_compounding_eoh=infra_compounding_eoh,
@@ -499,9 +520,6 @@ def simulate_period(
     # and not yet destroyed). This is the correct state in early high-ε runs.
     total_supply = teh_endowment + new_teh_created_cum - new_teh_destr_cum
     teh_in_circ  = total_supply - new_trust_bal - new_cap_embodied
-
-    # new-10: Evolve knowledge complexity (knowledge base size) each period.
-    new_know_complexity = know_complexity * (1.0 + knowledge_complexity_growth_rate)
 
     # ---- 8. Build new state ------------------------------------------------
     new_state = make_economy_state(

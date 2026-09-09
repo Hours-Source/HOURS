@@ -422,14 +422,40 @@ class TestBackwardCompat:
             assert e_new == pytest.approx(e_old, rel=1e-9), f"ε={eps}"
 
     def test_knowledge_eoh_compat(self):
+        """The arc path and the ε path agree, as they did before — but the ε
+        path now asks with None rather than with 1.0.
+
+        These two AGREED under the old reading too, because knowledge's default
+        size is 1.0 and `1.0 × (1 + 9ε)` is exactly the arc. That coincidence is
+        why the rescaling defect was invisible here for the whole time it was
+        live in `simulate_period`: this test could not have caught it, and the
+        one below is the one that can.
+        """
         for eps in self.EPS_VALUES:
             state = canonical_physical_state(eps)
             k_new = knowledge_eoh(
                 state["knowledge_base_size"],
                 complexity_per_unit=state["knowledge_complexity_per_unit"],
             )
-            k_old = knowledge_eoh(1.0, epsilon=eps)
-            assert k_new == pytest.approx(k_old, rel=1e-9), f"ε={eps}"
+            k_eps = knowledge_eoh(None, epsilon=eps)
+            assert k_new == pytest.approx(k_eps, rel=1e-9), f"ε={eps}"
+
+    def test_a_supplied_corpus_size_is_never_rescaled(self):
+        """The half the agreement test above cannot see, for knowledge.
+
+        `knowledge_eoh(None, epsilon=ε)` would still agree with the arc if a
+        SUPPLIED size were scaled by anything at all. This pins the other half:
+        the same supplied corpus returns the same EOH at every ε once
+        `complexity_per_unit` is held fixed, which is what makes
+        `simulate_period`'s tracked corpus safe to hand to the pipeline.
+        """
+        levels = [
+            knowledge_eoh(3.5, epsilon=eps, complexity_per_unit=1.0)
+            for eps in self.EPS_VALUES
+        ]
+        assert len(set(levels)) == 1, f"a supplied corpus moved with ε: {levels}"
+        assert levels[0] == pytest.approx(
+            knowledge_eoh(3.5, complexity_per_unit=1.0), rel=1e-12)
 
     def test_ecological_breakdown_compat(self):
         for eps in self.EPS_VALUES:

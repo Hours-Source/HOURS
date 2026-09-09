@@ -704,7 +704,7 @@ def eoh_to_teh_pipeline(
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
-    knowledge_complexity: float = 1.0,
+    knowledge_complexity: float | None = None,
     # BOUND 2026-08-15 (author sign-off), was a bare `0.10` literal.
     # `knowledge_eoh` migrated to SKILL_TRANSMISSION_RATE (0.025) in Block K-III,
     # but this literal did not follow it and was passed straight into total_eoh(),

@@ -26,6 +26,7 @@ from hours_eoh.core.eoh_generation import (
     ecological_eoh,
     knowledge_eoh,
     resolve_capital_stock,
+    resolve_knowledge_base_size,
 )
 from hours_eoh.core.registration import (
     care_registration_share,
@@ -41,7 +42,7 @@ def epsilon_sweep(
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
-    knowledge_base_size: float = 10.0,
+    knowledge_base_size: float | None = None,
     trust_balance: float = TRUST_BASE_TEH,
     floor_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     jump_threshold: float = 5.0,
@@ -96,6 +97,7 @@ def epsilon_sweep(
         # both the infrastructure term and the fiscal snapshot, so the two cannot
         # read different capital for the same ε.
         cap_at_eps = resolve_capital_stock(capital_stock_teh, eps)
+        kbs_at_eps = resolve_knowledge_base_size(knowledge_base_size, eps)
 
         pers_eoh  = personal_eoh(population, age_distribution, eps)
         infra_eoh = infrastructure_eoh(cap_at_eps, capital_age_ratio, eps)
@@ -117,7 +119,10 @@ def epsilon_sweep(
         # params and so was left as the last live caller of the pre-K-IV value,
         # scoring knowledge EOH 4.00× high (knowledge_eoh is linear in the
         # rate) against every other path in the repo.
-        know_eoh  = knowledge_eoh(knowledge_base_size, SKILL_TRANSMISSION_RATE, eps,
+        # As with capital: an unspecified corpus resolves along the arc at EACH
+        # ε, so the sweep still sweeps knowledge. Left as a hard 10.0 it would
+        # have gone flat in kbs and only cpu(ε) would still move.
+        know_eoh  = knowledge_eoh(kbs_at_eps, SKILL_TRANSMISSION_RATE, eps,
                                   population=population)
         tot_eoh   = pers_eoh + infra_eoh + eco_eoh + know_eoh
 

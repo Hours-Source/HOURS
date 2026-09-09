@@ -380,9 +380,9 @@ class TestRenewalRateSplit:
             skill_renewal_rate()["total"]
         )
         for eps in (0.0, 0.40, 0.99):
-            k_split = knowledge_eoh(1.0, skill_renewal_rate()["total"], epsilon=eps)
+            k_split = knowledge_eoh(None, skill_renewal_rate()["total"], epsilon=eps)
             k_manual = knowledge_eoh(
-                1.0, SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE, epsilon=eps
+                None, SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE, epsilon=eps
             )
             assert k_split == pytest.approx(k_manual)
 
@@ -491,13 +491,17 @@ class TestKIVAdoption:
 
 
 def _unit(epsilon: float) -> float:
-    return knowledge_eoh(1.0, SKILL_DECAY_RATE, epsilon=epsilon, base_rate=1.0,
+    # None, not 1.0 (2026-09-09): this asks for the ARC's kbs(ε), and a SUPPLIED
+    # size is no longer rescaled. Passing 1.0 would freeze the corpus at the ε=0
+    # reference and return kbs(0)·cpu(ε). Same idiom as the module's own
+    # `_unit_response`, and the values are unchanged.
+    return knowledge_eoh(None, SKILL_DECAY_RATE, epsilon=epsilon, base_rate=1.0,
                          population=KNOWLEDGE_REFERENCE_POPULATION)
 
 
 def _complexity(epsilon: float) -> float:
     """kbs(ε)·cpu(ε) — the decay-free response."""
-    return knowledge_eoh(1.0, 1.0, epsilon=epsilon, base_rate=1.0,
+    return knowledge_eoh(None, 1.0, epsilon=epsilon, base_rate=1.0,
                          population=KNOWLEDGE_REFERENCE_POPULATION)
 
 

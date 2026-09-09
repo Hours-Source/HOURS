@@ -1078,3 +1078,98 @@ class TestTheEngineDoesNotRescaleItsOwnStock:
                 f"at ε={eps:.2f} the maintenance charge and the write-down "
                 f"disagree about the stock by "
                 f"{charge_stock / writedown_stock:.4f}×")
+
+
+class TestTheEngineDoesNotRescaleItsOwnCorpus:
+    """
+    KNOWLEDGE'S HALF OF THE SAME DEFECT, and it was the larger one.
+
+    `knowledge_eoh` had the identical legacy branch — a supplied
+    `knowledge_base_size` multiplied by (1 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE
+    × ε) whenever ε was also passed — and `simulate_period` grows
+    `knowledge_complexity` and hands it to the pipeline with ε. Isolating the
+    rescaling gave **4.60× at ε=0.40 and 9.91× at ε=0.99**, against capital's
+    1.80× and 2.98×.
+
+    IT SURVIVED THE CAPITAL FIX BECAUSE IT WAS INVISIBLE AT THE DEFAULT. The
+    default corpus size is 1.0 — the ε=0 reference — and `1.0 × (1 + 9ε)` is
+    exactly the canonical arc, so every caller that supplied nothing got the
+    same number either way, and `test_knowledge_eoh_compat` could not see it.
+    Block III moved capital's arc formula and not knowledge's, which is what
+    made one domain's copy of this defect visible and the other's silent.
+    """
+
+    def test_knowledge_is_charged_on_the_corpus_the_state_tracks(self) -> None:
+        """
+        Charged against the corpus the state REPORTS — the post-growth one.
+
+        THE ORDERING WAS FIXED ON 2026-09-09 (author decision) and this test
+        moved with it. It previously pinned the pre-growth corpus and named the
+        gap: knowledge was charged at `:347` and grown afterwards, while capital
+        was grown at `:316` and charged at `:336`, so one function ran two period
+        conventions and `state["knowledge_complexity"]` reported a corpus the
+        engine had not charged on. The corpus now grows beside capital, and the
+        reported value IS the applied value.
+
+        The fix is a no-op at the shipped default, where
+        `knowledge_complexity_growth_rate` is 0.0 — which is why nothing else in
+        the suite moved. It bites only when corpus growth is switched on, and
+        this test switches it on precisely so the alignment is exercised.
+        """
+        from hours_eoh.core.eoh_generation import knowledge_eoh
+        from hours_eoh.data import (
+            SKILL_TRANSMISSION_RATE, CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE)
+
+        state = make_economy_state(population=1_000_000.0)
+        for _ in range(4):
+            state, report = simulate_period(
+                state, epsilon_delta=0.15,
+                knowledge_complexity_growth_rate=0.05,
+                population_growth_rate=0.0)
+            eps = state["epsilon"]
+            charged = report["eoh_by_domain"]["knowledge"]
+            on_corpus = knowledge_eoh(
+                state["knowledge_complexity"], SKILL_TRANSMISSION_RATE, None,
+                complexity_per_unit=(
+                    1.0 + eps ** 2 * CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE),
+                population=1_000_000.0)
+            assert charged == pytest.approx(on_corpus, rel=1e-12), (
+                f"at ε={eps:.2f} the engine charged "
+                f"{charged / on_corpus:.4f}× the corpus it tracks")
+        assert state["epsilon"] > 0.5      # the loop reached ε where 1+9ε bites
+
+    def test_the_charge_is_linear_in_the_tracked_corpus(self) -> None:
+        """
+        Two runs differing ONLY in how fast the corpus grows must have their
+        knowledge charges differ by exactly the corpus ratio.
+
+        WHAT THIS CATCHES AND WHAT IT DOES NOT, because the two tests in this
+        class have complementary blind spots and neither is sufficient alone —
+        both verified by mutation rather than assumed:
+
+        - It catches a SIZE-DEPENDENT transform of the corpus
+          (`knowledge_base_size ** 1.1` fails here).
+        - It does NOT catch a uniform ε-rescaling — the legacy defect itself.
+          Both runs sit at the same ε, so a (1 + 9ε) factor multiplies both
+          charges and CANCELS in the ratio. The test above is what catches that.
+
+        And the test above has the mirror gap: it compares the engine against a
+        `knowledge_eoh` call that goes through the SAME resolver, so a transform
+        applied to both sides cancels there. Which is why this one exists.
+        """
+        def run(rate: float) -> list[tuple[float, float, float]]:
+            st = make_economy_state(population=1_000_000.0)
+            out = []
+            for _ in range(4):
+                st, rep = simulate_period(
+                    st, epsilon_delta=0.15,
+                    knowledge_complexity_growth_rate=rate,
+                    population_growth_rate=0.0)
+                out.append((st["epsilon"], st["knowledge_complexity"],
+                            rep["eoh_by_domain"]["knowledge"]))
+            return out
+
+        for (eps, pre_a, charge_a), (_, pre_b, charge_b) in zip(run(0.0), run(0.05)):
+            assert charge_b / charge_a == pytest.approx(pre_b / pre_a, rel=1e-12), (
+                f"at ε={eps:.2f} the charge ratio {charge_b / charge_a:.6f} "
+                f"does not match the corpus ratio {pre_b / pre_a:.6f}")

@@ -111,6 +111,46 @@ def resolve_capital_stock(
     return CAPITAL_STOCK_DEFAULT
 
 
+def resolve_knowledge_base_size(
+    knowledge_base_size: float | None,
+    epsilon: float | None,
+) -> float:
+    """
+    Resolve the effective knowledge base size from optional explicit and epsilon
+    inputs.
+
+    Priority: explicit value > epsilon-derived canonical > canonical base (ε=0).
+    The same shape as `resolve_capital_stock` and `_resolve_monitoring_capability`,
+    and the last of the four physical-state parameters to take it.
+
+    **A SUPPLIED CORPUS SIZE IS THE ACTUAL SIZE AND IS NEVER RESCALED.** Until
+    2026-09-09 `knowledge_eoh` multiplied a supplied `knowledge_base_size` by
+    (1 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE × ε) whenever ε was also passed,
+    treating it as an ε=0 baseline — capital's defect one domain over, and the
+    LARGER of the two: the factor reaches 9.91× at ε=0.99 against capital's
+    2.98×. `simulate_period` grows `knowledge_complexity` and hands it to the
+    pipeline with ε, so a simulation with a nonzero
+    `knowledge_complexity_growth_rate` charged that multiple of the maintenance
+    its own tracked corpus supports.
+
+    IT WAS INVISIBLE AT THE SHIPPED DEFAULT, and that is why it outlived the
+    capital fix. The default corpus size is 1.0 — the ε=0 reference — and
+    `1.0 × (1 + 9ε)` is exactly the canonical arc's `1 + 9ε`, so the legacy
+    branch and the arc agreed for every caller that supplied nothing. Block III
+    moved capital's arc formula and not knowledge's, which is what made the same
+    defect visible in one domain and silent in the other.
+
+    The ε-derived value is `canonical_physical_state(ε)["knowledge_base_size"]`,
+    written out here rather than imported because core/ modules do not import
+    trajectory.py at module scope. `tests/test_trajectory.py` pins the two equal.
+    """
+    if knowledge_base_size is not None:
+        return knowledge_base_size
+    if epsilon is not None:
+        return 1.0 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE * epsilon
+    return 1.0
+
+
 # ---------------------------------------------------------------------------
 # Personal EOH — the standards selector
 # ---------------------------------------------------------------------------
@@ -1127,7 +1167,7 @@ def skill_renewal_rate(
 
 
 def knowledge_eoh(
-    knowledge_base_size: float,
+    knowledge_base_size: float | None = None,
     skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
     epsilon: float | None = None,
     base_rate: float = KNOWLEDGE_EOH_BASE,
@@ -1184,12 +1224,14 @@ def knowledge_eoh(
     system complexity at high automation). Pass both from simulation state or from
     trajectory.canonical_physical_state(ε).
 
-    **Backward compatibility**: If epsilon is provided, knowledge_base_size is treated
-    as the ε=0 baseline (typically 1.0) and the canonical growth factor is applied:
-    effective_kbs = kbs × (1 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE × ε).
-    complexity_per_unit is derived from the canonical trajectory if not explicitly
-    provided. Old callers passing knowledge_base_size=1.0 and epsilon=ε get the
-    same result as before.
+    **A SUPPLIED CORPUS SIZE IS NEVER RESCALED** (2026-09-09). ε FILLS a size
+    that was not supplied — the canonical arc's `1 + 9ε` — and does not modify
+    one that was. `complexity_per_unit` already worked this way; both halves now
+    follow one rule. See `resolve_knowledge_base_size` for the defect this
+    replaced and for why it was invisible at the shipped default: the default
+    size is 1.0, and `1.0 × (1 + 9ε)` is exactly the arc, so every caller that
+    supplied nothing got the same number under both readings. Callers that
+    supplied a size AND ε — `simulate_period` among them — did not.
 
     Args:
         knowledge_base_size: Actual knowledge base size relative to ε=0 reference.
@@ -1228,18 +1270,19 @@ def knowledge_eoh(
     if population < 0.0:
         raise ValueError(f"population must be non-negative, got {population}")
 
-    if epsilon is not None:
-        # Legacy: kbs is ε=0 baseline; apply canonical knowledge growth
-        effective_kbs = knowledge_base_size * (1.0 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE * epsilon)
-        cpu = (
-            complexity_per_unit if complexity_per_unit is not None
-            else 1.0 + (epsilon ** epsilon_exponent) * CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE
-        )
+    # A SUPPLIED CORPUS SIZE IS NEVER RESCALED (2026-09-09). ε fills a size that
+    # was NOT supplied; it does not modify one that was. `complexity_per_unit`
+    # already resolved this way and is unchanged — the two halves of this
+    # function now follow one rule instead of two.
+    effective_kbs = resolve_knowledge_base_size(knowledge_base_size, epsilon)
+    if complexity_per_unit is not None:
+        cpu = complexity_per_unit
+    elif epsilon is not None:
+        cpu = 1.0 + (epsilon ** epsilon_exponent) * CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE
     else:
-        effective_kbs = knowledge_base_size
         # cpu=1.0 is the ε=0 reference floor — physical-state callers are expected
         # to pass a measured complexity_per_unit; this is the no-automation baseline.
-        cpu = complexity_per_unit if complexity_per_unit is not None else 1.0
+        cpu = 1.0
 
     # Stock → annual obligation, scaled to the served population. The population
     # ratio is 1.0 at the default, so this reproduces pre-K-I output exactly.
@@ -1248,7 +1291,7 @@ def knowledge_eoh(
 
 
 def knowledge_eoh_breakdown(
-    knowledge_base_size: float,
+    knowledge_base_size: float | None = None,
     skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
     epsilon: float | None = None,
     base_rate: float = KNOWLEDGE_EOH_BASE,
@@ -1633,7 +1676,7 @@ def total_eoh(
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
     deferred_ecological: float = 0.0,
-    knowledge_complexity: float = 1.0,
+    knowledge_complexity: float | None = None,
     skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
     # Per-domain base rates — allow override for calibration sweeps
     personal_base: float = PERSONAL_EOH_BASE,
@@ -2010,7 +2053,7 @@ def epsilon_delta_sensitivity(
     capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
-    knowledge_complexity: float = 1.0,
+    knowledge_complexity: float | None = None,
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> dict:
     """
