@@ -23,16 +23,21 @@ be seen.
 
 **Phase 2 separated them.** Because the personal domain now retains a floored
 human share, the observed machine share is strictly BELOW the supplied index
-everywhere except zero:
-
-    capability   0.00    0.40    0.90    0.99    →1
-    observed     0.00    0.365   0.825   0.909   0.917
+everywhere except zero, and the two separate further as the index rises.
 
 So the input is a **machine-capability index** and ε proper is the **observed
 share**. Both are reported; `observable_epsilon()` derives the second from the
 first, and `observable_epsilon_ceiling()` gives the limit — which is why the arc
 stops short of 1 as a consequence of the declared floors rather than as a
 convention.
+
+THE ARC IS NOT TABULATED HERE, deliberately. A table of the two quantities sat
+in this docstring and was stale from the day `NUTRITION_AUTOMATION_FLOOR` was
+adopted — every figure in it too high, and no test failed, because the suite
+pins shapes and a restated number is not a shape. Both quantities move with the
+floors table and the component shares, neither of which is settled, so call the
+two functions for the levels. `TestNoFigureIsRestatedInProse` in
+`tests/test_capability_vs_observable.py` keeps them out of this file.
 
 `epsilon=` remains accepted everywhere as the historical name for the capability
 index, and nothing that passed it before behaves differently. What changed is
@@ -406,12 +411,12 @@ def observable_epsilon(
     WHY THIS IS NOT THE INPUT. Under `uniform` the split is exactly (1-c) on
     every domain, so ε_obs == c identically and the distinction is invisible.
     Under `per_component` the personal domain keeps a floored human share, so
-    **ε_obs < c everywhere except c = 0**. Feeding c = 0.99 through the canonical
-    state returns ε_obs ≈ 0.9085 — a gap of 0.081. The parameter is a statement
-    about machines; this is the statement about the ledger.
+    **ε_obs < c everywhere except c = 0**, and the gap WIDENS along the arc. The
+    parameter is a statement about machines; this is the statement about the
+    ledger, and at a high index the two differ by more than a rounding.
 
-    Worked example: at the canonical arc points the gap runs +0.000 (c=0),
-    +0.035 (c=0.40), +0.081 (c=0.99).
+    The gap is not quoted here: it moves with the floors table and the component
+    shares. Call this function on the state you hold.
 
     RELATION TO `trajectory.compute_epsilon`. That function normalises by the
     fully-recognised collective potential, so it additionally carries the
@@ -451,11 +456,16 @@ def observable_epsilon_ceiling(
     strictly below 1. The arc's endpoint is therefore a CONSEQUENCE of the
     declared floors rather than a convention.
 
-    Worked example: on the canonical ε=0.99 state the ceiling is ≈0.917.
+    No level is quoted here — it is a function of the obligation MIX as well as
+    of the floors, so a care-heavier civilization has a lower ceiling than a
+    care-lighter one at the same capability. Call this on the state you hold.
 
     IT IS A LOWER BOUND ON THE RESIDUAL, and therefore an UPPER bound on itself.
-    Only care carries a measured floor; nutrition, shelter and health carry none,
-    which is an admission and not a zero. Every floor added lowers this ceiling.
+    Two of the four personal components carry a floor and both are open work:
+    `NUTRITION_AUTOMATION_FLOOR` is a four-term construction bounding from ABOVE,
+    `CARE_AUTOMATION_FLOOR` is set to nutrition's value by the abatability
+    ordering and bounds from BELOW. Shelter and health are not yet reached, which
+    is an ADMISSION and not a zero. Every floor added lowers this ceiling.
     """
     return observable_epsilon(total_eoh_dict, 1.0, automation_response)
 
@@ -941,6 +951,7 @@ def eoh_to_teh_pipeline(
     #   lack physical indicators; inflection at ε=0.70, saturation at 0.80.
     # When registration_share is provided, it overrides ALL domains uniformly.
     from hours_eoh.core.registration import knowledge_eoh_registration_share as _know_reg_share
+    from hours_eoh.core.eoh_generation import _resolve_monitoring_capability as _resolve_mon
     if registration_share is not None:
         pers_share   = registration_share
         infra_share  = registration_share
@@ -957,9 +968,26 @@ def eoh_to_teh_pipeline(
     human_eco      = hd["ecological"]
     human_know     = hd["knowledge"]
 
+    # WHAT IS NOT SEEN CANNOT BE REGISTERED (2026-09-08, author-approved layer
+    # fix). `monitoring_capability` used to multiply the deferred ecological
+    # STOCK inside `total_eoh`, which made a physical obligation depend on the
+    # observer: an unmonitored collective simply did not OWE its backlog. The
+    # obligation is physics and now enters in full; legibility belongs on the
+    # admission side, where it says what may be minted against. The unseen
+    # remainder is owed, reported, and deferred — never destroyed.
+    #
+    # It is a FRACTION of the domain, not a second share on it: only the unseen
+    # part of the deferred stock is withheld, so thermal and restoration — both
+    # separately measured stocks — are untouched.
+    eco_gross = eoh_dict["ecological"]
+    unseen_eco = max(0.0, deferred_ecological) * (1.0 - _resolve_mon(
+        monitoring_capability, epsilon))
+    registrable_eco = (1.0 - unseen_eco / eco_gross) if eco_gross > 0.0 else 1.0
+    registrable_eco = min(1.0, max(0.0, registrable_eco))
+
     reg_personal = registered_eoh(human_personal, pers_share)
     reg_infra    = registered_eoh(human_infra,    infra_share)
-    reg_eco      = registered_eoh(human_eco,      eco_share)
+    reg_eco      = registered_eoh(human_eco,      eco_share) * registrable_eco
     reg_know     = registered_eoh(human_know,     know_share)
     reg_total    = reg_personal + reg_infra + reg_eco + reg_know
 

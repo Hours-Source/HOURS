@@ -278,10 +278,15 @@ class TestPhysicalStateAPI:
         assert result > 0.0
 
     def test_ecological_eoh_explicit_monitoring(self):
-        # monitoring_capability overrides any epsilon default
+        """
+        INVERTED 2026-09-08 (author-approved layer fix): `monitoring_capability`
+        still overrides the epsilon default, but it no longer moves the
+        OBLIGATION. What is owed is owed whether or not it has been seen;
+        legibility gates registration instead.
+        """
         r_low  = ecological_eoh(0.70, monitoring_capability=0.20, deferred=1_000_000.0)
         r_high = ecological_eoh(0.70, monitoring_capability=0.90, deferred=1_000_000.0)
-        assert r_high > r_low, "Higher monitoring makes more deferred obligations visible"
+        assert r_low == pytest.approx(r_high, rel=1e-12)
 
     def test_knowledge_eoh_no_epsilon(self):
         # Without epsilon, complexity_per_unit defaults to 1.0

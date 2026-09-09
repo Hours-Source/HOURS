@@ -19,6 +19,18 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   recurring flow — standing obligation, degradation response and spike — is
   charged to the holder through the Ground Use Fee. `"domain"` stays reachable on
   both and reproduces every pre-partition figure exactly.
+- **The backlog is INTAKE, not generated** (author decision, 2026-09-08). The
+  model does not create ecological deferred obligation: the recurring
+  degradation response is GUF's under 4e, and billing the domain too would be
+  the double application 4f names. `deferred_eco_growth_rate` compounds a
+  supplied stock and is inert without one *(gated)*.
+- **Legibility gates the MINT, not the obligation** (author-approved layer fix,
+  2026-09-08). `monitoring_capability` used to multiply the deferred stock
+  inside `total_eoh`, so an unmonitored collective did not OWE its backlog. The
+  stock now enters in full and visibility gates ecological REGISTRATION; the
+  remainder is reported as `unseen_deferred`. Obligation is observer-invariant,
+  minting still rises with legibility, and nothing moves on the shipped path
+  because the domain is empty *(gated)*.
 - **The domain is health-invariant.** `ecosystem_health` is inert on the default
   pipeline path and remains a documented intake field. Condition changes what the
   HOLDER owes through GUF (halving health raises the charge 2.05×), not what the

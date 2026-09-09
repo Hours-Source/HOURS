@@ -125,16 +125,40 @@ class TestTrustDepletionStress:
         result = trust_depletion_stress(n_periods=5)
         assert result["outcome"] in VALID_OUTCOMES
 
-    def test_high_degradation_worsens_outcome(self):
-        """High ecological degradation should produce worse or equal outcome than baseline."""
-        _severity = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
+    def test_ecological_stressors_no_longer_move_this_outcome(self):
+        """
+        RENAMED AND RESTATED 2026-09-08. This was
+        `test_high_degradation_worsens_outcome`, asserting `stressed >= base` on
+        a severity scale — which held by EQUALITY and could not fail.
+
+        Both stressors are structurally inert HERE, and the reason is adopted
+        policy rather than a defect. Phase 4e/4f moved every recurring
+        ecological term to the Ground Use Fee, so the domain is 0.0 and
+        degrading the ecosystem no longer moves a fiscal outcome. And
+        `trust_depletion_stress` builds its state without `deferred_ecological`,
+        so `deferred_eco_growth_rate` could not bite at ANY value — the stock it
+        multiplies is always zero. See
+        `test_simulation.TestTheDeferredEcologicalRate` for where that parameter
+        IS live.
+
+        Pinned as equality so it fails in BOTH directions: if a future change
+        makes ecological condition reach the fiscal path again, this fires and
+        someone re-reads the partition before accepting it.
+        """
         base = trust_depletion_stress(epsilon=0.40, n_periods=20)
         stressed = trust_depletion_stress(
             epsilon=0.40, n_periods=20,
             stressor_profile={"ecological_degradation_rate": 0.10,
                                "deferred_eco_growth_rate": 0.30},
         )
-        assert _severity[stressed["outcome"]] >= _severity[base["outcome"]]
+        assert stressed["outcome"] == base["outcome"]
+        assert stressed["trust_floor"] == pytest.approx(
+            base["trust_floor"], rel=1e-12
+        ), (
+            "an ecological stressor moved the trust floor. Under Phase 4e/4f "
+            "the domain is empty and this should be impossible — check whether "
+            "the obligation is now being charged BOTH to the domain and to GUF."
+        )
 
     def test_trust_floor_not_above_initial(self):
         """Trust floor must be ≤ initial trust balance."""

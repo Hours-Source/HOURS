@@ -9,22 +9,31 @@ personal domain now keeps a floored human share — and the observed share is
 strictly below the supplied index everywhere except zero.
 
 That matters beyond bookkeeping. The value-anchor argument states that ε is "the
-share of civilization's obligation still dependent on human agency". At an index
-of 0.99 the parameter says 1% and the ledger says ~9%. Publishing the first as
-the second is the reported-vs-applied defect, one layer up from the code.
+share of civilization's obligation still dependent on human agency". At a high
+index the parameter reports the machines and the ledger reports a materially
+larger human residual. Publishing the first as the second is the
+reported-vs-applied defect, one layer up from the code.
 
 THE PAYOFF: the arc's endpoint stops being a convention. Under `uniform` nothing
 caps automation and the ceiling is exactly 1.0. Under `per_component` the ceiling
-is `1 - personal_share · Σ share_c · floor_c` and sits near 0.92 — a CONSEQUENCE
-of the declared floors.
+is `1 - personal_share · Σ share_c · floor_c` and sits strictly below 1 — a
+CONSEQUENCE of the declared floors.
+
+NO LEVEL IS RESTATED HERE, and `TestNoFigureIsRestatedInProse` enforces that.
+Both quantities move with the floors table and the component shares, both live;
+the five figures that used to sit in `core/eoh_fulfillment`'s docstrings were
+stale from the day `NUTRITION_AUTOMATION_FLOOR` was adopted and nothing failed.
+Call `observable_epsilon()` and `observable_epsilon_ceiling()` for the numbers.
 """
 
 from __future__ import annotations
 
 import inspect
+import re
 
 import pytest
 
+import hours_eoh.core.eoh_fulfillment as _fulfillment
 from hours_eoh.core.eoh_fulfillment import (
     eoh_to_teh_pipeline,
     human_eoh_per_domain,
@@ -43,10 +52,26 @@ _DOMAINS = ("personal", "infrastructure", "ecological", "knowledge")
 
 
 def _eoh_at(capability: float) -> dict:
-    accepted = inspect.signature(total_eoh).parameters
-    state = {k: v for k, v in canonical_physical_state(capability).items()
-             if k in accepted}
-    return total_eoh(**state)
+    """Total EOH on the canonical arc, mapped keyword by keyword.
+
+    NOT `**state` and not a signature filter. `canonical_physical_state` names
+    two of its keys differently from `total_eoh` — `capital_stock_teh` against
+    `capital_stock`, `knowledge_base_size` against `knowledge_complexity` — so a
+    filter silently DROPS both and freezes the two largest non-personal domains
+    at their defaults for the whole arc. This helper is the instrument every
+    figure below is read off, which is why it maps explicitly, the way
+    `scenarios/ecological_floor._eoh_at` documents and for the same reason.
+    """
+    state = canonical_physical_state(capability)
+    return total_eoh(
+        capital_stock=state["capital_stock_teh"],
+        capital_age_ratio=state["capital_age_ratio"],
+        ecosystem_health=state["ecosystem_health"],
+        monitoring_capability=state["monitoring_capability"],
+        age_distribution=state["age_distribution"],
+        knowledge_complexity=state["knowledge_base_size"],
+        knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+    )
 
 
 class TestUniformIsTheDegenerateCase:
@@ -68,6 +93,79 @@ class TestUniformIsTheDegenerateCase:
         """Nothing floors automation under the uniform response."""
         dom = _eoh_at(0.99)
         assert observable_epsilon_ceiling(dom, "uniform") == pytest.approx(1.0, abs=1e-12)
+
+
+class TestTheInstrumentTransmitsTheCanonicalState:
+    """
+    THE HELPER EVERY FIGURE BELOW IS READ OFF, checked before it is trusted.
+
+    `_eoh_at` used to build its state by filtering `canonical_physical_state`
+    against `total_eoh`'s signature. Two keys are named differently on the two
+    sides — `capital_stock_teh`/`capital_stock` and
+    `knowledge_base_size`/`knowledge_complexity` — so the filter dropped both
+    and froze infrastructure and knowledge at their defaults for the entire arc.
+    Every shape below still held, because a shape survives a frozen domain; the
+    LEVELS did not, and the levels are what the value-anchor section quotes.
+    """
+
+    def test_no_capital_on_the_arc_means_no_maintenance_obligation(self):
+        """The canonical arc starts at zero capital, so infrastructure EOH is
+        exactly zero there. A dropped `capital_stock` shows up as the default
+        stock's maintenance appearing out of nothing."""
+        assert _eoh_at(0.0)["infrastructure"] == 0.0
+
+    def test_both_dropped_keys_move_an_output(self):
+        """The filtered call is RECONSTRUCTED here and shown to differ, so this
+        fails the moment the helper reverts to a signature filter."""
+        state = canonical_physical_state(0.99)
+        as_filtered = total_eoh(
+            capital_age_ratio=state["capital_age_ratio"],
+            ecosystem_health=state["ecosystem_health"],
+            monitoring_capability=state["monitoring_capability"],
+            age_distribution=state["age_distribution"],
+            knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+        )
+        got = _eoh_at(0.99)
+        assert got["infrastructure"] != pytest.approx(as_filtered["infrastructure"]), (
+            "capital_stock is not reaching total_eoh"
+        )
+        assert got["knowledge"] > 5.0 * as_filtered["knowledge"], (
+            "knowledge_complexity is not reaching total_eoh"
+        )
+
+
+class TestNoFigureIsRestatedInProse:
+    """
+    THE GATE FOR RECURRING FAILURE MODE 13. Five derived figures sat in
+    `core/eoh_fulfillment`'s docstrings — a capability→observed table, a gap of
+    0.081, a ceiling of 0.917 — and every one of them was stale from the day
+    `NUTRITION_AUTOMATION_FLOOR` was adopted. Nothing failed, because nothing
+    pinned them: the suite pins shapes, and a restated number is not a shape.
+
+    Pinning the values instead would be the wrong fix — they move with two live
+    measurements, so the pin would need updating on every improvement and would
+    read as a result. The durable rule is that a derived level does not appear
+    in prose AT ALL; the reader calls the function.
+
+    SCOPED to the three docstrings that carried the drift, and to decimals of
+    three or more places, so a share like `0.99` or a rate stays sayable.
+    """
+
+    _RESULT_LIKE = re.compile(r"\d\.\d{3,}")
+
+    @pytest.mark.parametrize("obj", (
+        pytest.param(_fulfillment, id="module"),
+        pytest.param(observable_epsilon, id="observable_epsilon"),
+        pytest.param(observable_epsilon_ceiling, id="observable_epsilon_ceiling"),
+    ))
+    def test_no_restated_result_in_the_docstring(self, obj):
+        doc = inspect.getdoc(obj) or ""
+        found = self._RESULT_LIKE.findall(doc)
+        assert not found, (
+            f"{getattr(obj, '__name__', obj)} restates derived levels {found}. "
+            "Call observable_epsilon()/observable_epsilon_ceiling() instead — "
+            "these figures drifted once already and nothing caught it."
+        )
 
 
 class TestTheTwoQuantitiesDiverge:
@@ -161,8 +259,10 @@ class TestTheCeilingIsAConsequenceOfTheFloors:
 
     def test_it_is_a_lower_bound_on_the_residual(self):
         """
-        Only care carries a measured floor. Adding one for another component must
-        lower the ceiling further, so the shipped figure errs HIGH.
+        Two of the four personal components carry a floor and two carry none —
+        shelter and health are ABSENT, not zero. Adding one for another
+        component must lower the ceiling further, so the shipped figure errs
+        HIGH and is an upper bound on itself.
         """
         import hours_eoh.core.eoh_fulfillment as m
         dom = _eoh_at(0.99)

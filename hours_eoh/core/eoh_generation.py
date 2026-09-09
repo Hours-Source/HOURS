@@ -1556,7 +1556,8 @@ def ecological_eoh_breakdown(
     relocatable = degradation_response + spike
     kept_standing = 0.0 if standing_response == "guf" else standing
     kept_disturbance = 0.0 if health_response == "guf" else relocatable
-    total = (kept_standing + kept_disturbance + visible_deferred
+    unseen_deferred = deferred - visible_deferred
+    total = (kept_standing + kept_disturbance + deferred
              + thermal_obligation + restoration_obligation)
 
     return {
@@ -1569,6 +1570,7 @@ def ecological_eoh_breakdown(
         "standing_response": standing_response,
         "standing_relocated": standing - kept_standing,
         "visible_deferred":  visible_deferred,
+        "unseen_deferred":   unseen_deferred,
         "thermal":           thermal_obligation,
         "restoration":       restoration_obligation,
         "total":             total,

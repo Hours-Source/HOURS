@@ -2856,9 +2856,10 @@ NUTRITION_AUTOMATION_FLOOR: float = 0.2808
 
 # tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction
-#   that stays human-carried however high epsilon goes. Only `care` is listed,
-#   bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A
-#   component that is ABSENT carries no floor and behaves exactly as the uniform
+#   that stays human-carried however high epsilon goes. TWO of the four are
+#   listed: `care` and, since 2026-09-03, `nutrition`. Each is bound to its own
+#   constant by EXPRESSION so the table cannot diverge from them. A component
+#   that is ABSENT carries no floor and behaves exactly as the uniform
 #   (1 - epsilon) split does today.
 # note: AN AUTOMATION FLOOR IS NOT AN ABATABILITY, and conflating them would be
 #   the wrong-instrument error. PERSONAL_EOH_COMPONENTS carries `abatability` —
@@ -2866,21 +2867,28 @@ NUTRITION_AUTOMATION_FLOOR: float = 0.2808
 #   which deletes the obligation and is epsilon-FREE by construction (Block II).
 #   This is the different question of who does the work that REMAINS. The two
 #   compose; neither substitutes for the other.
-# note: THE ABSENCE OF THE OTHER THREE IS AN ADMISSION, NOT A ZERO. Nothing here
-#   measures whether nutrition, shelter or health have an un-automatable
+# note: THE ABSENCE OF THE OTHER TWO IS AN ADMISSION, NOT A ZERO. Nothing here
+#   measures whether shelter or health have an un-automatable
 #   residue. Omitting them reproduces today's behaviour exactly, which is the
 #   conservative choice, but "no floor" is an ASSUMPTION and not a finding.
 #   Adding a floor for any of them moves the arc further in the same direction,
 #   so the shipped figure errs LOW.
-# confidence: 10 — NOTHING IN THIS TABLE IS MEASURED, which is why the tag was
-#   corrected from `measured | tier: B` on 2026-09-02. Its one entry is bound by
-#   expression to CARE_AUTOMATION_FLOOR, which is `normative`: its own decided_by
-#   says it is "a commitment about what care IS, not a measurement of what
-#   machines can do". What supports the entry is corroboration rather than
-#   measurement — Block II reaches the same ordering independently, care being
-#   the least abatable component at 84.4% of the residual at full abatement. The
-#   other three components carry no entry at all. The 10 is that corroboration
-#   and nothing else.
+# confidence: 10 — NOTHING IN THIS TABLE IS SETTLED, which is why the tag was
+#   corrected from `measured | tier: B` on 2026-09-02. NEITHER ENTRY IS A
+#   MEASUREMENT OF ITS OWN COMPONENT, and they fail differently:
+#   NUTRITION_AUTOMATION_FLOOR is a four-term construction whose unassisted
+#   frame does not exist, so it is an UPPER bound of unknown tightness (its own
+#   confidence is 45); CARE_AUTOMATION_FLOOR is set TO that value by the
+#   abatability ordering — care cannot coherently floor below the most abatable
+#   component — so it is an ordering-derived LOWER bound and
+#   `automation_floors.care_floor_is_too_low()` flags itself
+#   `is_an_internal_consistency_result` (its own confidence is 20). What
+#   supports care beyond the ordering is corroboration rather than measurement:
+#   Block II reaches the same ordering independently, care being the least
+#   abatable component at 84.4% of the residual at full abatement. The other two
+#   components carry no entry at all. The 10 is the WEAKEST element, per the
+#   composite-tag rule, and it has not been re-examined since nutrition was
+#   adopted — the count it was written against was one entry, not two.
 # note: THE PREVIOUS resolves_by CITED A POINTER THAT CANNOT EXIST. It deferred
 #   to "CARE_AUTOMATION_FLOOR's own pointer", but that constant is `normative`
 #   and the scheme FORBIDS a normative constant a resolves_by — it has none. So

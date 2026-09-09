@@ -43,6 +43,17 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
+- **Which capital path is canonical is undecided.** *(person)* `total_eoh`'s
+  `capital_stock` defaults to `CAPITAL_STOCK_DEFAULT`, not `None`, so it is
+  never "unspecified" and the documented entry point never uses the arc's
+  capital. The two disagree everywhere but ε=1: canonical is `2.0B × 3 × ε`
+  (zero at ε=0, Block III), the caller-baseline path is `× (1 + 2ε)`. Measured
+  2026-09-08: switching the default to `None` fails **380 tests**. The constant
+  already declares the hazard — "callers passing it at low ε are asserting
+  capital the arc says is not there" — and Block III recorded leaving
+  `effective_capital_from_epsilon` alone as a DELIBERATE DIVERGENCE. *Settles
+  by:* an author decision on which path the entry point should take; it is the
+  unfinished half of Block III, not a signature fix.
 - **Dynamic stability is unbuilt.** *(pointer)* `arc_stability` answers stationarity, NOT
   whether the coupled capital→automation→income→formation loop oscillates.
   Nothing tests for limit cycles. See

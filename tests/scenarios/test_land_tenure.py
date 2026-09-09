@@ -60,10 +60,17 @@ class TestTheDomainCarriesTwoStocks:
             thermal_obligation=250.0, restoration_obligation=1000.0,
         )
         # BOTH recurring terms adopted into GUF, so the domain is the stocks
-        # alone: the visible backlog plus thermal plus restoration.
+        # alone: the WHOLE backlog plus thermal plus restoration. It was
+        # `visible_deferred` until 2026-09-08, when the monitoring filter moved
+        # off the obligation and onto registration — the stock is owed in full
+        # and `unseen_deferred` reports the part that cannot yet be minted
+        # against.
         assert b["total"] == pytest.approx(
-            b["visible_deferred"] + b["thermal"] + b["restoration"], rel=1e-12
+            b["deferred"] + b["thermal"] + b["restoration"], rel=1e-12
         )
+        assert b["visible_deferred"] + b["unseen_deferred"] == pytest.approx(
+            b["deferred"], rel=1e-12
+        ), "the split must account for the whole stock, losing none of it"
         # and the pre-4f composition survives under the superseded policy
         legacy = ecological_eoh_breakdown(
             0.70, 0.40, deferred=5000.0,
@@ -71,7 +78,7 @@ class TestTheDomainCarriesTwoStocks:
             standing_response="domain", health_response="domain",
         )
         assert legacy["total"] == pytest.approx(
-            legacy["baseline"] + legacy["spike"] + legacy["visible_deferred"]
+            legacy["baseline"] + legacy["spike"] + legacy["deferred"]
             + legacy["thermal"] + legacy["restoration"], rel=1e-12
         )
 

@@ -936,3 +936,65 @@ class TestGufNetInflowInjection:
         new_zero, _ = simulate_period(state, guf_net_inflow=0.0)
         assert new_zero["trust_balance"] == pytest.approx(new_base["trust_balance"],
                                                           rel=1e-9)
+
+
+class TestTheDeferredEcologicalRate:
+    """
+    `deferred_eco_growth_rate` IS LIVE, BUT ONLY AGAINST A SUPPLIED STOCK.
+
+    WHY THIS EXISTS. The accumulator is purely multiplicative —
+    `deferred_eco * (1 + rate * stress * 2)` — and `deferred_ecological` is an
+    INTAKE field that ships at 0.0 under the Phase 4e/4f partition, which
+    assigned every recurring ecological term to the Ground Use Fee and left the
+    domain carrying three stocks an institution supplies. Zero times any rate is
+    zero, so on every shipped path the parameter cannot move an output.
+
+    That is ADOPTED POLICY and not a defect: the model does not generate
+    ecological backlog, because the recurring obligation is charged to the
+    holder through GUF and billing it to the domain as well would be the
+    double-application the Phase 4f note names in its own words.
+
+    WHAT WOULD BE A DEFECT is nobody knowing which of the two it is. The wiring
+    gate cannot reach `simulate_period` (it has a required argument) and the one
+    test that named the parameter compared two equal values with `>=`. So the
+    behaviour is pinned here, in both directions, and either half failing means
+    the intake contract changed without anyone saying so.
+    """
+
+    def test_it_is_inert_while_the_stock_is_unseeded(self):
+        """The shipped path. A 100x sweep must move nothing at all."""
+        outs = []
+        for rate in (0.0, 0.05, 5.0):
+            res = run_simulation(make_economy_state(), 30,
+                                 deferred_eco_growth_rate=rate,
+                                 ecological_degradation_rate=0.02)
+            outs.append(res["final_state"]["deferred_ecological"])
+        assert outs == [0.0, 0.0, 0.0], (
+            f"the deferred stock grew from an unseeded start: {outs}. If this "
+            "fires, the domain has acquired a SOURCE for ecological backlog — "
+            "check it against GUF before accepting it, because the recurring "
+            "obligation is already charged to the holder there."
+        )
+
+    def test_ecological_collapse_alone_creates_no_backlog(self):
+        """The same claim stated as physics rather than as a sweep."""
+        res = run_simulation(make_economy_state(), 60,
+                             ecological_degradation_rate=0.02)
+        final = res["final_state"]
+        assert final["ecosystem_health"] < 0.15, "the run must actually degrade"
+        assert final["deferred_ecological"] == 0.0
+
+    def test_it_is_live_once_the_stock_is_supplied(self):
+        """
+        The other half, and the one that makes the first half a finding rather
+        than a tautology: supply the intake field and the rate bites.
+        """
+        seeded = lambda rate: run_simulation(
+            make_economy_state(deferred_ecological=1.0e6), 30,
+            deferred_eco_growth_rate=rate,
+            ecological_degradation_rate=0.02,
+        )["final_state"]["deferred_ecological"]
+        flat, slow, fast = seeded(0.0), seeded(0.05), seeded(0.5)
+        assert flat == pytest.approx(1.0e6), "rate 0 must not grow the stock"
+        assert slow > flat, "a positive rate must grow a supplied stock"
+        assert fast > slow, "and a larger rate must grow it faster"

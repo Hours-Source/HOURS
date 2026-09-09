@@ -763,3 +763,75 @@ class TestPipelineScaleOverrides:
             assert p["eoh_by_domain"]["ecological"] == pytest.approx(
                 t["ecological"], rel=1e-12
             )
+
+
+class TestLegibilityGatesTheMintNotTheObligation:
+    """
+    THE LAYER FIX, 2026-09-08 (author-approved).
+
+    `monitoring_capability` used to multiply the deferred ecological stock
+    INSIDE `total_eoh`, so an unmonitored collective did not owe its backlog.
+    That put an epistemic filter in the physics layer and broke the standing
+    invariant — physical state drives generation, ε drives fulfilment.
+
+    The obligation now enters in full. Legibility moved to the admission side,
+    where it says what may be MINTED against, and the unseen remainder is owed,
+    reported as `unseen_deferred`, and simply not registrable.
+
+    BOTH HALVES ARE PINNED HERE because either alone is worse than the original.
+    Full obligation without the registration gate would let unseen damage mint;
+    the gate without the full obligation would discount the debt twice.
+    """
+
+    SEED = 2.0e8
+
+    def test_nothing_moves_on_the_shipped_path(self):
+        """The domain is empty by the Phase 4e/4f partition, so this fix is
+        invisible unless an institution supplies a stock. Stated as a test so
+        the claim is checked rather than asserted in a commit message."""
+        base = eoh_to_teh_pipeline(epsilon=0.40)
+        for mon in (0.0, 0.5, 1.0):
+            r = eoh_to_teh_pipeline(epsilon=0.40, monitoring_capability=mon)
+            assert r["total_eoh"] == pytest.approx(base["total_eoh"], rel=1e-12)
+            assert r["teh_created"] == pytest.approx(base["teh_created"], rel=1e-12)
+
+    @pytest.mark.parametrize("epsilon", (0.0, 0.40, 0.90, 0.99))
+    def test_the_obligation_is_observer_independent(self, epsilon):
+        """What is owed does not depend on who is watching — at every ε."""
+        totals = [
+            eoh_to_teh_pipeline(epsilon=epsilon, deferred_ecological=self.SEED,
+                                monitoring_capability=mon)["total_eoh"]
+            for mon in (0.0, 0.5, 1.0)
+        ]
+        assert totals[0] == pytest.approx(totals[1], rel=1e-12)
+        assert totals[1] == pytest.approx(totals[2], rel=1e-12)
+
+    def test_the_whole_backlog_is_owed_not_the_visible_part(self):
+        seeded = eoh_to_teh_pipeline(epsilon=0.40, deferred_ecological=self.SEED,
+                                     monitoring_capability=0.25)
+        bare = eoh_to_teh_pipeline(epsilon=0.40)
+        assert seeded["total_eoh"] - bare["total_eoh"] == pytest.approx(
+            self.SEED, rel=1e-9
+        ), "a quarter-monitored collective must still owe the whole backlog"
+
+    def test_but_the_unseen_part_cannot_be_minted_against(self):
+        """
+        The half that keeps the incentive to look. If this fails while the test
+        above passes, unseen damage is minting currency.
+        """
+        mints = [
+            eoh_to_teh_pipeline(epsilon=0.40, deferred_ecological=self.SEED,
+                                monitoring_capability=mon)["teh_created"]
+            for mon in (0.0, 0.5, 1.0)
+        ]
+        assert mints[0] < mints[1] < mints[2], (
+            f"minting must still rise with legibility, got {mints}"
+        )
+
+    def test_seeing_nothing_mints_exactly_what_an_empty_domain_mints(self):
+        """mon=0 is the boundary: the backlog is fully owed and fully deferred."""
+        blind = eoh_to_teh_pipeline(epsilon=0.40, deferred_ecological=self.SEED,
+                                    monitoring_capability=0.0)
+        empty = eoh_to_teh_pipeline(epsilon=0.40)
+        assert blind["teh_created"] == pytest.approx(empty["teh_created"], rel=1e-12)
+        assert blind["total_eoh"] > empty["total_eoh"]

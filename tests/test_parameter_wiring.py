@@ -33,6 +33,29 @@ WHAT IT CANNOT CATCH, stated so nobody relies on it:
   * **a parameter a test names but under-pins.** Stage 2 filters anything the
     suite passes by name, so once a test mentions it this gate goes quiet even
     if the wiring behind it is broken.
+  * **any function with a REQUIRED argument.** Stage 1 skips anything not
+    callable with no arguments, so `simulate_period(state, …)` — the period
+    engine — and everything else taking a required parameter is invisible here.
+    This is the same coverage hole that hid `eoh_to_teh_pipeline` until its
+    `epsilon` gained a default, and it is not closed.
+
+    **THE LIVE INSTANCE, FOUND 2026-09-08:** `simulate_period`'s
+    `deferred_eco_growth_rate` (default 0.05) is inert on every shipped path.
+    The accumulator is `deferred_eco * (1 + rate * stress * 2)` — purely
+    multiplicative — and `deferred_ecological` is an INTAKE field that ships at
+    0.0 by the Phase 4e/4f partition, so zero times any rate is zero. Sweeping
+    it 0.0 → 5.0 over 30 periods moves nothing while ecosystem health falls to
+    0.10; seeded at 1e6 it is live (1.0M → 41.3M at rate 0.5).
+
+    **BOTH BLIND SPOTS FIRED AT ONCE, WHICH IS WHY IT SURVIVED.** Stage 1 could
+    not see the function, and stage 2 would have been satisfied anyway: the one
+    place in the suite that named the parameter,
+    `test_long_run.test_high_degradation_worsens_outcome`, passed it into a
+    `>=` comparison that held by EQUALITY — and through `trust_depletion_stress`
+    the stock is never seeded, so the parameter could not have moved the result
+    at any value. It is NOT declared in `_DECLARED`: a masking entry for
+    something this gate never flags would make the gate read as covering it.
+    It is pinned instead, by `test_simulation.TestTheDeferredEcologicalRate`.
   * **its own ratchet being loosened.** `len(_DECLARED) <= 8` passes if the
     bound is simply raised, exactly as the shadow ratchet does. Verified: that
     mutation does not bite. Raising it is a visible act in a diff, which is the

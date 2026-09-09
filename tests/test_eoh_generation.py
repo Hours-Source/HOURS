@@ -144,13 +144,27 @@ class TestEcologicalEoh:
             "Ecological EOH should spike nonlinearly below threshold"
         )
 
-    def test_deferred_visibility_grows_with_epsilon(self):
-        """More deferred obligations visible at higher ε (better monitoring)."""
-        eoh_lo_eps = ecological_eoh(0.70, epsilon=0.0,  deferred=1_000_000.0)
-        eoh_hi_eps = ecological_eoh(0.70, epsilon=0.90, deferred=1_000_000.0)
-        assert eoh_hi_eps > eoh_lo_eps, (
-            "Deferred ecological EOH should be more visible at higher ε"
+    def test_the_deferred_obligation_does_not_depend_on_who_is_watching(self):
+        """
+        INVERTED 2026-09-08 (author-approved layer fix). This asserted the
+        opposite — that better monitoring RAISES the obligation — because
+        `total` carried `deferred × monitoring_capability`. That made a physical
+        quantity depend on the observer: an unmonitored collective did not OWE
+        its backlog, which contradicts the standing invariant that EOH measures
+        entropy and has a physical basis.
+
+        The backlog is now owed in full at every monitoring level. What
+        legibility governs is what may be REGISTERED and minted against, which
+        `test_capability_vs_observable` and the pipeline tests pin — so the
+        incentive to look is unchanged and the physics is observer-independent.
+        """
+        lo = ecological_eoh(0.70, epsilon=0.0,  deferred=1_000_000.0)
+        hi = ecological_eoh(0.70, epsilon=0.90, deferred=1_000_000.0)
+        assert lo == pytest.approx(hi, rel=1e-12), (
+            "the obligation moved with monitoring — the epistemic filter is "
+            "back in the physics layer"
         )
+        assert lo >= 1_000_000.0, "and the whole backlog must be in there"
 
 
 # ===========================================================================

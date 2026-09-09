@@ -959,7 +959,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       "person", _desire_is_still_a_stub),
     OpenItemPredicate('`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates',
                       "person", _maint_rate_still_unbound),
-    OpenItemPredicate("The claims register now checks 12 of 42 open items", "gap",
+    OpenItemPredicate("The claims register checks only some of the open items", "gap",
                       _predicate_coverage_is_incomplete),
 )
 

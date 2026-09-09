@@ -53,8 +53,8 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **Dynamic stability / oscillation** *(gap)* (review §6) is unbuilt. `arc_stability`
   answers stationarity, **not** whether the coupled capital→automation→income→
   formation loop oscillates. Nothing tests for limit cycles.
-- **The claims register now checks 12 of 42 open items, not 42** *(gap)* — the
-  predicate landed, the coverage did not. `OPEN_ITEM_PREDICATES` gives each item
+- **The claims register checks only some of the open items** *(gap)* — the
+  predicate landed, the coverage did not. Counts are live, not restated. `OPEN_ITEM_PREDICATES` gives each item
   an observable whose DIRECTION its kind sets: a `gap` fails when its closure
   landed and nobody struck the line, a `held` when someone built what the repo
   declined, a `caveat` when its own figure drifted *(gated)*. All four
