@@ -41,6 +41,9 @@ from hours_eoh.reference.personal_basket import (
     entitlement_augmentation,
     full_basket,
     survival_core,
+    COMPONENT_STATUS,
+    COMPONENT_STATUS_VOCAB,
+    CLIMATE_CONDITIONING,
     _share,
 )
 from hours_eoh.scenarios.personal_floor import (
@@ -768,3 +771,93 @@ class TestTheBaseDeclaresItsClimate:
     def test_the_stated_gap_is_still_stated(self) -> None:
         doc = self.__doc__ or ""
         assert "STATED GAP" in doc and "does not\n    make the base right" in doc
+
+
+class TestTheComponentStatusTableCannotDrift:
+    """
+    `COMPONENT_STATUS` says what KIND of unknown each basket component is, so
+    that "five are unmeasured" is not read as one homogeneous backlog. A table
+    like that is worthless the moment it disagrees with the basket, so every
+    field here is bound to the data rather than restated beside it.
+    """
+
+    def test_every_component_is_classified_and_none_is_invented(self) -> None:
+        """An unclassified component would be excluded from the work order
+        without anyone having decided to exclude it — the same failure the
+        obligation-work registry guards against."""
+        in_basket = {c["component"] for c in FULL_BASKET}
+        classified = set(COMPONENT_STATUS)
+        assert classified == in_basket, (
+            f"unclassified: {sorted(in_basket - classified)}; "
+            f"classified but not in the basket: {sorted(classified - in_basket)}"
+        )
+
+    def test_the_vocabularies_are_closed(self) -> None:
+        for comp, row in COMPONENT_STATUS.items():
+            for axis, allowed in COMPONENT_STATUS_VOCAB.items():
+                assert row[axis] in allowed, f"{comp}.{axis}={row[axis]!r}"
+            assert row["blocked_on"].strip(), f"{comp} states no blocker"
+
+    def test_costed_iff_claimed_costed(self) -> None:
+        """THE BIND THAT MATTERS. A component is `measured`/`one_frame` exactly
+        when it carries an `hours_per_unit`. Measure water without updating this
+        table and the test fails; downgrade a status without removing the
+        productivity and it fails too."""
+        costed_status = {"measured", "one_frame"}
+        for c in FULL_BASKET:
+            row = COMPONENT_STATUS[c["component"]]
+            claims_costed = row["status"] in costed_status
+            is_costed = c.get("hours_per_unit") is not None
+            assert claims_costed == is_costed, (
+                f"{c['component']}: status={row['status']!r} but "
+                f"hours_per_unit={c.get('hours_per_unit')!r}"
+            )
+
+    def test_exactly_one_component_has_an_INSTANCE_quantity(self) -> None:
+        """Shelter carries degree-days, which is a property of a PLACE. That is
+        why costing it makes the floor climate-indexed and `PERSONAL_EOH_BASE`
+        has to declare a climate. If a second component ever becomes
+        quantity-instance, that argument needs restating rather than repeating."""
+        instance_q = {k for k, v in COMPONENT_STATUS.items()
+                      if v["quantity"] == "instance"}
+        assert instance_q == {"shelter"}, instance_q
+        shelter = next(c for c in FULL_BASKET if c["component"] == "shelter")
+        assert "degree_days_per_year" in shelter
+
+    def test_care_is_the_only_component_invariant_on_BOTH_axes(self) -> None:
+        """A dependent needs the same attention at any latitude — the same fact
+        Block II reaches from abatability. Bound to CLIMATE_CONDITIONING so the
+        two tables cannot disagree about it."""
+        invariant = {k for k, v in COMPONENT_STATUS.items()
+                     if v["delivery"] == "invariant"}
+        assert invariant == {"care"}, invariant
+        assert CLIMATE_CONDITIONING["care"] == "none"
+        for comp, kind in CLIMATE_CONDITIONING.items():
+            expected = "invariant" if kind == "none" else "instance"
+            if COMPONENT_STATUS[comp]["delivery"] != "none":
+                assert COMPONENT_STATUS[comp]["delivery"] == expected, comp
+
+    def test_health_is_undefined_rather_than_unmeasured(self) -> None:
+        """The distinction the whole table exists to protect: health's gap is
+        not a data gap. Q/P(0) is undefined, not large, so more measurement does
+        not close it and it must never be filled with a plausible number."""
+        assert COMPONENT_STATUS["health"]["status"] == "undefined"
+        assert COMPONENT_STATUS["health"]["delivery"] == "none"
+        health = next(c for c in FULL_BASKET if c["component"] == "health")
+        assert health.get("min_epsilon") is not None
+        assert health.get("hours_per_unit") is None
+        others = {k for k, v in COMPONENT_STATUS.items() if v["status"] == "undefined"}
+        assert others == {"health"}, others
+
+    def test_the_open_count_matches_what_the_floor_reports_unreachable(self) -> None:
+        """The table's own arithmetic against `obligation_floor`'s: everything
+        not costed must show up as unreachable, with health's reason distinct."""
+        from hours_eoh.scenarios.personal_floor import obligation_floor
+        r = obligation_floor()
+        unreachable = {u["component"] for u in r["unreachable"]}
+        not_costed = {k for k, v in COMPONENT_STATUS.items()
+                      if v["status"] in {"open", "undefined"}}
+        assert unreachable == not_costed, (unreachable, not_costed)
+        reasons = {u["component"]: u["reason"] for u in r["unreachable"]}
+        assert reasons["health"] != reasons["water"], (
+            "health's reason must stay distinct from an ordinary unmeasured one")

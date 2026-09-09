@@ -114,6 +114,101 @@ from __future__ import annotations
 # Physical quantities — the basket, stated in units that cannot drift
 # ---------------------------------------------------------------------------
 
+#: WHAT KIND OF UNKNOWN EACH COMPONENT IS (2026-09-09).
+#:
+#: The floor's remaining work is not one job repeated seven times. Each component
+#: is blocked on a different KIND of thing, and the kinds want different
+#: instruments — so this table exists to stop "five components are unmeasured"
+#: being read as one homogeneous backlog.
+#:
+#: Three axes, each a closed vocabulary and each bound to the data by
+#: `tests/test_personal_floor.py` so the classification cannot drift from the
+#: basket it describes:
+#:
+#:   quantity  — is WHAT IS OWED the same everywhere?
+#:               "universal" a biological or chosen standard that does not vary
+#:                           by place; "instance" a property of the location.
+#:   delivery  — is WHAT IT COSTS to deliver the same everywhere?
+#:               "instance" varies by climate, technology or distance;
+#:               "invariant" does not; "none" has no unassisted path at all.
+#:   status    — "measured"      costed, transferable
+#:               "one_frame"     costed in ONE setting, transfer unasserted
+#:               "open"          not costed; an instrument exists
+#:               "undefined"     not costed and NOT costable at this ε
+#:
+#: THE TWO STRUCTURAL FACTS THIS TABLE MAKES VISIBLE, both of which are
+#: consequences rather than opinions:
+#:
+#: 1. SHELTER IS THE ONLY COMPONENT WHOSE QUANTITY IS AN INSTANCE, because it
+#:    carries degree-days. Once it is costed the personal obligation CANNOT be a
+#:    global scalar — `PERSONAL_EOH_BASE` has to declare which climate it is for.
+#: 2. HEALTH'S GAP IS NOT A MEASUREMENT GAP. Q/P(0) is undefined, not large: no
+#:    quantity of unassisted labour delivers a caesarean. More data does not
+#:    close it and it must never be filled with a plausible number.
+#:
+#: `care` is the one component invariant on BOTH axes — a dependent needs the
+#: same attention at any latitude — which is the same structural fact Block II
+#: reaches from abatability. It is also the largest desk term (62.1%).
+COMPONENT_STATUS: dict[str, dict[str, str]] = {
+    "nutrition_production": {
+        "quantity": "universal",
+        "delivery": "instance",
+        "status": "one_frame",
+        "blocked_on": "transfer out of rainfed tropical smallholder agro-ecology; "
+                      "NUTRITION_TRANSFER_BIAS_SIGN is deliberately None",
+    },
+    "nutrition_processing": {
+        "quantity": "universal",
+        "delivery": "instance",
+        "status": "open",
+        "blocked_on": "the ε≈0 end. ATUS 0202 gives the high-ε end but the US does "
+                      "most processing inside the registered ledger; needs an "
+                      "ethnographic time-allocation budget or a low-capital survey",
+    },
+    "water": {
+        "quantity": "universal",
+        "delivery": "instance",
+        "status": "open",
+        "blocked_on": "an ingest. DHS water-collection time carries trips/day and "
+                      "container volume; the LSMS merge harness is already built "
+                      "and dry-run clean. The most tractable component",
+    },
+    "shelter": {
+        "quantity": "instance",
+        "delivery": "instance",
+        "status": "open",
+        "blocked_on": "degree-days is a property of a PLACE, not a person, so "
+                      "costing it makes the floor climate-indexed",
+    },
+    "sanitation": {
+        "quantity": "universal",
+        "delivery": "instance",
+        "status": "open",
+        "blocked_on": "no named instrument yet — the weakest resolves_by of the seven",
+    },
+    "care": {
+        "quantity": "universal",
+        "delivery": "invariant",
+        "status": "open",
+        "blocked_on": "cross-cultural time allocation at a STATED dependency "
+                      "structure; any figure is meaningless without one",
+    },
+    "health": {
+        "quantity": "universal",
+        "delivery": "none",
+        "status": "undefined",
+        "blocked_on": "nothing measurable. Below min_epsilon the obligation is owed "
+                      "and undeliverable; the floor says so rather than costing it",
+    },
+}
+
+#: The closed vocabularies, exported so the test does not restate them.
+COMPONENT_STATUS_VOCAB: dict[str, frozenset[str]] = {
+    "quantity": frozenset({"universal", "instance"}),
+    "delivery": frozenset({"instance", "invariant", "none"}),
+    "status":   frozenset({"measured", "one_frame", "open", "undefined"}),
+}
+
 #: MOVED TO `data.py` 2026-08-16 — the basket QUANTITIES are chosen standards,
 #: not measured data, so they belong with the framework's other parameters and
 #: under the shadow-constant gate. `BASKET_DIET_KCAL_PER_DAY`,
