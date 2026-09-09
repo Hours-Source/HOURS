@@ -18,6 +18,7 @@ from hours_eoh.core.eoh_generation import (
     personal_statutory_floor,
 )
 from hours_eoh.data import (
+    BASKET_WATER_DISTANCE_M,
     BASKET_DIET_KCAL_PER_DAY,
     BASKET_HEALTH_MIN_EPSILON,
     BASKET_SHELTER_M2_PER_PERSON,
@@ -73,6 +74,7 @@ SURVIVAL_CORE = survival_core(
     BASKET_WATER_LITRES_PER_DAY,
     BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
     BASKET_SHELTER_M2_PER_PERSON,
+    BASKET_WATER_DISTANCE_M,
 )
 ENTITLEMENT_AUGMENTATION = entitlement_augmentation(BASKET_HEALTH_MIN_EPSILON)
 FULL_BASKET = full_basket(
@@ -81,6 +83,7 @@ FULL_BASKET = full_basket(
     BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
     BASKET_SHELTER_M2_PER_PERSON,
     BASKET_HEALTH_MIN_EPSILON,
+    BASKET_WATER_DISTANCE_M,
 )
 
 class TestFloorArithmetic:
@@ -555,7 +558,8 @@ class TestTheBasketSeam:
         hot = full_basket(2500.0, BASKET_WATER_LITRES_PER_DAY,
                           BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
                           BASKET_SHELTER_M2_PER_PERSON,
-                          BASKET_HEALTH_MIN_EPSILON)
+                          BASKET_HEALTH_MIN_EPSILON,
+                          BASKET_WATER_DISTANCE_M)
         shipped = personal_statutory_floor(FULL_BASKET)["floor_hours"]
         assert personal_statutory_floor(hot)["floor_hours"] > shipped * 1.15
 
@@ -565,14 +569,17 @@ class TestTheBasketSeam:
         load-bearing the moment either component is priced, which is why they
         are tagged in data.py rather than left where nothing watched them."""
         odd = full_basket(BASKET_DIET_KCAL_PER_DAY, 500.0, 9000.0, 40.0,
-                          BASKET_HEALTH_MIN_EPSILON)
+                          BASKET_HEALTH_MIN_EPSILON, 5_000.0)
         assert personal_statutory_floor(odd)["floor_hours"] == pytest.approx(
             personal_statutory_floor(FULL_BASKET)["floor_hours"]
         )
 
     def test_a_basket_line_with_no_requirement_is_refused(self):
-        for bad in ((0.0, 50.0, 2500.0, 12.0), (2100.0, -1.0, 2500.0, 12.0),
-                    (2100.0, 50.0, 0.0, 12.0), (2100.0, 50.0, 2500.0, 0.0)):
+        for bad in ((0.0, 50.0, 2500.0, 12.0, 1000.0),
+                    (2100.0, -1.0, 2500.0, 12.0, 1000.0),
+                    (2100.0, 50.0, 0.0, 12.0, 1000.0),
+                    (2100.0, 50.0, 2500.0, 0.0, 1000.0),
+                    (2100.0, 50.0, 2500.0, 12.0, -1.0)):
             with pytest.raises(ValueError, match="must be positive"):
                 survival_core(*bad)
 
@@ -813,16 +820,55 @@ class TestTheComponentStatusTableCannotDrift:
                 f"hours_per_unit={c.get('hours_per_unit')!r}"
             )
 
-    def test_exactly_one_component_has_an_INSTANCE_quantity(self) -> None:
-        """Shelter carries degree-days, which is a property of a PLACE. That is
-        why costing it makes the floor climate-indexed and `PERSONAL_EOH_BASE`
-        has to declare a climate. If a second component ever becomes
-        quantity-instance, that argument needs restating rather than repeating."""
+    def test_the_place_properties_are_named_and_set_the_indexing_grain(self) -> None:
+        """
+        TWO components carry a place property on the quantity side, and the
+        second one changed the argument rather than repeating it.
+
+        This test previously asserted `== {"shelter"}` and said in its own
+        docstring that a second quantity-instance would need the argument
+        restated. Water became one on 2026-09-09, the assertion fired, and the
+        restatement is this: degree-days makes the floor CLIMATE-indexed;
+        distance-to-source makes it SITE-indexed, which is strictly finer. Two
+        collectives in one climate, one beside a spring and one 3 km from it,
+        share a climate and do not share a floor.
+
+        So the ceiling on how well `PERSONAL_EOH_BASE` can ever be stated is a
+        SITE, not a climate zone — and each place property is pinned to the row
+        that carries it, so neither can be quietly folded into a delivery
+        productivity where its distribution would become invisible.
+        """
         instance_q = {k for k, v in COMPONENT_STATUS.items()
                       if v["quantity"] == "instance"}
-        assert instance_q == {"shelter"}, instance_q
-        shelter = next(c for c in FULL_BASKET if c["component"] == "shelter")
-        assert "degree_days_per_year" in shelter
+        assert instance_q == {"shelter", "water"}, instance_q
+
+        carried = {"shelter": "degree_days_per_year", "water": "distance_to_source_m"}
+        for component, field in carried.items():
+            row = next(c for c in FULL_BASKET if c["component"] == component)
+            assert field in row, f"{component} lost its place property {field}"
+            assert row["hours_per_unit"] is None, (
+                f"{component} is costed while carrying a place property — the "
+                "intensity must not be folded into the delivery productivity"
+            )
+
+    def test_a_place_property_is_carried_and_never_costed(self) -> None:
+        """Both intensities are carried so the row has its unit and are NOT
+        multiplied into the floor. Moving either must not move a single hour —
+        which is what makes them declarations rather than silent multipliers."""
+        from hours_eoh.reference.personal_basket import full_basket
+        from hours_eoh.data import (
+            BASKET_DIET_KCAL_PER_DAY, BASKET_WATER_LITRES_PER_DAY,
+            BASKET_THERMAL_DEGREE_DAYS_PER_YEAR, BASKET_SHELTER_M2_PER_PERSON,
+            BASKET_HEALTH_MIN_EPSILON,
+        )
+        far = full_basket(
+            BASKET_DIET_KCAL_PER_DAY, BASKET_WATER_LITRES_PER_DAY,
+            BASKET_THERMAL_DEGREE_DAYS_PER_YEAR, BASKET_SHELTER_M2_PER_PERSON,
+            BASKET_HEALTH_MIN_EPSILON, 25_000.0,
+        )
+        assert personal_statutory_floor(far)["floor_hours"] == pytest.approx(
+            personal_statutory_floor(FULL_BASKET)["floor_hours"]
+        )
 
     def test_care_is_the_only_component_invariant_on_BOTH_axes(self) -> None:
         """A dependent needs the same attention at any latitude — the same fact

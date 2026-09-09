@@ -59,6 +59,7 @@ from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import PersonalFloor, personal_statutory_floor
 from hours_eoh.data import (
+    BASKET_WATER_DISTANCE_M,
     BASKET_DIET_KCAL_PER_DAY,
     BASKET_HEALTH_MIN_EPSILON,
     BASKET_SHELTER_M2_PER_PERSON,
@@ -94,6 +95,7 @@ def shipped_basket() -> list[dict]:
         BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
         BASKET_SHELTER_M2_PER_PERSON,
         BASKET_HEALTH_MIN_EPSILON,
+        BASKET_WATER_DISTANCE_M,
     )
 from hours_eoh.scenarios.feasibility import age_weight_mean
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:

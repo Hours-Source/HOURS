@@ -139,9 +139,16 @@ from __future__ import annotations
 #: THE TWO STRUCTURAL FACTS THIS TABLE MAKES VISIBLE, both of which are
 #: consequences rather than opinions:
 #:
-#: 1. SHELTER IS THE ONLY COMPONENT WHOSE QUANTITY IS AN INSTANCE, because it
-#:    carries degree-days. Once it is costed the personal obligation CANNOT be a
-#:    global scalar — `PERSONAL_EOH_BASE` has to declare which climate it is for.
+#: 1. TWO COMPONENTS CARRY A PLACE PROPERTY ON THE QUANTITY SIDE, and together
+#:    they set the grain at which a floor can be stated at all. Shelter carries
+#:    degree-days; water carries distance-to-source (2026-09-09, author
+#:    decision). Degree-days makes the floor CLIMATE-indexed. Distance makes it
+#:    SITE-indexed, which is a strictly finer grain: two collectives in one
+#:    climate, one beside a spring and one 3 km from it, share a climate and do
+#:    NOT share a floor. **So `PERSONAL_EOH_BASE` cannot be made correct by
+#:    declaring a climate zone — the finest honest index is a site, and the arc
+#:    from "one global scalar" to "one number per site" is the whole distance
+#:    this parameter has to travel.**
 #: 2. HEALTH'S GAP IS NOT A MEASUREMENT GAP. Q/P(0) is undefined, not large: no
 #:    quantity of unassisted labour delivers a caesarean. More data does not
 #:    close it and it must never be filled with a plausible number.
@@ -166,12 +173,15 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
                       "ethnographic time-allocation budget or a low-capital survey",
     },
     "water": {
-        "quantity": "universal",
+        "quantity": "instance",
         "delivery": "instance",
         "status": "open",
-        "blocked_on": "an ingest. DHS water-collection time carries trips/day and "
-                      "container volume; the LSMS merge harness is already built "
-                      "and dry-run clean. The most tractable component",
+        "blocked_on": "an acquisition, then a decomposition. DHS water-collection "
+                      "time carries trips/day and container volume but states the "
+                      "JMP threshold in round-trip TIME, which folds distance, "
+                      "speed and carry together; the transferable remainder is "
+                      "hours per litre-metre at a stated carry, and whether DHS "
+                      "separates the distance leg is unchecked",
     },
     "shelter": {
         "quantity": "instance",
@@ -324,6 +334,7 @@ def survival_core(
     water_litres_per_day: float,
     thermal_degree_days_per_year: float,
     shelter_m2_per_person: float,
+    water_distance_m: float,
 ) -> list[dict]:
     """
     The components with an ε = 0 delivery path in principle.
@@ -337,6 +348,8 @@ def survival_core(
     units: quantities per person per year, in each component's own unit.
 
     Args:
+        water_distance_m: `data.BASKET_WATER_DISTANCE_M` — the SITE property on
+            water's quantity side, carried and never costed. See the water row.
         diet_kcal_per_day: `data.BASKET_DIET_KCAL_PER_DAY`.
         water_litres_per_day: `data.BASKET_WATER_LITRES_PER_DAY`.
         thermal_degree_days_per_year: `data.BASKET_THERMAL_DEGREE_DAYS_PER_YEAR`.
@@ -351,6 +364,9 @@ def survival_core(
         ("water_litres_per_day", water_litres_per_day),
         ("thermal_degree_days_per_year", thermal_degree_days_per_year),
         ("shelter_m2_per_person", shelter_m2_per_person),
+        # a zero-distance source is a tap, which is a DIFFERENT delivery regime
+        # rather than a free one — the hauling productivity does not describe it.
+        ("water_distance_m", water_distance_m),
     ):
         if q <= 0.0:
             raise ValueError(f"{name} must be positive, got {q}")
@@ -390,6 +406,33 @@ def survival_core(
         "unit": "litres",
         "hours_per_unit": None,
         "share": _share("shelter", 3),
+        "distance_to_source_m": water_distance_m,
+        # DISTANCE CARRIED HERE 2026-09-09, on the shelter/thermal template and
+        # for the same reason. The physical form is
+        #     litres x distance x hours per (litre.metre)   at a stated carry
+        # so distance is an INTENSITY on the quantity, not part of the delivery
+        # productivity. It is NOT multiplied into the floor — `hours_per_unit`
+        # is still None — exactly as `degree_days_per_year` is carried and not
+        # costed on the shelter row.
+        #
+        # WHY IT CANNOT LIVE INSIDE `hours_per_unit`. A single hours-per-litre
+        # figure has a distance distribution AND a carry distribution folded
+        # invisibly into it. Those are independent and each spans an order of
+        # magnitude — 10 m against 1 km, four units carried against ten — so the
+        # average describes no actual collective. Splitting distance out is what
+        # leaves a remainder that transfers at all: hours per litre.metre at a
+        # stated carry is bounded by human porterage, which is a fact about
+        # bodies rather than about places.
+        #
+        # "at a stated carry" does the work "at a stated envelope" does for
+        # thermal, and it is age-structured — who fetches the water. That is the
+        # same dependency `care` carries and for the same reason.
+        #
+        # AND DISTANCE IS ITSELF A FUNCTION OF CAPITAL: siting a well closer is
+        # the abatement channel, the way insulation trades against heating on the
+        # shelter row. Two additive line items can only take one point from each
+        # curve, so a costed water term has to name which siting it assumes.
+        #
         # resolves_by: DHS water-collection time (~90 countries, has trips/day
         # and container volume) in preference to the LSMS WASH modules, which
         # lack both in many waves. The LSMS merge harness is built and dry-run
@@ -503,6 +546,7 @@ def full_basket(
     thermal_degree_days_per_year: float,
     shelter_m2_per_person: float,
     health_min_epsilon: float,
+    water_distance_m: float,
 ) -> list[dict]:
     """
     The whole basket, survival core plus entitlement augmentation.
@@ -519,6 +563,7 @@ def full_basket(
         water_litres_per_day,
         thermal_degree_days_per_year,
         shelter_m2_per_person,
+        water_distance_m,
     ) + entitlement_augmentation(health_min_epsilon)
 
 # ---------------------------------------------------------------------------

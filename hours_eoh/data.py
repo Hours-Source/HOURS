@@ -1574,6 +1574,42 @@ BASKET_DIET_KCAL_PER_DAY: float = 2100.0
 #   anyone prices water collection. Nothing would announce that transition,
 #   which is the reason it is tagged here rather than left in the basket module.
 BASKET_WATER_LITRES_PER_DAY: float = 50.0
+# tag: instance | units: metres, one-way, to the household's water source
+# form: the SITE property in the water component's physical form —
+#   litres x distance x hours per (litre.metre) at a stated carry. Distance is a
+#   property of the PLACE, exactly as degree-days is: a village of 100 and a city
+#   of a million beside one spring both walk the same way. It is carried here for
+#   that use and is NOT multiplied into the floor — water's `hours_per_unit` is
+#   still None.
+# note: THE SECOND COMPONENT WHOSE QUANTITY SIDE IS AN INSTANCE, and the
+#   consequence is larger than thermal's. Degree-days makes the floor
+#   CLIMATE-indexed; distance makes it SITE-indexed, which is a finer grain than
+#   a climate zone — two collectives in one climate, one beside a spring and one
+#   3 km from it, do not share a floor.
+# note: WHY DISTANCE AND NOT COLLECTION TIME. The WHO/JMP service ladder states
+#   its threshold in round-trip TIME (30 minutes divides `basic` from
+#   `limited`), and time conflates three things the basket needs apart —
+#   distance, walking speed, and how much is carried per trip. A productivity
+#   measured as hours per litre therefore has a distance distribution and a
+#   carry distribution folded invisibly into it, and describes no actual
+#   collective. Splitting distance out is what makes the remainder — hours per
+#   litre.metre at a stated carry — transferable at all.
+# note: the shipped value is a ROUND-NUMBER STAND-IN and no default could be
+#   right, because the quantity is a property of a site the framework has not
+#   been told about. It is never costed; like thermal's degree-days it exists so
+#   the component carries its unit.
+# note: `BASKET_THERMAL_DEGREE_DAYS_PER_YEAR` is the same KIND of quantity —
+#   a place property on the quantity side — and is tagged `placeholder` rather
+#   than `instance`. REPORTED, not changed here: retagging it moves the
+#   placeholder ratchet and is the author's call.
+# supplied_by: YOU MEASURE IT — the one-way distance from dwellings to the
+#   source your collective actually draws from, in the season that binds.
+#   Dry-season distance is the constraint, not the annual mean, because the
+#   obligation is set by the worst case a household must still meet. Nothing
+#   about YOUR siting is derivable from this framework.
+# default: 1,000 m — a round-number stand-in carried so the row has a unit,
+#   standing in for nothing measured. It is never multiplied into the floor.
+BASKET_WATER_DISTANCE_M: float = 1000.0
 # tag: convention | units: square metres of dwelling floor area per person
 # form: the UN-Habitat adequacy framing for sufficient living space. A declared
 #   threshold, like the water service level above.
