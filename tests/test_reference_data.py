@@ -183,6 +183,7 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.servicing",
     "hours_eoh.reference.restoration",
     "hours_eoh.reference.parcels",
+    "hours_eoh.reference.verification",
 ]
 
 

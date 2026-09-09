@@ -28,6 +28,15 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **The base is held blind to ecosystem condition, as a charter commitment**
   (2026-09-02). See [ecological.md § Live state](ecological.md#live-state) — the
   obligation is not dropped, it is ASSIGNED to GUF.
+- **Verification cost, Phase 1 is BUILT and reporting only.**
+  `reference/verification.py` censuses the occupations that decide what counts
+  and check that it was done: **core 1,131,000 workers, broad 2,839,800** — a
+  LOWER and an UPPER bound with no weight anywhere to tune, the gap dominated by
+  one code (`132011 Accountants and Auditors`, whose SOC fuses preparing
+  accounts with auditing them). Disjoint from `reference/servicing.py` by
+  construction and mutation-verified. The two error directions are stated and
+  **never netted**. Nothing imports it; whether the term enters `total_eoh` is
+  Phase 3 and needs the author.
 - **The framework cannot claim its frame is "most defensible".** Phase 0 of the
   anchor comparison classifies eight anchors from their own definitions without
   modelling a rival: two indeterminate, two indifferent by design, and of those
