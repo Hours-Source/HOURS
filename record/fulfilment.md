@@ -29,22 +29,14 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   split factor `1 − ε` is reported separately as `uniform_split_factor`. They
   coincide exactly under `uniform`, and if they ever coincide again under
   `per_component` the floors have stopped biting.
-- **THE CANONICAL CAPITAL PATH IS SETTLED** (2026-09-09, author decision), and
-  Block III's unfinished half with it: `capital_stock` defaults to `None`, an
-  unspecified stock resolves along the canonical arc, and a supplied one is the
-  ACTUAL stock. Detail: [capital-path-decision](#capital-path-decision).
-- **CAPITAL AND THE CORPUS ARE CHARGED ON THE SAME PERIOD** *(gated)*, both
-  post-growth, so the reported stock is the charged one. Aligning them removed a
-  latent stability condition: [knowledge-path-decision](#knowledge-path-decision).
-- **A SUPPLIED CORPUS SIZE IS NEVER RESCALED EITHER** *(gated)*, on the same
-  resolver shape (`resolve_knowledge_base_size`). Knowledge carried the
-  identical legacy branch and the LARGER factor — 9.91× at ε=0.99 against
-  capital's 2.98×. Detail: [knowledge-path-decision](#knowledge-path-decision).
-- **A SUPPLIED CAPITAL STOCK IS NEVER RESCALED** *(gated)*. ε FILLS an
-  unspecified stock along the canonical arc (`resolve_capital_stock`, the same
-  priority as `monitoring_capability`); it does not modify one the caller
-  supplied. The entry point and `canonical_physical_state` now read the same
-  capital at every ε.
+- **A SUPPLIED STOCK IS NEVER RESCALED — capital or corpus** *(gated)*. ε FILLS an
+  unspecified one along the canonical arc (`resolve_capital_stock`,
+  `resolve_knowledge_base_size`, same priority as `monitoring_capability`); it
+  never modifies one the caller supplied. Both are charged POST-growth, so the
+  reported stock is the charged stock. Settles Block III's unfinished half and
+  removes a latent stability condition.
+  [capital-path-decision](#capital-path-decision),
+  [knowledge-path-decision](#knowledge-path-decision).
 - **Exactly ONE mint call site.** See
   [verification.md § Live state](verification.md#live-state).
 - **`available_labor_eoh` defaults to unsupplied**, so the pipeline mints from
@@ -77,6 +69,7 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 | Entry | Also | Why |
 |---|---|---|
+| [capital-reconstruction-gap](#capital-reconstruction-gap) | [theory](theory.md#open), [ecological](ecological.md#live-state) | §5.2's endogenous-supply claim rests on the capital axis and this is where it is weakest; ecology's restoration socket is the model the missing one should copy |
 | [phase-2-adopted](#phase-2-adopted) | [personal](personal.md#live-state), [ecological](ecological.md#live-state) | Closed the care contradiction, re-anchored `KNOWLEDGE_EOH_BASE` −16.73%, and retagged `ECOLOGICAL_INTENSITY_BASE` |
 | [phase-2-built](#phase-2-built) | [personal](personal.md#open) | `PERSONAL_AUTOMATION_FLOORS` — an automation floor is NOT an abatability, and conflating them would repeat the `SKILL_WORKING_LIFE_YEARS` error |
 | [phase-0-obligation-accounts](#phase-0-obligation-accounts) | [ecological](ecological.md#history) | Found the care contradiction without looking for it, and distinguished the accounts from Block III's `basis="final"` |

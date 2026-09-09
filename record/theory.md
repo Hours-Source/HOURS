@@ -28,11 +28,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **The base is held blind to ecosystem condition, as a charter commitment**
   (2026-09-02). See [ecological.md § Live state](ecological.md#live-state) — the
   obligation is not dropped, it is ASSIGNED to GUF.
-- **ε HAS A SECOND INSTRUMENT AND THE TWO ARE ADJACENT** (gap 0.024).
-  `labour_epsilon` reads ε off ATUS with **no currency in the chain** —
-  **0.252–0.428** against capital's **0.453–0.602**. Shared `total_eoh`
-  denominator, so the SPLIT is what is checked. **One judgement against three**:
-  census versus valuation, observed. *(gated)*
+- **ε HAS A SECOND INSTRUMENT AND THE TWO ARE ADJACENT** *(gated)* — labour
+  **0.252–0.428** against capital's **0.453–0.602**, gap 0.024, no currency in the
+  labour chain. Shared `total_eoh` denominator, so the SPLIT is what is checked.
 - **§7's audit falsifier is ANSWERED: no crossover on the arc.** Phase 2
   (`scenarios/verification_cost.py`) puts the census beside the obligation and
   bisects for the ε where it exceeds it. Under **both** scopes and **both**
@@ -42,15 +40,11 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   property of the search. The ε-DIRECTION is what remains unsettled: per-capita
   falls across the arc, per-registered rises then turns, and they agree only at
   the declared ε=0.40 reference. Neither is adopted.
-- **Verification cost, Phase 1 is BUILT and reporting only.**
-  `reference/verification.py` censuses the occupations that decide what counts
-  and check that it was done: **core 1,131,000 workers, broad 2,839,800** — a
-  LOWER and an UPPER bound with no weight anywhere to tune, the gap dominated by
-  one code (`132011 Accountants and Auditors`, whose SOC fuses preparing
-  accounts with auditing them). Disjoint from `reference/servicing.py` by
-  construction and mutation-verified. The two error directions are stated and
-  **never netted**. Nothing imports it; whether the term enters `total_eoh` is
-  Phase 3 and needs the author.
+- **Verification cost, Phase 1 is BUILT and reporting only** — **core 1,131,000
+  workers, broad 2,839,800**, a LOWER and an UPPER bound with no weight to tune.
+  Disjoint from `servicing.py` by construction; the two error directions are
+  never netted. Whether the term enters `total_eoh` is Phase 3 and needs the
+  author. [verification-cost-phase-1](#verification-cost-phase-1).
 - **The framework cannot claim its frame is "most defensible".** Phase 0 of the
   anchor comparison classifies eight anchors from their own definitions without
   modelling a rival: two indeterminate, two indifferent by design, and of those
@@ -76,6 +70,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   controls issuance, which is the failure mode discretionary issuance is
   criticised for. **The contestability arc addresses EXIT; this is VOICE.**
   *Settles by:* a governance model of the register, which does not exist.
+- **§5.2's capital axis is weaker than the page argues** *(pointer)* — a destroyed
+  stock books no rebuild, so the response is pro-cyclical.
+  [fulfilment.md#capital-reconstruction-gap](fulfilment.md#capital-reconstruction-gap).
 - **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may be
   sufficient; building further is monetary economics rather than entropy
   accounting, and is the surface growth the review's §15 warns about. **Do not
