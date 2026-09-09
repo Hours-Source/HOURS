@@ -28,6 +28,11 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **The base is held blind to ecosystem condition, as a charter commitment**
   (2026-09-02). See [ecological.md § Live state](ecological.md#live-state) — the
   obligation is not dropped, it is ASSIGNED to GUF.
+- **ε HAS A SECOND INSTRUMENT AND THE TWO ARE ADJACENT** (gap 0.024).
+  `labour_epsilon` reads ε off ATUS with **no currency in the chain** —
+  **0.252–0.428** against capital's **0.453–0.602**. Shared `total_eoh`
+  denominator, so the SPLIT is what is checked. **One judgement against three**:
+  census versus valuation, observed. *(gated)*
 - **§7's audit falsifier is ANSWERED: no crossover on the arc.** Phase 2
   (`scenarios/verification_cost.py`) puts the census beside the obligation and
   bisects for the ε where it exceeds it. Under **both** scopes and **both**
