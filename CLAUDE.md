@@ -388,7 +388,7 @@ someone remembering it, which is what this section is for.
     term whether it carries its own response to the shared driver, then ask
     whether another term already implements your stated rationale.
 
-12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033, F-039)* The
+12. **THE GATE THAT DOESN'T BITE — verify by breaking it, always.** *(corpus F-015, F-016, F-012, F-033, F-039, F-041)* The
     reporting-position check passed a deliberate breakage: "lands under a literal
     key" accepts any dict value. Worse, **a mutation that does not execute is a
     false pass** — an edit inside `if epsilon is not None` while the test called
@@ -397,7 +397,13 @@ someone remembering it, which is what this section is for.
     run with `PYTHONDONTWRITEBYTECODE=1` — `cp`-restoring a module does not
     reliably invalidate `__pycache__`, and "passes alone, fails in suite" is a
     bytecode question before a logic one. `git status` cannot verify restoration
-    of an untracked file.
+    of an untracked file. **AND A GATE THAT HAS NEVER FIRED IS UNTESTED, not
+    reassuring** (F-041): the floor's falsification check sat under three
+    standards for a year because only one component was priced, then crossed the
+    lowest and reported a falsification that was a SCOPE artefact — the standard
+    covered a subset of what the floor summed. Construct the crossing
+    artificially and ask whether the VERDICT is right, not merely whether it
+    fires.
 
 13. **VERIFYING THE NEIGHBOURHOOD IS NOT VERIFYING THE CLAIM.** *(corpus F-027, F-040)* Four times in one
     session the numbers were checked and the sentence about them was not: a false
@@ -555,7 +561,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 40 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 41 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
