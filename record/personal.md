@@ -15,41 +15,41 @@ constant before quoting it.
 
 - **The standards split.** `PERSONAL_EOH_SURVIVAL` 600, `PERSONAL_EOH_SUFFICIENCY`
   1500 (may exceed supply — that gap is why collectives form), `PERSONAL_EOH_BASE`
-  1000, the abatement-collapsed operating value.
+  1000 — [block-i-standards-split](#block-i-standards-split).
 - **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2808, nutrition: 0.2808}`** — care
   `errs: LOW` (ordering bound), nutrition `errs: HIGH`. **Shelter and health carry
   no floor, an ADMISSION and not a zero**: every further floor lowers the
   observable-ε ceiling, so the shipped figure errs HIGH and a test pins it.
 - **Capacity is measured, not a convention.** `MEASURED_CAPACITY_H_YR` =
-  2,335.751835 (median of 50 MTUS frames), ceiling 8,766.0. An INTAKE field —
-  measured spread 1.55×.
-- **`H_REF` = 2,080**, the calendar work-year, policy-free. The retired 2,000
-  carried a two-week leave policy inside a stated normalizer.
+  2,335.751835 (median of 50 MTUS frames), ceiling 8,766.0; INTAKE, spread 1.55×.
+- **`H_REF` = 2,080**, the calendar work-year, policy-free —
+  [work-year-reference-2080](#work-year-reference-2080).
 - **Age weights:** `AGE_WEIGHT_CHILD` 1.82 (MTUS, high end, `errs: HIGH`),
-  `AGE_WEIGHT_INFANT` 3.0 —
-  deliberately NOT moved, because an infant's maintenance is the caregiver's work
-  and is already counted on the care-received side.
+  `AGE_WEIGHT_INFANT` 3.0, checked and deliberately NOT moved —
+  [child-weight-measured](#child-weight-measured).
 - **The floor prices THREE of seven components**, 899.2 h/yr, coverage **0.759**
   — production `one_frame`, processing and care `bound`. Unreachable is EXCLUDED,
   not costed at zero, and carries its reason. Standards are compared SCOPED, not
   against the whole floor. The extraction wedge is still **not identified**.
-- **~~ε=0 over-determined~~ — CLOSED 2026-09-04/08** (three readings, none of
-  them physical: capacity migration, band alignment, and the report's self arm
-  found on a retired supply basis). Ratio **0.94**, **43 of 50** frames clear
-  against 17. **All three went the flattering way** and the band alignment's
-  objection stands — [band-alignment-adopted](#band-alignment-adopted).
+- **~~ε=0 over-determined~~ — CLOSED 2026-09-04/08.** Ratio **0.94**, **43 of
+  50** frames clear against 17, on three readings none of them physical. **All
+  three went the flattering way** and the band alignment's objection stands —
+  [band-alignment-adopted](#band-alignment-adopted).
 
 ## Open
 
 - **Sphere treats temperature and SHELTER CAPACITY as ONE factor; the basket sums
   them as two** *(gap)* — the cited source contradicts the form it is cited into.
-  The temperature adjustment is ZERO at the shipped SSA frame, so the number is
-  right and the coupling is the finding. *Settles by:* the boundary decision.
+  The adjustment is ZERO at the shipped SSA frame, so the number is right and the
+  coupling is the finding. *Settles by:* the boundary decision.
   `notes/shelter-boundary-and-the-thermal-floor.md` §5a.
 - **The four uncosted components are four KINDS of unknown** *(gap)* — health is
-  **undefined**; water is a FORM question; shelter needs RE-SCOPING, its quantity
-  not matching its delivery. *Settles by:* decisions, then measurement.
+  **undefined**; water is a FORM question; shelter needs RE-SCOPING, and that
+  re-scoping is **PROVISIONAL**: MTUS agrees at the two blocks it identifies and
+  cannot see the destination split, upkeep and structure sharing a block.
+  *Settles by:* decisions, then 6-digit granularity at the declared frame.
   [floor-component-kinds](#floor-component-kinds),
+  [shelter-frame-check-mtus](#shelter-frame-check-mtus),
   [shelter-decomposed](#shelter-decomposed),
   [water-form-and-shelter-boundary](#water-form-and-shelter-boundary).
 - **Five constants are blocked on a baseline the surveyed world no longer
@@ -58,14 +58,13 @@ constant before quoting it.
 - **The frailty socket has no intake** *(person)* — the contract ships, no
   default; nothing supplies it. ~An eighth of care. *Settles by:* ADL
   prevalence by age + LTC continuance. [care-keys-split](#care-keys-split).
-- **~~The capacity band is 18-69 and the supply band is 18-64~~ — SETTLED
-  2026-09-04** *(person)* (author decision; the objection stands). Detail:
-  [band-alignment-adopted](#band-alignment-adopted).
+- **~~Capacity band 18-69 vs supply band 18-64~~ — SETTLED 2026-09-04**
+  *(person)*; the objection stands — [band-alignment-adopted](#band-alignment-adopted).
 - **Two of four automation floors carry a value, neither settled** *(gap)* —
   IMPROVED PLACEHOLDERS: an UPPER and an ordering-derived LOWER bound.
   **Following each `resolves_by` returned a sharper one, not closure.**
   Detail: [improved-not-settled](#improved-not-settled).
-- **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets the PACE of abatement and
+- **`ABATEMENT_HALF_CAPITAL_TEH`** *(gap)* (confidence 5) sets abatement's PACE and
   is the least-grounded value in Block II. *Settles by:* the accounting identity
   at two or more capital levels, which pins it and `a_max` together.
 - **`PERSONAL_EOH_COMPONENTS` shares** *(gap)* (confidence 25) — desk terms; ATUS
@@ -219,7 +218,7 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 38 entries, newest first | |
+| 39 entries, newest first | |
 |---|---|
 | [vanished-baseline](#vanished-baseline) | THE ABATABILITIES ARE AN INSTANCE, AND FIVE CONSTANTS ARE BLOCKED ON A BASELINE DEVELOPMENT ERA… |
 | [removal-audit](#removal-audit) | THE ABATABILITIES MEASURED AGAINST THEIR OWN DEFINITION — AND THE ANSWER IS THAT THEY CANNOT BE… |
@@ -235,6 +234,7 @@ Filed here on primary subject; each also bears on another area.
 | [capacity-band-mismatch](#capacity-band-mismatch) | THE CAPACITY IS MEASURED ON A WIDER BAND THAN THE SUPPLY SHARE SELECTS — AND FIXING IT ALONE WO… |
 | [improved-not-settled](#improved-not-settled) | THE TWO PERSONAL AUTOMATION FLOORS ARE IMPROVED PLACEHOLDERS, NOT MEASUREMENTS — AND THE COUNT… |
 | [circularity-check-atus-cannot-resolve-b](#circularity-check-atus-cannot-resolve-b) | THE CIRCULARITY CHECK — ATUS ALONE CANNOT RESOLVE `PERSONAL_EOH_BASE`, AND THAT CORRECTS AN EAR… |
+| [shelter-frame-check-mtus](#shelter-frame-check-mtus) | THE FRAME CHECK: MTUS RESOLVES SHELTER INTO TWO BLOCKS, NOT THREE CODES — AND THE LABEL-FREE RE… |
 | [shelter-decomposed](#shelter-decomposed) | THE SHELTER COMPONENT DECOMPOSED, AND ITS QUANTITY DOES NOT MATCH ITS DELIVERY |
 | [water-form-and-shelter-boundary](#water-form-and-shelter-boundary) | WATER IS A FORM QUESTION, NOT AN ACQUISITION; SHELTER IS A CROSS-DOMAIN BOUNDARY |
 | [processing-priced-and-the-scope-artefact](#processing-priced-and-the-scope-artefact) | PROCESSING PRICED FROM THE SSA SAMPLES — AND THE FIRST FALSIFICATION IT REPORTED WAS A SCOPE AR… |
@@ -278,6 +278,20 @@ Filed here on primary subject; each also bears on another area.
 
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/personal.md#<slug>`.
+
+<a id="shelter-frame-check-mtus"></a>
+
+**THE FRAME CHECK: MTUS RESOLVES SHELTER INTO TWO BLOCKS, NOT THREE CODES — AND THE LABEL-FREE READING THAT PRECEDED THE CODEBOOK WAS A FALSE POSITIVE** (2026-09-10). `component_shares.shelter_frame_check()` + `MTUS_CODE_LABELS`, 11 tests (45 in the file). 4,405 pass, 1 skipped, mypy clean on 101 files, shadow ratchet 33. **REPORTING ONLY. The option-D re-scoping stays PROVISIONAL, on RESOLUTION and not on disagreement.**
+- **THE AGGREGATE CONTROL REPRODUCES, so the method is sound**: (20,21,22) → (0201,0203,0204,0207,0208) at mean **0.9757**, spread 0.0677 over 21 overlapping US years, compared against `validate_code_mapping()` LIVE rather than a retyped figure.
+- **I FIRST RAN IT WITH LABELS I HAD INVENTED, AND WROTE UP THE RESULT AS A FACT ABOUT MTUS.** Seven per-code mappings, each `why` string naming what a code MEANS — "interior maintenance", "vehicles and appliances" — **every one supplied from the ATUS side and never read.** None cleared the 5% bar, and I concluded MTUS could not carry the composition. `utils/mtus_ingest.py` does say *no codebook ships with the file*, and that is true of the DATA; I read it as true of the STUDY. **The labels are published, and were one fetch away** — MTUS User Guide, October 2020 (Release 7.0), Table 2, `timeuse.org`. The seven guesses are kept as `SHELTER_MTUS_GUESSES`, marked `VOID`, beside the read ones.
+- **READ, THE CODES ARE**: 20 *Cleaning*, 21 *Laundry, ironing, clothing repair*, 22 *Home/vehicle maintenance/improvement* — one mapping per code, target picked from the label before running. **21 IDENTIFIES ALONE at 0.9921** (spread 0.1162). 20 reads 1.1459 and 22 reads 0.7494.
+- **20 AND 22 ARE PINNED AS A BLOCK BY SUBTRACTION — AND I FIRST SOLD THAT AS A CONFIRMED PREDICTION.** They miss in opposite directions, which reads as a classification seam, and I tested the "seam" by scoring the PAIR against the union of their targets: **1.0416, spread 0.0737**. But once the aggregate holds and 21 holds, `m20+m22 = agg·a_full − r21·a21` — the pair's ratio is DETERMINED, and reconstructing it from those two alone reproduces 1.0416 exactly. So `pair_misses_are_opposite` could not fail while the first two held: **mode 2, the assertion the implementation enforces**, in a test whose docstring claimed it was falsifiable. The claim of forcing is now itself checked by reconstruction rather than asserted. **What survives is the RESOLUTION** — MTUS speaks about **{21}** and about the **remainder**, and about neither 20 nor 22 alone. A seam is the plausible reading of why, and is labelled as such rather than established.
+- **AND THAT REVERSES THE LABEL-FREE FINDING.** Per code the shares look like they move — c22 **+59.8%** low- vs high-capital. At the identified resolution they do not: **code 21's share moves +1.1%**, against a stated `composition_tolerance` of 0.10. (One statement, not two: the blocks share a degree of freedom, so the remainder's −0.4% is the same fact.) **The whole of the +59.8% lies inside the unresolved remainder.** A label-free test on an unidentified partition cannot tell a real reallocation from a boundary moving, and here it reported one as the other. **I had this queued to ship as "the real result".**
+- **A SECOND, INDEPENDENT REASON IT WAS WRONG.** It is a difference of means on **3 samples against 23**, and `ranges_separate` is **False on all three codes** — the within-group ranges overlap everywhere, so the shift never cleared the noise either. Now returned per code so nobody quotes it as a measured contrast.
+- **THE YEAR FLOOR WAS ASYMMETRIC AND IS NOW A LIVE ARGUMENT.** `since=2000` had been applied to the high-capital group only, leaving BG1965 inside "low capital" — a time confound wearing a capital label. Applied to both, the low group is BG2001, ZA2000, ZA2010.
+- **WHAT MTUS STILL CANNOT DO, AND IT IS NOT DISAGREEMENT.** `SHELTER_DESTINATIONS` splits the component into upkeep / structure / thermal / not_shelter, and **upkeep and structure both sit inside {20,22}** — interior cleaning next to interior repair. MTUS does not contradict the ATUS composition; it cannot see it. *Settles by:* a survey at the declared frame with 6-digit granularity, or MTUS national micro-data below the harmonised aggregates.
+- **ONE THING THE GUIDE SAYS THAT THE SHIPPED MAPPING DOES NOT.** Table 3's own 25-category housework aggregate is *main20+21+23* and puts 22 in a separate "Maintain home/vehicle, re-fuel" category. `COMPONENT_CODES_MTUS["shelter"]` is {20,21,22} — it EXCLUDES 23 and INCLUDES 22. The aggregate still reproduces ATUS at 0.9757, so this is a difference the validation absorbed rather than a defect, but nobody had looked at it. Recorded, not resolved.
+- **AND THE CHECK WAS CARRYING THE COPY IT WAS TESTING FOR.** `(20, 21, 22)` was retyped as a literal inside the function that decomposes `COMPONENT_CODES_MTUS["shelter"]`. Now bound to it, so the shadow constant went away as a side effect of the real fix — mode 4, found while satisfying the ratchet mode 4 exists for.
 
 <a id="shelter-decomposed"></a>
 

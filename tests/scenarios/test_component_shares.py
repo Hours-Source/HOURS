@@ -18,10 +18,14 @@ import pytest
 
 from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
 from hours_eoh.reference import atus_time_use as atus
+from hours_eoh.data import COMPONENT_CODES_MTUS
 from hours_eoh.scenarios.component_shares import (
     SHELTER_DESTINATIONS,
     SHELTER_DESTINATION_VOCAB,
     shelter_decomposition,
+    shelter_frame_check,
+    SHELTER_MTUS_HYPOTHESES,
+    SHELTER_MTUS_GUESSES,
     COMPONENT_CODES,
     EXCLUDED_CODES,
     abatability_direction,
@@ -336,3 +340,179 @@ class TestShelterDecomposition:
             "shelter was priced while this decomposition still says the "
             "component's quantity does not match its delivery"
         )
+
+
+class TestShelterFrameCheck:
+    """
+    Whether the ATUS decomposition transfers to the frame the base declares.
+    It does not, and these pin the NEGATIVE result — which is the load-bearing
+    one, because it is what keeps the re-scoping provisional.
+    """
+
+    def test_the_control_reproduces_the_known_aggregate(self) -> None:
+        """THIS RUNS FIRST OR NOTHING BELOW MEANS ANYTHING. The aggregate mapping
+        is independently known to reproduce ATUS at 0.9757 / 0.0677. If this
+        function cannot recover that, a per-code failure is a bug in the
+        comparison rather than a fact about MTUS."""
+        r = shelter_frame_check()
+        assert r["aggregate_reproduces"], (
+            f"the control gives {r['aggregate']['mean_ratio']:.4f}, not 0.9757 — "
+            "fix the comparison before reading any result below it"
+        )
+        assert r["aggregate"]["within_tolerance"]
+
+    def test_the_labels_were_read_and_are_cited(self) -> None:
+        """
+        The first run of this check scored seven mappings whose `why` strings
+        named what each MTUS code MEANS — and every one of those labels was
+        supplied from the ATUS side and never read. `utils/mtus_ingest.py` says
+        no codebook ships with the DATA, which is true, and was wrongly taken to
+        mean the labels were unobtainable; they are published in the MTUS User
+        Guide. This fails if a label ever ships without its source.
+        """
+        r = shelter_frame_check()
+        assert set(r["code_labels"]) == set(COMPONENT_CODES_MTUS["shelter"])
+        assert r["code_labels"][21] == "Laundry, ironing, clothing repair"
+        assert "timeuse.org" in r["labels_source"] and "Table 2" in r["labels_source"]
+        for g in r["guesses_made_before_reading_the_codebook"]:
+            assert g["identification"].startswith("VOID"), g
+
+    def test_one_mapping_per_code_picked_from_the_label(self) -> None:
+        """Not a sweep. The label decides the target, so there is one candidate
+        per code and no room to keep trying until something clears — which is
+        what an exhaustive search over the code space would be."""
+        assert len(SHELTER_MTUS_HYPOTHESES) == len(COMPONENT_CODES_MTUS["shelter"])
+        assert {c for c, _g, _w in SHELTER_MTUS_HYPOTHESES} == set(
+            COMPONENT_CODES_MTUS["shelter"]
+        )
+        for _c, groups, why in SHELTER_MTUS_HYPOTHESES:
+            assert groups and not why.startswith("GUESS:")
+
+    def test_laundry_identifies_alone(self) -> None:
+        """The one code that maps cleanly across both classifications. If it
+        stops doing so, the seam has moved somewhere new and every block below
+        needs re-deriving rather than the number updating."""
+        r = shelter_frame_check()
+        t = next(t for t in r["trials"] if t["mtus_code"] == 21)
+        assert t["within_tolerance"], t
+        assert 21 in r["identified_codes"]
+
+    def test_the_remainder_is_forced_and_the_module_says_so(self) -> None:
+        """
+        AN EARLIER VERSION OF THIS TEST ASSERTED A PREDICTION THAT COULD NOT
+        FAIL. It read the opposite-direction misses of 20 and 22 as a falsifiable
+        seam hypothesis and their pair reconciling as its confirmation. But once
+        the aggregate identifies and 21 identifies, m20+m22 is fixed by
+        subtraction — so the pair's ratio is determined, `pair_misses_are_opposite`
+        cannot fail while the first two hold, and asserting either was the
+        implementation enforcing its own invariant.
+
+        Verified by reconstruction below: the aggregate and the 21 result alone
+        reproduce the measured pair value. What survives is the RESOLUTION —
+        MTUS speaks about {21} and about the remainder — and the module must say
+        the value is forced rather than sell it as a second measurement.
+        """
+        r = shelter_frame_check()
+        assert r["pair_is_forced_by_the_aggregate"] is True
+        assert "subtraction" in r["why_pair_is_forced"]
+        assert r["remainder_identifies"]
+        assert r["identified_blocks"] == ((21,), (20, 22))
+
+        # the reconstruction, so the claim of forcing is checked and not asserted
+        from hours_eoh.reference import atus_time_use as A
+        from hours_eoh.reference import mtus_time_use as M
+
+        per = M.codes_by_sample()
+        years = {y.year for y in A.survey_years()}
+        pairs = sorted(
+            (s, int(s[2:6])) for s in per if s.startswith("US") and int(s[2:6]) in years
+        )
+
+        def atus_minutes(year, groups):
+            day = A.tier3_minutes_per_day(year)
+            return sum(v for c, v in day.items() if any(c.startswith(g) for g in groups))
+
+        target = {c: g for c, g, _w in SHELTER_MTUS_HYPOTHESES}
+        pair_target = target[20] + target[22]
+        rebuilt = []
+        for sample, year in pairs:
+            a_full = atus_minutes(year, COMPONENT_CODES["shelter"])
+            a21 = atus_minutes(year, target[21])
+            a_pair = atus_minutes(year, pair_target)
+            agg = sum(per[sample][c] for c in (20, 21, 22)) / a_full
+            r21 = per[sample][21] / a21
+            rebuilt.append((agg * a_full - r21 * a21) / a_pair)
+        assert abs(sum(rebuilt) / len(rebuilt) - r["pair"]["mean_ratio"]) < 1e-9, (
+            "the remainder is NOT reconstructible from the aggregate and 21 — "
+            "then it does carry independent information and this module's "
+            "'forced by subtraction' claim is wrong"
+        )
+
+    def test_the_composition_transfers_at_the_resolution_mtus_identifies(self) -> None:
+        """
+        THE FINDING, AND IT REVERSES WHAT THIS CLASS ASSERTED BEFORE THE LABELS
+        WERE READ. Per code the shares look like they move — c22 by ~+60%. Per
+        identified BLOCK they do not, because the whole of that move lies inside
+        the {20,22} seam the pair test shows is unstable between
+        classifications. A label-free test on an unidentified partition cannot
+        tell a real reallocation from a boundary moving.
+        """
+        r = shelter_frame_check()
+        assert not r["composition_transfers_by_code"]
+        assert r["composition_transfers"], (
+            "the composition no longer transfers at BLOCK level; that would be "
+            "a real reallocation rather than a seam and the ATUS split would be "
+            "in genuine conflict with MTUS"
+        )
+        assert max(abs(x) for x in r["composition_shift_by_block"]) < 0.05
+
+    def test_the_between_group_difference_does_not_clear_the_within_group_range(self) -> None:
+        """The second, independent reason the per-code reading was wrong: it is
+        a difference of means on 3 samples against 23, and no code's ranges
+        separate. Reported so nobody quotes the shift as a measured contrast."""
+        r = shelter_frame_check()
+        assert not any(r["ranges_separate"])
+        for lo, hi in zip(r["low_capital"]["code_share_range"],
+                          r["high_capital"]["code_share_range"]):
+            assert lo[0] <= lo[1] and hi[0] <= hi[1]
+
+    def test_the_year_floor_is_symmetric(self) -> None:
+        """An earlier version applied it to the high-capital group only, leaving
+        BG1965 inside 'low capital' — a time confound wearing a capital label."""
+        r = shelter_frame_check()
+        for group in ("low_capital", "high_capital"):
+            for sample in r[group]["samples"]:
+                assert int(sample[2:6]) >= 2000, (r[group]["samples"], group)
+
+    def test_both_tolerances_and_the_year_floor_are_live_arguments(self) -> None:
+        """Stated rather than buried — so each has to be able to change the
+        verdict it governs, or it is decoration on a hardcoded decision."""
+        assert shelter_frame_check(composition_tolerance=1e-9)["composition_transfers"] is False
+        assert shelter_frame_check(composition_tolerance=1.0)["composition_transfers"] is True
+        strict = shelter_frame_check(tolerance=1e-9)
+        assert strict["identified_codes"] == ()
+        assert strict["identified_blocks"] == () and "NOTHING IDENTIFIES" in strict["verdict"]
+        assert shelter_frame_check(tolerance=1.0)["identified_codes"] == (20, 21, 22)
+        early = shelter_frame_check(since=1960)["low_capital"]["samples"]
+        assert "BG1965" in early and "BG1965" not in shelter_frame_check()["low_capital"]["samples"]
+
+    def test_the_destination_split_is_declared_unresolvable(self) -> None:
+        """MTUS does not CONTRADICT the ATUS composition — it cannot see it.
+        Upkeep and structure share the {20,22} block. Stating that is what keeps
+        'provisional' from being read as 'disputed'."""
+        r = shelter_frame_check()
+        assert r["destination_split_resolvable"] is False
+        assert "upkeep" in r["why_not_resolvable"] and "structure" in r["why_not_resolvable"]
+
+    def test_the_verdict_names_what_would_settle_it(self) -> None:
+        v = shelter_frame_check()["verdict"].lower()
+        assert "provisional" in v
+        assert "6-digit" in v or "granularity" in v
+        assert "micro-data" in v
+        assert "resolution" in v, (
+            "the verdict must say the block is RESOLUTION and not disagreement, "
+            "or 'provisional' reads as 'MTUS contradicts the ATUS split'"
+        )
+        # NOT "codebook" — an earlier version required the verdict to name the
+        # missing codebook as a blocker. It is read and cited now, so requiring
+        # it here would keep a settled item declared open.

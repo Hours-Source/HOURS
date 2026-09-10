@@ -21,7 +21,14 @@ ages 6–14 is ABSENT — and `care_curve` necessarily records absent as 0.0. Th
 constants' own `resolves_by` names the fix: "a time-use survey covering
 children would close the band from below." MTUS is that survey.
 
-THE LAYOUT IS DERIVED, NOT ASSUMED — no codebook ships with the file:
+THE LAYOUT IS DERIVED, NOT ASSUMED — no codebook ships with the DATA FILE. That
+is a fact about the file and NOT about the study, and reading it as the latter
+cost a session: the per-code labels are published, in the MTUS User Guide,
+October 2020 (Release 7.0), Table 2 "Harmonised activity codes (69-category)",
+https://www.timeuse.org/sites/default/files/2021-02/User%20Guide_2021.pdf. They
+confirm the sets solved for below (18 food preparation / 19 dishes; 28-31 the
+four childcare rows) and they name the individual codes, which solving cannot.
+See `hours_eoh/scenarios/component_shares.MTUS_CODE_LABELS`. The derivation:
 
     [85:89] start   [89:93] end   [93:97] duration   [97:100] activity code
 

@@ -3017,6 +3017,21 @@ CHILDCARE_CODES_MTUS: tuple[int, ...] = (28, 29, 30, 31)
 #   personal-care block where the repo's definition excludes them, and the
 #   health component is dominated by ATUS 0804 (using health services), which
 #   has no clean MTUS counterpart. Absent, not zero.
+# note: THE PUBLISHED LABELS CONFIRM THESE SETS AND WERE READ LATE (2026-09-10).
+#   `utils/mtus_ingest.py` derived them by solving against the file's own
+#   aggregates because no codebook ships with the DATA — which is true, and was
+#   wrongly taken to mean the labels were unobtainable. MTUS User Guide, October
+#   2020 (Release 7.0), Table 2: 18 "Food preparation, cooking" and 19 "Set
+#   table, wash/put away dishes" are nutrition; 20 "Cleaning", 21 "Laundry,
+#   ironing, clothing repair" and 22 "Home/vehicle maintenance/improvement" are
+#   shelter. Two things the labels add that solving could not. First, the
+#   per-code identification: only 21 maps cleanly onto its ATUS family (0.9921),
+#   while 20 and 22 are resolvable as a block and not individually —
+#   `component_shares.shelter_frame_check()`. Second, a DIFFERENCE with MTUS's
+#   own 25-category housework aggregate (Table 3), which is 20+21+23 and puts 22
+#   under "Maintain home/vehicle, re-fuel". This set excludes 23 and includes
+#   22. The aggregate still reproduces ATUS at 0.9757, so it is a difference the
+#   validation absorbed rather than a defect — recorded, not resolved.
 COMPONENT_CODES_MTUS: dict[str, tuple[int, ...]] = {
     "nutrition": (18, 19),
     "shelter":   (20, 21, 22),

@@ -53,7 +53,11 @@ Layer: scenarios/ — imports core/, data and reference/; imported by neither.
 
 from __future__ import annotations
 
-from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
+from hours_eoh.data import (
+    CARE_AUTOMATION_FLOOR,
+    COMPONENT_CODES_MTUS,
+    PERSONAL_EOH_COMPONENTS,
+)
 from hours_eoh.reference import atus_time_use as atus
 
 __all__ = [
@@ -67,6 +71,11 @@ __all__ = [
     "SHELTER_DESTINATIONS",
     "SHELTER_DESTINATION_VOCAB",
     "shelter_decomposition",
+    "SHELTER_MTUS_HYPOTHESES",
+    "SHELTER_MTUS_GUESSES",
+    "MTUS_CODE_LABELS",
+    "MTUS_LABELS_SOURCE",
+    "shelter_frame_check",
 ]
 
 #: THE ASSUMED MAPPING — one declared judgement, isolated so it can be argued
@@ -231,6 +240,370 @@ def shelter_decomposition(year: int | None = None) -> dict:
             "collective that burns wood and hauls water plausibly spends more on "
             "the thermal line and less on laundry. MTUS (20,21,22) is the "
             "frame-consistent source and this composition is unchecked against it."
+        ),
+        "reporting_only": True,
+    }
+
+
+#: THE THREE MTUS CODES, TAKEN FROM THE SET THEY DECOMPOSE rather than retyped.
+#: `COMPONENT_CODES_MTUS["shelter"]` is the validated aggregate; this check asks
+#: what is inside it, so if that set ever changes this check follows it.
+_SHELTER_CODES: tuple[int, ...] = COMPONENT_CODES_MTUS["shelter"]
+_C20, _C21, _C22 = _SHELTER_CODES
+
+#: THE MTUS CODEBOOK, READ. `utils/mtus_ingest.py` says in its own header that
+#: **no codebook ships with the data file** — the byte layout and the ACT_*
+#: aggregations were both DERIVED by solving against `mtus_esp.csv`, which
+#: carries twelve aggregate columns and no per-code labels. That is true of the
+#: DATA and was wrongly read as true of the STUDY: the labels are published, in
+#: the MTUS User Guide, Table 2 "Harmonised activity codes (69-category)".
+#:
+#:   MAIN/SEC 20   Cleaning
+#:   MAIN/SEC 21   Laundry, ironing, clothing repair
+#:   MAIN/SEC 22   Home/vehicle maintenance/improvement
+#:   MAIN/SEC 23   Other domestic work
+#:
+MTUS_LABELS_SOURCE: str = (
+    "MTUS User Guide, October 2020 (Release 7.0), Table 2 'Harmonised activity "
+    "codes (69-category)' — "
+    "https://www.timeuse.org/sites/default/files/2021-02/User%20Guide_2021.pdf "
+    "(read 2026-09-10, verbatim)"
+)
+
+MTUS_CODE_LABELS: dict[int, str] = {
+    _C20: "Cleaning",
+    _C21: "Laundry, ironing, clothing repair",
+    _C22: "Home/vehicle maintenance/improvement",
+}
+
+# AND THE SAME GUIDE'S 25-CATEGORY LIST GROUPS THEM DIFFERENTLY FROM THIS REPO.
+# Table 3 reads "Cleanetc — Cleaning, laundry, regular housework — main20+21+23"
+# and "Maintain — Maintain home/vehicle, re-fuel — main22". So MTUS's own
+# housework aggregate is {20,21,23} while COMPONENT_CODES_MTUS["shelter"] is
+# {20,21,22}: it EXCLUDES 23 (other domestic work) and INCLUDES 22. The
+# aggregate still reproduces ATUS at 0.9757, so this is not a defect — it is a
+# difference the validation absorbed and nobody had looked at. Recorded here
+# rather than as a constant, because nothing reads it and a constant nothing
+# reads is a tag block with no consumer.
+
+#: ONE MAPPING PER CODE, PICKED FROM THE LABEL ABOVE AND WRITTEN DOWN BEFORE
+#: BEING RUN. Not a sweep: the label decides the target, so there is exactly one
+#: candidate per code and no room to keep trying until something clears.
+#: ATUS targets are 6-digit, from `SHELTER_DESTINATIONS`' own code list.
+SHELTER_MTUS_HYPOTHESES: tuple[tuple[int, tuple[str, ...], str], ...] = (
+    (_C20, ("020101", "020401"), "Cleaning → ATUS interior + exterior cleaning"),
+    (_C21, ("020102", "020103"), "Laundry, ironing, clothing repair → laundry + textile repair"),
+    (
+        _C22,
+        ("020301", "020302", "020303", "020399", "020402", "020499", "020701", "020799"),
+        "Home/vehicle maintenance/improvement → ATUS 0203 + 0204 + 0207",
+    ),
+)
+
+#: WHAT WAS TRIED BEFORE THE GUIDE WAS READ, kept unrepaired. Every `why` string
+#: named what a code MEANS — "interior maintenance", "vehicles and appliances" —
+#: and every one was a label supplied from the ATUS side and never read. The
+#: labels were one fetch away. Kept because the near-miss is the finding, and
+#: because a reader comparing the two lists can see how plausible the invented
+#: ones looked.
+SHELTER_MTUS_GUESSES: tuple[tuple[int, tuple[str, ...], str], ...] = (
+    (_C20, ("0201",), "GUESS: household interior"),
+    (_C20, ("0201", "0209"), "GUESS: interior plus household management"),
+    (_C21, ("0203", "0204"), "GUESS: interior and exterior maintenance"),
+    (_C21, ("0203", "0204", "0207", "0208"), "GUESS: maintenance plus vehicles and appliances"),
+    (_C22, ("0207", "0208"), "GUESS: vehicles and appliances"),
+    (_C22, ("0205", "0206"), "GUESS: lawn/garden and pets — both EXCLUDED from the basket"),
+    (_C22, ("0205",), "GUESS: lawn/garden alone"),
+)
+
+#: THE REMAINDER, AND IT IS ARITHMETIC RATHER THAN A SECOND MEASUREMENT.
+#: Once the AGGREGATE identifies and code 21 identifies, the other two are
+#: pinned as a BLOCK by subtraction: m20+m22 = agg·a_full − r21·a21, so their
+#: joint ratio is DETERMINED and carries no information about how the pair
+#: splits. Verified numerically — reconstructing it from the aggregate and the
+#: 21 result alone reproduces the measured 1.0416 exactly.
+#:
+#: So this is not a prediction that was confirmed, and an earlier version of
+#: this module presented it as one. **What it is: the resolution the source
+#: actually offers.** MTUS can speak about {21} and about the remainder, and
+#: about neither member of the remainder alone. The one thing the number does
+#: add is the GAP from the aggregate — 1.0416 against 0.9757 — which is the
+#: label-declared targets excluding 020104, 020199 and 0208.
+_REMAINDER_BLOCK: tuple[int, ...] = (_C20, _C22)
+
+#: Samples read as low- and high-capital for the composition test. Named rather
+#: than derived from a threshold: no capital series is attached to MTUS here, so
+#: this is an attribution like every other in this module.
+_LOW_CAPITAL_PREFIXES = ("ZA", "BG")
+_HIGH_CAPITAL_PREFIXES = ("US", "NL", "DK", "NO")
+
+
+
+
+def shelter_frame_check(
+    tolerance: float = 0.05,
+    composition_tolerance: float = 0.10,
+    since: int = 2000,
+) -> dict:
+    """
+    Can the shelter decomposition be transferred to the frame the base declares?
+
+    REPORTING ONLY. `shelter_decomposition` is measured on ATUS — United States,
+    high-capital — and the floor is an unassisted construction, so the split is
+    evidence from the wrong end of the arc. MTUS is the frame-consistent source.
+
+    WHAT MTUS RESOLVES, AND IT IS TWO BLOCKS RATHER THAN THREE CODES
+    ----------------------------------------------------------------
+    The AGGREGATE control passes first, or a failure below is a bug in this
+    comparison rather than a fact about MTUS: (20,21,22) →
+    (0201,0203,0204,0207,0208) reproduces ATUS at 0.9757, spread 0.0677, checked
+    against `validate_code_mapping()` live.
+
+    Then one mapping per code, each PICKED FROM THE PUBLISHED LABEL in
+    `MTUS_CODE_LABELS` and written down before being run. Code 21 — laundry,
+    ironing and clothing repair — IDENTIFIES on its own; 20 and 22 do not, and
+    they miss in opposite directions. Every figure is in `trials`.
+
+    Once the aggregate holds and 21 holds, **the other two are pinned as a BLOCK
+    by subtraction** and their joint ratio is arithmetic, not a second
+    measurement — see `_REMAINDER_BLOCK`, and `pair_is_forced_by_the_aggregate`,
+    which says so in the return value. The opposite-direction misses are the
+    same fact read per code. So MTUS speaks about {21} and about the remainder,
+    and about neither 20 nor 22 alone. **That is the resolution the source
+    offers; a seam between the two classifications is the plausible reading of
+    WHY, and it is not established here.**
+
+    AND THAT REVERSES THE LABEL-FREE READING
+    -----------------------------------------
+    Asked without labels — do the three codes hold the same shares at low and
+    high capital? — the answer is no, and `composition_shift` gives the move.
+    Asked at the resolution MTUS can identify, the answer is yes:
+    `composition_shift_by_block` is inside `composition_tolerance`, which is one
+    statement and not two, since the two blocks share a degree of freedom —
+    **code 21's share of the set is stable across capital.** The whole of the
+    per-code move lies inside the remainder, where the split is unresolved.
+
+    A label-free test on an unidentified partition cannot tell a real
+    reallocation from a boundary moving, and here it reported one as the other.
+    Two further checks say the same: `ranges_separate` is False on every code,
+    so a difference of means on 3 samples against 23 never cleared the
+    within-group spread either.
+
+    WHAT IS STILL NOT SETTLED, AND IT IS RESOLUTION RATHER THAN DISAGREEMENT
+    ------------------------------------------------------------------------
+    `SHELTER_DESTINATIONS` splits the component into upkeep / structure /
+    thermal / not_shelter. **Upkeep and structure both sit inside the
+    remainder** — interior cleaning next to interior repair — so the identified
+    blocks cannot price the destination split. MTUS does not contradict the ATUS
+    composition; it cannot see it. The option-D re-scoping therefore stays
+    PROVISIONAL for a narrower reason than "MTUS disagrees", which is what the
+    first run of this function concluded.
+
+    Args:
+        tolerance: how far a mean ratio may sit from 1.0 to count as identified.
+        composition_tolerance: how far a share may move between the low- and
+            high-capital groups before the composition is called
+            non-transferable.
+        since: year floor applied to BOTH groups. An earlier version applied it
+            to the high-capital group only, which left BG1965 inside "low
+            capital" and every pre-2000 US and NL sample outside "high" — a time
+            confound wearing a capital label. At the default the low group is
+            BG2001, ZA2000, ZA2010.
+    """
+    from hours_eoh.reference import atus_time_use as _atus
+    from hours_eoh.reference import mtus_time_use as _mtus
+    from hours_eoh.scenarios.automation_floors import validate_code_mapping
+
+    # The control's target, read from the function that establishes it rather
+    # than retyped here. A restated figure is the drift this repo keeps catching.
+    _shipped_ratio = float(validate_code_mapping()["shelter"]["mean_ratio"])
+
+    per = _mtus.codes_by_sample()
+    years = {r.year for r in _atus.survey_years()}
+    pairs = sorted(
+        ((s, int(s[2:6])) for s in per if s.startswith("US") and int(s[2:6]) in years),
+        key=lambda x: x[1],
+    )
+
+    def _atus_minutes(year: int, groups: tuple[str, ...]) -> float:
+        """Prefix match, so a group may be a 4-digit family or a 6-digit code.
+        The guessed hypotheses were written at 4 digits and the ones read from
+        the codebook at 6 — matching on `c[:4]` alone threw away exactly the
+        resolution the labels call for."""
+        day = _atus.tier3_minutes_per_day(year)
+        return sum(v for c, v in day.items() if any(c.startswith(g) for g in groups))
+
+    def _score(codes: tuple[int, ...], groups: tuple[str, ...]) -> dict:
+        rs = []
+        for sample, year in pairs:
+            m = sum(per[sample][c] for c in codes if per[sample].get(c) is not None)
+            a = _atus_minutes(year, groups)
+            if m > 0.0 and a > 0.0:
+                rs.append(m / a)
+        mean = sum(rs) / len(rs) if rs else 0.0
+        return {
+            "n_years": len(rs),
+            "mean_ratio": mean,
+            "spread": (max(rs) - min(rs)) if rs else 0.0,
+            "within_tolerance": abs(mean - 1.0) <= tolerance,
+        }
+
+    aggregate = _score(_SHELTER_CODES, COMPONENT_CODES["shelter"])
+
+    trials = [
+        {
+            "mtus_code": c,
+            "mtus_label": MTUS_CODE_LABELS[c],
+            "atus_target": g,
+            "why": why,
+            **_score((c,), g),
+        }
+        for c, g, why in SHELTER_MTUS_HYPOTHESES
+    ]
+    by_code = {t["mtus_code"]: t for t in trials}
+
+    guesses = [
+        {
+            "mtus_code": c,
+            "atus_target": g,
+            "guessed_label": why,
+            "identification": "VOID — this label was invented, not read",
+            **_score((c,), g),
+        }
+        for c, g, why in SHELTER_MTUS_GUESSES
+    ]
+
+    # The remainder, scored directly. Its value is forced — see `_REMAINDER_BLOCK`.
+    pair_targets = tuple(
+        g for c, gs, _w in SHELTER_MTUS_HYPOTHESES if c in _REMAINDER_BLOCK for g in gs
+    )
+    pair = _score(_REMAINDER_BLOCK, pair_targets)
+    opposite = (
+        by_code[_REMAINDER_BLOCK[0]]["mean_ratio"] - 1.0
+    ) * (by_code[_REMAINDER_BLOCK[1]]["mean_ratio"] - 1.0) < 0.0
+
+    identified_codes = tuple(t["mtus_code"] for t in trials if t["within_tolerance"])
+    #: The partitions MTUS can speak about: every code that identified alone,
+    #: plus the remainder they leave. Anything not in one of these is unresolved.
+    blocks: tuple[tuple[int, ...], ...] = tuple(
+        (c,) for c in identified_codes if c not in _REMAINDER_BLOCK
+    ) + ((_REMAINDER_BLOCK,) if pair["within_tolerance"] else ())
+
+    def _shares(prefixes: tuple[str, ...]) -> dict:
+        rows = []
+        for sample, d in sorted(per.items()):
+            if not sample.startswith(prefixes) or int(sample[2:6]) < since:
+                continue
+            vals = [v for c in _SHELTER_CODES if (v := d.get(c)) is not None]
+            if len(vals) != len(_SHELTER_CODES):
+                continue
+            total = sum(vals)
+            rows.append((sample, total, [v / total for v in vals]))
+        n = len(rows)
+        share = [
+            sum(r[2][i] for r in rows) / n if n else 0.0
+            for i in range(len(_SHELTER_CODES))
+        ]
+        # THE WITHIN-GROUP RANGE, because a difference of means on n=3 against
+        # n=23 says nothing if the ranges overlap. Reported per code so the
+        # reader can see whether a between-group shift clears the noise.
+        rng = [
+            (min(r[2][i] for r in rows), max(r[2][i] for r in rows)) if n else (0.0, 0.0)
+            for i in range(len(_SHELTER_CODES))
+        ]
+        return {
+            "samples": [r[0] for r in rows],
+            "n_samples": n,
+            "total_minutes_per_day": sum(r[1] for r in rows) / n if n else 0.0,
+            "code_share": share,
+            "code_share_range": rng,
+            "block_share": [
+                sum(sum(r[2][_SHELTER_CODES.index(c)] for c in b) for r in rows) / n
+                if n else 0.0
+                for b in blocks
+            ],
+        }
+
+    low = _shares(_LOW_CAPITAL_PREFIXES)
+    high = _shares(_HIGH_CAPITAL_PREFIXES)
+
+    def _shift(key: str) -> list[float]:
+        return [
+            (low[key][i] / high[key][i] - 1.0) if high[key][i] else 0.0
+            for i in range(len(high[key]))
+        ]
+
+    code_shift, block_shift = _shift("code_share"), _shift("block_share")
+    # At a tolerance strict enough that nothing identifies there are no blocks,
+    # so the verdict has no block figure to quote. Say that rather than crash or
+    # quote a code-level number in a block-level sentence.
+    block_line = (
+        f"code {blocks[0][0]}'s share moves {block_shift[0]:+.1%}"
+        if blocks else "NOTHING IDENTIFIES at this tolerance, so there is no block to read"
+    )
+    #: True where the two groups' within-group ranges do not overlap — the
+    #: minimum a difference of means on 3 vs 23 samples has to clear.
+    separated = [
+        low["code_share_range"][i][0] > high["code_share_range"][i][1]
+        or high["code_share_range"][i][0] > low["code_share_range"][i][1]
+        for i in range(len(_SHELTER_CODES))
+    ]
+
+    return {
+        "aggregate": aggregate,
+        "aggregate_reproduces": abs(aggregate["mean_ratio"] - _shipped_ratio) < 0.01,
+        "code_labels": MTUS_CODE_LABELS,
+        "labels_source": MTUS_LABELS_SOURCE,
+        "trials": trials,
+        "identified_codes": identified_codes,
+        "guesses_made_before_reading_the_codebook": guesses,
+        "since": since,
+        "remainder_block": _REMAINDER_BLOCK,
+        "pair": pair,
+        "pair_is_forced_by_the_aggregate": True,
+        "why_pair_is_forced": (
+            "m20+m22 = aggregate x a_full - r21 x a21, so once the aggregate and "
+            "21 identify the remainder's ratio is determined by subtraction and "
+            "carries no information about how it splits; reconstructing it from "
+            "those two alone reproduces the measured value exactly. It is the "
+            "RESOLUTION available, not a prediction that was confirmed"
+        ),
+        "pair_misses_are_opposite": opposite,
+        "remainder_identifies": pair["within_tolerance"],
+        "seam_is_the_plausible_reading_not_a_result": opposite,
+        "identified_blocks": blocks,
+        "low_capital": low,
+        "high_capital": high,
+        "composition_shift": code_shift,
+        "composition_shift_by_block": block_shift,
+        "ranges_separate": separated,
+        "composition_transfers": max(
+            (abs(x) for x in block_shift), default=0.0
+        ) < composition_tolerance,
+        "composition_transfers_by_code": max(abs(x) for x in code_shift) < composition_tolerance,
+        "destination_split_resolvable": False,
+        "why_not_resolvable": (
+            "upkeep and structure both sit inside the {20,22} block — interior "
+            "cleaning next to interior repair — so the identified blocks cannot "
+            "price SHELTER_DESTINATIONS' split"
+        ),
+        "verdict": (
+            f"MTUS carries shelter's TOTAL at the frame the base declares "
+            f"({aggregate['mean_ratio']:.4f}) and resolves it into TWO blocks, "
+            f"not three codes: {{21}} laundry and clothing care, which identifies "
+            f"on its own at {by_code[_C21]['mean_ratio']:.4f}, and the REMAINDER "
+            f"{{20,22}} at {pair['mean_ratio']:.4f} — which is arithmetic once the "
+            f"first two hold, not a second measurement. At that resolution the "
+            f"composition TRANSFERS across capital ({block_line}), which REVERSES the label-free reading that "
+            f"code 22's {code_shift[2]:+.1%} was a real reallocation: the whole of "
+            f"it lies inside the unresolved remainder, and it never cleared the "
+            f"within-group spread either. What MTUS still cannot do is price the "
+            f"destination split, because upkeep and structure share the "
+            f"remainder — so the option-D re-scoping stays PROVISIONAL on "
+            f"resolution rather than on disagreement. What would settle it is a "
+            f"survey at the declared frame with ATUS-level (6-digit) "
+            f"granularity, or MTUS national micro-data below the harmonised "
+            f"aggregates"
         ),
         "reporting_only": True,
     }

@@ -354,15 +354,22 @@ someone remembering it, which is what this section is for.
    That gap let a `STILL OPEN` line sit stale for a day while the file asserted
    the adoption two entries up.
 
-8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029)*
+8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029, F-042)*
    `SKILL_WORKING_LIFE_YEARS` pointed at BLS Employee Tenure: median years with
    the *current employer* (3.9) against working life (37.5) — wrong by 2.6× and
    wrong in mechanism. Reading pointers in full dissolved about half the
    placeholder-audit shortlist. The same rule applies **inside** the repo: the
    `function` label ("roads", "utilities") gave a 77.5/22.5 split, each
    occupation's own `basis` field gave 41.9/44.5/13.6 — **the label names the
-   department, the field names the quantity.** *Do:* open the source and check it
-   measures the quantity before binding anything to it.
+   department, the field names the quantity.** Worse is inventing the label:
+   seven MTUS per-code hypotheses were scored against ATUS and the misses written
+   up as a fact about MTUS, when every label had been supplied from the ATUS side
+   and never read. *"No codebook ships with the file"* was true of the DATA and
+   read as true of the STUDY — the guide was one fetch away, and with it one code
+   identified at 0.9921. **An invented label looks exactly like a real one.**
+   *Do:* open the source and check it measures the quantity before binding
+   anything to it — and if you cannot cite where you read the label, you are not
+   testing a hypothesis.
 
 9. **CALIBRATED TO THE TARGET IT IS CHECKED AGAINST** *(corpus F-018, F-032)* — `DEFAULT_SEGMENTS`' means
    were set so the weighted mean landed exactly on the band ceiling, making
@@ -483,8 +490,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,381 tests passing (1 skipped), mypy clean on 101 source files** (verified
-2026-09-09). Provenance **342/342**, shadow ratchet **33**, confidence ratchet
+**4,405 tests passing (1 skipped), mypy clean on 101 source files** (verified
+2026-09-10). Provenance **342/342**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -561,7 +568,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 41 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 42 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
