@@ -1738,6 +1738,54 @@ BASKET_WATER_LITRES_PER_DAY: float = 50.0
 # default: 1,000 m — a round-number stand-in carried so the row has a unit,
 #   standing in for nothing measured. It is never multiplied into the floor.
 BASKET_WATER_DISTANCE_M: float = 1000.0
+# tag: bounded | units: hours per person per year of childcare delivered
+# band: 99.5–331.2 h/person·yr — the full MTUS range, 16.36 min/day (BG1965) to
+#   54.44 (US1998) across the 46 of 50 samples that carry the childcare codes.
+#   The shipped value is the MEDIAN, 27.61 min/day, on the same reasoning as
+#   MEASURED_CAPACITY_H_YR: the samples are not a probability sample of anything,
+#   so a mean would weight whichever countries ran more surveys.
+# errs: LOW, and the repo had already MEASURED how low before this was priced.
+#   `COMPONENT_CODES_MTUS` records that this code set runs **0.827 of ATUS care**
+#   (spread 0.113) and 1.099 of the household-member codes alone — both outside
+#   the 5% bar that nutrition (1.015) and shelter (0.976) clear — and concludes
+#   "it is NOT admitted to COMPONENT_CODES_MTUS". That determination stands and
+#   this constant is priced past it DELIBERATELY, as a declared bound rather
+#   than as the component: `COMPONENT_STATUS["care"]["status"]` is `bound`, and
+#   reading it as the value is the error that status exists to prevent.
+#   Two further reasons it errs LOW, either alone sufficient. (1) CHILDcare only
+#   — elder and adult care are outside these codes, and elder care is the leg
+#   whose two ATUS routes disagree 7.13x. (2) It measures care DELIVERED, not
+#   care OWED, and no sample here delivers all of what is owed. The model's care
+#   is broader again than ATUS's, covering household AND non-household members,
+#   so 0.827 is itself an upper estimate of the fraction captured.
+# form: the median of `reference.mtus_time_use.childcare_hours_per_person_year`
+#   over MTUS codes 28–31, 977,809 diaries, 21 countries, PROPWT-weighted. Bound
+#   by TEST rather than expression, since data.py sits below reference/ — the
+#   same treatment MEASURED_CAPACITY_H_YR receives.
+# note: THE BENCHMARK RUNS BACKWARDS FOR CARE, which is why this could not reuse
+#   the nutrition template. For nutrition the low-capital frame gives the HIGHER
+#   figure and is the unassisted floor. For childcare the low-capital frames give
+#   the LOWER — ZA2010 17.6 and BG1965 16.4 against US1998's 54.4 — because a
+#   poorer society serves less of the same obligation rather than owing less of
+#   it. So the unassisted end is the wrong end to read a care floor off, and the
+#   high-capital median is the better lower bound. Recorded because it inverts
+#   the reasoning every other component here uses.
+# confidence: 35 — the DATA is strong and the QUANTITY is not the target. 46
+#   samples over 21 countries and six decades is as good a cross-cultural time
+#   series as exists, which is most of the 35; what it costs is that childcare
+#   delivered in high-capital societies is two steps from the care OBLIGATION —
+#   wrong scope (no elder or adult care) and wrong quantity (delivered, not
+#   owed). It is a defensible floor and it is not a measurement of the thing.
+# resolves_by: A CODE SET THAT CLEARS THE 5% BAR — that is the bar this repo
+#   already set for a code set BEING a component, and childcare does not clear
+#   it. Concretely: elder and adult care on the same footing, which needs the
+#   7.13x ATUS route disagreement reconciled first
+#   (`care_demand.elderly_route_disagreement`), and a dependency structure stated
+#   per sample so the figure is commensurable across age distributions — care
+#   hours per person-year are meaningless without one. THE POINT OF PRICING IT
+#   NOW is that the comparison names the missing data: a floor built from what
+#   exists shows what has to be collected, and the whole thing is rerun when it is.
+CARE_CHILDCARE_HOURS_PER_PERSON_YEAR: float = 168.07344
 # tag: convention | units: square metres of dwelling floor area per person
 # form: the UN-Habitat adequacy framing for sufficient living space. A declared
 #   threshold, like the water service level above.

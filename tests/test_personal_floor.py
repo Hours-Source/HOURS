@@ -19,6 +19,7 @@ from hours_eoh.core.eoh_generation import (
 )
 from hours_eoh.data import (
     BASKET_WATER_DISTANCE_M,
+    CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     BASKET_DIET_KCAL_PER_DAY,
     BASKET_HEALTH_MIN_EPSILON,
     BASKET_SHELTER_M2_PER_PERSON,
@@ -75,6 +76,7 @@ SURVIVAL_CORE = survival_core(
     BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
     BASKET_SHELTER_M2_PER_PERSON,
     BASKET_WATER_DISTANCE_M,
+    CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
 )
 ENTITLEMENT_AUGMENTATION = entitlement_augmentation(BASKET_HEALTH_MIN_EPSILON)
 FULL_BASKET = full_basket(
@@ -84,6 +86,7 @@ FULL_BASKET = full_basket(
     BASKET_SHELTER_M2_PER_PERSON,
     BASKET_HEALTH_MIN_EPSILON,
     BASKET_WATER_DISTANCE_M,
+    CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
 )
 
 class TestFloorArithmetic:
@@ -214,7 +217,7 @@ class TestFloorArc:
     @pytest.mark.parametrize("epsilon", KEY_EPSILONS)
     def test_priced_components_are_epsilon_invariant(self, epsilon):
         result = personal_statutory_floor(FULL_BASKET, epsilon)
-        assert result["floor_hours"] == pytest.approx(330.9, abs=0.5)
+        assert result["floor_hours"] == pytest.approx(899.2, abs=0.5)
 
     @pytest.mark.parametrize("epsilon", KEY_EPSILONS)
     def test_floor_is_finite_and_non_negative(self, epsilon):
@@ -259,7 +262,18 @@ class TestReferenceBasket:
         deliberately.
         """
         priced = [c["component"] for c in FULL_BASKET if c["hours_per_unit"] is not None]
-        assert priced == ["nutrition_production"]
+        assert priced == ["nutrition_production", "nutrition_processing", "care"], (
+            "a component was costed without this test being updated — which is "
+            "the discipline, not the number"
+        )
+        # AND EACH PRICED ONE DECLARES WHAT KIND OF FIGURE IT IS. Nutrition is
+        # `one_frame` (the right quantity, one agro-ecology); care is `bound`
+        # (a declared LOWER bound, wrong scope and wrong quantity twice over).
+        # Reading care's figure as the value is the specific error `bound` exists
+        # to prevent, so the status is asserted alongside the pricing.
+        from hours_eoh.reference.personal_basket import COMPONENT_STATUS
+        assert COMPONENT_STATUS["nutrition_production"]["status"] == "one_frame"
+        assert COMPONENT_STATUS["care"]["status"] == "bound"
 
     def test_every_component_states_a_physical_unit(self):
         for component in FULL_BASKET:
@@ -289,9 +303,16 @@ class TestReferenceBasket:
         the step-in entitlements.
         """
         care = next(c for c in SURVIVAL_CORE if c["component"] == "care")
-        assert care["hours_per_unit"] is None, "naming care must not price it"
         assert care.get("min_epsilon", 0.0) == 0.0
         assert care["share"] == pytest.approx(0.6207, abs=0.001)
+        # PRICED 2026-09-09, AS A BOUND. The old assertion here was
+        # `hours_per_unit is None, "naming care must not price it"` — right while
+        # nothing measured it, and it is the MTUS childcare median now: 46 of 50
+        # samples, and a floor for two independent reasons (childcare only;
+        # delivered rather than owed). It stays in the survival core because it
+        # still has an ε=0 delivery path — humans have always cared for each
+        # other unassisted — which pricing does not change.
+        assert care["hours_per_unit"] is not None
 
     def test_shares_mirror_the_data_decomposition(self):
         """
@@ -442,8 +463,8 @@ class TestIdentityReport:
     def test_reports_current_values(self):
         report = identity_report(2025)
         assert report["observed_hours"] == pytest.approx(763.8, abs=0.5)
-        assert report["floor_priced"] == pytest.approx(330.9, abs=0.5)
-        assert report["coverage"] == pytest.approx(0.069, abs=0.001)
+        assert report["floor_priced"] == pytest.approx(899.2, abs=0.5)
+        assert report["coverage"] == pytest.approx(0.759, abs=0.001)
 
     @pytest.mark.parametrize("epsilon", KEY_EPSILONS)
     def test_report_is_meaningful_across_the_arc(self, epsilon):
@@ -482,13 +503,35 @@ class TestFloorVsConstants:
         `floor_share_of` exists to make visible.
         """
         r = floor_vs_constants()
-        assert r["coverage"] == pytest.approx(0.069, abs=5e-4)
-        assert r["floor_priced_per_capita"] < r["constants_per_capita"]["PERSONAL_EOH_SURVIVAL"], (
-            "the floor now exceeds the survival standard — it has started to "
-            "bind, and the constants it sits under must be re-read rather than "
-            "assumed corroborated."
+        # 0.069 → 0.690 on 2026-09-09: care priced as a declared LOWER BOUND from
+        # MTUS childcare. One component moved coverage tenfold because care
+        # carries 62.1% of the desk shares — the count of components was never
+        # the measure of how much was priced.
+        assert r["coverage"] == pytest.approx(0.759, abs=5e-4)
+        # SCOPED, AND THE SCOPE IS THE POINT. This compared the WHOLE floor
+        # against a standard whose own resolves_by reads "only the components
+        # that kill you if unmet — food, water, shelter, warmth" — care is not
+        # in it. On 2026-09-10 the whole floor crossed 811.68 on the strength of
+        # care's 168.1 h and the verdict reported a FALSIFICATION that was a
+        # scope artefact. The mismatch is older than the crossing and was
+        # invisible only while the floor was too small to reach any standard:
+        # the check could not fail, so its passing meant nothing, and its first
+        # real firing was wrong.
+        assert r["floor_scoped_to"]["PERSONAL_EOH_SURVIVAL"] < r["constants_per_capita"]["PERSONAL_EOH_SURVIVAL"], (
+            "the survival-scoped floor now exceeds the survival standard — it "
+            "has started to bind, and the constants it sits under must be "
+            "re-read rather than assumed corroborated."
+        )
+        # and the artefact is pinned so it cannot come back unnoticed
+        assert r["floor_priced_per_capita"] > r["constants_per_capita"]["PERSONAL_EOH_SURVIVAL"], (
+            "the whole floor no longer exceeds the survival standard; if that is "
+            "because care was unpriced, this guard has stopped guarding anything"
         )
         assert "falsifies nothing yet" in r["verdict"]
+        # AND THE VERDICT IS COMPUTED, NOT RESTATED. It said "one component of
+        # seven — 6.9%" as a literal and went stale the instant a second was
+        # priced. A test that only checked the phrase above would have passed.
+        assert "3 of 7" in r["verdict"] and "75.9%" in r["verdict"]
 
     def test_what_the_unpriced_remainder_would_have_to_deliver(self):
         """
@@ -501,12 +544,22 @@ class TestFloorVsConstants:
         r = floor_vs_constants()
         gap = r["constants_per_capita"]["PERSONAL_EOH_BASE"] - r["floor_priced_per_capita"]
         assert gap > 0.0
-        assert gap == pytest.approx(1021.9, abs=1.0), (
+        # 1021.9 → 853.8 on 2026-09-09: care closed 168.1 h of it.
+        assert gap == pytest.approx(453.6, abs=1.0), (
             "the gap between the priced floor and the base has moved; it is "
             "quoted in record/personal.md and in this test's docstring."
         )
         care = [c for c in FULL_BASKET if c["component"] == "care"][0]
-        assert care["hours_per_unit"] is None and care["share"] > 0.60
+        assert care["hours_per_unit"] is not None and care["share"] > 0.60
+
+        # THE QUESTION THIS TEST POSED IS NOW PARTLY ANSWERED, and the answer is
+        # a number rather than a verdict. With 69.0% of the desk share priced the
+        # floor reaches 36.9% of the base, so for the base to be right the
+        # remaining 31.0% must deliver 3.8x the hours per unit share that the
+        # priced part did. That is not a falsification — the floor is a lower
+        # bound and care's leg is a loose one — but it is the first thing the
+        # floor has said ABOUT the base rather than merely sitting under it.
+        assert r["remainder_intensity_ratio"] == pytest.approx(1.59, abs=0.05)
 
     def test_standards_stay_ordered(self):
         constants = floor_vs_constants()["constants_per_capita"]
@@ -543,8 +596,13 @@ class TestTheBasketSeam:
         from hours_eoh.scenarios.personal_floor import shipped_basket
 
         result = personal_statutory_floor(shipped_basket())
-        assert result["floor_hours"] == pytest.approx(330.9232760, abs=1e-6)
-        assert result["coverage"] == pytest.approx(2.0 / 29.0, abs=1e-9)
+        # 330.9232760 until care was priced 2026-09-09. The migration this test
+        # guards moved no numbers; the care pricing moved this one deliberately.
+        assert result["floor_hours"] == pytest.approx(899.1967160, abs=1e-6)
+        # 2/29 → 20/29 when care was priced: the desk shares are 29ths, and
+        # care is 18 of them. Kept as an exact fraction rather than a decimal so
+        # a share change shows up as a share change.
+        assert result["coverage"] == pytest.approx(22.0 / 29.0, abs=1e-9)
 
     def test_the_scenario_assembles_what_the_constants_say(self):
         from hours_eoh.scenarios.personal_floor import shipped_basket
@@ -559,9 +617,18 @@ class TestTheBasketSeam:
                           BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
                           BASKET_SHELTER_M2_PER_PERSON,
                           BASKET_HEALTH_MIN_EPSILON,
-                          BASKET_WATER_DISTANCE_M)
+                          BASKET_WATER_DISTANCE_M,
+                          CARE_CHILDCARE_HOURS_PER_PERSON_YEAR)
         shipped = personal_statutory_floor(FULL_BASKET)["floor_hours"]
-        assert personal_statutory_floor(hot)["floor_hours"] > shipped * 1.15
+        # The threshold is on the NUTRITION term, which is what the diet
+        # quantity moves — so it is stated against that term rather than against
+        # the whole floor. Care's 168.1 h entered the floor on 2026-09-09 and is
+        # invariant to the diet standard, so a whole-floor threshold now
+        # understates the sensitivity it is testing for.
+        hot_n = personal_statutory_floor(hot)["by_component"]["nutrition_production"]
+        ship_n = personal_statutory_floor(FULL_BASKET)["by_component"]["nutrition_production"]
+        assert hot_n > ship_n * 1.15
+        assert personal_statutory_floor(hot)["floor_hours"] > shipped
 
     def test_the_dormant_quantities_move_nothing_yet(self):
         """Water and thermal carry hours_per_unit=None, so they are EXCLUDED,
@@ -569,17 +636,19 @@ class TestTheBasketSeam:
         load-bearing the moment either component is priced, which is why they
         are tagged in data.py rather than left where nothing watched them."""
         odd = full_basket(BASKET_DIET_KCAL_PER_DAY, 500.0, 9000.0, 40.0,
-                          BASKET_HEALTH_MIN_EPSILON, 5_000.0)
+                          BASKET_HEALTH_MIN_EPSILON, 5_000.0,
+                          CARE_CHILDCARE_HOURS_PER_PERSON_YEAR)
         assert personal_statutory_floor(odd)["floor_hours"] == pytest.approx(
             personal_statutory_floor(FULL_BASKET)["floor_hours"]
         )
 
     def test_a_basket_line_with_no_requirement_is_refused(self):
-        for bad in ((0.0, 50.0, 2500.0, 12.0, 1000.0),
-                    (2100.0, -1.0, 2500.0, 12.0, 1000.0),
-                    (2100.0, 50.0, 0.0, 12.0, 1000.0),
-                    (2100.0, 50.0, 2500.0, 0.0, 1000.0),
-                    (2100.0, 50.0, 2500.0, 12.0, -1.0)):
+        for bad in ((0.0, 50.0, 2500.0, 12.0, 1000.0, 168.0),
+                    (2100.0, -1.0, 2500.0, 12.0, 1000.0, 168.0),
+                    (2100.0, 50.0, 0.0, 12.0, 1000.0, 168.0),
+                    (2100.0, 50.0, 2500.0, 0.0, 1000.0, 168.0),
+                    (2100.0, 50.0, 2500.0, 12.0, -1.0, 168.0),
+                    (2100.0, 50.0, 2500.0, 12.0, 1000.0, -1.0)):
             with pytest.raises(ValueError, match="must be positive"):
                 survival_core(*bad)
 
@@ -694,7 +763,10 @@ class TestClimateProvenance:
 
     def test_the_priced_component_is_flagged_as_carrying_its_climate(self):
         report = climate_conditioning()
-        assert report["priced_and_climate_conditioned"] == ["nutrition_production"]
+        # both priced nutrition legs carry the agro-ecology; care does not,
+        # because care is the one `delivery: invariant` component.
+        assert report["priced_and_climate_conditioned"] == [
+            "nutrition_production", "nutrition_processing"]
 
     def test_transfer_bias_sign_is_withheld(self):
         """
@@ -810,7 +882,7 @@ class TestTheComponentStatusTableCannotDrift:
         when it carries an `hours_per_unit`. Measure water without updating this
         table and the test fails; downgrade a status without removing the
         productivity and it fails too."""
-        costed_status = {"measured", "one_frame"}
+        costed_status = {"measured", "one_frame", "bound"}
         for c in FULL_BASKET:
             row = COMPONENT_STATUS[c["component"]]
             claims_costed = row["status"] in costed_status
@@ -865,6 +937,7 @@ class TestTheComponentStatusTableCannotDrift:
             BASKET_DIET_KCAL_PER_DAY, BASKET_WATER_LITRES_PER_DAY,
             BASKET_THERMAL_DEGREE_DAYS_PER_YEAR, BASKET_SHELTER_M2_PER_PERSON,
             BASKET_HEALTH_MIN_EPSILON, 25_000.0,
+            CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
         )
         assert personal_statutory_floor(far)["floor_hours"] == pytest.approx(
             personal_statutory_floor(FULL_BASKET)["floor_hours"]

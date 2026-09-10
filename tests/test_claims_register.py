@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 341 and total == 341
+    return tagged == 342 and total == 342
 
 
 def _shadow_count_is_33() -> bool:
@@ -259,10 +259,10 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 341/341",
+        anchor="provenance 342/342",
         check=_provenance_is_complete,
         why=(
-            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split). "
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342. "
             "Anchored to the CURRENT entry, not a historical one: the old anchor "
             "matched six lines, five of them history, so the claim was checking a "
             "live number against text that must never be updated."
@@ -869,7 +869,7 @@ def _shadow_bound_still_8() -> bool:
     return m is not None and int(m.group(1)) == 8
 
 
-def _confidence_ratchet_is_133_of_149() -> bool:
+def _confidence_ratchet_is_133_of_150() -> bool:
     """Imports nothing of its own: the gate's OWN filter, not a copy of it —
     re-implementing it dropped `if not s.bound` once already (corpus F-038)."""
     from tests.test_confidence import BASELINE_WITHOUT, SOFT_TAGS
@@ -877,7 +877,7 @@ def _confidence_ratchet_is_133_of_149() -> bool:
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (133, 149, 133)
+    return (len(without), len(soft), BASELINE_WITHOUT) == (133, 150, 133)
 
 
 def _scan_is_data_py_only() -> bool:
@@ -950,8 +950,8 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("133 of 149 placeholder/bounded constants carry no confidence",
-                      "caveat", _confidence_ratchet_is_133_of_149),
+    OpenItemPredicate("133 of 150 placeholder/bounded constants carry no confidence",
+                      "caveat", _confidence_ratchet_is_133_of_150),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
                       "caveat", _kappa_ratio_is_12_to_69),

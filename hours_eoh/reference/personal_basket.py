@@ -133,6 +133,13 @@ from __future__ import annotations
 #:               "invariant" does not; "none" has no unassisted path at all.
 #:   status    — "measured"      costed, transferable
 #:               "one_frame"     costed in ONE setting, transfer unasserted
+#:               "bound"         costed as a declared BOUND on the quantity
+#:                               rather than as the quantity, with the direction
+#:                               stated. Distinct from `one_frame`: that one is
+#:                               the right quantity in the wrong place, this one
+#:                               is the wrong quantity everywhere — and reading
+#:                               it as the value is the specific error the
+#:                               status exists to prevent.
 #:               "open"          not costed; an instrument exists
 #:               "undefined"     not costed and NOT costable at this ε
 #:
@@ -167,28 +174,50 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
     "nutrition_processing": {
         "quantity": "universal",
         "delivery": "instance",
-        "status": "open",
-        "blocked_on": "the ε≈0 end. ATUS 0202 gives the high-ε end but the US does "
-                      "most processing inside the registered ledger; needs an "
-                      "ethnographic time-allocation budget or a low-capital survey",
+        "status": "bound",
+        "blocked_on": "MTUS code 19 for ZA2000 and ZA2010 — the only two of 46 "
+                      "samples missing it, and the only two in the base's declared "
+                      "SSA frame. Absent, not zero, so the priced figure bounds "
+                      "from below; South Africa is also not ε≈0, which pushes the "
+                      "same way. An SSA survey reporting both codes closes it",
     },
     "water": {
         "quantity": "instance",
         "delivery": "instance",
         "status": "open",
-        "blocked_on": "an acquisition, then a decomposition. DHS water-collection "
-                      "time carries trips/day and container volume but states the "
-                      "JMP threshold in round-trip TIME, which folds distance, "
-                      "speed and carry together; the transferable remainder is "
-                      "hours per litre-metre at a stated carry, and whether DHS "
-                      "separates the distance leg is unchecked",
+        "blocked_on": "A FORM QUESTION FIRST, THEN AN ACQUISITION — and the form "
+                      "question is why DHS would not have settled it. Four "
+                      "independent variables sit inside one hours_per_unit: "
+                      "(1) DISTANCE to the source; (2) CARRY per trip, which is "
+                      "container volume and therefore capital, not a human "
+                      "constant; (3) MOVED-vs-USED — one person carries and a "
+                      "household consumes, so collection time is per COLLECTOR "
+                      "while the quantity is per PERSON, and the conversion needs "
+                      "household size, a demographic instance; (4) CARRIED-vs-"
+                      "USED-IN-PLACE — washing at the source costs transport "
+                      "nothing while drinking and cooking water must come back, "
+                      "so the litres NEEDING carriage are a site- and "
+                      "practice-dependent fraction of litres used. The basket\'s "
+                      "quantity x hours_per_unit form cannot carry four; this is "
+                      "thermal\'s problem, not nutrition\'s, and thermal was "
+                      "merged into shelter rather than costed",
     },
     "shelter": {
         "quantity": "instance",
         "delivery": "instance",
         "status": "open",
-        "blocked_on": "degree-days is a property of a PLACE, not a person, so "
-                      "costing it makes the floor climate-indexed",
+        "blocked_on": "A CROSS-DOMAIN BOUNDARY, before the data question. MTUS "
+                      "(20,21,22) validates against ATUS at 0.9757 and is ready "
+                      "— but a DWELLING IS IN THE CAPITAL STOCK: "
+                      "`capital_inventory` carries $34.4T of private residential "
+                      "structures on the `building` profile, so `infrastructure_eoh` "
+                      "already charges maintenance on it. Household upkeep and "
+                      "capital maintenance are the same physical work counted in "
+                      "two domains, and nothing separates self-performed from "
+                      "collectively-delivered. Draw the boundary BY CONSTRUCTION "
+                      "the way `verification.py` excludes 474011 and 232093 "
+                      "because servicing already counts them. Then degree-days "
+                      "makes the floor climate-indexed",
     },
     "sanitation": {
         "quantity": "universal",
@@ -199,9 +228,13 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
     "care": {
         "quantity": "universal",
         "delivery": "invariant",
-        "status": "open",
-        "blocked_on": "cross-cultural time allocation at a STATED dependency "
-                      "structure; any figure is meaningless without one",
+        "status": "bound",
+        "blocked_on": "a code set that CLEARS THE 5% BAR. This one runs 0.827 of "
+                      "ATUS care and data.py's COMPONENT_CODES_MTUS excludes it "
+                      "for that reason; it is priced past that determination "
+                      "deliberately, as a bound. Errs LOW three ways — 0.827 of "
+                      "ATUS care, ATUS care narrower than the model's, and "
+                      "delivered rather than owed",
     },
     "health": {
         "quantity": "universal",
@@ -216,7 +249,7 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
 COMPONENT_STATUS_VOCAB: dict[str, frozenset[str]] = {
     "quantity": frozenset({"universal", "instance"}),
     "delivery": frozenset({"instance", "invariant", "none"}),
-    "status":   frozenset({"measured", "one_frame", "open", "undefined"}),
+    "status":   frozenset({"measured", "one_frame", "bound", "open", "undefined"}),
 }
 
 #: MOVED TO `data.py` 2026-08-16 — the basket QUANTITIES are chosen standards,
@@ -278,6 +311,30 @@ LSMS_HOURS_PER_LABOUR_DAY: float = 6.0
 LSMS_KCAL_PER_LABOUR_HOUR: float = LSMS_KCAL_PER_LABOUR_DAY / LSMS_HOURS_PER_LABOUR_DAY
 NUTRITION_HOURS_PER_KCAL: float = 1.0 / LSMS_KCAL_PER_LABOUR_HOUR
 
+#: PROCESSING, from MTUS codes (18,19) — food and drink PREPARATION, validated
+#: against ATUS 0202 at a mean ratio of 1.0147 over 21 overlapping years
+#: (`automation_floors.validate_code_mapping`). Disjoint from the LSMS figure
+#: above by construction: LSMS measures the harvest, this measures the meal.
+#:
+#: THE TWO SSA SAMPLES ONLY, because the base declares an SSA rainfed tropical
+#: frame and the 46-sample median (240.4 h/person·yr) is a different frame. The
+#: frame rule is `data.PERSONAL_EOH_BASE_CLIMATE_FRAME`, declared 2026-09-04 and
+#: not chosen after seeing these numbers.
+#:
+#: **A LOWER BOUND, TWICE OVER.** (1) ZA2000 and ZA2010 are the ONLY two of 46
+#: samples carrying code 18 without code 19 — absent, not zero. Where both are
+#: present code 19 runs 12.3%–53.4% of the pair (median 21.8%), so grossing
+#: would give 506–517 h/person·yr; that is an imputation and is NOT adopted.
+#: (2) South Africa is not ε≈0, so even the SSA end understates the unassisted
+#: requirement. Both push the same way.
+#:
+#: Direction is measured, not assumed: processing FALLS with capital — US2004–08
+#: lowest at 31–32 min/day against ZA/BG/FR1966 at 65–78, pre-1980 mean 59.4
+#: against post-2000 40.8. `delivery: instance` behaving as the classification
+#: says it should, and the opposite of care.
+MTUS_PROCESSING_SAMPLES: tuple[str, ...] = ("ZA2000", "ZA2010")
+PROCESSING_HOURS_PER_PERSON_YEAR: float = 400.2
+
 #: The independent cross-check, carried so the convergence is auditable rather
 #: than asserted: observed family crop labour of 167 h/household-member/yr at a
 #: median crop self-sufficiency of 0.55 scales to ~306 h/person/yr, against the
@@ -335,6 +392,7 @@ def survival_core(
     thermal_degree_days_per_year: float,
     shelter_m2_per_person: float,
     water_distance_m: float,
+    care_hours_per_person_year: float,
 ) -> list[dict]:
     """
     The components with an ε = 0 delivery path in principle.
@@ -367,6 +425,7 @@ def survival_core(
         # a zero-distance source is a tap, which is a DIFFERENT delivery regime
         # rather than a free one — the hauling productivity does not describe it.
         ("water_distance_m", water_distance_m),
+        ("care_hours_per_person_year", care_hours_per_person_year),
     ):
         if q <= 0.0:
             raise ValueError(f"{name} must be positive, got {q}")
@@ -391,7 +450,20 @@ def survival_core(
         "component": "nutrition_processing",
         "quantity_per_person_year": diet_kcal_per_year,
         "unit": "kcal",
-        "hours_per_unit": None,
+        # PRICED 2026-09-10 from MTUS (18,19), SSA samples only — see
+        # PROCESSING_HOURS_PER_PERSON_YEAR for the frame rule and the two
+        # reasons it bounds from below.
+        #
+        # THE MEASUREMENT IS PER PERSON-YEAR AND THE COMPONENT'S UNIT IS KCAL,
+        # so the conversion is written HERE rather than baked into the constant.
+        # Dividing by this basket's own kcal keeps the measured number in the
+        # units it was measured in, and makes the assumption visible instead of
+        # hiding it inside a constant: expressing processing per kcal ASSERTS
+        # that preparation labour scales with calories, which MTUS does not test.
+        # The assumption is more defensible at the low-capital end that supplies
+        # this figure — threshing, milling and pounding do scale with grain —
+        # than at the high-capital end, where a larger meal is not a longer one.
+        "hours_per_unit": PROCESSING_HOURS_PER_PERSON_YEAR / diet_kcal_per_year,
         "share": _share("nutrition", 2),
         # THE BINDING UNKNOWN. Threshing, milling, fuel, water for cooking,
         # cooking. Plausibly exceeds production labour in hand-powered systems.
@@ -484,7 +556,7 @@ def survival_core(
         "component": "care",
         "quantity_per_person_year": CARE_PERSON_YEARS,
         "unit": "person_years",
-        "hours_per_unit": None,
+        "hours_per_unit": care_hours_per_person_year,
         "share": _share("care"),
         # THE LARGEST TERM, 62.1% of the desk estimate, and the one the ledger
         # rests on: TEH is denominated in human labour hours, so human
@@ -547,6 +619,7 @@ def full_basket(
     shelter_m2_per_person: float,
     health_min_epsilon: float,
     water_distance_m: float,
+    care_hours_per_person_year: float,
 ) -> list[dict]:
     """
     The whole basket, survival core plus entitlement augmentation.
@@ -564,6 +637,7 @@ def full_basket(
         thermal_degree_days_per_year,
         shelter_m2_per_person,
         water_distance_m,
+        care_hours_per_person_year,
     ) + entitlement_augmentation(health_min_epsilon)
 
 # ---------------------------------------------------------------------------

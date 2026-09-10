@@ -59,6 +59,7 @@ from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import PersonalFloor, personal_statutory_floor
 from hours_eoh.data import (
+    CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     BASKET_WATER_DISTANCE_M,
     BASKET_DIET_KCAL_PER_DAY,
     BASKET_HEALTH_MIN_EPSILON,
@@ -96,6 +97,7 @@ def shipped_basket() -> list[dict]:
         BASKET_SHELTER_M2_PER_PERSON,
         BASKET_HEALTH_MIN_EPSILON,
         BASKET_WATER_DISTANCE_M,
+        CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     )
 from hours_eoh.scenarios.feasibility import age_weight_mean
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:
@@ -285,16 +287,106 @@ def floor_vs_constants(epsilon: float = 0.0, basket: list[dict] | None = None) -
         "coverage": floor["coverage"],
         "crosscheck_per_capita": NUTRITION_CROSSCHECK_HOURS_PER_YEAR,
         "constants_per_capita": per_capita,
+        # SCOPED: each standard is compared against the components it is about,
+        # not against the whole basket. See `_STANDARD_SCOPE`.
         "floor_share_of": {
-            name: priced / value for name, value in per_capita.items()
+            name: _scoped_floor(floor, name) / value
+            for name, value in per_capita.items()
         },
-        "verdict": (
-            "the floor prices one component of seven — 6.9% of the obligation by "
-            "the desk estimate's own weights — and falsifies nothing yet; it is a "
-            "strict lower bound and the constants sit above it, which is the only "
-            "ordering compatible with that coverage"
-        ),
+        "floor_scoped_to": {
+            name: _scoped_floor(floor, name) for name in per_capita
+        },
+        # WHAT THE UNPRICED REMAINDER WOULD HAVE TO DELIVER, per unit of desk
+        # share, for PERSONAL_EOH_BASE to be right. This is the first thing the
+        # floor has been able to say ABOUT the base rather than merely sitting
+        # under it: the priced components deliver an observed intensity, and the
+        # rest must clear the gap out of the share that is left.
+        "remainder_intensity_ratio": _remainder_intensity_ratio(
+            priced, floor["coverage"], per_capita["PERSONAL_EOH_BASE"]),
+        "verdict": _floor_verdict(floor, priced, per_capita),
     }
+
+
+#: WHICH COMPONENTS EACH STANDARD IS SCOPED TO. Added 2026-09-10 after the
+#: comparison produced a FALSE POSITIVE: the whole-basket floor crossed
+#: `PERSONAL_EOH_SURVIVAL` and the verdict reported a falsification, when the
+#: exceedance was entirely the care term and that standard's own `resolves_by`
+#: reads "only the components that kill you if unmet — food, water, shelter,
+#: warmth". Care is not in it.
+#:
+#: The mismatch is OLDER than the crossing — `floor_share_of` has always divided
+#: the whole floor by every constant — and was invisible only while the floor was
+#: too small to reach any of them. That is the shape this repo calls measuring
+#: where the defect cannot be seen: the check could not have failed, so its
+#: passing meant nothing, and its first real firing was wrong.
+#:
+#: None means the standard covers the whole basket.
+_STANDARD_SCOPE: dict[str, tuple[str, ...] | None] = {
+    "PERSONAL_EOH_SURVIVAL": (
+        "nutrition_production", "nutrition_processing", "water", "shelter",
+    ),
+    "PERSONAL_EOH_BASE": None,
+    "PERSONAL_EOH_SUFFICIENCY": None,
+}
+
+
+def _scoped_floor(floor: PersonalFloor, standard: str) -> float:
+    """The part of the priced floor a given standard is actually about."""
+    scope = _STANDARD_SCOPE.get(standard)
+    if scope is None:
+        return sum(floor["by_component"].values())
+    return sum(v for k, v in floor["by_component"].items() if k in scope)
+
+
+def _remainder_intensity_ratio(
+    priced: float, coverage: float, base_per_capita: float
+) -> float | None:
+    """
+    (hours per unit share the REMAINDER must deliver) / (what the priced part did).
+
+    None when nothing is priced or everything is, where the ratio has no content.
+    """
+    if coverage <= 0.0 or coverage >= 1.0 or priced <= 0.0:
+        return None
+    gap = base_per_capita - priced
+    if gap <= 0.0:
+        return None
+    return (gap / (1.0 - coverage)) / (priced / coverage)
+
+
+def _floor_verdict(
+    floor: PersonalFloor, priced: float, per_capita: dict[str, float]
+) -> str:
+    """
+    COMPUTED, not restated. The previous version of this string said "one
+    component of seven — 6.9%" as a literal, and went stale the moment a second
+    component was priced — the drift this repo has caught more often than any
+    other, on the function whose whole job is to report where the floor stands.
+    """
+    total = len(floor["by_component"]) + len(floor["unreachable"])
+    n = len(floor["by_component"])
+    cov = floor["coverage"]
+    # SCOPE-AWARE. Comparing the whole floor against a standard scoped to a
+    # subset is what produced a false falsification on 2026-09-10.
+    exceeded = [k for k, v in per_capita.items() if _scoped_floor(floor, k) > v]
+    if exceeded:
+        return (
+            f"the floor prices {n} of {total} components ({cov:.1%} of the "
+            f"obligation by the desk estimate's own weights) and EXCEEDS "
+            f"{', '.join(sorted(exceeded))} — it is a strict lower bound, so "
+            "exceeding a standard falsifies it rather than merely disagreeing"
+        )
+    ratio = _remainder_intensity_ratio(priced, cov, per_capita["PERSONAL_EOH_BASE"])
+    tail = (
+        f" For PERSONAL_EOH_BASE to be right the unpriced {1 - cov:.1%} of share "
+        f"must deliver {ratio:.1f}x the hours per unit share that the priced part "
+        "did." if ratio else ""
+    )
+    return (
+        f"the floor prices {n} of {total} components ({cov:.1%} of the obligation "
+        "by the desk estimate's own weights) and falsifies nothing yet; it is a "
+        "strict lower bound and the constants sit above it." + tail
+    )
 
 
 def climate_conditioning(basket: list[dict] | None = None) -> dict:

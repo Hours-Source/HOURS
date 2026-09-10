@@ -309,3 +309,54 @@ def band_ratio(lo: int, hi: int, working_age: tuple[int, int] = (18, 64)) -> flo
     Worked example: child (6, 17) → 0.648.
     """
     return band_minutes(lo, hi)["minutes_per_day"] / band_minutes(*working_age)["minutes_per_day"]
+
+
+def childcare_by_sample(codes: tuple[int, ...]) -> dict[str, float]:
+    """
+    Childcare minutes per person-day, per MTUS sample.
+
+    `codes` is passed in — `data.CHILDCARE_CODES_MTUS` — because this layer
+    imports nothing from the package. 46 of the 50 samples carry the codes;
+    AT1992, CA2010, FR1985 and FR1999 do not, and are absent rather than zero.
+
+    units: minutes per person per day, PROPWT-weighted as everything here is.
+    """
+    out: dict[str, float] = {}
+    for sample in sorted({str(r["sample"]) for r in domestic_by_sample()}):
+        try:
+            m = code_minutes(sample, codes)
+        except (KeyError, ValueError):
+            continue
+        if m is not None:
+            out[sample] = m
+    return out
+
+
+def childcare_hours_per_person_year(codes: tuple[int, ...]) -> float:
+    """
+    The MEDIAN childcare load across the MTUS samples, in hours per person-year.
+
+    Median rather than mean, on the same reasoning as `measured_capacity`: the
+    samples are not a probability sample of anything, so a mean would weight
+    whichever countries happen to have run more surveys.
+
+    **THIS BOUNDS THE CARE OBLIGATION FROM BELOW, FOR TWO INDEPENDENT REASONS,
+    and it is not a measurement of the obligation.** (1) It is CHILDcare only —
+    elder care and adult care are outside these codes entirely. (2) It measures
+    care DELIVERED, not care owed, and no sample here delivers all of what is
+    owed. Either reason alone makes it a floor; together they make it a loose one.
+
+    THE BENCHMARK ALSO RUNS BACKWARDS HERE, which is why care could not reuse
+    the nutrition template. For nutrition the low-capital frame gives the higher
+    figure and IS the unassisted floor. For childcare the low-capital frames give
+    the LOWER figure — ZA2010 17.6 and BG1965 16.4 min/day against US1998's 54.4
+    — because a poorer society serves less of the same obligation rather than
+    owing less of it. So the unassisted end is the wrong end to read a care floor
+    off, and the high-capital median is the better lower bound.
+    """
+    vals = sorted(childcare_by_sample(codes).values())
+    if not vals:
+        raise ValueError("no MTUS sample carries the supplied childcare codes")
+    n = len(vals)
+    median = vals[n // 2] if n % 2 else 0.5 * (vals[n // 2 - 1] + vals[n // 2])
+    return median * _MIN_PER_DAY_TO_H_PER_YEAR

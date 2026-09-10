@@ -13,7 +13,7 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **341 constants in `data.py`, all tagged** — `provenance 341/341` *(gated)*.
+- **342 constants in `data.py`, all tagged** — `provenance 342/342` *(gated)*.
   placeholder 120 (40.0%), normative 68 (22.7%), convention 34 (11.3%), measured
   23 (7.7%), bounded 18 (6.0%), derived 16 (5.3%), instance 12 (4.0%),
   derived-then-FROZEN 6 (2.0%), **physics 3 (1.0%)**.
@@ -54,7 +54,7 @@ recalled. Regenerate with `eoh provenance check`.
   share **+0.23% / −0.66% / +2.91% / −5.68%**, a **25× leverage spread** inside
   one constant, on the quantity that is unit-elastic on the money supply.
   *Settles by:* a pass over the 30, mixed units first.
-- **133 of 149 placeholder/bounded constants carry no confidence figure.**
+- **133 of 150 placeholder/bounded constants carry no confidence figure.**
   *(caveat)* Ratcheted; may not rise. Raised 125 → 133 by the sigmoid split,
   arithmetic in `tests/test_confidence.py`: no new uncertainty, uncertainty
   counted where it lives.
@@ -76,7 +76,7 @@ recalled. Regenerate with `eoh provenance check`.
   side of each assignment is a dependency statement" claim holds for **12 of
   300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
   so deriving those 12 takes the check from one edge to twelve.
-- **The scan is `data.py`-only.** *(caveat)* "341/341 tagged" means 341 constants *in
+- **The scan is `data.py`-only.** *(caveat)* "342/342 tagged" means 342 constants *in
   `data.py`*; the 33 shadow constants are invisible to every count published.
 
 ## Cross-area entries
