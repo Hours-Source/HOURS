@@ -19,6 +19,9 @@ import pytest
 from hours_eoh.data import CARE_AUTOMATION_FLOOR, PERSONAL_EOH_COMPONENTS
 from hours_eoh.reference import atus_time_use as atus
 from hours_eoh.scenarios.component_shares import (
+    SHELTER_DESTINATIONS,
+    SHELTER_DESTINATION_VOCAB,
+    shelter_decomposition,
     COMPONENT_CODES,
     EXCLUDED_CODES,
     abatability_direction,
@@ -242,3 +245,94 @@ class TestComponentSharesChangeNothing:
         doc = " ".join((mod.__doc__ or "").split())
         assert "HETUS/MTUS" in doc
         assert "HETUS/MTUS" in shares_report()["verdict"]
+
+
+class TestShelterDecomposition:
+    """
+    The table a shelter boundary decision cites, so the boundary is informed
+    rather than arbitrary. These pin the DISCIPLINE — every code placed, a closed
+    vocabulary, the judgement isolated and the frame declared — not the shares,
+    which move with the survey year.
+    """
+
+    def test_every_code_in_the_shelter_groups_is_placed(self) -> None:
+        """
+        A 6-digit code inside the shelter groups that nobody classified would be
+        silently dropped from the component without anyone having argued for it —
+        the same failure the obligation-work registry and the basket's own
+        COMPONENT_STATUS guard against.
+        """
+        r = shelter_decomposition()
+        assert r["unclassified"] == [], (
+            f"unplaced shelter codes: {r['unclassified']}. Place them in "
+            "SHELTER_DESTINATIONS or they leave the component unaccounted for"
+        )
+
+    def test_the_vocabulary_is_closed(self) -> None:
+        stray = set(SHELTER_DESTINATIONS.values()) - SHELTER_DESTINATION_VOCAB
+        assert not stray, f"undeclared destination(s): {sorted(stray)}"
+        assert set(SHELTER_DESTINATION_VOCAB) == set(shelter_decomposition()["by_destination"])
+
+    def test_the_classification_only_covers_the_shelter_groups(self) -> None:
+        """The judgement is isolated to shelter. A code from another component
+        appearing here would be a second, hidden attribution."""
+        groups = set(COMPONENT_CODES["shelter"])
+        stray = {c for c in SHELTER_DESTINATIONS if c[:4] not in groups}
+        assert not stray, f"non-shelter codes classified: {sorted(stray)}"
+
+    def test_the_overlap_and_the_thermal_share_are_reported_separately(self) -> None:
+        """
+        The two numbers a boundary decision turns on, and they must not be
+        collapsed: `structure` is the part another domain already charges, and
+        `thermal` is the part the degree-days intensity governs. They are
+        different questions with different answers.
+        """
+        r = shelter_decomposition()
+        assert r["overlaps_infrastructure"] == r["by_destination"]["structure"]
+        assert r["governed_by_degree_days"] == r["by_destination"]["thermal"]
+        assert r["overlaps_infrastructure"] != r["governed_by_degree_days"]
+        # AND THE THERMAL LINE MUST BE NON-EMPTY. Found by mutation: moving
+        # "heating and cooling" into `structure` took thermal to 0.0 and every
+        # other assertion here still passed, because 0.0 is both different from
+        # structure and less than it. A zero thermal line means the degree-days
+        # intensity on the shelter row governs NOTHING measured — which is a
+        # finding that has to be stated, not a state the suite should accept.
+        assert r["governed_by_degree_days"] > 0.0, (
+            "no shelter hours are classified `thermal`, so the degree-days "
+            "intensity governs nothing measured. Either a code was reclassified "
+            "or the survey stopped reporting heating and cooling — say which"
+        )
+
+    def test_upkeep_dominates_and_that_is_the_finding(self) -> None:
+        """
+        THE REASON THE COMPONENT NEEDS RE-SCOPING. Most of what the shelter code
+        set measures is cleaning and laundry, which scale with area and occupancy
+        rather than with degree-days — so the component's quantity (m² AND
+        degree-days) does not match its measured delivery. Asserted as an
+        ordering, since the levels move with the survey year.
+        """
+        d = shelter_decomposition()["by_destination"]
+        assert d["upkeep"] > d["structure"] + d["not_shelter"] + d["thermal"], (
+            "upkeep no longer dominates the shelter component; the quantity/"
+            "delivery mismatch this table was built to show may have changed"
+        )
+        assert d["thermal"] < d["structure"], (
+            "the thermal line now exceeds structure — the degree-days intensity "
+            "governs more than it did, and the re-scoping argument needs redoing"
+        )
+
+    def test_the_frame_is_declared_as_the_wrong_one(self) -> None:
+        """ATUS is US and high-capital. The floor is an unassisted construction,
+        so this composition is evidence about the wrong end of the arc and must
+        say so — the thermal share is the one that would rise at the other end."""
+        frame = shelter_decomposition()["frame"].lower()
+        assert "atus" in frame and "high-capital" in frame
+        assert "mtus" in frame and "unchecked" in frame
+
+    def test_it_reports_and_prices_nothing(self) -> None:
+        assert shelter_decomposition()["reporting_only"] is True
+        from hours_eoh.reference.personal_basket import COMPONENT_STATUS
+        assert COMPONENT_STATUS["shelter"]["status"] == "open", (
+            "shelter was priced while this decomposition still says the "
+            "component's quantity does not match its delivery"
+        )

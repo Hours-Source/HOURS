@@ -64,6 +64,9 @@ __all__ = [
     "abatability_direction",
     "phase_2_sensitivity",
     "shares_report",
+    "SHELTER_DESTINATIONS",
+    "SHELTER_DESTINATION_VOCAB",
+    "shelter_decomposition",
 ]
 
 #: THE ASSUMED MAPPING — one declared judgement, isolated so it can be argued
@@ -106,6 +109,131 @@ EXCLUDED_CODES: dict[str, str] = {
 #: against a mapped total near 745, so no reported figure turns on it — and
 #: `share_comparison` reports the overlap so a reader can see it is small.
 _OVERLAPPING = ("0303",)
+
+
+#: WHERE EACH HOUR OF THE SHELTER COMPONENT PHYSICALLY BELONGS — the second
+#: declared judgement in this module, isolated on the same precedent as
+#: `COMPONENT_CODES` above, `STEWARDSHIP_ATTRIBUTIONS` and `SCALING_BASIS`.
+#:
+#: WHY IT EXISTS. The basket's shelter component is quantified in m² AND
+#: degree-days, and 85% of what its code set measures is interior cleaning and
+#: laundry — which scale with area and occupancy and not with degree-days at all.
+#: Cleaning a house does not get harder when it is cold. The component's quantity
+#: and its measured delivery are answering different questions, and no single
+#: `hours_per_unit` can carry both. This table is what makes that visible, and it
+#: is what a boundary decision should cite instead of an estimate.
+#:
+#: THE FOUR DESTINATIONS, and each is a different disposal:
+#:   "structure"    envelope repair and improvement. ALREADY charged by
+#:                  `infrastructure_eoh`: `capital_inventory` carries $34.4T of
+#:                  private residential structures on the `building` profile, so
+#:                  these hours are the one genuine overlap with another domain.
+#:   "thermal"      the residual heat balance — the body-heat / R-value /
+#:                  degree-days chain. The ONLY part the degree-days intensity
+#:                  governs.
+#:   "not_shelter"  in the code set and not the component. Vehicle repair is
+#:                  transport capital; it double-counts nothing, because consumer
+#:                  durables are excluded BY NAME from `capital_inventory`.
+#:   "upkeep"       cleaning, laundry, appliances, textiles, storage. Scales with
+#:                  area and occupancy. This is what the component actually is.
+#:
+#: THIS IS AN ATTRIBUTION, NOT A MEASUREMENT. The hours are measured; which
+#: destination a 6-digit code serves is argued. Disagree with a row by editing
+#: the row.
+#:
+#: MEASURED ON ATUS, WHICH IS THE WRONG FRAME FOR A FLOOR and the caveat is not
+#: decoration: the shares below are US, high-capital. A collective that burns
+#: wood and hauls water plausibly spends far more of its shelter time on the
+#: thermal line and far less on laundry, and the thermal share is exactly the one
+#: that would rise. MTUS codes (20,21,22) are the frame-consistent source and
+#: this composition has NOT been checked against them.
+SHELTER_DESTINATIONS: dict[str, str] = {
+    # 0201 — household interior
+    "020101": "upkeep",       # interior cleaning
+    "020102": "upkeep",       # laundry
+    "020103": "upkeep",       # sewing, repairing and maintaining textiles
+    "020104": "upkeep",       # storing interior household items, incl. food
+    "020199": "upkeep",       # household interior, n.e.c.
+    # 0203 — interior maintenance, repair and decoration
+    "020301": "structure",    # interior arrangement, decoration and repairs
+    "020302": "structure",    # building and repairing furniture
+    "020303": "thermal",      # heating and cooling
+    "020399": "structure",    # interior maintenance, n.e.c.
+    # 0204 — exterior maintenance, repair and decoration
+    "020401": "upkeep",       # exterior cleaning
+    "020402": "structure",    # exterior repair, improvements and decoration
+    "020499": "structure",    # exterior maintenance, n.e.c.
+    # 0207 — vehicles
+    "020701": "not_shelter",  # vehicle repair and maintenance (by self)
+    "020799": "not_shelter",  # vehicles, n.e.c.
+    # 0208 — appliances, tools and toys
+    "020801": "upkeep",       # appliance, tool and toy set-up, repair, maintenance
+    "020899": "upkeep",       # appliances and tools, n.e.c.
+}
+
+#: Closed, so a fifth destination is a deliberate act rather than a typo.
+SHELTER_DESTINATION_VOCAB: frozenset[str] = frozenset(
+    {"upkeep", "structure", "thermal", "not_shelter"}
+)
+
+
+def shelter_decomposition(year: int | None = None) -> dict:
+    """
+    The shelter component split by where each hour physically belongs.
+
+    REPORTING ONLY — it moves no constant and prices nothing. What it exists to
+    do is make a boundary decision citable: the overlap with `infrastructure_eoh`
+    is a measured share rather than an impression, and so is the share the
+    degree-days intensity actually governs.
+
+    Codes present in `SHELTER_DESTINATIONS` but absent from the survey year
+    return 0.0 rather than being dropped — a category nobody reported is zero,
+    not missing, which is the accessor convention `COMPONENT_CODES` already uses.
+
+    Returns hours per person 15+ per year by destination and by code, the share
+    each destination takes, and `unclassified` — which must be empty, because a
+    6-digit code inside the shelter groups that nobody has placed would be
+    silently excluded from the component without anyone having argued for it.
+    """
+    from hours_eoh.reference import atus_time_use as _atus
+
+    y = _atus.latest_year() if year is None else year
+    groups = COMPONENT_CODES["shelter"]
+    labels = _atus.tier3_labels()
+    in_groups = tuple(c for c in labels if c[:4] in groups)
+
+    by_code: dict[str, dict] = {}
+    by_destination: dict[str, float] = {d: 0.0 for d in SHELTER_DESTINATION_VOCAB}
+    unclassified: list[str] = []
+    for code in in_groups:
+        hours = float(_atus.tier3_hours_per_person_15plus(y, (code,)))
+        dest = SHELTER_DESTINATIONS.get(code)
+        if dest is None:
+            unclassified.append(code)
+            continue
+        by_destination[dest] += hours
+        by_code[code] = {"label": labels[code], "destination": dest, "hours": hours}
+
+    total = sum(by_destination.values())
+    return {
+        "year": y,
+        "total_hours_per_person_15plus": total,
+        "by_destination": by_destination,
+        "destination_share": {
+            d: (h / total if total > 0.0 else 0.0) for d, h in by_destination.items()
+        },
+        "by_code": by_code,
+        "unclassified": unclassified,
+        "overlaps_infrastructure": by_destination["structure"],
+        "governed_by_degree_days": by_destination["thermal"],
+        "frame": (
+            "ATUS, United States, high-capital. The wrong frame for a floor: a "
+            "collective that burns wood and hauls water plausibly spends more on "
+            "the thermal line and less on laundry. MTUS (20,21,22) is the "
+            "frame-consistent source and this composition is unchecked against it."
+        ),
+        "reporting_only": True,
+    }
 
 
 def observed_shares(year: int | None = None) -> dict:

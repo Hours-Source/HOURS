@@ -206,18 +206,21 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
         "quantity": "instance",
         "delivery": "instance",
         "status": "open",
-        "blocked_on": "A CROSS-DOMAIN BOUNDARY, before the data question. MTUS "
-                      "(20,21,22) validates against ATUS at 0.9757 and is ready "
-                      "— but a DWELLING IS IN THE CAPITAL STOCK: "
-                      "`capital_inventory` carries $34.4T of private residential "
-                      "structures on the `building` profile, so `infrastructure_eoh` "
-                      "already charges maintenance on it. Household upkeep and "
-                      "capital maintenance are the same physical work counted in "
-                      "two domains, and nothing separates self-performed from "
-                      "collectively-delivered. Draw the boundary BY CONSTRUCTION "
-                      "the way `verification.py` excludes 474011 and 232093 "
-                      "because servicing already counts them. Then degree-days "
-                      "makes the floor climate-indexed",
+        "blocked_on": "RE-SCOPING, and the decomposition says why. "
+                      "`component_shares.shelter_decomposition()` splits the code "
+                      "set by physical destination: 85.4% UPKEEP (cleaning, "
+                      "laundry, appliances), 8.6% STRUCTURE — the only genuine "
+                      "overlap, already charged by `infrastructure_eoh` via the "
+                      "$34.4T residential line — 4.9% VEHICLES, which are not "
+                      "shelter, and 1.0% THERMAL. So the component is quantified "
+                      "in m2 AND degree-days while 85% of what it measures scales "
+                      "with area and occupancy: cleaning does not get harder when "
+                      "it is cold. Adopted route: exclude structure and vehicles "
+                      "by name, keep upkeep with an area-only quantity, and let "
+                      "degree-days govern the thermal line alone. Measured on "
+                      "ATUS (US, high-capital) and UNCHECKED against MTUS, which "
+                      "is the frame-consistent source and the one where the "
+                      "thermal share would rise",
     },
     "sanitation": {
         "quantity": "universal",
