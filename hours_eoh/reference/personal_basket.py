@@ -454,15 +454,23 @@ def survival_core(
         # PROCESSING_HOURS_PER_PERSON_YEAR for the frame rule and the two
         # reasons it bounds from below.
         #
-        # THE MEASUREMENT IS PER PERSON-YEAR AND THE COMPONENT'S UNIT IS KCAL,
-        # so the conversion is written HERE rather than baked into the constant.
-        # Dividing by this basket's own kcal keeps the measured number in the
-        # units it was measured in, and makes the assumption visible instead of
-        # hiding it inside a constant: expressing processing per kcal ASSERTS
-        # that preparation labour scales with calories, which MTUS does not test.
-        # The assumption is more defensible at the low-capital end that supplies
-        # this figure — threshing, milling and pounding do scale with grain —
-        # than at the high-capital end, where a larger meal is not a longer one.
+        # THE MEASUREMENT IS PER PERSON-YEAR AND THE COMPONENT'S UNIT IS KCAL.
+        # Dividing by THIS basket's own kcal means the two cancel: processing
+        # contributes a flat 400.2 h/person·yr at any diet standard — 1,800,
+        # 2,100 or 2,500 — while production moves 283.6 / 330.9 / 394.0. The row
+        # wears kcal for the basket's form and is a per-person-year figure.
+        #
+        # THAT INVARIANCE IS DELIBERATE AND IT IS THE CONSERVATIVE READING.
+        # A genuine per-kcal productivity would need the MTUS sample's own
+        # dietary intake, which is not in this repo: 400.2 h was measured at
+        # whatever South Africans ate, not at 2,100 kcal, so dividing by 2,100
+        # would manufacture an h/kcal from a denominator that was never observed.
+        # Until that intake is known, asserting proportionality would be worse
+        # than asserting none.
+        # resolves_by: dietary energy intake for ZA2000/ZA2010, which would turn
+        # this row from a constant into the quantity x productivity the basket's
+        # form promises. Threshing, milling and pounding plausibly DO scale with
+        # grain, so the proportionality is likely real and is simply not measured.
         "hours_per_unit": PROCESSING_HOURS_PER_PERSON_YEAR / diet_kcal_per_year,
         "share": _share("nutrition", 2),
         # THE BINDING UNKNOWN. Threshing, milling, fuel, water for cooking,

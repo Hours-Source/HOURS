@@ -16,12 +16,10 @@ constant before quoting it.
 - **The standards split.** `PERSONAL_EOH_SURVIVAL` 600, `PERSONAL_EOH_SUFFICIENCY`
   1500 (may exceed supply — that gap is why collectives form), `PERSONAL_EOH_BASE`
   1000, the abatement-collapsed operating value.
-- **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2808, nutrition: 0.2808}`.** Care was
-  raised to the ordering bound and left `normative` for `placeholder |
-  confidence: 20 | errs: LOW`; nutrition is `placeholder | confidence: 45 |
-  errs: HIGH`. **Shelter and health carry no floor, which is an ADMISSION and not
-  a zero** — every further floor lowers the observable-ε ceiling, so the shipped
-  figure errs HIGH and a test pins that direction.
+- **`PERSONAL_AUTOMATION_FLOORS` = `{care: 0.2808, nutrition: 0.2808}`** — care
+  `errs: LOW` (ordering bound), nutrition `errs: HIGH`. **Shelter and health carry
+  no floor, an ADMISSION and not a zero**: every further floor lowers the
+  observable-ε ceiling, so the shipped figure errs HIGH and a test pins it.
 - **Capacity is measured, not a convention.** `MEASURED_CAPACITY_H_YR` =
   2,335.751835 (median of 50 MTUS frames), ceiling 8,766.0. An INTAKE field —
   measured spread 1.55×.
@@ -31,9 +29,10 @@ constant before quoting it.
   `AGE_WEIGHT_INFANT` 3.0 —
   deliberately NOT moved, because an infant's maintenance is the caregiver's work
   and is already counted on the care-received side.
-- **The floor prices ONE component of seven.** Nutrition production, 330.9 h/yr;
-  coverage 0.069. Unreachable is EXCLUDED, not costed at zero, and carries its
-  reason. The extraction wedge is **not identified** at this coverage.
+- **The floor prices THREE of seven components**, 899.2 h/yr, coverage **0.759**
+  — production `one_frame`, processing and care `bound`. Unreachable is EXCLUDED,
+  not costed at zero, and carries its reason. Standards are compared SCOPED, not
+  against the whole floor. The extraction wedge is still **not identified**.
 - **~~ε=0 over-determined~~ — CLOSED 2026-09-04/08** (three readings, none of
   them physical: capacity migration, band alignment, and the report's self arm
   found on a retired supply basis). Ratio **0.94**, **43 of 50** frames clear
@@ -42,17 +41,20 @@ constant before quoting it.
 
 ## Open
 
-- **The floor's uncosted components are four KINDS of unknown** *(gap)* — health
-  is **undefined, not unmeasured**; shelter and water carry place properties, so
-  the finest index is a SITE; care is priced as a `bound`, coverage 0.069 →
-  **0.690**; processing's blocker is ONE named code. *Settles by:* measurement.
+- **The diet quantity declares no climate and the physics says it should** *(gap)*
+  — Sphere carries an ambient-temperature adjustment; `BASKET_DIET_KCAL_PER_DAY`
+  does not mention one, and it is the quantity that moves the floor 1:1.
+  *Settles by:* reading the adjustment, then an author decision.
+  `notes/shelter-boundary-and-the-thermal-floor.md` §5.
+- **The four uncosted components are four KINDS of unknown** *(gap)* — health is
+  **undefined, not unmeasured**; water is a FORM question before an acquisition;
+  shelter is a CROSS-DOMAIN boundary, the dwelling being already in the capital
+  stock. *Settles by:* a boundary decision, then measurement.
   [floor-component-kinds](#floor-component-kinds),
-  [care-priced-as-a-bound](#care-priced-as-a-bound),
-  [processing-direction-and-the-missing-code](#processing-direction-and-the-missing-code).
+  [water-form-and-shelter-boundary](#water-form-and-shelter-boundary).
 - **Five constants are blocked on a baseline the surveyed world no longer
-  contains** *(caveat)* — each needs a LOW-CAPITAL COUNTERFACTUAL and **none
-  unblocks by collecting more**: the baseline is a development erased, not data
-  withheld, so intake is the only route. [vanished-baseline](#vanished-baseline).
+  contains** *(caveat)* — **none unblocks by collecting more**; the baseline is a
+  development erased. [vanished-baseline](#vanished-baseline).
 - **The frailty socket has no intake** *(person)* — the contract ships, no
   default; nothing supplies it. ~An eighth of care. *Settles by:* ADL
   prevalence by age + LTC continuance. [care-keys-split](#care-keys-split).
@@ -72,15 +74,12 @@ constant before quoting it.
   the abatabilities, K_half and the infant band together.
 - **Type-specific abatement** *(gap)* — which capital abates which component.
 - **Adopting abatement as the DEFAULT generation path** *(person)* — all three
-  blockers are now measured rather than asserted and none was wiring; each is
-  struck in its own entry. What REMAINS: the pace is a bare pick licensing a
-  **50% swing** *(gated)*, and B(0)=1500 still exceeds the band's 1,092, so the
-  ceiling check needs a decision. *Settles by:* the identity route at two or more
-  capital levels — which the vanished baseline above says cannot be collected
-  here. [abatement-blocked](#abatement-blocked),
-  [pace-converted-and-swept](#pace-converted-and-swept),
-  [removal-audit](#removal-audit).
-
+  blockers are measured and struck in their own entries. What REMAINS: the pace
+  is a bare pick licensing a **50% swing** *(gated)*, and B(0)=1500 exceeds the
+  band's 1,092. *Settles by:* the identity route at two or more capital levels,
+  which the vanished baseline says cannot be collected here.
+  [abatement-blocked](#abatement-blocked),
+  [pace-converted-and-swept](#pace-converted-and-swept).
 ## Cross-area entries
 
 Filed here on primary subject; each also bears on another area.

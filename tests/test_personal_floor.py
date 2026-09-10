@@ -980,3 +980,46 @@ class TestTheComponentStatusTableCannotDrift:
         reasons = {u["component"]: u["reason"] for u in r["unreachable"]}
         assert reasons["health"] != reasons["water"], (
             "health's reason must stay distinct from an ordinary unmeasured one")
+
+
+class TestProcessingIsInvariantToTheDietStandard:
+    """
+    The consequence of writing the per-kcal conversion at the call site, pinned
+    so it is a stated property rather than an accident of the arithmetic.
+
+    Production scales 1:1 with the diet quantity; processing does not, because
+    dividing by THIS basket's kcal cancels against multiplying by it. That is
+    the conservative reading: 400.2 h was measured at whatever the MTUS sample
+    ate, not at 2,100 kcal, so a genuine h/kcal would need a denominator that
+    was never observed.
+    """
+
+    def _floor_at(self, kcal: float) -> dict:
+        from hours_eoh.reference.personal_basket import full_basket
+        b = full_basket(kcal, BASKET_WATER_LITRES_PER_DAY,
+                        BASKET_THERMAL_DEGREE_DAYS_PER_YEAR,
+                        BASKET_SHELTER_M2_PER_PERSON, BASKET_HEALTH_MIN_EPSILON,
+                        BASKET_WATER_DISTANCE_M,
+                        CARE_CHILDCARE_HOURS_PER_PERSON_YEAR)
+        return personal_statutory_floor(b)["by_component"]
+
+    def test_production_moves_with_the_diet_and_processing_does_not(self) -> None:
+        lo, mid, hi = self._floor_at(1800.0), self._floor_at(2100.0), self._floor_at(2500.0)
+        assert lo["nutrition_production"] < mid["nutrition_production"] < hi["nutrition_production"]
+        # float equality is the wrong instrument here — the cancellation is exact
+        # in algebra and 1e-13 off in binary. The claim is invariance, not bit-identity.
+        assert lo["nutrition_processing"] == pytest.approx(
+            mid["nutrition_processing"], rel=1e-12) and hi["nutrition_processing"] == pytest.approx(
+            mid["nutrition_processing"], rel=1e-12), (
+            "processing has started moving with the diet standard — that asserts "
+            "a proportionality the MTUS measurement does not carry, because the "
+            "sample's own intake is unknown"
+        )
+
+    def test_the_row_still_declares_kcal_even_though_they_cancel(self) -> None:
+        """The unit is not decorative by accident. It is the basket's form, and
+        the row returns to being quantity x productivity the moment the sample's
+        dietary intake is known — which is what its resolves_by names."""
+        row = next(c for c in FULL_BASKET if c["component"] == "nutrition_processing")
+        assert row["unit"] == "kcal"
+        assert row["hours_per_unit"] is not None
