@@ -1810,3 +1810,121 @@ def test_guides_do_not_name_constants_that_no_longer_exist(path, scanned):
     assert not missing, (
         f"{path.name} names constant(s) not in data.py: {', '.join(missing)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# The registration sigmoids, split 2026-09-09
+# ---------------------------------------------------------------------------
+
+#: The five former composites and the scalars each is now assembled from.
+_SIGMOID_GROUPS: dict[str, dict[str, str]] = {
+    "CARE_SIGMOID_DEFAULTS": {
+        "start_share": "CARE_REG_START_SHARE", "inflection": "CARE_REG_INFLECTION",
+        "rate": "CARE_REG_RATE", "saturation": "CARE_REG_SATURATION"},
+    "PRODUCTION_SIGMOID_DEFAULTS": {
+        "base": "PRODUCTION_REG_BASE", "growth": "PRODUCTION_REG_GROWTH",
+        "rate": "PRODUCTION_REG_RATE", "inflection": "PRODUCTION_REG_INFLECTION"},
+    "STEWARDSHIP_SIGMOID_DEFAULTS": {
+        "base": "STEWARDSHIP_REG_BASE", "growth": "STEWARDSHIP_REG_GROWTH",
+        "rate": "STEWARDSHIP_REG_RATE", "inflection": "STEWARDSHIP_REG_INFLECTION"},
+    "PERSONAL_SIGMOID_DEFAULTS": {
+        "start_share": "PERSONAL_REG_START_SHARE", "saturation": "PERSONAL_REG_SATURATION",
+        "rate": "PERSONAL_REG_RATE", "inflection": "PERSONAL_REG_INFLECTION"},
+    "KNOWLEDGE_SIGMOID_DEFAULTS": {
+        "base": "KNOWLEDGE_REG_BASE", "saturation": "KNOWLEDGE_REG_SATURATION",
+        "rate": "KNOWLEDGE_REG_RATE", "inflection": "KNOWLEDGE_REG_INFLECTION"},
+}
+
+
+class TestTheSigmoidsStaySplit:
+    """
+    The five registration sigmoids were one `placeholder` dict each, covering
+    four fields whose leverage on the money supply differs 25-fold and whose
+    epistemic states differ outright — seven of the twenty turned out to be
+    `normative` or `convention` rather than awaiting measurement.
+
+    A split like that is undone by one careless edit: type the numbers back into
+    the dict and every scalar becomes decorative while the composite keeps
+    working. These pin the structure, not the values.
+    """
+
+    def test_each_composite_is_assembled_from_its_scalars(self) -> None:
+        """The dict must READ the constants, not repeat them. If a value is
+        typed back into the literal this still passes on equality — which is why
+        the next test checks the source text as well."""
+        from hours_eoh import data as d
+        for composite, fields in _SIGMOID_GROUPS.items():
+            got = getattr(d, composite)
+            assert set(got) == set(fields), f"{composite} field set changed"
+            for key, scalar in fields.items():
+                assert got[key] == getattr(d, scalar), (
+                    f"{composite}[{key!r}] has drifted from {scalar}")
+
+    def test_the_composite_reads_the_names_rather_than_the_numbers(self) -> None:
+        """The bind the equality test cannot make. Assembled from names, the two
+        can never diverge; assembled from literals they diverge silently, which
+        is failure mode 4 — a copy of a value whose source is elsewhere."""
+        src = pv.DATA_PY.read_text(encoding="utf-8")
+        for composite, fields in _SIGMOID_GROUPS.items():
+            start = src.index(f"\n{composite}: dict[str, float] = {{")
+            body = src[start:src.index("}", start)]
+            for key, scalar in fields.items():
+                assert scalar in body, (
+                    f"{composite} no longer reads {scalar} by name — a literal "
+                    "was typed back in and the split is now decorative")
+
+    def test_a_split_group_carries_more_than_one_tag(self) -> None:
+        """THE POINT OF THE SPLIT. If every field of a group ends up under one
+        tag again, the composite's tag was not hiding anything and the split
+        bought nothing — or, more likely, someone retagged them uniformly."""
+        by = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
+        multi = 0
+        for composite, fields in _SIGMOID_GROUPS.items():
+            tags = {by[s].tag for s in fields.values()}
+            assert tags, composite
+            if len(tags) > 1:
+                multi += 1
+            assert by[composite].tag == "derived", (
+                f"{composite} should be `derived` — it has no content of its own")
+        assert multi >= 3, (
+            f"only {multi} of the five groups carry more than one tag; the split "
+            "was made because seven of the twenty fields are normative or "
+            "convention rather than placeholder")
+
+    #: The fields whose own former notes called them arguments rather than
+    #: measurements, pinned BY NAME. A count would not do: retagging one of
+    #: these back to `placeholder` while adding a plausible `resolves_by` passes
+    #: the scheme gate and every threshold test, and the commitment would
+    #: quietly become a measurement nobody is going to take.
+    NORMATIVE_FIELDS = frozenset({
+        "CARE_REG_SATURATION",        # some care stays informal at any ε
+        "PERSONAL_REG_SATURATION",    # some personal EOH stays private
+        "KNOWLEDGE_REG_SATURATION",   # tacit skill is never fully admissible
+        "KNOWLEDGE_REG_INFLECTION",   # what verification REQUIRES, not where societies sit
+    })
+
+    def test_the_normative_fields_are_exactly_these_and_name_a_decider(self) -> None:
+        """
+        `normative` forbids a pointer for a reason: these are commitments about
+        what a ledger SHOULD recognise, and a `resolves_by` would promise a
+        measurement that cannot arrive.
+
+        WHAT CATCHES WHAT, since neither check is sufficient alone. A lazy retag
+        — changing the tag and leaving `decided_by` — is caught by the scheme
+        gate, which demands a pointer from a `placeholder`. A THOROUGH retag,
+        adding a plausible pointer too, passes the scheme gate and is caught only
+        here, because this asserts the set by name rather than by count.
+        """
+        by = {r.name: r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records}
+        found = {s for fields in _SIGMOID_GROUPS.values() for s in fields.values()
+                 if by[s].tag == "normative"}
+        assert found == self.NORMATIVE_FIELDS, (
+            f"the normative set changed: added {sorted(found - self.NORMATIVE_FIELDS)}, "
+            f"removed {sorted(self.NORMATIVE_FIELDS - found)}. Each of these is a "
+            "charter commitment; demoting one to `placeholder` says a dataset "
+            "will settle it, which needs an argument rather than an edit"
+        )
+        for name in sorted(found):
+            r = by[name]
+            assert r.decided_by, f"{name}: normative with no decided_by"
+            assert not r.resolves_by, f"{name}: normative must not point at data"

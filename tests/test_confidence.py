@@ -47,8 +47,29 @@ SOFT_TAGS = frozenset({"placeholder", "bounded"})
 #: Constants without a confidence figure. May not RISE. Lowering it means
 #: revisiting a constant and stating what is measured in it, which is real work
 #: and not a rename. 131 when the field shipped; 126 after the first leverage
-#: review annotated the five biggest levers.
-BASELINE_WITHOUT = 125
+#: review annotated the five biggest levers; 125 after the next.
+#:
+#: RAISED TO 133 ON 2026-09-09, AND THIS IS THE ONE MOVE THE RATCHET IS NOT
+#: DESIGNED FOR, so the accounting is written out rather than asserted.
+#:
+#: Splitting the five registration sigmoids replaced 5 composite constants with
+#: 20 fields. Under one tag each dict counted ONCE toward this baseline while
+#: covering four numbers, so the old 125 was UNDERSTATING the backlog four-fold
+#: across those five entries. The 20 land as 13 `placeholder`, 4 `normative` and
+#: 3 `convention` — and the last seven are not awaiting measurement at all, which
+#: the shared tag had also concealed.
+#:
+#:     125 − 5 (the dicts, now `derived`) + 13 (the fields that really are
+#:     unmeasured) = 133
+#:
+#: NO NEW UNCERTAINTY WAS CREATED; uncertainty that was already there is now
+#: counted where it lives. A ratchet that forbade this would penalise honest
+#: disaggregation and reward leaving composites whole, which is the opposite of
+#: what it is for — and the `29 dict/tuple constants` open item asks for exactly
+#: this pass over the remaining composites, so the same move is expected again.
+#: Each future raise states its own arithmetic here or it is not a raise, it is
+#: a leak.
+BASELINE_WITHOUT = 133
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

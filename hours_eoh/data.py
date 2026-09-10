@@ -1049,25 +1049,60 @@ DEFAULT_SEGMENTS: list[dict] = [
 # registration reached before ε reaches 1.0"
 # ---------------------------------------------------------------------------
 # provenance-block: Registration sigmoids
-# tag: placeholder | units: start_share/saturation fractions; inflection in ε; rate dimensionless
-# form: physics-adjacent in shape only — admission to a collective ledger
-#   plausibly follows slow onset, mid-range acceleration and saturation below
-#   1.0 (some care stays informal at any automation level). Every one of the
-#   four numbers is asserted.
-# note: docs/parameter_provenance.md's Registration table still lists
-#   start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped
-#   here — caught by this migration, corrected in the generated table.
-# resolves_by: the measured formal/informal split of care labour against an
-#   automation index — the share of care hours that pass through a paid or
-#   recorded channel. ATUS separates household care from paid care and is now
-#   partly ingested (reference/atus_time_use.py), so the start_share is the
-#   most nearly reachable of the four; the inflection needs a cross-country
-#   panel.
+# SPLIT 2026-09-09. The four fields were one `placeholder` dict, and a
+# composite's tag reads its WEAKEST element: measured at ε=0.40, a 10%
+# perturbation of each moves the composite registration share +0.23%, −0.66%,
+# +2.91% and −5.68% — a 25x leverage spread under one tag, one resolves_by and
+# one confidence figure, on the quantity that is unit-elastic on the money
+# supply. They also need four DIFFERENT instruments, which one pointer could not
+# say. Same treatment AGE_GROUPS received, and for the same reason.
+# tag: placeholder | units: fraction of care EOH registered at ε=0
+# form: the LEVEL the sigmoid starts from — formal education and public health
+#   are admitted even at subsistence; the rest of care is not.
+# resolves_by: the formal/informal split of care labour TODAY, which is a
+#   cross-section rather than a panel and is therefore the most nearly reachable
+#   of the four. `reference/atus_time_use.py` already separates household care
+#   from paid care; what it lacks is the low-capital end.
+CARE_REG_START_SHARE: float = 0.05
+# tag: placeholder | units: automation level ε at the sigmoid's steepest point
+# form: the POSITION of the transition on the arc — where admission accelerates.
+# note: THE HIGHEST-LEVERAGE FIELD OF THE FOUR, and the one this split makes
+#   visible. A 10% move here shifts the composite registration share −5.68%
+#   against start_share's +0.23%.
+# resolves_by: a cross-country panel indexed by automation. A cross-section
+#   cannot locate an inflection: you need societies at different ε, or one
+#   society observed across a transition, and neither is a formal/informal
+#   split measured once.
+CARE_REG_INFLECTION: float = 0.45
+# tag: placeholder | units: dimensionless logistic steepness
+# form: how FAST the transition happens once it starts — a rate, not a level and
+#   not a position, which is why it resolves differently from either.
+# resolves_by: a TIME SERIES through a registration transition. No cross-section
+#   at any number of countries settles a steepness; it needs the same society
+#   observed while the share is moving.
+CARE_REG_RATE: float = 8.0
+# tag: normative | units: fraction of care EOH registered as ε → 1
+# form: the ASYMPTOTE. `start + (saturation − start) × logistic(...)`, so this is
+#   the ceiling itself and not a span — the `growth` field of the production and
+#   stewardship sigmoids occupies the same slot and means something different.
+# decided_by: a charter judgement that some care stays informal at ANY automation
+#   level. No dataset returns it, because no society has run at high ε for the
+#   observation to exist; asserting 0.95 rather than 1.0 is a commitment about
+#   what a ledger should recognise, not a measurement that came out short.
+CARE_REG_SATURATION: float = 0.95
+# tag: derived | units: composite of the CARE_REG_* constants
+# form: assembled from the four constants above. Retained as the public shape —
+#   `core/registration.py` and every caller read this dict — and the assembled
+#   value is identical to the hand-written one it replaces. New code should
+#   prefer the specific constant it needs.
+# note: docs/parameter_provenance.md's Registration table once listed
+#   start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped here;
+#   caught by the 2026-08 migration and corrected in the generated table.
 CARE_SIGMOID_DEFAULTS: dict[str, float] = {
-    "start_share":  0.05,   # minimal at ε=0 (formal education, public health only)
-    "inflection":   0.45,   # rapid rise around ε=0.45
-    "rate":         8.0,    # sigmoid steepness
-    "saturation":   0.95,   # asymptote; never reaches 1.0
+    "start_share":  CARE_REG_START_SHARE,
+    "inflection":   CARE_REG_INFLECTION,
+    "rate":         CARE_REG_RATE,
+    "saturation":   CARE_REG_SATURATION,
 }
 
 # THE OTHER FOUR SIGMOIDS, migrated out of core/registration.py 2026-08-16.
@@ -1084,68 +1119,161 @@ CARE_SIGMOID_DEFAULTS: dict[str, float] = {
 # 0.99 — but the migration changes no numbers and so changes no algebra. Worth
 # unifying; not worth conflating with a move.
 #
-# tag: placeholder | units: base/growth fractions; inflection in ε; rate dimensionless
-# form: base + growth × logistic(rate × (ε − inflection)). Physics-adjacent in
-#   SHAPE only: admission plausibly follows slow onset then acceleration. The
-#   four numbers are asserted.
-# note: the base carries a written physical argument (min3, resolved) that the
-#   others do not — organised trade and grain accounting exist at subsistence
-#   but are a minority of production labour, giving ~25% total registration at
-#   ε=0 rather than the 70% an earlier value implied.
-# resolves_by: the share of production hours passing through a recorded channel,
-#   against an automation index — the same instrument the care sigmoid needs,
-#   read on a different labour category.
+# SPLIT 2026-09-09, with the care sigmoid. THE BASE WAS ALREADY DISTINGUISHED
+# IN THE OLD NOTE and the shared tag hid it: it "carries a written physical
+# argument (min3, resolved) that the others do not". One tag could not say that
+# about one field of four.
+# tag: placeholder | units: fraction of production EOH registered at ε=0
+# form: the LEVEL at subsistence. Organised trade and grain accounting exist
+#   there but are a minority of production labour, giving ~25% total
+#   registration at ε=0 rather than the 70% an earlier value implied.
+# note: the ONE field of the twenty across these five sigmoids that carries a
+#   written physical argument rather than an assertion.
+# resolves_by: the recorded share of production hours today — a cross-section,
+#   like the care start_share and reachable by the same instrument.
+PRODUCTION_REG_BASE: float = 0.15
+# tag: placeholder | units: fraction of production EOH, the SPAN above the base
+# form: NOT an asymptote — `base + growth × logistic(...)`, so the ceiling is
+#   base + growth = 0.99. The care, personal and knowledge sigmoids put an
+#   asymptote in this slot instead, and the two parameterisations are not
+#   interchangeable. Splitting is what makes that visible.
+# resolves_by: the same panel the ceiling needs; a span is a difference of two
+#   levels and cannot be read off one observation.
+PRODUCTION_REG_GROWTH: float = 0.84
+# tag: placeholder | units: dimensionless logistic steepness
+# form: how fast production admission completes once it starts — near-complete
+#   by ε=0.25.
+# resolves_by: a time series through the transition, as for every rate here.
+PRODUCTION_REG_RATE: float = 20.0
+# tag: placeholder | units: automation level ε at the sigmoid's steepest point
+# form: an EARLY inflection — production is the first layer admitted to the
+#   ledger because production labour is the easiest to verify.
+# resolves_by: a cross-country panel indexed by automation.
+PRODUCTION_REG_INFLECTION: float = 0.10
+# tag: derived | units: composite of the PRODUCTION_REG_* constants
+# form: assembled from the four above; identical to the dict it replaces.
 PRODUCTION_SIGMOID_DEFAULTS: dict[str, float] = {
-    "base":        0.15,   # production floor; ~25% total at ε=0 with the sigmoid
-    "growth":      0.84,   # additional share to gain (total → 0.99)
-    "rate":       20.0,    # fast: near-complete by ε=0.25
-    "inflection":  0.10,   # ε at which production registration rises fastest
+    "base":        PRODUCTION_REG_BASE,
+    "growth":      PRODUCTION_REG_GROWTH,
+    "rate":        PRODUCTION_REG_RATE,
+    "inflection":  PRODUCTION_REG_INFLECTION,
 }
-# tag: placeholder | units: base/growth fractions; inflection in ε; rate dimensionless
-# form: base + growth × logistic(rate × (ε − inflection)).
-# note: the rate was RAISED from 6.0 to 10.0 to hold logistic(0) ≈ 0.018, so the
-#   ε=0 value stays near the floor instead of contributing a spurious 8%
-#   baseline. That makes it a tuned value, and until this migration it was
-#   invisible to the shadow-constant scan because 10.0 sits in the
-#   `utils.provenance._INNOCUOUS` set while its two siblings here were counted.
-# resolves_by: the recorded share of communal maintenance labour — shared
-#   wells, paths, drainage — against an automation index.
+# SPLIT 2026-09-09. THE RATE IS NOT A PLACEHOLDER AND THE OLD NOTE SAID SO —
+# it was "RAISED from 6.0 to 10.0 to hold logistic(0) ≈ 0.018", which is a tuned
+# value, not an unmeasured one. Under the shared tag it read `placeholder`, so a
+# reader looking for what would settle it was pointed at a measurement that
+# would not, in fact, decide it.
+# tag: placeholder | units: fraction of stewardship EOH registered at ε=0
+# form: the LEVEL at subsistence — ~7% total once the sigmoid is applied.
+# resolves_by: the recorded share of communal maintenance labour today — shared
+#   wells, paths, drainage. A cross-section, like the other two ε=0 levels here.
+STEWARDSHIP_REG_BASE: float = 0.05
+# tag: placeholder | units: fraction of stewardship EOH, the SPAN above the base
+# form: NOT an asymptote — ceiling is base + growth = 0.95. See
+#   PRODUCTION_REG_GROWTH on why this slot means two different things across the
+#   five sigmoids.
+# resolves_by: a panel; a span is a difference of two levels.
+STEWARDSHIP_REG_GROWTH: float = 0.90
+# tag: convention | units: dimensionless logistic steepness
+# form: TUNED, not asserted and not measured. Raised from 6.0 to 10.0 so that
+#   logistic(0) ≈ 0.018 and the ε=0 value stays near the floor instead of
+#   contributing a spurious 8% baseline. The number is chosen to make the
+#   sigmoid's own tail behave, which is a fitting decision about functional form
+#   rather than a claim about stewardship labour.
+# note: invisible to the shadow-constant scan until the 2026-08 migration,
+#   because 10.0 sits in `utils.provenance._INNOCUOUS` while its two siblings
+#   here were counted.
+STEWARDSHIP_REG_RATE: float = 10.0
+# tag: placeholder | units: automation level ε at the sigmoid's steepest point
+# form: mid-arc — later than production, earlier than personal or knowledge.
+# resolves_by: a cross-country panel indexed by automation.
+STEWARDSHIP_REG_INFLECTION: float = 0.40
+# tag: derived | units: composite of the STEWARDSHIP_REG_* constants
+# form: assembled from the four above; identical to the dict it replaces.
 STEWARDSHIP_SIGMOID_DEFAULTS: dict[str, float] = {
-    "base":        0.05,   # stewardship floor; ~7% total at ε=0 with the sigmoid
-    "growth":      0.90,   # additional share to gain (total → 0.95)
-    "rate":       10.0,    # steeper than production; logistic(0) ≈ 0.018
-    "inflection":  0.40,   # ε at which stewardship registration rises fastest
+    "base":        STEWARDSHIP_REG_BASE,
+    "growth":      STEWARDSHIP_REG_GROWTH,
+    "rate":        STEWARDSHIP_REG_RATE,
+    "inflection":  STEWARDSHIP_REG_INFLECTION,
 }
-# tag: placeholder | units: start/saturation fractions; inflection in ε; rate dimensionless
-# form: start + (saturation − start) × logistic(rate × (ε − inflection)).
-# note: start is 0.0 by construction — at subsistence, personal needs are met
-#   privately and the collective ledger recognises none of it. The saturation
-#   below 1.0 is a claim that some personal EOH stays private at any automation
-#   level (grief, intimacy), which is a normative reading wearing a placeholder's
-#   tag; it is not something a dataset settles.
-# resolves_by: the share of personal-domain hours delivered through collective
-#   systems against an automation index. `reference/atus_time_use.py` measures
-#   the numerator's high-ε end; the low-ε end needs a low-capital time-use survey.
+# SPLIT 2026-09-09. TWO OF THESE FOUR ARE NOT PLACEHOLDERS AND THE OLD NOTE SAID
+# SO OUTRIGHT — start is "0.0 by construction", and the saturation is "a
+# normative reading wearing a placeholder's tag; it is not something a dataset
+# settles". Under one tag both read as awaiting measurement, which pointed a
+# reader at instruments that could never arrive.
+# tag: convention | units: fraction of personal EOH registered at ε=0
+# form: 0.0 BY CONSTRUCTION rather than by estimate. At subsistence personal
+#   needs are met privately and the collective ledger recognises none of it —
+#   that is what ε=0 MEANS for this domain, so the number follows from the
+#   definition and no measurement could return a different one.
+PERSONAL_REG_START_SHARE: float = 0.0
+# tag: normative | units: fraction of personal EOH registered as ε → 1
+# form: the ASYMPTOTE, not a span. `start + (saturation − start) × logistic(...)`.
+# decided_by: a charter judgement that some personal EOH stays private at any
+#   automation level — grief, intimacy. The old note called this "a normative
+#   reading wearing a placeholder's tag"; it now wears its own. No dataset
+#   settles what a ledger SHOULD decline to recognise.
+PERSONAL_REG_SATURATION: float = 0.95
+# tag: placeholder | units: dimensionless logistic steepness
+# form: slower than care, faster than stewardship.
+# resolves_by: a time series through the transition, as for every rate here.
+PERSONAL_REG_RATE: float = 7.0
+# tag: placeholder | units: automation level ε at the sigmoid's steepest point
+# form: LATE — capital systems must mature before the collective can fulfil
+#   personal obligations at scale.
+# note: the highest-leverage single number in the whole registration layer. The
+#   personal domain is 76.6% of the mint at ε=0.40 and the least registered, so
+#   `scenarios/register_capture` ranks it the widest capture channel; this field
+#   is where its share is positioned.
+# resolves_by: a cross-country panel indexed by automation.
+PERSONAL_REG_INFLECTION: float = 0.65
+# tag: derived | units: composite of the PERSONAL_REG_* constants
+# form: assembled from the four above; identical to the dict it replaces.
 PERSONAL_SIGMOID_DEFAULTS: dict[str, float] = {
-    "start_share":  0.0,    # no collective personal EOH fulfilment at ε=0
-    "saturation":   0.95,   # some personal EOH always remains private
-    "rate":         7.0,    # slower than care, faster than stewardship
-    "inflection":   0.65,   # capital systems must mature before fulfilling at scale
+    "start_share":  PERSONAL_REG_START_SHARE,
+    "saturation":   PERSONAL_REG_SATURATION,
+    "rate":         PERSONAL_REG_RATE,
+    "inflection":   PERSONAL_REG_INFLECTION,
 }
-# tag: placeholder | units: base/saturation fractions; inflection in ε; rate dimensionless
-# form: base + (saturation − base) × logistic(rate × (ε − inflection)).
-# note: saturation 0.80 asserts that tacit skill, judgement and creative insight
-#   are never fully admissible however automated verification becomes. The late
-#   inflection asserts that peer review, credentialing and automated audit need
-#   mature automation to operate at scale. Both are arguments, not measurements.
-# resolves_by: the share of knowledge-work hours subject to formal verification
-#   against an automation index — harder than the other four, because the
-#   denominator (what counts as knowledge work) is itself contested.
+# SPLIT 2026-09-09. THE OLD NOTE ENDED "Both are arguments, not measurements" —
+# about the saturation and the inflection — and the shared `placeholder` tag
+# then told a reader a dataset would settle them. Two of these four are
+# commitments and now say so.
+# tag: convention | units: fraction of knowledge EOH registered at ε=0
+# form: 0.0 by construction, as for the personal start_share: there is no formal
+#   verification apparatus at subsistence, so there is nothing to register
+#   through. The number follows from what ε=0 means rather than from an estimate.
+KNOWLEDGE_REG_BASE: float = 0.0
+# tag: normative | units: fraction of knowledge EOH registered as ε → 1
+# form: the ASYMPTOTE. `base + (saturation − base) × logistic(...)`.
+# decided_by: a charter judgement that tacit skill, judgement and creative
+#   insight are never FULLY admissible however good automated verification
+#   becomes. The old note called this an argument rather than a measurement; it
+#   is a claim about what a ledger can in principle recognise, and the 0.80 is
+#   where this framework draws it.
+KNOWLEDGE_REG_SATURATION: float = 0.80
+# tag: placeholder | units: dimensionless logistic steepness
+# form: the slowest of the five — knowledge work is harder to verify than care
+#   labour, so admission completes gradually.
+# resolves_by: a time series through the transition. Harder here than elsewhere
+#   because the DENOMINATOR — what counts as knowledge work — is itself
+#   contested, so the series has to fix a definition before it can move.
+KNOWLEDGE_REG_RATE: float = 5.0
+# tag: normative | units: automation level ε at the sigmoid's steepest point
+# form: the LATEST inflection of the five.
+# decided_by: a charter judgement that peer review, credentialing and automated
+#   audit need mature automation to operate at scale. The old note grouped this
+#   with the saturation as "arguments, not measurements", and unlike the other
+#   four inflections here no cross-country panel decides it — the claim is about
+#   what verification REQUIRES, not about where societies happen to sit.
+KNOWLEDGE_REG_INFLECTION: float = 0.70
+# tag: derived | units: composite of the KNOWLEDGE_REG_* constants
+# form: assembled from the four above; identical to the dict it replaces.
 KNOWLEDGE_SIGMOID_DEFAULTS: dict[str, float] = {
-    "base":        0.0,    # no formal knowledge verification at subsistence
-    "saturation":  0.80,   # never fully verified — intangible outputs
-    "rate":        5.0,    # slower than care — harder to verify than care labour
-    "inflection":  0.70,   # requires mature automation for verification
+    "base":        KNOWLEDGE_REG_BASE,
+    "saturation":  KNOWLEDGE_REG_SATURATION,
+    "rate":        KNOWLEDGE_REG_RATE,
+    "inflection":  KNOWLEDGE_REG_INFLECTION,
 }
 # tag: placeholder | units: shares of total labour, dimensionless; exponent dimensionless
 # form: production declines linearly in ε; care grows as base + growth × ε^exponent
