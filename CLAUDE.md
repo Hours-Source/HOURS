@@ -195,6 +195,9 @@ hours_eoh/
     desire.py          Discovery-above-the-floor stub (sign-off-gated)
 
 utils/                 Presentation layer — CLI and research helpers (see README)
+  anchor_page_figures.py  Every figure the anchor comparison page quotes, emitted from
+                       the functions — the regeneration path's first half. The page is
+                       gitignored so it CANNOT be gated against; that gap is declared
   provenance.py        data.py tag-block scanner + audit-CSV / doc-table generators
   provenance_cmd.py    `eoh provenance check | csv | table | doc`
 ```
@@ -314,9 +317,14 @@ someone remembering it, which is what this section is for.
    cancelled exactly at 0.40 because κ = κ_ref there by construction, and every
    existing test ran at 0.40. `teh_per_capita` could drop `/ population` entirely
    and 57 tests passed, because every collective compared had the same
-   population. *Do:* for any ratio or difference, include a case where the two
+   population. **And the four-point grid is the same trap one step out:**
+   `verification_report` took `max` over `(0, 0.40, 0.90, 0.99)` and published it
+   as `peak_share_of_obligation`; the ratio turns at ε≈0.77, between two points,
+   so the published "peak" understated by 18% — in the module whose own docstring
+   names the trap. **An extremum needs its own grid; the reporting points are not
+   one.** *Do:* for any ratio or difference, include a case where the two
    sides DIFFER in the quantity being divided out; evaluate at 0, 0.40, 0.90,
-   0.99, never at 0.40 alone.
+   0.99, never at 0.40 alone — and never read a maximum off them.
 
 4. **THE COPY OF A VALUE WHOSE SOURCE IS ELSEWHERE** *(corpus F-036)* — six instances and
    counting: `= 1500.0` in five generators surviving the `PERSONAL_EOH_BASE`
@@ -490,7 +498,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,405 tests passing (1 skipped), mypy clean on 101 source files** (verified
+**4,509 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-10). Provenance **342/342**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -522,8 +530,10 @@ this whole structure forbids.**
   corrected CENSUS-vs-VALUATION framing.
 - The discovery layer above the floor is a 120-line stub; every purchasing-power
   claim is scoped to the floor.
-- Registration capture is measured and unmodelled — the contestability arc
-  addresses EXIT, this is VOICE.
+- Registration capture is MODELLED and not BOUNDED (2026-09-09,
+  `scenarios/register_capture.py`) — the failure model and a drift monitor that
+  declares its own threshold exist; what bounds capture does not. The
+  contestability arc addresses EXIT, this is VOICE.
 - **~~The base is blind to ecosystem condition~~ — SETTLED 2026-09-02** (author
   decision, charter). Kept visible: the 0.0% is real and a reader will find it.
   See [`record/ecological.md`](record/ecological.md#live-state).
@@ -603,6 +613,7 @@ are the ones worth knowing by name.
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
+| `test_anchor_page_figures.py` | The anchor page's figure emitter. Gates that every figure the page quotes is still reachable, that a renamed key RAISES rather than returning an empty collection, and that the not-unique result still holds. **States its own gap:** the page is gitignored, so this cannot check the page — only the emitter. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |

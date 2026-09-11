@@ -390,8 +390,17 @@ def direction_of_error() -> dict:
             "majority of the obligation at low automation and still the largest "
             "domain at high automation — and almost none of it passes through "
             "any recorded channel today. NO existing apparatus has ever verified "
-            "anything like that volume, so the occupations that would do it "
-            "largely do not exist to be counted."
+            "anything like that volume. And the shortfall is not that those "
+            "occupations do not exist YET: verifying personal fulfilment means "
+            "the person who did the care records that it happened, which is "
+            "REGISTRANT-side labour and is nobody's occupation in any economy. "
+            "An occupational census cannot reach it at any breadth — see "
+            "`scope` and `what_this_cannot_settle`."
+        ),
+        "scope": (
+            "BOTH scopes here are APPARATUS-side — people whose job is to "
+            "verify. Neither reaches the party being verified. `core` and "
+            "`broad` bound the apparatus, not the cost."
         ),
         "netted": None,
         "why_not_netted": (
@@ -422,6 +431,21 @@ def what_this_cannot_settle() -> tuple[str, ...]:
         "The audit fraction of `132011 Accountants and Auditors`. The gap "
         "between `core` and `broad` is mostly this one code, so the bound is "
         "wide for a single measurable reason rather than for a diffuse one.",
+        "THE REGISTRANT SIDE — the largest gap, and it is STRUCTURAL rather "
+        "than a shortfall of this census. Both scopes here are "
+        "APPARATUS-side: they measure the people whose JOB is to verify. The "
+        "hour a person spends recording that the care happened is not anyone's "
+        "occupation, appears in no occupational classification, and no "
+        "occupational census of any breadth can reach it. It scales with the "
+        "volume of obligation rather than the size of any institution, which "
+        "is the opposite basis from `SCALING_BASIS`. The one well-measured "
+        "analogue — US federal tax compliance — runs an order of magnitude "
+        "above the administering agency's own budget, so the direction is "
+        "against the framework and the magnitude is unbounded here. The "
+        "instrument is the Standard Cost Model (tariff x time x population x "
+        "frequency), which measures the burden on the regulated party and is "
+        "the complement of the Wallis & North occupational census this module "
+        "runs, not a variant of it. Nothing here bounds it.",
     )
 
 

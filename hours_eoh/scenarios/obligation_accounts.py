@@ -37,9 +37,13 @@ of quantity, and adding them hides the difference:
                  the shipped defaults the ecological domain IS this account.
 
 THE HEADLINE THE SUM HIDES. Delivery grows against a nearly flat obligation:
-at ε=0 it is 5.5% of the obligation and at ε=0.99 it is **89.6%**. Essentially
-all growth in total EOH is delivery cost, and a four-way sum hides that by
-adding it to the obligation.
+it is a low single-digit percentage of the obligation at ε=0 and the largest
+term on the arc by ε=0.99, while the obligation itself moves only a few percent
+end to end. Essentially all growth in total EOH is delivery cost, and a four-way
+sum hides that by adding it to the obligation. **The levels are not restated
+here — call `accounts_arc()`.** They have drifted three times (2026-09-01,
+-09-08, -09-09) and every restatement in this file went stale within days; the
+SHAPE is the claim, and `delivery_crossover()` is what tests it.
 
 **THE CROSSOVER CLAIM IS WITHDRAWN (2026-09-01), AND IT IS THE CLEANEST CASE OF
 WHY A PLACEHOLDER MATTERS.** This module originally read 100.3% at ε=0.99 —
@@ -48,8 +52,12 @@ true at the calibration of the day. Then `AGE_WEIGHT_CHILD` took the MTUS
 self-maintenance measurement for ages 6–14 (1.5 → 1.82, raising the obligation)
 and the knowledge fixed point re-anchored −9.94% with it (cutting the apparatus
 term). Both push the ratio DOWN and it no longer crosses 1.0. The SHAPE
-survives — delivery grows 17.6× while the obligation grows 8% — and the level
-did not.
+survives — delivery grows by orders of magnitude while the obligation grows by
+single-digit percent — and the level did not. **The growth FACTOR is no longer
+quotable either:** since the capital path landed (`1ee3fad`) the canonical
+capital stock is 0 at ε=0, so delivery starts at exactly 0.0 and the ratio it
+grows by is undefined. That is the third time a level in this file went stale
+and the reason none is written out any more.
 
 WHAT THIS CORRECTS IN THE EXISTING SPLIT. Block III already gives
 `total_eoh(basis="gross"|"final")` — base vs overhead — and this is NOT merely
@@ -105,7 +113,9 @@ ACCOUNTS: dict[str, dict[str, str]] = {
         "domains": "infrastructure + apparatus knowledge",
         "exists_because": "an apparatus was built to reduce the obligation",
         "epsilon_behaviour": (
-            "rises with the capital stock; crosses the obligation late in the arc"
+            "rises with the capital stock; does NOT cross the obligation on "
+            "the shipped arc — `delivery_crossover()` returns None and is the "
+            "only thing entitled to answer that question"
         ),
     },
     "stock": {
@@ -139,8 +149,11 @@ def obligation_accounts(epsilon: float = 0.40, **state: Any) -> dict:
     rises with the capital stock the arc builds; stock is carried and is 0.0 on
     every shipped path because no stock ships by default.
 
-    Worked example (canonical arc, ε=0.40, default 1M frame): obligation
-    1,409,559,274; delivery 218,300,074; stock 0.0. Ratio 0.1549.
+    Worked example (canonical arc, ε=0.40, default 1M frame): delivery is an
+    order of magnitude below the obligation and stock is 0.0, because no stock
+    ships by default. **The three levels are deliberately not written out** —
+    they moved with the capital path (`1ee3fad`) and with two calibrations
+    before it. Run the function.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -199,11 +212,13 @@ def accounts_arc(
 
     units: EOH/year, plus dimensionless ratios.
 
-    Worked example (canonical, default frame): delivery/obligation runs
-    0.0549 → 0.0848 → 0.1549 → 0.4053 → 0.8964 across ε ∈ {0, 0.2, 0.4, 0.7,
-    0.99}. The obligation itself moves only 1,365.4M → 1,475.7M, i.e. +8.1%
-    over the whole arc, so essentially all of the growth in total EOH is
-    delivery cost.
+SHAPE, not levels (canonical, default frame): delivery/obligation is
+    monotone increasing in ε and remains below 1.0 at ε=0.99, while the
+    obligation itself moves by single-digit percent over the whole arc — so
+    essentially all of the growth in total EOH is delivery cost. **The ratio
+    series is not restated here.** Every previous restatement of it in this
+    module drifted (see the module docstring); `delivery_crossover()` is the
+    test of the claim, and this function returns the series.
     """
     return [obligation_accounts(e, **state) for e in points]
 

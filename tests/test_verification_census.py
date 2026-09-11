@@ -215,6 +215,34 @@ class TestItStatesItsOwnGaps:
         joined = " ".join(V.what_this_cannot_settle())
         assert "re-review" in joined and "appeal rate" in joined
 
+    def test_the_registrant_side_is_declared_as_structurally_unreachable(self):
+        """
+        THE GAP THAT MADE §7's FALSIFIER AN ANSWER AT HALF SCOPE.
+
+        Both scopes are apparatus-side — the people whose JOB is to verify.
+        The hour a registrant spends documenting their own fulfilment is
+        nobody's occupation, so no occupational census reaches it at any
+        breadth. That is not a shortfall of THIS census; it is a property of
+        the instrument, and the one measured analogue runs an order of
+        magnitude above the administering agency.
+
+        A census that did not say so would read as a bound on the cost when it
+        is a bound on the apparatus — the shape of the floor's scope artefact
+        (F-041), one subsystem over.
+        """
+        joined = " ".join(V.what_this_cannot_settle()) + " " + " ".join(
+            V.direction_of_error()[k] for k in ("under", "scope")
+        )
+        assert "REGISTRANT" in joined.upper(), (
+            "the registrant-side gap stopped being declared; the two scopes "
+            "then read as bounding the cost rather than the apparatus"
+        )
+        assert "APPARATUS-side" in V.direction_of_error()["scope"]
+        assert "Standard Cost Model" in " ".join(V.what_this_cannot_settle()), (
+            "the complementary instrument has to be named, or the gap reads "
+            "as unmeasurable rather than unmeasured"
+        )
+
 
 class TestItChangesNothing:
     """

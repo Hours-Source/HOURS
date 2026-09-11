@@ -15,42 +15,46 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 ## Live state — what is settled
 
 - **Workstreams C and F are signed off and published** (2026-08-15, author
-  decision): the price-as-floor reframing, system-wide inflation-impossibility
-  demoted to a within-collective floor property with an ε→1 asymptote, and the
-  objectivity → transparency language pass. Adopted on the grounds that they are
-  the more defensible case — **a weaker true claim beats a stronger false one.**
-  The original theorem is documented as the limit case, not deleted, per the §5
-  guardrail.
+  decision): price-as-floor, inflation-impossibility demoted to a
+  within-collective floor property with an ε→1 asymptote, and the objectivity →
+  transparency pass. **A weaker true claim beats a stronger false one.** The
+  original theorem is documented as the limit case, not deleted (§5 guardrail).
+  [workstreams-c-and-f-signed-off](#workstreams-c-and-f-signed-off).
+- **THE VERDICT LADDER IS ADOPTED** (2026-09-11, author decision, AWol). *A
+  verdict may not outrank the weakest input it rests on.* **Physics and
+  arithmetic → certain. Census-dependent → instance data, feasibility-checkable
+  within a stable bound. Downstream of anything unmeasured → "possible", and
+  that is the ceiling for any economic model untested in the world.** The
+  tags already ARE the tiers; the propagation rule is new.
+  [the-verdict-ladder](#the-verdict-ladder).
+- **THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO — signed off 2026-09-11**
+  (author decision, AWol). **The comparative is where the cost sits and whether
+  it is visible, not who has one.** Changes no arithmetic.
+  [rivals-verification-cost](#rivals-verification-cost).
 - **Four retirements in `notes/value-anchor.md` §1 are signed off** (2026-09-02):
-  "backed by human labor" → "backed by the capacity to fulfil obligations";
-  "entropy is measured in time" → the numeraire framing; ε as the share that no
-  longer depends on human agency; and trust relocating rather than disappearing.
-- **The base is held blind to ecosystem condition, as a charter commitment**
-  (2026-09-02). See [ecological.md § Live state](ecological.md#live-state) — the
+  "backed by human labor" → "the capacity to fulfil obligations"; the numeraire
+  framing; ε as the share no longer dependent on human agency; trust relocating
+  rather than disappearing.
+- **The base is held blind to ecosystem condition** (charter, 2026-09-02). The
   obligation is not dropped, it is ASSIGNED to GUF.
-- **ε HAS A SECOND INSTRUMENT AND THE TWO ARE ADJACENT** *(gated)* — labour
-  **0.252–0.428** against capital's **0.453–0.602**, gap 0.024, no currency in the
-  labour chain. Shared `total_eoh` denominator, so the SPLIT is what is checked.
-- **§7's audit falsifier is ANSWERED: no crossover on the arc.** Phase 2
-  (`scenarios/verification_cost.py`) puts the census beside the obligation and
-  bisects for the ε where it exceeds it. Under **both** scopes and **both**
-  scaling bases the crossing does not exist in [0, 0.99]; the peak is **0.89% of
-  the obligation at core scope and 2.24% at broad.** The search is falsifiable —
-  forcing the rate up locates a crossing — so "none" is a result and not a
-  property of the search. The ε-DIRECTION is what remains unsettled: per-capita
-  falls across the arc, per-registered rises then turns, and they agree only at
-  the declared ε=0.40 reference. Neither is adopted.
-- **Verification cost, Phase 1 is BUILT and reporting only** — **core 1,131,000
-  workers, broad 2,839,800**, a LOWER and an UPPER bound with no weight to tune.
-  Disjoint from `servicing.py` by construction; the two error directions are
-  never netted. Whether the term enters `total_eoh` is Phase 3 and needs the
-  author. [verification-cost-phase-1](#verification-cost-phase-1).
-- **The framework cannot claim its frame is "most defensible".** Phase 0 of the
-  anchor comparison classifies eight anchors from their own definitions without
-  modelling a rival: two indeterminate, two indifferent by design, and of those
-  whose base moves with physical activity, **`mutual credit` and `HOURS` hold all
-  three properties.** The differentiator is SCALE, not structure. Pinned as
-  not-unique.
+  [ecological.md](ecological.md#live-state).
+- **ε HAS A SECOND INSTRUMENT, AND THEY ARE ADJACENT** *(gated)* — labour
+  **0.252–0.428** vs capital **0.453–0.602**, gap 0.024, no currency in the
+  labour chain. Shared denominator, so the SPLIT is what is checked.
+- **§7's audit falsifier TESTS THE WRONG BOUND** *(2026-09-11)*. It does not
+  fire on its own terms (apparatus peak **1.137% / 2.856%**), but the ratio is
+  not the binding constraint below ε≈0.96 — obligation + verification against
+  labour supply is tighter, and the measured ~40× registrant multiple breaks
+  three of four scope/basis configurations. Neither verdict is assertable.
+  [which-binds](#which-bound-actually-binds),
+  [scope](#verification-scope-sensitivity),
+  [peak](#verification-cost-scope-and-peak),
+  [phase-1](#verification-cost-phase-1).
+- **The framework cannot claim its frame is "most defensible".** Eight anchors
+  classified from their own definitions, no rival modelled: **`mutual credit` and
+  `HOURS` hold all three properties.** The differentiator is SCALE, not
+  structure. Pinned as not-unique.
+  [anchor-comparison-phase-0](#anchor-comparison-phase-0).
 
 ## Open
 
@@ -95,8 +99,13 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 6 entries, newest first | |
+| 11 entries, newest first | |
 |---|---|
+| [the-verdict-ladder](#the-verdict-ladder) | THE VERDICT LADDER — WHAT THE FRAMEWORK MAY ASSERT, AND THE CEILING ON ALL OF IT |
+| [which-bound-actually-binds](#which-bound-actually-binds) | §7's FALSIFIER TESTS THE NON-BINDING CONSTRAINT OVER 96% OF THE ARC |
+| [rivals-verification-cost](#rivals-verification-cost) | THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO |
+| [verification-scope-sensitivity](#verification-scope-sensitivity) | THE AUDIT FALSIFIER'S ANSWER IS NOT ROBUST TO THE SCOPE IT LEFT OUT |
+| [verification-cost-scope-and-peak](#verification-cost-scope-and-peak) | THE AUDIT FALSIFIER WAS ANSWERED AT HALF SCOPE, AND "PEAK" WAS NOT THE PEAK |
 | [register-capture-failure-model](#register-capture-failure-model) | THE REGISTER'S FAILURE MODEL, AND A MONITOR THAT DECLARES ITS OWN THRESHOLD |
 | [verification-cost-phase-2](#verification-cost-phase-2) | VERIFICATION COST, PHASE 2 — §7's AUDIT FALSIFIER IS ANSWERED, AND IT DOES NOT FIRE |
 | [verification-cost-phase-1](#verification-cost-phase-1) | VERIFICATION COST, PHASE 1 — THE REGISTER'S OWN LABOUR, BOUNDED FROM BOTH SIDES |
@@ -107,6 +116,64 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 <!-- /record-index -->
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/theory.md#<slug>`.
+
+<a id="the-verdict-ladder"></a>
+
+**THE VERDICT LADDER — WHAT THE FRAMEWORK MAY ASSERT, AND THE CEILING ON ALL OF IT** (2026-09-11, author decision, AWol). A theory commitment under the §3 guardrail, stated by the author and recorded before anything was built on it.
+
+**THE RULE.** *A verdict may not outrank the weakest input it rests on.* Three tiers:
+
+| Tier | Provenance tags | What may be said | Why |
+|---|---|---|---|
+| **Certain** | `physics`, `derived`, and pure arithmetic | Stated flatly. No hedge. | An identity that closes to float equality, or a quantity fixed by physical law, is not an opinion. `obligation + delivery + stock == total_eoh` is true or the code is broken. |
+| **Instance** | `measured`, `instance`, `convention` | **Only as good as its census**, and checkable only for FEASIBILITY within a stable bound. | A census measures one population at one time under one definition. Shipping it as a universal is the frame seam. The collective DECLARES its own; the framework checks the declaration is feasible. |
+| **Possible** | anything downstream of `placeholder`, `bounded` or `normative` | **"Possible" — and that is the ceiling.** | Not "likely", not "expected". No economic model untested in the world has earned more, and claiming more is the failure this repo exists to avoid. |
+
+- **THE TAGS ALREADY ARE THE TIERS, AND THAT IS THE POINT.** No second taxonomy is invented. `data.py`'s nine tags map onto the ladder directly, the provenance gate already enforces that every constant carries one, and the confidence ratchet already forbids the placeholder count rising. **What is new is the propagation rule** — a result computed from a `placeholder` is a `placeholder` result however clean its arithmetic, and no amount of derivation launders it upward.
+- **"POSSIBLE" IS A CEILING, NOT A HEDGE, AND IT IS THE STRONGEST HONEST POSITION AVAILABLE.** The framework is not competing on confidence with systems that have run for decades; it is competing on **whether the constraint can be inspected**. A stable corridor that a collective can check itself into is a real answer to "why this rather than a dollar" in a way that a point forecast never was — and a point forecast is the thing every predecessor in `prior_art.md` produced before it died.
+- **WHY THIS IS A CHECKS-AND-BALANCES SYSTEM RATHER THAN A PREDICTION.** The framework does not tell a collective its population, its land, its capital or its governance form — each is an `instance` it must declare. What the framework supplies is the **bound**: given what you declared, is the configuration feasible, and where does it stop being so. `research/corridor.py` already carries the author's 2026-08-01 sign-off in this shape — *success is a stable measurable corridor, not ε → 1* — and this generalises it from ε to every census-dependent quantity.
+- **THE PURPOSE OF THE CORE IS TO BE OPTIMISED AROUND, NOT SHIPPED AS FINAL.** The framework exists to close the shortfalls of the current alternatives while remaining researchable — new data and new exchange mechanisms should be able to enter without the core being rewritten. **That is an argument for the ladder rather than against it:** a core that overclaims cannot absorb a measurement that contradicts it, because the overclaim has to be retracted first. A core that says "possible, within these bounds" absorbs the measurement as a narrowing.
+- **WHAT THIS FORBIDS, CONCRETELY.** A shipped point estimate of a quantity nobody has measured; a verdict stated more strongly than its weakest input; a census figure presented as a universal; and "does not fire" where the honest answer is "does not fire under the configuration tested". **Three of those four had live instances in this repo this week**, which is why the rule is being written down rather than assumed.
+
+<a id="which-bound-actually-binds"></a>
+
+**§7's FALSIFIER TESTS THE NON-BINDING CONSTRAINT OVER 96% OF THE ARC** (2026-09-11). `scenarios/verification_cost.py` — `verification_feasibility_corridor()`, `which_binds_across_the_arc()` — + 20 tests. **REPORTING ONLY.** Asked by the author: would a feasibility band beat a point verdict, given the multiple cannot be known in advance.
+- **THE ANSWER IS YES, AND APPLYING IT MOVED THE RESULT.** Three bounds, all expressed in ONE unit — the registrant multiple at which each binds — so the smallest is the binding one. `ratio` (verification equals the obligation: §7's test), `clearing` (obligation + verification exceeds the labour a population can supply), `physical` (verification alone exceeds total labour supply; the only bound with no institution in it). **The clearing bound is tighter than the ratio bound everywhere below ε≈0.96**, under both scopes and both bases. §7 has been testing the loose constraint.
+- **AND THE MEASURED ANALOGUE BREAKS THREE OF FOUR CONFIGURATIONS.** Tightest binding multiple: broad/per_capita **9.3×**, broad/per_registered **23.9×**, core/per_capita **24.8×**, core/per_registered **61.5×**. The one multiple measured in matching units is **~40×**. So 40× sits INSIDE the spread — only `core`/`per_registered` survives it. **"Roughly two orders of magnitude clear" was an artefact of testing the wrong bound**, and the basis question the repo left unadopted now decides the answer rather than merely colouring it.
+- **AN HOUR DOCUMENTING IS AN HOUR NOT FULFILLING**, which is why the clearing bound is an addition to demand rather than a fourth account. That is a modelling judgement and it is declared; it is also the conservative direction, since the alternative — verification labour drawn from some pool the obligation cannot use — is not a pool anyone has named.
+- **THE CORRIDOR HAS EDGES AND NO CENTRE, STATED IN THE RETURN VALUE.** The IPCC failure is downstream of the authors: a published range is collapsed to its midpoint by everyone who quotes it. `registrant_multiple` is required input, moves no bound (pinned by test), and `is_measured` is False. What the function reports is how large the multiple would have to be before each constraint binds — a statement about the framework, not about an institution nobody has built.
+- **THE WIRING GAP IS NAMED RATHER THAN CLOSED.** `feasibility_check` has no verification term: the term reaches `verification_account` and stops, so the documented feasibility entry point cannot see it. This module composes the two from the scenario layer instead of adding a parameter to a core-adjacent entry point. That is mode 5 in its early form, recorded before it becomes one.
+- **VERIFIED BY BREAKING IT.** Dropping `demand` from the clearing bound — making it identical to the physical bound — fails **17 of 20** tests.
+
+<a id="rivals-verification-cost"></a>
+
+**THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO** (2026-09-11, author decision, AWol). §§3.1 and 3.3 of the anchor draft conceded that gold and fixed-supply protocols carry *no* registration apparatus, *no* assessors and *no* verification cost. **Structurally that is wrong in both cases**, and the concession was doing real damage on the one axis where the page says its rivals win.
+- **GOLD'S COST IS REAL AND IT IS PER-TRANSFER.** Assay, refining accreditation, vaulting and chain-of-custody. It is not continuous, which is why it reads as zero from inside a framework that measures a recurring obligation — but a claim on gold that has never been assayed is a claim on a belief about gold.
+- **A PROOF-OF-WORK ANCHOR'S COST IS ITS SECURITY BUDGET**, and it is the one number such a system publishes continuously. Calling that zero misreads the design: it is not an absence of verification cost, it is verification cost paid openly and by construction.
+- **SO THE HONEST COMPARATIVE IS PLACEMENT AND VISIBILITY, NOT PRESENCE.** Gold's sits at transfer boundaries and is borne privately by whoever assays; proof-of-work's is continuous and public; HOURS' is continuous, public, and now partly measured. **A cost the holder can see is this framework's own stated criterion**, so the reframing moves the argument onto ground the framework already claims — which is why it needed sign-off rather than an edit.
+- **AND IT CHANGES NO ARITHMETIC, WHICH IS THE POINT.** HOURS' own measured cost is unmoved. The rivals' costs remain unmeasured here and are NOT claimed to be comparable in size — the gap is still real and still runs against this framework. What changes is that the gap now has to be measured rather than conceded, and §§3.1/3.3 no longer grant a rival something it does not have.
+
+<a id="verification-scope-sensitivity"></a>
+
+**THE AUDIT FALSIFIER'S ANSWER IS NOT ROBUST TO THE SCOPE IT LEFT OUT** (2026-09-11). `scenarios/verification_cost.py` — `net_fraction_falsifier()`, `registrant_scope_sensitivity()` — + 16 tests. 4,435 pass, mypy clean on 101 files. **REPORTING ONLY.** Found by auditing `notes/governance/verification-cost-update.md` against the outline it was folded into.
+- **AT THE ONE MULTIPLE THAT TRANSFERS IN UNITS, BROAD SCOPE CROSSES.** Registrant-side compliance in the only measured case runs **~40× the administering agency's WORKFORCE** — workers against workers, which is the comparison W&N and the SCM both make. Applied to the measured apparatus: **core reaches 46.6% of the obligation and does not cross; broad reaches 117.1% and crosses at ε=0.624.** So "§7's falsifier does not fire" is not merely answered at half scope — **the missing half is large enough to flip it**, and which way depends on a scope choice the census does not settle.
+- **NEITHER "FIRES" NOR "DOES NOT FIRE" IS WARRANTED, AND THE CODE SAYS SO.** `registrant_multiple` is REQUIRED with no default, on the `currency_per_teh` precedent; `is_measured` is False; the judgement travels in the return value. The tax case is adversarial and money-denominated where a HOURS register is neither, and **its own error bar is 7.7×** — the IRS revised the same quantity from 363M to 2.8bn hours as a methodology change. The output spans an order of magnitude before transferability is even asked about.
+- **AND THE WIDELY-QUOTED 23–26× DOES NOT TRANSFER AT ALL.** It compares registrant HOURS to an agency MONEY budget. Three figures that look like three independent routes to the same gap — 23–26×, ~40×, and the 15–34% health-administration share — are **one case counted three ways with three different denominators**, and health administration's denominator is total spend on the verified activity, closer to obligation *plus* delivery. Treating them as triangulation is the triangulation-that-isn't. Only the workforce ratio is used.
+- **§7's THRESHOLD WAS ALSO WRONG, AND IS NOW A DIAL.** A crossover test at ratio 1.0 fires far too late: the net-energy result is that what matters is the fraction of gross obligation left for entropy reduction, and it degrades non-linearly. `net_fraction_falsifier(floor)` returns the ε where `1 − ratio` drops below a **caller-declared** bound. **The floor is required and has no default** — one shipped here would be calibrated to the configuration it is checked against, which is `LEVY_SUFFICIENCY_WARN`'s defect applied to the anchor's central claim. Measured at broad scope the breach runs 0.634 / 0.549 / 0.465 / 0.371 for floors 0.975 / 0.98 / 0.985 / 0.99 — strictly decreasing, so it is a dial and not a switch.
+- **THE APPARATUS AXIS HAS THREE CELLS AND TWO ARE MEASURED.** `broad` is NOT Wallis & North's method: W&N count transaction occupations *inside* non-transaction industries as a share of the industry wage bill — a fraction of a supervisor's week — where `broad` is whole headcount over a wider occupation set. So "two scopes that bound" bounds the **census**, not the cost: the cells are nested rather than opposed, and `broad` is not an upper bound on verification labour.
+- **A GATE THAT DID NOT BITE, CAUGHT BY BREAKING IT.** Mutating the composition from `a × (1 + m)` to `a × m` passed every test in the class — at m=40 the two differ by 2.5% and both still cross at broad and not at core. Now pinned: a vanishing registrant side must return the measured apparatus, not zero. The floor-default mutation was caught; this one was not until it was tried.
+
+<a id="verification-cost-scope-and-peak"></a>
+
+**THE AUDIT FALSIFIER WAS ANSWERED AT HALF SCOPE, AND "PEAK" WAS NOT THE PEAK** (2026-09-10). `scenarios/verification_cost.py` + `reference/verification.py` + 14 new tests. **REPORTING ONLY — no shipped number moves.** Found by reading `notes/verification-revisited.md` against the build rather than by a failing test.
+- **THE FALSIFIER IS ANSWERED FOR THE APPARATUS AND NOT FOR THE COST.** Phase 1 is a Wallis & North occupational census and both its scopes — `core` and `broad` — differ only in how wide a net is cast over *people whose job is to verify*. The other side of the transaction is not an occupation: verifying personal EOH means the person who did the care records that it happened, which appears in no occupational classification in any economy. **This is a property of the instrument, not a shortfall of this census** — no occupational census reaches it at any breadth. In the one well-measured analogue, US federal tax, the registrant side runs an order of magnitude above the administering agency's own budget. The multiple does not transfer (that case is adversarial and money-denominated) but the DIRECTION does, and it is against the framework. Declared in `what_this_cannot_settle()` and `direction_of_error()["scope"]`, and pinned.
+- **AND IT IS F-041 ONE SUBSYSTEM OVER.** The floor's falsification check crossed a standard that covered a subset of what the floor summed, and reported a falsification that was a scope artefact. Here the arithmetic is right and the SENTENCE is wrong in the opposite direction: "no crossover" is true of what was measured and reads as true of verification cost. **A falsifier answered at half scope reads exactly like a falsifier answered.**
+- **"PEAK 0.89% / 2.24%" WAS THE MAXIMUM OVER FOUR REPORTING POINTS.** `verification_report` took `max` over `verification_arc`'s default `(0.0, 0.40, 0.90, 0.99)` and published it under the key `peak_share_of_obligation`. The `per_registered` ratio **turns where registered EOH peaks, at ε≈0.77** — between the 0.40 and 0.90 points. On a dense grid at the publishing commit the peak was **1.049% / 2.634%**, understated by **18% and 17%**. Failure mode 3 and mode 10 together, and **`verification_arc`'s own docstring names the trap it fell into**: *"a ratio read at 0.40 alone is the trap this repo names."*
+- **THE FIGURES HAD ALSO DRIFTED, AND THE CAUSE IS BISECTED NOT ASSUMED.** Live peak is **1.137% / 2.856%**. Checked at eight commits in detached worktrees: the value moves at `1ee3fad` (the capital path) and at no other commit. Both errors run the same way — the published cost understated what the model says — and **neither changes the verdict**: still no crossover, still ~2 orders of magnitude clear.
+- **THE GATE WAS VERIFIED BY BREAKING IT.** `TestThePeakIsNotReadOffTheReportingPoints` fails if the peak equals the reporting-point maximum, sits on a reporting point, comes off the monotone basis, or moves when the grid is refined 10×. Reverting the search to the four-point max fails 5 tests, with the mutation confirmed present in the loaded source and `PYTHONDONTWRITEBYTECODE=1` set.
+- **AND SIX RESTATED FIGURES IN `obligation_accounts.py` WERE ALL WRONG.** Flagged on 2026-09-08 as four, fixed 2026-09-10 as six — and one of the four had drifted *again* in between, including "5.5% ✓" which that flag had personally verified two days earlier. The capital path put canonical capital at 0 at ε=0, so delivery there is exactly 0.0 and the "grows 17.6×" factor is undefined. A seventh claim, in the `ACCOUNTS` dict rather than a docstring, said delivery "crosses the obligation late in the arc"; `delivery_crossover()` returns `None`. **None is restated any more** — the docstrings carry the SHAPE and name the function.
+- **AND A SECOND GATE DID NOT BITE, ONE FUNCTION OVER.** `verification_crossover` concluded "no crossover" from `ratio(0) < 1 and ratio(0.99) < 1` — valid only for a MONOTONE ratio, and `per_registered` is not one. **Measured: at 110x the rate the ratio peaks at 1.25 mid-arc and the search returned `None`**, because both endpoints were under. §7's falsifier was unfalsifiable in exactly the band where the extremum hides. The search is now seeded from the grid and reports `returns_below_at`, so an excursion that comes back under is a different finding from one that does not. **A third defect surfaced repairing it:** `test_a_rate_that_crosses_midway_is_located_not_clamped`'s fixture never crossed midway — its ratio is **1.026 at ε=0**, so the crossing was at zero, and the assertion `0.0 < crossover` passed only because a bisection seeded at `lo=0.0` converges toward zero without reaching it. Failure mode 2: the test proving the search is not a clamp was checking floating-point convergence. Repaired with a fixture that crosses in the interior, and both gates verified by breaking them.
+- **WHAT THIS DOES NOT DO.** It does not measure the registrant side. The instrument is named — the Standard Cost Model, `tariff × time × population × frequency`, the complement of a W&N census rather than a variant — and running it is not started. **Nor is it obviously an obligation at all:** Wallis & North's own 1988 follow-up argues transaction costs are *intermediate*, so a documentation hour may already sit inside `total_eoh` and adding a term would double-count (mode 11, from a direction the disjointness table does not check). **That fork is Phase 3 and it is the author's.**
 
 <a id="register-capture-failure-model"></a>
 

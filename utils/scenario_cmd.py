@@ -133,6 +133,11 @@ _SCENARIOS: dict[str, str] = {
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
+    # -- the register: its own cost, and its capture exposure --
+    "verification_cost":   "verification_report() + which_binds_across_the_arc() — what running the register costs, and WHICH of the three bounds actually binds; REPORTING ONLY  [--scope]",
+    "verification_band":   "corridor_is_usable() — is the verification corridor closed as a usable band, or still open edges?  [--scope]",
+    "register_capture":    "capture_report() — the register's failure model: which channel is widest and what admitting more moves; REPORTING ONLY",
+    "labour_epsilon":      "labour_epsilon_report() — ε read off time use, the second instrument, with no currency in the chain; REPORTING ONLY",
 }
 
 _USE_CATEGORIES = [
@@ -279,6 +284,17 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="atus_year",
                        help="ATUS survey year (personal_floor; default: the latest "
                             "comparable year. 2020 is excluded — partial collection)")
+    # A SEPARATE FLAG, NOT A REUSE OF `--scope`. `--scope` already carries the
+    # land-stewardship vocabulary (declared / ecosystem / with_amenity) and
+    # argparse `choices` is per-flag, so sharing it would make every
+    # verification run fail on a land value or force the choices list open —
+    # and an open choices list is how a typo becomes a silent default.
+    run_p.add_argument("--verification-scope", default="core",
+                       choices=("core", "broad"),
+                       help="Which verification census to run (verification_cost, "
+                            "verification_band; default: core, the LOWER bound). "
+                            "'broad' is the upper bound on the CENSUS, not on "
+                            "the cost — the registrant side is unmeasured.")
     run_p.add_argument("--scope", default=_LAND_ADOPTED_SCOPE,
                        choices=list(_LAND_SCOPES),
                        help="How much urban amenity groundskeeping counts as "
@@ -1315,6 +1331,53 @@ def _dispatch(args: argparse.Namespace) -> object:
         out = {k: val for k, val in v.items() if k != "rows"}
         out["coverage_below_one_at"] = str(v["coverage_below_one_at"])
         out["summary_table"] = v["rows"]
+        return out
+
+    if name == "verification_cost":
+        from hours_eoh.scenarios.verification_cost import (
+            verification_report,
+            which_binds_across_the_arc,
+        )
+        r = verification_report(scope=args.verification_scope)
+        out = {k: v for k, v in r.items() if k not in ("arc", "crossover")}
+        # The bound table is the point: §7's ratio is not the binding
+        # constraint over most of the arc, and a report that printed only the
+        # ratio would repeat the error this scenario exists to correct.
+        out["summary_table"] = [
+            {
+                "epsilon":  row["epsilon"],
+                "ratio":    round(row["ratio_bound"], 1),
+                "clearing": round(row["clearing_bound"], 1),
+                "physical": round(row["physical_bound"], 1),
+                "binds":    row["binding_bound"],
+            }
+            for row in which_binds_across_the_arc(scope=args.verification_scope)
+        ]
+        return out
+
+    if name == "verification_band":
+        from hours_eoh.scenarios.verification_cost import corridor_is_usable
+        r = corridor_is_usable(scope=args.verification_scope)
+        out = {k: v for k, v in r.items() if k != "conditions"}
+        out["summary_table"] = [
+            {"condition": k, "met": v} for k, v in r["conditions"].items()
+        ]
+        return out
+
+    if name == "register_capture":
+        from hours_eoh.scenarios.register_capture import capture_report
+        r = capture_report()
+        out = {k: v for k, v in r.items() if not isinstance(v, list)}
+        rows = next((v for v in r.values() if isinstance(v, list)), [])
+        out["summary_table"] = [dict(x) for x in rows]
+        return out
+
+    if name == "labour_epsilon":
+        from hours_eoh.scenarios.labour_epsilon import labour_epsilon_report
+        r = labour_epsilon_report()
+        out = {k: v for k, v in r.items() if not isinstance(v, list)}
+        rows = next((v for v in r.values() if isinstance(v, list)), [])
+        out["summary_table"] = [dict(x) for x in rows]
         return out
 
     raise ValueError(f"Unknown scenario: {name}")

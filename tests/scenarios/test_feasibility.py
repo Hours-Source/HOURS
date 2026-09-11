@@ -656,3 +656,73 @@ class TestTheBandIsLive:
     def test_the_stated_gap_is_still_stated(self) -> None:
         doc = self.__doc__ or ""
         assert "STATED GAP" in doc and "not that it is right" in doc
+
+
+class TestVerificationIsReachableFromTheEntryPoint:
+    """
+    THE STRANDED PARAMETER, CAUGHT BEFORE IT BECAME ONE (2026-09-11).
+
+    `reference/verification.py` and `scenarios/verification_cost.py` measured
+    the register's own labour, and the term stopped there: `feasibility_check`
+    — the documented entry point for "can this population supply what it owes"
+    — could not see it. A parameter that is accepted nowhere on the path a
+    reader actually runs is not wired, which is `test_parameter_wiring`'s rule.
+
+    Default 0.0 is the pre-existing behaviour and is correct: the term is
+    REPORTING ONLY and whether it enters the obligation is Phase 3. What the
+    default must not do is make the parameter unreachable.
+    """
+
+    def test_the_default_changes_nothing(self):
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        for epsilon in (0.0, 0.40, 0.90):
+            assert (feasibility_check(epsilon=epsilon)
+                    == feasibility_check(epsilon=epsilon,
+                                         verification_h_per_capita=0.0))
+
+    @pytest.mark.parametrize("epsilon", (0.0, 0.40, 0.90))
+    def test_an_output_moves_through_it(self, epsilon):
+        """Not just accepted — it has to move a reported number."""
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        base = feasibility_check(epsilon=epsilon)
+        with_v = feasibility_check(epsilon=epsilon,
+                                   verification_h_per_capita=100.0)
+        assert with_v["demand_supply_ratio"] > base["demand_supply_ratio"]
+        assert with_v["total_demand_per_capita"] > base["total_demand_per_capita"]
+        assert with_v["implied_base_ceiling"] < base["implied_base_ceiling"], (
+            "the base ceiling must tighten — verification competes for the "
+            "same labour, so it leaves less room for the personal obligation"
+        )
+
+    def test_it_can_push_a_feasible_configuration_infeasible(self):
+        """
+        The direction that matters. If no amount of verification load can make
+        the check fail, the term is decorative.
+        """
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        assert feasibility_check(epsilon=0.0)["feasible"] is True
+        assert feasibility_check(
+            epsilon=0.0, verification_h_per_capita=1_000.0
+        )["feasible"] is False
+
+    def test_a_negative_load_raises(self):
+        from hours_eoh.scenarios.feasibility import feasibility_check
+        with pytest.raises(ValueError):
+            feasibility_check(verification_h_per_capita=-1.0)
+
+    def test_the_corridor_agrees_with_the_wired_path(self):
+        """
+        TWO ACCOUNTS OF ONE QUANTITY IS THE `psi`/`psi_applied` SHAPE.
+        `verification_feasibility_corridor` computes the clearing bound
+        arithmetically; running `feasibility_check` at that exact load must
+        land the ratio on 1.0. It reports whether it did, and this pins it.
+        """
+        from hours_eoh.scenarios.verification_cost import (
+            which_binds_across_the_arc,
+        )
+        for basis in ("per_capita", "per_registered"):
+            for row in which_binds_across_the_arc(basis=basis):
+                assert row["clearing_bound_verified_through_feasibility"] is True, (
+                    f"at ε={row['epsilon']} basis={basis} the arithmetic bound "
+                    "and the wired path disagree"
+                )

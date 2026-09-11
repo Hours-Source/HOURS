@@ -182,6 +182,7 @@ class FeasibilityCheck(TypedDict):
     supply_per_capita: float          # L
     personal_demand_per_capita: float # w·B·(1−ε)
     residual_per_capita: float        # R·(1−ε), the non-personal domains
+    verification_per_capita: float    # the register's own labour, 0.0 unless supplied
     total_demand_per_capita: float    # D(ε)
     demand_supply_ratio: float        # D/L — > 1 means infeasible
     feasible: bool
@@ -311,6 +312,7 @@ def feasibility_check(
     epsilon: float = 0.0,
     population: float = 1_000_000.0,
     personal_base: float = PERSONAL_EOH_BASE,
+    verification_h_per_capita: float = 0.0,
 ) -> FeasibilityCheck:
     """
     Test D(ε) ≤ L and invert it onto PERSONAL_EOH_BASE.
@@ -377,17 +379,35 @@ def feasibility_check(
     personal_pc = inv["personal"] / population * human
     residual_pc = ((inv["infrastructure"] + inv["ecological"] + inv["knowledge"])
                    / population * human)
-    demand_pc = personal_pc + residual_pc
+    # VERIFICATION IS DEMAND, NOT A SEPARATE ACCOUNT. An hour a registrant
+    # spends documenting that a fulfilment happened is an hour not spent
+    # fulfilling, so it competes for the same labour supply. Default 0.0 is the
+    # pre-existing behaviour and the honest one: the term is REPORTING ONLY and
+    # whether it enters the obligation is Phase 3, which needs the author. What
+    # the default must not do is make the parameter unreachable — before this
+    # existed the term stopped at `verification_account` and the documented
+    # feasibility entry point could not see it, which is the stranded-parameter
+    # failure caught before it became one.
+    if verification_h_per_capita < 0.0:
+        raise ValueError(
+            "verification_h_per_capita must be >= 0, got "
+            f"{verification_h_per_capita}"
+        )
+    demand_pc = personal_pc + residual_pc + verification_h_per_capita
 
     # B ≤ (L/(1−ε) − R) / w, floored at 0 — a negative ceiling means the
     # non-personal domains alone already exhaust the labor supply.
-    ceiling = max(0.0, (supply / human - residual_pc / human) / w)
+    ceiling = max(
+        0.0,
+        (supply / human - residual_pc / human - verification_h_per_capita / human) / w,
+    )
 
     return FeasibilityCheck(
         epsilon=epsilon,
         supply_per_capita=supply,
         personal_demand_per_capita=personal_pc,
         residual_per_capita=residual_pc,
+        verification_per_capita=verification_h_per_capita,
         total_demand_per_capita=demand_pc,
         demand_supply_ratio=demand_pc / supply if supply > 0 else float("inf"),
         feasible=demand_pc <= supply,
