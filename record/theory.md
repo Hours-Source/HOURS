@@ -15,25 +15,29 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 ## Live state — what is settled
 
 - **Workstreams C and F are signed off and published** (2026-08-15): price-as-
-  floor, inflation-impossibility demoted to a within-collective floor property
-  with an ε→1 asymptote, and the objectivity → transparency pass. **A weaker
-  true claim beats a stronger false one.** The original theorem is kept as the
-  limit case (§5). [c-and-f](#workstreams-c-and-f-signed-off).
-- **THE VERDICT LADDER IS ADOPTED AND GATED** (2026-09-11, author decision,
-  AWol). *A verdict may not outrank the weakest input it rests on.* Physics and
-  arithmetic → certain; census-dependent → instance, feasibility-checkable
-  within a bound; downstream of anything unmeasured → **"possible", the ceiling
-  for any untested economic model.** Computed: **31 / 89 / 222** constants, and
-  every headline function resolves to POSSIBLE.
+  floor, inflation-impossibility demoted to a within-collective floor property,
+  the objectivity → transparency pass. **A weaker true claim beats a stronger
+  false one.** [c-and-f](#workstreams-c-and-f-signed-off).
+- **WHAT HOURS ADDS — §8a ADOPTED** (2026-09-12, author decision, AWol). Three
+  STRUCTURAL properties no rival holds: issuance cannot be created by
+  registering; it cannot run ahead of work SERVED; and the capture exposure
+  shrinks as automation arrives. **Converts "capture is unbounded" into "the
+  volume is bounded and the distribution is not."** Capture is not thereby
+  harmless. [capture-aggregate-bounded](#capture-aggregate-bounded).
+- **THE VERDICT LADDER IS ADOPTED AND GATED** (2026-09-11, author). *A verdict
+  may not outrank the weakest input it rests on.* Physics and arithmetic →
+  certain; census-dependent → instance, feasibility-checkable within a bound;
+  downstream of anything unmeasured → **"possible", the ceiling for any
+  untested economic model.** Every headline function resolves to POSSIBLE, and
+  the tier census is ratcheted.
   [ladder](#the-verdict-ladder), [gate](verification.md#verdict-ladder-gate).
-- **THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO — signed off 2026-09-11**
-  (author decision, AWol). **The comparative is where the cost sits and whether
-  it is visible, not who has one.** Changes no arithmetic.
-  [rivals-verification-cost](#rivals-verification-cost).
+- **THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO** (2026-09-11, author).
+  **The comparative is where the cost sits and whether it is visible, not who
+  has one.** Changes no arithmetic.
+  [rivals](#rivals-verification-cost).
 - **Four retirements in `notes/value-anchor.md` §1 are signed off** (2026-09-02):
   "backed by human labor" → "the capacity to fulfil obligations"; the numeraire
-  framing; ε as the share no longer dependent on human agency; trust relocating
-  rather than disappearing.
+  framing; ε as residual human agency; trust relocating, not disappearing.
 - **The base is held blind to ecosystem condition** (charter, 2026-09-02). The
   obligation is not dropped, it is ASSIGNED to GUF.
   [ecological.md](ecological.md#live-state).
@@ -41,14 +45,13 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   **0.252–0.428** vs capital **0.453–0.602**, gap 0.024, no currency in the
   labour chain. Shared denominator, so the SPLIT is what is checked.
 - **§7's audit falsifier IS ANSWERED ON THE SHIPPED DEFAULT** *(2026-09-11)*.
-  Priced in the frame-invariant unit — share of the obligation — the headroom
-  is **12.0%** at ε=0 and every episodic regime costs **0.17–1.7%**. Cadence is
-  an `instance` defaulting to `episodic`; `continuous` stays **open** below
-  ε=0.573 because human recording runs 113% of the obligation and the cheap
+  Priced as a share of the obligation — the only frame-invariant unit — every
+  episodic regime fits with an order of magnitude to spare. Cadence is an
+  `instance` defaulting to `episodic`; `continuous` stays **open** below
+  ε≈0.57, because human recording runs at clinical intensity and the cheap
   machine regime needs a prior document personal EOH does not produce.
   [cadence](#register-cadence-declared),
-  [which-binds](#which-bound-actually-binds),
-  [fork](#the-intermediate-final-fork).
+  [which-binds](#which-bound-actually-binds).
 - **The framework cannot claim its frame is "most defensible".** Eight anchors
   classified from their own definitions, no rival modelled: **`mutual credit` and
   `HOURS` hold all three properties.** The differentiator is SCALE, not
@@ -67,11 +70,13 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   every purchasing-power claim is scoped to the floor and
   `floor_claim_across_the_arc` flags its own result as internal. *Settles by:* a
   theorem, not code.
-- **Registration capture is MODELLED, not bounded.** *(person)* Personal is the
-  widest channel — 76.6% of the mint at a share of 0.14, so one point more moves
-  issuance **+5.45%** with the obligation unmoved. **The contestability arc
-  addresses EXIT; this is VOICE.** *Settles by:* a governance model that BOUNDS
-  capture. [register-capture](#register-capture-failure-model).
+- **Capture is AGGREGATE-BOUNDED; DISTRIBUTION is the exposure.** *(gap)*
+  Bounded three ways and shrinking along the arc. **What is unbounded is who
+  gets paid**, and the model is per-capita throughout. EXIT is contestability;
+  this is VOICE. *Settles by:* a distributional layer, **downstream of exchange
+  work not yet done at scale** — no real-output term and no goods layer, so
+  nothing yet for a distribution to be over. Research area, not a measurement.
+  [capture-aggregate-bounded](#capture-aggregate-bounded).
 - **§5.2's capital axis is weaker than the page argues** *(pointer)* — a
   destroyed stock books no rebuild, so the response is pro-cyclical.
   [fulfilment.md](fulfilment.md#capital-reconstruction-gap).
@@ -95,8 +100,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 13 entries, newest first | |
+| 14 entries, newest first | |
 |---|---|
+| [capture-aggregate-bounded](#capture-aggregate-bounded) | CAPTURE IS AGGREGATE-BOUNDED AND DISTRIBUTION-UNBOUNDED, AND THE MODEL CAN SEE ONLY THE FIRST |
 | [register-cadence-declared](#register-cadence-declared) | THE REGISTER CADENCE IS AN `instance` DEFAULTING TO EPISODIC, AND CONTINUOUS SPLITS INTO TWO RE… |
 | [the-intermediate-final-fork](#the-intermediate-final-fork) | THE INTERMEDIATE-VS-FINAL FORK — IT SPLITS BY CHANNEL, AND A SECOND MEASURED ANALOGUE DISAGREES… |
 | [the-verdict-ladder](#the-verdict-ladder) | THE VERDICT LADDER — WHAT THE FRAMEWORK MAY ASSERT, AND THE CEILING ON ALL OF IT |
@@ -114,6 +120,20 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 <!-- /record-index -->
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/theory.md#<slug>`.
+
+<a id="capture-aggregate-bounded"></a>
+
+**CAPTURE IS AGGREGATE-BOUNDED AND DISTRIBUTION-UNBOUNDED, AND THE MODEL CAN SEE ONLY THE FIRST** (2026-09-12, author question, AWol). No code changed. Traced through `core/eoh_fulfillment`, `core/prices`, `research/exchange` against the question *is capture a negative result or a design feature?*
+
+**THE AGGREGATE IS BOUNDED, AND BY THREE INDEPENDENT THINGS.** (1) `total_eoh` accepts **no registration parameter**, so the ledger cannot manufacture the demand that would justify the mint — registration RELOCATES obligation and never creates it, gated by `test_registration_containment`. (2) The mint is `registered × multiplier` and registered ≤ human ≤ gross, so the ceiling is the obligation itself, which is population-determined. (3) Supply `available_labor_eoh` and the mint tracks **served**, not demanded — the shortfall books as deferral. **So "labour no one needed" mints nothing, and it mints nothing for a structural reason rather than a calibrated one.**
+
+- **AND THE EXPOSURE SHRINKS ALONG THE ARC.** Capture room — how much more of the obligation is admittable — falls from two orders of magnitude at subsistence to a small fraction at high automation, because automation registers the obligation anyway. The worst case is at ε=0, where the register is nearly empty.
+- **BUT THE MODEL REPORTS NO HARM BECAUSE IT HAS NO CHANNEL FOR IT.** `core/prices.py` contains **zero** occurrences of mint, created, circulating or stock: the floor is cost-based, tied to human labour content, and **there is no quantity-of-money term anywhere in the price layer.** So capture cannot dilute — not because dilution does not happen, but because the only channel through which it would appear is not represented. Run the extreme case and the model reports full registration minting two orders of magnitude above baseline against an *identical* human obligation with zero deferred, and calls it fine.
+- **THE EXCHANGE LEG IS WORSE, NOT BETTER.** `parity_rate(a,b)` is mint-per-capita over mint-per-capita with **no real-output term**, so a capturing collective's measured productivity RISES and its unit APPRECIATES — the federation pays it a premium. And the author's own reading is literally true of the model: there is no goods layer, so "the other collective may have nothing you need" is not a friction the model overcomes, it is a dimension the model does not have.
+- **SO THE ANSWER IS NEITHER.** Capture is not a negative result and not a design feature: **it is aggregate-neutral inside a model whose only two channels for harm — dilution and exclusion — are both unrepresented.** That is the same boundary `research/desire.py` names for purchasing power above the floor, arriving from a second direction.
+- **WHAT SURVIVES AS A GENUINE DESIGN FEATURE, AND IT IS WHAT HOURS ADDS.** The mint gate is the hole-digger property applied to capture: **you cannot mint without someone serving the obligation.** A captured register that admits obligation nobody fulfils books deferrals, not TEH. No commodity, protocol or discretionary anchor has that property — gold and bitcoin cannot over-issue because their base is indifferent, which is a different thing from being unable to issue against work not done.
+- **WHAT DOES NOT SURVIVE.** Capture **redistributes who gets paid, not whether work happens.** A captured register admits my family's care and refuses yours; the aggregate is untouched, the obligation is untouched, the work is real, and the excluded person is excluded. The model is per-capita aggregate throughout, so it cannot see that either.
+- **THIS REFRAMES §7's CAPTURE FALSIFIER AND NARROWS IT.** The page has been conceding that capture is unbounded. **The aggregate is bounded** — by the obligation, by served labour, and increasingly tightly along the arc — and the page does not currently say so. What is unbounded is DISTRIBUTION, which is a narrower and more defensible concession. It also explains why no physical instrument reached it: the search was for a labour bound on an aggregate that was already bounded, while the live exposure sits in a dimension the model has no variable for.
 
 <a id="register-cadence-declared"></a>
 

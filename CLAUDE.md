@@ -36,6 +36,7 @@ commission they came from is in `notes/README.md`.
 - Do not move experimental code into `core/` until it has a stable API and full tests.
 - Do not invent function signatures from a description; confirm the real ones in the code first.
 - Do not change calibration constants to make a chart look better; if a result is ugly, report it.
+- **Do not settle at a DISCOVERED rate at the federation level. Settle on the BASE.** *(author decision, 2026-09-12.)* Cross-collective exchange must clear against the obligation-anchored floor, never against an unbounded discovered price. The failure it prevents: **"a base EOH here is your entire collective there" is wrong** — if a discovered rate is allowed to set the cross-rate, a collective whose unit has appreciated can acquire another collective's whole productive base for a marginal quantity of its own, and nothing in the accounting objects. The floor is bounded by the obligation and the obligation is bounded by population, so settling on the base keeps the cross-rate inside a ratio of two physically-bounded quantities. Discovery may exist ABOVE the floor within a collective; it may not cross a collective boundary as a settlement price. This constrains work that is not yet built — `research/exchange.py` currently prices parity as mint-per-capita over mint-per-capita with **no real-output term**, which is exactly the unbounded form this forbids, and it is why the federation currently REWARDS capture (`record/contestability.md`). Any scale-up of the exchange layer inherits this rule.
 
 ## Commands
 
@@ -455,7 +456,7 @@ corpus when you need to CHECK for a mode, not to recognise one.** Validate with
 Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
 F-037) — written because the mapping made contact with the gap, not backfilled.
 Modes 1–3 and 6–13 each name findings that already existed. The corpus also
-holds 15 findings with no mode here, most of them `kind: method`, which is a
+holds 16 findings with no mode here, most of them `kind: method`, which is a
 different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
@@ -586,7 +587,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 43 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 44 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
