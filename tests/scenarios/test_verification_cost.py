@@ -704,14 +704,34 @@ class TestWhatWouldCloseTheBand:
     computed from it. Three conditions, each checkable, all required.
     """
 
-    def test_the_shipped_state_is_open_edges(self):
+    def test_the_shipped_state_closes_on_the_default_cadence(self):
+        """
+        **THIS TEST PINNED `open_edges` UNTIL 2026-09-11 AND THE STATE MOVED
+        UNDER IT — by an author decision, not by a measurement.** Declaring the
+        register cadence as an `instance` with `episodic` as the shipped
+        default settles condition 1: every episodic regime is measured and
+        every one fits with an order of magnitude to spare.
+
+        The former state is kept runnable one test down, because what closed
+        this was a DECLARATION and a reader should be able to see the
+        difference without re-deriving it.
+        """
         r = VC.corridor_is_usable()
+        assert r["verdict"] == "closed_and_usable"
+        assert r["cadence_is_shipped_default"] is True
+        assert r["conditions"]["1_multiple_is_measured"] is True
+
+    def test_the_pre_declaration_state_is_still_reachable_and_still_open(self):
+        """
+        The state this class was written for. With no cadence that admits a
+        fitting regime, condition 1 is unmet and 3 is UNDETERMINABLE rather
+        than False — reporting it as failed would claim a result nothing
+        establishes.
+        """
+        r = VC.corridor_is_usable(cadence="continuous")
         assert r["verdict"] == "open_edges"
         assert r["conditions"]["1_multiple_is_measured"] is False
-        assert r["conditions"]["3_declared_value_sits_inside_with_margin"] is None, (
-            "condition 3 must be UNDETERMINABLE, not False, while 1 is unmet — "
-            "reporting it as failed would claim a result nothing establishes"
-        )
+        assert r["conditions"]["3_declared_value_sits_inside_with_margin"] is None
 
     def test_the_band_is_already_bounded_by_three_instruments(self):
         r = VC.corridor_is_usable()
@@ -747,5 +767,211 @@ class TestWhatWouldCloseTheBand:
         assert tight["verdict"] == "closed_and_usable"
         assert loose["verdict"] == "open_edges"
 
-    def test_it_names_the_instrument_that_would_close_it(self):
-        assert "Standard Cost Model" in VC.corridor_is_usable()["what_would_close_it"]
+    def test_it_names_the_instrument_that_would_close_it_while_open(self):
+        note = VC.corridor_is_usable(cadence="continuous")["what_would_close_it"]
+        assert "Standard Cost Model" in note
+
+    def test_a_closed_corridor_does_not_still_ask_for_an_instrument(self):
+        """A closed verdict that still names what would close it reads as
+        open, which is the status note outliving its decision."""
+        assert VC.corridor_is_usable()["what_would_close_it"].startswith(
+            "Nothing"
+        )
+
+
+class TestTheTwoRegistrantAnaloguesDisagree:
+    """
+    `registrant_scope_sensitivity` took the multiple as required input because
+    nothing measured it. Two things now do — and they land on OPPOSITE SIDES
+    of the whole corridor, which is worse news than having none and better
+    information.
+    """
+
+    def test_both_analogues_are_reported_and_never_netted(self):
+        r = VC.registrant_analogues()
+        assert r["netted"] is None
+        assert len(r["why_not_netted"]) > 80
+        assert r["diary"]["implied_multiple"] > 0
+        assert r["compliance_estimate"]["implied_multiple"] > 0
+
+    def test_each_declares_the_direction_it_is_wrong_in(self):
+        """
+        Neither is a candidate for adoption without its own failure mode
+        attached — diaries miss episodic tasks, the tax case is adversarial.
+        """
+        r = VC.registrant_analogues()
+        assert "EPISODIC" in r["diary"]["under_measures"]
+        assert "ADVERSARIAL" in r["compliance_estimate"]["over_measures"]
+
+    def test_they_straddle_the_corridor(self):
+        """
+        THE FINDING, and the first version of this test overstated it.
+
+        The DIARY analogue sits inside the band under every scope and basis.
+        The COMPLIANCE analogue sits outside under three of the four, and
+        inside under `core`/`per_registered` (band 61.9x against 43.3x) —
+        which is the same one configuration that survived the 40x sensitivity.
+        Asserting it is outside everywhere would have been a stronger claim
+        than the measurement supports, in the class written about exactly that.
+        """
+        outside = 0
+        for scope in ("core", "broad"):
+            for basis in ("per_capita", "per_registered"):
+                an = VC.registrant_analogues(scope)
+                band = VC.corridor_is_usable(
+                    scope=scope, basis=basis
+                )["tightest_bound"]
+                assert an["diary"]["implied_multiple"] < band, (
+                    f"the diary analogue left the corridor at {scope}/{basis}"
+                )
+                if an["compliance_estimate"]["implied_multiple"] > band:
+                    outside += 1
+        assert outside == 3, (
+            f"the compliance analogue now breaks {outside} of 4 configurations, "
+            "not 3 — which is what the page states"
+        )
+
+    def test_the_disagreement_is_two_orders_of_magnitude(self):
+        for scope in ("core", "broad"):
+            f = VC.registrant_analogues(scope)["disagreement_factor"]
+            assert f > 100.0, (
+                f"the two analogues now differ by {f:.0f}x. Below ~100x they "
+                "start to read as one quantity with error, which they are "
+                "not — they measure different obligation regimes."
+            )
+
+    def test_the_closure_note_names_the_disagreement_while_open(self):
+        note = VC.corridor_is_usable(cadence="continuous")["what_would_close_it"]
+        assert "DISAGREE" in note and "CONTINUOUS" in note
+
+
+class TestTheRegisterCadence:
+    """
+    THE CADENCE IS AN `instance` WITH A SHIPPED DEFAULT (author decision,
+    2026-09-11). `REGISTER_CADENCE = "episodic"`, and the framework prices all
+    four regimes against the labour the population actually has.
+
+    The default errs the safe way: episodic is the costlier of the two regimes
+    the evidence supports, so the audit claim is stated at its weakest and any
+    measurement can only improve it.
+    """
+
+    def test_the_default_is_episodic_and_the_function_agrees(self):
+        from hours_eoh.data import REGISTER_CADENCE
+        assert REGISTER_CADENCE == "episodic"
+        assert VC.cadence_feasibility()["is_shipped_default"] is True
+
+    @pytest.mark.parametrize("bad", ("realtime", "", "EPISODIC", None))
+    def test_an_unknown_cadence_raises(self, bad):
+        with pytest.raises((ValueError, TypeError)):
+            VC.cadence_feasibility(bad)
+
+    def test_the_headroom_is_invariant_to_scope_and_basis(self):
+        """
+        THE WHOLE REASON SHARES ARE THE UNIT. A multiple divides by an
+        apparatus census that differs 2.5x between scopes; a share of the
+        obligation does not. If this stops being invariant, the comparison
+        between regimes measured on different populations stops being valid.
+        """
+        for epsilon in (0.0, 0.40, 0.90):
+            seen = {
+                round(VC.verification_feasibility_corridor(
+                    1.0, epsilon=epsilon, scope=sc, basis=b
+                )["verification_headroom_share_of_obligation"], 9)
+                for sc in ("core", "broad")
+                for b in ("per_capita", "per_registered")
+            }
+            assert len(seen) == 1, (
+                f"headroom varies by scope/basis at ε={epsilon}: {seen}"
+            )
+
+    def test_every_episodic_regime_fits_with_an_order_of_magnitude_to_spare(self):
+        r = VC.cadence_feasibility("episodic")
+        assert len(r["regimes_that_fit"]) == 2
+        for entry in r["regimes"].values():
+            assert entry["over_by"] < 0.2, (
+                "an episodic regime is now within 5x of the headroom; the "
+                "page says they clear with an order of magnitude to spare"
+            )
+
+    def test_continuous_human_does_not_fit_at_subsistence(self):
+        """
+        Clinical documentation runs ~1.8x the activity documented. Against
+        care at 62.1% of personal EOH that is ~113% of the obligation, against
+        a 12.0% headroom — over by ~9.4x.
+        """
+        e = VC.cadence_feasibility("continuous", epsilon=0.0)
+        h = e["regimes"]["continuous_human"]
+        assert h["fits"] is False
+        assert h["over_by"] > 5.0
+
+    def test_the_machine_regime_is_unavailable_without_a_prior_document(self):
+        """
+        **THE GATE THAT STOPS THE CORRIDOR CLOSING BY ASSERTION.** Continuous
+        machine recording is cheap only because it intercepts a document the
+        actor was creating anyway — an invoice. Unpaid personal EOH produces
+        none, and it is 99.4% of the obligation at ε=0. Before this was
+        enforced, declaring "continuous" returned `closed_and_usable` by
+        pointing at a regime that cannot apply.
+        """
+        without = VC.cadence_feasibility("continuous")
+        assert without["regimes"]["continuous_machine"]["fits"] is False
+        assert "nothing to intercept" in (
+            without["regimes"]["continuous_machine"]["unavailable_because"]
+        )
+        with_doc = VC.cadence_feasibility("continuous", has_prior_document=True)
+        assert with_doc["regimes"]["continuous_machine"]["fits"] is True
+
+    def test_continuous_becomes_affordable_only_well_along_the_arc(self):
+        """
+        THE ε-DEPENDENCE, COMPUTED. Headroom rises with automation — 12.0% at
+        ε=0, 65.8% at 0.40, 607% at 0.90 — so a cadence unaffordable at
+        subsistence becomes affordable later, and the crossover is bisected
+        rather than asserted.
+        """
+        at = VC.cadence_feasibility(
+            "continuous"
+        )["affordable_from_epsilon"]["continuous_human"]
+        assert at is not None
+        assert 0.40 < at < 0.90, (
+            f"continuous-human now affordable from ε={at}; the page says it "
+            "sits between the 0.40 reference and 0.90"
+        )
+        assert VC.cadence_feasibility(
+            "continuous", epsilon=at + 0.01
+        )["regimes"]["continuous_human"]["fits"] is True
+
+    def test_the_headroom_rises_with_automation(self):
+        prev = -1.0
+        for epsilon in (0.0, 0.20, 0.40, 0.70, 0.90):
+            h = VC.cadence_feasibility(
+                epsilon=epsilon
+            )["headroom_share_of_obligation"]
+            assert h > prev
+            prev = h
+
+
+class TestTheCorridorClosesOnTheDEFAULTAndNotOnTheOther:
+    """
+    Both directions. A cadence that closed the corridor whatever was declared
+    would be a decoration, and one that never closed it would make the
+    declaration pointless.
+    """
+
+    def test_the_shipped_default_closes_it(self):
+        r = VC.corridor_is_usable(cadence="episodic")
+        assert r["verdict"] == "closed_and_usable"
+        assert r["cadence_is_shipped_default"] is True
+        assert all(v is True for v in r["conditions"].values())
+
+    def test_continuous_leaves_it_open(self):
+        r = VC.corridor_is_usable(cadence="continuous")
+        assert r["verdict"] == "open_edges"
+        assert r["regimes_that_fit"] == []
+
+    def test_the_transferred_multiple_route_still_works_and_still_fails(self):
+        """The cadence route must not have quietly retired the other one."""
+        r = VC.corridor_is_usable(registrant_multiple=40.0,
+                                  multiple_error_factor=7.7,
+                                  cadence="continuous")
+        assert r["conditions"]["3_declared_value_sits_inside_with_margin"] is False

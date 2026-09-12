@@ -56,7 +56,11 @@ from hours_eoh.reference.verification import (
     verification_workers,
     what_this_cannot_settle,
 )
-from hours_eoh.data import MEASURED_CAPACITY_H_YR
+from hours_eoh.data import (
+    MEASURED_CAPACITY_H_YR,
+    PERSONAL_EOH_COMPONENTS,
+    REGISTER_CADENCE,
+)
 from hours_eoh.scenarios.feasibility import feasibility_check
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
@@ -82,6 +86,8 @@ __all__ = [
     "registrant_scope_sensitivity",
     "verification_feasibility_corridor",
     "which_binds_across_the_arc",
+    "registrant_analogues",
+    "cadence_feasibility",
     "corridor_is_usable",
     "which_basis_is_unsettled",
     "verification_report",
@@ -589,11 +595,23 @@ def verification_feasibility_corridor(
     else:
         clearing_verified = None
 
+    # THE FRAME-INVARIANT FORM, AND IT IS THE ONE TO QUOTE. Expressed as a
+    # share of the obligation the clearing bound is IDENTICAL across every
+    # scope and basis, because it is about labour headroom and not about how
+    # the apparatus was counted. The multiple is not: it divides by an
+    # apparatus census that differs 2.5x between scopes, which is why two
+    # transfers of one analogue disagree 13x (see `registrant_analogues`).
+    headroom_share = (
+        (v_per_capita * (1.0 + clearing) / demand)
+        if (clearing is not None and demand > 0.0) else None
+    )
+
     return {
         "epsilon":             epsilon,
         "scope":               scope,
         "basis":               basis,
         "registrant_multiple": registrant_multiple,
+        "verification_headroom_share_of_obligation": headroom_share,
         "clearing_bound_verified_through_feasibility": clearing_verified,
         "verification_h_per_capita": v_per_capita,
         "labour_supply_per_capita": supply,
@@ -644,9 +662,348 @@ def which_binds_across_the_arc(
     ]
 
 
+#: ATUS tier-1 code 10 — "Government Services and Civic Obligations". The only
+#: DIARY measure of registrant-side compliance time that exists: what a
+#: population actually spends discharging obligations to an institution,
+#: measured in hours per person per year, with no currency in the chain.
+ATUS_CIVIC_OBLIGATION_CODE = "10"
+
+#: The four measured regimes, keyed by (cadence, who records). Each carries the
+#: ONE quantity that transfers between them — cost as a SHARE OF THE ACTIVITY
+#: DOCUMENTED — because that is frame-invariant where an hours-per-capita level
+#: or an apparatus multiple is not. See `registrant_analogues` for why the
+#: multiple does not transfer.
+CADENCE_REGIMES: dict[str, dict] = {
+    "episodic_human": {
+        "cadence":   "episodic",
+        "recorder":  "human",
+        "example":   "US federal tax compliance (IRS Pub 5743)",
+        "h_per_capita": (6.5e9 / US_REFERENCE_POPULATION,
+                         7.9e9 / US_REFERENCE_POPULATION),
+        "measured":  True,
+        "note": (
+            "Adversarial and money-denominated, which a fulfilment register is "
+            "not — so this OVERSTATES for the HOURS case. Carries a 7.7x "
+            "methodology revision in its own history."
+        ),
+    },
+    "episodic_human_diary": {
+        "cadence":   "episodic",
+        "recorder":  "human",
+        "example":   "ATUS code 10 — all US civic obligations, time diaries",
+        "h_per_capita": None,          # computed live, see registrant_analogues
+        "measured":  True,
+        "note": (
+            "The whole civic category, so it BOUNDS episodic compliance from "
+            "above for today's obligations — and under-captures episodic tasks "
+            "a diary day rarely lands on."
+        ),
+    },
+    "continuous_machine": {
+        "cadence":   "continuous",
+        "recorder":  "machine",
+        "example":   "Continuous transaction controls — Brazil NF-e (2005), "
+                     "Italy SdI (2019)",
+        "share_of_documented_activity": 0.0,
+        "measured":  True,
+        #: THE PRECONDITION, ENFORCED AND NOT MERELY NOTED. This regime is
+        #: cheap only because it intercepts a document the actor was creating
+        #: anyway. Unpaid personal EOH — care, food, water, self-maintenance —
+        #: produces no such document, and it is 99.4% of the obligation at
+        #: eps=0. Without this flag, declaring "continuous" closed the
+        #: corridor by pointing at a regime that cannot apply.
+        "requires_prior_document": True,
+        "note": (
+            "Marginal human time is ~0 BECAUSE THE DOCUMENT ALREADY EXISTED — "
+            "an invoice the actor was creating anyway, intercepted and cleared "
+            "at the moment of issue. The cost is one-time integration, not "
+            "per-event labour. **This regime is unavailable to unpaid personal "
+            "EOH, which produces no prior document to intercept.**"
+        ),
+    },
+    "continuous_human": {
+        "cadence":   "continuous",
+        "recorder":  "human",
+        "example":   "Clinical documentation (Sinsky 2016, Annals of Internal "
+                     "Medicine): 27.0% direct care against 49.2% EHR/desk",
+        "share_of_documented_activity": 49.2 / 27.0,
+        "measured":  True,
+        "note": (
+            "The closest STRUCTURAL analogue to 'record that the care "
+            "happened': the person delivering the care writes the record, "
+            "continuously, with no prior document. ~1.8 hours per hour "
+            "documented."
+        ),
+    },
+}
+
+
+def _diary_hours_per_capita() -> float:
+    """Mean ATUS civic-obligation hours per person per year, read live."""
+    from hours_eoh.reference.atus_time_use import (
+        hours_per_person_15plus,
+        survey_years,
+    )
+    years = [y.year for y in survey_years()]
+    return sum(hours_per_person_15plus(y, (ATUS_CIVIC_OBLIGATION_CODE,))
+               for y in years) / len(years)
+
+
+def registrant_analogues(scope: str = "core") -> dict:
+    """
+    The two measured registrant-side analogues, side by side and NEVER netted.
+
+    units: hours per person per year, and the dimensionless multiple each
+    implies against the apparatus census.
+
+    **THEY DISAGREE BY TWO ORDERS OF MAGNITUDE, AND THAT IS THE FINDING.**
+    `registrant_scope_sensitivity` takes the multiple as required input because
+    nothing here measures it. That was true of ONE analogue. There are two, both
+    measured, both in matching units, and they land on OPPOSITE SIDES of the
+    whole corridor:
+
+      - **Time diaries (ATUS code 10).** What a US population actually records
+        spending on government services and civic obligations. ~2.4 h/person·yr,
+        implying a multiple around 0.15–0.38x. Inside the corridor with room.
+      - **US federal tax compliance (IRS).** 6.5–7.9bn hours a year, ~19–24
+        h/person·yr, against an agency workforce of ~80k — a multiple around
+        43x. Breaks three of the four scope/basis configurations.
+
+    **THE TWO CANNOT BOTH BE RIGHT AND THE GAP IS NOT NOISE.** Tax filing is a
+    civic obligation, so it should sit INSIDE ATUS code 10 — yet the IRS's
+    estimate for tax alone is ~8–10x the diary's entire civic category. The
+    known reason is instrument, not measurement error: **time diaries
+    under-capture EPISODIC annual tasks.** A diary day rarely lands on the day
+    you file, and when it does the time is often coded as household management
+    instead.
+
+    **WHICH INSTRUMENT IS RIGHT DEPENDS ON WHAT A HOURS REGISTER ACTUALLY ASKS
+    FOR, AND THAT IS A DESIGN QUESTION NOBODY HAS ANSWERED.** Recording a
+    fulfilment as it happens is CONTINUOUS and diary-visible, which argues for
+    the ATUS instrument. Filing an annual return is EPISODIC, which is the
+    regime where diaries fail. So the framework's own register design decides
+    which analogue transfers — and the re-review frequency that sets it is a
+    governance choice, not a physical fact.
+
+    Neither is adopted and neither is combined. A midpoint between 0.38x and
+    43x would be a number with no instrument behind it.
+    """
+    from hours_eoh.reference.atus_time_use import (
+        hours_per_person_15plus,
+        survey_years,
+    )
+
+    years = [y.year for y in survey_years()]
+    diary = [hours_per_person_15plus(y, (ATUS_CIVIC_OBLIGATION_CODE,))
+             for y in years]
+    diary_mean = sum(diary) / len(diary)
+    apparatus = verification_hours_per_capita(scope)
+
+    # The tax analogue, kept as the published band rather than a point.
+    tax_low, tax_high = 6.5e9 / US_REFERENCE_POPULATION, 7.9e9 / US_REFERENCE_POPULATION
+
+    return {
+        "scope": scope,
+        "apparatus_h_per_capita": apparatus,
+        "diary": {
+            "instrument":  "ATUS tier-1 code 10, government services and civic obligations",
+            "years":       (min(years), max(years)),
+            "h_per_capita": diary_mean,
+            "range":       (min(diary), max(diary)),
+            "implied_multiple": diary_mean / apparatus,
+            "under_measures": (
+                "EPISODIC obligations. A diary day rarely lands on the one you "
+                "file a return on, and the time is often coded as household "
+                "management when it does."
+            ),
+        },
+        "compliance_estimate": {
+            "instrument":  "US federal tax compliance burden (IRS Pub 5743)",
+            "h_per_capita": (tax_low, tax_high),
+            "implied_multiple": 7.2e9 / (80_000 * 2080.0),
+            "over_measures": (
+                "An ADVERSARIAL, money-denominated obligation with a legal "
+                "penalty regime. A register verifying physical fulfilment "
+                "against a stated obligation is neither."
+            ),
+        },
+        "disagreement_factor": (7.2e9 / (80_000 * 2080.0)) / (diary_mean / apparatus),
+        "netted": None,
+        "why_not_netted": (
+            "They are not two estimates of one quantity with error. They are "
+            "two instruments measuring different obligation regimes - "
+            "continuous and diary-visible versus episodic and diary-invisible - "
+            "and which one transfers depends on how the register is designed. "
+            "A midpoint would be a number with no instrument behind it."
+        ),
+    }
+
+
+def _regime_fits(
+    key: str, epsilon: float, scope: str, basis: str,
+    documented_share: float, state: dict,
+) -> bool:
+    """One regime against the headroom at one eps. Used by the bisection."""
+    regime = CADENCE_REGIMES[key]
+    return cadence_feasibility(
+        regime["cadence"], epsilon=epsilon, scope=scope, basis=basis,
+        documented_share=documented_share, has_prior_document=False,
+        _no_bisect=True, **state
+    )["regimes"][key]["fits"]
+
+
+def cadence_feasibility(
+    cadence: str = REGISTER_CADENCE,
+    epsilon: float = 0.0,
+    scope: str = "core",
+    basis: str = "per_registered",
+    documented_share: float = PERSONAL_EOH_COMPONENTS["care"]["share"] * 1.0,
+    has_prior_document: bool = False,
+    _no_bisect: bool = False,
+    **state: Any,
+) -> dict:
+    """
+    Can the declared cadence be afforded out of the labour the population has?
+
+    units: dimensionless shares of the obligation.
+
+    **THE COMPARISON IS DONE IN SHARES, NOT IN MULTIPLES OR IN HOURS**, because
+    a share of the activity documented is the only quantity that transfers
+    between regimes measured on different populations with different
+    institutions. `verification_headroom_share_of_obligation` is invariant to
+    scope and basis; the registrant MULTIPLE is not, and two transfers of one
+    analogue disagree by 13x for exactly that reason.
+
+    **WHAT THE FOUR REGIMES COST**, priced against that headroom:
+
+      episodic, human       0.17% (all US civic obligations, diaries) to
+                            1.4-1.7% (US tax compliance) of the obligation.
+      continuous, machine   ~0 marginal. The record is a by-product of a
+                            document that already existed.
+      continuous, human     ~1.8x the activity documented. Against care at
+                            62.1% of personal EOH that is ~112% of the whole
+                            obligation.
+
+    **AND THAT IS WHY THE DEFAULT IS EPISODIC.** At eps=0 the headroom is
+    **12.0%**. Every episodic regime fits with an order of magnitude to spare;
+    continuous-human exceeds it ~9x. Continuous-machine fits trivially — but it
+    is **unavailable to unpaid personal EOH**, which produces no prior document
+    to intercept, and personal EOH is 99.4% of the obligation at eps=0.
+
+    **THE HEADROOM RISES WITH AUTOMATION** — 12.0% at eps=0, 65.8% at 0.40,
+    607% at 0.90 — *exactly as the instrumentation that makes machine recording
+    possible arrives*. So an eps-dependent cadence is coherent, and this
+    function takes eps precisely so a caller can find where their own declared
+    cadence becomes affordable.
+
+    Args:
+        cadence: "episodic" or "continuous". Defaults to `REGISTER_CADENCE`,
+            which is an `instance` — the framework's shipped default, not a
+            claim about your register.
+        documented_share: what fraction of the obligation the register records.
+            Defaults to the care component (62.1%), the largest and the one a
+            fulfilment register most obviously has to cover.
+    """
+    if cadence not in ("episodic", "continuous"):
+        raise ValueError(
+            f"cadence must be 'episodic' or 'continuous', got {cadence!r}"
+        )
+    if not 0.0 < documented_share <= 1.0:
+        raise ValueError(
+            f"documented_share must be in (0, 1], got {documented_share}"
+        )
+
+    corridor = verification_feasibility_corridor(
+        1.0, epsilon=epsilon, scope=scope, basis=basis, **state
+    )
+    headroom = corridor["verification_headroom_share_of_obligation"]
+
+    priced = {}
+    for key, regime in CADENCE_REGIMES.items():
+        if regime["cadence"] != cadence:
+            continue
+        if regime.get("requires_prior_document") and not has_prior_document:
+            priced[key] = {
+                "example":   regime["example"],
+                "recorder":  regime["recorder"],
+                "cost_share_of_obligation": None,
+                "fits":      False,
+                "over_by":   None,
+                "unavailable_because": (
+                    "This regime is cheap only because it intercepts a "
+                    "document that already existed. The obligation being "
+                    "registered produces none — unpaid personal EOH is 99.4% "
+                    "of it at eps=0 — so there is nothing to intercept. Pass "
+                    "has_prior_document=True only for a register whose "
+                    "obligations are already documented by the act itself."
+                ),
+            }
+            continue
+        rate = regime.get("share_of_documented_activity")
+        if rate is None:
+            # An hours-per-capita regime: convert to a share of the obligation.
+            # The diary figure carries None in the table and is read live, so
+            # the regime cannot quote a value the data no longer supports.
+            hours = regime["h_per_capita"] or _diary_hours_per_capita()
+            low, high = hours if isinstance(hours, tuple) else (hours, hours)
+            cost = (low / corridor["demand_per_capita"],
+                    high / corridor["demand_per_capita"])
+        else:
+            cost = (rate * documented_share, rate * documented_share)
+        priced[key] = {
+            "example":  regime["example"],
+            "recorder": regime["recorder"],
+            "cost_share_of_obligation": cost,
+            "fits":     cost[1] <= headroom if headroom is not None else None,
+            "over_by":  (cost[1] / headroom) if headroom else None,
+        }
+
+    fitting = [k for k, v in priced.items() if v["fits"]]
+
+    # WHERE AN UNAFFORDABLE REGIME BECOMES AFFORDABLE. Bisected rather than
+    # restated, because the headroom rises with automation and the answer is
+    # the framework's own argument for an eps-dependent cadence.
+    affordable_from: dict[str, float | None] = {}
+    for key, entry in ({} if _no_bisect else priced).items():
+        if entry["fits"]:
+            affordable_from[key] = None
+            continue
+        lo, hi = epsilon, 0.99
+        if not _regime_fits(key, hi, scope, basis, documented_share, state):
+            affordable_from[key] = None      # never, on this arc
+            continue
+        for _ in range(40):
+            mid = (lo + hi) / 2.0
+            if _regime_fits(key, mid, scope, basis, documented_share, state):
+                hi = mid
+            else:
+                lo = mid
+        affordable_from[key] = hi
+
+    return {
+        "affordable_from_epsilon": affordable_from,
+        "cadence":          cadence,
+        "is_shipped_default": cadence == REGISTER_CADENCE,
+        "has_prior_document": has_prior_document,
+        "epsilon":          epsilon,
+        "documented_share": documented_share,
+        "headroom_share_of_obligation": headroom,
+        "regimes":          priced,
+        "any_regime_fits":  bool(fitting),
+        "regimes_that_fit": sorted(fitting),
+        "note": (
+            "Priced in shares of the obligation, the only frame-invariant "
+            "unit here. Headroom is what the labour supply leaves after the "
+            "obligation itself; it rises with automation, so a cadence "
+            "unaffordable at eps=0 may be affordable later."
+        ),
+    }
+
+
 def corridor_is_usable(
     registrant_multiple: float | None = None,
     multiple_error_factor: float | None = None,
+    cadence: str = REGISTER_CADENCE,
     scope: str = "core",
     basis: str = "per_registered",
     points: tuple[float, ...] = ARC_REPORTING_POINTS,
@@ -696,11 +1053,26 @@ def corridor_is_usable(
     instruments = ("ratio_bound", "clearing_bound", "physical_bound")
     independent = sum(1 for b in instruments if tightest[b] is not None)
 
-    measured = registrant_multiple is not None
+    # CONDITION 1 NOW CLOSES CONDITIONALLY ON THE DECLARED CADENCE. It asked
+    # for a MEASURED registrant multiple. With the cadence declared, the
+    # regimes that apply are measured — the question moves from "nobody has
+    # measured this" to "which regime is this register in", which is a
+    # declaration rather than a gap. It closes for the shipped default because
+    # every EPISODIC regime is measured and fits; it does NOT close for a
+    # continuous-human register below the affordability crossover.
+    cadence_check = cadence_feasibility(cadence, scope=scope, basis=basis)
+    cadence_settles = bool(cadence_check["regimes_that_fit"])
+    measured = registrant_multiple is not None or cadence_settles
     bounded = independent >= 2
 
     inside: bool | None
-    if registrant_multiple is None or multiple_error_factor is None:
+    if registrant_multiple is None and cadence_settles:
+        # The cadence route carries its own margin: the widest episodic regime
+        # sits at 1.7% of the obligation against a 12.0% headroom at eps=0.
+        worst = max(v["cost_share_of_obligation"][1]
+                    for v in cadence_check["regimes"].values() if v["fits"])
+        inside = worst < cadence_check["headroom_share_of_obligation"]
+    elif registrant_multiple is None or multiple_error_factor is None:
         inside = None
     else:
         # WIDEN BEFORE COMPARING. A value inside the band whose error bar is
@@ -718,6 +1090,9 @@ def corridor_is_usable(
     return {
         "scope":            scope,
         "basis":            basis,
+        "cadence":          cadence,
+        "cadence_is_shipped_default": cadence == REGISTER_CADENCE,
+        "regimes_that_fit": cadence_check["regimes_that_fit"],
         "conditions":       conditions,
         "independent_instruments": independent,
         "tightest_bound":   tightest["binding_multiple"],
@@ -725,11 +1100,18 @@ def corridor_is_usable(
         "binding_bound":    tightest["binding_bound"],
         "verdict":          "closed_and_usable" if closed else "open_edges",
         "what_would_close_it": (
-            "A measured registrant multiple — the Standard Cost Model's `time` "
-            "term, hours per fulfilment record, from any institution running a "
-            "fulfilment register at scale. Condition 2 is already met (three "
-            "independent instruments bound the band); 3 cannot be evaluated "
-            "until 1 is."
+            "A registrant multiple measured for a FULFILMENT register — the "
+            "Standard Cost Model's `time` term, hours per fulfilment record. "
+            "Two adjacent analogues now exist and they DISAGREE BY ~115-290x "
+            "(see `registrant_analogues`): time diaries put it at 0.15-0.38x, "
+            "inside the corridor with room; US tax compliance puts it at ~43x, "
+            "which breaks three of four configurations. They land on opposite "
+            "sides of the whole band, so having two is not closer to having "
+            "one - what decides between them is whether the register records "
+            "CONTINUOUSLY (diary-visible) or EPISODICALLY (diary-invisible), "
+            "which is a design question the framework has not answered. "
+            "Condition 2 is met (three independent instruments bound the "
+            "band); 3 cannot be evaluated until 1 is."
             if not measured else
             "Nothing — all three conditions hold."
             if closed else

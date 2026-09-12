@@ -1023,3 +1023,134 @@ class TestProcessingIsInvariantToTheDietStandard:
         row = next(c for c in FULL_BASKET if c["component"] == "nutrition_processing")
         assert row["unit"] == "kcal"
         assert row["hours_per_unit"] is not None
+
+
+class TestWaterIsDeclaredAndBounded:
+    """
+    WATER RESOLVES BY DECLARATION PLUS A BOUND, NOT BY ACQUISITION
+    (2026-09-11, author decision — the same move as the register cadence).
+
+    The component was blocked on DHS water-collection time. `COMPONENT_STATUS`
+    already said that would not have settled it: four independent variables sit
+    inside one hours-per-litre, each spanning an order of magnitude, so a
+    measured central value describes no actual collective.
+    """
+
+    def test_the_form_spans_the_range_that_makes_a_single_figure_wrong(self):
+        """
+        THE ARGUMENT FOR THE WHOLE APPROACH, PINNED. If this range ever
+        collapses, a measured central value becomes defensible and the
+        declaration route is over-engineering.
+        """
+        from hours_eoh.reference.personal_basket import water_collection_hours
+        from hours_eoh.data import (
+            BASKET_WATER_LITRES_PER_DAY, WATER_WALKING_SPEED_M_S,
+        )
+        hours = [
+            water_collection_hours(d, c, f, BASKET_WATER_LITRES_PER_DAY,
+                                   WATER_WALKING_SPEED_M_S
+                                   )["hours_per_person_year"]
+            for d in (250, 1000, 3000) for c in (10, 20) for f in (0.2, 1.0)
+        ]
+        assert max(hours) / min(hours) > 30.0, (
+            "the declared form no longer spans an order of magnitude, so the "
+            "case against a single measured figure has weakened"
+        )
+
+    def test_it_never_claims_to_be_measured(self):
+        from hours_eoh.reference.personal_basket import water_collection_hours
+        r = water_collection_hours(1000, 20, 1.0, 50, 1.2)
+        assert r["is_measured"] is False
+        assert "no survey of another population transfers" in r["note"]
+
+    def test_only_walking_speed_is_not_an_instance(self):
+        """
+        Three declarations and one physics term. If a second universal appears
+        in the chain, the component has stopped being an instance and the
+        framework is claiming something about a place it cannot know.
+        """
+        from hours_eoh.reference.personal_basket import water_collection_hours
+        r = water_collection_hours(1000, 20, 1.0, 50, 1.2)
+        assert set(r["physics"]) == {"walking_speed_m_s"}
+        assert set(r["declared"]) == {
+            "distance_m", "carry_litres", "carried_fraction", "litres_per_day",
+        }
+
+    def test_piped_water_costs_nothing_and_the_term_vanishes(self):
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        r = water_feasibility(distance_m=0.0)
+        assert r["hours_per_person_year"] == 0.0
+        assert r["fits"] is True
+
+    def test_the_shipped_declarations_do_NOT_clear(self):
+        """
+        **THE DEFAULTS ERR HIGH ON PURPOSE AND THE BOUND SAYS SO.**
+        `BASKET_WATER_CARRIED_FRACTION` ships at 1.0 — all water carried home,
+        the conservative corner — and at the stand-in 1 km distance the
+        configuration does not clear. A default that quietly fitted would be a
+        default calibrated to pass its own check.
+        """
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        r = water_feasibility()
+        assert r["fits"] is False
+        assert 0.0 < r["max_distance_m_that_clears"] < 1000.0
+
+    def test_a_modest_declaration_clears(self):
+        """Both directions: the bound must be reachable, not merely violated."""
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        r = water_feasibility(distance_m=250.0, carried_fraction=0.2)
+        assert r["fits"] is True
+        assert r["share_of_obligation"] < 0.05
+
+    def test_the_walk_is_a_ROUND_trip(self):
+        """
+        **THIS CLASS MISSED THIS ON ITS FIRST WRITING.** Dropping the factor of
+        2 — collecting water without walking home — halved every figure and
+        passed all nine other tests, because they were all RELATIVE: ratios,
+        orderings and spans. A relative test cannot see a constant factor.
+
+        Pinned two ways: against an independently computed absolute, and
+        structurally against the one-way walk.
+        """
+        from hours_eoh.reference.personal_basket import water_collection_hours
+
+        # Derived by hand, not read from the function:
+        #   trips   = 50 L/day / 20 L    = 2.5
+        #   seconds = 2.5 x 2 x 1000 m / 1.2 m/s = 4166.67 s/day
+        #   hours   = 4166.67 x 365.25 / 3600    = 422.74 h/yr
+        got = water_collection_hours(1000.0, 20.0, 1.0, 50.0, 1.2)
+        assert got["trips_per_day"] == pytest.approx(2.5)
+        assert got["hours_per_person_year"] == pytest.approx(422.74, rel=1e-4)
+
+        # And structurally: a round trip is exactly twice the one-way walk.
+        one_way_seconds = 2.5 * 1000.0 / 1.2
+        one_way_hours = one_way_seconds * 365.25 / 3600.0
+        assert got["hours_per_person_year"] == pytest.approx(
+            2.0 * one_way_hours
+        ), "the collector is not walking home"
+
+    def test_doubling_the_carry_halves_the_hours(self):
+        """Capital is the cheapest lever and the form has to show it."""
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        a = water_feasibility(carry_litres=10.0)["hours_per_person_year"]
+        b = water_feasibility(carry_litres=20.0)["hours_per_person_year"]
+        assert a == pytest.approx(2.0 * b)
+
+    def test_the_clearing_distance_is_where_it_actually_stops_clearing(self):
+        """
+        Two accounts of one quantity is the psi/psi_applied shape. The solved
+        distance must agree with running the check at that distance.
+        """
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        d = water_feasibility()["max_distance_m_that_clears"]
+        assert water_feasibility(distance_m=d * 0.99)["fits"] is True
+        assert water_feasibility(distance_m=d * 1.01)["fits"] is False
+
+    @pytest.mark.parametrize("bad", (
+        {"carry_litres": 0.0}, {"carried_fraction": 0.0},
+        {"carried_fraction": 1.5}, {"distance_m": -1.0},
+    ))
+    def test_an_impossible_declaration_raises(self, bad):
+        from hours_eoh.scenarios.personal_floor import water_feasibility
+        with pytest.raises(ValueError):
+            water_feasibility(**bad)

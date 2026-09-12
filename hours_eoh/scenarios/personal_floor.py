@@ -59,6 +59,11 @@ from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import PersonalFloor, personal_statutory_floor
 from hours_eoh.data import (
+    BASKET_WATER_CARRIED_FRACTION,
+    BASKET_WATER_CARRY_LITRES,
+    BASKET_WATER_DISTANCE_M,
+    BASKET_WATER_LITRES_PER_DAY,
+    WATER_WALKING_SPEED_M_S,
     CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     BASKET_WATER_DISTANCE_M,
     BASKET_DIET_KCAL_PER_DAY,
@@ -72,6 +77,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.reference import atus_time_use
 from hours_eoh.reference.personal_basket import (
+    water_collection_hours,
     CLIMATE_CONDITIONING,
     CLIMATE_NOTES,
     LSMS_AGRO_ECOLOGY,
@@ -99,7 +105,7 @@ def shipped_basket() -> list[dict]:
         BASKET_WATER_DISTANCE_M,
         CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     )
-from hours_eoh.scenarios.feasibility import age_weight_mean
+from hours_eoh.scenarios.feasibility import age_weight_mean, feasibility_check
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:
 # two measured bridges onto the same denominator must be the same number.
 from hours_eoh.scenarios.knowledge_base import REFERENCE_POPULATION_US
@@ -152,11 +158,12 @@ def obligation_floor(
     ε-behavior: priced components are ε-invariant; `coverage` and `unreachable`
     are step functions of ε as step-in entitlements become deliverable.
 
-    Worked example: at ε = 0 the shipped basket returns 330.9 h/person·yr at
-    coverage 0.069 — crop production alone, with processing, water, shelter,
-    thermal, sanitation and CARE unpriced and health below its step-in
-    threshold. Care alone is 62.1% of the obligation, which is most of why the
-    coverage is what it is.
+    SHAPE, not levels: the floor is a PARTIAL construction and `coverage` says
+    how partial. **The levels are not restated here** — pricing care and
+    processing moved coverage by an order of magnitude (0.069 → 0.759) within a
+    day, and a docstring figure cannot track that. Run the function. What
+    remains unreachable is reported by name in `unreachable`, with the reason,
+    rather than folded into the number.
     """
     return personal_statutory_floor(
         basket if basket is not None else shipped_basket(), epsilon
@@ -219,9 +226,10 @@ def identity_report(
     ε-behavior: `floor_priced` is ε-invariant in the shipped basket; the residual
     inherits that, so the whole report is meaningful at every ε.
 
-    Worked example: 2025, ε = 0, unpaid_core → observed 763.8, floor_priced
-    330.9 at coverage 0.069, residual 432.9 — of which the largest known term is
-    the 93% of the basket nobody has costed, NOT extraction.
+    SHAPE: the residual is dominated by the share of the basket nobody has
+    costed, NOT by extraction. **The levels are deliberately not written out** —
+    they moved with the care and processing pricing and the previous
+    restatement here went stale by a factor of eleven on coverage.
     """
     # Resolve the year ONCE: the year reported and the year measured must be the
     # same one, and two independent defaults are how they stop being.
@@ -437,5 +445,81 @@ def climate_conditioning(basket: list[dict] | None = None) -> dict:
             f"{LSMS_AGRO_ECOLOGY.split(' — ')[0]} and is out of scope elsewhere "
             f"until restratified; the direction of the error is undetermined, so "
             f"it is not asserted."
+        ),
+    }
+
+
+def water_feasibility(
+    distance_m: float = BASKET_WATER_DISTANCE_M,
+    carry_litres: float = BASKET_WATER_CARRY_LITRES,
+    carried_fraction: float = BASKET_WATER_CARRIED_FRACTION,
+    litres_per_day: float = BASKET_WATER_LITRES_PER_DAY,
+    walking_speed_m_s: float = WATER_WALKING_SPEED_M_S,
+    epsilon: float = 0.0,
+) -> dict:
+    """
+    Does the declared water collection fit the labour the population has?
+
+    units: hours per person per year, and shares of the obligation.
+
+    **THE SAME MOVE AS THE REGISTER CADENCE, AND FOR THE SAME REASON.** Water
+    was blocked on an acquisition — DHS water-collection time for ~90 countries
+    — that the repo's own `COMPONENT_STATUS` already said would not settle it:
+    *"A FORM QUESTION FIRST, THEN AN ACQUISITION, and the form question is why
+    DHS would not have settled it."* Four independent variables sit inside one
+    hours-per-litre, each spanning an order of magnitude, so a measured central
+    value describes no actual collective and transfers nowhere.
+
+    So the framework does not measure water. **It supplies the BOUND and the
+    collective declares its position** — distance, carry, carried fraction —
+    exactly as it declares its population, its land and its register cadence.
+    The only universal in the chain is walking speed, which is physics.
+
+    **WHAT THE BOUND IS.** `feasibility_check` already tests demand against the
+    labour supply; water enters as demand like any other obligation. This
+    reports the declared collection cost, what it leaves, and the DISTANCE at
+    which the configuration stops clearing — solved rather than swept, because
+    distance is the variable a collective least controls and most needs bounded.
+
+    **THE DEFAULTS ERR HIGH AND ARE NOT A CENTRAL ESTIMATE.**
+    `BASKET_WATER_CARRIED_FRACTION` ships at 1.0 — ALL water carried home, the
+    conservative corner — and the distance default is explicitly a stand-in
+    that is never multiplied into the floor. A collective that washes at the
+    source, or pipes, declares less and the term shrinks or vanishes.
+    """
+    water = water_collection_hours(
+        distance_m, carry_litres, carried_fraction,
+        litres_per_day, walking_speed_m_s,
+    )
+    hours = water["hours_per_person_year"]
+
+    base = feasibility_check(epsilon=epsilon)
+    supply = base["supply_per_capita"]
+    demand = base["total_demand_per_capita"]
+    headroom = max(0.0, supply - demand)
+
+    # The distance at which this declaration stops clearing. Linear in distance
+    # at fixed carry and fraction, so it inverts exactly rather than bisecting.
+    per_metre = (hours / distance_m) if distance_m > 0.0 else (
+        water_collection_hours(1.0, carry_litres, carried_fraction,
+                               litres_per_day, walking_speed_m_s
+                               )["hours_per_person_year"]
+    )
+    max_distance = (headroom / per_metre) if per_metre > 0.0 else None
+
+    return {
+        "epsilon":                  epsilon,
+        "declared":                 water["declared"],
+        "hours_per_person_year":    hours,
+        "share_of_obligation":      hours / demand if demand > 0 else None,
+        "labour_headroom_h":        headroom,
+        "fits":                     hours <= headroom,
+        "max_distance_m_that_clears": max_distance,
+        "is_measured":              False,
+        "note": (
+            "The framework supplies the bound; the collective declares its "
+            "position. Nothing here measures YOUR water, and a figure measured "
+            "for another population would not transfer - the form spans 60x "
+            "across plausible declarations."
         ),
     }

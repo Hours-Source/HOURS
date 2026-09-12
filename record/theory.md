@@ -14,19 +14,18 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Live state — what is settled
 
-- **Workstreams C and F are signed off and published** (2026-08-15, author
-  decision): price-as-floor, inflation-impossibility demoted to a
-  within-collective floor property with an ε→1 asymptote, and the objectivity →
-  transparency pass. **A weaker true claim beats a stronger false one.** The
-  original theorem is documented as the limit case, not deleted (§5 guardrail).
-  [workstreams-c-and-f-signed-off](#workstreams-c-and-f-signed-off).
-- **THE VERDICT LADDER IS ADOPTED** (2026-09-11, author decision, AWol). *A
-  verdict may not outrank the weakest input it rests on.* **Physics and
-  arithmetic → certain. Census-dependent → instance data, feasibility-checkable
-  within a stable bound. Downstream of anything unmeasured → "possible", and
-  that is the ceiling for any economic model untested in the world.** The
-  tags already ARE the tiers; the propagation rule is new.
-  [the-verdict-ladder](#the-verdict-ladder).
+- **Workstreams C and F are signed off and published** (2026-08-15): price-as-
+  floor, inflation-impossibility demoted to a within-collective floor property
+  with an ε→1 asymptote, and the objectivity → transparency pass. **A weaker
+  true claim beats a stronger false one.** The original theorem is kept as the
+  limit case (§5). [c-and-f](#workstreams-c-and-f-signed-off).
+- **THE VERDICT LADDER IS ADOPTED AND GATED** (2026-09-11, author decision,
+  AWol). *A verdict may not outrank the weakest input it rests on.* Physics and
+  arithmetic → certain; census-dependent → instance, feasibility-checkable
+  within a bound; downstream of anything unmeasured → **"possible", the ceiling
+  for any untested economic model.** Computed: **31 / 89 / 222** constants, and
+  every headline function resolves to POSSIBLE.
+  [ladder](#the-verdict-ladder), [gate](verification.md#verdict-ladder-gate).
 - **THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO — signed off 2026-09-11**
   (author decision, AWol). **The comparative is where the cost sits and whether
   it is visible, not who has one.** Changes no arithmetic.
@@ -41,15 +40,15 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **ε HAS A SECOND INSTRUMENT, AND THEY ARE ADJACENT** *(gated)* — labour
   **0.252–0.428** vs capital **0.453–0.602**, gap 0.024, no currency in the
   labour chain. Shared denominator, so the SPLIT is what is checked.
-- **§7's audit falsifier TESTS THE WRONG BOUND** *(2026-09-11)*. It does not
-  fire on its own terms (apparatus peak **1.137% / 2.856%**), but the ratio is
-  not the binding constraint below ε≈0.96 — obligation + verification against
-  labour supply is tighter, and the measured ~40× registrant multiple breaks
-  three of four scope/basis configurations. Neither verdict is assertable.
+- **§7's audit falsifier IS ANSWERED ON THE SHIPPED DEFAULT** *(2026-09-11)*.
+  Priced in the frame-invariant unit — share of the obligation — the headroom
+  is **12.0%** at ε=0 and every episodic regime costs **0.17–1.7%**. Cadence is
+  an `instance` defaulting to `episodic`; `continuous` stays **open** below
+  ε=0.573 because human recording runs 113% of the obligation and the cheap
+  machine regime needs a prior document personal EOH does not produce.
+  [cadence](#register-cadence-declared),
   [which-binds](#which-bound-actually-binds),
-  [scope](#verification-scope-sensitivity),
-  [peak](#verification-cost-scope-and-peak),
-  [phase-1](#verification-cost-phase-1).
+  [fork](#the-intermediate-final-fork).
 - **The framework cannot claim its frame is "most defensible".** Eight anchors
   classified from their own definitions, no rival modelled: **`mutual credit` and
   `HOURS` hold all three properties.** The differentiator is SCALE, not
@@ -58,33 +57,30 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 ## Open
 
-- **`notes/value-anchor.md` §2 is not signed off for publication.** *(person)* Specifically:
-  whether it ships as drafted, and whether the corrected CENSUS-vs-VALUATION
-  framing is accepted — it replaces "no price in the chain", which measurement
-  showed is true of both routes and distinguishes nothing. *Settles by:* author
-  decision. See
-  [verification.md#doctrine-invariance-was-circular](verification.md#doctrine-invariance-was-circular).
-- **The discovery layer is a 120-line stub with 3 functions** *(person)* (`research/desire.py`).
-  The stock identity bounds the guaranteed portion; what a unit commands ABOVE
-  the floor has no theory, so every claim about purchasing power is scoped to the
-  floor and `floor_claim_across_the_arc` flags its own result as internal.
-  *Settles by:* a theorem, not code.
+- **`notes/value-anchor.md` §2 is not signed off for publication.** *(person)*
+  Whether it ships as drafted, and whether the corrected CENSUS-vs-VALUATION
+  framing is accepted — it replaces "no price in the chain", true of both routes
+  and distinguishing nothing. *Settles by:* author decision.
+  [verification.md](verification.md#doctrine-invariance-was-circular).
+- **The discovery layer is a 120-line stub with 3 functions** *(person)*
+  (`research/desire.py`). What a unit commands ABOVE the floor has no theory, so
+  every purchasing-power claim is scoped to the floor and
+  `floor_claim_across_the_arc` flags its own result as internal. *Settles by:* a
+  theorem, not code.
 - **Registration capture is MODELLED, not bounded.** *(person)* Personal is the
   widest channel — 76.6% of the mint at a share of 0.14, so one point more moves
-  issuance **+5.45%** with the obligation unmoved. The monitor ships with no
-  threshold. **The contestability arc addresses EXIT; this is VOICE.**
-  *Settles by:* a governance model that BOUNDS capture — visible is not bounded.
-  [register-capture-failure-model](#register-capture-failure-model).
-- **§5.2's capital axis is weaker than the page argues** *(pointer)* — a destroyed
-  stock books no rebuild, so the response is pro-cyclical.
-  [fulfilment.md#capital-reconstruction-gap](fulfilment.md#capital-reconstruction-gap).
-- **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may be
-  sufficient; building further is monetary economics rather than entropy
-  accounting, and is the surface growth the review's §15 warns about. **Do not
-  build without a reason to.**
-- **`teh_supply` is pinned, not decided** *(held)* — wire it, retire it, or leave it. A
-  test fails if it acquires a caller, which is the safe holding state. See
-  [verification.md § Live state](verification.md#live-state).
+  issuance **+5.45%** with the obligation unmoved. **The contestability arc
+  addresses EXIT; this is VOICE.** *Settles by:* a governance model that BOUNDS
+  capture. [register-capture](#register-capture-failure-model).
+- **§5.2's capital axis is weaker than the page argues** *(pointer)* — a
+  destroyed stock books no rebuild, so the response is pro-cyclical.
+  [fulfilment.md](fulfilment.md#capital-reconstruction-gap).
+- **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may
+  be sufficient; further is monetary economics, not entropy accounting, and is
+  the surface growth §15 warns about. **Do not build without a reason to.**
+- **`teh_supply` is pinned, not decided** *(held)* — wire it, retire it, or leave
+  it; a test fails if it acquires a caller.
+  [verification.md](verification.md#live-state).
 
 ## Cross-area entries
 
@@ -99,8 +95,10 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 11 entries, newest first | |
+| 13 entries, newest first | |
 |---|---|
+| [register-cadence-declared](#register-cadence-declared) | THE REGISTER CADENCE IS AN `instance` DEFAULTING TO EPISODIC, AND CONTINUOUS SPLITS INTO TWO RE… |
+| [the-intermediate-final-fork](#the-intermediate-final-fork) | THE INTERMEDIATE-VS-FINAL FORK — IT SPLITS BY CHANNEL, AND A SECOND MEASURED ANALOGUE DISAGREES… |
 | [the-verdict-ladder](#the-verdict-ladder) | THE VERDICT LADDER — WHAT THE FRAMEWORK MAY ASSERT, AND THE CEILING ON ALL OF IT |
 | [which-bound-actually-binds](#which-bound-actually-binds) | §7's FALSIFIER TESTS THE NON-BINDING CONSTRAINT OVER 96% OF THE ARC |
 | [rivals-verification-cost](#rivals-verification-cost) | THE RIVALS' VERIFICATION COST IS LOWER, NOT ZERO |
@@ -116,6 +114,32 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 <!-- /record-index -->
 Newest first, verbatim as written. Anchors are stable — link to a specific entry
 as `record/theory.md#<slug>`.
+
+<a id="register-cadence-declared"></a>
+
+**THE REGISTER CADENCE IS AN `instance` DEFAULTING TO EPISODIC, AND CONTINUOUS SPLITS INTO TWO REGIMES WITH OPPOSITE COSTS** (2026-09-11, author decision, AWol). `data.REGISTER_CADENCE`, `scenarios/verification_cost.CADENCE_REGIMES` + `cadence_feasibility()`, 13 tests. **This CLOSES the corridor on the shipped default.**
+
+- **THE UNIT CHANGED, AND THAT IS THE ENABLING MOVE.** Priced as a share of the OBLIGATION the clearing bound is **identical across every scope and basis** — 12.0% at ε=0, 65.8% at 0.40, 607% at 0.90 — because it is about labour headroom, not about how the apparatus was counted. The registrant MULTIPLE is not invariant: it divides by a census that differs 2.5× between scopes. **That defect was live in yesterday's work** — transferring the tax case as a RATIO gives 274 h/person·yr and as a LEVEL gives 21.5, a **13× disagreement from one analogue**, and the "breaks three of four configurations" result was the ratio artefact. In shares, every episodic analogue sits at **0.17–1.7% against a 12.0% headroom.**
+- **CONTINUOUS IS NOT ONE REGIME.** *Machine-mediated* — Brazil's NF-e (2005), Italy's SdI (2019) clear every invoice at the moment of issue and marginal human time is ~0 **because the document already existed**; the system intercepts something the actor was creating anyway. *Human-performed* — clinical documentation, the closest structural analogue to "record that the care happened", costs **~1.8 h per hour documented** (Sinsky 2016: 27.0% direct care against 49.2% EHR/desk). Against care at 62.1% of personal EOH that is **113% of the obligation, over the ε=0 headroom by 9.4×.**
+- **SO THE FRAMEWORK'S CONTINUOUS BRANCH IS THE EHR REGIME, NOT THE INVOICE REGIME** — personal EOH is unpaid, undocumented activity and produces no prior document to intercept. **`requires_prior_document` is ENFORCED, not merely noted**, and enforcing it was a correction: before it, declaring `continuous` returned `closed_and_usable` by pointing at a regime that cannot apply. **That is closing by assertion, caught by running it.**
+- **EPISODIC IS THE DEFAULT BECAUSE IT ERRS THE SAFE WAY.** It is the costlier of the two regimes the evidence supports, so the audit claim is stated at its weakest and any measurement can only improve it — F-034's rule applied to a default rather than to a bound.
+- **AND THE HEADROOM RISES WITH AUTOMATION EXACTLY AS THE INSTRUMENTATION THAT MAKES CONTINUOUS RECORDING CHEAP ARRIVES.** `continuous_human` becomes affordable at **ε = 0.573**, bisected rather than asserted. An ε-dependent cadence is therefore coherent rather than a fudge, and the function takes ε so a collective can find its own crossover.
+- **WHAT THIS DOES TO §7's FALSIFIER.** `corridor_is_usable` returns **`closed_and_usable` on the shipped default** and **`open_edges` for a continuous register below the crossover** — both pinned, so the declaration decides the verdict and the code cannot close it either way by itself. **The corridor edges do not move with the cadence**: the framework supplies the bound, the collective declares its position. That is the INSTANCE tier of the verdict ladder doing the work it was adopted for.
+- **THE RATCHET FIRED THE DAY AFTER IT WAS WRITTEN.** Adding one constant moved the tier census 342 → 343 and INSTANCE 89 → 90, failing `test_the_shares_are_where_they_were`. Nothing was wrong — a constant landed — and the numbers were updated deliberately with the history in the docstring rather than the assertion loosened into a range.
+
+<a id="the-intermediate-final-fork"></a>
+
+**THE INTERMEDIATE-VS-FINAL FORK — IT SPLITS BY CHANNEL, AND A SECOND MEASURED ANALOGUE DISAGREES WITH THE FIRST BY 115–290×** (2026-09-11). `scenarios/verification_cost.registrant_analogues()` + 5 tests. **REPORTING ONLY. THE DECISION ITSELF IS NOT TAKEN HERE** — it is a theory commitment under the §3 guardrail and is put to the author.
+
+**THE QUESTION.** Wallis & North (1988) argue transaction costs are *intermediate, not final* — their cost is already embedded in what they enable, so subtracting them double-counts. Read across: if the hour spent documenting a fulfilment is part of what it takes to fulfil, that hour is **already inside `total_eoh`** and adding a verification term is mode 11. Phase 3 would then resolve to "no", and reporting-only would be the correct FINAL answer rather than a cautious interim one.
+
+- **FOR THE PERSONAL DOMAIN THE "ALREADY INSIDE" BRANCH IS FALSE, AND NOT ON THEORY — ON HOW THE CONSTANT WAS BUILT.** `PERSONAL_EOH_BASE` is anchored on measured time use (ATUS/MTUS), and **the diaries were kept in economies with no obligation register.** Nobody in them was logging fulfilment, because there was nothing to log it to. So the recording hour is **definitionally absent** from the base. Personal EOH is 99.4% of the obligation at ε=0 and 57.6% at ε=0.99, so this is most of the question.
+- **FOR DOCUMENTATION EMBEDDED IN PAID WORK, THE OPPOSITE HOLDS.** A clinician's or supervisor's recording time is already inside their paid hours, hence already inside an occupational census — which is the **apparatus** side, and specifically Wallis & North's in-house cell that this repo has not built. **So the fork does not resolve globally. It splits by channel**, and the split lands exactly on the boundary the census already fails to cross.
+- **A SECOND MEASURED ANALOGUE NOW EXISTS AND IT CONTRADICTS THE FIRST.** ATUS tier-1 code 10 — *Government Services and Civic Obligations* — is the only DIARY measure of registrant-side compliance time: **2.37 h/person·yr** across 2003–2024, implying a multiple of **0.15–0.38×**, comfortably inside the corridor. The tax-compliance analogue implies **43.3×**, which breaks three of four configurations. **They disagree by 115× at core scope and 290× at broad, and they land on opposite sides of the entire band.**
+- **THE DISAGREEMENT IS INSTRUMENT, NOT ERROR, AND IT IS DIAGNOSABLE.** Tax filing is a civic obligation and should sit INSIDE ATUS code 10 — yet the IRS estimate for tax alone is 8–10× the diary's whole civic category. **Time diaries under-capture EPISODIC annual tasks**: a diary day rarely lands on the one you file on, and the time is coded as household management when it does. Both are reported, `netted` is `None`, and a midpoint between 0.38× and 43× would be a number with no instrument behind it.
+- **SO WHICH ANALOGUE TRANSFERS IS A REGISTER-DESIGN QUESTION, NOT AN ECONOMIC ONE.** Recording a fulfilment as it happens is **continuous and diary-visible** — the regime where ATUS is the right instrument. Filing an annual return is **episodic and diary-invisible** — the regime where diaries fail and the compliance estimate is right. **The framework's own re-review frequency decides which regime it is in, and that is a governance choice rather than a physical fact.** The same parameter was already flagged as making part of the cost a choice; this is where it decides the answer.
+- **ANSWERED 2026-09-11: MEASURE FIRST, AND THE CADENCE STAYS UNDECLARED.** Put to the author as the cheaper question that gates the other; the answer was to hold. **Declaring it either way would close the corridor by assertion** — pick "continuous" and condition 3 passes, pick "episodic" and the audit advantage dies, and neither followed from a measurement. So `corridor_is_usable` stays `open_edges` with the reason in its return value, and the cost of the hold is stated rather than absorbed: §7's falsifier stays open and the page cannot quote a verification figure. **The framework declining to name a number it cannot measure is the verdict ladder working, not the work stalling.**
+- **WHAT THE AUTHOR WAS ASKED.** Not "intermediate or final" as a global switch — the evidence says that question is malformed. The two answerable ones are: **(a)** does the registrant's recording hour for UNPAID personal fulfilment enter the obligation, given it is provably not in the base today; and **(b)** is the register specified to record continuously or episodically, which selects the instrument and moves the answer by two orders of magnitude. **(b) is the cheaper question and it gates (a).**
 
 <a id="the-verdict-ladder"></a>
 

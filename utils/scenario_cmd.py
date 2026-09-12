@@ -78,6 +78,7 @@ from hours_eoh.scenarios.land_stewardship import (
 )
 from hours_eoh.scenarios.land_stewardship import SCOPES as _LAND_SCOPES
 from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
+from hours_eoh.data import REGISTER_CADENCE
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
@@ -135,7 +136,7 @@ _SCENARIOS: dict[str, str] = {
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     # -- the register: its own cost, and its capture exposure --
     "verification_cost":   "verification_report() + which_binds_across_the_arc() — what running the register costs, and WHICH of the three bounds actually binds; REPORTING ONLY  [--scope]",
-    "verification_band":   "corridor_is_usable() — is the verification corridor closed as a usable band, or still open edges?  [--scope]",
+    "verification_band":   "corridor_is_usable() + cadence_feasibility() — is the verification corridor closed as a usable band, and can the declared register cadence be afforded?  [--verification-scope, --cadence]",
     "register_capture":    "capture_report() — the register's failure model: which channel is widest and what admitting more moves; REPORTING ONLY",
     "labour_epsilon":      "labour_epsilon_report() — ε read off time use, the second instrument, with no currency in the chain; REPORTING ONLY",
 }
@@ -289,6 +290,12 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # argparse `choices` is per-flag, so sharing it would make every
     # verification run fail on a land value or force the choices list open —
     # and an open choices list is how a typo becomes a silent default.
+    run_p.add_argument("--cadence", default=REGISTER_CADENCE,
+                       choices=("episodic", "continuous"),
+                       help="How often a registrant attests that an obligation "
+                            "was fulfilled (verification_band). Default is "
+                            f"{REGISTER_CADENCE!r}, the shipped `instance` — "
+                            "your register's design is yours to declare.")
     run_p.add_argument("--verification-scope", default="core",
                        choices=("core", "broad"),
                        help="Which verification census to run (verification_cost, "
@@ -1356,12 +1363,26 @@ def _dispatch(args: argparse.Namespace) -> object:
         return out
 
     if name == "verification_band":
-        from hours_eoh.scenarios.verification_cost import corridor_is_usable
-        r = corridor_is_usable(scope=args.verification_scope)
+        from hours_eoh.scenarios.verification_cost import (
+            cadence_feasibility,
+            corridor_is_usable,
+        )
+        r = corridor_is_usable(scope=args.verification_scope,
+                               cadence=args.cadence)
+        cf = cadence_feasibility(args.cadence, epsilon=epsilon,
+                                 scope=args.verification_scope)
         out = {k: v for k, v in r.items() if k != "conditions"}
-        out["summary_table"] = [
-            {"condition": k, "met": v} for k, v in r["conditions"].items()
-        ]
+        out["headroom_share_of_obligation"] = cf["headroom_share_of_obligation"]
+        out["affordable_from_epsilon"] = cf["affordable_from_epsilon"]
+        out["summary_table"] = (
+            [{"row": k, "value": v} for k, v in r["conditions"].items()]
+            + [{"row": f"{k} ({v['recorder']})",
+                "value": (f"{v['cost_share_of_obligation'][1]:.2%} of obligation"
+                          f" — {'fits' if v['fits'] else 'DOES NOT FIT'}")
+                         if v["cost_share_of_obligation"] is not None
+                         else "unavailable — no prior document to intercept"}
+               for k, v in cf["regimes"].items()]
+        )
         return out
 
     if name == "register_capture":

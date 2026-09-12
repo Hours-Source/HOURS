@@ -942,6 +942,45 @@ GOVERNANCE_IRR_WARN_THRESHOLD:  float = 0.70  # inter-rater reliability below �
 GOVERNANCE_IRR_CRIT_THRESHOLD:  float = 0.50  # inter-rater reliability below → CRIT
 
 # ---------------------------------------------------------------------------
+# Register cadence — how often fulfilment is recorded (author decision,
+# 2026-09-11). This is the SCM `frequency` term, and it is the parameter that
+# decides the registrant-side cost of running the register.
+# ---------------------------------------------------------------------------
+# tag: instance | units: none — a named regime
+# supplied_by: YOUR register's design. How often a registrant must attest that
+#   a registered obligation was fulfilled: at the moment of the act
+#   ("continuous"), or at intervals on the sunset clock ("episodic"). It is a
+#   governance decision, not a physical fact — a register re-reviewing annually
+#   costs several times one re-reviewing every five years for identical
+#   physical obligation.
+# default: "episodic", and the default errs in the SAFE direction, which is why
+#   it is this one. Episodic is the COSTLIER of the two regimes the evidence
+#   supports, so defaulting to it states the framework's audit claim at its
+#   weakest and any measurement can only improve it. Continuous is NOT
+#   forbidden and is not always dearer — see the two regimes below.
+# note: THE TWO CONTINUOUS REGIMES HAVE OPPOSITE COSTS, AND WHICH ONE A
+#   REGISTER IS IN IS DECIDED BY WHETHER A MACHINE OR A PERSON DOES THE
+#   RECORDING.
+#     machine-mediated — Brazil's NF-e (2005) and Italy's SdI (2019) clear
+#       every invoice through a state platform at the moment of issue, and the
+#       marginal human time is ~0 BECAUSE THE INVOICE ALREADY EXISTED. The
+#       system intercepts a document the actor was creating anyway.
+#     human-performed — clinical documentation is the closest structural
+#       analogue to "record that the care happened", and it costs ~1.8 hours
+#       per hour of the activity documented (Sinsky 2016: 27.0% direct care
+#       against 49.2% EHR and desk work).
+#   Personal EOH is unpaid, undocumented activity, so there is no prior
+#   document to intercept: a HOURS register recording continuously by hand is
+#   in the SECOND regime. See scenarios/verification_cost.CADENCE_REGIMES,
+#   which prices all four against the labour budget.
+# note: THE HEADROOM RISES WITH AUTOMATION EXACTLY AS THE INSTRUMENTATION THAT
+#   WOULD MAKE CONTINUOUS RECORDING CHEAP ARRIVES — verification may consume
+#   12.0% of the obligation at eps=0 and 607% at eps=0.90. So a cadence that is
+#   episodic at low automation and continuous at high automation is coherent
+#   rather than a fudge, and nothing here forbids declaring it that way.
+REGISTER_CADENCE: str = "episodic"
+
+# ---------------------------------------------------------------------------
 # Multiplier governance: scarcity dampening (B3)
 # Mission Statement: §"Scarcity — the three-year rolling average prevents
 # oscillation; supply-response discount prevents over-rewarding roles where
@@ -1738,6 +1777,41 @@ BASKET_WATER_LITRES_PER_DAY: float = 50.0
 # default: 1,000 m — a round-number stand-in carried so the row has a unit,
 #   standing in for nothing measured. It is never multiplied into the floor.
 BASKET_WATER_DISTANCE_M: float = 1000.0
+# tag: instance | units: litres carried per trip
+# supplied_by: YOUR containers. Jerrycan, headpan, yoked pair, handcart or a
+#   donkey — this is CAPITAL, not a human constant, and it is the variable a
+#   collective can most cheaply change. Doubling it halves collection time
+#   exactly, which is why it belongs beside distance rather than inside an
+#   hours-per-litre average that hides it.
+# default: 20 L — one full jerrycan, the commonest single-container unit and
+#   about the upper limit of what an adult carries 1 km repeatedly. Carried so
+#   the row has a unit; it is NOT multiplied into the floor, because
+#   `hours_per_unit` on the water row is still None.
+BASKET_WATER_CARRY_LITRES: float = 20.0
+# tag: instance | units: dimensionless fraction of BASKET_WATER_LITRES_PER_DAY
+# supplied_by: YOUR practice and siting. The share of the daily quantity that
+#   must be CARRIED HOME rather than used at the source. Washing and laundry at
+#   a river cost transport nothing; drinking, cooking and sanitation water must
+#   come back. It is a joint property of where the source is and how the
+#   collective lives, so no survey of another population transfers.
+# default: 1.0 — ALL of it carried, which is the conservative corner and is
+#   deliberately the worst case rather than a central estimate. A collective
+#   that washes at the source declares less and its obligation falls; one that
+#   pipes water declares a distance near zero and the term vanishes. Errs HIGH
+#   by construction.
+BASKET_WATER_CARRIED_FRACTION: float = 1.0
+# tag: measured | units: metres per second
+# form: preferred walking speed carrying a load, the one term in the water form
+#   that is NOT an instance. It is human locomotion, not a property of a place
+#   or a practice, and it is the reason the component is computable at all once
+#   the three instances are declared.
+# note: 1.2 m/s is the standard preferred walking speed for adults and sits at
+#   the low end of the unloaded range (1.2-1.4), which is the right end for a
+#   loaded walk over uneven ground. Head-loading studies find near-free
+#   carriage up to ~20% of body mass, so the loaded and unloaded speeds are
+#   close at the carries this form contemplates. A collective on steep or
+#   broken terrain declares a lower figure.
+WATER_WALKING_SPEED_M_S: float = 1.2
 # tag: bounded | units: hours per person per year of childcare delivered
 # band: 99.5–331.2 h/person·yr — the full MTUS range, 16.36 min/day (BG1965) to
 #   54.44 (US1998) across the 46 of 50 samples that carry the childcare codes.

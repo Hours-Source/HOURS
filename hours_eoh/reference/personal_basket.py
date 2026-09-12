@@ -185,6 +185,18 @@ COMPONENT_STATUS: dict[str, dict[str, str]] = {
         "quantity": "instance",
         "delivery": "instance",
         "status": "open",
+        "resolved_by": "DECLARATION PLUS A FEASIBILITY BOUND (2026-09-11, "
+                       "author decision) — the same move as the register "
+                       "cadence. `personal_basket.water_collection_hours` "
+                       "derives the labour from three declared instances "
+                       "(distance, carry, carried fraction) and ONE physics "
+                       "term (walking speed); "
+                       "`scenarios/personal_floor.water_feasibility` reports "
+                       "whether the declaration clears the labour supply and "
+                       "at what distance it stops. The acquisition is NOT "
+                       "waited on and would not have settled it — see below. "
+                       "`hours_per_unit` stays None because there is no "
+                       "universal to put there.",
         "blocked_on": "A FORM QUESTION FIRST, THEN AN ACQUISITION — and the form "
                       "question is why DHS would not have settled it. Four "
                       "independent variables sit inside one hours_per_unit: "
@@ -262,6 +274,11 @@ COMPONENT_STATUS_VOCAB: dict[str, frozenset[str]] = {
 #: `BASKET_HEALTH_MIN_EPSILON` are now supplied by the caller. What stays here
 #: is what this layer is for: the MEASURED delivery productivities.
 DIET_DAYS_PER_YEAR: float = 365.25
+
+#: Unit conversion, not a parameter. `reference/` is outside the shadow-constant
+#: scan by design (it holds measured data, not calibration), and a seconds-to-
+#: hours factor carries no theory.
+SECONDS_PER_HOUR: float = 3600.0
 
 #: Sanitation service-years per person: one person, one year of safe disposal.
 SANITATION_SERVICE_YEARS: float = 1.0
@@ -592,6 +609,87 @@ def survival_core(
         # abatement is 84.4% care.
     },
 ]
+
+
+def water_collection_hours(
+    distance_m: float,
+    carry_litres: float,
+    carried_fraction: float,
+    litres_per_day: float,
+    walking_speed_m_s: float,
+) -> dict:
+    """
+    Water collection labour, DERIVED from four declarations and one physics term.
+
+    units: hours per person per year.
+
+    Governing form — the one the water row has carried since 2026-09-09:
+
+        trips/day   = litres/day x carried_fraction / carry_litres
+        seconds     = trips/day x 2 x distance_m / walking_speed_m_s
+        h/person.yr = seconds x 365 / 3600
+
+    **WHY THIS IS NOT A MEASUREMENT, AND WHY THAT IS THE POINT.** The obvious
+    route was a survey — DHS carries water-collection time for ~90 countries.
+    It would not have settled anything: a single hours-per-litre figure folds
+    distance, carry, practice and siting into one number, each spanning an order
+    of magnitude, and **the average describes no actual collective.** Evaluated
+    across plausible declarations this form spans **1.6% to 186% of the personal
+    obligation — a 60x range that exceeds the whole obligation at the far end.**
+    A measured central value transferred anywhere else would be wrong by up to
+    that factor, and would look like a measurement while being wrong.
+
+    So water is `quantity: instance, delivery: instance`. Three of the four
+    inputs are properties of a PLACE or a PRACTICE that a collective knows about
+    itself and this framework cannot know; the fourth is human locomotion.
+
+    **ON HOUSEHOLD SIZE, which the status note lists as a fifth variable.** It
+    CANCELS for the per-person figure: a household of H needs H times the water
+    and makes H times the trips, so the per-person hours are unchanged. It does
+    NOT cancel for INCIDENCE — one collector bearing a household's collection
+    carries H times the per-person burden in their own labour budget. This
+    function answers the aggregate question, which is the one the feasibility
+    check asks; it does not answer who bears it, and does not pretend to.
+
+    Raises:
+        ValueError: on a non-positive carry, speed or quantity, or a
+            carried_fraction outside (0, 1].
+    """
+    if carry_litres <= 0.0 or walking_speed_m_s <= 0.0 or litres_per_day <= 0.0:
+        raise ValueError(
+            "carry_litres, walking_speed_m_s and litres_per_day must all be "
+            f"> 0; got {carry_litres}, {walking_speed_m_s}, {litres_per_day}"
+        )
+    if not 0.0 < carried_fraction <= 1.0:
+        raise ValueError(
+            f"carried_fraction must be in (0, 1], got {carried_fraction}"
+        )
+    if distance_m < 0.0:
+        raise ValueError(f"distance_m must be >= 0, got {distance_m}")
+
+    trips_per_day = litres_per_day * carried_fraction / carry_litres
+    seconds_per_day = trips_per_day * 2.0 * distance_m / walking_speed_m_s
+    hours_per_year = seconds_per_day * DIET_DAYS_PER_YEAR / SECONDS_PER_HOUR
+
+    return {
+        "hours_per_person_year": hours_per_year,
+        "trips_per_day":         trips_per_day,
+        "declared": {
+            "distance_m":        distance_m,
+            "carry_litres":      carry_litres,
+            "carried_fraction":  carried_fraction,
+            "litres_per_day":    litres_per_day,
+        },
+        "physics": {"walking_speed_m_s": walking_speed_m_s},
+        "is_measured": False,
+        "note": (
+            "DERIVED from declarations, not measured. Every input except "
+            "walking speed is a property of a place or a practice; no survey "
+            "of another population transfers, which is why the component is "
+            "`instance` on both axes rather than waiting on an acquisition."
+        ),
+    }
+
 
 def entitlement_augmentation(health_min_epsilon: float) -> list[dict]:
     """

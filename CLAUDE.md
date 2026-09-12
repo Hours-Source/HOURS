@@ -195,6 +195,9 @@ hours_eoh/
     desire.py          Discovery-above-the-floor stub (sign-off-gated)
 
 utils/                 Presentation layer — CLI and research helpers (see README)
+  verdict_ladder.py    The verdict ladder computed — transitive data.py dependencies per
+                       function, and therefore the strongest verdict it may claim. STATIC
+                       because static OVER-approximates, which is the safe direction
   anchor_page_figures.py  Every figure the anchor comparison page quotes, emitted from
                        the functions — the regeneration path's first half. The page is
                        gitignored so it CANNOT be gated against; that gap is declared
@@ -452,7 +455,7 @@ corpus when you need to CHECK for a mode, not to recognise one.** Validate with
 Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
 F-037) — written because the mapping made contact with the gap, not backfilled.
 Modes 1–3 and 6–13 each name findings that already existed. The corpus also
-holds 14 findings with no mode here, most of them `kind: method`, which is a
+holds 15 findings with no mode here, most of them `kind: method`, which is a
 different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
@@ -498,8 +501,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,509 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-10). Provenance **342/342**, shadow ratchet **33**, confidence ratchet
+**4,563 tests passing (1 skipped), mypy clean on 103 source files** (verified
+2026-09-10). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -534,6 +537,11 @@ this whole structure forbids.**
   `scenarios/register_capture.py`) — the failure model and a drift monitor that
   declares its own threshold exist; what bounds capture does not. The
   contestability arc addresses EXIT, this is VOICE.
+- **~~The register's recording cadence~~ — SETTLED 2026-09-11** (author
+  decision): an `instance` defaulting to `episodic`, which errs the safe way.
+  The corridor now CLOSES on the shipped default and stays open for a
+  continuous register below ε=0.573.
+  See [`record/theory.md`](record/theory.md#register-cadence-declared).
 - **~~The base is blind to ecosystem condition~~ — SETTLED 2026-09-02** (author
   decision, charter). Kept visible: the 0.0% is real and a reader will find it.
   See [`record/ecological.md`](record/ecological.md#live-state).
@@ -578,7 +586,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 42 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 43 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
@@ -613,6 +621,7 @@ are the ones worth knowing by name.
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
+| `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the 31/89/222 tier census cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
 | `test_anchor_page_figures.py` | The anchor page's figure emitter. Gates that every figure the page quotes is still reachable, that a renamed key RAISES rather than returning an empty collection, and that the not-unique result still holds. **States its own gap:** the page is gitignored, so this cannot check the page — only the emitter. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
