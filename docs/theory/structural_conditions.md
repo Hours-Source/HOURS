@@ -14,7 +14,7 @@ A TEH-denominated economy achieves stable, within-collective floor-guaranteed op
 
     **Circulatory vs. destructive flows:** Spending that transfers TEH between parties is circulatory, not destructive. Levies and fiscal mechanisms that collect TEH are circulatory — they redirect TEH into capital investment, stewardship allocation, and social programs, but do not destroy it. Only terminal consumption and capital write-down remove TEH from existence.
 
-    **Arc requirement:** The ledger identity must hold at ε = 0 (where barely any TEH is created or destroyed) and at ε = 0.99 (where both creation and destruction approach zero as floor prices collapse). A verification mechanism that works only in the middle of the arc is incomplete.
+    **Arc requirement:** The ledger identity must hold across the whole arc, including both ends: at ε = 0, where the ledger is small because almost none of the obligation is registered, and at ε = 0.99, where human labor is a small share of the obligation. TEH creation is smallest at ε = 0 but not at ε = 0.99 — it rises through most of the arc, as registration widens faster than the human share narrows, and falls only late, staying far above its ε = 0 level. A verification mechanism that works only in the middle of the arc is incomplete.
 
     **Code:** `hours_eoh/core/conditions.py` → `condition_i_check()`
 

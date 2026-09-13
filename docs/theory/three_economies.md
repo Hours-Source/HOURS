@@ -65,7 +65,7 @@ Every function, parameter, and mechanism in this codebase must work across all p
 | 0.00 | Care (subsistence) | Minimal — most EOH is private | Define the ledger for near-zero activity |
 | 0.40 | Production / Stewardship mix | Labor levies, growing stewardship allocation | Scale production, begin care registration |
 | 0.90 | Stewardship / Care | Stewardship allocation dominant | Distributed competency, ecological maintenance |
-| 0.99 | Care (post-scarcity) | Near-zero creation and destruction | Floor must still rise; fiscal solvency |
+| 0.99 | Care (post-scarcity) | Creation falling from its late-arc peak, not near zero | Floor must still rise; fiscal solvency |
 
 ---
 
