@@ -11,9 +11,10 @@ import json
 
 from hours_eoh.core.dashboard import system_dashboard
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.simulation import make_economy_state, simulate_period
 from hours_eoh.data import (
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
-    PERSONAL_EOH_BASE, ESSENTIAL_DOMAINS,
+    ESSENTIAL_DOMAINS,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CONTESTABILITY_CHI_CRIT,
 )
@@ -43,47 +44,79 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                    help="Annual planetary radiative-capacity obligation (h/yr) to "
                         "carry as the fourth ecological term. Default 0.0 (off). "
                         "~1.79e6 for 1M people at ε=0.40 per research/thermal_solvency")
+    p.add_argument("--certified-fraction", type=float,
+                   default=DECLARED_CERTIFIED_FRACTION, metavar="SHARE",
+                   help="Share of the workforce with certified competency in each "
+                        "essential domain. DECLARED: nothing in the package tracks "
+                        f"it. Default {DECLARED_CERTIFIED_FRACTION}")
     p.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     p.set_defaults(func=run)
 
 
+#: The one account this command cannot compute. Nothing in the package tracks
+#: certified competency by domain, so Condition IV reads a DECLARED share of the
+#: workforce, printed as declared and overridable with --certified-fraction. It
+#: sits above the Condition IV threshold, so on its default the condition can
+#: only pass — which is why it is shown rather than folded into the verdict.
+DECLARED_CERTIFIED_FRACTION = 0.18
+
+
 def _build_kwargs(eps: float, population: float, trust_balance: float,
                   capital_stock: float, ecosystem_health: float,
-                  thermal_obligation: float = 0.0) -> dict:
+                  thermal_obligation: float = 0.0,
+                  certified_fraction: float = DECLARED_CERTIFIED_FRACTION) -> dict:
+    """
+    The dashboard's accounts, computed rather than invented (2026-09-12).
+
+    Until then the ledger, the Trust and the EOH totals were stand-ins built from
+    literals (destroyed = 0.85 × created, expenditure = 0.90 × earnings, total
+    EOH = population × base × 1.5), so Conditions I and III passed by
+    construction and the EOH indicators read a total up to 1.6× off the model's.
+    Now: the EOH side comes from the pipeline on the stated frame, and the ledger
+    and Trust from ONE simulated period on the same frame — the only engine in
+    the package that tracks both. Only certified competency is declared.
+    """
     p = EohParams()
-    workforce = population * float(p["workforce_fraction"])
+    workforce_fraction = float(p["workforce_fraction"])
+    capital_age_ratio = float(p["capital_age_ratio"])
+    workforce = population * workforce_fraction
 
     pipeline = eoh_to_teh_pipeline(eps, population=population,
                                    capital_stock=capital_stock,
+                                   capital_age_ratio=capital_age_ratio,
                                    ecosystem_health=ecosystem_health,
                                    thermal_obligation=thermal_obligation)
-    teh_created   = float(pipeline.get("teh_created", 0.0))
-    teh_destroyed = teh_created * 0.85
-    teh_observed  = teh_created - teh_destroyed
+    teh_created = float(pipeline["teh_created"])
+    # The pipeline's total already carries the thermal obligation as its fourth
+    # ecological term. With no labour supply nothing is deferred, so fulfilled
+    # equals the total — stated, not assumed away.
+    total_eoh_val = float(pipeline["total_eoh"])
+    fulfilled = total_eoh_val - float(pipeline["deferred_total"])
 
-    levy_rate = float(p["suff_levy_rate"])
-    earnings     = teh_created * levy_rate
-    expenditures = earnings * 0.90
-    balance_end  = trust_balance + earnings - expenditures
+    # Condition I and III accounts from one simulated period on the same frame.
+    state = make_economy_state(
+        epsilon=eps, population=population, trust_balance=trust_balance,
+        capital_stock_teh=capital_stock, capital_age_ratio=capital_age_ratio,
+        ecosystem_health=ecosystem_health, workforce_fraction=workforce_fraction,
+    )
+    after, period = simulate_period(state)
+    trust = period["fiscal"]["trust"]
 
-    # The thermal obligation is a real fourth ecological term, so it belongs in
-    # the EOH total the health indicators are computed against — not only in the
-    # pipeline. Note how little it moves this number: that IS the finding (see
-    # docs/parameter_provenance.md §"Domain balance").
-    total_eoh_val = population * PERSONAL_EOH_BASE * 1.5 + thermal_obligation
-    fulfilled     = total_eoh_val * (1.0 - eps * 0.5)
-
-    certified_by_domain = {d: workforce * 0.18 for d in ESSENTIAL_DOMAINS}
+    certified_by_domain = {d: workforce * certified_fraction for d in ESSENTIAL_DOMAINS}
 
     return dict(
         epsilon=eps,
-        teh_created=teh_created,
-        teh_destroyed=teh_destroyed,
-        teh_observed=teh_observed,
-        balance_start=trust_balance,
-        earnings=earnings,
-        expenditures=expenditures,
-        balance_end=balance_end,
+        teh_created=float(after["teh_created_cumulative"]),
+        teh_destroyed=float(after["teh_destroyed_cumulative"]),
+        teh_observed=float(period["teh_total_supply"]) - float(after["teh_endowment"]),
+        # The Trust balance's own identity: the dividend LEAVES the balance to
+        # fund spending, and levy and GUF inflows enter it
+        # (`fiscal.trust_management`). Stewardship and guarantee are paid from
+        # the dividend, not from the balance.
+        balance_start=float(trust["trust_start"]),
+        earnings=float(trust["levy_inflow"]) + float(trust["guf_inflow"]),
+        expenditures=float(trust["dividend"]),
+        balance_end=float(trust["trust_end"]),
         certified_by_domain=certified_by_domain,
         workforce_size=workforce,
         total_eoh=total_eoh_val,
@@ -93,7 +126,7 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
         trust_balance=trust_balance,
         labor_income=teh_created,
         capital_stock_teh=capital_stock,
-        capital_age_ratio=float(p["capital_age_ratio"]),
+        capital_age_ratio=capital_age_ratio,
         population=population,
         floor_teh=MEANINGFUL_ACTIVITY_TEH_BASE,
         # THE PIPELINE'S OWN ECOLOGICAL FIGURE, forwarded (2026-08-17).
@@ -121,6 +154,7 @@ def run(args: argparse.Namespace) -> None:
         args.epsilon, args.population, args.trust_balance,
         _capital, args.ecosystem_health,
         getattr(args, "thermal_obligation", 0.0),
+        getattr(args, "certified_fraction", DECLARED_CERTIFIED_FRACTION),
     )
     # Contestability: computed here (research/ layer) and passed into core
     # system_dashboard() so overall_status reflects it. The ADOPTED §8.9
@@ -152,6 +186,10 @@ def run(args: argparse.Namespace) -> None:
         if isinstance(m_meas, (int, float)):
             note += f" — mean m̄ = {m_meas:.4f}"
         print(green("  ● " + note))
+    _cf = getattr(args, "certified_fraction", DECLARED_CERTIFIED_FRACTION)
+    print(f"  Accounts: EOH from the pipeline; ledger and Trust from one simulated "
+          f"period.\n  DECLARED, not tracked: certified competency = {_cf:.2f} of "
+          f"the workforce per domain (--certified-fraction).")
     print()
 
     print(bold("Structural Conditions"))

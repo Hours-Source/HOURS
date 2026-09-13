@@ -634,8 +634,9 @@ def run_simulation(
         mean_multiplier_schedule: Optional per-period M values. When provided,
             period i uses schedule[i] as mean_multiplier, overriding any
             mean_multiplier= in simulate_kwargs. If the schedule is shorter
-            than n_periods, the static value from simulate_kwargs (or the
-            default 2.10) is used for the remaining periods. Pass None
+            than n_periods, the static value from simulate_kwargs (or
+            simulate_period's own default, MEAN_MULTIPLIER_REFERENCE) is used
+            for the remaining periods. Pass None
             (default) for fixed-M runs — existing behaviour is unchanged.
         **simulate_kwargs: Keyword arguments forwarded to simulate_period()
                            (e.g., population_growth_rate, epsilon_delta, etc.)
@@ -661,7 +662,11 @@ def run_simulation(
     results: list[dict]        = []
     m_used:  list[float]       = []
     first_insolvency: int | None = None
-    _m_default = float(simulate_kwargs.get("mean_multiplier", 2.10))
+    # The fallback must be simulate_period's OWN default: periods without an
+    # explicit multiplier are minted at it, so a different literal here made
+    # `mean_multiplier_trajectory` report 2.10 while every such period applied
+    # the reference — the reported value that isn't the applied one.
+    _m_default = float(simulate_kwargs.get("mean_multiplier", MEAN_MULTIPLIER_REFERENCE))
 
     for i in range(n_periods):
         if mean_multiplier_schedule is not None and i < len(mean_multiplier_schedule):

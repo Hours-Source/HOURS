@@ -2,13 +2,13 @@
 
 **Module:** `hours_eoh/core/trajectory.py`
 
-Provides the canonical physical-state reference at each ε (the ideal arc for a civilization investing optimally), and ε derivation utilities.
+Provides the canonical physical-state reference at each ε — a reference frame for arc testing, not a measurement of any real economy — and ε derivation utilities.
 
 ---
 
 ## `canonical_physical_state(epsilon)` → `dict`
 
-Returns the ideal-arc physical state at a given ε. Used as the reference baseline for arc testing.
+Returns the physical state on the reference trajectory at a given ε. Used to test functions at specific ε without a full simulation, and as the baseline a simulated trajectory's divergence is measured against.
 
 ```python
 from hours_eoh.core.trajectory import canonical_physical_state
@@ -20,13 +20,13 @@ state = canonical_physical_state(0.40)
 ```
 
 !!! note "Real simulations pass actual state"
-    `canonical_physical_state(ε)` is the *ideal-arc reference* for a civilization that invests optimally. Real simulations track actual capital stock, ecosystem health, etc. Divergence from canonical is the point of modeling.
+    `canonical_physical_state(ε)` is the *reference arc*. Real simulations track actual capital stock, ecosystem health, etc. Divergence from canonical is the point of modeling.
 
 ---
 
 ## `canonical_age_distribution(epsilon)` → `dict[str, float]`
 
-Ideal-arc age distribution at ε.
+Age distribution on the canonical arc. **Independent of ε**: the former drift from children toward elders as ε rises is retired, and `epsilon` is kept only so existing callers do not break.
 
 ---
 
@@ -47,4 +47,4 @@ Currently ε is often set exogenously. The architecture supports endogenous ε w
 
 ## `effective_capital_from_epsilon(capital_stock_at_eps0, epsilon)` → `float`
 
-Expected capital stock at ε given starting capital at ε=0.
+Canonical capital stock at ε from an ε=0 baseline. Not equivalent to `canonical_physical_state(ε)["capital_stock_teh"]` — the two answer different questions; the function's docstring gives the distinction.

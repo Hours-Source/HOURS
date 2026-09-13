@@ -42,7 +42,7 @@ Entropy obligation from natural systems — what ecosystem degradation demands.
 
 Entropy obligation from information systems — skill atrophy, institutional memory, standard drift.
 
-**Arc:** Grows monotonically with ε, and is the fastest-growing domain on the canonical arc — though personal EOH remains the largest domain even at ε = 0.99 (`eoh arc --domain-shares`).
+**Arc:** Grows monotonically with ε, from almost nothing at subsistence to roughly a third of the obligation at ε = 0.99. It does not become dominant: personal EOH remains the largest domain across the whole arc (`eoh arc --domain-shares`).
 
 ---
 
@@ -69,9 +69,9 @@ print(eoh["total"])
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| `ecological_eoh_breakdown(ecosystem_health, …)` | `dict` | Decompose ecological EOH by service category |
-| `domain_labor_requirements(eoh_by_domain, epsilon, …)` | `dict` | Human labor requirements per domain |
-| `eoh_to_essential_domains(eoh_by_domain, …)` | `dict` | EOH allocation for Condition IV competency modeling |
+| `ecological_eoh_breakdown(ecosystem_health, …)` | `dict` | The terms that sum to `ecological_eoh()` — baseline, spike, visible deferred and thermal |
+| `domain_labor_requirements(eoh_by_domain, epsilon, …)` | `dict` | Headcount needed per domain: the human-labor share divided by annual hours per worker |
+| `eoh_to_essential_domains(eoh_by_domain, …)` | `dict` | The four EOH domains distributed across the seven essential workforce domains, for Condition IV |
 | `epsilon_delta_sensitivity(base_epsilon, delta_epsilon, …)` | `dict` | Sensitivity of EOH totals to Δε at a given point |
 
 ---

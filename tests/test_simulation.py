@@ -1173,3 +1173,29 @@ class TestTheEngineDoesNotRescaleItsOwnCorpus:
             assert charge_b / charge_a == pytest.approx(pre_b / pre_a, rel=1e-12), (
                 f"at ε={eps:.2f} the charge ratio {charge_b / charge_a:.6f} "
                 f"does not match the corpus ratio {pre_b / pre_a:.6f}")
+
+
+class TestRunSimulationReportsTheMultiplierItApplies:
+    """
+    `run_simulation` fell back to a literal 2.10 for periods without an explicit
+    multiplier and REPORTED it in `mean_multiplier_trajectory`, while every such
+    period was minted at `simulate_period`'s own default. Fixed 2026-09-12; this
+    pins the reported value to the applied one by comparing mints, not literals.
+    """
+
+    def test_fixed_m_run_reports_the_default_it_mints_at(self):
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+        r = run_simulation(_state(0.40), n_periods=2)
+        assert r["summary"]["mean_multiplier_trajectory"] == [
+            pytest.approx(MEAN_MULTIPLIER_REFERENCE)] * 2
+        _, explicit = simulate_period(_state(0.40),
+                                      mean_multiplier=MEAN_MULTIPLIER_REFERENCE)
+        assert r["period_results"][0]["teh_created"] == pytest.approx(
+            explicit["teh_created"])
+
+    def test_a_short_schedule_reports_the_default_for_the_remainder(self):
+        from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
+        r = run_simulation(_state(0.40), n_periods=3, mean_multiplier_schedule=[1.9])
+        m = r["summary"]["mean_multiplier_trajectory"]
+        assert m[0] == pytest.approx(1.9)
+        assert m[1:] == [pytest.approx(MEAN_MULTIPLIER_REFERENCE)] * 2

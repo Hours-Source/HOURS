@@ -71,7 +71,7 @@ These have historically been treated as free — no EOH accounting at all — wh
 
 The entropy of information systems. Skills atrophy. Institutional memory fades. Training becomes outdated. Software rots. Standards drift.
 
-At high automation, almost all remaining human contribution is knowledge maintenance, transmission, and judgment. This domain is the least obvious but becomes dominant as the other three are increasingly handled by machines. It is also the hardest to verify — unlike a repaired bridge or enriched soil, knowledge maintenance lacks straightforward physical indicators.
+At high automation, much of the remaining human contribution is knowledge maintenance, transmission, and judgment. This domain is the least obvious, and it grows as the other three are increasingly handled by machines — though it does not overtake personal EOH. It is also the hardest to verify — unlike a repaired bridge or enriched soil, knowledge maintenance lacks straightforward physical indicators.
 
 !!! note "Verification challenge"
     Admitting knowledge EOH to the collective ledger requires careful implementation to ensure verification standards are rigorous without being so burdensome that they discourage the labor the system most needs at high automation.

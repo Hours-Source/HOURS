@@ -37,7 +37,7 @@ KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
 class TestHumanEohShare:
 
     def test_full_at_zero_epsilon(self):
-        """At ε=0: all EOH requires human labor."""
+        """At ε=0 the split factor is 1: the result equals total EOH."""
         total = 1_000_000.0
         human = human_eoh_share(total, epsilon=0.0)
         assert human == pytest.approx(total)
@@ -54,7 +54,8 @@ class TestHumanEohShare:
         )
 
     def test_at_099(self):
-        """At ε=0.99: only 1% of total EOH requires human labor."""
+        """At ε=0.99 the split factor is 1% — not the human share, which the
+        automation floors keep many times higher (see `human_fraction`)."""
         total = 1_000_000.0
         human = human_eoh_share(total, epsilon=0.99)
         assert human == pytest.approx(total * 0.01)

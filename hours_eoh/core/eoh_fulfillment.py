@@ -75,12 +75,17 @@ def human_eoh_share(
     epsilon: float = 0.40,
 ) -> float:
     """
-    The portion of total EOH that requires human labor at this automation level.
+    Total EOH scaled by the uniform split factor (1 − ε).
 
-    At ε=0: all EOH fulfillment is human labor → human_eoh = total_eoh.
-    At ε=0.99: only 1% requires human labor; machines handle the rest.
+    **This is not the human share of the obligation.** Under the default
+    per-component automation response, personal components keep automation
+    floors, so the human share is higher — at ε=0.99 many times the 1% this
+    factor gives. Read `human_fraction` from `human_eoh_per_domain()` or
+    `eoh_to_teh_pipeline()` for the human share.
 
-    The relationship is linear: human_fraction = (1 - ε). This captures the
+    At ε=0 the factor is 1 → the result equals total_eoh.
+
+    The relationship is linear: factor = (1 - ε). This captures the
     clean substitution of automation for human labor across all EOH domains.
     The total entropy obligation (total_eoh) does not change — only who
     (or what) fulfills it changes.

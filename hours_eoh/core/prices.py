@@ -83,6 +83,9 @@ def domain_scarcity_multiplier(
     Returns:
         Scarcity multiplier ≥ 1.0. Pass as scarcity_factor to teh_price().
 
+    Adopted reading (transparency pass, 2026-08-15): the quotation below holds
+    for the FLOOR price only; prices above the floor are discovered.
+
     Reference: Mission Statement §"Prices tell you how much human life went
     into making something" — under scarcity, the signal must be amplified to
     direct labor toward unfulfilled obligations.
@@ -135,6 +138,9 @@ def teh_price(
     Example: A loaf of bread requires 0.1 hours of human labor at ε=0 with
     mean_multiplier=2.0 → floor price = 0.2 TEH. At ε=0.80: floor price = 0.2 × 0.20
     = 0.04 TEH (clipped to floor if needed).
+
+    Adopted reading (transparency pass, 2026-08-15): the first quotation holds
+    for the FLOOR price only; prices above the floor are discovered.
 
     Reference: Mission Statement §"Prices tell you how much human life went
     into making something"; §"Phase 3.2 — teh_price(good, human_labor_content, ε)";

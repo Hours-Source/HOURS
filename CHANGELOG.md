@@ -9,6 +9,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+**Flagged cleanup after the docs pass (2026-09-12)**
+- `eoh dashboard` no longer invents its accounts. The ledger, the Trust and the
+  EOH totals were built from literals (destroyed = 0.85 × created, expenditure =
+  0.90 × earnings, total EOH = population × base × 1.5), so Conditions I and III
+  passed by construction. EOH now comes from the pipeline and the ledger and
+  Trust from one simulated period on the same frame; the certified competency
+  share, which nothing tracks, is declared and printed (`--certified-fraction`).
+  No status changed at any reference ε.
+- `run_simulation` reported a 2.10 multiplier for periods it minted at
+  `simulate_period`'s own default.
+- `corridor_is_usable(cadence="continuous")` still described the cadence as
+  undecided; its note now reads the crossover and the analogue disagreement live.
+- API pages for prices, multipliers, trajectory, conditions, simulation, EOH
+  generation and fulfilment corrected against the docstrings; knowledge EOH no
+  longer claimed to become dominant (personal stays the largest domain), and
+  personal registration no longer claimed to approach 1.0.
+- `guf_framework.md` describes the shipped per-parcel term and the ×100 use-rate
+  scaling beside the NLSA specification.
+
 ### Changed
 
 **The signed-off transparency pass reaches the front pages (2026-09-12)**

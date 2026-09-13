@@ -1034,8 +1034,11 @@ def corridor_is_usable(
          reported. A value inside the band but with an error bar wider than its
          margin has not been shown to be inside it.
 
-    All three must hold. **Today condition 1 is unmet, so 3 is undeterminable
-    and the verdict is `open_edges` — which is the honest state, computed.**
+    All three must hold. **On the shipped episodic cadence condition 1 closes
+    by declaration — every episodic regime is measured and fits — and the
+    verdict is `closed_and_usable`. A CONTINUOUS register below its
+    affordability crossover leaves condition 1 unmet, 3 undeterminable, and
+    the verdict `open_edges`.** Both are computed, not asserted.
 
     This is also where the verdict ladder bites: the corridor's edges are
     arithmetic on measured censuses, so they are statable; the multiple is
@@ -1081,6 +1084,11 @@ def corridor_is_usable(
         widened = registrant_multiple * multiple_error_factor
         inside = widened < tightest["binding_multiple"]
 
+    # Read live for the closure note, so it cannot outlive the numbers it cites.
+    _crossover = (cadence_check.get("affordable_from_epsilon") or {}).get(
+        "continuous_human")
+    _disagreement = float(registrant_analogues(scope)["disagreement_factor"])
+
     conditions = {
         "1_multiple_is_measured": measured,
         "2_bounded_by_independent_instruments": bounded,
@@ -1101,18 +1109,21 @@ def corridor_is_usable(
         "binding_bound":    tightest["binding_bound"],
         "verdict":          "closed_and_usable" if closed else "open_edges",
         "what_would_close_it": (
-            "A registrant multiple measured for a FULFILMENT register — the "
-            "Standard Cost Model's `time` term, hours per fulfilment record. "
-            "Two adjacent analogues now exist and they DISAGREE BY ~115-290x "
-            "(see `registrant_analogues`): time diaries put it at 0.15-0.38x, "
-            "inside the corridor with room; US tax compliance puts it at ~43x, "
-            "which breaks three of four configurations. They land on opposite "
-            "sides of the whole band, so having two is not closer to having "
-            "one - what decides between them is whether the register records "
-            "CONTINUOUSLY (diary-visible) or EPISODICALLY (diary-invisible), "
-            "which is a design question the framework has not answered. "
-            "Condition 2 is met (three independent instruments bound the "
-            "band); 3 cannot be evaluated until 1 is."
+            f"The register is declared {cadence.upper()}, and no regime of that "
+            f"cadence fits the labour headroom: human-performed continuous "
+            f"recording is affordable only "
+            + (f"from ε≈{_crossover:.2f}" if _crossover is not None
+               else "nowhere on the arc")
+            + " (`cadence_feasibility`). Two things close it. Declare an "
+            "EPISODIC cadence — the shipped default, on which the corridor "
+            "closes — or supply a registrant multiple measured for a "
+            "FULFILMENT register: the Standard Cost Model's `time` term, hours "
+            "per fulfilment record. The two adjacent analogues cannot stand in "
+            f"for that: they DISAGREE BY ~{_disagreement:.0f}x "
+            "(see `registrant_analogues`) and land on opposite sides of the "
+            "band, because one sees CONTINUOUS recording and the other "
+            "EPISODIC. Condition 2 is met (three independent instruments bound "
+            "the band); 3 cannot be evaluated until 1 is."
             if not measured else
             "Nothing — all three conditions hold."
             if closed else

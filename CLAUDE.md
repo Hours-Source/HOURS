@@ -229,7 +229,7 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
 
 ### Key design invariants
 
-**ε range `[0.0, 0.99]`**: ε=0 is subsistence — personal EOH mostly off-ledger, TEH barely circulates. ε=0.99 is effective post-scarcity — prices collapsed, human labor near-zero. All functions must produce meaningful output across the full range.
+**ε range `[0.0, 0.99]`**: ε=0 is subsistence — personal EOH mostly off-ledger, TEH barely circulates. ε=0.99 is effective post-scarcity — floor prices collapsed, human labor a small share (small, not zero: care keeps automation floors). All functions must produce meaningful output across the full range.
 
 **Physical state drives EOH generation; ε drives fulfillment**: Generation functions (`personal_eoh`, `infrastructure_eoh`, `ecological_eoh`, `knowledge_eoh`, `total_eoh`) take physical state. They do not use ε to proxy unspecified physical assumptions — that encodes hidden state and prevents modeling divergent trajectories (e.g., fast automation with low capital investment).
 
@@ -502,7 +502,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,673 tests passing (1 skipped), mypy clean on 101 source files** (verified
+**4,678 tests passing (1 skipped), mypy clean on 101 source files** (verified
 2026-09-12). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

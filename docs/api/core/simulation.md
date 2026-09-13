@@ -8,7 +8,7 @@ Period-by-period simulation of the EOH/TEH economy. Tracks the full physical sta
 
 ## `make_economy_state(epsilon, …)` → `dict`
 
-Creates an initial economy state for simulation. Initializes all state variables from canonical physical state at ε.
+Creates an initial economy state for simulation: every quantity that persists between periods. Fields left unsupplied take the function's defaults — the capital stock, knowledge complexity and monitoring capability from the canonical arc at ε, the rest from fixed defaults. Per-period inputs such as levy rates are passed to `simulate_period()` rather than stored in the state.
 
 ```python
 from hours_eoh.core.simulation import make_economy_state
@@ -22,14 +22,17 @@ state = make_economy_state(epsilon=0.30)
 
 Advances the economy by one period from the ε carried in `state`. Per-period
 inputs (growth and degradation rates, levy rates, `epsilon_delta`) are keyword
-arguments, not state. Applies:
+arguments, not state. Applies, in causal order:
 
-1. EOH generation from current physical state
-2. EOH fulfillment pipeline (machine/human split, registration, TEH creation)
-3. Fiscal mechanics (levy collection, Trust allocations, sufficiency guarantee)
-4. TEH destruction mechanisms (D1–D6)
-5. Capital aging and potential write-down trigger
-6. Population aging
+1. Population grows or shrinks by the growth rate
+2. Capital ages, and grows through investment
+3. Ecosystem degrades or restores, and deferred ecological EOH accumulates
+4. The EOH → TEH pipeline (machine/human split, registration, TEH creation)
+5. Fiscal mechanics (levies, stewardship, the sufficiency guarantee, the Trust balance)
+6. TEH destruction (see the table below)
+7. State update: ε advances and cumulative TEH is carried forward
+
+The period does not mutate `state`; it returns a fresh one.
 
 Returns `(next_state, period_result)`.
 
@@ -68,15 +71,15 @@ python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 0.
 
 ## TEH Lifecycle in the Simulation
 
-The simulation engine explicitly models all six destruction mechanisms:
+Each destruction mechanism is switched by a keyword argument of `simulate_period()`:
 
-| Period event | D# | Function |
-|---|---|---|
-| Capital write-down | D1 | `execute_writedown()` when `writedown_trigger()` fires |
-| Income-driven consumption | D2 | Applied to all income above floor |
-| Biology-anchored consumption | D3 | Applied to biological consumption events |
-| CPI basket delivery | D4 | `cpi_goods_destruction()` |
-| Death events | D5 | `estate_dissolution()` |
-| Accumulation ceiling | D6 | `accumulation_ceiling_commitment()` |
+| Period event | D# | How the period applies it | Default |
+|---|---|---|---|
+| Capital write-down | D1 | A failure rate on the capital stock, reduced as monitoring improves — an aggregate proxy, not `execute_writedown()` per asset | always on |
+| Income-driven consumption | D2 | A consumption rate on period income (net wages plus the Trust dividend), falling as purchasing power rises | on, unless `use_d3=True` |
+| Biology-anchored consumption | D3 | On-ledger personal EOH converted to baskets at the basket price | `use_d3=False` |
+| Capital-delivered services | D4 | `cpi_goods_destruction()` | `use_cpi_destruction=True` |
+| Death events | D5 | `estate_dissolution()`; the estate levy returns to the Trust | `use_estate_dissolution=True` |
+| Accumulation ceiling | D6 | `accumulation_ceiling_commitment()` — commits the excess to capital formation rather than destroying it | `use_accumulation_ceiling=False` |
 
 Levy collection and Trust spending are circulatory (TEH redirected, not destroyed).

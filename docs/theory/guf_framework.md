@@ -54,6 +54,20 @@ where:
 
 The product `A(p) × L(p) × U(p,ε) × D(p) × Z(p)` constitutes the Base Fee, denominated in TEH per year. The terms E(p,ε) and I(p,ε) are additive surcharges, also in TEH per year.
 
+!!! note "The shipped equation adds a per-parcel term"
+    The code implements Eq. 1 with the Ψ policy made explicit and one term added:
+
+    ```
+    GUF(p) = max[ floor, (Ψ_b·Base + Ψ_e·E + Ψ_i·I) × Ω(p) + P(ε) ]
+    P(ε)   = parcel_rate × α(ε)
+    ```
+
+    - **(Ψ_b, Ψ_e, Ψ_i)** are set by the Ψ policy. Under the default they are all 1 (§4.2); under `bell` they are all Ψ(ε), which is exactly Eq. 1.
+    - **P(ε)** is a flat charge per parcel, so a collective's total follows its parcel count as well as its area. Less than half of the measured hours of servicing land follow area; much of the rest follows the number of parcels — deeds, assessments, inspections, refuse rounds — which an area-only fee cannot express. Subdividing a hectare therefore costs more, because subdivision genuinely creates that work.
+    - The rate is measured from the servicing census and is a **lower bound**.
+    - P sits **outside Ω** (a half-occupied parcel is still one parcel), never carries Ψ (α already carries its ε-response), and applies only where L(p) > 0, so a parcel with no location value still pays exactly zero.
+    - Setting `parcel_rate = 0` recovers Eq. 1.
+
 ## 1.2 Dimensional Analysis
 
 A(p): SLU. L(p): dimensionless. U(p,ε): TEH/(SLU×year). D(p), Z(p): dimensionless (baseline 1.0). E(p,ε), I(p,ε): TEH/year. Ψ(ε): dimensionless. Ω(p): dimensionless (0 to 1).
@@ -142,6 +156,9 @@ U(p,ε) = U_ref(p) × α(ε)    (Eq. 9)
 | Conservation Overlay | −0.02 to −0.10 | Credit for maintained ecological function |
 
 The Conservation Overlay carries a negative coefficient. If the credit drives the total below the GUF floor, the fee is clamped at the floor; rewards beyond the floor are disbursed separately from the Trust.
+
+!!! note "The shipped rates are a hundred times this table"
+    The table gives the NLSA reference rates. The code ships each at **a hundred times** these values (`GUF_USE_SCALE_FACTOR`), a scaling retained from the NLSA template and not yet re-derived. Measured against the census of the work that servicing land actually takes, the realised fee sits close to that census on rural land and well above it on urban land — and part of the urban gap is the fee's single scaling basis rather than its level, which is what the per-parcel term (§1.1) begins to address. The ten use ratios remain an open item.
 
 ## 2.4 Demand Pressure Modifier — D(p)
 

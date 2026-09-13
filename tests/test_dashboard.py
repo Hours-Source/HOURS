@@ -558,3 +558,82 @@ class TestSystemDashboardExitFinanceable:
             bad = system_dashboard(**kwargs, chi=0.2, exit_financeable=False)
             assert ok["contestability_status"] == "GREEN", f"at ε={eps}"
             assert bad["contestability_status"] == "RED", f"at ε={eps}"
+
+
+class TestTheCliAssemblyIsComputedNotInvented:
+    """
+    `utils/dashboard_cmd._build_kwargs` fed the dashboard stand-ins until
+    2026-09-12: destroyed = 0.85 × created, Trust expenditure = 0.90 × earnings,
+    total EOH = population × base × 1.5. Conditions I and III passed by
+    construction and the EOH indicators read a total the model does not
+    produce. These pin that each account now comes from the function that
+    computes it, on the frame the command states — and that the one input
+    nothing tracks is declared and actually moves Condition IV.
+    """
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @staticmethod
+    def _frame(eps):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        return dict(eps=eps, population=1_000_000.0, trust_balance=TRUST_BASE_TEH,
+                    capital_stock=resolve_capital_stock(None, eps),
+                    ecosystem_health=0.70)
+
+    def test_the_eoh_total_is_the_pipelines(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from utils.dashboard_cmd import _build_kwargs
+        p = EohParams()
+        for eps in self.ARC:
+            f = self._frame(eps)
+            kw = _build_kwargs(**f)
+            pipe = eoh_to_teh_pipeline(
+                eps, population=f["population"], capital_stock=f["capital_stock"],
+                capital_age_ratio=float(p["capital_age_ratio"]),
+                ecosystem_health=f["ecosystem_health"])
+            assert kw["total_eoh"] == pytest.approx(pipe["total_eoh"]), f"at ε={eps}"
+            assert kw["total_eoh"] != pytest.approx(
+                f["population"] * PERSONAL_EOH_BASE * 1.5), f"stand-in total at ε={eps}"
+
+    def test_the_trust_accounts_are_a_simulated_periods_and_close(self):
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        from utils.dashboard_cmd import _build_kwargs
+        p = EohParams()
+        for eps in self.ARC:
+            f = self._frame(eps)
+            kw = _build_kwargs(**f)
+            _, period = simulate_period(make_economy_state(
+                epsilon=eps, population=f["population"],
+                trust_balance=f["trust_balance"], capital_stock_teh=f["capital_stock"],
+                capital_age_ratio=float(p["capital_age_ratio"]),
+                ecosystem_health=f["ecosystem_health"],
+                workforce_fraction=float(p["workforce_fraction"])))
+            trust = period["fiscal"]["trust"]
+            assert kw["expenditures"] == pytest.approx(trust["dividend"]), f"at ε={eps}"
+            assert kw["expenditures"] != pytest.approx(0.90 * kw["earnings"])
+            # The balance identity closes on the simulated Trust — not by the
+            # command computing balance_end from its own earnings.
+            assert kw["balance_end"] == pytest.approx(trust["trust_end"])
+            assert kw["balance_start"] + kw["earnings"] - kw["expenditures"] == \
+                pytest.approx(kw["balance_end"], rel=1e-12), f"at ε={eps}"
+
+    def test_the_ledger_is_cumulative_and_not_a_fixed_ratio(self):
+        from utils.dashboard_cmd import _build_kwargs
+        ratios = []
+        for eps in self.ARC:
+            kw = _build_kwargs(**self._frame(eps))
+            assert kw["teh_created"] - kw["teh_destroyed"] == \
+                pytest.approx(kw["teh_observed"], rel=1e-9, abs=1e-3)
+            ratios.append(kw["teh_destroyed"] / kw["teh_created"])
+        assert len({round(r, 6) for r in ratios}) > 1, (
+            "destroyed/created is identical across the arc — a fixed stand-in ratio")
+
+    def test_the_declared_certified_fraction_moves_condition_iv(self):
+        """Can it fire AND can it not fire (failure mode 9)."""
+        from utils.dashboard_cmd import _build_kwargs, DECLARED_CERTIFIED_FRACTION
+        f = self._frame(0.40)
+        declared = system_dashboard(**_build_kwargs(**f))
+        low = system_dashboard(**_build_kwargs(**f, certified_fraction=0.05))
+        assert DECLARED_CERTIFIED_FRACTION > COMPETENCY_THRESHOLD
+        assert declared["condition_iv"]["passes"] is True
+        assert low["condition_iv"]["passes"] is False

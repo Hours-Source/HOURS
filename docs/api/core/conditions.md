@@ -10,23 +10,23 @@ These modules form the structural integrity layer. `conditions.py` enforces the 
 
 ### `condition_i_check(teh_created, teh_destroyed, teh_observed, …)` → `dict`
 
-Verifies the Ledger Identity: `teh_supply = teh_created − teh_destroyed`. Returns pass/fail with the computed gap.
+Verifies the Ledger Identity: TEH in circulation equals cumulative creation minus cumulative destruction. A gap means TEH was created outside the fulfillment pipeline or destroyed by a mechanism other than terminal consumption or capital write-down.
 
 ### `condition_ii_check(mean_multiplier, …)` → `dict`
 
-Verifies the Multiplier Band: population-weighted mean is within `[band_min, band_max]` and targeting the ideal.
+Verifies the Multiplier Band: the population-weighted mean is within `[band_low, band_high]`. Delegates to `multipliers.multiplier_band_check()`.
 
 ### `balance_check(balance_start, earnings, expenditures, balance_end, …)` → `dict`
 
-Verifies Condition III compliance for a single balance — that it grew only through income, not passive accumulation.
+Verifies Condition III for one balance: `B(t+Δt) = B(t) + E − X`, with no third term.
 
 ### `condition_iii_balance_growth_check(prev_balance, new_balance, labor_income, expenditure, …)` → `dict`
 
-Verifies the Zero Interest condition over a history of balances and incomes.
+The same zero-interest invariant for a single period, stated as a balance delta: the only valid source of growth is labor income minus expenditure.
 
 ### `condition_iv_check(workforce, competent_workers, …)` → `dict`
 
-Verifies Distributed Competency: the workforce reserve fraction meets the threshold and essential domains are covered.
+Verifies Distributed Competency: the share of the workforce with certified competency across essential domains meets the recommended threshold (15.5%).
 
 ```python
 from hours_eoh.core.conditions import condition_iv_check
@@ -45,7 +45,7 @@ Single-call all-conditions check at ε.
 
 ### `domain_eoh_coverage(reserve_result, domain_eoh_demands, …)` → `dict`
 
-Per-domain EOH coverage ratios — what fraction of each domain's EOH is being fulfilled.
+Whether the certified workforce can actually cover each domain's EOH. Condition IV checks certified fractions, not capacity: a domain whose EOH has outgrown its certified workers passes Condition IV and is still in shortfall, and this is the check that sees it.
 
 ---
 
@@ -53,15 +53,15 @@ Per-domain EOH coverage ratios — what fraction of each domain's EOH is being f
 
 ### `eoh_health_indicators(total_eoh, fulfilled_eoh, epsilon, …)` → `dict`
 
-EOH-side health metrics: deferred ratio, domain balance, compounding risk.
+EOH-side health: the deferred-maintenance ratio, the compounding rate of the deferred backlog, registration coverage, and the personal registration share.
 
 ### `fiscal_health_check(trust_balance, labor_income, capital_stock_teh, capital_age_ratio, population, floor_teh, epsilon, …)` → `dict`
 
-Fiscal health metrics: Trust solvency, sufficiency guarantee coverage, levy-to-guarantee ratio.
+Fiscal health: Trust solvency (can it fund stewardship and the guarantee together), the floor purchasing-power index, and levy sufficiency against the guarantee.
 
 ### `system_dashboard(epsilon, teh_created, teh_destroyed, teh_observed, balance_start, earnings, expenditures, balance_end, certified_by_domain, workforce_size, total_eoh, fulfilled_eoh, trust_balance, labor_income, capital_stock_teh, capital_age_ratio, population, floor_teh, …)` → `dict`
 
-Comprehensive system health snapshot. All four Structural Conditions, EOH health, fiscal health, pricing arc validity.
+Comprehensive system health snapshot: all four Structural Conditions, EOH health and fiscal health in one report. The overall status is the worst of the individual statuses.
 
 `system_dashboard()` takes the period's accounts as keyword arguments — TEH
 created, destroyed and observed, the Trust's opening and closing balance, the
@@ -73,17 +73,12 @@ it assembled is the CLI:
 python3 utils/eoh_cli.py dashboard --epsilon 0.40
 ```
 
-**Read the CLI's assembly as a demonstration, not a measurement.** Several of the
-accounts it passes are stand-ins built inside `utils/dashboard_cmd.py` rather
-than tracked quantities. For a real collective, pass your own ledger figures.
+**Read the CLI's assembly as a demonstration on the reference frame, not a
+measurement of a collective.** Its EOH accounts come from the pipeline, and its
+ledger and Trust accounts from one simulated period on the same frame. One input
+is declared rather than tracked — the certified share of the workforce, which
+nothing in the package measures (`--certified-fraction`) — and the command prints
+it as declared. For a real collective, pass your own ledger figures.
 
 !!! important "The dashboard is the constitution's test bench"
     Green means every check it runs passes on the accounts it was given — not that the system works. A yellow or red reading is reported, never tuned away. See [Design Principle 8](../../theory/design_principles.md#8-the-code-is-the-constitutions-test-bench).
-
----
-
-The dashboard CLI mirrors this:
-
-```bash
-python3 utils/eoh_cli.py dashboard --epsilon 0.40
-```

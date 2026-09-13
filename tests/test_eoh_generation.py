@@ -183,7 +183,7 @@ class TestEcologicalEoh:
 class TestKnowledgeEoh:
 
     def test_grows_with_epsilon(self):
-        """Knowledge EOH becomes dominant at high ε."""
+        """Knowledge EOH grows with ε (it does not overtake personal EOH)."""
         eoh_0  = knowledge_eoh(None, epsilon=0.0)
         eoh_40 = knowledge_eoh(None, epsilon=0.40)
         eoh_90 = knowledge_eoh(None, epsilon=0.90)
