@@ -26,7 +26,7 @@ If a function cannot answer the arc question — if it produces discontinuities,
 
 An economy is the organized effort of a civilization to resist entropy — in its people, in its infrastructure, in its ecosystems, and in its knowledge. Every person needs food, shelter, and care. Every building decays. Every ecosystem drifts toward depletion without stewardship. Every skill atrophies, every institution forgets, every standard drifts. The work of civilization is holding all of this together against the constant pull of disorder.
 
-Labor is not the point of the economy. Labor is what entropy demands. The point is survival, maintenance, and eventually flourishing. Currency, in this framework, records one thing — the verified entropy-resistance a person has contributed — and shows the work behind every entry. It does not claim to measure what that contribution is worth: the framework computes a floor, and exchange discovers everything above it.
+Labor is not the point of the economy. Labor is what entropy demands. The point is survival, maintenance, and eventually flourishing. Currency, in this framework, records one thing — the verified entropy-resistance a person has contributed — and shows the work behind every entry. It does not claim to measure what that contribution is worth: the framework computes a floor, and exchange discovers everything above it. Machines fulfill obligations too, but only registered human fulfillment is minted — human labor is the bridge between obligation and money (see [EOH Accounting](eoh_accounting.md#eoh-as-demand-signal)).
 
 ---
 
@@ -34,7 +34,7 @@ Labor is not the point of the economy. Labor is what entropy demands. The point 
 
 Entropy is measured in time. Systems degrade over time. Biological needs recur on time cycles. Maintenance is scheduled in time. The hour is not arbitrary: it is the unit the phenomenon recurs in. It is still a choice — made because anyone can audit an hour against a clock, not a truth the physics forces. What makes it defensible is that the choice, and everything built on it, is shown.
 
-One TEH represents one hour of verified human contribution to the collective resistance of entropy.
+One TEH represents one base-tier hour of verified human contribution to the collective resistance of entropy. An hour of higher-tier work mints at its multiplier, so TEH counts weighted hours, not clock hours (see [EOH Accounting](eoh_accounting.md#eoh-as-demand-signal)).
 
 ---
 
@@ -48,4 +48,4 @@ This means the entire arc of economic development is humanity's progressive libe
 
 ---
 
-*Next: [The ε Arc](epsilon_arc.md) — the transition curve in detail.*
+*Next: [Prior Art and Inherited Limitations](prior_art.md) — what earlier labor-currency schemes died of, and what this framework does instead.*

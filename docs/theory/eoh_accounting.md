@@ -4,7 +4,9 @@
 
 EOH are not currency. They are the unit of measurement for the labor demand that physical reality generates. Every element of the capital stock — including every living person — generates EOH continuously through the action of entropy.
 
-When a worker fulfills an entropy obligation that has been registered in the collective ledger, the EOH is retired and real TEH is created through verified labor.
+EOH measures the obligation physics generates; the register decides which of it the collective recognizes. Machines and people both fulfill it, but only registered human fulfillment is minted: TEH is that fulfillment, recorded at its multiplied rate. **Human labor is the bridge between obligation and money.**
+
+Two gates stand on that bridge, and they move in opposite directions along the arc. Machine-fulfilled EOH never mints, so as automation takes a larger share, less of the obligation passes through human hands. And human fulfillment mints only if it is registered: cooking your own dinner resists entropy just as a paid meal does, but it is off the ledger and creates nothing. Registration widens as ε rises while the human share narrows, so the TEH minted is not a simple function of automation — through most of the arc it grows, because more of the shrinking human work is admitted to the ledger, and it falls only late in the arc, when the human share is small enough to outweigh that. When a registered obligation is fulfilled, the EOH is retired and TEH is created through verified labor.
 
 **EOH measures what the world needs. TEH measures what a worker earns for providing it.**
 
