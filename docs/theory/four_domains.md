@@ -15,7 +15,7 @@ A newborn is the highest-EOH-density event in the system: maximum personal entro
 **Arc behavior:**
 
 - At ε = 0: This domain consumes nearly all labor; nearly all of it is private and off-ledger.
-- At ε = 1: Personal EOH is fully on the collective ledger and entirely fulfilled by automated systems.
+- At high ε: Personal EOH is largely on the collective ledger and mostly machine-fulfilled — but not entirely. Care and nutrition keep automation floors, so a human share remains whatever machines can do, and observable ε does not reach 1.
 
 ### Survival core and entitlement augmentation
 
@@ -58,6 +58,8 @@ These have historically been treated as free — no EOH accounting at all — wh
 
 **Arc behavior:** Ecological EOH exists independently of automation level. Neglecting it accumulates as deferred obligation with nonlinear threshold failures.
 
+**Where it is carried.** Since the Phase 4e/4f partition (2026-08-28/29) the *recurring* ecological cost — the standing obligation of land at reference condition and its response to degradation — is carried by the Ground Use Fee, where it scales with land held. The domain itself carries the ecological **stocks**: deferred obligation, the thermal obligation and the restoration obligation. With no stock supplied it reads zero, which is an assignment of the cost, not its absence.
+
 !!! note "GUF connection"
     When ecological degradation occurs at the parcel level, the Ground Use Fee framework handles the fiscal response via either a restoration pathway (V_s baselines reset to recovery target) or an abandonment pathway (rebuilding surcharge added). See [Ground Use Fee Framework](guf_framework.md) and NLSA §9.
 
@@ -74,7 +76,7 @@ At high automation, almost all remaining human contribution is knowledge mainten
 !!! note "Verification challenge"
     Admitting knowledge EOH to the collective ledger requires careful implementation to ensure verification standards are rigorous without being so burdensome that they discourage the labor the system most needs at high automation.
 
-**Arc behavior:** This domain's share of total EOH grows monotonically with ε. At ε = 0.99 it is effectively the only remaining source of human EOH obligation.
+**Arc behavior:** This domain's share of total EOH grows monotonically with ε, faster than any other. Personal EOH — care above all — nonetheless remains the largest domain even at ε = 0.99.
 
 **Code:** `hours_eoh/core/eoh_generation.py` → `knowledge_eoh()`
 

@@ -1,36 +1,32 @@
 """
-Every figure the anchor comparison page quotes, emitted from the functions.
+Every figure the anchor comparison page rests on, emitted from the functions.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHY THIS EXISTS. `notes/anchor_comparison_draft.md` hand-copies every number it
-states from a function that computes it. That is failure mode 13 — the drift this
-repo has caught more often than any other — and on this page it is not
-hypothetical: the verification-cost figures were published on 2026-09-08 and were
-wrong by 2026-09-10, twice over. An earlier header guessed the page would go
-stale "within weeks"; the measured interval is two days.
+WHY THIS EXISTS. The anchor comparison page (`docs/theory/anchor_comparison.md`)
+states results computed elsewhere. Restating a derived figure in prose is failure
+mode 13 — the drift this repo has caught more often than any other — and on this
+page it was not hypothetical: the verification-cost figures were written on
+2026-09-08 and were wrong by 2026-09-10, twice over.
 
-**THE PAGE CANNOT BE GATED WHERE IT LIVES.** `tests/test_claims_register.py`
-checks CLAUDE.md and `record/*.md` because those are in the repo. `notes/` is
-gitignored, so no test in `tests/` can read the draft. That is the real shape of
-the blocker: the page has no regeneration path AND no gate, and it cannot have a
-gate until it lands in `docs/`.
+**SO THE PAGE NOW QUOTES SHAPES, AND THIS MODULE HOLDS THE NUMBERS.** Where a
+figure is calibration, the page describes its shape and names the function; this
+emitter is where the current value lives, keyed, with the sentence it supports.
+Where a figure is STRUCTURAL — a designed zero, an exact unit elasticity, a
+verdict string, the set of anchors holding all three properties — the page may
+state it, and `tests/test_anchor_page_figures.py` reads the published page and
+checks the statement against this dict.
 
-So this module is the half that can exist now. It emits the figures as a keyed
-dict with the call that produced each one, so:
+History: until 2026-09-12 the page lived in gitignored `notes/` and could not be
+gated at all. It moved to `docs/` on publication, which is what made the page
+checks possible.
 
-  - the draft can be checked against it by hand today (`--check` diffs a pasted
-    figure block against the live values);
-  - `--markdown` emits the block to paste, so a revision is a regeneration
-    rather than a transcription;
-  - when the page moves to `docs/theory/anchor_comparison.md`, a claims-register
-    entry reads THIS dict rather than re-deriving the numbers, and the gate
-    becomes a three-line addition instead of a project.
+  - `python3 utils/anchor_page_figures.py` prints the current values;
+  - `--markdown` emits them as a table beside the sentence each supports.
 
 **REPORTING ONLY.** Nothing here changes a shipped number; it re-presents what
 the scenario and research layers already compute. Every entry names the call, so
-a reader can run it rather than trust this file — which is the same discipline
-the page itself is trying to keep.
+a reader can run it rather than trust this file.
 
 Layer: utils/ — imports freely, imported by nothing.
 """
@@ -43,19 +39,27 @@ from typing import Any, Callable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from hours_eoh.core.eoh_fulfillment import (
+    eoh_to_teh_pipeline,
+    observable_epsilon_ceiling,
+)
+from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.research.anchor_determinacy import (
     determinacy_table,
     hours_shock_response,
     registration_leverage,
 )
+from hours_eoh.scenarios.labour_epsilon import instrument_comparison
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 from hours_eoh.scenarios.verification_cost import (
     PEAK_SEARCH_POINTS,
-    registrant_scope_sensitivity,
+    cadence_feasibility,
+    corridor_is_usable,
     verification_arc,
     verification_crossover,
     verification_hours_us,
 )
+from utils import provenance as pv
 
 __all__ = ["FIGURES", "figures", "as_markdown"]
 
@@ -66,29 +70,24 @@ def _verification_peak(scope: str) -> float:
     return max(r["verification_over_obligation"] for r in rows)
 
 
-def _scope_sensitivity(scope: str, key: str) -> Any:
-    # 40x is the ONE multiple that compares in matching units (registrant
-    # workers against apparatus workers). It is a transferred judgement from a
-    # single adversarial, money-denominated case with a 7.7x error bar of its
-    # own, and `registrant_scope_sensitivity` refuses to default it. Passing it
-    # HERE, at the presentation layer, is the right place for a judgement the
-    # page is making out loud.
-    return registrant_scope_sensitivity(40.0, scope=scope)[key]
+def _debt_share() -> float:
+    d = pv.debt_summary(pv.load())
+    return (d.bounded + d.placeholder) / d.total
 
 
 #: figure key -> (how to compute it, what the page says it is).
-#: The second element is the SENTENCE the number appears in, not a restatement
-#: of the number — mode 13 says the drift is in the prose, so the prose is what
-#: has to travel beside the call.
+#: The second element is the SENTENCE the number supports, not a restatement of
+#: the number — mode 13 says the drift is in the prose, so the prose is what has
+#: to travel beside the call.
 FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
-    # §3.1 / §5.2 / §6 / §7 — verification cost
+    # §3.1 / §5.1 / §6 / §7 — the verification apparatus
     "verification_peak_core": (
         lambda: _verification_peak("core"),
-        "the apparatus peaks at this share of the obligation, narrow scope",
+        "the apparatus peaks at a low single-digit percentage of the obligation, narrow scope",
     ),
     "verification_peak_broad": (
         lambda: _verification_peak("broad"),
-        "the apparatus peaks at this share of the obligation, broad scope",
+        "the apparatus peaks at a low single-digit percentage of the obligation, broad scope",
     ),
     "verification_peak_epsilon": (
         lambda: verification_crossover(basis="per_registered")["peak_epsilon"],
@@ -112,22 +111,27 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: verification_hours_us("broad")["workers"],
         "measured headcount, broad scope",
     ),
-    # The conditional — apparatus PLUS a transferred registrant multiple
-    "scope_sensitivity_core_peak": (
-        lambda: _scope_sensitivity("core", "combined_peak"),
-        "narrow scope at the 40x registrant multiple — does NOT cross",
+    # §6 / §7 — the registrant side, priced by the declared cadence
+    "corridor_verdict_shipped_default": (
+        lambda: corridor_is_usable()["verdict"],
+        "on the shipped episodic cadence the corridor is closed and usable",
     ),
-    "scope_sensitivity_broad_peak": (
-        lambda: _scope_sensitivity("broad", "combined_peak"),
-        "broad scope at the 40x registrant multiple — DOES cross",
+    "corridor_verdict_continuous": (
+        lambda: corridor_is_usable(cadence="continuous")["verdict"],
+        "a continuous register leaves the corridor with open edges",
     ),
-    "scope_sensitivity_broad_crossover": (
-        lambda: _scope_sensitivity("broad", "crossover_epsilon"),
-        "the epsilon at which the broad-scope conditional crosses",
+    "verification_headroom_share_at_subsistence": (
+        lambda: cadence_feasibility()["headroom_share_of_obligation"],
+        "the labour headroom for verification at subsistence, as a share of the obligation",
     ),
-    "scope_sensitivity_core_crosses": (
-        lambda: _scope_sensitivity("core", "crosses"),
-        "narrow scope does not cross even at 40x — both verdicts are live",
+    "episodic_regimes_that_fit": (
+        lambda: cadence_feasibility()["regimes_that_fit"],
+        "every episodic regime fits inside that headroom",
+    ),
+    "continuous_human_affordable_from_epsilon": (
+        lambda: cadence_feasibility(cadence="continuous")
+        ["affordable_from_epsilon"]["continuous_human"],
+        "human-performed continuous recording becomes affordable only from mid-arc",
     ),
     # §4 — the shock table
     "shock_labour_minting": (
@@ -136,7 +140,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
     ),
     "shock_capital_obligation": (
         lambda: hours_shock_response()["shocks"]["capital_halves"]["obligation_change"],
-        "capital halves: the obligation moves and the mint does not",
+        "capital halves: the obligation moves by a few percent",
     ),
     "shock_capital_minting": (
         lambda: hours_shock_response()["shocks"]["capital_halves"]["minting_change"],
@@ -146,14 +150,36 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: hours_shock_response()["shocks"]["ecosystem_halves"]["minting_change"],
         "ecosystem halves: blind by charter, and the page keeps it visible",
     ),
-    # §6 — registration capture
+    # §5.1 / §6 — registration
     "registration_share": (
         lambda: registration_leverage(0.40)["baseline_share"],
-        "the registered share at the reference epsilon",
+        "the registered share at the reference epsilon — most human EOH mints nothing",
     ),
     "registration_elasticity": (
         lambda: registration_leverage(0.40)["elasticity"],
         "registration is unit elastic on the money supply",
+    ),
+    # §5.2 — the second instrument
+    "instrument_verdict": (
+        lambda: instrument_comparison()["verdict"],
+        "the labour and capital routes to epsilon are adjacent, not overlapping",
+    ),
+    # §5.3 — observable epsilon and its ceiling
+    "observable_epsilon_at_top_capability": (
+        lambda: eoh_to_teh_pipeline(0.99)["epsilon_observable"],
+        "at capability 0.99 the observable machine share stays well short of 1",
+    ),
+    "human_fraction_at_top_capability": (
+        lambda: eoh_to_teh_pipeline(0.99)["human_fraction"],
+        "and the human share is many times the 1% the parameter implies",
+    ),
+    "ceiling_on_subsistence_mix": (
+        lambda: observable_epsilon_ceiling(total_eoh(epsilon=0.0)),
+        "the ceiling on the epsilon=0 obligation mix — the lower, flattering one",
+    ),
+    "ceiling_on_top_mix": (
+        lambda: observable_epsilon_ceiling(total_eoh(epsilon=0.99)),
+        "the ceiling on the epsilon=0.99 mix — higher, so a smaller human residual",
     ),
     # §4 / §5 — the accounts
     "delivery_ratio_at_zero": (
@@ -170,6 +196,15 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: (obligation_accounts(0.99)["delivery"]
                  / obligation_accounts(0.99)["obligation"]),
         "delivery as a share of the obligation at post-scarcity",
+    ),
+    # §6 / §8 — the constants
+    "constants_total": (
+        lambda: pv.debt_summary(pv.load()).total,
+        "every constant is tagged and published with its basis",
+    ),
+    "measurement_debt_share": (
+        _debt_share,
+        "roughly two constants in five are placeholder or bounded",
     ),
     # §3.7 / §4 — the not-unique result
     "anchors_classified": (
@@ -200,7 +235,7 @@ def figures() -> dict[str, Any]:
 
 def as_markdown() -> str:
     """
-    The figure block to paste into the page, with the sentence beside each value.
+    The figure table, with the sentence beside each value.
 
     A reader of the page sees prose; a reviser of the page should see this.
     """
@@ -240,8 +275,8 @@ def main() -> int:
             shown = str(value)
         print(f"{key:<{width}}  {shown}")
     print(
-        f"\n{len(live)} figures. This is what the page must say. "
-        "Paste with --markdown; do not retype."
+        f"\n{len(live)} figures. The page quotes shapes; these are the values "
+        "behind them."
     )
     return 0
 

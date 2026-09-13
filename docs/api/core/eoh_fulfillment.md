@@ -10,14 +10,14 @@ These two modules form the fulfillment pipeline: registration curves gate which 
 
 Registration curves are sigmoid functions of ε. Each domain uses a distinct curve.
 
-### `personal_eoh_registration_share(epsilon, p)` → `float`
+### `personal_eoh_registration_share(epsilon, …)` → `float`
 
 Share of personal EOH admitted to the collective ledger. Near-zero at ε = 0 (off-ledger subsistence), rising through the mid-automation range, approaching 1.0 before ε = 1.
 
 !!! warning "Distinct mechanism from other domains"
     Personal EOH uses its own sigmoid — do not conflate with `total_registration_share()`. The two represent distinct mechanisms.
 
-### `total_registration_share(epsilon, p)` → `float`
+### `total_registration_share(epsilon, …)` → `float`
 
 Labor composite registration share for non-personal domains (infrastructure, ecological, knowledge, care, production, stewardship).
 
@@ -36,17 +36,17 @@ from hours_eoh.core.registration import (
 
 Each follows its own sigmoid with different inflection points. Care registration accelerates in the mid-ε range.
 
-`validate_registration_trajectory(p)` — verifies all registration curves are monotonically non-decreasing and well-behaved at the arc extremes.
+`validate_registration_trajectory(epsilon_sequence)` — verifies all registration curves are monotonically non-decreasing and well-behaved at the arc extremes.
 
 ---
 
 ## Fulfillment Pipeline (eoh_fulfillment.py)
 
-### `human_eoh_share(epsilon)` → `float`
+### `human_eoh_share(total_eoh, epsilon)` → `float`
 
-Share of total EOH fulfilled by human labor: `1 − ε`.
+The uniform split factor `1 − ε`. **This is not the human share of the obligation** under the default per-component automation response: personal EOH has its own automation floors, so the human share is higher. Read `human_fraction` from `human_eoh_per_domain()` or the pipeline for that.
 
-### `human_eoh_per_domain(eoh_dict, epsilon)` → `dict`
+### `human_eoh_per_domain(total_eoh_dict, epsilon, …)` → `dict`
 
 Applies the human/machine split to each domain's EOH.
 
@@ -54,27 +54,31 @@ Applies the human/machine split to each domain's EOH.
 
 EOH admitted to the collective ledger: `human_eoh × registration_share`.
 
-### `teh_created(registered_eoh_value, mean_multiplier)` → `float`
+### `teh_created(registered_eoh_hours, mean_multiplier)` → `float`
 
 TEH entering circulation: `registered_eoh × mean_multiplier`.
 
-### `teh_supply(epsilon, p)` → `float`
+### `teh_supply(teh_created_total, teh_destroyed_total)` → `float`
 
 Total TEH in the system at ε.
 
-### `capital_writedown(capital_teh, writedown_fraction)` → `float`
+### `capital_writedown(capital_stock_teh, …)` → `float`
 
 D1 destruction: TEH removed when capital degrades beyond maintainability.
 
-### `eoh_to_teh_pipeline(epsilon, p)` → `dict`
+### `eoh_to_teh_pipeline(epsilon, …)` → `dict`
 
-Full pipeline in one call — canonical physical state → EOH → registration → TEH → fiscal solvency check.
+Full pipeline in one call — physical state (canonical where not supplied) → EOH → machine/human split → registration → TEH. With `available_labor_eoh` supplied, the mint is capped at the labour actually available and the shortfall is booked as deferral. Solvency is the fiscal layer's question, not this function's — see `fiscal_snapshot()` or `scenarios.collective.collective_snapshot()`.
 
 ```python
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
-result = eoh_to_teh_pipeline(0.40, p=p)
-# Returns: teh_created, registration_share, fiscally_solvent, component breakdown
+result = eoh_to_teh_pipeline(0.40)
+# Returns, among others: teh_created, total_eoh, eoh_by_domain, human_eoh,
+# registered_eoh, registration_share, human_fraction, epsilon_observable,
+# labor_constrained, deferred_total. Supply available_labor_eoh= to mint from
+# what was SERVED rather than what was demanded.
+print(result["teh_created"], result["labor_constrained"])
 ```
 
 ---

@@ -8,7 +8,15 @@ The `land/` package contains three modules: `guf.py` (single-parcel physics), `c
 
 **Module:** `hours_eoh/land/guf.py`
 
-14 functions implementing the Ground Use Fee framework (NLSA TM-0042). All functions follow the layer rules: `land/` imports from `core/` but is never imported by `core/`.
+The functions implementing the Ground Use Fee framework (NLSA TM-0042). All functions follow the layer rules: `land/` imports from `core/` but is never imported by `core/`.
+
+!!! warning "Ψ(ε) is retired as the shipped default"
+    `ground_use_fee()` and every caller default to `psi_policy="retired"` (Ψ ≡ 1,
+    author sign-off 2026-08-20): Ψ duplicated α's response to falling labour
+    content at the high end and made a category error at the low end. The fee's
+    ε-response is now carried by α. `epsilon_scaling()` still computes the bell
+    curve, and `psi_policy="bell"` still applies it, so the published NLSA form
+    can be reproduced — but it is not what the model runs.
 
 For the full mathematical specification, see [Ground Use Fee Framework](../theory/guf_framework.md).
 
@@ -32,15 +40,15 @@ The α(ε) function: `(1−ε)^0.8 + 0.05`, normalized so α(0.40) = 1.0. Scales
 
 L(p) — weighted composite of four sub-indices (Eq. 3).
 
-### `use_category_coefficient(use_category, epsilon)` → `float`
+### `use_category_coefficient(use_category, epsilon, …)` → `float`
 
 U(p,ε) — reference rate for the use category scaled by α(ε) (Eq. 9).
 
-### `demand_pressure_modifier(demand_supply_ratio, eta)` → `float`
+### `demand_pressure_modifier(demand_supply_ratio, eta, …)` → `float`
 
 D(p) — logarithmic demand modifier, capped at 1.8 (Eq. 11).
 
-### `ecosystem_service_kappa(kappa_ref, beta, epsilon)` → `float`
+### `ecosystem_service_kappa(kappa_ref, beta, epsilon, …)` → `float`
 
 κ_s(ε) — labor-time replacement cost per unit of ecosystem service at ε (Eq. 15). Cost contracts with automation — the same ecosystem service costs less to engineer as ε rises.
 
@@ -48,7 +56,7 @@ D(p) — logarithmic demand modifier, capped at 1.8 (Eq. 11).
 
 E(p,ε) — annualized labor-time cost of natural services displaced by development (Eq. 14).
 
-### `infrastructure_proximity_premium(assets, parcel_location)` → `dict`
+### `infrastructure_proximity_premium(assets, epsilon)` → `dict`
 
 I(p,ε) — annualized share of collectively funded infrastructure cost attributed to the parcel (Eq. 16).
 
@@ -56,13 +64,13 @@ I(p,ε) — annualized share of collectively funded infrastructure cost attribut
 
 ## Full GUF Calculation
 
-### `base_fee(area_slu, location_value, use_category, epsilon, ...)` → `dict`
+### `base_fee(area_slu, location_value, use_coeff, demand_modifier, …)` → `float`
 
 Base fee component: `A(p) × L(p) × U(p,ε) × D(p) × Z(p)`.
 
-### `ground_use_fee(area_slu, location_value, use_category, epsilon, ...)` → `dict`
+### `ground_use_fee(area_slu, location_value, use_category, epsilon, …)` → `dict`
 
-Master equation (Eq. 1): `GUF(p) = Ψ(ε) × [base + E + I] × Ω`, applying the GUF floor.
+Master equation (Eq. 1): `GUF(p) = Ψ(ε) × [base + E + I] × Ω`, applying the GUF floor — with Ψ ≡ 1 under the shipped `psi_policy="retired"`.
 
 ```python
 from hours_eoh.land.guf import ground_use_fee
@@ -80,15 +88,15 @@ print(result["guf_formula"], result["floor_applied"])
 
 ## Rate Constraints
 
-### `review_cycle_cap(guf_formula, guf_previous, phi)` → `float`
+### `review_cycle_cap(guf_formula, guf_previous, phi)` → `dict`
 
 Rate-change cap (Eq. 22): `min(guf_formula, guf_previous × (1 + φ))`. Default φ = 0.10.
 
-### `income_linked_subsidy(guf_applied, income_teh, median_income_teh)` → `float`
+### `income_linked_subsidy(guf_applied, steward_income, median_income)` → `dict`
 
 Income adjustment factor σ (Eq. 23–24): leaseholders below 40% of median pay 25% of GUF.
 
-### `soil_health_credit(area_slu, delta_shi, c_soil)` → `float`
+### `soil_health_credit(area_slu, delta_shi, …)` → `float`
 
 Soil Health Index credit for agricultural parcels (Eq. 26): `−c_soil × A(p) × ΔSHI`.
 
@@ -115,7 +123,7 @@ result = rebuilding_surcharge(
 )
 ```
 
-### `ground_use_fee_writedown(area_slu, ..., services_reset, services_lost, ...)` → `dict`
+### `ground_use_fee_writedown(area_slu, location_value, use_category, epsilon, services_reset, services_lost, …)` → `dict`
 
 Modified GUF during a write-down event (Eq. 29):
 `GUF_wd = Ψ × [base + E_reset + I + R_b] × Ω`
@@ -128,6 +136,8 @@ from hours_eoh.land.guf import ground_use_fee_writedown
 
 result = ground_use_fee_writedown(
     area_slu=3.5,
+    location_value=0.629,
+    use_category="residential_primary",
     epsilon=0.40,
     services_reset=[{"label": "water", "volume": 0.4, "kappa_ref": 1.65, "beta": 0.8, "retained": 0.3}],
     services_lost=None,  # restoration pathway
@@ -181,7 +191,7 @@ Batch GUF calculator for a collective's full land inventory. Handles income-link
 
 The schema maps directly to geo-data pipeline column names; a GeoJSON or CSV loader needs only to rename columns to these keys.
 
-### `compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac)` → `dict`
+### `compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac, …)` → `dict`
 
 Loops all parcels through `ground_use_fee()`, applies credits and caps, then aggregates.
 
@@ -216,7 +226,7 @@ Synthetic rural archetype: 50% `agricultural_active` · 20% `agricultural_fallow
 
 Two tools for fitting GUF revenue to a fiscal target or understanding sensitivity to location-value weighting.
 
-### `guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, ...)` → `dict`
+### `guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, …)` → `dict`
 
 Finds the use-coefficient multiplier `k` such that aggregate GUF ≈ `target × levy_revenue`. Uses a closed-form linear solve on the base-fee component (scalable) vs. ecosystem/infrastructure surcharges (fixed).
 
@@ -241,7 +251,7 @@ Sweeps Location Value Index weight configurations to show how sensitive aggregat
 ```python
 from hours_eoh.land.calibration import guf_lvi_weight_sensitivity
 
-result = guf_lvi_weight_sensitivity(parcels_with_lvi_fields, epsilon=0.40)
+result = guf_lvi_weight_sensitivity(make_urban_collective(500), epsilon=0.40)
 # Returns: {epsilon, parcel_count, variants (list), sensitivity_range, relative_sensitivity}
 ```
 

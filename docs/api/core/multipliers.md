@@ -6,34 +6,37 @@ Implements Condition II — skill-tier multipliers grounded in entropy-reduction
 
 ---
 
-## `population_weighted_mean_multiplier(multiplier_distribution, p)` → `float`
+## `population_weighted_mean_multiplier(…)` → `float`
 
 Computes the population-weighted average multiplier from a distribution of tier assignments.
 
 ```python
 from hours_eoh.core.multipliers import population_weighted_mean_multiplier
 
-mean = population_weighted_mean_multiplier({"1": 0.40, "2": 0.35, "3": 0.25}, p=p)
+mean = population_weighted_mean_multiplier()   # the shipped DEFAULT_SEGMENTS
+# or pass your own workforce segments: population_weighted_mean_multiplier(segments=[...])
 ```
 
 **Band target:** 1.8–2.1, with a recommended target of 2.1. This is monitored by [Condition II](conditions.md).
 
 ---
 
-## `multiplier_band_check(mean_multiplier, p)` → `dict`
+## `multiplier_band_check(mean_multiplier, …)` → `dict`
 
 Verifies the population-weighted mean is within the band.
 
 ```python
 from hours_eoh.core.multipliers import multiplier_band_check
 
-check = multiplier_band_check(mean_multiplier=2.05, p=p)
-# Returns: {"in_band": True, "mean": 2.05, "target": 2.1, ...}
+check = multiplier_band_check(mean_multiplier=2.05)
+# Returns: {"in_band", "mean_multiplier", "band_low", "band_high", "target",
+#           "distance_to_target", "status"}
+print(check["in_band"], check["status"])
 ```
 
 ---
 
-## `tier_multiplier(tier, p)` → `float`
+## `tier_multiplier(training, demand, scarcity, impact, …)` → `float`
 
 Returns the multiplier for a given skill tier.
 
@@ -41,6 +44,6 @@ The multiplier system applies to all entropy-reduction labor uniformly — care,
 
 ---
 
-## `epoch_alpha_weights(epsilon, p)` → `dict`
+## `epoch_alpha_weights(epsilon)` → `tuple[float, float, float, float]`
 
 Returns the relative weighting of the four-factor assessment (training, demand, scarcity, societal impact) at a given ε. The absolute factors don't change; only their relative weighting shifts as the economy evolves from production-dominant to stewardship-dominant.

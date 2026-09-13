@@ -30,14 +30,15 @@ Ideal-arc age distribution at ε.
 
 ---
 
-## `compute_epsilon(machine_eoh, total_eoh_value)` → `float`
+## `compute_epsilon(machine_eoh_fulfilled, total_eoh_collective_potential)` → `float`
 
 Derives ε from machine EOH and total EOH: `ε = machine_eoh / total_eoh`, clamped to `[0.0, 0.99]`.
 
 ```python
 from hours_eoh.core.trajectory import compute_epsilon
 
-epsilon = compute_epsilon(machine_eoh=1.5e9, total_eoh_value=2.5e9)  # → 0.60
+epsilon = compute_epsilon(machine_eoh_fulfilled=1.5e9,
+                          total_eoh_collective_potential=2.5e9)  # → 0.60
 ```
 
 Currently ε is often set exogenously. The architecture supports endogenous ε when machine capacity is modeled from capital stock — see `civilization.py` in [Workforce & ε Derivation](workforce.md).

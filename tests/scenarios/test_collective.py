@@ -27,6 +27,101 @@ def _state(pop=30_000.0, eps=0.40, **kw):
     )
 
 
+class TestLabourSupplyReachesTheMint:
+    """
+    THE STRANDED PARAMETER AT THE DOCUMENTED ENTRY POINT (found 2026-09-12).
+    The implementation guide calls `available_labor_eoh` the single most
+    consequential default and tells institutions to use this function in
+    preference to the hand-run calls — and this function could not accept it.
+    Every snapshot measured DEMAND. These pin that the field now moves the
+    mint, the deferral and the fiscal layer's income, by absolute identities
+    rather than by relative comparisons, which cannot see a constant factor.
+    """
+
+    def test_zero_labour_mints_exactly_nothing(self):
+        r = collective_snapshot(_state(), land_hectares=302.5,
+                                available_labor_eoh=0.0)
+        assert r["pipeline"]["teh_created"] == 0.0
+        assert r["frame"]["labor_constrained"] is True
+        assert r["pipeline"]["deferred_total"] > 0.0
+
+    def test_the_fiscal_layer_is_paid_what_was_SERVED(self):
+        unconstrained = collective_snapshot(_state(), land_hectares=302.5)
+        half = 0.5 * unconstrained["pipeline"]["human_eoh"]
+        served = collective_snapshot(_state(), land_hectares=302.5,
+                                     available_labor_eoh=half)
+        # Absolute identity: the income the levies are raised on IS the
+        # constrained mint — not the demanded one, and not a copy of either.
+        assert served["fiscal"]["levies"]["gross_income"] == pytest.approx(
+            served["pipeline"]["teh_created"])
+        assert (served["pipeline"]["teh_created"]
+                < unconstrained["pipeline"]["teh_created"])
+
+    def test_shortfall_plus_served_is_the_obligation(self):
+        demanded = collective_snapshot(_state(), land_hectares=302.5)
+        half = 0.5 * demanded["pipeline"]["human_eoh"]
+        r = collective_snapshot(_state(), land_hectares=302.5,
+                                available_labor_eoh=half)
+        p = r["pipeline"]
+        assert p["human_eoh"] + p["deferred_total"] == pytest.approx(
+            demanded["pipeline"]["human_eoh"], rel=1e-9)
+
+    def test_omitting_it_says_demand_in_the_verdict(self):
+        r = collective_snapshot(_state(), land_hectares=302.5)
+        assert r["frame"]["labour_supplied"] is False
+        assert r["frame"]["labor_constrained"] is False
+        assert "DEMAND" in r["verdict"]
+
+    def test_ample_labour_is_not_read_as_demand(self):
+        """
+        The pipeline's `labor_constrained` is False both when no supply was
+        given and when an ample one was. Reading it as "was labour supplied"
+        told an institution with enough hours that it had measured demand —
+        the reported value that isn't the meaning (mode 10).
+        """
+        demanded = collective_snapshot(_state(), land_hectares=302.5)
+        ample = 2.0 * demanded["pipeline"]["human_eoh"]
+        r = collective_snapshot(_state(), land_hectares=302.5,
+                                available_labor_eoh=ample)
+        assert r["frame"]["labour_supplied"] is True
+        assert r["frame"]["labor_constrained"] is False
+        assert "DEMAND" not in r["verdict"]
+        assert "sufficed" in r["verdict"]
+        assert r["pipeline"]["deferred_total"] == 0.0
+        assert r["pipeline"]["teh_created"] == pytest.approx(
+            demanded["pipeline"]["teh_created"])
+
+    def test_binding_labour_says_bound(self):
+        r = collective_snapshot(_state(), land_hectares=302.5,
+                                available_labor_eoh=0.0)
+        assert r["frame"]["labour_supplied"] is True
+        assert "BOUND" in r["verdict"]
+
+    def test_the_state_fields_reach_the_pipeline(self):
+        """A state carrying a deferred ecological stock must not be read as
+        canonical — it was, until this entry point forwarded the field."""
+        clean = collective_snapshot(_state(), land_hectares=302.5)
+        stocked = collective_snapshot(_state(deferred_ecological=1e6),
+                                      land_hectares=302.5)
+        assert (stocked["pipeline"]["eoh_by_domain"]["ecological"]
+                > clean["pipeline"]["eoh_by_domain"]["ecological"])
+
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.90, 0.99))
+    def test_a_default_state_is_unchanged_by_the_forwarding(self, eps):
+        """Blast radius of forwarding, measured: zero on a default state."""
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        s = _state(eps=eps)
+        direct = eoh_to_teh_pipeline(
+            epsilon=eps, population=s["population"],
+            capital_stock=s["capital_stock_teh"],
+            capital_age_ratio=s["capital_age_ratio"],
+            ecosystem_health=s["ecosystem_health"],
+            ecological_area_hectares=302.5,
+        )
+        r = collective_snapshot(s, land_hectares=302.5)
+        assert r["pipeline"]["teh_created"] == pytest.approx(direct["teh_created"])
+
+
 class TestTheFrameIsStatedOnce:
 
     def test_the_pipeline_and_the_fisc_see_ONE_ecological_obligation(self):

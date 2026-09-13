@@ -13,11 +13,11 @@ A civilization can be described by a single observable: **ε (epsilon)** — the
 | ε | State | What it means |
 |---|-------|---------------|
 | 0.00 | Subsistence | All entropy resistance is human labor. TEH barely circulates. |
-| 0.40 | Transition midpoint | Automation handles ~40% of EOH. The primary design reference. |
-| 0.90 | High automation | Prices collapse toward raw material costs. Care labor dominates. |
-| 0.99 | Effective post-scarcity | Automation handles nearly all EOH. Human labor near-zero. |
+| 0.40 | Calibration reference | The point results are checked against — a validation anchor, not a design target. |
+| 0.90 | High automation | Floor prices fall toward material costs. Care dominates the remaining human work. |
+| 0.99 | Effective post-scarcity | Machines carry most of the obligation; the human share is small but not zero, because care resists automation. |
 
-ε is not a policy lever. It is an *observed* state of the world — measured from capital stock and machine capacity. Every function in this framework must produce physically meaningful output across the full arc from ε = 0 to ε = 0.99.
+ε is not a policy lever. It is an *observed* state of the world — and it can be read off a real economy two ways that share no data, from its capital stock and from its time use. Every function in this framework must produce physically meaningful output across the full arc from ε = 0 to ε = 0.99.
 
 ---
 
@@ -71,15 +71,14 @@ Four conditions define system integrity. All must hold at every ε:
 | **III — Zero Interest** | Balances grow through labor only, never passively | `condition_iii_balance_growth_check()` |
 | **IV — Distributed Competency** | Human reserve in every essential domain | `condition_iv_check()` |
 
-The system dashboard gives a one-call health check:
+The dashboard gives a one-command health check:
 
-```python
-from hours_eoh.core.dashboard import system_dashboard
-from hours_eoh.params import EohParams
-
-snapshot = system_dashboard(epsilon=0.40, p=EohParams())
-print(snapshot["overall"])  # GREEN / YELLOW / RED
+```bash
+python3 utils/eoh_cli.py dashboard --epsilon 0.40
 ```
+
+The reference configuration reads YELLOW rather than green, and the dashboard
+says why rather than hiding it.
 
 ---
 
@@ -98,17 +97,13 @@ print(snapshot["overall"])  # GREEN / YELLOW / RED
 === "First Code"
 
     ```python
-    from hours_eoh.core.trajectory import canonical_physical_state
     from hours_eoh.core.eoh_generation import total_eoh
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-    from hours_eoh.params import EohParams
 
-    p = EohParams()
-    state = canonical_physical_state(0.40)
-    eoh = total_eoh(**state, p=p)
-    result = eoh_to_teh_pipeline(0.40, p=p)
-    print(f"EOH:  {eoh['total_eoh']:.3e}")
-    print(f"TEH created: {result['teh_created']:.1f}")
+    eoh = total_eoh(epsilon=0.40)          # the canonical arc: a reference frame
+    result = eoh_to_teh_pipeline(0.40)
+    print(f"EOH:  {eoh['total']:.3e}")
+    print(f"TEH created: {result['teh_created']:.3e}")
     ```
 
 === "Arc Coherence Check"
@@ -116,9 +111,9 @@ print(snapshot["overall"])  # GREEN / YELLOW / RED
     ```python
     from hours_eoh.scenarios.sweep import epsilon_sweep
 
-    results = epsilon_sweep()
-    assert all(r["fiscally_solvent"] for r in results)
-    print(f"Arc coherent across {len(results)} ε values")
+    report = epsilon_sweep()
+    assert report["all_finite"] and not report["discontinuities"]
+    print(f"{report['status']}: coherent across {report['n_points']} ε values")
     ```
 
 === "CLI"
@@ -161,7 +156,7 @@ print(snapshot["overall"])  # GREEN / YELLOW / RED
 
 -   **Ground Use Fee Framework**
 
-    The full mathematical specification for the GUF — 14 functions, worked example at ε = 0.40, ecological write-down pathways, and the §9 rebuilding surcharge.
+    The full mathematical specification for the GUF — the fee, a worked example at ε = 0.40, ecological write-down pathways, and the §9 rebuilding surcharge.
 
     [:octicons-arrow-right-24: GUF specification](theory/guf_framework.md)
 
@@ -172,6 +167,6 @@ print(snapshot["overall"])  # GREEN / YELLOW / RED
 ## Running Tests
 
 ```bash
-python3 -m pytest tests/ -q           # 1169 tests
+python3 -m pytest tests/ -q           # full suite
 python3 -m mypy hours_eoh/            # type checking
 ```

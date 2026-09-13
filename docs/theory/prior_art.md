@@ -10,7 +10,9 @@ whether the wound is closed, improved, or still open.
 
 This is an open research project, not a finished model, and the verdicts are
 written as a progress report rather than a defence. Where a front is unexplored
-the page says so and says what would settle it.
+the page says so and says what would settle it. Its companion,
+[What Anchors a Unit of Account](anchor_comparison.md), audits the anchors in
+use today rather than the ancestors.
 
 !!! note "Status — author sign-off, 2026-08-15"
 
@@ -196,10 +198,11 @@ entropy and thermodynamics for prestige.
 
 **What this framework does instead — and this one is checkable.** Rather than
 asserting the difference in prose, the framework publishes a machine-checked
-count of how little of itself is physics. Of **235 constants, exactly 2 are
-tagged `physics`** (`A_EARTH_M2`, `SIGMA_SB`). Measurement debt is declared at
-**47.2%** on the front of the [provenance page](../parameter_provenance.md), and
-a test with no allowlist fails the build if a constant is untagged or a tag
+count of how little of itself is physics: **only a handful of constants are
+tagged `physics`**, and every other constant says what kind of claim it makes.
+Measurement debt — roughly two constants in five — is declared on the front of
+the [provenance page](../parameter_provenance.md) with the live figure, and a
+test with no allowlist fails the build if a constant is untagged or a tag
 overclaims. Technocracy claimed physical objectivity and could not be checked;
 this framework claims transparency and can be. Run `eoh provenance check`.
 
@@ -271,20 +274,20 @@ below.
    of conscious planning in a sea of exchange. Inside a firm there is no internal
    market and none is needed; between firms, exchange discovers value. The
    collective count is *emergent from ε*, not set: `coasean_collective_count()`
-   returns 20 at ε=0 falling to 1 at ε=0.99.
+   falls from many collectives at subsistence to one near post-scarcity.
 3. **Contestability is the invariant** held constant across the whole arc.
 
 ### The verdicts
 
 | # | Failure mode | Verdict | The mechanism, and its residual |
 |---|---|---|---|
-| 1 | Valuation | **Improved, not closed** | The framework no longer claims to compute the price. It computes a floor and lets exchange discover above it, which is what Marx and Hayek say is the only available move. Where the floor is measured it is *currency-free*: the infrastructure floor is doctrine-invariant at spread **1.000** against the monetized path's **10.26×**. **Residual:** the personal floor is only **6.9% priced** — one of seven basket components. The architecture answers the critique; the measurement is barely begun. |
+| 1 | Valuation | **Improved, not closed** | The framework no longer claims to compute the price. It computes a floor and lets exchange discover above it, which is what Marx and Hayek say is the only available move. Where the floor is measured it is *currency-free*: the infrastructure floor is doctrine-invariant — its spread is exactly **1.000** — where the monetized path spreads by an order of magnitude. **Residual:** most of the personal floor now carries a price from physical quantities, but much of that price rests on declared bounds rather than measurements, and the remaining components are either the collective's to declare or not yet measurable. The architecture answers the critique; the measurement is well begun and far from done. |
 | 2 | Skill differential | **Improved substantially** | Owen had to set *the* price and could not. This framework sets a *floor wage*, which need only be fair-enough, and reads the differential from data rather than decree: a measured O\*NET/BLS registry over **751 occupations, 94.2% of US employment**. Governance is explicit — sortition, adversarial review, inter-rater reliability, a revalidation clock. **Residual:** the band `[1.8, 2.1]` is a constitutional decision, and is now tagged `normative` rather than dressed as physics. It needs argument, not data. |
-| 3 | Founder dependence | **Designed against, unmodelled** | Sortition-based assessor selection, a minimum assessor count, adversarial review and tier sunset are all anti-single-point-of-failure by construction. **Residual:** no simulation of governance capture or succession exists. This is a design claim, not a result. |
+| 3 | Founder dependence | **Designed against, partly modelled** | Sortition-based assessor selection, a minimum assessor count, adversarial review and tier sunset are all anti-single-point-of-failure by construction. Capture of the register is now modelled (`scenarios/register_capture.py`), and its **volume** is bounded by structure: registering cannot create obligation, and the mint cannot exceed what was served. **Residual:** who a captured register admits and excludes is not represented, and succession is not simulated. Those halves are still a design claim, not a result. |
 | 4 | Circulation sinks | **Closed** | A standing public register of obligations means there is always somewhere to spend. Levies are circulatory; destruction is explicit and enumerated (D1–D6). Ithaca's sink required a boundary this design does not have. |
 | 5 | Adverse selection / free-riding | **Split, and both halves stated** | *Creation side: closed.* No unit exists without a verified labour record against a registered obligation (Condition I), so minting by free-riding is structurally impossible — this is exactly Owen's third wound, and it is the one cleanly answered. *Consumption side: a values choice, not a mechanism.* The sufficiency floor is deliberately unconditional and tolerates free-riding by design, bounded by a minimum-hours obligation and by membership terms (`research/membership.py`). |
 | 6 | Sovereign suppression | **Strategy adopted, not modelled** | The WIR lesson learned and the Wörgl mistake avoided: become the issuer, run parallel with an open exchange rate, let adoption be voluntary. **Residual:** none of this is in the codebase, and the international dimension — reserve status, capital flight, arbitrage — is the framework's single largest acknowledged gap. |
-| 7 | Objectivity mirage | **Retired, and checkably so** | Objectivity language demoted to floor language; 2 of 235 constants claim physics; 47.2% debt published; the gate has no allowlist. **Residual:** "entropy" still does organising work in the EOH core that no exergy accounting backs. The thermal layer is genuine radiative physics; the four-domain core is not thermodynamics and should not trade on the word. |
+| 7 | Objectivity mirage | **Retired, and checkably so** | Objectivity language demoted to floor language; only a handful of constants claim physics; the measurement debt is published with its live figure; the gate has no allowlist; and a verdict may not outrank the weakest input it rests on, which caps every headline result at "possible". **Residual:** "entropy" still does organising work in the EOH core that no exergy accounting backs. The thermal layer is genuine radiative physics; the four-domain core is not thermodynamics and should not trade on the word. |
 | — | Marx / Hayek convergence | **Answered structurally; one domain still open** | The Coasean fork is the answer: no collective computes the whole economy, and discovery happens at the boundaries. **Residual:** the *desire* economy — novelty, art, status, play — is dispersed private knowledge that stays polycentric by nature, and it is an explicit `NotImplementedError` stub (`research/desire.py`). The autopsy named it the weakest area; it is still the weakest area. |
 
 ---
@@ -312,7 +315,7 @@ The design constraint is **Piketty inverted**. Zero interest already kills the
 passive return; contestability extends the same logic to automated returns by
 requiring the commonly-held share not to erode — `dτ/dε ≥ 0`. At the shipped
 defaults, over the canonical arc: **exit is financeable at every point**, the
-commons share φ rises from **0.100 to 0.771**, `dτ/dε ≥ 0` holds throughout, and
+commons share φ rises across the arc, `dτ/dε ≥ 0` holds throughout, and
 the financing channel moves labour → underwritten → self as automation rises.
 Reproduce with `eoh contestability recal`.
 
@@ -355,7 +358,7 @@ These are commitments, not gaps. They are where the framework has decided what
   floats, and that float is inflation carried honestly as an exchange rate.
   System-wide impossibility survives only as the ε→1 asymptote, if the need
   economy consolidates to one unit.
-- **It does not claim to be thermodynamics.** Two constants of 235 are physics.
+- **It does not claim to be thermodynamics.** Only a handful of constants are physics.
   "Entropy obligation" is a disciplined organising frame for recurring
   maintenance demand. Where real physics runs — the thermal radiative layer — it
   is confined to that layer and labelled. Adopting full exergy accounting is a
@@ -364,9 +367,12 @@ These are commitments, not gaps. They are where the framework has decided what
   allocation to where discovery can operate: planning inside a collective,
   exchange between them. No amount of further work will produce a central
   computation, because the architecture is a rejection of that goal.
-- **Its shipped defaults are not evidence about your jurisdiction.** Eight
-  constants are tagged `instance` — you supply them, and the framework will
-  never measure them for you. This is an interface property and it is permanent.
+- **Its shipped defaults are not evidence about your jurisdiction.** The
+  constants tagged `instance` — population frame, capital, land, the register's
+  cadence, the distance to water, and more — are yours to supply, and the
+  framework will never measure them for you. What it supplies is the bound your
+  declaration is checked against. This is an interface property and it is
+  permanent.
 
 ### Open fronts — unexplored, and what would settle each
 
@@ -376,12 +382,12 @@ a permanent excuse.
 
 | Open front | Where it stands | What would settle it |
 |---|---|---|
-| **Retrodiction** | The largest. No jurisdiction has been run. Measured *inputs* are not validation of *outputs*, and a passing suite is a well-tested implementation of assumptions. | The machinery already exists and the run does not: supply the eight `instance` constants from national accounts, census and time use, invert a capital inventory with `research/epsilon_inverse.capital_for_epsilon()`, and check derived ε and labour share against the observed record. A *failed* retrodiction is a stronger result than another thousand tests. |
-| **Verification cost** | An audit apparatus large enough to certify every labour record consumes hours that appear in none of the four domains. Whoever certifies tiers and measures ecosystem health also holds real power. | It is an entropy obligation like any other, and it has a natural home: `knowledge_eoh_breakdown()` already separates the civilisational corpus from *apparatus* overhead. Until it is costed, every solvency result omits a real term — so the direction of the error is known even though its size is not. |
+| **Retrodiction** | **Run for the US, by two instruments that share no data** — a fixed-asset inventory (`scenarios/capital_retrodiction.py`) and time diaries (`scenarios/labour_epsilon.py`). They land adjacent, not overlapping; the capital route returns a grid rather than a number because three declared judgements set it. Both divide by the same obligation, so the machine/human split is checked and the level is not. | A third instrument that does not divide by `total_eoh`, for which there is no candidate yet; and the same run for a second jurisdiction. A *failed* retrodiction is still a stronger result than another thousand tests. |
+| **Verification cost** | **Costed for the apparatus** — the occupations that decide what counts and check it was done, at two scopes — and checked against the labour a population can supply rather than only against the obligation. **The registrant side is priced by the register's declared cadence**: on the shipped episodic default it fits with room to spare; a continuous register does not fit until mid-arc. Whoever certifies tiers and measures ecosystem health still holds real power. | A measured registrant multiple for a *fulfilment* register — hours per record — and verification carried inside other jobs, which is unbuilt. See [What Anchors a Unit of Account](anchor_comparison.md) §6. The term is reported beside the accounts, not inside them, until the author decides whether the registrant's hour enters the obligation. |
 | **The desire economy** | An explicit `NotImplementedError` stub. The autopsy named it the weakest area and it remains so. | `research/desire.py` states its own two questions: how want-goods price with no EOH register to derive a floor from, and whether the contestability machinery transfers to a domain whose entry cost is not entropy-resistance capacity. |
-| **Personal floor coverage** | The floor prices **one basket component of seven — 6.9%** of the obligation. The largest term, care, is unpriced and therefore *excluded* rather than costed at zero. | Price the remaining six components in physical units. The extraction wedge is not identified at this coverage, and a number for it today would be a fitted residual; the frontier panel (HETUS/MTUS) is the route that identifies it without one. |
-| **Domain balance** | Personal EOH is 98.9% of total at ε=0, so ε is very largely a personal-domain number at the low arc. `ECOLOGICAL_BASE_RATE` is documented as a *relative* anchor but summed with absolute counts, leaving the ecological domain at <0.1%. | Put the ecological base on an absolute footing. Until then, no result depending on the ecological domain's *share* should be quoted — including the thermal layer's comfortable solvency margin, which is comfortable partly because the obligation is negligible. |
-| **Governance capture** | Sortition, minimum assessor counts, adversarial review, inter-rater reliability and tier sunset exist as validators in `assess_tier()`. None of it is simulated. | Simulate capture and succession against the thresholds already encoded. Ithaca died of founder dependence; a design claim is not a result until something tries to break it. |
+| **Personal floor coverage** | **Most of the obligation now carries a price** from physical quantities — it was under a tenth until care and processing were priced as declared bounds. Water resolves by declaration: a collective states its distance to water and the floor reports whether it fits. | **Shelter** is instance data of the same kind. **Sanitation** has no named instrument. **Health** is undefined below the apparatus that delivers it, and is reported as undefined rather than imputed. The extraction wedge still needs the frontier panel (HETUS/MTUS) to identify it without a fitted residual. |
+| **Domain balance** | Personal EOH is almost all of the obligation at ε=0, so ε is very largely a personal-domain number at the low arc. The recurring ecological cost was moved to the Ground Use Fee (Phase 4f), where it scales with land held; the ecological domain now carries stocks only. | Measure the personal base, which is the largest single share of what ε divides by. Read ecological results through the fee rather than through the domain's share — including the thermal layer's solvency margin, which is comfortable partly because the obligation in the domain is small. |
+| **Governance capture** | **Modelled, and half-bounded.** `scenarios/register_capture.py` gives the register's failure model and a drift monitor that declares its own threshold. The **volume** a captured register can mint is bounded by structure — registering cannot create obligation, the mint cannot exceed what was served, and the exposure shrinks as automation arrives. | The **distribution**: who a captured register admits and who it excludes. Every figure is a per-capita aggregate with no variable for it, so this needs a distributional layer, downstream of exchange work at scale. Succession is still unsimulated. Ithaca died of founder dependence; a design claim is not a result until something tries to break it. |
 | **Transition** | Strategy, not code. The parallel-currency path, capital flight, arbitrage and reserve-currency dynamics are argued in prose and modelled nowhere. | Model the parallel-currency path. WIR survived by complementing the sovereign and Wörgl was killed for challenging it, so this is the front where the historical record is most directly predictive. |
 
 ### What would change our mind
@@ -395,12 +401,16 @@ already in the repo rather than hypothetical:
   shopping fell 26%, and shift-share attributes the rise to within-household
   behaviour, not composition. If `a(K)` cannot fit that, it is reported, not
   retuned.
-- **The personal floor could falsify its own constant.** It currently cannot —
-  at 6.9% coverage the only ordering compatible with the evidence is the one
-  observed. Raise coverage and the floor becomes capable of contradicting
-  `PERSONAL_EOH_BASE`. That is the point of building it.
-- **A retrodiction could produce an implausible ε.** There is no result to
-  report because the run has not been done, and that is the honest status.
+- **The personal floor could falsify its own constant.** At low coverage it
+  could not — the only ordering compatible with the evidence was the one
+  observed. With most of the floor now priced it can contradict
+  `PERSONAL_EOH_BASE`, which is the point of building it. The first time it
+  crossed a standard, the crossing turned out to be a scope artefact — the
+  standard covered less than the floor summed — and that is recorded rather
+  than hidden.
+- **A retrodiction could produce an implausible ε.** It did, once: an early run
+  saturated. Run over a properly declared grid it reads a band, and the
+  condition re-opens the moment anyone quotes a single ε for a real economy.
 
 ---
 

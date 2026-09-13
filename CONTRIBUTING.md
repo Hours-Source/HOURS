@@ -11,7 +11,7 @@ pip install -e ".[dev]"
 Verify the environment:
 
 ```bash
-python3 -m pytest tests/ -q    # 1040 tests should pass
+python3 -m pytest tests/ -q    # the whole suite should pass (1 skip is expected)
 python3 -m mypy hours_eoh/
 ```
 
@@ -27,10 +27,12 @@ The framework enforces strict layer separation. Violations cause import errors o
 |-------|----------------|-------------------|
 | `core/` | `data.py`, `params.py`, other `core/` modules | `land/`, `scenarios/`, `research/` |
 | `land/` | `core/` | `scenarios/`, `research/` |
-| `scenarios/` | `core/` | `land/`, `research/` |
+| `scenarios/` | `core/`, `land/` | `research/` |
+| `reference/` | nothing from the package — pure data | everything; any layer may import it |
 | `research/` | `core/` (re-exports only) | `scenarios/`, `land/` |
+| `utils/` | any layer | — (no layer imports `utils/`) |
 
-New scenario code goes in `scenarios/`. `core/stress.py` is a backward-compat shim — do not add to it.
+New scenario code goes in `scenarios/`. The former `core/stress.py` was removed — do not recreate it.
 
 ---
 
@@ -41,12 +43,12 @@ New scenario code goes in `scenarios/`. `core/stress.py` is a backward-compat sh
 Take **physical state** as primary inputs: `capital_stock`, `ecosystem_health`, `population_age_distribution`, `knowledge_base_size`, `monitoring_capability`.
 
 ```python
+# template
 def my_eoh_function(
     capital_stock: float,
     ecosystem_health: float,
     # ...
     epsilon: float | None = None,  # optional backward compat only
-    p: EohParams = ...,
 ) -> float:
 ```
 
@@ -93,8 +95,8 @@ Test names follow the existing phase convention: `TestClassName::test_descriptio
 
 - No comments explaining *what* code does — well-named identifiers do that.
 - Add a comment only when the *why* is non-obvious: a hidden constraint, a physical invariant, a specific mission statement reference.
-- No docstrings longer than one short line.
-- `mypy --strict` must pass cleanly.
+- Docstrings follow the house form: a one-line summary, then the physical rationale, `Args`, `Returns` and the Mission Statement reference.
+- `python3 -m mypy hours_eoh/` must pass cleanly under the repo's configuration (it is not `--strict`).
 - No anonymous constants. If you add a calibrated number, it goes in `data.py` first.
 
 ---

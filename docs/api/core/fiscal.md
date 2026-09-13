@@ -8,9 +8,9 @@ Levies, allocations, sufficiency guarantee, trust management, and the care stipe
 
 ## Levy Collection
 
-### `levy_collection(teh_income, epsilon, p)` → `dict`
+### `levy_collection(labor_income, levy_rates)` → `dict`
 
-Collects levies from all registered labor income. Returns gross levy, net-of-threshold income, and levy breakdown.
+Collects levies from labour income, each rate a fraction of gross. Circulatory: `worker_net + total_levied == labor_income`. Returns the total rate, total levied, worker net and the per-levy breakdown.
 
 ---
 
@@ -18,15 +18,15 @@ Collects levies from all registered labor income. Returns gross levy, net-of-thr
 
 The Trust has three co-equal obligations. Neither is residual — both `ecological_allocation` and `stewardship_allocation` are primary claims on Trust revenue.
 
-### `stewardship_allocation(capital_stock_teh, epsilon, p)` → `dict`
+### `stewardship_allocation(capital_stock_teh, capital_age_ratio, epsilon, available_teh, …)` → `dict`
 
 TEH directed toward fulfilling infrastructure entropy obligations from the capital stock. Grows with the capital stock, making it the dominant revenue-independent fiscal flow at high ε.
 
-### `ecological_allocation(ecosystem_health, epsilon, p)` → `dict`
+### `ecological_allocation(ecosystem_health, epsilon, available_teh, …)` → `dict`
 
 TEH directed toward ecological EOH fulfillment and natural system stewardship.
 
-### `sufficiency_guarantee(epsilon, p)` → `dict`
+### `sufficiency_guarantee(population, epsilon, …)` → `dict`
 
 The floor — minimum TEH guaranteed to every collective member. Real purchasing power rises automatically with automation (same nominal TEH, lower basket prices). See [Design Principle 5](../../theory/design_principles.md#5-the-floor-rises-with-automation-it-never-falls).
 
@@ -34,38 +34,40 @@ The floor — minimum TEH guaranteed to every collective member. Real purchasing
 
 ## Trust Management
 
-### `trust_management(revenues, obligations, balance, p)` → `dict`
+### `trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)` → `dict`
 
 Full Trust solvency calculation — revenues in, obligations out, surplus/deficit.
 
-### `fiscal_snapshot(epsilon, p)` → `dict`
+### `fiscal_snapshot(epsilon, …)` → `dict`
 
 Comprehensive fiscal state at ε — all revenue streams, all allocations, solvency status.
 
 ```python
 from hours_eoh.core.fiscal import fiscal_snapshot
 
-snap = fiscal_snapshot(0.40, p=p)
-print(snap["fiscally_solvent"], snap["trust_surplus"])
+from hours_eoh.core.simulation import make_economy_state
+
+snap = fiscal_snapshot(state=make_economy_state(epsilon=0.40))
+print(snap["solvent"], snap["trust"]["surplus_deficit"])
 ```
 
-### `trust_solvency_trajectory(epsilon_range, p)` → `list[dict]`
+### `trust_solvency_trajectory(initial_trust_balance, …)` → `dict`
 
-Trust solvency across a range of ε values.
+Simulates the Trust balance across `n_periods` at one ε and assesses long-run solvency.
 
-### `min_levy_for_solvency(epsilon, p)` → `float`
+### `min_levy_for_solvency(trust_balance, epsilon, …)` → `dict`
 
-Minimum levy rate that keeps the Trust solvent at ε.
+Minimum levy revenue that keeps the Trust solvent and stable at ε.
 
 ---
 
 ## Care Stipend
 
-### `care_stipend(caregiver_age, dependent_ages, epsilon, p)` → `dict`
+### `care_stipend(dependents, epsilon, …)` → `dict`
 
 TEH disbursed to recognized care providers. Follows a diminishing-returns structure (fewer TEH per additional dependent). Backed by verified personal EOH of the dependents.
 
-### `aggregate_care_stipend_from_demographics(age_distribution, epsilon, p)` → `dict`
+### `aggregate_care_stipend_from_demographics(population, epsilon, …)` → `float`
 
 Total care stipend obligation from population demographics.
 
@@ -75,11 +77,10 @@ Total care stipend obligation from population demographics.
 
 | Function | Description |
 |----------|-------------|
-| `steward_eoh_obligation(parcel_data, epsilon, p)` | EOH obligation for a land steward |
-| `collective_land_registration(parcels, epsilon, p)` | Aggregate GUF flow into Trust from all parcels |
-| `stewardship_dividend_needed(capital_stock, epsilon, p)` | Trust draw needed to fund stewardship labor |
-| `accumulation_ceiling_commitment(balance, epsilon, p)` | D6 TEH removed when balance exceeds ceiling |
-| `care_stipend(...)` | Care compensation for registered dependents |
+| `steward_eoh_obligation(structure_value_teh, land_area_units, epsilon, …)` | Private EOH a land steward bears for the structures they use |
+| `collective_land_registration(epsilon, …)` | Fraction of housing/land EOH registered to the collective ledger |
+| `stewardship_dividend_needed(stewardship_teh_required, dep_rate, trust_balance)` | Minimum `div_rate` for the Trust dividend to cover stewardship cost |
+| `accumulation_ceiling_commitment(teh_in_circulation, population, …)` | D6 — TEH above the accumulation ceiling, routed into capital formation |
 
 ---
 

@@ -6,21 +6,23 @@ Period-by-period simulation of the EOH/TEH economy. Tracks the full physical sta
 
 ---
 
-## `make_economy_state(epsilon, p)` → `dict`
+## `make_economy_state(epsilon, …)` → `dict`
 
 Creates an initial economy state for simulation. Initializes all state variables from canonical physical state at ε.
 
 ```python
 from hours_eoh.core.simulation import make_economy_state
 
-state = make_economy_state(epsilon=0.30, p=p)
+state = make_economy_state(epsilon=0.30)
 ```
 
 ---
 
-## `simulate_period(state, epsilon, p)` → `dict`
+## `simulate_period(state, epsilon_delta, …)` → `tuple[dict, dict]`
 
-Advances the economy by one period at a given ε. Applies:
+Advances the economy by one period from the ε carried in `state`. Per-period
+inputs (growth and degradation rates, levy rates, `epsilon_delta`) are keyword
+arguments, not state. Applies:
 
 1. EOH generation from current physical state
 2. EOH fulfillment pipeline (machine/human split, registration, TEH creation)
@@ -29,27 +31,31 @@ Advances the economy by one period at a given ε. Applies:
 5. Capital aging and potential write-down trigger
 6. Population aging
 
-Returns the updated state plus a period summary dict.
+Returns `(next_state, period_result)`.
 
 ```python
 from hours_eoh.core.simulation import simulate_period
 
-period_result = simulate_period(state, epsilon=0.30, p=p)
-next_state = period_result["next_state"]
+next_state, period_result = simulate_period(state)
+print(next_state["period"], period_result["teh_created"])
 ```
 
 ---
 
-## `run_simulation(initial_epsilon, epsilon_delta, periods, p)` → `list[dict]`
+## `run_simulation(initial_state, n_periods, …)` → `dict`
 
-Runs a multi-period simulation with ε growing by `epsilon_delta` each period.
+Runs `simulate_period` repeatedly from an initial state; any per-period keyword
+(such as `epsilon_delta`) is forwarded to every period. Returns `states`,
+`period_results`, `final_state`, `summary`, `solvent_all` and `first_insolvency`.
 
 ```python
 from hours_eoh.core.simulation import run_simulation
 
-results = run_simulation(initial_epsilon=0.30, epsilon_delta=0.02, periods=20, p=p)
-for period in results:
-    print(f"Period {period['period']}: ε={period['epsilon']:.2f}  TEH={period['teh_created']:.0f}")
+results = run_simulation(make_economy_state(epsilon=0.30), n_periods=20,
+                         epsilon_delta=0.02)
+print(results["solvent_all"], results["first_insolvency"])
+for row in results["period_results"]:
+    print(f"ε={row['epsilon']:.2f}  TEH={row['teh_created']:.3e}")
 ```
 
 The CLI wrapper:

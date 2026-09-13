@@ -1,6 +1,6 @@
 # Module Map
 
-The `hours_eoh` package is organized into four layers with strict import rules.
+The `hours_eoh` package is organized into layers with strict import rules.
 
 ![EOH → TEH Pipeline](../images/eoh_teh_pipeline.svg)
 
@@ -8,10 +8,15 @@ The `hours_eoh` package is organized into four layers with strict import rules.
 
 ## Layer Architecture
 
+The map below names each layer and the modules a reader is most likely to need.
+**It is not exhaustive** — `scenarios/` and `research/` grow with every
+measurement — so browse the package, or run `eoh scenario list` for every
+registered scenario.
+
 ```
 hours_eoh/
-  data.py              All named constants — single source of truth
-  params.py            EohParams — mutable parameter container
+  data.py              All named constants — single source of truth, every one provenance-tagged
+  params.py            EohParams — mutable parameter container used by the CLI
 
   core/                Measurement-driven mechanics — stable API
     trajectory.py          Canonical arc + ε derivation
@@ -20,7 +25,7 @@ hours_eoh/
     eoh_fulfillment.py     EOH → TEH pipeline
     multipliers.py         Condition II: multiplier band and tier logic
     fiscal.py              Levies, allocation, guarantee, trust
-    prices.py              Price dynamics tied to human labor content
+    prices.py              Floor price dynamics tied to human labor content
     capital.py             Asset and human capital lifecycle
     eoh_dynamics.py        Time-evolution: compounding, regenerative labor
     population.py          Population structure, age distribution
@@ -29,29 +34,27 @@ hours_eoh/
     dashboard.py           Condition monitors + health indicators
     civilization.py        Endogenous ε from capital stock
     simulation.py          Period simulation engine
+    autarky.py             The autarky reference: does the apparatus pay for itself?
 
   land/                Ground Use Fee + stewardship lease mechanics
-    guf.py                 GUF framework (NLSA TM-0042) — 14 functions
-    collective.py          Collective land-inventory: compute_collective_guf(), make_urban_collective(),
-                           make_rural_collective()
-    calibration.py         Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
+    guf.py                 The fee, its terms, and the §9 write-down
+    collective.py          Collective land inventory: compute_collective_guf(), archetypes
+    calibration.py         Rate and weight calibration
 
-  scenarios/           Applied research: stress tests and scenario runners
-    sweep.py               epsilon_sweep — arc coherence check
-    shocks.py              automation_failure_shock, demographic_shock, ecological_eoh_spike,
-                           labor_income_shock, compound_shock
-    maintenance.py         deferred_maintenance_crisis, care_registration_delay
-    recovery.py            maintenance_recovery_schedule, minimum_fulfillment_for_recovery
-    sensitivity.py         fiscal_parameter_sweep, eoh_arc_sensitivity
-    long_run.py            canonical_arc_trajectory, trust_depletion_stress,
-                           automation_transition_trajectory
-    indust_overshoot.py    indust_overshoot_baseline, indust_recovery_trajectory
-    guf_stress.py          guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep,
-                           automation_levy_guf_stress
+  reference/           Measured reference data — pure data, imports nothing from the package
+    (time use, parcels, occupations, the capital inventory, the personal basket, …)
+
+  scenarios/           Applied research: stress tests, measurements, reporting
+    collective.py          collective_snapshot() — ONE collective end to end; the institutional entry point
+    sweep.py, shocks.py, maintenance.py, recovery.py, sensitivity.py, long_run.py,
+    indust_overshoot.py, guf_stress.py       — the stress-test families
+    obligation_accounts.py, feasibility.py, personal_floor.py, labour_epsilon.py,
+    capital_retrodiction.py, verification_cost.py, register_capture.py, frame.py, …
+                           — measurement and REPORTING ONLY modules
 
   research/            Experimental — NOT stable API
-    investment.py          rank_investment_candidates, optimal_investment
-    writedown.py           Redirect: eco-collapse resolved via land/guf.py §9
+    contestability.py, recalibration.py, formation.py, membership.py, coasean.py,
+    corridor.py, exchange.py, anchor_determinacy.py, thermal*.py, desire.py, …
 ```
 
 ## Import Rules
@@ -60,8 +63,9 @@ hours_eoh/
 |---|---|---|
 | `core/` | `data.py`, `params.py`, other `core/` | `land/`, `scenarios/`, `research/`, `utils/` |
 | `land/` | `core/` | `scenarios/`, `research/`, `utils/` |
+| `reference/` | nothing in the package | — (any layer may import it) |
 | `scenarios/` | `core/`, `land/` | `research/`, `utils/` |
-| `research/` | `core/` (re-exports only) | all others |
+| `research/` | `core/` | `scenarios/`, `land/`, `utils/` |
 | `utils/` | All layers freely | Never imported by any layer |
 
 ---
@@ -70,7 +74,9 @@ hours_eoh/
 
 | What you want | Where to look |
 |---|---|
+| Run one collective on your own data | [Implementation Guide](../guides/implementation_guide.md) |
 | Constants and calibration values | [Parameters & Constants](params.md) |
+| What every constant rests on | [Parameter Provenance](../parameter_provenance.md) |
 | EOH generation from physical state | [EOH Generation](core/eoh_generation.md) |
 | EOH → TEH pipeline | [EOH Fulfillment & Registration](core/eoh_fulfillment.md) |
 | Price and basket functions | [Price Dynamics](core/prices.md) |

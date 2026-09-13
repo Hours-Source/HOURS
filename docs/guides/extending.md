@@ -8,8 +8,9 @@ Strict layer separation is enforced. Violations cause import errors or silent co
 |---|---|---|
 | `core/` | `data.py`, `params.py`, other `core/` modules | `land/`, `scenarios/`, `research/`, `utils/` |
 | `land/` | `core/` | `scenarios/`, `research/`, `utils/` |
-| `scenarios/` | `core/` | `land/`, `research/`, `utils/` |
-| `research/` | `core/` (re-exports only) | `scenarios/`, `land/`, `utils/` |
+| `scenarios/` | `core/`, `land/` | `research/`, `utils/` |
+| `reference/` | nothing in the package — pure data | — (any layer may import it) |
+| `research/` | `core/` | `scenarios/`, `land/`, `utils/` |
 | `utils/` | All layers freely | Never imported by any layer |
 
 **Placement:**
@@ -17,10 +18,12 @@ Strict layer separation is enforced. Violations cause import errors or silent co
 - New physics + mechanics → `core/`
 - New GUF/land mechanics → `land/`
 - New applied scenario → `scenarios/`
-- Experimental/research re-exports → `research/`
+- Measured reference data → `reference/`
+- Experimental work → `research/`, until it has a stable API and tests
 - New CLI commands → `utils/`
 
-New scenario code goes in `scenarios/`. Do not add to `core/stress.py` (backward-compat shim only).
+New scenario code goes in `scenarios/`. The former `core/stress.py` was removed;
+do not recreate it.
 
 ---
 
@@ -31,13 +34,14 @@ New scenario code goes in `scenarios/`. Do not add to `core/stress.py` (backward
 EOH generation is measurement-driven — functions take actual physical state as primary inputs and return entropy obligations derived from calibrated physical constants and auditable baselines.
 
 ```python
+# template
 def my_eoh_function(
     capital_stock: float,
     ecosystem_health: float,
     population_age_distribution: dict[str, float],
     knowledge_base_size: float,
     epsilon: float | None = None,  # optional backward compat only
-    p: EohParams = ...,
+    base_rate: float = MY_BASE_RATE,  # a named data.py constant, never a literal
 ) -> float:
     # NLSA §N.N reference
     ...
@@ -50,7 +54,8 @@ When `epsilon` is provided for backward compat, use `canonical_physical_state(ep
 These mechanisms are genuinely ε-driven — take ε directly.
 
 ```python
-def my_fiscal_function(epsilon: float, p: EohParams = ...) -> float:
+# template
+def my_fiscal_function(epsilon: float, rate: float = MY_RATE) -> float:
     ...
 ```
 
@@ -98,7 +103,10 @@ Before committing any new function, verify every point:
 Every numeric literal in domain logic must be a named constant in `data.py`.
 
 ```python
-# data.py
+# template
+# data.py — every constant also carries a provenance tag block; see
+# docs/parameter_provenance.md for the vocabulary, and tests/test_provenance.py
+# fails the build if it is missing.
 MY_NEW_CONSTANT: float = 0.15  # brief physical rationale
 
 # my_module.py
@@ -126,10 +134,10 @@ Test at all four key ε values. A function that passes at ε = 0.40 but breaks a
 ## Code Style
 
 - No comments explaining *what* code does — well-named identifiers do that
-- Add a comment only when the *why* is non-obvious: a hidden constraint, a physical invariant, a Mission Statement reference
-- No docstrings longer than one short line
-- `mypy --strict` must pass cleanly
-- No anonymous constants — they go in `data.py` first
+- Comment the *why* when it is non-obvious: a hidden constraint, a physical invariant, a Mission Statement reference, or a defect this code exists to prevent
+- A public function's docstring states its governing equation, its units, and its behaviour across the ε arc — read any function in `core/` for the house form
+- `python3 -m mypy hours_eoh/` must pass cleanly against the configuration in `pyproject.toml` (untyped and incompletely typed definitions are rejected)
+- No anonymous constants — they go in `data.py` first, with a provenance tag
 
 ---
 

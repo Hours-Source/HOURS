@@ -8,19 +8,19 @@ TEH prices are tied to human labor content. As automation rises, prices fall. Th
 
 ---
 
-## `teh_price(base_labor_hours, epsilon, p)` → `float`
+## `teh_price(human_labor_hours_at_eps0, epsilon, …)` → `float`
 
 Price of a good or service in TEH. Human labor content = `(1 − ε) × base_hours`. A floor prevents prices reaching absolute zero.
 
 ```python
 from hours_eoh.core.prices import teh_price
 
-price = teh_price(base_labor_hours=0.1, epsilon=0.40, p=p)
+price = teh_price(human_labor_hours_at_eps0=0.1, epsilon=0.40)
 ```
 
 ---
 
-## `basket_price(epsilon, p)` → `float`
+## `basket_price(epsilon, …)` → `float`
 
 TEH cost of the sufficiency basket at ε. Goods (60% of basket) decline steeply with automation; services (40%) decline more slowly. Both fall, so the floor's purchasing power rises automatically.
 
@@ -28,13 +28,13 @@ TEH cost of the sufficiency basket at ε. Goods (60% of basket) decline steeply 
 
 ---
 
-## `purchasing_power(teh_income, epsilon, p)` → `float`
+## `purchasing_power(teh_amount, epsilon, …)` → `dict`
 
 Real purchasing power of a given TEH income at ε — how many sufficiency baskets can be purchased.
 
 ---
 
-## `floor_purchasing_power(epsilon, p)` → `float`
+## `floor_purchasing_power(floor_teh, epsilon, …)` → `dict`
 
 Purchasing power of the sufficiency guarantee floor at ε. Rises monotonically with automation.
 
@@ -42,7 +42,7 @@ Purchasing power of the sufficiency guarantee floor at ε. Rises monotonically w
 
 ---
 
-## `domain_scarcity_multiplier(eoh_fulfilled, eoh_total, p)` → `float`
+## `domain_scarcity_multiplier(eoh_demand, fulfillment_capacity, …)` → `float`
 
 The only S/D-like mechanism in the framework. Activates only when EOH demand exceeds fulfillment capacity. Corrective, not foundational — resets once labor is redirected.
 
@@ -52,15 +52,15 @@ The only S/D-like mechanism in the framework. Activates only when EOH demand exc
 
 ## Audit and Monotonicity
 
-### `full_price_monotonicity_audit(p)` → `dict`
+### `full_price_monotonicity_audit(…)` → `dict`
 
 Verifies that basket price decreases and purchasing power increases monotonically across the full ε arc. Used in tests and dashboard checks.
 
-### `floor_monotonicity_guard(previous_floor, current_floor, p)` → `bool`
+### `floor_monotonicity_guard(…)` → `dict`
 
 Guards against any mechanism that would allow the real floor to decline.
 
-### `cpi_goods_destruction(basket_delivery_teh, epsilon, p)` → `float`
+### `cpi_goods_destruction(capital_personal_eoh_fulfilled_total, epsilon, …)` → `dict`
 
 D4 TEH destruction from sufficiency basket delivery. TEH is destroyed when goods are consumed at the floor price.
 
@@ -70,8 +70,8 @@ D4 TEH destruction from sufficiency basket delivery. TEH is destroyed when goods
 
 | Function | Description |
 |----------|-------------|
-| `teh_price_trajectory(base_hours, epsilon_range, p)` | Price across a range of ε values |
-| `purchasing_power_sweep(epsilon_range, p)` | Purchasing power across the arc |
+| `teh_price_trajectory(human_labor_hours_at_eps0, …)` | Price across a range of ε values |
+| `purchasing_power_sweep(teh_amount, …)` | Purchasing power across the arc |
 
 ---
 

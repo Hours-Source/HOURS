@@ -30,24 +30,35 @@ The `core/` package contains measurement-driven mechanics — the stable API. It
 ## The EOH → TEH Pipeline
 
 ```python
-# Step 1: physical state → total EOH
-state = canonical_physical_state(epsilon)        # or pass real tracked state
-eoh = total_eoh(**state, p=p)
+from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_fulfillment import (
+    eoh_to_teh_pipeline, human_eoh_per_domain, registered_eoh, teh_created,
+)
+from hours_eoh.core.registration import (
+    personal_eoh_registration_share, total_registration_share,
+)
+
+epsilon = 0.40
+
+# Step 1: physical state → total EOH (canonical arc here; pass real state for a real collective)
+eoh = total_eoh(epsilon=epsilon)
 
 # Step 2: EOH → human/machine split
-human_eoh = human_eoh_per_domain(eoh_dict, epsilon)
+human = human_eoh_per_domain(eoh, epsilon)
 
-# Step 3: registration (different curves per domain)
+# Step 3: registration — different curves per domain
 # Personal: personal_eoh_registration_share(epsilon)  — near-zero at ε=0
 # Other:    total_registration_share(epsilon)          — labor composite sigmoid
-reg_share = total_registration_share(epsilon, p=p)
-reg_eoh = registered_eoh(human_eoh, reg_share)
+reg = (registered_eoh(human["personal"], personal_eoh_registration_share(epsilon))
+       + registered_eoh(human["infrastructure"] + human["ecological"] + human["knowledge"],
+                        total_registration_share(epsilon)))
 
 # Step 4: TEH creation
-teh = teh_created(reg_eoh, mean_multiplier)
+teh = teh_created(reg)
 
-# Or use the full pipeline in one call:
-result = eoh_to_teh_pipeline(epsilon, p=p)
+# Or use the full pipeline in one call — which is what to use, because it also
+# handles the labour constraint, deferral and the per-domain registration detail:
+result = eoh_to_teh_pipeline(epsilon)
 ```
 
 **Key design invariant:** EOH generation takes physical state. EOH fulfillment takes ε. These two concerns must never be conflated. See [Design Principles](../../theory/design_principles.md#9-every-mechanism-must-express-the-arc-not-just-a-point-on-it).

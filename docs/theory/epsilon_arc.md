@@ -10,13 +10,17 @@ The framework's primary object is the transition itself — not any particular p
 
 | Quantity | ε = 0 | ε = 0.40 | ε = 0.99 |
 |----------|-------|----------|----------|
-| Human share of EOH fulfillment | 100% | 60% | 1% |
-| Personal EOH on collective ledger | ~0% | ~14% | ~87% |
-| TEH prices (relative to ε=0) | 1.0× | ~0.72× | ~0.11× |
-| Care registration share | ~5% | rising | ~95% |
+| Machine capability (the input) | none | the calibration reference | near its maximum |
+| Human share of the obligation (observed) | all of it | more than the 60% the index implies | **well above 1%** — care resists automation |
+| Personal EOH on collective ledger | almost none | a small share | most of it |
+| Floor prices (relative to ε=0) | 1.0× | lower | a small fraction |
+| Care registration share | low | rising | nearly full |
 | Source of TEH destruction | income-driven | mixed | biology-anchored |
 
-These are illustrative numbers, not hard limits.
+These are shapes, not figures. Run `eoh arc` for the live values, and read
+**observable ε** — the machine share the ledger records — separately from the
+capability index: they diverge because personal components keep automation
+floors, so observable ε does not reach 1.
 
 ---
 
@@ -41,7 +45,7 @@ The ideal arc (the canonical trajectory) describes expected physical state at ea
 
 **At ε = 0:** The ledger sees almost no registered activity — most personal EOH is private, most production is household-scale, and TEH barely circulates. The framework must remain well-defined in this regime, not merely degrade gracefully to it.
 
-**At ε = 0.99:** Prices have collapsed, human labor is near-zero, and TEH destruction approaches zero despite full real consumption. The ledger must remain solvent, the floor must still rise, and the account identity must still hold.
+**At ε = 0.99:** Floor prices have collapsed, human labor is a small share of the obligation — small, not zero, because care resists automation — and TEH destruction approaches zero despite full real consumption. The ledger must remain solvent, the floor must still rise, and the account identity must still hold.
 
 ---
 

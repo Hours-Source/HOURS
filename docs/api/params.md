@@ -4,16 +4,17 @@
 
 **Module:** `hours_eoh/params.py`
 
-`EohParams` is a mutable parameter container with change tracking. All `core/` functions accept an optional `p: EohParams` argument.
+`EohParams` is a mutable parameter container with change tracking. It is what the CLI's `params set` / `params show` persist and read; library functions take their inputs as explicit keyword arguments with `data.py` defaults, so pass a changed value to the function you are calling rather than expecting a container to reach it.
 
 ```python
 from hours_eoh.params import EohParams
 
-p = EohParams()                              # default values
-p.set("suff_levy_rate", 0.03, reason="...")  # calibration-path change (recorded in history)
+p = EohParams()                                          # default values
+p.set("suff_levy_rate", 0.03, reason="high-levy charter")  # calibration-path change, recorded in history
 
-with p.temporary(suff_levy_rate=0.03):       # sweep code — restores state on exit, no history
-    result = eoh_to_teh_pipeline(0.40, p=p)
+with p.temporary(suff_levy_rate=0.05):                   # sweep code — restores on exit, no history
+    print(p["suff_levy_rate"])                           # 0.05 inside the block
+print(p["suff_levy_rate"], len(p.history))               # back to 0.03; one history entry
 ```
 
 ### Key methods

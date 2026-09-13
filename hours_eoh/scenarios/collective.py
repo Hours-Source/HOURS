@@ -81,6 +81,8 @@ def collective_snapshot(
     land_hectares: float | None = None,
     parcels: list[dict] | None = None,
     psi_policy: str = "retired",
+    available_labor_eoh: float | None = None,
+    rationing: str = "survival_first",
     **fiscal_kwargs: Any,
 ) -> dict:
     """
@@ -132,6 +134,19 @@ def collective_snapshot(
             revenue is then 0.0 and the snapshot says so.
         psi_policy: Forwarded to `compute_collective_guf`. Default `"retired"`
             matches the shipped default (Ψ ≡ 1, the 2026-08-20 sign-off).
+        available_labor_eoh: The labour this collective actually has, EOH-hours
+            per year (employment × hours per worker, from a labour force
+            survey). **Supply it, or the snapshot measures DEMAND and calls it
+            fulfilment**: omitted, the pipeline assumes every hour of
+            human-carried obligation is worked and mints on that assumption.
+            Supplied, the mint tracks what was SERVED and the shortfall is
+            booked as deferral — and `labor_income` in the fiscal layer is the
+            constrained figure, so the Trust is not funded by work nobody did.
+            A per-period input rather than a state field, as
+            `make_economy_state` documents for per-period inputs.
+        rationing: Forwarded to the pipeline — which obligation a labour
+            shortfall defers first. `"survival_first"` (default) or
+            `"pro_rata"`. Inert unless `available_labor_eoh` is supplied.
         **fiscal_kwargs: Forwarded to `fiscal_snapshot` — policy only (levy
             rates, dividend split). Frame quantities are refused.
 
@@ -178,6 +193,20 @@ def collective_snapshot(
     # it rather than asserting what the guards above already established.
     epsilon = float(state["epsilon"])
 
+    # THE STATE'S OWN PHYSICAL FIELDS REACH THE PIPELINE, as they do in
+    # `simulate_period`. Until 2026-09-12 this call dropped `deferred_ecological`,
+    # `knowledge_complexity` and `monitoring_capability`, so one state gave one
+    # answer through the period engine and another through this entry point —
+    # the stranded parameter, at the entry point the implementation guide names.
+    # On a state built at defaults the blast radius is zero at every arc point
+    # (all three resolve canonically from ε); it is a state carrying real values
+    # that was being silently read as canonical. `.get` because any mapping
+    # carrying the required keys is accepted.
+    optional_physical = {
+        k: state[k] for k in
+        ("deferred_ecological", "knowledge_complexity", "monitoring_capability")
+        if state.get(k) is not None
+    }
     pipeline = eoh_to_teh_pipeline(
         epsilon=epsilon,
         population=float(state["population"]),
@@ -185,7 +214,16 @@ def collective_snapshot(
         capital_age_ratio=float(state["capital_age_ratio"]),
         ecosystem_health=float(state["ecosystem_health"]),
         ecological_area_hectares=hectares,
+        available_labor_eoh=available_labor_eoh,
+        rationing=rationing,
+        **optional_physical,
     )
+    # Two facts, not one: whether a supply was given, and whether it BOUND. The
+    # pipeline's flag is the second — it is False both when no supply was given
+    # and when an ample one was, and reading it as the first tells an institution
+    # with enough labour that it measured demand.
+    labour_supplied = available_labor_eoh is not None
+    labour_constrained = bool(pipeline["labor_constrained"])
 
     guf_revenue = 0.0
     if parcels is not None:
@@ -218,6 +256,11 @@ def collective_snapshot(
             "hectares_per_capita": hectares / max(float(state["population"]), 1.0),
             "epsilon":        epsilon,
             "parcel_count":   0 if parcels is None else len(parcels),
+            # Which quantity `pipeline["teh_created"]` is. `labour_supplied`
+            # False: minted from obligation DEMANDED. True: checked against
+            # the hours given, and `labor_constrained` says whether they BOUND.
+            "labour_supplied":   labour_supplied,
+            "labor_constrained": labour_constrained,
         },
         "pipeline": pipeline,
         "fiscal":   fiscal,
@@ -228,6 +271,19 @@ def collective_snapshot(
             f"obligation is passed to the fiscal layer by value, so the two "
             f"cannot resolve the frame differently — the failure that read "
             f"92.8× in the implementation guide's own example. "
+            + (
+                f"Labour was SUPPLIED and BOUND, so the mint is what was served; "
+                f"{float(pipeline['deferred_total']):,.0f} h/yr of obligation "
+                f"had no hours to meet it and is booked as deferral. "
+                if labour_constrained else
+                "Labour was SUPPLIED and sufficed: every human-carried hour "
+                "had hours to meet it, so the mint is what was served and "
+                "nothing is deferred. "
+                if labour_supplied else
+                "No labour supply was given, so the mint assumes every "
+                "human-carried hour was worked — this is DEMAND, not "
+                "fulfilment. Pass `available_labor_eoh` to verify it. "
+            )
             + (
                 f"GUF raises {guf_revenue:,.0f} TEH/yr against a relocated "
                 f"obligation of {fiscal['guf']['obligation']:,.2f}; read "

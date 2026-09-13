@@ -4,7 +4,7 @@
 
 Scenarios are applied research tools in `hours_eoh/scenarios/`. They use `core/` physics and mechanics to test specific stress conditions, shocks, and parameter trajectories. They model system behavior under realistic conditions rather than verifying individual function outputs.
 
-Scenarios import from `core/` and `land/` but never the reverse.
+Scenarios import from `core/` and `land/` but never the reverse. Many are **REPORTING ONLY**: they measure something and say what it means, and nothing else in the package reads their output.
 
 ---
 
@@ -14,6 +14,8 @@ Scenarios import from `core/` and `land/` but never the reverse.
 python3 utils/eoh_cli.py scenario list
 python3 utils/eoh_cli.py scenario run NAME [--format table|csv|json]
 ```
+
+`scenario list` is the authoritative list, with each scenario's own options.
 
 Export to CSV for analysis:
 
@@ -25,17 +27,22 @@ python3 utils/eoh_cli.py scenario run automation_failure --format csv > results/
 
 ## Python API
 
+Every example below runs as written, and `tests/test_doc_examples.py` fails the
+build if one stops. The printed keys are the ones each function returns; read the
+function's docstring for the rest.
+
 ### epsilon_sweep — Arc coherence check
 
 ```python
 from hours_eoh.scenarios.sweep import epsilon_sweep
 
-results = epsilon_sweep()
-for row in results:
-    print(f"ε={row['epsilon']:.2f}  solvent={row['fiscally_solvent']}")
+report = epsilon_sweep(n_points=11)
+print(report["status"], report["discontinuities"])
+for row in report["sweep"]:
+    print(f"ε={row['epsilon']:.2f}  solvent={row['fiscal_solvent']}")
 ```
 
-Use after any significant change to `core/` parameters.
+Use after any significant change to `core/`.
 
 ### Shock scenarios
 
@@ -46,9 +53,18 @@ from hours_eoh.scenarios.shocks import (
     ecological_eoh_spike,
 )
 
-result = automation_failure_shock(epsilon=0.60, dropout_fraction=0.30)
-result = demographic_shock(epsilon=0.40, aging_factor=1.2)
-result = ecological_eoh_spike(epsilon=0.50, spike_multiplier=3.0)
+# Automation that was carrying EOH stops: can the competency reserve absorb it?
+result = automation_failure_shock(epsilon=0.60)
+print(result["outcome"], result["coverage_ratio"])
+
+# shock_type is "growth", "decline" or "aging"; magnitude is a fraction
+result = demographic_shock(epsilon=0.40, shock_type="aging", magnitude=0.20)
+print(result["outcome"])
+
+# An ecosystem crossing its threshold
+result = ecological_eoh_spike(epsilon=0.50, ecosystem_health_before=0.70,
+                              ecosystem_health_after=0.30)
+print(result["threshold_crossed"], result["outcome"])
 ```
 
 ### Maintenance scenarios
@@ -59,8 +75,14 @@ from hours_eoh.scenarios.maintenance import (
     care_registration_delay,
 )
 
-result = deferred_maintenance_crisis(epsilon=0.40, deferred_fraction=0.20, periods=5)
-result = care_registration_delay(epsilon=0.40, delay_periods=3)
+# Meeting 80% of an annual obligation for ten years — when does it compound into crisis?
+result = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1e6,
+                                     fulfillment_fraction=0.80, years=10)
+print(result["outcome"], result["crisis_year"])
+
+# Care registration lagging the arc by 0.10 in ε
+result = care_registration_delay(epsilon=0.40, delay_epsilon=0.10)
+print(result["outcome"], result["lag_fraction"])
 ```
 
 ### Recovery scenarios
@@ -71,8 +93,11 @@ from hours_eoh.scenarios.recovery import (
     minimum_fulfillment_for_recovery,
 )
 
-schedule = maintenance_recovery_schedule(deferred_eoh=5e8, epsilon=0.40)
-min_rate = minimum_fulfillment_for_recovery(deferred_eoh=5e8, epsilon=0.40)
+schedule = maintenance_recovery_schedule(epsilon=0.40, current_deferred=5e6, annual_eoh=1e6)
+print(schedule["recoverable"], schedule["recovery_year"])
+
+minimum = minimum_fulfillment_for_recovery(epsilon=0.40, current_deferred=5e6, annual_eoh=1e6)
+print(minimum["min_fulfillment"])
 ```
 
 ### Sensitivity sweeps
@@ -84,9 +109,12 @@ from hours_eoh.scenarios.sensitivity import (
     epsilon_delta_sensitivity,
 )
 
-results = fiscal_parameter_sweep(param="suff_levy_rate", values=[0.01, 0.02, 0.03], epsilon=0.40)
-results = eoh_arc_sensitivity()
-results = epsilon_delta_sensitivity(epsilon=0.40, delta=0.05)
+sweep = fiscal_parameter_sweep(parameter="dep_rate", values=[0.03, 0.045, 0.06], epsilon=0.40)
+print(sweep["solvent_range"])
+
+rows = eoh_arc_sensitivity()
+point = epsilon_delta_sensitivity(base_epsilon=0.40, delta_epsilon=0.05)
+print(len(rows), sorted(point["metrics"]))
 ```
 
 ### Income and compound shocks
@@ -98,14 +126,15 @@ from hours_eoh.scenarios.shocks import labor_income_shock, compound_shock
 result = labor_income_shock(epsilon=0.40, income_fraction=0.60)
 print(result["outcome"])  # STABLE / DEGRADED / CRISIS
 
-# Combined ecological + demographic + automation shock
+# Ecological collapse, an ageing shock and lost automation, together
 result = compound_shock(
     epsilon=0.40,
-    ecology_collapse={"spike_multiplier": 2.5},
-    demographic_shock_spec={"aging_factor": 1.3},
+    ecology_collapse=True,
+    ecosystem_health_after=0.30,
+    demographic_shock_spec={"shock_type": "aging", "magnitude": 0.20},
     automation_fraction_lost=0.20,
 )
-print(result["combined_outcome"])
+print(result["combined_outcome"], result["trust_absorbs_combined"])
 ```
 
 ### Multi-period long-run trajectories
@@ -119,15 +148,15 @@ from hours_eoh.scenarios.long_run import (
 
 # Full arc 0 → 0.99 over 20 periods
 result = canonical_arc_trajectory(n_periods=20)
-print(result["outcome"], result["inflection_points"])
+print(result["solvent_all"], result["first_insolvency"], result["inflection_points"])
 
 # Multi-stressor trust depletion run
 result = trust_depletion_stress(n_periods=30)
-print(result["first_insolvency_period"])
+print(result["outcome"], result["first_insolvency"])
 
 # Fixed-step automation transition
 result = automation_transition_trajectory(epsilon_start=0.20, epsilon_delta=0.03)
-print(result["converged"], result["convergence_period"])
+print(result["convergence_period"])
 ```
 
 ### Industrial overshoot archetype
@@ -138,13 +167,13 @@ from hours_eoh.scenarios.indust_overshoot import (
     indust_recovery_trajectory,
 )
 
-# Single-period overshoot snapshot vs. canonical
+# Single-period overshoot snapshot vs. the canonical arc at the same ε
 result = indust_overshoot_baseline(population=65_000_000, epsilon=0.40)
-print(result["overshoot_eoh_delta"])
+print(result["outcome"], result["eoh_vs_canonical_ratio"])
 
-# Recovery trajectory — can restoration escape the overshoot regime?
-result = indust_recovery_trajectory(epsilon_start=0.40, n_periods=20, restoration_rate=0.05)
-print(result["escaped_overshoot"], result["escape_period"])
+# Can ecological restoration pull the economy out of the overshoot regime?
+result = indust_recovery_trajectory(epsilon=0.40, n_periods=20, ecological_restoration_rate=0.05)
+print(result["ecosystem_recovered"], result["years_to_ecosystem_recovery"])
 ```
 
 ### GUF fiscal stress scenarios
@@ -152,20 +181,21 @@ print(result["escaped_overshoot"], result["escape_period"])
 ```python
 from hours_eoh.scenarios.guf_stress import (
     guf_fiscal_integration,
-    guf_writedown_scenario,
     guf_revenue_sweep,
     automation_levy_guf_stress,
 )
 from hours_eoh.land.collective import make_urban_collective
 
-# Does GUF revenue close a levy deficit at ε=0.60?
+# Does GUF revenue keep the Trust solvent where the levy alone would not?
 result = guf_fiscal_integration(epsilon=0.60)
-print(result["deficit_closed"], result["guf_contribution_fraction"])
+print(result["trust_solvent_levy_only"], result["trust_solvent_with_guf"],
+      result["guf_revenue_fraction_of_levy"])
 
-# GUF across the ε arc (tracks the Ψ bell curve)
-trajectory = guf_revenue_sweep(parcel_configs=None)
+# The fee across the ε arc
+for row in guf_revenue_sweep():
+    print(f"ε={row['epsilon']:.2f}  applied={row['guf_applied']:.2f}")
 
-# Multi-period automation→levy→GUF stress
+# Multi-period automation → levy → GUF stress
 result = automation_levy_guf_stress(
     parcel_inventory=make_urban_collective(1_000),
     epsilon_start=0.20,
@@ -173,7 +203,7 @@ result = automation_levy_guf_stress(
     n_periods=20,
 )
 print(result["outcome"])           # ADEQUATE / PARTIAL / CRISIS
-print(result["crossover_period"])  # first period GUF > levy
+print(result["crossover_period"])  # first period GUF > levy, or None
 ```
 
 ---
@@ -182,22 +212,19 @@ print(result["crossover_period"])  # first period GUF > levy
 
 1. Create the file in `hours_eoh/scenarios/`.
 2. Import from `core/` and `land/` as needed — never from `research/` or `utils/`.
-3. Use `EohParams.temporary(**overrides)` for sweep code:
+3. Take every input as an explicit keyword argument with a named `data.py` default, and forward it to the calls it governs. A parameter a scenario accepts and does not forward is the stranded-parameter failure `tests/test_parameter_wiring.py` exists to catch:
 
     ```python
-    from hours_eoh.params import EohParams
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
-    def my_scenario(epsilon: float, modified_rate: float) -> dict:
-        p = EohParams()
-        with p.temporary(levy_rate=modified_rate):
-            result = eoh_to_teh_pipeline(epsilon, p=p)
-        return result
+    def my_scenario(epsilon: float, available_labor_eoh: float | None = None) -> dict:
+        result = eoh_to_teh_pipeline(epsilon, available_labor_eoh=available_labor_eoh)
+        return {"scenario": "my_scenario", "teh_created": result["teh_created"],
+                "labor_constrained": result["labor_constrained"]}
     ```
 
-    `temporary()` restores state on exit and adds no history entries — always prefer it over `p.set()` in sweep code.
-
-4. Write tests in `tests/scenarios/test_my_scenario.py`. Test at ε = 0, 0.40, 0.90, 0.99.
+4. Write tests in `tests/scenarios/test_my_scenario.py`. Test at ε = 0, 0.40, 0.90, 0.99, and break a constant to confirm each test can fail.
+5. Register it in `utils/scenario_cmd.py` so `scenario list` shows it; `tests/test_cli_dispatch.py` runs every registered scenario.
 
 ---
 
@@ -205,9 +232,10 @@ print(result["crossover_period"])  # first period GUF > levy
 
 Check every scenario result against:
 
-- **Fiscal solvency** (`fiscally_solvent: True/False`) — does the Trust remain solvent under stress?
+- **Its verdict and outcome** — most scenarios return an `outcome` or `verdict` and a `recommendation`. Read the verdict's own caveats; they are there because a bare figure was misread before.
 - **Structural conditions** — do Conditions I–IV remain satisfied?
 - **Arc coherence** — does the scenario resolve gracefully as ε approaches 0.99?
+- **Which quantity was minted** — a pipeline result with `labor_constrained: False` is minted from obligation demanded, not work served.
 
 Spot-check with the dashboard after running with modified params:
 

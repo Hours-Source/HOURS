@@ -11,7 +11,7 @@
 A single parameter, **ε (epsilon)**, tracks where a civilization sits on the transition arc:
 
 - **ε = 0 — Subsistence.** All entropy resistance is human labor. The collective ledger sees almost nothing. TEH barely circulates.
-- **ε = 0.99 — Effective post-scarcity.** All entropy resistance is automated. Prices have collapsed. Human labor is near-zero. The ledger must remain solvent.
+- **ε = 0.99 — Effective post-scarcity.** Nearly all entropy resistance is automated. Floor prices have collapsed. The human share of the obligation is small but not zero — care resists automation, so observable ε stays below 1. The ledger must remain solvent.
 
 ε is not a policy lever. It is an *observed* state of the world — the measured degree to which physical entropy obligations are fulfilled by machines rather than human bodies.
 
@@ -54,22 +54,19 @@ Requires Python ≥ 3.10.
 ## Quick Start
 
 ```python
-from hours_eoh.core.trajectory import canonical_physical_state
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-from hours_eoh.params import EohParams
 
-p = EohParams()
-
-# Physical state on the canonical arc at ε = 0.40 (current equilibrium reference)
-state = canonical_physical_state(0.40)
-
-# Aggregate entropy obligation from physics
-eoh = total_eoh(**state, p=p)
+# The obligation on the canonical arc at ε = 0.40 — a reference frame, not a
+# measurement of anywhere. Pass real physical state for a real collective.
+eoh = total_eoh(epsilon=0.40)
+print(f"Total EOH: {eoh['total']:.3e} h/yr")
 
 # Full EOH → TEH pipeline at ε = 0.40
-result = eoh_to_teh_pipeline(0.40, p=p)
-print(f"TEH created: {result['teh_created']:.1f}")
+result = eoh_to_teh_pipeline(0.40)
+print(f"TEH created: {result['teh_created']:.3e}")
+# False: no labour supply was given, so this is minted from obligation DEMANDED.
+print(f"Verified against labour: {result['labor_constrained']}")
 ```
 
 Running the epsilon sweep to verify arc coherence:
@@ -77,10 +74,15 @@ Running the epsilon sweep to verify arc coherence:
 ```python
 from hours_eoh.scenarios.sweep import epsilon_sweep
 
-results = epsilon_sweep()
-for row in results:
-    print(f"ε={row['epsilon']:.2f}  TEH={row['teh_created']:.0f}  solvent={row['fiscally_solvent']}")
+report = epsilon_sweep(n_points=11)
+print(report["status"])
+for row in report["sweep"]:
+    print(f"ε={row['epsilon']:.2f}  EOH={row['total_eoh']:.3e}  solvent={row['fiscal_solvent']}")
 ```
+
+For one collective end to end — pipeline, Ground Use Fee and fisc on a single
+stated frame — use `scenarios.collective.collective_snapshot()`; the
+[Implementation Guide](docs/guides/implementation_guide.md) walks through it.
 
 ## Research CLI
 
@@ -97,7 +99,7 @@ python3 utils/eoh_cli.py <command> [options]
 | Command | What it does |
 |---------|-------------|
 | `arc` | Sweep ε from 0 to 0.99 — EOH by domain, registration share, TEH created, floor price, fiscal solvency |
-| `arc --domain-shares` | The same sweep as SHARES of total EOH — the denominator check (personal runs 98.9% at ε=0 down to 46.1% at ε=0.99) |
+| `arc --domain-shares` | The same sweep as SHARES of total EOH — the denominator check (personal is almost all of it at ε=0 and still the largest domain at ε=0.99) |
 | `dashboard` | Color-coded system health snapshot: Conditions I–IV, EOH health, fiscal health, contestability |
 | `params show` | Print all EohParams values; overridden keys are marked |
 | `params set KEY VALUE` | Persist a parameter change with downstream impact preview at ε = 0 / 0.40 / 0.99 |
@@ -125,60 +127,34 @@ Most commands support `--format table|csv|json`. CSV and JSON are useful for pip
 
 ### Examples
 
-Sweep the arc at 6 points:
+Sweep the arc:
 
+```bash
+python3 utils/eoh_cli.py --no-color arc --points 6
 ```
-$ python3 utils/eoh_cli.py --no-color arc --points 6
 
-ε      personal  infra     eco       knowledge  total_eoh  reg%   teh_created  floor_price  floor_pp  solvent
------  --------  --------  --------  ---------  ---------  -----  -----------  -----------  --------  -------
-0.000  1.302B    0.000     555.556K  13.341M    1.315B     15.1%  53.835M      120.000      1.000     Y
-0.198  1.302B    39.786M   581.125K  50.208M    1.392B     41.9%  179.213M     103.603      1.158     Y
-0.396  1.302B    81.924M   609.162K  146.817M   1.531B     58.7%  434.251M     86.702       1.384     Y
-0.594  1.302B    126.415M  640.041K  353.495M   1.782B     80.6%  895.641M     68.981       1.740     Y
-0.792  1.301B    173.258M  674.218K  720.570M   2.196B     91.1%  1.089B       49.591       2.420     Y
-0.990  1.301B    222.453M  712.251K  1.298B     2.823B     94.2%  98.872M      21.546       5.570     Y
-```
+Each row reports the obligation by domain, the registered share, TEH created, the
+`floor_price`, floor purchasing power and solvency. What to look for is the SHAPE, and it
+is why no figures are pasted here — they move with every calibration decision:
+
+- **Personal EOH dominates the whole arc**; infrastructure and knowledge grow with ε.
+- **Infrastructure EOH is 0 at ε=0**, because subsistence carries no apparatus (Block III).
+- **The ecological domain reads 0** unless you supply a stock — its recurring cost moved to
+  the Ground Use Fee, where it scales with land held.
+- **The registered share rises, the floor price falls, and floor purchasing power rises.**
 
 The column is `floor_price`, not `price`: the computed figure is the price *below which the
 collective guarantees work is always available and always paid*. Discovery happens above it.
-Infrastructure EOH is 0 at ε=0 because subsistence carries no apparatus (Block III).
 
 System health snapshot with color-coded conditions:
 
+```bash
+python3 utils/eoh_cli.py --no-color dashboard --epsilon 0.40
 ```
-$ python3 utils/eoh_cli.py --no-color dashboard --epsilon 0.40
 
-System Dashboard — ε = 0.400  [YELLOW]
-
-Structural Conditions
-  I   — Ledger Identity: OK
-  II  — Multiplier Band: OK
-  III — Zero Interest: OK
-  IV  — Distributed Competency: OK
-
-EOH Health
-  Deferred ratio: GREEN  0.000
-  Compounding ratio: GREEN  0.000
-  Registration coverage: GREEN  0.592
-  Personal registration: RED  0.141
-
-Fiscal Health
-  Trust solvency: GREEN  275.972M
-  PP index: GREEN  1.390
-  Levy/guarantee ratio: GREEN  0.029
-  Ecological cost: GREEN  900.000K
-
-Contestability (§8)
-  §8.9 invariant (adopted): exit FINANCEABLE via underwritten channel
-    t_exit_self = 5.68 yr   entry_capacity = 126
-  [SUPERSEDED stress] P/K_entry: χ = 0.528 < 1
-  [SUPERSEDED stress] tenure-0 member: χ_marginal = 0.315 < 1
-
-Autarky comparison (Block II)
-  verdict: PAYS  — apparatus removes 508.5 h/person·yr more than it costs
-  B₀ (autarky)   1953.1   B(K)   1369.6   overhead    75.0   h/person·yr
-```
+It prints the four Structural Conditions, EOH and fiscal health, the adopted §8.9
+contestability invariant beside the superseded χ stress reading, and the autarky comparison
+(does the apparatus remove more personal obligation than it costs?).
 
 **The reference configuration does not read all-green, and that is reported rather than
 tuned away.** Two of these are known, documented defects rather than model failures:
@@ -189,18 +165,13 @@ Both are described in `docs/parameter_provenance.md`.
 
 Preview the downstream effect of a parameter change before persisting:
 
+```bash
+python3 utils/eoh_cli.py --no-color params set suff_levy_rate 0.03 --dry-run
 ```
-$ python3 utils/eoh_cli.py --no-color params set suff_levy_rate 0.03 --dry-run
 
-[DRY RUN] params set suff_levy_rate
-  suff_levy_rate: 0.0125  →  0.03
-
-  Downstream impact (TEH created / Trust solvency):
-       ε        teh Δ  surplus (after)       surp Δ  solvent
-    0.00         +0.0             1.9B      +987.0M  Y
-    0.40         +0.0            14.2B        +8.1B  Y
-    0.99         +0.0             3.6B        +1.8B  Y
-```
+The preview reports TEH created and the Trust surplus at ε = 0, 0.40 and 0.99. For the
+levy rate, TEH created does not move at all — the levy is circulatory, it redistributes
+TEH and mints none — while the surplus does.
 
 Run a scenario and export to CSV for analysis:
 
@@ -216,41 +187,22 @@ $ python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 
 
 ### Available scenarios
 
-28 scenarios. `scenario list` prints the full set with their per-scenario options.
+**`scenario list` is the authoritative list** — generated from the registry, with each
+scenario's own options, so it cannot fall behind. The families:
 
-| Name | Description |
+| Family | Representative scenarios |
 |------|-------------|
-| `sweep` | Arc coherence check from ε = 0 to ε = 0.99 |
-| **Shocks** | |
-| `automation_failure` | Sudden machine EOH dropout — tests reserve coverage |
-| `demographic_shock` | Population age-structure shift |
-| `ecological_spike` | Threshold ecosystem EOH surge |
-| `labor_income_shock` | Wage compression / automation displacement |
-| `compound_shock` | Simultaneous multi-axis shock |
-| **Maintenance & recovery** | |
-| `maintenance_crisis` | Compounding deferred infrastructure backlog |
-| `care_delay` | Lag in care EOH admission to the collective ledger |
-| `recovery` | Maintenance backlog paydown arc |
-| **Long run** | |
-| `canonical_arc` | Full ε arc over N periods |
-| `trust_stress` | Multi-stressor Trust depletion |
-| `transition` | Fixed Δε convergence |
-| `indust_baseline`, `indust_recovery` | Industrial overshoot snapshot and ecosystem recovery |
-| **Land / GUF** | |
-| `guf_integration`, `guf_writedown`, `guf_sweep` | GUF revenue vs. levy deficit, write-down pathways, the Ψ(ε) bell curve |
-| **Measured spine** | |
-| `measured_sim` | Simulation with Condition II sourced from the measured O\*NET/BLS registry |
-| `multiplier_sensitivity` | Multiplier robustness under weight perturbation and Monte Carlo |
-| `infra_floor` | Currency-free statutory floor vs the monetized path (doctrine invariance) |
-| `ecological_floor` | The ecological anchor inverted — what stewardship intensity a given EOH share demands |
-| `knowledge_base` | `KNOWLEDGE_EOH_BASE` from the measured O\*NET training stock, and its ε_ref fixed point |
-| `personal_floor` | Task-normative personal floor vs measured ATUS hours — REPORTING ONLY |
-| `food_conservation` | Did automation eliminate food labour, or relocate it? Stage by stage |
-| `care_curve` | Measured personal obligation by age vs the shipped `AGE_GROUPS` weights — REPORTING ONLY |
-| **Structural tests** | |
-| `thermal_load` | Carry the planetary radiative obligation in the ledger and report what it moves |
-| `overbuild` | Is the collective carrying its own weight, or is the apparatus overhead? |
-| `feasibility` | Is `PERSONAL_EOH_BASE` compatible with the labour supply? |
+| Arc coherence | `sweep` |
+| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock` |
+| Maintenance & recovery | `maintenance_crisis`, `care_delay`, `recovery` |
+| Long run | `canonical_arc`, `trust_stress`, `transition`, `indust_baseline`, `indust_recovery` |
+| One collective, end to end | `collective` — the documented institutional entry point |
+| Land / GUF | `guf_integration`, `guf_writedown`, `guf_sweep`, `guf_magnitude`, `servicing_census`, `land_tenure` |
+| Measured spine | `measured_sim`, `multiplier_sensitivity`, `infra_floor`, `knowledge_base` |
+| The personal obligation | `personal_floor`, `food_conservation`, `care_curve`, `component_shares` |
+| Reading ε off a real economy | `labour_epsilon`, `frame` |
+| Structural tests | `feasibility`, `overbuild`, `arc_stability`, `obligation_accounts`, `thermal_load` |
+| The register itself | `verification_cost`, `verification_band`, `register_capture` |
 
 ### Parameter persistence
 
@@ -298,7 +250,7 @@ hours_eoh/
 ## Running Tests
 
 ```bash
-# Full suite (3,650 tests)
+# Full suite
 python3 -m pytest tests/ -q
 
 # Single test file
@@ -339,7 +291,7 @@ Full documentation: **[wiki.hoursframework.org](https://wiki.hoursframework.org/
 - [Theory](https://wiki.hoursframework.org/theory/overview/) — Mathematical foundations, ε arc, structural conditions, design principles
 - [Prior Art and Limitations](https://wiki.hoursframework.org/theory/prior_art/) — The labour-currency lineage (Owen, Ithaca, Wörgl, WIR, Technocracy), the seven recurring failure modes that killed it, and what this framework does differently on each with an honest verdict. Ends by separating **deliberate boundaries** (decisions no dataset retires) from **open fronts** (unexplored, each stated with the route that would settle it) — the same `normative` / `placeholder` discipline the provenance page applies to constants
 - [Developer Reference](https://wiki.hoursframework.org/api/) — Complete API for all modules with worked examples
-- [Parameter Provenance](https://wiki.hoursframework.org/parameter_provenance/) — Every one of the 235 `data.py` constants: default, units, provenance tag, and the evidence that would settle it. The vocabulary is closed and tested — seven tags (`physics`, `measured`, `derived`, `bounded`, `placeholder`, `normative`, `instance`) plus two sub-labels (`derived-then-FROZEN`, `convention`) — and it is designed so the page cannot flatter the model. `placeholder` (95, 40.4%) means *nothing* stands behind the value and names what would settle it; the 61 `normative` constants state who decides and explicitly refuse to pretend data could; the 8 `instance` constants are ones *you* supply for your jurisdiction, so the shipped default is not evidence about yours; `bounded` values carry their measured band and which way they err. **Measurement debt is 47.2%, and the page leads with that figure rather than burying it.** Tables are generated from inline tags in `data.py` and gated by `tests/test_provenance.py` with no allowlist, so coverage cannot regress silently. Machine-readable: [`constant_provenance.csv`](hours_eoh/reference/data/constant_provenance.csv). Run `python3 utils/eoh_cli.py provenance check`.
+- [Parameter Provenance](https://wiki.hoursframework.org/parameter_provenance/) — Every `data.py` constant: default, units, provenance tag, and the evidence that would settle it. The vocabulary is closed and tested — seven tags (`physics`, `measured`, `derived`, `bounded`, `placeholder`, `normative`, `instance`) plus two sub-labels (`derived-then-FROZEN`, `convention`) — and it is designed so the page cannot flatter the model. `placeholder` means *nothing* stands behind the value and names what would settle it; `normative` constants state who decides and explicitly refuse to pretend data could; `instance` constants are ones *you* supply for your jurisdiction, so the shipped default is not evidence about yours; `bounded` values carry their measured band and which way they err. **Measurement debt is large — roughly two constants in five — and the page leads with the live figure rather than burying it.** Tables are generated from inline tags in `data.py` and gated by `tests/test_provenance.py` with no allowlist, so coverage cannot regress silently. Machine-readable: [`constant_provenance.csv`](hours_eoh/reference/data/constant_provenance.csv). Run `python3 utils/eoh_cli.py provenance check`.
 - [Implementation Guide](https://wiki.hoursframework.org/guides/implementation_guide/) — How to plug your institution's real data into the model
 - [Guides](https://wiki.hoursframework.org/guides/quickstart/) — Quick start, CLI reference, extending the library
 - [Architecture Reference](CLAUDE.md) — Module layout, design invariants, layer rules (local)

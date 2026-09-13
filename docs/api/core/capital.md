@@ -8,21 +8,21 @@ These two modules model humans as capital stock. Capital is both physical (infra
 
 ## Asset Lifecycle (capital.py)
 
-### `make_asset(capital_teh, design_life, epsilon_at_build, ...)` → `Asset`
+### `make_asset(asset_id, asset_type, teh_value, annual_eoh, design_life, …)` → `Asset`
 
-Create an asset record with embedded TEH cost, design life, and condition state.
+Construct a well-formed asset record — embedded TEH value, annual EOH, design life, age and condition. The same record type carries human capital (`is_human_capital=True`).
 
-### `asset_condition(asset, current_age)` → `float`
+### `asset_condition(initial_condition, maintenance_history, …)` → `float`
 
-Current physical condition of an asset (0.0 = failed, 1.0 = new). Condition declines non-linearly — slower early, accelerating near end of design life.
+Current condition (0.0 = irrecoverable, 1.0 = like-new) replayed from a maintenance history of `{"eoh_demanded", "eoh_fulfilled"}` periods: under-maintenance lowers it, a small natural decay applies every period, and surplus maintenance restores a little.
 
-### `writedown_trigger(asset, threshold, p)` → `bool`
+### `writedown_trigger(condition, …)` → `bool`
 
-Returns `True` when an asset has degraded below the maintainability threshold and should be written down.
+Returns `True` when condition has fallen below the recoverability threshold (default 0.2) and the asset should be written down.
 
-### `execute_writedown(asset, p)` → `dict`
+### `execute_writedown(asset, …)` → `dict`
 
-Executes a capital write-down (D1 destruction). Returns the TEH destroyed and the new EOH obligation.
+Executes a capital write-down (D1 destruction) and returns the ledger updates to apply.
 
 !!! note "D1 is not interest"
     Capital write-down destroys TEH that was embodied in the asset. This is not interest — it measures a real physical loss. The obligation to rebuild or abandon remains; the TEH representing the now-failed capital is removed from circulation.
@@ -31,19 +31,19 @@ Executes a capital write-down (D1 destruction). Returns the TEH destroyed and th
 
 ## Human Capital Lifecycle
 
-### `birth_event(age_distribution, p)` → `dict`
+### `birth_event(population, eoh_ledger_total, …)` → `dict`
 
-Models a birth event — increases personal EOH demand, starts the care registration clock.
+Registers a new member: maximum personal EOH, zero entropy-reduction capacity. Apply the result with `apply_birth_eoh()`.
 
-### `death_event(worker, eoh_redistributed, p)` → `dict`
+### `death_event(asset, workforce_size, …)` → `dict`
 
-D5 estate dissolution — clears personal EOH, distributes estate TEH, redistributes EOH obligations to remaining workers or automation.
+A human capital write-down — delegates to `execute_writedown()`. Apply the redistribution with `workforce.apply_death_redistribution()`. Estate TEH is a separate, aggregate mechanism: `estate_dissolution()` below.
 
-### `maturation_update(person, years_elapsed, p)` → `dict`
+### `maturation_update(asset, years_elapsed, …)` → `dict`
 
-Advances a person's age/capacity state. Tracks the progressive shift from high-EOH-low-output (child) to low-EOH-high-output (working age) to high-EOH-low-output (elder).
+Updates a human capital asset's entropy-reduction capacity as it matures, with optional education and training EOH invested along the way.
 
-### `estate_dissolution(balance, epsilon, p)` → `float`
+### `estate_dissolution(teh_in_circulation, population, epsilon, …)` → `dict`
 
 D5 TEH destruction — clears accumulated balance above the estate transfer cap at death.
 
@@ -53,30 +53,30 @@ D5 TEH destruction — clears accumulated balance above the estate transfer cap 
 
 | Function | Description |
 |----------|-------------|
-| `aggregate_personal_eoh_fulfilled(assets, epsilon, p)` | Total personal EOH covered across a population |
-| `aggregate_eoh_eliminated(assets, epsilon, p)` | Total EOH reduction from infrastructure assets |
-| `apply_birth_eoh(population, births, p)` | Apply birth EOH demand to population state |
+| `aggregate_personal_eoh_fulfilled(assets, population)` | Total personal EOH covered across a population |
+| `aggregate_eoh_eliminated(assets)` | Total EOH reduction from infrastructure assets |
+| `apply_birth_eoh(birth_result, current_total_personal_eoh)` | Apply birth EOH demand to population state |
 
 ---
 
 ## Population Structure (population.py)
 
-### `aging(age_distribution, years, p)` → `dict`
+### `aging(asset, …)` → `dict`
 
-Advances the population's age distribution by `years`. Adjusts EOH demand and entropy-reduction capacity.
+Advances one human capital asset's age by `years_elapsed` and updates its personal EOH and capacity accordingly. For a whole population, use `cohort_aging_trajectory()`.
 
-### `population_eoh_curve(age_distribution, p)` → `dict`
+### `population_eoh_curve(age_distribution, …)` → `list[dict]`
 
 Personal EOH demand by age group — the shape of human capital depreciation.
 
-### `population_lifecycle_snapshot(age_distribution, epsilon, p)` → `dict`
+### `population_lifecycle_snapshot(age_distribution, epsilon, …)` → `dict`
 
 Comprehensive snapshot: EOH by age group, care obligations, working-age capacity.
 
-### `cohort_aging_trajectory(cohort_age, years, p)` → `list[dict]`
+### `cohort_aging_trajectory(initial_distribution, …)` → `dict`
 
-Track a single cohort's EOH profile as it ages.
+Simulates year-by-year cohort flow — births, ageing between groups, elderly deaths — and tracks how the age distribution and its EOH demand shift.
 
 ### `age_group_for_age(age)` → `str`
 
-Maps an age (in years) to an age group label (`child`, `young_adult`, `working_age`, `elder`).
+Maps an age in years to its `AGE_GROUPS` key (`infant`, `child`, `working_age`, `elderly`).

@@ -71,25 +71,20 @@ python3 utils/eoh_cli.py scenario list
 python3 utils/eoh_cli.py scenario run NAME [--format table|csv|json]
 ```
 
-| Scenario Name | Description |
+**`scenario list` is the authoritative list** — it is generated from the
+registry, prints each scenario's own options, and cannot fall behind. The table
+below names the families and a representative of each; it is not exhaustive.
+
+| Family | Representative scenarios |
 |---|---|
-| `sweep` | Arc coherence check from ε = 0 to ε = 0.99 |
-| `automation_failure` | Sudden machine EOH dropout — tests reserve coverage |
-| `demographic_shock` | Population age-structure shift |
-| `ecological_spike` | Ecosystem EOH surge |
-| `maintenance_crisis` | Compounding deferred infrastructure backlog |
-| `care_delay` | Lag in care EOH admission to the collective ledger |
-| `recovery` | Maintenance backlog paydown arc |
-| `labor-shock` | Compressed labor income — tests fiscal solvency delta |
-| `compound-shock` | Combined ecological + demographic + automation shocks |
-| `canonical-arc` | Multi-period full ε arc via `run_simulation()` |
-| `trust-depletion` | Multi-stressor run — when does the Trust break? |
-| `automation-transition` | Fixed ε-step transition: purchasing power and fiscal convergence |
-| `indust-baseline` | Industrial-overshoot snapshot vs. canonical |
-| `indust-recovery` | Can ecosystem restoration escape the overshoot regime? |
-| `guf-integration` | Does GUF revenue close a levy deficit at a given ε? |
-| `guf-writedown` | Ecological collapse → warning → write-down pathways |
-| `guf-sweep` | Aggregate GUF across the ε arc vs. the Ψ(ε) bell curve |
+| Arc coherence | `sweep` |
+| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock` |
+| Maintenance & recovery | `maintenance_crisis`, `care_delay`, `recovery` |
+| Long run | `canonical_arc`, `trust_stress`, `transition`, `indust_baseline`, `indust_recovery` |
+| Land / GUF | `guf_integration`, `guf_writedown`, `guf_sweep`, `guf_magnitude`, `servicing_census`, `land_tenure` |
+| One collective, end to end | `collective` — the documented institutional entry point |
+| Measurement and reporting | `obligation_accounts`, `personal_floor`, `labour_epsilon`, `frame`, `feasibility` |
+| The register itself | `verification_cost`, `verification_band`, `register_capture` |
 
 ```bash
 python3 utils/eoh_cli.py scenario run automation_failure --format csv > results/shock.csv
@@ -127,9 +122,13 @@ python3 utils/eoh_cli.py simulate --periods 20 --epsilon 0.30 --epsilon-delta 0.
 Parameter and arc sensitivity sweeps.
 
 ```bash
-python3 utils/eoh_cli.py sensitivity fiscal --param KEY --min V1 --max V2 [--points N]
-python3 utils/eoh_cli.py sensitivity arc [--format table|csv|json]
-python3 utils/eoh_cli.py sensitivity delta --epsilon ε --delta Δε
+python3 utils/eoh_cli.py sensitivity fiscal --parameter PARAM --values V1,V2,... [--epsilon ε]
+python3 utils/eoh_cli.py sensitivity arc [--start ε] [--end ε] [--points N] [--format table|csv|json]
+python3 utils/eoh_cli.py sensitivity delta [--epsilon ε] [--delta Δε]
+```
+
+```bash
+python3 utils/eoh_cli.py sensitivity fiscal --parameter dep_rate --values 0.03,0.045,0.06
 ```
 
 ---

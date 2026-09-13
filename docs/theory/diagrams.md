@@ -111,7 +111,7 @@ The four sub-indices and their default weights (35 / 30 / 20 / 15) flowing into 
 
 ## 13. GUF Epsilon Arc — Ψ(ε)
 
-Bell-curve shape of the global GUF multiplier: near-floor at ε=0 and ε=0.99, peak ≈1.06 at ε=0.40.
+Bell-curve shape of the global GUF multiplier as specified in NLSA: near-floor at both ends of the arc, peaking near the reference. **Retired as the shipped default (2026-08-20)** — the model runs with Ψ ≡ 1 and carries the fee's ε-response in α; see [GUF Framework](guf_framework.md) §4.2.
 
 ![Ψ(ε) GUF epsilon scaling arc](../images/guf_epsilon_arc.svg)
 

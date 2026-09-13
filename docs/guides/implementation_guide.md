@@ -8,11 +8,18 @@ This is not a developer guide — see `extending.md` for that.
 outputs that mean something about your jurisdiction.
 
 ```python
+# template
 from hours_eoh.core.simulation import make_economy_state
 from hours_eoh.scenarios.collective import collective_snapshot
 
 state = make_economy_state(population=..., capital_stock_teh=..., trust_balance=...)
-report = collective_snapshot(state, parcels=your_parcel_inventory)
+report = collective_snapshot(
+    state,
+    parcels=your_parcel_inventory,          # or land_hectares=... if you have no inventory
+    available_labor_eoh=your_labour_hours,  # omit it and you are measuring DEMAND
+)
+report["frame"]["labour_supplied"]          # True: the mint is what was served, not demanded
+report["frame"]["labor_constrained"]        # True: your hours BOUND, and the shortfall is deferred
 ```
 
 `collective_snapshot()` runs the EOH→TEH pipeline, the Ground Use Fee and the
@@ -20,12 +27,18 @@ fiscal snapshot on **one stated frame**, passing the three values between them
 that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
 it on the shipped urban archetype.
 
+**Pass `available_labor_eoh`.** Until 2026-09-12 this entry point could not
+accept it, so every snapshot minted from obligation *demanded* while this guide
+called the field its most consequential input. It is now forwarded to the
+pipeline, the shortfall is reported as deferral, and the fiscal layer raises its
+levies on what was served. The verdict string says which of the two you got.
+
 **Use it in preference to calling the three by hand.** The sections below
 document the pieces, because you will want to understand them and because
 `collective_snapshot` is a thin assembly over exactly those calls — but running
 them yourself means keeping eleven parameters in agreement across three
 functions, and that is where the frame comes apart. It came apart in this
-guide's own worked example, by a factor of 92.8.
+guide's own worked example, by nearly two orders of magnitude.
 
 ---
 
@@ -85,11 +98,12 @@ represents and where to find it in real-world data:
 > obligation it checks against is only the *ecological* requirement that left the
 > domain; the fee also carries the **servicing** cost of the built environment,
 > which the snapshot has no inventory for. On the shipped urban archetype the
-> coverage figure is ~1e6, which says almost nothing — the denominator is tiny.
-> Set the same revenue against the servicing census and it reads ~21× **over**,
-> matching the 18.1× urban overshoot `scenarios/servicing_census` measured
-> independently. Run `eoh scenario run servicing_census` for the comparison that
-> actually constrains the fee's magnitude.
+> coverage figure is enormous, which says almost nothing — the denominator is
+> tiny. Set the same revenue against the servicing census and it reads an order
+> of magnitude **over**, in line with the urban overshoot
+> `scenarios/servicing_census` measures independently. Run
+> `eoh scenario run servicing_census` for the comparison that actually
+> constrains the fee's magnitude.
 
 > **Supply `available_labor_eoh`, or you are measuring demand and calling it
 > fulfilment.**
@@ -108,8 +122,10 @@ represents and where to find it in real-world data:
 >
 > Both paths are legitimate — a demand figure is what you want when sizing an
 > obligation — but they are different quantities and only one of them is
-> fulfilment. `result["labor_constrained"]` tells you which produced your figure,
-> and `result["deferred_personal"]` / `result["deferred_total"]` report the
+> fulfilment. Whether you passed the field tells you which produced your figure
+> (`collective_snapshot()` reports it as `frame["labour_supplied"]`);
+> `result["labor_constrained"]` says whether the hours you supplied BOUND — it is
+> False both when they sufficed and when none were given. And `result["deferred_personal"]` / `result["deferred_total"]` report the
 > shortfall rather than absorbing it. Two rationing doctrines are available:
 > `survival_first` (the default — personal obligation is served first, so a
 > non-zero `deferred_personal` is a severe reading) and `pro_rata`.
@@ -135,12 +151,13 @@ something the model determines.
 Every constant in `data.py` carries an inline provenance tag saying what kind of
 claim its value makes. That tag, not intuition, tells you what to do with it.
 Run `eoh provenance check` for the current counts, or read
-`hours_eoh/reference/data/constant_provenance.csv` for all 288 with their
-evidence. Both are generated from `data.py`, so neither can drift from it.
+`hours_eoh/reference/data/constant_provenance.csv` for every constant with its
+evidence. Both are generated from `data.py`, so neither can drift from it. This
+guide deliberately quotes no counts: they move every time a constant lands.
 
 | Tag | What it means | What you should do |
 |---|---|---|
-| `physics` | Structural — a constant of nature | Keep. There are exactly **two**: `A_EARTH_M2`, `SIGMA_SB` |
+| `physics` | Structural — a constant of nature | Keep. There are only a handful, and the CSV names them |
 | `measured` / `derived` | Sourced, or computed from sourced inputs | Keep unless you have better local data; check the source suits your jurisdiction |
 | `convention` | A declared reference frame, not a claim | Keep. Changing it changes what the numbers *mean* |
 | `normative` | A **decision**. No dataset settles it | **Decide it yourself.** This is a charter question, not a calibration |
@@ -163,28 +180,47 @@ evidence. Both are generated from `data.py`, so neither can drift from it.
 
 These carry the `instance` tag. Nothing about your jurisdiction can be measured
 by this framework, so the shipped values are placeholders for *your* data — and
-every canonical result in this repo was produced at them.
+every canonical result in this repo was produced at them. **Filter the
+provenance CSV on `tag == instance` for the complete list**; the ones below are
+grouped by what they describe, and the list grows as the framework learns to
+ask rather than assume.
 
-- **`TRUST_BASE_TEH = 35000000000.0`** — the most-consumed constant in the repo
-  (77 call sites). Sized *backwards*: chosen so the dividend covers the
-  obligations it must fund. Supply your Trust's real balance. Every fiscal
-  function takes `trust_balance` as an argument, so you need not edit the
-  constant — pass your own.
-- **`CAPITAL_STOCK_DEFAULT = 2000000000.0`** — your gross fixed capital stock in
-  TEH, and it is the stock you hold NOW: since 2026-09-09 a supplied stock is
-  used exactly as given and is never rescaled by ε. Note the shipped value is
-  2,000 TEH/capita **at the 1M reference population**, which describes a
-  *mid-arc* collective — so passing it unchanged at low ε asserts capital the arc
-  says is not there, and passing it unchanged at a different population asserts
-  someone else's apparatus. Leave the field unset and the model fills it from the
-  canonical arc at your ε instead.
+- **`TRUST_BASE_TEH`** — the most-consumed constant in the repo. Sized
+  *backwards*: chosen so the dividend covers the obligations it must fund.
+  Supply your Trust's real balance. Every fiscal function takes `trust_balance`
+  as an argument, so you need not edit the constant — pass your own.
+- **`CAPITAL_STOCK_DEFAULT`** — your gross fixed capital stock in TEH, and it is
+  the stock you hold NOW: since 2026-09-09 a supplied stock is used exactly as
+  given and is never rescaled by ε. The shipped value is stated **at the 1M
+  reference population** and describes a *mid-arc* collective — so passing it
+  unchanged at low ε asserts capital the arc says is not there, and passing it
+  unchanged at a different population asserts someone else's apparatus. Leave
+  the field unset and the model fills it from the canonical arc at your ε
+  instead.
+- **`LAND_HECTARES_PER_CAPITA`** — a planetary average, and the wrong number for
+  any actual collective. Supply your land, as in §1.
+- **`REGISTER_CADENCE`** — how often your register records fulfilment:
+  `episodic` (the default, which errs toward the costlier reading on purpose) or
+  `continuous`. It decides whether the register's own verification cost fits
+  inside the labour your population can supply. Run
+  `eoh scenario run verification_band --cadence continuous` to see where a
+  continuous register stops being affordable.
+- **`BASKET_WATER_*`** — the distance to water, the carry volume and the share
+  carried by hand. A village and a city beside one spring walk the same
+  distance, so no survey of one population transfers to another. Declare yours
+  and `scenarios/personal_floor.water_feasibility()` reports whether it fits and
+  the furthest distance that still does.
+- **`PERSONAL_ABATABILITY_*`** and **`PERSONAL_EOH_BASE_CLIMATE_FRAME`** — how
+  far automation can reach each personal component in your setting, and the
+  climate your personal base is stated for.
 - **`CONTESTABILITY_G_PRIV = 0.03`** — your real capital return net of
   depreciation. Piketty's r gives 4–5%, above this default.
 - **`GUF_LVI_W_*`** — land-value sub-index weights. Land value is local by
   construction; these come from a hedonic regression on *your* parcel data.
 - **`AGE_GROUP_FRACTIONS`** — your census age pyramid, grouped to
-  `AGE_GROUP_RANGES`. The shipped 7/16/60/17 is an OECD-shaped split that fits
-  the US around 2020; by 2025 the US itself had moved to 6.5/14.5/60.0/18.9.
+  `AGE_GROUP_RANGES`. The shipped split is OECD-shaped and fits the US of a few
+  years ago; the US itself has aged since, which is the point — a pyramid is a
+  date as well as a place.
   `reference/care_demand.population_shares()` groups any band structure against
   the shipped census extract.
 
@@ -193,9 +229,9 @@ every canonical result in this repo was produced at them.
 The `normative` constants are commitments your charter makes. No amount of data
 retires them, and treating them as calibration knobs is a category error:
 
-- `M_BAND_LOW = 1.8` / `M_BAND_HIGH = 2.1` — the constitutional multiplier band
-- `DIV_RATE = 0.4` — the share of depreciation paid out as dividend
-- `SUFF_LEVY_RATE = 0.0125` — a redistributive commitment. Worth knowing:
+- `M_BAND_LOW` / `M_BAND_HIGH` — the constitutional multiplier band
+- `DIV_RATE` — the share of depreciation paid out as dividend
+- `SUFF_LEVY_RATE` — a redistributive commitment. Worth knowing:
   `min_levy_for_solvency()` returns **zero at every ε** on the canonical
   configuration, because the dividend alone runs a surplus. This rate is not
   sized for solvency and never was; the Trust dividend funds the guarantee.
@@ -205,16 +241,17 @@ retires them, and treating them as calibration knobs is a category error:
 Ranked by how much of the model they move, not by how wrong they are:
 
 - **`AGE_WEIGHT_INFANT` / `AGE_WEIGHT_CHILD`** — `bounded`, and the band is
-  ONE-SIDED. Measured at ≥ 2.55 and ≥ 1.35 against shipped 3.0 and 1.5, but
+  ONE-SIDED. The measured values are floors below the shipped picks, because
   ATUS surveys nobody under 15, so the self-maintenance term is missing and
   those floors can only rise. Leave them unless you have a time-use survey that
   covers children. They err HIGH, which is the safe direction: too low
   understates what a dependent needs and the deficit is paid in unserved care.
-  (`AGE_WEIGHT_ELDERLY` is `measured` — 1.48, from ATUS + Census — and
+  (`AGE_WEIGHT_ELDERLY` is `measured`, from ATUS + Census, and
   `AGE_WEIGHT_WORKING_AGE` is the numeraire, 1.0 by definition.)
-- **`ECOLOGICAL_BASE_RATE = 500000.0`** — replace with your stewardship-hours
-  census, but read §6 first: this constant is entangled with an open structural
-  defect, and changing it alone will not fix what it looks like it should.
+- **`ECOLOGICAL_BASE_RATE`** — do NOT replace it with your stewardship-hours
+  census; read §6 first. Since the Phase 4f partition the recurring ecological
+  cost is the Ground Use Fee's, and charging it here as well would bill the same
+  hours twice.
 - **`CAPITAL_MACHINE_PROFILES`** — the tiers behind `civilization_epsilon()`
   (Step 3). Calibrated to bracket the mid-arc ε they are meant to produce.
 
@@ -227,6 +264,19 @@ is "a vote", it is `normative` and you decide it.
 
 ## 3. Calibration walkthrough — step by step
 
+**Every block in this section runs as written, in order**, against the
+illustrative inputs below — `tests/test_doc_examples.py` fails the build if one
+stops. Replace the values with yours; the variable names are what the later
+steps read.
+
+```python
+# Illustrative inputs for a 5M-person collective. REPLACE EVERY VALUE.
+your_population           = 5_000_000
+your_capital_stock_in_teh = 8_000_000_000   # national accounts ÷ your TEH/currency rate
+your_trust_balance        = 150_000_000_000
+your_labour_hours         = 5_000_000 * 0.63 * 0.70 * 2_080.0   # employed × hours/worker
+```
+
 ### Step 1: Establish a baseline
 
 Start with `canonical_physical_state(0.40)` — the ideal mid-arc reference for
@@ -235,8 +285,7 @@ a civilization at 40% automation. Compare it to your actual data:
 ```python
 from hours_eoh.core.trajectory import canonical_physical_state
 canonical = canonical_physical_state(0.40)
-# {'capital_stock_teh': 2_400_000_000, 'capital_age_ratio': 0.38,
-#  'ecosystem_health': 0.82, 'monitoring_capability': 0.70, ...}
+print(sorted(canonical))   # the fields a physical state carries — compare yours field by field
 
 # Your actual data:
 your_state = {
@@ -247,6 +296,8 @@ your_state = {
     "knowledge_base_size": 3.2,            # relative to subsistence baseline
     "knowledge_complexity_per_unit": 1.8,  # estimated
     "age_distribution": {"infant": 0.06, "child": 0.18, "working_age": 0.62, "elderly": 0.14},
+    "ecological_area_hectares": 12_000_000,  # YOUR cadastre
+    "available_labor_eoh": your_labour_hours,
 }
 ```
 
@@ -276,50 +327,63 @@ eoh = total_eoh(
 Check plausibility: personal EOH should be roughly `PERSONAL_EOH_BASE × population
 × w`, where `w` is the age-weighted mean at YOUR demographics. Get it from
 `scenarios.feasibility.age_weight_mean()` rather than from a number written here
-— it reads **1.3528** at the shipped defaults, and it was **1.475** until the
-2026-08-10 elderly revalue and the MTUS child measurement moved it. This
-paragraph said 1.475 for a month afterwards. If your figure is wildly off, check
+— that mean has moved twice as age weights were measured, and a copy of it
+written here went stale for a month the first time. If your figure is wildly off, check
 that your `age_distribution` fractions sum to 1.0 and match the
 `AGE_GROUP_RANGES` keys.
 
 **Which standard are you asking for?** `PERSONAL_EOH_BASE` is the operating value
-between two others: `PERSONAL_EOH_SURVIVAL` (600, what it takes not to die) and
-`PERSONAL_EOH_SUFFICIENCY` (1500, what it takes to live well), both referenced to
+between two others: `PERSONAL_EOH_SURVIVAL` (what it takes not to die) and
+`PERSONAL_EOH_SUFFICIENCY` (what it takes to live well), both referenced to
 autarky. Pass `personal_standard=` to `total_eoh()` **or to
 `eoh_to_teh_pipeline()`** to choose — both accept it as of 2026-08-17; before
 that it reached only `total_eoh`, so this guide's two instructions could not
 both be followed. **It is the largest single lever in the model: survival →
-sufficiency moves total EOH 2.09×**, more than any domain base. This matters more
+sufficiency roughly doubles total EOH**, more than any domain base. This matters more
 than it looks: a feasibility test run at the sufficiency standard and reported as
 a survival result is the specific error this repo made and corrected — subsistence
 *can* survive, it just cannot reach sufficiency without automation.
 
 ### Step 3: Choose your ε
 
-ε is the fraction of EOH fulfilled by machines. At present (2024), most developed
-economies are at ε ≈ 0.15–0.35: automation handles transport, manufacturing, and
-basic computation, but not care, ecological stewardship, or knowledge maintenance.
+ε is the fraction of EOH fulfilled by machines. **Do not pick it from a
+sentence in a guide — read it off your economy, and expect a band rather than a
+number.** The framework carries two instruments that share no data:
 
-You can estimate ε from your capital stock using `civilization_epsilon()`:
+- **From capital** — `scenarios/capital_retrodiction.py` reads ε off a fixed-asset
+  inventory. It rests on three declared judgements (valuation doctrine, the
+  currency-to-hours rate, and what counts as capital), so it returns a GRID.
+  `currency_per_teh` is required and has no default, because converting money to
+  hours is itself a valuation.
+- **From time use** — `scenarios/labour_epsilon.py` reads ε off time diaries,
+  with no currency in the chain and one judgement instead of three. Run
+  `eoh scenario run labour_epsilon`.
+
+Run for the US, the two bands land close to each other without overlapping,
+which is the honest word for what a second instrument can show. Both divide by
+the same obligation, so they check the machine/human split, not the total.
+
+For a quick structural estimate from a capital description, use
+`civilization_epsilon()`:
 
 ```python
 from hours_eoh.core.civilization import civilization_epsilon
-from hours_eoh.data import CAPITAL_MACHINE_PROFILES
 
-eps_estimate = civilization_epsilon(
-    capital_tiers={
+estimate = civilization_epsilon({
+    "population": your_population,
+    # keys are CAPITAL_MACHINE_PROFILES types; values a tier name or a spec dict
+    "capital": {
         "power_grid": "standard",
         "water_treatment": "standard",
         "transportation": "advanced",
-        "manufacturing": "advanced",
+        "industrial_automation": "advanced",
         "computing_ai": "basic",
     },
-    population=your_population,
-)
-# eps_estimate["epsilon"] → estimated current ε
+})
+eps_estimate = estimate["epsilon"]
 ```
 
-Or simply pick ε as a scenario parameter and run multiple values to bracket
+Or pick ε as a scenario parameter and run several values to bracket the
 uncertainty.
 
 ### Step 4: Run the full pipeline
@@ -342,7 +406,8 @@ result = eoh_to_teh_pipeline(
 # result["human_eoh"]        → labor carried by humans (h/yr)
 # result["registered_eoh"]   → officially recognized labor (h/yr)
 #
-# result["labor_constrained"] → False means fulfilment was ASSUMED, not verified
+# result["labor_constrained"] → True means your hours BOUND; False means they
+#                               sufficed — or that none were supplied
 # result["deferred_total"]    → obligation nobody had the hours to meet
 #
 # NOTE once the constraint binds, result["human_eoh"] is what was SERVED, not
@@ -387,7 +452,8 @@ print("Guarantee cost:", snap["guarantee"]["total_cost_teh"])
 > pipeline your real land area and leave it off here, the two halves of your run
 > describe two different jurisdictions. Before 2026-08-20 this function ignored
 > the question entirely and always used the whole-contiguous-US anchor; the
-> example in §4 below disagreed with its own pipeline call by **92.8×** while
+> example in §4 below disagreed with its own pipeline call by **nearly two
+> orders of magnitude** while
 > reporting `solvent: True`. It now resolves from your population exactly as
 > `total_eoh()` does, so the default is at least a frame somebody chose — but a
 > planetary average is still the wrong number for any actual collective.
@@ -398,21 +464,25 @@ print("Guarantee cost:", snap["guarantee"]["total_cost_teh"])
 
 ### Step 6: Sensitivity sweeps
 
-Use `p.temporary()` to explore parameter sensitivity without polluting history:
+Physical inputs are keyword arguments, so a sweep is a loop over the call.
+Sweep what bites: since the Phase 4f partition, ecosystem health moves the Ground
+Use Fee rather than the ecological domain, so the informative sweep for an
+institution is usually the labour supply:
 
 ```python
-from hours_eoh.params import EohParams
-
-p = EohParams()
-# Sweep ecosystem_health from 0.5 to 0.9
-for health in [0.50, 0.60, 0.70, 0.80, 0.90]:
-    with p.temporary(ecosystem_health=health):
-        result = eoh_to_teh_pipeline(eps_estimate, population=your_population,
-                                     ecosystem_health=health)
-        print(f"health={health}: EOH_eco={result['eoh_by_domain']['ecological']:.0f}")
+for share in [0.6, 0.8, 1.0, 1.2]:
+    result = eoh_to_teh_pipeline(
+        eps_estimate, population=your_population,
+        capital_stock=your_state["capital_stock_teh"],
+        ecological_area_hectares=your_state["ecological_area_hectares"],
+        available_labor_eoh=share * your_state["available_labor_eoh"],
+    )
+    print(f"labour ×{share}: deferred={result['deferred_total']:.3e} h/yr  "
+          f"TEH={result['teh_created']:.3e}")
 ```
 
-Or use the CLI: `eoh sensitivity --param ecosystem_health --range 0.5:0.9:5`.
+For fiscal parameters use the CLI:
+`eoh sensitivity fiscal --parameter dep_rate --values 0.03,0.045,0.06`.
 
 ---
 
@@ -470,7 +540,7 @@ pipe = eoh_to_teh_pipeline(
     available_labor_eoh=labour_hours,
 )
 # Check which path produced these figures before quoting any of them:
-#   pipe["labor_constrained"] is True  -> fulfilment was verified against labour
+#   pipe["labor_constrained"] is True  -> your labour BOUND (False: it sufficed)
 #   pipe["deferred_total"]             -> obligation your labour could not meet
 #
 # THIS EXAMPLE DOES NOT CLEAR, AND THAT IS THE POINT OF SHOWING IT.
@@ -579,11 +649,12 @@ adversarial review. If below band: skill investment is insufficient.
 What the model **cannot** tell you:
 
 - **Domain balance — read this before you trust any ε**: personal EOH is
-  **99.3% of total EOH at ε=0, falling to 62.5% at ε=0.89**, while ecological EOH
-  books at **0.56–0.69 h/person·yr — 0.0% of the total at every ε**. Since
-  ε = machine EOH / total EOH, your ε is overwhelmingly a personal-domain number,
-  and your ecological and thermal obligations will round to nothing in its
-  denominator. Run `eoh arc --domain-shares` to see it. **The ecological half of
+  **almost all of the obligation at subsistence and still the largest domain at
+  the top of the arc**, while the ecological domain carries only stocks and is
+  zero for land at reference condition. Since ε = machine EOH / total EOH, your ε
+  is overwhelmingly a personal-domain number, and your ecological and thermal
+  obligations will round to nothing in its denominator. Run
+  `eoh arc --domain-shares` for the live shares. **The ecological half of
   this is now closed (Phase 4f, adopted 2026-08-28), and not by a measurement.**
   `ECOLOGICAL_BASE_RATE` produces a *recurring* obligation, and the adopted
   partition assigns everything recurring to the Ground Use Fee — where it scales
@@ -610,18 +681,35 @@ What the model **cannot** tell you:
   consumption choices above the sufficiency floor. The `basket_price()` function
   captures the floor basket; above-floor pricing is left to collective discovery.
 
-- **Calibration confidence — the honest headline**: of 288 constants, **72
-  (25.0%) are grounded**, 18 are bounded picks, **114 (39.6%) are placeholders
-  with no measurement behind them at all**, 67 are normative decisions, 12 are
-  yours to supply, and 5 are retired. Measurement debt is **45.8%**, and the
-  actionable part is the placeholders. The framework shows the direction and
-  qualitative shape of the arc, not point forecasts — use it for structural
-  analysis, not projection. Run `eoh provenance check` for the live figures;
-  do not quote these from memory.
+- **Calibration confidence — the honest headline**: well under a third of the
+  constants are grounded, the largest single category is placeholders with no
+  measurement behind them at all, and measurement debt runs at roughly two
+  constants in five. The actionable part is the placeholders. **The strongest
+  verdict any result here can carry is "possible"**: a verdict may not outrank
+  the weakest input it rests on, and every headline function rests on at least
+  one placeholder (`utils/verdict_ladder.py` computes this). The framework shows
+  the direction and qualitative shape of the arc, not point forecasts — use it
+  for structural analysis and feasibility checks, not projection. Run
+  `eoh provenance check` for the live figures; do not quote them from memory.
+
+- **Verification cost is reported beside the accounts, not inside them.** What
+  running the register costs is measured for the apparatus and checked against
+  the labour a population can supply (`eoh scenario run verification_band`), but
+  it is not added to the obligation, because a registrant's documentation hour
+  may already be inside it. Read the band before sizing a register, and declare
+  `REGISTER_CADENCE`.
+
+- **Distribution under a captured register is not modelled.** Capture cannot
+  raise the total mint — registering cannot create obligation, and the mint
+  cannot exceed what was served — but a captured register can admit one
+  household's obligation and refuse another's, and every figure here is a
+  per-capita aggregate with no variable for who was excluded. Your governance of
+  the register is the only protection against that, and this model cannot check
+  it for you.
 
 - **Four constants are calibrated to a target and say so**: `GUF_USE_*` (scaled
   so aggregate GUF matches levy revenue at mid-arc), `DEFAULT_SEGMENTS` (means
-  set so the weighted mean hits 2.10, the band top — and it is the live default
+  set so the weighted mean lands on a chosen point in the band — and it is the live default
   in `core/multipliers.py`, so any call omitting `segments` inherits it),
   `TRUST_BASE_TEH` (sized to cover the obligations it funds), and
   `CAPITAL_MACHINE_PROFILES` (tiers set to bracket the ε they are meant to
@@ -630,5 +718,6 @@ What the model **cannot** tell you:
 
 - **Objectivity vs. transparency**: the price computed by the model is the
   *floor price* — the minimum guaranteed by the TEH ledger. Actual market prices
-  discovered above this floor are not modeled. See `hours-reconciliation.md §3`
+  discovered above this floor are not modeled. See
+  [Prior Art and Limitations](../theory/prior_art.md#what-this-framework-does-differently)
   for the price-as-floor reframing.

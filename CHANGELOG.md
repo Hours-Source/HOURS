@@ -11,6 +11,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+**The anchor comparison is published, and the docs are gated (2026-09-12)**
+- `docs/theory/anchor_comparison.md` — *What Anchors a Unit of Account*, published
+  as work in progress beside Prior Art. It quotes shapes where a figure is
+  calibration and values only where a figure is structural;
+  `tests/test_anchor_page_figures.py` reads the published page and checks every
+  structural statement against `utils/anchor_page_figures.py`.
+- `tests/test_doc_examples.py` — every Python block in `README.md` and `docs/`
+  runs, every `eoh_cli.py` example parses, and every API signature heading names
+  real parameters. **34 of 54 published examples and 95 signature headings had
+  gone stale with nothing checking them.** Template blocks and placeholder CLI
+  lines are ratcheted.
+- `scenarios.collective.collective_snapshot()` accepts `available_labor_eoh` and
+  `rationing`, and forwards the state's own `deferred_ecological`,
+  `knowledge_complexity` and `monitoring_capability`. The institutional entry
+  point could not previously verify fulfilment against labour at all, so every
+  snapshot measured demand. Blast radius on a default state: zero.
+
 **The tag scheme: CHOSEN split into bounded / placeholder / normative (2026-08-09)**
 - One tag was covering three epistemic states. It made the calibration set read as
   **83% guesswork** while *hiding* which constants are the real debts, and it filed

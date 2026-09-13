@@ -8,55 +8,59 @@ Measurement-driven — these functions take the actual physical state of the civ
 
 ## Four Domain Functions
 
-### `personal_eoh(population, age_distribution, ..., p)` → `float`
+### `personal_eoh(population, age_distribution, …)` → `float`
 
 Entropy obligation from human bodies — biological needs across the population.
 
-**Inputs:** population, age distribution, `p: EohParams`
+**Inputs:** population, age distribution, and the personal standard (`survival`, the operating base, or `sufficiency`)
 
 **Arc:** At ε = 0 this domain consumes nearly all labor. The physical obligation never disappears — only who (or what) fulfills it changes.
 
 ---
 
-### `infrastructure_eoh(capital_stock_teh, capital_age_ratio, ..., p)` → `float`
+### `infrastructure_eoh(capital_age_ratio, …)` → `float`
 
 Entropy obligation from built systems — maintenance burden of the capital stock.
 
-**Inputs:** capital stock in TEH, capital age ratio (older stock generates more EOH), monitoring capability, `p`
+**Inputs:** capital stock in TEH — the stock you hold now, used exactly as supplied — and capital age ratio (older stock generates more EOH)
 
 **Arc:** Grows as the capital stock expands. Drives increasing stewardship obligation at high ε.
 
 ---
 
-### `ecological_eoh(ecosystem_health, monitoring_capability, ..., p)` → `float`
+### `ecological_eoh(ecosystem_health, monitoring_capability, …)` → `float`
 
 Entropy obligation from natural systems — what ecosystem degradation demands.
 
-**Inputs:** ecosystem health index, monitoring capability, `p`
+**Inputs:** ecosystem health index, monitoring capability, the stewarded area, and the ecological STOCKS — deferred ecological EOH, the thermal obligation and the restoration obligation
 
-**Arc:** Independent of automation level. Compounding consequences when neglected.
+**Arc:** Independent of automation level. **Since the Phase 4e/4f partition the domain carries stocks only**: the recurring cost of land at reference condition, and its response to degradation, belong to the Ground Use Fee, where they scale with land held. With no stock supplied the domain is zero — which is an assignment, not an absence.
 
 ---
 
-### `knowledge_eoh(knowledge_base_size, knowledge_complexity_per_unit, ..., p)` → `float`
+### `knowledge_eoh(knowledge_base_size, …)` → `float`
 
 Entropy obligation from information systems — skill atrophy, institutional memory, standard drift.
 
-**Arc:** Grows monotonically with ε; becomes the dominant domain at high automation.
+**Arc:** Grows monotonically with ε, and is the fastest-growing domain on the canonical arc — though personal EOH remains the largest domain even at ε = 0.99 (`eoh arc --domain-shares`).
 
 ---
 
-## `total_eoh(**physical_state, p)` → `dict`
+## `total_eoh(…)` → `dict[str, float]`
 
 Aggregate entropy obligation across all four domains.
 
 ```python
 from hours_eoh.core.eoh_generation import total_eoh
-from hours_eoh.core.trajectory import canonical_physical_state
 
-state = canonical_physical_state(0.40)
-eoh = total_eoh(**state, p=p)
-# Returns: {personal, infrastructure, ecological, knowledge, total}
+# Canonical arc at ε = 0.40 (the physical state is filled from the reference arc)
+eoh = total_eoh(epsilon=0.40)
+
+# Or real physical state, which is the point of the generation layer
+eoh = total_eoh(population=5_000_000, capital_stock=8.0e9, capital_age_ratio=0.45,
+                ecosystem_health=0.68, monitoring_capability=0.55)
+# Returns: {personal, infrastructure, ecological, knowledge, total, ...}
+print(eoh["total"])
 ```
 
 ---
@@ -65,10 +69,10 @@ eoh = total_eoh(**state, p=p)
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| `ecological_eoh_breakdown(...)` | `dict` | Decompose ecological EOH by service category |
-| `domain_labor_requirements(eoh_dict, epsilon, p)` | `dict` | Human labor requirements per domain |
-| `eoh_to_essential_domains(total_eoh, epsilon, p)` | `dict` | EOH allocation for Condition IV competency modeling |
-| `epsilon_delta_sensitivity(epsilon, delta, p)` | `dict` | Sensitivity of EOH totals to Δε at a given point |
+| `ecological_eoh_breakdown(ecosystem_health, …)` | `dict` | Decompose ecological EOH by service category |
+| `domain_labor_requirements(eoh_by_domain, epsilon, …)` | `dict` | Human labor requirements per domain |
+| `eoh_to_essential_domains(eoh_by_domain, …)` | `dict` | EOH allocation for Condition IV competency modeling |
+| `epsilon_delta_sensitivity(base_epsilon, delta_epsilon, …)` | `dict` | Sensitivity of EOH totals to Δε at a given point |
 
 ---
 

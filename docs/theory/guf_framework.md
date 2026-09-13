@@ -224,6 +224,15 @@ Conservation credits may reduce the base fee but cannot drive the total GUF belo
 
 ## 4.2 The Epsilon Scaling Function — Ψ(ε)
 
+!!! warning "Retired as the shipped default (author sign-off, 2026-08-20)"
+    The model runs with Ψ ≡ 1 (`psi_policy="retired"`). Ψ duplicated α's
+    response to falling labour content at the high end — two terms encoding one
+    mechanism — and made a category error at the low end. The fee's ε-response
+    is carried by α (§4.3). This section is kept as the NLSA specification, and
+    `psi_policy="bell"` still applies it, but **§4.1's arc and the §4.4 boundary
+    table describe the bell form, not the shipped fee**: under the shipped
+    default the fee does not collapse toward zero at ε = 0.
+
 ```
 Ψ(ε) = 4ε^a × (1 − ε)^b + Ψ_floor    (Eq. 18)
 ```

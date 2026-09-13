@@ -47,8 +47,9 @@ See [GUF Framework §9](../theory/guf_framework.md#9-ecological-write-down-event
 
 ## contestability.py — Contestability Invariant (Workstream B)
 
-Implements the contestability instrumentation from `hours-reconciliation.md
-§8`. The original invariant statement — χ(ε) = P(ε)/K_entry(ε) ≥ 1 — failed
+Implements the contestability instrumentation from the reconciliation's §8 (an
+unpublished working document; its conclusions are stated on the
+[Prior Art](../theory/prior_art.md#the-question-prior-art-never-asked) page). The original invariant statement — χ(ε) = P(ε)/K_entry(ε) ≥ 1 — failed
 adversarial testing for the marginal member and is SUPERSEDED by the §8.9
 time-to-finance/two-arm form (see `recalibration.py` below); the χ functions
 remain as instrumentation and documented negative results. All functions are
@@ -169,7 +170,7 @@ from hours_eoh.research.contestability import (
   §8.8 closure applies: χ_marginal includes the universal commons dividend,
   and the result carries `entry_capacity` and `exit_financeable`.
 
-### Closure mechanisms — proposed §8.8 (pending author sign-off)
+### Closure mechanisms — §8.8 (author-adopted 2026-07-26)
 
 The Phase 4 adversarial findings (escheat drains dividends; the marginal
 member's χ is unclosable by any levy) are answered by three mechanisms:
@@ -207,12 +208,11 @@ from hours_eoh.research.contestability import (
 
 ---
 
-## recalibration.py — Recalibration Prototype (proposed §8.9 / §8.9b)
+## recalibration.py — Recalibration (§8.9 / §8.9b)
 
 Resolves the three §8.8 "honest remainders" at their causes rather than tuning
-their symptoms, and encodes the §8.9b charter-formation doctrine. Both
-adopted-in-principle by the author 2026-07-26; formal reconciliation-doc edit
-pending.
+their symptoms, and encodes the §8.9b charter-formation doctrine. Both adopted
+by the author 2026-07-26; `exit_financing()` is the adopted invariant.
 
 ```python
 from hours_eoh.research.recalibration import (
@@ -291,7 +291,7 @@ share's investment-disincentive feedback on K(ε) is now simulated.
 
 ---
 
-## formation.py — Formation Feedback (proposed §8.9c)
+## formation.py — Formation Feedback (§8.9c)
 
 Closes the K(ε) circularity: formation is FINANCED or it does not happen,
 and ε is derived from the capital actually formed.

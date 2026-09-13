@@ -199,9 +199,9 @@ utils/                 Presentation layer — CLI and research helpers (see READ
   verdict_ladder.py    The verdict ladder computed — transitive data.py dependencies per
                        function, and therefore the strongest verdict it may claim. STATIC
                        because static OVER-approximates, which is the safe direction
-  anchor_page_figures.py  Every figure the anchor comparison page quotes, emitted from
-                       the functions — the regeneration path's first half. The page is
-                       gitignored so it CANNOT be gated against; that gap is declared
+  anchor_page_figures.py  Every figure the anchor comparison page rests on, emitted from
+                       the functions. The page (docs/theory/anchor_comparison.md) quotes
+                       shapes; its structural statements are gated against this dict
   provenance.py        data.py tag-block scanner + audit-CSV / doc-table generators
   provenance_cmd.py    `eoh provenance check | csv | table | doc`
 ```
@@ -502,8 +502,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,563 tests passing (1 skipped), mypy clean on 103 source files** (verified
-2026-09-10). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
+**4,671 tests passing (1 skipped), mypy clean on 101 source files** (verified
+2026-09-12). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -534,10 +534,14 @@ this whole structure forbids.**
   corrected CENSUS-vs-VALUATION framing.
 - The discovery layer above the floor is a 120-line stub; every purchasing-power
   claim is scoped to the floor.
-- Registration capture is MODELLED and not BOUNDED (2026-09-09,
-  `scenarios/register_capture.py`) — the failure model and a drift monitor that
-  declares its own threshold exist; what bounds capture does not. The
+- Registration capture is BOUNDED IN VOLUME and not in DISTRIBUTION
+  (2026-09-12, §8a adopted) — registering cannot create obligation and the mint
+  cannot exceed what was served, but who a captured register admits is not
+  represented. A research area downstream of exchange work at scale. The
   contestability arc addresses EXIT, this is VOICE.
+- **~~The anchor comparison is unpublished~~ — PUBLISHED 2026-09-12** (author
+  decision) at `docs/theory/anchor_comparison.md`, as work in progress.
+  See [`record/theory.md`](record/theory.md#anchor-comparison-published).
 - **~~The register's recording cadence~~ — SETTLED 2026-09-11** (author
   decision): an `instance` defaulting to `episodic`, which errs the safe way.
   The corridor now CLOSES on the shipped default and stays open for a
@@ -593,13 +597,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**101 test files. The name rule covers 69 of them:** `tests/test_<module>.py`
+**106 test files. The name rule covers 73 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 32 files the rule does not cover are all listed below, plus two that do
+The 33 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -623,7 +627,8 @@ are the ones worth knowing by name.
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
 | `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the 31/89/222 tier census cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
-| `test_anchor_page_figures.py` | The anchor page's figure emitter. Gates that every figure the page quotes is still reachable, that a renamed key RAISES rather than returning an empty collection, and that the not-unique result still holds. **States its own gap:** the page is gitignored, so this cannot check the page — only the emitter. |
+| `test_anchor_page_figures.py` | The published anchor comparison (`docs/theory/anchor_comparison.md`) and its figure emitter. Every figure still reachable, a renamed key RAISES rather than returning an empty collection, every STRUCTURAL statement on the page (verdict strings, designed zeros, unit elasticity, eight anchors, not-unique) read from the page and checked against the functions, the superseded ratio-transfer figures forbidden, and each shape word's range pinned. **States its own gap:** a shape claim can drift inside its range unnoticed. |
+| `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
