@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1650,12 +1671,17 @@
 </tr>
 <tr>
 <td><code>scenarios/</code></td>
-<td><code>core/</code></td>
-<td><code>land/</code>, <code>research/</code>, <code>utils/</code></td>
+<td><code>core/</code>, <code>land/</code></td>
+<td><code>research/</code>, <code>utils/</code></td>
+</tr>
+<tr>
+<td><code>reference/</code></td>
+<td>nothing in the package — pure data</td>
+<td>— (any layer may import it)</td>
 </tr>
 <tr>
 <td><code>research/</code></td>
-<td><code>core/</code> (re-exports only)</td>
+<td><code>core/</code></td>
 <td><code>scenarios/</code>, <code>land/</code>, <code>utils/</code></td>
 </tr>
 <tr>
@@ -1670,30 +1696,34 @@
 <li>New physics + mechanics → <code>core/</code></li>
 <li>New GUF/land mechanics → <code>land/</code></li>
 <li>New applied scenario → <code>scenarios/</code></li>
-<li>Experimental/research re-exports → <code>research/</code></li>
+<li>Measured reference data → <code>reference/</code></li>
+<li>Experimental work → <code>research/</code>, until it has a stable API and tests</li>
 <li>New CLI commands → <code>utils/</code></li>
 </ul>
-<p>New scenario code goes in <code>scenarios/</code>. Do not add to <code>core/stress.py</code> (backward-compat shim only).</p>
+<p>New scenario code goes in <code>scenarios/</code>. The former <code>core/stress.py</code> was removed;
+do not recreate it.</p>
 <hr />
 <h2 id="writing-new-functions">Writing New Functions<a class="headerlink" href="#writing-new-functions" title="Permanent link">&para;</a></h2>
 <h3 id="eoh-generation-functions">EOH Generation Functions<a class="headerlink" href="#eoh-generation-functions" title="Permanent link">&para;</a></h3>
 <p>EOH generation is measurement-driven — functions take actual physical state as primary inputs and return entropy obligations derived from calibrated physical constants and auditable baselines.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_eoh_function</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">capital_stock</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">ecosystem_health</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">population_age_distribution</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">knowledge_base_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># optional backward compat only</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">p</span><span class="p">:</span> <span class="n">EohParams</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="c1"># NLSA §N.N reference</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># template</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_eoh_function</span><span class="p">(</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">capital_stock</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">ecosystem_health</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">population_age_distribution</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">knowledge_base_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># optional backward compat only</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">base_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">MY_BASE_RATE</span><span class="p">,</span>  <span class="c1"># a named data.py constant, never a literal</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="c1"># NLSA §N.N reference</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <p>When <code>epsilon</code> is provided for backward compat, use <code>canonical_physical_state(epsilon)</code> to derive unspecified physical state. Do not use ε as a proxy for physical assumptions in new code.</p>
 <h3 id="fulfillment-registration-fiscal-and-price-functions">Fulfillment, Registration, Fiscal, and Price Functions<a class="headerlink" href="#fulfillment-registration-fiscal-and-price-functions" title="Permanent link">&para;</a></h3>
 <p>These mechanisms are genuinely ε-driven — take ε directly.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_fiscal_function</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">EohParams</span> <span class="o">=</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># template</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_fiscal_function</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">MY_RATE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <hr />
 <h2 id="the-function-checklist">The Function Checklist<a class="headerlink" href="#the-function-checklist" title="Permanent link">&para;</a></h2>
@@ -1708,7 +1738,7 @@
 <li>[ ] Physically meaningful at <strong>ε = 0</strong> (subsistence: near-zero collective economy, private EOH, minimal ledger)</li>
 <li>[ ] Physically meaningful at <strong>ε = 0.40</strong> (current equilibrium: calibration reference)</li>
 <li>[ ] Physically meaningful at <strong>ε = 0.90</strong> (near-post-scarcity: care-dominant, automation-heavy)</li>
-<li>[ ] Physically meaningful at <strong>ε = 0.99</strong> (effective post-scarcity: prices collapsed, labor near-zero)</li>
+<li>[ ] Physically meaningful at <strong>ε = 0.99</strong> (effective post-scarcity: floor prices collapsed, human labor a small share — not zero)</li>
 </ul>
 <p><strong>Structural requirements:</strong></p>
 <ul>
@@ -1732,14 +1762,17 @@
 <hr />
 <h2 id="constants-in-datapy">Constants in data.py<a class="headerlink" href="#constants-in-datapy" title="Permanent link">&para;</a></h2>
 <p>Every numeric literal in domain logic must be a named constant in <code>data.py</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># data.py</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">MY_NEW_CONSTANT</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>  <span class="c1"># brief physical rationale</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># my_module.py</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">MY_NEW_CONSTANT</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># template</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># data.py — every constant also carries a provenance tag block; see</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># docs/parameter_provenance.md for the vocabulary, and tests/test_provenance.py</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># fails the build if it is missing.</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">MY_NEW_CONSTANT</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>  <span class="c1"># brief physical rationale</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_function</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="k">return</span> <span class="n">MY_NEW_CONSTANT</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">epsilon</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># my_module.py</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">MY_NEW_CONSTANT</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_function</span><span class="p">(</span><span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">return</span> <span class="n">MY_NEW_CONSTANT</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">epsilon</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Canonical trajectory constants use the <code>CANONICAL_</code> prefix.</p>
 <hr />
@@ -1752,10 +1785,10 @@
 <h2 id="code-style">Code Style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
 <ul>
 <li>No comments explaining <em>what</em> code does — well-named identifiers do that</li>
-<li>Add a comment only when the <em>why</em> is non-obvious: a hidden constraint, a physical invariant, a Mission Statement reference</li>
-<li>No docstrings longer than one short line</li>
-<li><code>mypy --strict</code> must pass cleanly</li>
-<li>No anonymous constants — they go in <code>data.py</code> first</li>
+<li>Comment the <em>why</em> when it is non-obvious: a hidden constraint, a physical invariant, a Mission Statement reference, or a defect this code exists to prevent</li>
+<li>A public function's docstring states its governing equation, its units, and its behaviour across the ε arc — read any function in <code>core/</code> for the house form</li>
+<li><code>python3 -m mypy hours_eoh/</code> must pass cleanly against the configuration in <code>pyproject.toml</code> (untyped and incompletely typed definitions are rejected)</li>
+<li>No anonymous constants — they go in <code>data.py</code> first, with a provenance tag</li>
 </ul>
 <hr />
 <h2 id="opening-issues">Opening Issues<a class="headerlink" href="#opening-issues" title="Permanent link">&para;</a></h2>

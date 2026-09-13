@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1005,36 +1026,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#population_weighted_mean_multipliermultiplier_distribution-p-float" class="md-nav__link">
+  <a href="#population_weighted_mean_multiplier-float" class="md-nav__link">
     <span class="md-ellipsis">
-      population_weighted_mean_multiplier(multiplier_distribution, p) → float
+      population_weighted_mean_multiplier(…) → float
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#multiplier_band_checkmean_multiplier-p-dict" class="md-nav__link">
+  <a href="#multiplier_band_checkmean_multiplier-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      multiplier_band_check(mean_multiplier, p) → dict
+      multiplier_band_check(mean_multiplier, …) → dict
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tier_multipliertier-p-float" class="md-nav__link">
+  <a href="#tier_multipliertraining-demand-scarcity-impact-float" class="md-nav__link">
     <span class="md-ellipsis">
-      tier_multiplier(tier, p) → float
+      tier_multiplier(training, demand, scarcity, impact, …) → float
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epoch_alpha_weightsepsilon-p-dict" class="md-nav__link">
+  <a href="#epoch_alpha_weightsepsilon-tuplefloat-float-float-float" class="md-nav__link">
     <span class="md-ellipsis">
-      epoch_alpha_weights(epsilon, p) → dict
+      epoch_alpha_weights(epsilon) → tuple[float, float, float, float]
     </span>
   </a>
   
@@ -1474,36 +1495,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#population_weighted_mean_multipliermultiplier_distribution-p-float" class="md-nav__link">
+  <a href="#population_weighted_mean_multiplier-float" class="md-nav__link">
     <span class="md-ellipsis">
-      population_weighted_mean_multiplier(multiplier_distribution, p) → float
+      population_weighted_mean_multiplier(…) → float
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#multiplier_band_checkmean_multiplier-p-dict" class="md-nav__link">
+  <a href="#multiplier_band_checkmean_multiplier-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      multiplier_band_check(mean_multiplier, p) → dict
+      multiplier_band_check(mean_multiplier, …) → dict
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tier_multipliertier-p-float" class="md-nav__link">
+  <a href="#tier_multipliertraining-demand-scarcity-impact-float" class="md-nav__link">
     <span class="md-ellipsis">
-      tier_multiplier(tier, p) → float
+      tier_multiplier(training, demand, scarcity, impact, …) → float
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#epoch_alpha_weightsepsilon-p-dict" class="md-nav__link">
+  <a href="#epoch_alpha_weightsepsilon-tuplefloat-float-float-float" class="md-nav__link">
     <span class="md-ellipsis">
-      epoch_alpha_weights(epsilon, p) → dict
+      epoch_alpha_weights(epsilon) → tuple[float, float, float, float]
     </span>
   </a>
   
@@ -1531,28 +1552,35 @@
 <p><strong>Module:</strong> <code>hours_eoh/core/multipliers.py</code></p>
 <p>Implements Condition II — skill-tier multipliers grounded in entropy-reduction leverage. The multiplier is the factor by which one hour of a worker's labor is scaled when creating TEH.</p>
 <hr />
-<h2 id="population_weighted_mean_multipliermultiplier_distribution-p-float"><code>population_weighted_mean_multiplier(multiplier_distribution, p)</code> → <code>float</code><a class="headerlink" href="#population_weighted_mean_multipliermultiplier_distribution-p-float" title="Permanent link">&para;</a></h2>
-<p>Computes the population-weighted average multiplier from a distribution of tier assignments.</p>
+<h2 id="population_weighted_mean_multiplier-float"><code>population_weighted_mean_multiplier(…)</code> → <code>float</code><a class="headerlink" href="#population_weighted_mean_multiplier-float" title="Permanent link">&para;</a></h2>
+<p>The population-weighted mean multiplier across workforce segments, each a fraction of the workforce with its mean multiplier. Fractions are normalized if they do not sum to exactly 1.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.multipliers</span><span class="w"> </span><span class="kn">import</span> <span class="n">population_weighted_mean_multiplier</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">mean</span> <span class="o">=</span> <span class="n">population_weighted_mean_multiplier</span><span class="p">({</span><span class="s2">"1"</span><span class="p">:</span> <span class="mf">0.40</span><span class="p">,</span> <span class="s2">"2"</span><span class="p">:</span> <span class="mf">0.35</span><span class="p">,</span> <span class="s2">"3"</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">},</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">mean</span> <span class="o">=</span> <span class="n">population_weighted_mean_multiplier</span><span class="p">()</span>   <span class="c1"># the shipped DEFAULT_SEGMENTS</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># or pass your own workforce segments: population_weighted_mean_multiplier(segments=[...])</span>
 </span></code></pre></div>
 <p><strong>Band target:</strong> 1.8–2.1, with a recommended target of 2.1. This is monitored by <a href="../conditions/">Condition II</a>.</p>
 <hr />
-<h2 id="multiplier_band_checkmean_multiplier-p-dict"><code>multiplier_band_check(mean_multiplier, p)</code> → <code>dict</code><a class="headerlink" href="#multiplier_band_checkmean_multiplier-p-dict" title="Permanent link">&para;</a></h2>
-<p>Verifies the population-weighted mean is within the band.</p>
+<h2 id="multiplier_band_checkmean_multiplier-dict"><code>multiplier_band_check(mean_multiplier, …)</code> → <code>dict</code><a class="headerlink" href="#multiplier_band_checkmean_multiplier-dict" title="Permanent link">&para;</a></h2>
+<p>Verifies the population-weighted mean is within the band (<code>band_low=1.8</code>, <code>band_high=2.1</code> by default). Out of band, the status says which way: below the band means raising low-tier multipliers, above it means tightening high-tier assignments.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.multipliers</span><span class="w"> </span><span class="kn">import</span> <span class="n">multiplier_band_check</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">check</span> <span class="o">=</span> <span class="n">multiplier_band_check</span><span class="p">(</span><span class="n">mean_multiplier</span><span class="o">=</span><span class="mf">2.05</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Returns: {"in_band": True, "mean": 2.05, "target": 2.1, ...}</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">check</span> <span class="o">=</span> <span class="n">multiplier_band_check</span><span class="p">(</span><span class="n">mean_multiplier</span><span class="o">=</span><span class="mf">2.05</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Returns: {"in_band", "mean_multiplier", "band_low", "band_high", "target",</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1">#           "distance_to_target", "status"}</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">check</span><span class="p">[</span><span class="s2">"in_band"</span><span class="p">],</span> <span class="n">check</span><span class="p">[</span><span class="s2">"status"</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
-<h2 id="tier_multipliertier-p-float"><code>tier_multiplier(tier, p)</code> → <code>float</code><a class="headerlink" href="#tier_multipliertier-p-float" title="Permanent link">&para;</a></h2>
-<p>Returns the multiplier for a given skill tier.</p>
-<p>The multiplier system applies to all entropy-reduction labor uniformly — care, production, and stewardship workers all receive the same multiplier framework. What changes across the arc is which tier classifications are most in demand.</p>
+<h2 id="tier_multipliertraining-demand-scarcity-impact-float"><code>tier_multiplier(training, demand, scarcity, impact, …)</code> → <code>float</code><a class="headerlink" href="#tier_multipliertraining-demand-scarcity-impact-float" title="Permanent link">&para;</a></h2>
+<p>A tier multiplier from the four-factor assessment in the paper's additive form, <code>m = 1 + α₁·T + α₂·D + α₃·S + α₄·I</code>, each factor in <code>[0, 1]</code>. The multiplier sets the <strong>floor wage rate</strong>, not an economy-wide price.</p>
+<p>The multiplier system applies to all entropy-reduction labor uniformly — care, production, and stewardship workers all receive the same framework. What changes across the arc is which tier classifications are most in demand.</p>
 <hr />
-<h2 id="epoch_alpha_weightsepsilon-p-dict"><code>epoch_alpha_weights(epsilon, p)</code> → <code>dict</code><a class="headerlink" href="#epoch_alpha_weightsepsilon-p-dict" title="Permanent link">&para;</a></h2>
-<p>Returns the relative weighting of the four-factor assessment (training, demand, scarcity, societal impact) at a given ε. The absolute factors don't change; only their relative weighting shifts as the economy evolves from production-dominant to stewardship-dominant.</p>
+<h2 id="epoch_alpha_weightsepsilon-tuplefloat-float-float-float"><code>epoch_alpha_weights(epsilon)</code> → <code>tuple[float, float, float, float]</code><a class="headerlink" href="#epoch_alpha_weightsepsilon-tuplefloat-float-float-float" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Deprecated</p>
+<p>The additive form is superseded by the geometric map used for the measured O*NET/BLS reference multiplier: <code>epoch_factor_weights()</code> → <code>composite_from_factors()</code> → <code>reference_multiplier()</code>. This function is kept for backward compatibility.</p>
+</div>
+<p>The absolute α coefficients (training, demand, scarcity, impact) for <code>tier_multiplier()</code>'s additive form, adapted to ε.</p>
 
 
 

@@ -487,6 +487,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../epsilon_arc/" class="md-nav__link">
         
   
@@ -1582,7 +1603,7 @@
 <p><strong>Arc behavior:</strong></p>
 <ul>
 <li>At ε = 0: This domain consumes nearly all labor; nearly all of it is private and off-ledger.</li>
-<li>At ε = 1: Personal EOH is fully on the collective ledger and entirely fulfilled by automated systems.</li>
+<li>At high ε: Personal EOH is largely on the collective ledger and mostly machine-fulfilled — but not entirely. Care and nutrition keep automation floors, so a human share remains whatever machines can do, and observable ε does not reach 1.</li>
 </ul>
 <h3 id="survival-core-and-entitlement-augmentation">Survival core and entitlement augmentation<a class="headerlink" href="#survival-core-and-entitlement-augmentation" title="Permanent link">&para;</a></h3>
 <p><em>Adopted 2026-08-09. Supersedes the treatment of personal EOH as a single ε-invariant quantity scaled down by automation.</em></p>
@@ -1607,6 +1628,7 @@
 <p>The entropy of natural systems civilization depends on. Soil fertility, water cycles, pollination, climate stability, fisheries, forests.</p>
 <p>These have historically been treated as free — no EOH accounting at all — which is precisely why they are collapsing. Ecological EOH makes the obligation visible: nature generates entropy that someone must address, and ignoring it does not eliminate the obligation but defers it with compounding consequences.</p>
 <p><strong>Arc behavior:</strong> Ecological EOH exists independently of automation level. Neglecting it accumulates as deferred obligation with nonlinear threshold failures.</p>
+<p><strong>Where it is carried.</strong> Since the Phase 4e/4f partition (2026-08-28/29) the <em>recurring</em> ecological cost — the standing obligation of land at reference condition and its response to degradation — is carried by the Ground Use Fee, where it scales with land held. The domain itself carries the ecological <strong>stocks</strong>: deferred obligation, the thermal obligation and the restoration obligation. With no stock supplied it reads zero, which is an assignment of the cost, not its absence.</p>
 <div class="admonition note">
 <p class="admonition-title">GUF connection</p>
 <p>When ecological degradation occurs at the parcel level, the Ground Use Fee framework handles the fiscal response via either a restoration pathway (V_s baselines reset to recovery target) or an abandonment pathway (rebuilding surcharge added). See <a href="../guf_framework/">Ground Use Fee Framework</a> and NLSA §9.</p>
@@ -1615,12 +1637,12 @@
 <hr />
 <h2 id="knowledge-eoh">Knowledge EOH<a class="headerlink" href="#knowledge-eoh" title="Permanent link">&para;</a></h2>
 <p>The entropy of information systems. Skills atrophy. Institutional memory fades. Training becomes outdated. Software rots. Standards drift.</p>
-<p>At high automation, almost all remaining human contribution is knowledge maintenance, transmission, and judgment. This domain is the least obvious but becomes dominant as the other three are increasingly handled by machines. It is also the hardest to verify — unlike a repaired bridge or enriched soil, knowledge maintenance lacks straightforward physical indicators.</p>
+<p>At high automation, much of the remaining human contribution is knowledge maintenance, transmission, and judgment. This domain is the least obvious, and it grows as the other three are increasingly handled by machines — though it does not overtake personal EOH. It is also the hardest to verify — unlike a repaired bridge or enriched soil, knowledge maintenance lacks straightforward physical indicators.</p>
 <div class="admonition note">
 <p class="admonition-title">Verification challenge</p>
 <p>Admitting knowledge EOH to the collective ledger requires careful implementation to ensure verification standards are rigorous without being so burdensome that they discourage the labor the system most needs at high automation.</p>
 </div>
-<p><strong>Arc behavior:</strong> This domain's share of total EOH grows monotonically with ε. At ε = 0.99 it is effectively the only remaining source of human EOH obligation.</p>
+<p><strong>Arc behavior:</strong> This domain's share of total EOH grows monotonically with ε, faster than any other. Personal EOH — care above all — nonetheless remains the largest domain even at ε = 0.99.</p>
 <p><strong>Code:</strong> <code>hours_eoh/core/eoh_generation.py</code> → <code>knowledge_eoh()</code></p>
 <hr />
 <h2 id="domain-interactions">Domain Interactions<a class="headerlink" href="#domain-interactions" title="Permanent link">&para;</a></h2>

@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1554,14 +1575,15 @@
 <h1 id="parameters-constants">Parameters &amp; Constants<a class="headerlink" href="#parameters-constants" title="Permanent link">&para;</a></h1>
 <h2 id="eohparams">EohParams<a class="headerlink" href="#eohparams" title="Permanent link">&para;</a></h2>
 <p><strong>Module:</strong> <code>hours_eoh/params.py</code></p>
-<p><code>EohParams</code> is a mutable parameter container with change tracking. All <code>core/</code> functions accept an optional <code>p: EohParams</code> argument.</p>
+<p><code>EohParams</code> is a mutable parameter container with change tracking. It is what the CLI's <code>params set</code> / <code>params show</code> persist and read; library functions take their inputs as explicit keyword arguments with <code>data.py</code> defaults, so pass a changed value to the function you are calling rather than expecting a container to reach it.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>                              <span class="c1"># default values</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">p</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">"suff_levy_rate"</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"..."</span><span class="p">)</span>  <span class="c1"># calibration-path change (recorded in history)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>                                          <span class="c1"># default values</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">p</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">"suff_levy_rate"</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"high-levy charter"</span><span class="p">)</span>  <span class="c1"># calibration-path change, recorded in history</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">suff_levy_rate</span><span class="o">=</span><span class="mf">0.03</span><span class="p">):</span>       <span class="c1"># sweep code — restores state on exit, no history</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">temporary</span><span class="p">(</span><span class="n">suff_levy_rate</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>                   <span class="c1"># sweep code — restores on exit, no history</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"suff_levy_rate"</span><span class="p">])</span>                           <span class="c1"># 0.05 inside the block</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">"suff_levy_rate"</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">history</span><span class="p">))</span>               <span class="c1"># back to 0.03; one history entry</span>
 </span></code></pre></div>
 <h3 id="key-methods">Key methods<a class="headerlink" href="#key-methods" title="Permanent link">&para;</a></h3>
 <table>

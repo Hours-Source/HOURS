@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1388,9 +1409,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
-      Added
+      Fixed
     </span>
   </a>
   
@@ -1406,7 +1427,25 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1424,7 +1463,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1433,7 +1472,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Changed
     </span>
@@ -1553,9 +1592,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#added" class="md-nav__link">
+  <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
-      Added
+      Fixed
     </span>
   </a>
   
@@ -1571,7 +1610,25 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1589,7 +1646,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Fixed
     </span>
@@ -1598,7 +1655,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       Changed
     </span>
@@ -1677,7 +1734,52 @@
 Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <hr />
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<p><strong>Flagged cleanup after the docs pass (2026-09-12)</strong>
+- <code>eoh dashboard</code> no longer invents its accounts. The ledger, the Trust and the
+  EOH totals were built from literals (destroyed = 0.85 × created, expenditure =
+  0.90 × earnings, total EOH = population × base × 1.5), so Conditions I and III
+  passed by construction. EOH now comes from the pipeline and the ledger and
+  Trust from one simulated period on the same frame; the certified competency
+  share, which nothing tracks, is declared and printed (<code>--certified-fraction</code>).
+  No status changed at any reference ε.
+- <code>run_simulation</code> reported a 2.10 multiplier for periods it minted at
+  <code>simulate_period</code>'s own default.
+- <code>corridor_is_usable(cadence="continuous")</code> still described the cadence as
+  undecided; its note now reads the crossover and the analogue disagreement live.
+- API pages for prices, multipliers, trajectory, conditions, simulation, EOH
+  generation and fulfilment corrected against the docstrings; knowledge EOH no
+  longer claimed to become dominant (personal stays the largest domain), and
+  personal registration no longer claimed to approach 1.0.
+- <code>guf_framework.md</code> describes the shipped per-parcel term and the ×100 use-rate
+  scaling beside the NLSA specification.</p>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<p><strong>The signed-off transparency pass reaches the front pages (2026-09-12)</strong>
+- <code>overview.md</code>, <code>design_principles.md</code>, <code>three_economies.md</code> and the arc
+  waypoints now carry the positions adopted on 2026-08-15: ε → 1 as a limit,
+  prices as floor prices, and currency that records and shows its work rather
+  than measuring value. Design Principle 8 no longer says a green dashboard means
+  the system works.
+- <code>guf_framework.md</code> gives the shipped fee (Ψ retired, monotone in ε) beside the
+  NLSA bell in §4.1 and §4.4, and labels the worked example as the published
+  NLSA form.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<p><strong>The anchor comparison is published, and the docs are gated (2026-09-12)</strong>
+- <code>docs/theory/anchor_comparison.md</code> — <em>What Anchors a Unit of Account</em>, published
+  as work in progress beside Prior Art. It quotes shapes where a figure is
+  calibration and values only where a figure is structural;
+  <code>tests/test_anchor_page_figures.py</code> reads the published page and checks every
+  structural statement against <code>utils/anchor_page_figures.py</code>.
+- <code>tests/test_doc_examples.py</code> — every Python block in <code>README.md</code> and <code>docs/</code>
+  runs, every <code>eoh_cli.py</code> example parses, and every API signature heading names
+  real parameters. <strong>34 of 54 published examples and 95 signature headings had
+  gone stale with nothing checking them.</strong> Template blocks and placeholder CLI
+  lines are ratcheted.
+- <code>scenarios.collective.collective_snapshot()</code> accepts <code>available_labor_eoh</code> and
+  <code>rationing</code>, and forwards the state's own <code>deferred_ecological</code>,
+  <code>knowledge_complexity</code> and <code>monitoring_capability</code>. The institutional entry
+  point could not previously verify fulfilment against labour at all, so every
+  snapshot measured demand. Blast radius on a default state: zero.</p>
 <p><strong>The tag scheme: CHOSEN split into bounded / placeholder / normative (2026-08-09)</strong>
 - One tag was covering three epistemic states. It made the calibration set read as
   <strong>83% guesswork</strong> while <em>hiding</em> which constants are the real debts, and it filed
@@ -1736,7 +1838,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
   the thermal layer already wrote; it applies only where there is a source to grade.
   <code>convention</code> promoted to a declared sub-label. The ad-hoc <code>Physics-adjacent</code> tag is
   retired, along with <code>CHOSEN</code> itself (see the split above).</p>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <p><strong>Provenance doc: tables generated, prose hand-written</strong>
 - Every constant table in <code>docs/parameter_provenance.md</code> now sits inside a
   <code>&lt;!-- provenance:table --&gt;</code> region rendered from <code>data.py</code>. The prose around them — where
@@ -1749,7 +1851,7 @@ Versions follow <a href="https://semver.org/">Semantic Versioning</a>.</p>
   definition honestly leaves <code>A_EARTH_M2</code> and <code>SIGMA_SB</code> and nothing else. The 190 that
   first became <code>CHOSEN</code> were then split (see above), because one tag covering three
   epistemic states was itself obscuring the picture.</p>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <p><strong>Four documentation drifts, found by the migration</strong>
 - <code>KNOWLEDGE_EOH_BASE</code> — doc said 490,107,421; the shipped value has been
   381,962,855.27 since the ε_ref fixed-point re-anchor.
@@ -2009,7 +2111,7 @@ author 2026-07-26)</strong>
 - MkDocs GitHub Pages site deployed at <code>https://hours-source.github.io/HOURS/</code>.
 - Five GUF Mermaid diagrams: calculation flow, LVI component weights, Ψ(ε) epsilon arc,
   Trust fund flow, and ecological write-down pathways. Rendered SVGs in <code>docs/images/</code>.</p>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>eco-collapse-1 (closed)</strong> — Ecological collapse is now handled via the GUF layer
   (<code>land/guf.py</code> §9) rather than direct TEH destruction. Two pathways: restoration
@@ -2021,7 +2123,7 @@ author 2026-07-26)</strong>
 <li><code>WORKFORCE_FRACTION_MIN</code> named constant added to <code>data.py</code>; replaces anonymous <code>0.05</code>
   literal in simulation.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Test count: 1040 → 1169 (129 new tests across <code>tests/land/</code>, <code>tests/scenarios/</code>).</li>
 </ul>

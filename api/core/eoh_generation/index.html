@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -931,36 +952,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#personal_eohpopulation-age_distribution-p-float" class="md-nav__link">
+  <a href="#personal_eohpopulation-age_distribution-float" class="md-nav__link">
     <span class="md-ellipsis">
-      personal_eoh(population, age_distribution, ..., p) → float
+      personal_eoh(population, age_distribution, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#infrastructure_eohcapital_stock_teh-capital_age_ratio-p-float" class="md-nav__link">
+  <a href="#infrastructure_eohcapital_age_ratio-float" class="md-nav__link">
     <span class="md-ellipsis">
-      infrastructure_eoh(capital_stock_teh, capital_age_ratio, ..., p) → float
+      infrastructure_eoh(capital_age_ratio, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#ecological_eohecosystem_health-monitoring_capability-p-float" class="md-nav__link">
+  <a href="#ecological_eohecosystem_health-monitoring_capability-float" class="md-nav__link">
     <span class="md-ellipsis">
-      ecological_eoh(ecosystem_health, monitoring_capability, ..., p) → float
+      ecological_eoh(ecosystem_health, monitoring_capability, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#knowledge_eohknowledge_base_size-knowledge_complexity_per_unit-p-float" class="md-nav__link">
+  <a href="#knowledge_eohknowledge_base_size-float" class="md-nav__link">
     <span class="md-ellipsis">
-      knowledge_eoh(knowledge_base_size, knowledge_complexity_per_unit, ..., p) → float
+      knowledge_eoh(knowledge_base_size, …) → float
     </span>
   </a>
   
@@ -972,9 +993,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#total_eohphysical_state-p-dict" class="md-nav__link">
+  <a href="#total_eoh-dictstr-float" class="md-nav__link">
     <span class="md-ellipsis">
-      total_eoh(**physical_state, p) → dict
+      total_eoh(…) → dict[str, float]
     </span>
   </a>
   
@@ -1517,36 +1538,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#personal_eohpopulation-age_distribution-p-float" class="md-nav__link">
+  <a href="#personal_eohpopulation-age_distribution-float" class="md-nav__link">
     <span class="md-ellipsis">
-      personal_eoh(population, age_distribution, ..., p) → float
+      personal_eoh(population, age_distribution, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#infrastructure_eohcapital_stock_teh-capital_age_ratio-p-float" class="md-nav__link">
+  <a href="#infrastructure_eohcapital_age_ratio-float" class="md-nav__link">
     <span class="md-ellipsis">
-      infrastructure_eoh(capital_stock_teh, capital_age_ratio, ..., p) → float
+      infrastructure_eoh(capital_age_ratio, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#ecological_eohecosystem_health-monitoring_capability-p-float" class="md-nav__link">
+  <a href="#ecological_eohecosystem_health-monitoring_capability-float" class="md-nav__link">
     <span class="md-ellipsis">
-      ecological_eoh(ecosystem_health, monitoring_capability, ..., p) → float
+      ecological_eoh(ecosystem_health, monitoring_capability, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#knowledge_eohknowledge_base_size-knowledge_complexity_per_unit-p-float" class="md-nav__link">
+  <a href="#knowledge_eohknowledge_base_size-float" class="md-nav__link">
     <span class="md-ellipsis">
-      knowledge_eoh(knowledge_base_size, knowledge_complexity_per_unit, ..., p) → float
+      knowledge_eoh(knowledge_base_size, …) → float
     </span>
   </a>
   
@@ -1558,9 +1579,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#total_eohphysical_state-p-dict" class="md-nav__link">
+  <a href="#total_eoh-dictstr-float" class="md-nav__link">
     <span class="md-ellipsis">
-      total_eoh(**physical_state, p) → dict
+      total_eoh(…) → dict[str, float]
     </span>
   </a>
   
@@ -1598,33 +1619,37 @@
 <p>Measurement-driven — these functions take the actual physical state of the civilization and return entropy obligations, derived from physical inputs via calibrated constants. ε is not a primary input here; these functions measure what entropy demands, not who fulfills it.</p>
 <hr />
 <h2 id="four-domain-functions">Four Domain Functions<a class="headerlink" href="#four-domain-functions" title="Permanent link">&para;</a></h2>
-<h3 id="personal_eohpopulation-age_distribution-p-float"><code>personal_eoh(population, age_distribution, ..., p)</code> → <code>float</code><a class="headerlink" href="#personal_eohpopulation-age_distribution-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="personal_eohpopulation-age_distribution-float"><code>personal_eoh(population, age_distribution, …)</code> → <code>float</code><a class="headerlink" href="#personal_eohpopulation-age_distribution-float" title="Permanent link">&para;</a></h3>
 <p>Entropy obligation from human bodies — biological needs across the population.</p>
-<p><strong>Inputs:</strong> population, age distribution, <code>p: EohParams</code></p>
+<p><strong>Inputs:</strong> population, age distribution, and the personal standard (<code>survival</code>, the operating base, or <code>sufficiency</code>)</p>
 <p><strong>Arc:</strong> At ε = 0 this domain consumes nearly all labor. The physical obligation never disappears — only who (or what) fulfills it changes.</p>
 <hr />
-<h3 id="infrastructure_eohcapital_stock_teh-capital_age_ratio-p-float"><code>infrastructure_eoh(capital_stock_teh, capital_age_ratio, ..., p)</code> → <code>float</code><a class="headerlink" href="#infrastructure_eohcapital_stock_teh-capital_age_ratio-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="infrastructure_eohcapital_age_ratio-float"><code>infrastructure_eoh(capital_age_ratio, …)</code> → <code>float</code><a class="headerlink" href="#infrastructure_eohcapital_age_ratio-float" title="Permanent link">&para;</a></h3>
 <p>Entropy obligation from built systems — maintenance burden of the capital stock.</p>
-<p><strong>Inputs:</strong> capital stock in TEH, capital age ratio (older stock generates more EOH), monitoring capability, <code>p</code></p>
+<p><strong>Inputs:</strong> capital stock in TEH — the stock you hold now, used exactly as supplied — and capital age ratio (older stock generates more EOH)</p>
 <p><strong>Arc:</strong> Grows as the capital stock expands. Drives increasing stewardship obligation at high ε.</p>
 <hr />
-<h3 id="ecological_eohecosystem_health-monitoring_capability-p-float"><code>ecological_eoh(ecosystem_health, monitoring_capability, ..., p)</code> → <code>float</code><a class="headerlink" href="#ecological_eohecosystem_health-monitoring_capability-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="ecological_eohecosystem_health-monitoring_capability-float"><code>ecological_eoh(ecosystem_health, monitoring_capability, …)</code> → <code>float</code><a class="headerlink" href="#ecological_eohecosystem_health-monitoring_capability-float" title="Permanent link">&para;</a></h3>
 <p>Entropy obligation from natural systems — what ecosystem degradation demands.</p>
-<p><strong>Inputs:</strong> ecosystem health index, monitoring capability, <code>p</code></p>
-<p><strong>Arc:</strong> Independent of automation level. Compounding consequences when neglected.</p>
+<p><strong>Inputs:</strong> ecosystem health index, monitoring capability, the stewarded area, and the ecological STOCKS — deferred ecological EOH, the thermal obligation and the restoration obligation</p>
+<p><strong>Arc:</strong> Independent of automation level. <strong>Since the Phase 4e/4f partition the domain carries stocks only</strong>: the recurring cost of land at reference condition, and its response to degradation, belong to the Ground Use Fee, where they scale with land held. With no stock supplied the domain is zero — which is an assignment, not an absence.</p>
 <hr />
-<h3 id="knowledge_eohknowledge_base_size-knowledge_complexity_per_unit-p-float"><code>knowledge_eoh(knowledge_base_size, knowledge_complexity_per_unit, ..., p)</code> → <code>float</code><a class="headerlink" href="#knowledge_eohknowledge_base_size-knowledge_complexity_per_unit-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="knowledge_eohknowledge_base_size-float"><code>knowledge_eoh(knowledge_base_size, …)</code> → <code>float</code><a class="headerlink" href="#knowledge_eohknowledge_base_size-float" title="Permanent link">&para;</a></h3>
 <p>Entropy obligation from information systems — skill atrophy, institutional memory, standard drift.</p>
-<p><strong>Arc:</strong> Grows monotonically with ε; becomes the dominant domain at high automation.</p>
+<p><strong>Arc:</strong> Grows monotonically with ε, from almost nothing at subsistence to roughly a third of the obligation at ε = 0.99. It does not become dominant: personal EOH remains the largest domain across the whole arc (<code>eoh arc --domain-shares</code>).</p>
 <hr />
-<h2 id="total_eohphysical_state-p-dict"><code>total_eoh(**physical_state, p)</code> → <code>dict</code><a class="headerlink" href="#total_eohphysical_state-p-dict" title="Permanent link">&para;</a></h2>
+<h2 id="total_eoh-dictstr-float"><code>total_eoh(…)</code> → <code>dict[str, float]</code><a class="headerlink" href="#total_eoh-dictstr-float" title="Permanent link">&para;</a></h2>
 <p>Aggregate entropy obligation across all four domains.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">total_eoh</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">state</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span><span class="o">**</span><span class="n">state</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Returns: {personal, infrastructure, ecological, knowledge, total}</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Canonical arc at ε = 0.40 (the physical state is filled from the reference arc)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Or real physical state, which is the point of the generation layer</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">5_000_000</span><span class="p">,</span> <span class="n">capital_stock</span><span class="o">=</span><span class="mf">8.0e9</span><span class="p">,</span> <span class="n">capital_age_ratio</span><span class="o">=</span><span class="mf">0.45</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                <span class="n">ecosystem_health</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span> <span class="n">monitoring_capability</span><span class="o">=</span><span class="mf">0.55</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Returns: {personal, infrastructure, ecological, knowledge, total, ...}</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">eoh</span><span class="p">[</span><span class="s2">"total"</span><span class="p">])</span>
 </span></code></pre></div>
 <hr />
 <h2 id="supporting-functions">Supporting Functions<a class="headerlink" href="#supporting-functions" title="Permanent link">&para;</a></h2>
@@ -1638,22 +1663,22 @@
 </thead>
 <tbody>
 <tr>
-<td><code>ecological_eoh_breakdown(...)</code></td>
+<td><code>ecological_eoh_breakdown(ecosystem_health, …)</code></td>
 <td><code>dict</code></td>
-<td>Decompose ecological EOH by service category</td>
+<td>The terms that sum to <code>ecological_eoh()</code> — baseline, spike, visible deferred and thermal</td>
 </tr>
 <tr>
-<td><code>domain_labor_requirements(eoh_dict, epsilon, p)</code></td>
+<td><code>domain_labor_requirements(eoh_by_domain, epsilon, …)</code></td>
 <td><code>dict</code></td>
-<td>Human labor requirements per domain</td>
+<td>Headcount needed per domain: the human-labor share divided by annual hours per worker</td>
 </tr>
 <tr>
-<td><code>eoh_to_essential_domains(total_eoh, epsilon, p)</code></td>
+<td><code>eoh_to_essential_domains(eoh_by_domain, …)</code></td>
 <td><code>dict</code></td>
-<td>EOH allocation for Condition IV competency modeling</td>
+<td>The four EOH domains distributed across the seven essential workforce domains, for Condition IV</td>
 </tr>
 <tr>
-<td><code>epsilon_delta_sensitivity(epsilon, delta, p)</code></td>
+<td><code>epsilon_delta_sensitivity(base_epsilon, delta_epsilon, …)</code></td>
 <td><code>dict</code></td>
 <td>Sensitivity of EOH totals to Δε at a given point</td>
 </tr>

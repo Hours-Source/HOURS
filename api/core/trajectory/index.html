@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -918,9 +939,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#compute_epsilonmachine_eoh-total_eoh_value-float" class="md-nav__link">
+  <a href="#compute_epsilonmachine_eoh_fulfilled-total_eoh_collective_potential-float" class="md-nav__link">
     <span class="md-ellipsis">
-      compute_epsilon(machine_eoh, total_eoh_value) → float
+      compute_epsilon(machine_eoh_fulfilled, total_eoh_collective_potential) → float
     </span>
   </a>
   
@@ -1492,9 +1513,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#compute_epsilonmachine_eoh-total_eoh_value-float" class="md-nav__link">
+  <a href="#compute_epsilonmachine_eoh_fulfilled-total_eoh_collective_potential-float" class="md-nav__link">
     <span class="md-ellipsis">
-      compute_epsilon(machine_eoh, total_eoh_value) → float
+      compute_epsilon(machine_eoh_fulfilled, total_eoh_collective_potential) → float
     </span>
   </a>
   
@@ -1529,10 +1550,10 @@
 
 <h1 id="canonical-trajectory">Canonical Trajectory<a class="headerlink" href="#canonical-trajectory" title="Permanent link">&para;</a></h1>
 <p><strong>Module:</strong> <code>hours_eoh/core/trajectory.py</code></p>
-<p>Provides the canonical physical-state reference at each ε (the ideal arc for a civilization investing optimally), and ε derivation utilities.</p>
+<p>Provides the canonical physical-state reference at each ε — a reference frame for arc testing, not a measurement of any real economy — and ε derivation utilities.</p>
 <hr />
 <h2 id="canonical_physical_stateepsilon-dict"><code>canonical_physical_state(epsilon)</code> → <code>dict</code><a class="headerlink" href="#canonical_physical_stateepsilon-dict" title="Permanent link">&para;</a></h2>
-<p>Returns the ideal-arc physical state at a given ε. Used as the reference baseline for arc testing.</p>
+<p>Returns the physical state on the reference trajectory at a given ε. Used to test functions at specific ε without a full simulation, and as the baseline a simulated trajectory's divergence is measured against.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">state</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
@@ -1542,22 +1563,23 @@
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Real simulations pass actual state</p>
-<p><code>canonical_physical_state(ε)</code> is the <em>ideal-arc reference</em> for a civilization that invests optimally. Real simulations track actual capital stock, ecosystem health, etc. Divergence from canonical is the point of modeling.</p>
+<p><code>canonical_physical_state(ε)</code> is the <em>reference arc</em>. Real simulations track actual capital stock, ecosystem health, etc. Divergence from canonical is the point of modeling.</p>
 </div>
 <hr />
 <h2 id="canonical_age_distributionepsilon-dictstr-float"><code>canonical_age_distribution(epsilon)</code> → <code>dict[str, float]</code><a class="headerlink" href="#canonical_age_distributionepsilon-dictstr-float" title="Permanent link">&para;</a></h2>
-<p>Ideal-arc age distribution at ε.</p>
+<p>Age distribution on the canonical arc. <strong>Independent of ε</strong>: the former drift from children toward elders as ε rises is retired, and <code>epsilon</code> is kept only so existing callers do not break.</p>
 <hr />
-<h2 id="compute_epsilonmachine_eoh-total_eoh_value-float"><code>compute_epsilon(machine_eoh, total_eoh_value)</code> → <code>float</code><a class="headerlink" href="#compute_epsilonmachine_eoh-total_eoh_value-float" title="Permanent link">&para;</a></h2>
+<h2 id="compute_epsilonmachine_eoh_fulfilled-total_eoh_collective_potential-float"><code>compute_epsilon(machine_eoh_fulfilled, total_eoh_collective_potential)</code> → <code>float</code><a class="headerlink" href="#compute_epsilonmachine_eoh_fulfilled-total_eoh_collective_potential-float" title="Permanent link">&para;</a></h2>
 <p>Derives ε from machine EOH and total EOH: <code>ε = machine_eoh / total_eoh</code>, clamped to <code>[0.0, 0.99]</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_epsilon</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">epsilon</span> <span class="o">=</span> <span class="n">compute_epsilon</span><span class="p">(</span><span class="n">machine_eoh</span><span class="o">=</span><span class="mf">1.5e9</span><span class="p">,</span> <span class="n">total_eoh_value</span><span class="o">=</span><span class="mf">2.5e9</span><span class="p">)</span>  <span class="c1"># → 0.60</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">epsilon</span> <span class="o">=</span> <span class="n">compute_epsilon</span><span class="p">(</span><span class="n">machine_eoh_fulfilled</span><span class="o">=</span><span class="mf">1.5e9</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>                          <span class="n">total_eoh_collective_potential</span><span class="o">=</span><span class="mf">2.5e9</span><span class="p">)</span>  <span class="c1"># → 0.60</span>
 </span></code></pre></div>
 <p>Currently ε is often set exogenously. The architecture supports endogenous ε when machine capacity is modeled from capital stock — see <code>civilization.py</code> in <a href="../workforce/">Workforce &amp; ε Derivation</a>.</p>
 <hr />
 <h2 id="effective_capital_from_epsiloncapital_stock_at_eps0-epsilon-float"><code>effective_capital_from_epsilon(capital_stock_at_eps0, epsilon)</code> → <code>float</code><a class="headerlink" href="#effective_capital_from_epsiloncapital_stock_at_eps0-epsilon-float" title="Permanent link">&para;</a></h2>
-<p>Expected capital stock at ε given starting capital at ε=0.</p>
+<p>Canonical capital stock at ε from an ε=0 baseline. Not equivalent to <code>canonical_physical_state(ε)["capital_stock_teh"]</code> — the two answer different questions; the function's docstring gives the distinction.</p>
 
 
 

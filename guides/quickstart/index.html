@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1275,6 +1296,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#one-collective-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      One Collective, End to End
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#structural-conditions-check" class="md-nav__link">
     <span class="md-ellipsis">
       Structural Conditions Check
@@ -1525,6 +1555,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#one-collective-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      One Collective, End to End
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#structural-conditions-check" class="md-nav__link">
     <span class="md-ellipsis">
       Structural Conditions Check
@@ -1587,34 +1626,32 @@
 <p>Requires Python ≥ 3.10.</p>
 <hr />
 <h2 id="first-code-the-eoh-teh-pipeline">First Code: the EOH → TEH Pipeline<a class="headerlink" href="#first-code-the-eoh-teh-pipeline" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.trajectory</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_physical_state</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">total_eoh</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.params</span><span class="w"> </span><span class="kn">import</span> <span class="n">EohParams</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">p</span> <span class="o">=</span> <span class="n">EohParams</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_generation</span><span class="w"> </span><span class="kn">import</span> <span class="n">total_eoh</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_fulfillment</span><span class="w"> </span><span class="kn">import</span> <span class="n">eoh_to_teh_pipeline</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># The obligation on the canonical arc at ε = 0.40</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total EOH: </span><span class="si">{</span><span class="n">eoh</span><span class="p">[</span><span class="s1">'total'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2"> h/yr"</span><span class="p">)</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># Physical state on the canonical arc at ε = 0.40 (current equilibrium reference)</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">state</span> <span class="o">=</span> <span class="n">canonical_physical_state</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Aggregate entropy obligation from physics</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">eoh</span> <span class="o">=</span> <span class="n">total_eoh</span><span class="p">(</span><span class="o">**</span><span class="n">state</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Total EOH: </span><span class="si">{</span><span class="n">eoh</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># Full EOH → TEH pipeline at ε = 0.40</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TEH created: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fiscally solvent: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'fiscally_solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># Full EOH → TEH pipeline at ε = 0.40</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">result</span> <span class="o">=</span> <span class="n">eoh_to_teh_pipeline</span><span class="p">(</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"TEH created: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Verified against labour: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">'labor_constrained'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>canonical_physical_state(ε)</code> gives the ideal-arc reference physical state at a given ε. Real simulations pass actual tracked state.</p>
+<p>Passing <code>epsilon</code> alone fills the physical state from <code>canonical_physical_state(ε)</code>,
+the ideal-arc reference. It is a frame, not a measurement of anywhere: real
+simulations pass actual tracked state, and a real collective should also pass
+<code>available_labor_eoh</code> — without it the pipeline mints from the obligation
+<em>demanded</em>, not the part actually served.</p>
 <hr />
 <h2 id="arc-coherence-check">Arc Coherence Check<a class="headerlink" href="#arc-coherence-check" title="Permanent link">&para;</a></h2>
 <p>Verify the system behaves correctly across the full ε arc:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.sweep</span><span class="w"> </span><span class="kn">import</span> <span class="n">epsilon_sweep</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">results</span> <span class="o">=</span> <span class="n">epsilon_sweep</span><span class="p">()</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ε=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'epsilon'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  TEH=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'teh_created'</span><span class="p">]</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">  solvent=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'fiscally_solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">epsilon_sweep</span><span class="p">(</span><span class="n">n_points</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">"status"</span><span class="p">])</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">report</span><span class="p">[</span><span class="s2">"sweep"</span><span class="p">]:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ε=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'epsilon'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">  EOH=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'total_eoh'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">  solvent=</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">'fiscal_solvent'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Every mechanism must produce meaningful output at all four arc waypoints:</p>
 <table>
@@ -1633,65 +1670,61 @@
 </tr>
 <tr>
 <td>0.40</td>
-<td>Current equilibrium</td>
-<td>Calibration reference point</td>
+<td>Calibration reference</td>
+<td>The reference point, not a design target</td>
 </tr>
 <tr>
 <td>0.90</td>
-<td>Near-post-scarcity</td>
-<td>Prices falling, care registration high</td>
+<td>High automation</td>
+<td>Floor prices falling, care registration high</td>
 </tr>
 <tr>
 <td>0.99</td>
 <td>Effective post-scarcity</td>
-<td>Near-zero prices, floor still rising</td>
+<td>Floor purchasing power still rising</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="structural-conditions-check">Structural Conditions Check<a class="headerlink" href="#structural-conditions-check" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.dashboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">system_dashboard</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">system_dashboard</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<h2 id="one-collective-end-to-end">One Collective, End to End<a class="headerlink" href="#one-collective-end-to-end" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.simulation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_economy_state</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.scenarios.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">collective_snapshot</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">state</span> <span class="o">=</span> <span class="n">make_economy_state</span><span class="p">(</span><span class="n">population</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                           <span class="n">capital_stock_teh</span><span class="o">=</span><span class="mf">6.0e7</span><span class="p">,</span> <span class="n">trust_balance</span><span class="o">=</span><span class="mf">1.05e9</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">report</span> <span class="o">=</span> <span class="n">collective_snapshot</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">land_hectares</span><span class="o">=</span><span class="mf">300.0</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>                             <span class="n">available_labor_eoh</span><span class="o">=</span><span class="mf">2.0e7</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">[</span><span class="s2">"verdict"</span><span class="p">])</span>
 </span></code></pre></div>
-<p>All four Structural Conditions should be green. See <a href="../../theory/structural_conditions/">Structural Conditions</a>.</p>
+<p>The pipeline, the Ground Use Fee and the fiscal snapshot run on one stated
+frame. See the <a href="../implementation_guide/">Implementation Guide</a> for what each
+input means and where to find it.</p>
+<hr />
+<h2 id="structural-conditions-check">Structural Conditions Check<a class="headerlink" href="#structural-conditions-check" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
+</span></code></pre></div>
+<p>Conditions I–IV should read OK. The overall status at the reference is YELLOW,
+not green, and the dashboard names why — see <a href="../../theory/structural_conditions/">Structural
+Conditions</a>.</p>
 <hr />
 <h2 id="cli-quick-start">CLI Quick Start<a class="headerlink" href="#cli-quick-start" title="Permanent link">&para;</a></h2>
 <p>The research CLI lets you explore the system without writing Python:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>arc<span class="w"> </span>--points<span class="w"> </span><span class="m">10</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>arc<span class="w"> </span>--points<span class="w"> </span><span class="m">10</span>
 </span></code></pre></div>
-<p>Output:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ε      personal  infra     eco       knowledge  total_eoh  reg%   teh_created  price    floor_pp  solvent
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>-----  --------  --------  --------  ---------  ---------  -----  -----------  -------  --------  -------
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>0.000  2.212B    65.000M   555.556K  0.100      2.278B     15.1%  70.210M      120.000  1.000     Y
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>0.110  2.213B    77.620M   566.434K  0.152      2.291B     27.7%  133.783M     113.773  1.068     Y
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>...
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>0.990  2.220B    223.202M  712.251K  9.733      2.444B     94.2%  44.987M      21.546   5.570     Y
-</span></code></pre></div>
-<p>System dashboard:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>dashboard<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40
-</span></code></pre></div>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>System Dashboard — ε = 0.400  [GREEN]
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Structural Conditions
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  I   — Ledger Identity:         OK
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  II  — Multiplier Band:         OK
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  III — Zero Interest:           OK
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  IV  — Distributed Competency:  OK
-</span></code></pre></div>
+<p>Each row reports the obligation by domain, the registered share, TEH created,
+the floor price, floor purchasing power and solvency. Personal EOH dominates the
+whole arc; the floor price falls and floor purchasing power rises as ε grows.</p>
 <p>For the full CLI reference see <a href="../cli/">CLI Reference</a>.</p>
 <hr />
 <h2 id="ground-use-fee">Ground Use Fee<a class="headerlink" href="#ground-use-fee" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span>--location-value<span class="w"> </span><span class="m">0</span>.629
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span>--location-value<span class="w"> </span><span class="m">0</span>.629
 </span></code></pre></div>
 <p>See <a href="../cli/#guf-land-use-fee-commands">CLI Reference — GUF commands</a> and <a href="../../theory/guf_framework/">GUF Framework</a>.</p>
 <hr />
 <h2 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">          </span><span class="c1"># full suite (1169 tests)</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>mypy<span class="w"> </span>hours_eoh/<span class="w">           </span><span class="c1"># type check</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">          </span><span class="c1"># full suite</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>mypy<span class="w"> </span>hours_eoh/<span class="w">           </span><span class="c1"># type check</span>
 </span></code></pre></div>
 
 

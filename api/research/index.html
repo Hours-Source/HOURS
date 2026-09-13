@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1308,9 +1329,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#closure-mechanisms-proposed-88-pending-author-sign-off" class="md-nav__link">
+  <a href="#closure-mechanisms-88-author-adopted-2026-07-26" class="md-nav__link">
     <span class="md-ellipsis">
-      Closure mechanisms — proposed §8.8 (pending author sign-off)
+      Closure mechanisms — §8.8 (author-adopted 2026-07-26)
     </span>
   </a>
   
@@ -1322,18 +1343,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#recalibrationpy-recalibration-prototype-proposed-89-89b" class="md-nav__link">
+  <a href="#recalibrationpy-recalibration-89-89b" class="md-nav__link">
     <span class="md-ellipsis">
-      recalibration.py — Recalibration Prototype (proposed §8.9 / §8.9b)
+      recalibration.py — Recalibration (§8.9 / §8.9b)
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#formationpy-formation-feedback-proposed-89c" class="md-nav__link">
+  <a href="#formationpy-formation-feedback-89c" class="md-nav__link">
     <span class="md-ellipsis">
-      formation.py — Formation Feedback (proposed §8.9c)
+      formation.py — Formation Feedback (§8.9c)
     </span>
   </a>
   
@@ -1790,9 +1811,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#closure-mechanisms-proposed-88-pending-author-sign-off" class="md-nav__link">
+  <a href="#closure-mechanisms-88-author-adopted-2026-07-26" class="md-nav__link">
     <span class="md-ellipsis">
-      Closure mechanisms — proposed §8.8 (pending author sign-off)
+      Closure mechanisms — §8.8 (author-adopted 2026-07-26)
     </span>
   </a>
   
@@ -1804,18 +1825,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#recalibrationpy-recalibration-prototype-proposed-89-89b" class="md-nav__link">
+  <a href="#recalibrationpy-recalibration-89-89b" class="md-nav__link">
     <span class="md-ellipsis">
-      recalibration.py — Recalibration Prototype (proposed §8.9 / §8.9b)
+      recalibration.py — Recalibration (§8.9 / §8.9b)
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#formationpy-formation-feedback-proposed-89c" class="md-nav__link">
+  <a href="#formationpy-formation-feedback-89c" class="md-nav__link">
     <span class="md-ellipsis">
-      formation.py — Formation Feedback (proposed §8.9c)
+      formation.py — Formation Feedback (§8.9c)
     </span>
   </a>
   
@@ -1937,8 +1958,9 @@
 <p>See <a href="../../theory/guf_framework/#9-ecological-write-down-events-and-the-guf">GUF Framework §9</a> and <a href="../land/#ecological-write-down-nlsa-9">Land — GUF Module</a>.</p>
 <hr />
 <h2 id="contestabilitypy-contestability-invariant-workstream-b">contestability.py — Contestability Invariant (Workstream B)<a class="headerlink" href="#contestabilitypy-contestability-invariant-workstream-b" title="Permanent link">&para;</a></h2>
-<p>Implements the contestability instrumentation from <code>hours-reconciliation.md
-§8</code>. The original invariant statement — χ(ε) = P(ε)/K_entry(ε) ≥ 1 — failed
+<p>Implements the contestability instrumentation from the reconciliation's §8 (an
+unpublished working document; its conclusions are stated on the
+<a href="../../theory/prior_art/#the-question-prior-art-never-asked">Prior Art</a> page). The original invariant statement — χ(ε) = P(ε)/K_entry(ε) ≥ 1 — failed
 adversarial testing for the marginal member and is SUPERSEDED by the §8.9
 time-to-finance/two-arm form (see <code>recalibration.py</code> below); the χ functions
 remain as instrumentation and documented negative results. All functions are
@@ -2031,7 +2053,7 @@ against automated output.</p>
   §8.8 closure applies: χ_marginal includes the universal commons dividend,
   and the result carries <code>entry_capacity</code> and <code>exit_financeable</code>.</li>
 </ul>
-<h3 id="closure-mechanisms-proposed-88-pending-author-sign-off">Closure mechanisms — proposed §8.8 (pending author sign-off)<a class="headerlink" href="#closure-mechanisms-proposed-88-pending-author-sign-off" title="Permanent link">&para;</a></h3>
+<h3 id="closure-mechanisms-88-author-adopted-2026-07-26">Closure mechanisms — §8.8 (author-adopted 2026-07-26)<a class="headerlink" href="#closure-mechanisms-88-author-adopted-2026-07-26" title="Permanent link">&para;</a></h3>
 <p>The Phase 4 adversarial findings (escheat drains dividends; the marginal
 member's χ is unclosable by any levy) are answered by three mechanisms:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.contestability</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -2064,11 +2086,10 @@ member's χ is unclosable by any levy) are answered by three mechanisms:</p>
 <code>audit [--commons-dividend --underwriting-policy]</code>.
 <strong>Dashboard integration</strong>: <code>eoh dashboard</code> shows χ with color-coded PASS/FAIL.</p>
 <hr />
-<h2 id="recalibrationpy-recalibration-prototype-proposed-89-89b">recalibration.py — Recalibration Prototype (proposed §8.9 / §8.9b)<a class="headerlink" href="#recalibrationpy-recalibration-prototype-proposed-89-89b" title="Permanent link">&para;</a></h2>
+<h2 id="recalibrationpy-recalibration-89-89b">recalibration.py — Recalibration (§8.9 / §8.9b)<a class="headerlink" href="#recalibrationpy-recalibration-89-89b" title="Permanent link">&para;</a></h2>
 <p>Resolves the three §8.8 "honest remainders" at their causes rather than tuning
-their symptoms, and encodes the §8.9b charter-formation doctrine. Both
-adopted-in-principle by the author 2026-07-26; formal reconciliation-doc edit
-pending.</p>
+their symptoms, and encodes the §8.9b charter-formation doctrine. Both adopted
+by the author 2026-07-26; <code>exit_financing()</code> is the adopted invariant.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.recalibration</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">capital_stock_epsilon</span><span class="p">,</span> <span class="n">phi_actual</span><span class="p">,</span> <span class="n">commons_capital</span><span class="p">,</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">formation_share_required</span><span class="p">,</span> <span class="n">formation_levy_rate</span><span class="p">,</span> <span class="n">commons_income_statement</span><span class="p">,</span>
@@ -2145,7 +2166,7 @@ function; default <code>"dilution"</code>):</p>
 <p><strong>Open item — CLOSED by §8.9c</strong> (see formation.py below): the charter
 share's investment-disincentive feedback on K(ε) is now simulated.</p>
 <hr />
-<h2 id="formationpy-formation-feedback-proposed-89c">formation.py — Formation Feedback (proposed §8.9c)<a class="headerlink" href="#formationpy-formation-feedback-proposed-89c" title="Permanent link">&para;</a></h2>
+<h2 id="formationpy-formation-feedback-89c">formation.py — Formation Feedback (§8.9c)<a class="headerlink" href="#formationpy-formation-feedback-89c" title="Permanent link">&para;</a></h2>
 <p>Closes the K(ε) circularity: formation is FINANCED or it does not happen,
 and ε is derived from the capital actually formed.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.research.formation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>

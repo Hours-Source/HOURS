@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1187,7 +1208,7 @@
           <li class="md-nav__item">
   <a href="#use_category_coefficientuse_category-epsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
-      use_category_coefficient(use_category, epsilon) → float
+      use_category_coefficient(use_category, epsilon, …) → float
     </span>
   </a>
   
@@ -1196,7 +1217,7 @@
           <li class="md-nav__item">
   <a href="#demand_pressure_modifierdemand_supply_ratio-eta-float" class="md-nav__link">
     <span class="md-ellipsis">
-      demand_pressure_modifier(demand_supply_ratio, eta) → float
+      demand_pressure_modifier(demand_supply_ratio, eta, …) → float
     </span>
   </a>
   
@@ -1205,7 +1226,7 @@
           <li class="md-nav__item">
   <a href="#ecosystem_service_kappakappa_ref-beta-epsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
-      ecosystem_service_kappa(kappa_ref, beta, epsilon) → float
+      ecosystem_service_kappa(kappa_ref, beta, epsilon, …) → float
     </span>
   </a>
   
@@ -1221,9 +1242,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#infrastructure_proximity_premiumassets-parcel_location-dict" class="md-nav__link">
+  <a href="#infrastructure_proximity_premiumassets-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      infrastructure_proximity_premium(assets, parcel_location) → dict
+      infrastructure_proximity_premium(assets, epsilon) → dict
     </span>
   </a>
   
@@ -1245,9 +1266,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#base_feearea_slu-location_value-use_category-epsilon-dict" class="md-nav__link">
+  <a href="#base_feearea_slu-location_value-use_coeff-demand_modifier-float" class="md-nav__link">
     <span class="md-ellipsis">
-      base_fee(area_slu, location_value, use_category, epsilon, ...) → dict
+      base_fee(area_slu, location_value, use_coeff, demand_modifier, …) → float
     </span>
   </a>
   
@@ -1256,7 +1277,7 @@
           <li class="md-nav__item">
   <a href="#ground_use_feearea_slu-location_value-use_category-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      ground_use_fee(area_slu, location_value, use_category, epsilon, ...) → dict
+      ground_use_fee(area_slu, location_value, use_category, epsilon, …) → dict
     </span>
   </a>
   
@@ -1278,27 +1299,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#review_cycle_capguf_formula-guf_previous-phi-float" class="md-nav__link">
+  <a href="#review_cycle_capguf_formula-guf_previous-phi-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      review_cycle_cap(guf_formula, guf_previous, phi) → float
+      review_cycle_cap(guf_formula, guf_previous, phi) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#income_linked_subsidyguf_applied-income_teh-median_income_teh-float" class="md-nav__link">
+  <a href="#income_linked_subsidyguf_applied-steward_income-median_income-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      income_linked_subsidy(guf_applied, income_teh, median_income_teh) → float
+      income_linked_subsidy(guf_applied, steward_income, median_income) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#soil_health_creditarea_slu-delta_shi-c_soil-float" class="md-nav__link">
+  <a href="#soil_health_creditarea_slu-delta_shi-float" class="md-nav__link">
     <span class="md-ellipsis">
-      soil_health_credit(area_slu, delta_shi, c_soil) → float
+      soil_health_credit(area_slu, delta_shi, …) → float
     </span>
   </a>
   
@@ -1338,9 +1359,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ground_use_fee_writedownarea_slu-services_reset-services_lost-dict" class="md-nav__link">
+  <a href="#ground_use_fee_writedownarea_slu-location_value-use_category-epsilon-services_reset-services_lost-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      ground_use_fee_writedown(area_slu, ..., services_reset, services_lost, ...) → dict
+      ground_use_fee_writedown(area_slu, location_value, use_category, epsilon, services_reset, services_lost, …) → dict
     </span>
   </a>
   
@@ -1382,7 +1403,7 @@
           <li class="md-nav__item">
   <a href="#compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac) → dict
+      compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac, …) → dict
     </span>
   </a>
   
@@ -1424,7 +1445,7 @@
           <li class="md-nav__item">
   <a href="#guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, ...) → dict
+      guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, …) → dict
     </span>
   </a>
   
@@ -1792,7 +1813,7 @@
           <li class="md-nav__item">
   <a href="#use_category_coefficientuse_category-epsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
-      use_category_coefficient(use_category, epsilon) → float
+      use_category_coefficient(use_category, epsilon, …) → float
     </span>
   </a>
   
@@ -1801,7 +1822,7 @@
           <li class="md-nav__item">
   <a href="#demand_pressure_modifierdemand_supply_ratio-eta-float" class="md-nav__link">
     <span class="md-ellipsis">
-      demand_pressure_modifier(demand_supply_ratio, eta) → float
+      demand_pressure_modifier(demand_supply_ratio, eta, …) → float
     </span>
   </a>
   
@@ -1810,7 +1831,7 @@
           <li class="md-nav__item">
   <a href="#ecosystem_service_kappakappa_ref-beta-epsilon-float" class="md-nav__link">
     <span class="md-ellipsis">
-      ecosystem_service_kappa(kappa_ref, beta, epsilon) → float
+      ecosystem_service_kappa(kappa_ref, beta, epsilon, …) → float
     </span>
   </a>
   
@@ -1826,9 +1847,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#infrastructure_proximity_premiumassets-parcel_location-dict" class="md-nav__link">
+  <a href="#infrastructure_proximity_premiumassets-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      infrastructure_proximity_premium(assets, parcel_location) → dict
+      infrastructure_proximity_premium(assets, epsilon) → dict
     </span>
   </a>
   
@@ -1850,9 +1871,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#base_feearea_slu-location_value-use_category-epsilon-dict" class="md-nav__link">
+  <a href="#base_feearea_slu-location_value-use_coeff-demand_modifier-float" class="md-nav__link">
     <span class="md-ellipsis">
-      base_fee(area_slu, location_value, use_category, epsilon, ...) → dict
+      base_fee(area_slu, location_value, use_coeff, demand_modifier, …) → float
     </span>
   </a>
   
@@ -1861,7 +1882,7 @@
           <li class="md-nav__item">
   <a href="#ground_use_feearea_slu-location_value-use_category-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      ground_use_fee(area_slu, location_value, use_category, epsilon, ...) → dict
+      ground_use_fee(area_slu, location_value, use_category, epsilon, …) → dict
     </span>
   </a>
   
@@ -1883,27 +1904,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#review_cycle_capguf_formula-guf_previous-phi-float" class="md-nav__link">
+  <a href="#review_cycle_capguf_formula-guf_previous-phi-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      review_cycle_cap(guf_formula, guf_previous, phi) → float
+      review_cycle_cap(guf_formula, guf_previous, phi) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#income_linked_subsidyguf_applied-income_teh-median_income_teh-float" class="md-nav__link">
+  <a href="#income_linked_subsidyguf_applied-steward_income-median_income-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      income_linked_subsidy(guf_applied, income_teh, median_income_teh) → float
+      income_linked_subsidy(guf_applied, steward_income, median_income) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#soil_health_creditarea_slu-delta_shi-c_soil-float" class="md-nav__link">
+  <a href="#soil_health_creditarea_slu-delta_shi-float" class="md-nav__link">
     <span class="md-ellipsis">
-      soil_health_credit(area_slu, delta_shi, c_soil) → float
+      soil_health_credit(area_slu, delta_shi, …) → float
     </span>
   </a>
   
@@ -1943,9 +1964,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ground_use_fee_writedownarea_slu-services_reset-services_lost-dict" class="md-nav__link">
+  <a href="#ground_use_fee_writedownarea_slu-location_value-use_category-epsilon-services_reset-services_lost-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      ground_use_fee_writedown(area_slu, ..., services_reset, services_lost, ...) → dict
+      ground_use_fee_writedown(area_slu, location_value, use_category, epsilon, services_reset, services_lost, …) → dict
     </span>
   </a>
   
@@ -1987,7 +2008,7 @@
           <li class="md-nav__item">
   <a href="#compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac) → dict
+      compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac, …) → dict
     </span>
   </a>
   
@@ -2029,7 +2050,7 @@
           <li class="md-nav__item">
   <a href="#guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, ...) → dict
+      guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, …) → dict
     </span>
   </a>
   
@@ -2072,7 +2093,16 @@
 <hr />
 <h2 id="gufpy-single-parcel-guf">guf.py — Single-Parcel GUF<a class="headerlink" href="#gufpy-single-parcel-guf" title="Permanent link">&para;</a></h2>
 <p><strong>Module:</strong> <code>hours_eoh/land/guf.py</code></p>
-<p>14 functions implementing the Ground Use Fee framework (NLSA TM-0042). All functions follow the layer rules: <code>land/</code> imports from <code>core/</code> but is never imported by <code>core/</code>.</p>
+<p>The functions implementing the Ground Use Fee framework (NLSA TM-0042). All functions follow the layer rules: <code>land/</code> imports from <code>core/</code> but is never imported by <code>core/</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Ψ(ε) is retired as the shipped default</p>
+<p><code>ground_use_fee()</code> and every caller default to <code>psi_policy="retired"</code> (Ψ ≡ 1,
+author sign-off 2026-08-20): Ψ duplicated α's response to falling labour
+content at the high end and made a category error at the low end. The fee's
+ε-response is now carried by α. <code>epsilon_scaling()</code> still computes the bell
+curve, and <code>psi_policy="bell"</code> still applies it, so the published NLSA form
+can be reproduced — but it is not what the model runs.</p>
+</div>
 <p>For the full mathematical specification, see <a href="../../theory/guf_framework/">Ground Use Fee Framework</a>.</p>
 <p><strong>Diagrams:</strong> <a href="../../images/guf_master_equation.svg">Master equation assembly</a> · <a href="../../images/guf_lvi_weights.svg">L(p) weights</a> · <a href="../../images/guf_epsilon_arc.svg">Ψ(ε) arc</a> · <a href="../../images/guf_trust_flow.svg">Trust flow</a> · <a href="../../images/guf_writedown_pathways.svg">Write-down pathways</a></p>
 <hr />
@@ -2084,22 +2114,22 @@
 <p>The α(ε) function: <code>(1−ε)^0.8 + 0.05</code>, normalized so α(0.40) = 1.0. Scales Use Category Coefficients for the declining labor content of land-use activities.</p>
 <h3 id="location_value_indexcentrality-transit-services-natural_amenity-weights-float"><code>location_value_index(centrality, transit, services, natural_amenity, weights)</code> → <code>float</code><a class="headerlink" href="#location_value_indexcentrality-transit-services-natural_amenity-weights-float" title="Permanent link">&para;</a></h3>
 <p>L(p) — weighted composite of four sub-indices (Eq. 3).</p>
-<h3 id="use_category_coefficientuse_category-epsilon-float"><code>use_category_coefficient(use_category, epsilon)</code> → <code>float</code><a class="headerlink" href="#use_category_coefficientuse_category-epsilon-float" title="Permanent link">&para;</a></h3>
+<h3 id="use_category_coefficientuse_category-epsilon-float"><code>use_category_coefficient(use_category, epsilon, …)</code> → <code>float</code><a class="headerlink" href="#use_category_coefficientuse_category-epsilon-float" title="Permanent link">&para;</a></h3>
 <p>U(p,ε) — reference rate for the use category scaled by α(ε) (Eq. 9).</p>
-<h3 id="demand_pressure_modifierdemand_supply_ratio-eta-float"><code>demand_pressure_modifier(demand_supply_ratio, eta)</code> → <code>float</code><a class="headerlink" href="#demand_pressure_modifierdemand_supply_ratio-eta-float" title="Permanent link">&para;</a></h3>
+<h3 id="demand_pressure_modifierdemand_supply_ratio-eta-float"><code>demand_pressure_modifier(demand_supply_ratio, eta, …)</code> → <code>float</code><a class="headerlink" href="#demand_pressure_modifierdemand_supply_ratio-eta-float" title="Permanent link">&para;</a></h3>
 <p>D(p) — logarithmic demand modifier, capped at 1.8 (Eq. 11).</p>
-<h3 id="ecosystem_service_kappakappa_ref-beta-epsilon-float"><code>ecosystem_service_kappa(kappa_ref, beta, epsilon)</code> → <code>float</code><a class="headerlink" href="#ecosystem_service_kappakappa_ref-beta-epsilon-float" title="Permanent link">&para;</a></h3>
+<h3 id="ecosystem_service_kappakappa_ref-beta-epsilon-float"><code>ecosystem_service_kappa(kappa_ref, beta, epsilon, …)</code> → <code>float</code><a class="headerlink" href="#ecosystem_service_kappakappa_ref-beta-epsilon-float" title="Permanent link">&para;</a></h3>
 <p>κ_s(ε) — labor-time replacement cost per unit of ecosystem service at ε (Eq. 15). Cost contracts with automation — the same ecosystem service costs less to engineer as ε rises.</p>
 <h3 id="ecosystem_displacement_surchargeservices-epsilon-dict"><code>ecosystem_displacement_surcharge(services, epsilon)</code> → <code>dict</code><a class="headerlink" href="#ecosystem_displacement_surchargeservices-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>E(p,ε) — annualized labor-time cost of natural services displaced by development (Eq. 14).</p>
-<h3 id="infrastructure_proximity_premiumassets-parcel_location-dict"><code>infrastructure_proximity_premium(assets, parcel_location)</code> → <code>dict</code><a class="headerlink" href="#infrastructure_proximity_premiumassets-parcel_location-dict" title="Permanent link">&para;</a></h3>
+<h3 id="infrastructure_proximity_premiumassets-epsilon-dict"><code>infrastructure_proximity_premium(assets, epsilon)</code> → <code>dict</code><a class="headerlink" href="#infrastructure_proximity_premiumassets-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>I(p,ε) — annualized share of collectively funded infrastructure cost attributed to the parcel (Eq. 16).</p>
 <hr />
 <h2 id="full-guf-calculation">Full GUF Calculation<a class="headerlink" href="#full-guf-calculation" title="Permanent link">&para;</a></h2>
-<h3 id="base_feearea_slu-location_value-use_category-epsilon-dict"><code>base_fee(area_slu, location_value, use_category, epsilon, ...)</code> → <code>dict</code><a class="headerlink" href="#base_feearea_slu-location_value-use_category-epsilon-dict" title="Permanent link">&para;</a></h3>
+<h3 id="base_feearea_slu-location_value-use_coeff-demand_modifier-float"><code>base_fee(area_slu, location_value, use_coeff, demand_modifier, …)</code> → <code>float</code><a class="headerlink" href="#base_feearea_slu-location_value-use_coeff-demand_modifier-float" title="Permanent link">&para;</a></h3>
 <p>Base fee component: <code>A(p) × L(p) × U(p,ε) × D(p) × Z(p)</code>.</p>
-<h3 id="ground_use_feearea_slu-location_value-use_category-epsilon-dict"><code>ground_use_fee(area_slu, location_value, use_category, epsilon, ...)</code> → <code>dict</code><a class="headerlink" href="#ground_use_feearea_slu-location_value-use_category-epsilon-dict" title="Permanent link">&para;</a></h3>
-<p>Master equation (Eq. 1): <code>GUF(p) = Ψ(ε) × [base + E + I] × Ω</code>, applying the GUF floor.</p>
+<h3 id="ground_use_feearea_slu-location_value-use_category-epsilon-dict"><code>ground_use_fee(area_slu, location_value, use_category, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#ground_use_feearea_slu-location_value-use_category-epsilon-dict" title="Permanent link">&para;</a></h3>
+<p>Master equation (Eq. 1): <code>GUF(p) = Ψ(ε) × [base + E + I] × Ω</code>, applying the GUF floor — with Ψ ≡ 1 under the shipped <code>psi_policy="retired"</code>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.guf</span><span class="w"> </span><span class="kn">import</span> <span class="n">ground_use_fee</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ground_use_fee</span><span class="p">(</span>
@@ -2112,11 +2142,11 @@
 </span></code></pre></div>
 <hr />
 <h2 id="rate-constraints">Rate Constraints<a class="headerlink" href="#rate-constraints" title="Permanent link">&para;</a></h2>
-<h3 id="review_cycle_capguf_formula-guf_previous-phi-float"><code>review_cycle_cap(guf_formula, guf_previous, phi)</code> → <code>float</code><a class="headerlink" href="#review_cycle_capguf_formula-guf_previous-phi-float" title="Permanent link">&para;</a></h3>
+<h3 id="review_cycle_capguf_formula-guf_previous-phi-dict"><code>review_cycle_cap(guf_formula, guf_previous, phi)</code> → <code>dict</code><a class="headerlink" href="#review_cycle_capguf_formula-guf_previous-phi-dict" title="Permanent link">&para;</a></h3>
 <p>Rate-change cap (Eq. 22): <code>min(guf_formula, guf_previous × (1 + φ))</code>. Default φ = 0.10.</p>
-<h3 id="income_linked_subsidyguf_applied-income_teh-median_income_teh-float"><code>income_linked_subsidy(guf_applied, income_teh, median_income_teh)</code> → <code>float</code><a class="headerlink" href="#income_linked_subsidyguf_applied-income_teh-median_income_teh-float" title="Permanent link">&para;</a></h3>
+<h3 id="income_linked_subsidyguf_applied-steward_income-median_income-dict"><code>income_linked_subsidy(guf_applied, steward_income, median_income)</code> → <code>dict</code><a class="headerlink" href="#income_linked_subsidyguf_applied-steward_income-median_income-dict" title="Permanent link">&para;</a></h3>
 <p>Income adjustment factor σ (Eq. 23–24): leaseholders below 40% of median pay 25% of GUF.</p>
-<h3 id="soil_health_creditarea_slu-delta_shi-c_soil-float"><code>soil_health_credit(area_slu, delta_shi, c_soil)</code> → <code>float</code><a class="headerlink" href="#soil_health_creditarea_slu-delta_shi-c_soil-float" title="Permanent link">&para;</a></h3>
+<h3 id="soil_health_creditarea_slu-delta_shi-float"><code>soil_health_credit(area_slu, delta_shi, …)</code> → <code>float</code><a class="headerlink" href="#soil_health_creditarea_slu-delta_shi-float" title="Permanent link">&para;</a></h3>
 <p>Soil Health Index credit for agricultural parcels (Eq. 26): <code>−c_soil × A(p) × ΔSHI</code>.</p>
 <h3 id="guf_trust_inflowguf_revenues-subsidies_absorbed-dict"><code>guf_trust_inflow(guf_revenues, subsidies_absorbed)</code> → <code>dict</code><a class="headerlink" href="#guf_trust_inflowguf_revenues-subsidies_absorbed-dict" title="Permanent link">&para;</a></h3>
 <p>Net Trust revenue from GUF flows after subsidy absorption.</p>
@@ -2133,7 +2163,7 @@
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">amortization_years</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
 </span></code></pre></div>
-<h3 id="ground_use_fee_writedownarea_slu-services_reset-services_lost-dict"><code>ground_use_fee_writedown(area_slu, ..., services_reset, services_lost, ...)</code> → <code>dict</code><a class="headerlink" href="#ground_use_fee_writedownarea_slu-services_reset-services_lost-dict" title="Permanent link">&para;</a></h3>
+<h3 id="ground_use_fee_writedownarea_slu-location_value-use_category-epsilon-services_reset-services_lost-dict"><code>ground_use_fee_writedown(area_slu, location_value, use_category, epsilon, services_reset, services_lost, …)</code> → <code>dict</code><a class="headerlink" href="#ground_use_fee_writedownarea_slu-location_value-use_category-epsilon-services_reset-services_lost-dict" title="Permanent link">&para;</a></h3>
 <p>Modified GUF during a write-down event (Eq. 29):
 <code>GUF_wd = Ψ × [base + E_reset + I + R_b] × Ω</code></p>
 <ul>
@@ -2144,10 +2174,12 @@
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ground_use_fee_writedown</span><span class="p">(</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">area_slu</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">services_reset</span><span class="o">=</span><span class="p">[{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"water"</span><span class="p">,</span> <span class="s2">"volume"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s2">"kappa_ref"</span><span class="p">:</span> <span class="mf">1.65</span><span class="p">,</span> <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">"retained"</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">}],</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">services_lost</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># restoration pathway</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">location_value</span><span class="o">=</span><span class="mf">0.629</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">use_category</span><span class="o">=</span><span class="s2">"residential_primary"</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">services_reset</span><span class="o">=</span><span class="p">[{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"water"</span><span class="p">,</span> <span class="s2">"volume"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">,</span> <span class="s2">"kappa_ref"</span><span class="p">:</span> <span class="mf">1.65</span><span class="p">,</span> <span class="s2">"beta"</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">"retained"</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">}],</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">services_lost</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># restoration pathway</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="eoh_accumulation_warningunfulfilled_eoh-total_eoh-threshold-dict"><code>eoh_accumulation_warning(unfulfilled_eoh, total_eoh, threshold)</code> → <code>dict</code><a class="headerlink" href="#eoh_accumulation_warningunfulfilled_eoh-total_eoh-threshold-dict" title="Permanent link">&para;</a></h3>
 <p>Preventive signal (§9.8): <code>ratio = unfulfilled / total</code>. Warning triggers when <code>ratio &gt; threshold</code> (default 0.30).</p>
@@ -2184,7 +2216,7 @@
 </span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>The schema maps directly to geo-data pipeline column names; a GeoJSON or CSV loader needs only to rename columns to these keys.</p>
-<h3 id="compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict"><code>compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac)</code> → <code>dict</code><a class="headerlink" href="#compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict" title="Permanent link">&para;</a></h3>
+<h3 id="compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict"><code>compute_collective_guf(parcels, epsilon, median_income, pop_coverage_frac, …)</code> → <code>dict</code><a class="headerlink" href="#compute_collective_gufparcels-epsilon-median_income-pop_coverage_frac-dict" title="Permanent link">&para;</a></h3>
 <p>Loops all parcels through <code>ground_use_fee()</code>, applies credits and caps, then aggregates.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_collective_guf</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
@@ -2206,7 +2238,7 @@
 <h2 id="calibrationpy-rate-and-weight-calibration">calibration.py — Rate and Weight Calibration<a class="headerlink" href="#calibrationpy-rate-and-weight-calibration" title="Permanent link">&para;</a></h2>
 <p><strong>Module:</strong> <code>hours_eoh/land/calibration.py</code></p>
 <p>Two tools for fitting GUF revenue to a fiscal target or understanding sensitivity to location-value weighting.</p>
-<h3 id="guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict"><code>guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, ...)</code> → <code>dict</code><a class="headerlink" href="#guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict" title="Permanent link">&para;</a></h3>
+<h3 id="guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict"><code>guf_rate_calibration(parcel_inventory, target_guf_levy_ratio, population, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#guf_rate_calibrationparcel_inventory-target_guf_levy_ratio-population-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Finds the use-coefficient multiplier <code>k</code> such that aggregate GUF ≈ <code>target × levy_revenue</code>. Uses a closed-form linear solve on the base-fee component (scalable) vs. ecosystem/infrastructure surcharges (fixed).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">guf_rate_calibration</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.collective</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_urban_collective</span>
@@ -2224,7 +2256,7 @@
 <p>Sweeps Location Value Index weight configurations to show how sensitive aggregate GUF is to sub-index weighting (centrality vs. transit vs. services vs. natural amenity). Requires parcels to have <code>centrality</code>, <code>transit</code>, <code>services</code>, <code>natural_amenity</code> sub-index fields; parcels with only a pre-computed <code>location_value</code> produce zero sensitivity (all variants identical).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.land.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">guf_lvi_weight_sensitivity</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">guf_lvi_weight_sensitivity</span><span class="p">(</span><span class="n">parcels_with_lvi_fields</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">guf_lvi_weight_sensitivity</span><span class="p">(</span><span class="n">make_urban_collective</span><span class="p">(</span><span class="mi">500</span><span class="p">),</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Returns: {epsilon, parcel_count, variants (list), sensitivity_range, relative_sensitivity}</span>
 </span></code></pre></div>
 <p>Ships five canonical weight variants by default; pass <code>weight_variants=[...]</code> to supply your own.</p>

@@ -18,7 +18,7 @@
         <link rel="prev" href="../overview/">
       
       
-        <link rel="next" href="../epsilon_arc/">
+        <link rel="next" href="../anchor_comparison/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -782,6 +782,27 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -1995,7 +2016,9 @@ it</strong>, and <strong>what this framework does instead</strong> — with an h
 whether the wound is closed, improved, or still open.</p>
 <p>This is an open research project, not a finished model, and the verdicts are
 written as a progress report rather than a defence. Where a front is unexplored
-the page says so and says what would settle it.</p>
+the page says so and says what would settle it. Its companion,
+<a href="../anchor_comparison/">What Anchors a Unit of Account</a>, audits the anchors in
+use today rather than the ancestors.</p>
 <div class="admonition note">
 <p class="admonition-title">Status — author sign-off, 2026-08-15</p>
 <p>This page publishes three positions that are intellectual commitments rather
@@ -2177,10 +2200,11 @@ that gap, and the same seduction operates whenever this framework leans on
 entropy and thermodynamics for prestige.</p>
 <p><strong>What this framework does instead — and this one is checkable.</strong> Rather than
 asserting the difference in prose, the framework publishes a machine-checked
-count of how little of itself is physics. Of <strong>235 constants, exactly 2 are
-tagged <code>physics</code></strong> (<code>A_EARTH_M2</code>, <code>SIGMA_SB</code>). Measurement debt is declared at
-<strong>47.2%</strong> on the front of the <a href="../../parameter_provenance/">provenance page</a>, and
-a test with no allowlist fails the build if a constant is untagged or a tag
+count of how little of itself is physics: <strong>only a handful of constants are
+tagged <code>physics</code></strong>, and every other constant says what kind of claim it makes.
+Measurement debt — roughly two constants in five — is declared on the front of
+the <a href="../../parameter_provenance/">provenance page</a> with the live figure, and a
+test with no allowlist fails the build if a constant is untagged or a tag
 overclaims. Technocracy claimed physical objectivity and could not be checked;
 this framework claims transparency and can be. Run <code>eoh provenance check</code>.</p>
 <h3 id="soviet-labour-accounting-war-communism-191821-the-trudoden-19301966">Soviet labour accounting — War Communism 1918–21; the <em>trudoden</em> 1930–1966<a class="headerlink" href="#soviet-labour-accounting-war-communism-191821-the-trudoden-19301966" title="Permanent link">&para;</a></h3>
@@ -2238,7 +2262,7 @@ below.</p>
    of conscious planning in a sea of exchange. Inside a firm there is no internal
    market and none is needed; between firms, exchange discovers value. The
    collective count is <em>emergent from ε</em>, not set: <code>coasean_collective_count()</code>
-   returns 20 at ε=0 falling to 1 at ε=0.99.</li>
+   falls from many collectives at subsistence to one near post-scarcity.</li>
 <li><strong>Contestability is the invariant</strong> held constant across the whole arc.</li>
 </ol>
 <h3 id="the-verdicts">The verdicts<a class="headerlink" href="#the-verdicts" title="Permanent link">&para;</a></h3>
@@ -2256,7 +2280,7 @@ below.</p>
 <td>1</td>
 <td>Valuation</td>
 <td><strong>Improved, not closed</strong></td>
-<td>The framework no longer claims to compute the price. It computes a floor and lets exchange discover above it, which is what Marx and Hayek say is the only available move. Where the floor is measured it is <em>currency-free</em>: the infrastructure floor is doctrine-invariant at spread <strong>1.000</strong> against the monetized path's <strong>10.26×</strong>. <strong>Residual:</strong> the personal floor is only <strong>6.9% priced</strong> — one of seven basket components. The architecture answers the critique; the measurement is barely begun.</td>
+<td>The framework no longer claims to compute the price. It computes a floor and lets exchange discover above it, which is what Marx and Hayek say is the only available move. Where the floor is measured it is <em>currency-free</em>: the infrastructure floor is doctrine-invariant — its spread is exactly <strong>1.000</strong> — where the monetized path spreads by an order of magnitude. <strong>Residual:</strong> most of the personal floor now carries a price from physical quantities, but much of that price rests on declared bounds rather than measurements, and the remaining components are either the collective's to declare or not yet measurable. The architecture answers the critique; the measurement is well begun and far from done.</td>
 </tr>
 <tr>
 <td>2</td>
@@ -2267,8 +2291,8 @@ below.</p>
 <tr>
 <td>3</td>
 <td>Founder dependence</td>
-<td><strong>Designed against, unmodelled</strong></td>
-<td>Sortition-based assessor selection, a minimum assessor count, adversarial review and tier sunset are all anti-single-point-of-failure by construction. <strong>Residual:</strong> no simulation of governance capture or succession exists. This is a design claim, not a result.</td>
+<td><strong>Designed against, partly modelled</strong></td>
+<td>Sortition-based assessor selection, a minimum assessor count, adversarial review and tier sunset are all anti-single-point-of-failure by construction. Capture of the register is now modelled (<code>scenarios/register_capture.py</code>), and its <strong>volume</strong> is bounded by structure: registering cannot create obligation, and the mint cannot exceed what was served. <strong>Residual:</strong> who a captured register admits and excludes is not represented, and succession is not simulated. Those halves are still a design claim, not a result.</td>
 </tr>
 <tr>
 <td>4</td>
@@ -2292,7 +2316,7 @@ below.</p>
 <td>7</td>
 <td>Objectivity mirage</td>
 <td><strong>Retired, and checkably so</strong></td>
-<td>Objectivity language demoted to floor language; 2 of 235 constants claim physics; 47.2% debt published; the gate has no allowlist. <strong>Residual:</strong> "entropy" still does organising work in the EOH core that no exergy accounting backs. The thermal layer is genuine radiative physics; the four-domain core is not thermodynamics and should not trade on the word.</td>
+<td>Objectivity language demoted to floor language; only a handful of constants claim physics; the measurement debt is published with its live figure; the gate has no allowlist; and a verdict may not outrank the weakest input it rests on, which caps every headline result at "possible". <strong>Residual:</strong> "entropy" still does organising work in the EOH core that no exergy accounting backs. The thermal layer is genuine radiative physics; the four-domain core is not thermodynamics and should not trade on the word.</td>
 </tr>
 <tr>
 <td>—</td>
@@ -2322,7 +2346,7 @@ law), which prevents the last members standing from liquidating the commons.</p>
 passive return; contestability extends the same logic to automated returns by
 requiring the commonly-held share not to erode — <code>dτ/dε ≥ 0</code>. At the shipped
 defaults, over the canonical arc: <strong>exit is financeable at every point</strong>, the
-commons share φ rises from <strong>0.100 to 0.771</strong>, <code>dτ/dε ≥ 0</code> holds throughout, and
+commons share φ rises across the arc, <code>dτ/dε ≥ 0</code> holds throughout, and
 the financing channel moves labour → underwritten → self as automation rises.
 Reproduce with <code>eoh contestability recal</code>.</p>
 <p><strong>The honest caveat is load-bearing.</strong> Which regime obtains is empirically
@@ -2358,7 +2382,7 @@ framework's claims.</p>
   floats, and that float is inflation carried honestly as an exchange rate.
   System-wide impossibility survives only as the ε→1 asymptote, if the need
   economy consolidates to one unit.</li>
-<li><strong>It does not claim to be thermodynamics.</strong> Two constants of 235 are physics.
+<li><strong>It does not claim to be thermodynamics.</strong> Only a handful of constants are physics.
   "Entropy obligation" is a disciplined organising frame for recurring
   maintenance demand. Where real physics runs — the thermal radiative layer — it
   is confined to that layer and labelled. Adopting full exergy accounting is a
@@ -2367,9 +2391,12 @@ framework's claims.</p>
   allocation to where discovery can operate: planning inside a collective,
   exchange between them. No amount of further work will produce a central
   computation, because the architecture is a rejection of that goal.</li>
-<li><strong>Its shipped defaults are not evidence about your jurisdiction.</strong> Eight
-  constants are tagged <code>instance</code> — you supply them, and the framework will
-  never measure them for you. This is an interface property and it is permanent.</li>
+<li><strong>Its shipped defaults are not evidence about your jurisdiction.</strong> The
+  constants tagged <code>instance</code> — population frame, capital, land, the register's
+  cadence, the distance to water, and more — are yours to supply, and the
+  framework will never measure them for you. What it supplies is the bound your
+  declaration is checked against. This is an interface property and it is
+  permanent.</li>
 </ul>
 <h3 id="open-fronts-unexplored-and-what-would-settle-each">Open fronts — unexplored, and what would settle each<a class="headerlink" href="#open-fronts-unexplored-and-what-would-settle-each" title="Permanent link">&para;</a></h3>
 <p>These are not verdicts. They are the work queue, stated with the route that
@@ -2386,13 +2413,13 @@ a permanent excuse.</p>
 <tbody>
 <tr>
 <td><strong>Retrodiction</strong></td>
-<td>The largest. No jurisdiction has been run. Measured <em>inputs</em> are not validation of <em>outputs</em>, and a passing suite is a well-tested implementation of assumptions.</td>
-<td>The machinery already exists and the run does not: supply the eight <code>instance</code> constants from national accounts, census and time use, invert a capital inventory with <code>research/epsilon_inverse.capital_for_epsilon()</code>, and check derived ε and labour share against the observed record. A <em>failed</em> retrodiction is a stronger result than another thousand tests.</td>
+<td><strong>Run for the US, by two instruments that share no data</strong> — a fixed-asset inventory (<code>scenarios/capital_retrodiction.py</code>) and time diaries (<code>scenarios/labour_epsilon.py</code>). They land adjacent, not overlapping; the capital route returns a grid rather than a number because three declared judgements set it. Both divide by the same obligation, so the machine/human split is checked and the level is not.</td>
+<td>A third instrument that does not divide by <code>total_eoh</code>, for which there is no candidate yet; and the same run for a second jurisdiction. A <em>failed</em> retrodiction is still a stronger result than another thousand tests.</td>
 </tr>
 <tr>
 <td><strong>Verification cost</strong></td>
-<td>An audit apparatus large enough to certify every labour record consumes hours that appear in none of the four domains. Whoever certifies tiers and measures ecosystem health also holds real power.</td>
-<td>It is an entropy obligation like any other, and it has a natural home: <code>knowledge_eoh_breakdown()</code> already separates the civilisational corpus from <em>apparatus</em> overhead. Until it is costed, every solvency result omits a real term — so the direction of the error is known even though its size is not.</td>
+<td><strong>Costed for the apparatus</strong> — the occupations that decide what counts and check it was done, at two scopes — and checked against the labour a population can supply rather than only against the obligation. <strong>The registrant side is priced by the register's declared cadence</strong>: on the shipped episodic default it fits with room to spare; a continuous register does not fit until mid-arc. Whoever certifies tiers and measures ecosystem health still holds real power.</td>
+<td>A measured registrant multiple for a <em>fulfilment</em> register — hours per record — and verification carried inside other jobs, which is unbuilt. See <a href="../anchor_comparison/">What Anchors a Unit of Account</a> §6. The term is reported beside the accounts, not inside them, until the author decides whether the registrant's hour enters the obligation.</td>
 </tr>
 <tr>
 <td><strong>The desire economy</strong></td>
@@ -2401,18 +2428,18 @@ a permanent excuse.</p>
 </tr>
 <tr>
 <td><strong>Personal floor coverage</strong></td>
-<td>The floor prices <strong>one basket component of seven — 6.9%</strong> of the obligation. The largest term, care, is unpriced and therefore <em>excluded</em> rather than costed at zero.</td>
-<td>Price the remaining six components in physical units. The extraction wedge is not identified at this coverage, and a number for it today would be a fitted residual; the frontier panel (HETUS/MTUS) is the route that identifies it without one.</td>
+<td><strong>Most of the obligation now carries a price</strong> from physical quantities — it was under a tenth until care and processing were priced as declared bounds. Water resolves by declaration: a collective states its distance to water and the floor reports whether it fits.</td>
+<td><strong>Shelter</strong> is instance data of the same kind. <strong>Sanitation</strong> has no named instrument. <strong>Health</strong> is undefined below the apparatus that delivers it, and is reported as undefined rather than imputed. The extraction wedge still needs the frontier panel (HETUS/MTUS) to identify it without a fitted residual.</td>
 </tr>
 <tr>
 <td><strong>Domain balance</strong></td>
-<td>Personal EOH is 98.9% of total at ε=0, so ε is very largely a personal-domain number at the low arc. <code>ECOLOGICAL_BASE_RATE</code> is documented as a <em>relative</em> anchor but summed with absolute counts, leaving the ecological domain at &lt;0.1%.</td>
-<td>Put the ecological base on an absolute footing. Until then, no result depending on the ecological domain's <em>share</em> should be quoted — including the thermal layer's comfortable solvency margin, which is comfortable partly because the obligation is negligible.</td>
+<td>Personal EOH is almost all of the obligation at ε=0, so ε is very largely a personal-domain number at the low arc. The recurring ecological cost was moved to the Ground Use Fee (Phase 4f), where it scales with land held; the ecological domain now carries stocks only.</td>
+<td>Measure the personal base, which is the largest single share of what ε divides by. Read ecological results through the fee rather than through the domain's share — including the thermal layer's solvency margin, which is comfortable partly because the obligation in the domain is small.</td>
 </tr>
 <tr>
 <td><strong>Governance capture</strong></td>
-<td>Sortition, minimum assessor counts, adversarial review, inter-rater reliability and tier sunset exist as validators in <code>assess_tier()</code>. None of it is simulated.</td>
-<td>Simulate capture and succession against the thresholds already encoded. Ithaca died of founder dependence; a design claim is not a result until something tries to break it.</td>
+<td><strong>Modelled, and half-bounded.</strong> <code>scenarios/register_capture.py</code> gives the register's failure model and a drift monitor that declares its own threshold. The <strong>volume</strong> a captured register can mint is bounded by structure — registering cannot create obligation, the mint cannot exceed what was served, and the exposure shrinks as automation arrives.</td>
+<td>The <strong>distribution</strong>: who a captured register admits and who it excludes. Every figure is a per-capita aggregate with no variable for it, so this needs a distributional layer, downstream of exchange work at scale. Succession is still unsimulated. Ithaca died of founder dependence; a design claim is not a result until something tries to break it.</td>
 </tr>
 <tr>
 <td><strong>Transition</strong></td>
@@ -2431,12 +2458,16 @@ already in the repo rather than hypothetical:</p>
   shopping fell 26%, and shift-share attributes the rise to within-household
   behaviour, not composition. If <code>a(K)</code> cannot fit that, it is reported, not
   retuned.</li>
-<li><strong>The personal floor could falsify its own constant.</strong> It currently cannot —
-  at 6.9% coverage the only ordering compatible with the evidence is the one
-  observed. Raise coverage and the floor becomes capable of contradicting
-  <code>PERSONAL_EOH_BASE</code>. That is the point of building it.</li>
-<li><strong>A retrodiction could produce an implausible ε.</strong> There is no result to
-  report because the run has not been done, and that is the honest status.</li>
+<li><strong>The personal floor could falsify its own constant.</strong> At low coverage it
+  could not — the only ordering compatible with the evidence was the one
+  observed. With most of the floor now priced it can contradict
+  <code>PERSONAL_EOH_BASE</code>, which is the point of building it. The first time it
+  crossed a standard, the crossing turned out to be a scope artefact — the
+  standard covered less than the floor summed — and that is recorded rather
+  than hidden.</li>
+<li><strong>A retrodiction could produce an implausible ε.</strong> It did, once: an early run
+  saturated. Run over a properly declared grid it reads a band, and the
+  condition re-opens the moment anyone quotes a single ε for a real economy.</li>
 </ul>
 <hr />
 <h2 id="sources">Sources<a class="headerlink" href="#sources" title="Permanent link">&para;</a></h2>

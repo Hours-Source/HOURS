@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1936,81 +1957,48 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>scenario<span class="w"> </span>list
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>scenario<span class="w"> </span>run<span class="w"> </span>NAME<span class="w"> </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>csv<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
+<p><strong><code>scenario list</code> is the authoritative list</strong> — it is generated from the
+registry, prints each scenario's own options, and cannot fall behind. The table
+below names the families and a representative of each; it is not exhaustive.</p>
 <table>
 <thead>
 <tr>
-<th>Scenario Name</th>
-<th>Description</th>
+<th>Family</th>
+<th>Representative scenarios</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Arc coherence</td>
 <td><code>sweep</code></td>
-<td>Arc coherence check from ε = 0 to ε = 0.99</td>
 </tr>
 <tr>
-<td><code>automation_failure</code></td>
-<td>Sudden machine EOH dropout — tests reserve coverage</td>
+<td>Shocks</td>
+<td><code>automation_failure</code>, <code>demographic_shock</code>, <code>ecological_spike</code>, <code>labor_income_shock</code>, <code>compound_shock</code></td>
 </tr>
 <tr>
-<td><code>demographic_shock</code></td>
-<td>Population age-structure shift</td>
+<td>Maintenance &amp; recovery</td>
+<td><code>maintenance_crisis</code>, <code>care_delay</code>, <code>recovery</code></td>
 </tr>
 <tr>
-<td><code>ecological_spike</code></td>
-<td>Ecosystem EOH surge</td>
+<td>Long run</td>
+<td><code>canonical_arc</code>, <code>trust_stress</code>, <code>transition</code>, <code>indust_baseline</code>, <code>indust_recovery</code></td>
 </tr>
 <tr>
-<td><code>maintenance_crisis</code></td>
-<td>Compounding deferred infrastructure backlog</td>
+<td>Land / GUF</td>
+<td><code>guf_integration</code>, <code>guf_writedown</code>, <code>guf_sweep</code>, <code>guf_magnitude</code>, <code>servicing_census</code>, <code>land_tenure</code></td>
 </tr>
 <tr>
-<td><code>care_delay</code></td>
-<td>Lag in care EOH admission to the collective ledger</td>
+<td>One collective, end to end</td>
+<td><code>collective</code> — the documented institutional entry point</td>
 </tr>
 <tr>
-<td><code>recovery</code></td>
-<td>Maintenance backlog paydown arc</td>
+<td>Measurement and reporting</td>
+<td><code>obligation_accounts</code>, <code>personal_floor</code>, <code>labour_epsilon</code>, <code>frame</code>, <code>feasibility</code></td>
 </tr>
 <tr>
-<td><code>labor-shock</code></td>
-<td>Compressed labor income — tests fiscal solvency delta</td>
-</tr>
-<tr>
-<td><code>compound-shock</code></td>
-<td>Combined ecological + demographic + automation shocks</td>
-</tr>
-<tr>
-<td><code>canonical-arc</code></td>
-<td>Multi-period full ε arc via <code>run_simulation()</code></td>
-</tr>
-<tr>
-<td><code>trust-depletion</code></td>
-<td>Multi-stressor run — when does the Trust break?</td>
-</tr>
-<tr>
-<td><code>automation-transition</code></td>
-<td>Fixed ε-step transition: purchasing power and fiscal convergence</td>
-</tr>
-<tr>
-<td><code>indust-baseline</code></td>
-<td>Industrial-overshoot snapshot vs. canonical</td>
-</tr>
-<tr>
-<td><code>indust-recovery</code></td>
-<td>Can ecosystem restoration escape the overshoot regime?</td>
-</tr>
-<tr>
-<td><code>guf-integration</code></td>
-<td>Does GUF revenue close a levy deficit at a given ε?</td>
-</tr>
-<tr>
-<td><code>guf-writedown</code></td>
-<td>Ecological collapse → warning → write-down pathways</td>
-</tr>
-<tr>
-<td><code>guf-sweep</code></td>
-<td>Aggregate GUF across the ε arc vs. the Ψ(ε) bell curve</td>
+<td>The register itself</td>
+<td><code>verification_cost</code>, <code>verification_band</code>, <code>register_capture</code></td>
 </tr>
 </tbody>
 </table>
@@ -2034,62 +2022,64 @@
 <hr />
 <h2 id="sensitivity">sensitivity<a class="headerlink" href="#sensitivity" title="Permanent link">&para;</a></h2>
 <p>Parameter and arc sensitivity sweeps.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>fiscal<span class="w"> </span>--param<span class="w"> </span>KEY<span class="w"> </span>--min<span class="w"> </span>V1<span class="w"> </span>--max<span class="w"> </span>V2<span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>arc<span class="w"> </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>csv<span class="p">|</span>json<span class="o">]</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>delta<span class="w"> </span>--epsilon<span class="w"> </span>ε<span class="w"> </span>--delta<span class="w"> </span>Δε
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>fiscal<span class="w"> </span>--parameter<span class="w"> </span>PARAM<span class="w"> </span>--values<span class="w"> </span>V1,V2,...<span class="w"> </span><span class="o">[</span>--epsilon<span class="w"> </span>ε<span class="o">]</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>arc<span class="w"> </span><span class="o">[</span>--start<span class="w"> </span>ε<span class="o">]</span><span class="w"> </span><span class="o">[</span>--end<span class="w"> </span>ε<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>csv<span class="p">|</span>json<span class="o">]</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>delta<span class="w"> </span><span class="o">[</span>--epsilon<span class="w"> </span>ε<span class="o">]</span><span class="w"> </span><span class="o">[</span>--delta<span class="w"> </span>Δε<span class="o">]</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>sensitivity<span class="w"> </span>fiscal<span class="w"> </span>--parameter<span class="w"> </span>dep_rate<span class="w"> </span>--values<span class="w"> </span><span class="m">0</span>.03,0.045,0.06
 </span></code></pre></div>
 <hr />
 <h2 id="guf-land-use-fee-commands">guf — Land Use Fee Commands<a class="headerlink" href="#guf-land-use-fee-commands" title="Permanent link">&para;</a></h2>
 <p>Ground Use Fee calculations. See <a href="../../theory/guf_framework/">GUF Framework</a> for the mathematical specification.</p>
 <h3 id="guf-calculate">guf calculate<a class="headerlink" href="#guf-calculate" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span>--location-value<span class="w"> </span><span class="m">0</span>.629<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>calculate<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span>--use-category<span class="w"> </span>residential_primary<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span>--location-value<span class="w"> </span><span class="m">0</span>.629<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <p>Use categories: <code>residential_primary</code>, <code>residential_secondary</code>, <code>agricultural_active</code>, <code>agricultural_fallow</code>, <code>commercial_retail</code>, <code>commercial_office</code>, <code>industrial_light</code>, <code>industrial_heavy</code>, <code>institutional</code>, <code>conservation</code>.</p>
 <h3 id="guf-trust">guf trust<a class="headerlink" href="#guf-trust" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>trust<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span>--revenues<span class="w"> </span><span class="m">1</span>.5,2.3,0.8<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="o">[</span>--subsidies<span class="w"> </span><span class="m">0</span>.5<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>trust<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span>--revenues<span class="w"> </span><span class="m">1</span>.5,2.3,0.8<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="o">[</span>--subsidies<span class="w"> </span><span class="m">0</span>.5<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <h3 id="guf-writedown">guf writedown<a class="headerlink" href="#guf-writedown" title="Permanent link">&para;</a></h3>
 <p>Compute modified GUF during an ecological write-down event (NLSA Eq. 29).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Restoration pathway (default)</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>writedown<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span>--pathway<span class="w"> </span>restoration<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span>--services-reset-json<span class="w"> </span><span class="s1">'[{"label":"water","volume":0.4,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]'</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># Abandonment pathway</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>writedown<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span>--pathway<span class="w"> </span>abandonment<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span>--services-reset-json<span class="w"> </span><span class="s1">'[{"label":"water","volume":0.2,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]'</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span>--services-lost-json<span class="w"> </span><span class="s1">'[{"label":"biodiversity","volume_lost":5.0,"kappa_ref":0.35,"beta":0.7}]'</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Restoration pathway (default)</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>writedown<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span>--pathway<span class="w"> </span>restoration<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span>--services-reset-json<span class="w"> </span><span class="s1">'[{"label":"water","volume":0.4,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]'</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># Abandonment pathway</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>writedown<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span>--area-slu<span class="w"> </span><span class="m">3</span>.5<span class="w"> </span>--pathway<span class="w"> </span>abandonment<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">    </span>--services-reset-json<span class="w"> </span><span class="s1">'[{"label":"water","volume":0.2,"kappa_ref":1.65,"beta":0.8,"retained":0.3}]'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">    </span>--services-lost-json<span class="w"> </span><span class="s1">'[{"label":"biodiversity","volume_lost":5.0,"kappa_ref":0.35,"beta":0.7}]'</span>
 </span></code></pre></div>
 <p><strong>Services JSON formats:</strong></p>
 <p>Reset services (<code>--services-reset-json</code>):
-<div class="language-json highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="s2">"water"</span><span class="p">,</span><span class="nt">"volume"</span><span class="p">:</span><span class="mf">0.4</span><span class="p">,</span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="mf">1.65</span><span class="p">,</span><span class="nt">"beta"</span><span class="p">:</span><span class="mf">0.8</span><span class="p">,</span><span class="nt">"retained"</span><span class="p">:</span><span class="mf">0.3</span><span class="p">}]</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="s2">"water"</span><span class="p">,</span><span class="nt">"volume"</span><span class="p">:</span><span class="mf">0.4</span><span class="p">,</span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="mf">1.65</span><span class="p">,</span><span class="nt">"beta"</span><span class="p">:</span><span class="mf">0.8</span><span class="p">,</span><span class="nt">"retained"</span><span class="p">:</span><span class="mf">0.3</span><span class="p">}]</span>
 </span></code></pre></div></p>
 <p>Lost services (<code>--services-lost-json</code>):
-<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="s2">"biodiversity"</span><span class="p">,</span><span class="nt">"volume_lost"</span><span class="p">:</span><span class="mf">5.0</span><span class="p">,</span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="mf">0.35</span><span class="p">,</span><span class="nt">"beta"</span><span class="p">:</span><span class="mf">0.7</span><span class="p">}]</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="s2">"biodiversity"</span><span class="p">,</span><span class="nt">"volume_lost"</span><span class="p">:</span><span class="mf">5.0</span><span class="p">,</span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="mf">0.35</span><span class="p">,</span><span class="nt">"beta"</span><span class="p">:</span><span class="mf">0.7</span><span class="p">}]</span>
 </span></code></pre></div></p>
 <p>Options: <code>--pathway restoration|abandonment</code>, <code>--amortization-years N</code> (default 50).</p>
 <h3 id="guf-rebuilding-surcharge">guf rebuilding-surcharge<a class="headerlink" href="#guf-rebuilding-surcharge" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>rebuilding-surcharge<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">    </span>--services-json<span class="w"> </span><span class="s1">'[{"label":"biodiversity","volume_lost":5.0,"kappa_ref":0.35,"beta":0.7}]'</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">    </span><span class="o">[</span>--amortization-years<span class="w"> </span><span class="m">50</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>rebuilding-surcharge<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span>--services-json<span class="w"> </span><span class="s1">'[{"label":"biodiversity","volume_lost":5.0,"kappa_ref":0.35,"beta":0.7}]'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="o">[</span>--amortization-years<span class="w"> </span><span class="m">50</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <h3 id="guf-accumulation-warning">guf accumulation-warning<a class="headerlink" href="#guf-accumulation-warning" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>accumulation-warning<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span>--unfulfilled<span class="w"> </span><span class="m">450000</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span>--total<span class="w"> </span><span class="m">1200000</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="o">[</span>--threshold<span class="w"> </span><span class="m">0</span>.30<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>accumulation-warning<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span>--unfulfilled<span class="w"> </span><span class="m">450000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span>--total<span class="w"> </span><span class="m">1200000</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="o">[</span>--threshold<span class="w"> </span><span class="m">0</span>.30<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <p>Warns when <code>unfulfilled / total &gt; threshold</code> (default 0.30). Triggers accelerated ρ_s review and ecology fund priority.</p>
 <hr />
@@ -2097,49 +2087,49 @@
 <p>Batch GUF operations over a collective's full parcel inventory. Parcel data is provided as a JSON file — a list of objects following the <a href="../../api/land/#collective-land-inventory">standard parcel schema</a>.</p>
 <h4 id="guf-inventory-calculate">guf inventory calculate<a class="headerlink" href="#guf-inventory-calculate" title="Permanent link">&para;</a></h4>
 <p>Compute aggregate GUF for a parcel inventory at a given ε.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>calculate<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="o">[</span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="o">[</span>--median-income<span class="w"> </span><span class="m">350</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>calculate<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="o">[</span>--epsilon<span class="w"> </span><span class="m">0</span>.40<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="o">[</span>--median-income<span class="w"> </span><span class="m">350</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <h4 id="guf-inventory-sweep">guf inventory sweep<a class="headerlink" href="#guf-inventory-sweep" title="Permanent link">&para;</a></h4>
 <p>Sweep aggregate GUF across the ε arc.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>sweep<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.99<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="o">[</span>--steps<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>sweep<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.99<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">    </span><span class="o">[</span>--steps<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <h4 id="guf-inventory-stress">guf inventory stress<a class="headerlink" href="#guf-inventory-stress" title="Permanent link">&para;</a></h4>
 <p>Multi-period automation→levy→GUF stress test.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>stress<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.20<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.80<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">    </span><span class="o">[</span>--periods<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">    </span><span class="o">[</span>--population<span class="w"> </span><span class="m">1000000</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>guf<span class="w"> </span>inventory<span class="w"> </span>stress<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">    </span>--parcels<span class="w"> </span>parcels.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="o">[</span>--epsilon-start<span class="w"> </span><span class="m">0</span>.20<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">    </span><span class="o">[</span>--epsilon-end<span class="w"> </span><span class="m">0</span>.80<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="o">[</span>--periods<span class="w"> </span><span class="m">20</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="o">[</span>--population<span class="w"> </span><span class="m">1000000</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">    </span><span class="o">[</span>--format<span class="w"> </span>table<span class="p">|</span>json<span class="o">]</span>
 </span></code></pre></div>
 <p>Omit <code>--parcels</code> to use the default 1 000-parcel synthetic urban inventory.</p>
 <p><strong>Parcel JSON format</strong> (list of parcel dicts; only the three required fields needed for a minimal inventory):</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="p">[</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">"area_slu"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.5</span><span class="p">,</span><span class="w"> </span><span class="nt">"location_value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.72</span><span class="p">,</span><span class="w"> </span><span class="nt">"use_category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"residential_primary"</span><span class="p">},</span>
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="p">{</span><span class="nt">"area_slu"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span><span class="w"> </span><span class="nt">"location_value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span><span class="w"> </span><span class="nt">"use_category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"commercial_retail"</span><span class="p">,</span>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">   </span><span class="nt">"ecosystem_services"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"water"</span><span class="p">,</span><span class="w"> </span><span class="nt">"volume"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span><span class="w"> </span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.65</span><span class="p">,</span><span class="w"> </span><span class="nt">"beta"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="nt">"retained"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">}]}</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="p">]</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">[</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">"area_slu"</span><span class="p">:</span><span class="w"> </span><span class="mf">3.5</span><span class="p">,</span><span class="w"> </span><span class="nt">"location_value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.72</span><span class="p">,</span><span class="w"> </span><span class="nt">"use_category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"residential_primary"</span><span class="p">},</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span><span class="p">{</span><span class="nt">"area_slu"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span><span class="w"> </span><span class="nt">"location_value"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span><span class="w"> </span><span class="nt">"use_category"</span><span class="p">:</span><span class="w"> </span><span class="s2">"commercial_retail"</span><span class="p">,</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">   </span><span class="nt">"ecosystem_services"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"water"</span><span class="p">,</span><span class="w"> </span><span class="nt">"volume"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.4</span><span class="p">,</span><span class="w"> </span><span class="nt">"kappa_ref"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.65</span><span class="p">,</span><span class="w"> </span><span class="nt">"beta"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.8</span><span class="p">,</span><span class="w"> </span><span class="nt">"retained"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.3</span><span class="p">}]}</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="p">]</span>
 </span></code></pre></div>
 <p>See <a href="../../api/land/#collective-land-inventory">Land — Collective Inventory</a> for the full parcel schema.</p>
 <hr />
 <h2 id="contestability-contestability-invariant-8">contestability — Contestability Invariant (§8)<a class="headerlink" href="#contestability-contestability-invariant-8" title="Permanent link">&para;</a></h2>
 <p>Arc table, stress sweep, derived levy schedule, the §8.9 recalibrated arc,
 and the §8.7e membership-terms audit.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>arc<span class="w">    </span><span class="o">[</span>--regime<span class="w"> </span>increasing_returns<span class="p">|</span>replicable<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>stress<span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>levy<span class="w">   </span><span class="o">[</span>--chi-target<span class="w"> </span><span class="m">1</span>.0<span class="o">]</span><span class="w"> </span><span class="o">[</span>--levy-base<span class="w"> </span>capital_yield<span class="p">|</span>machine_output<span class="o">]</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w">  </span><span class="o">[</span>--regime<span class="w"> </span>...<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--capital-output-ratio<span class="w"> </span><span class="m">4</span>.0<span class="o">]</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w">  </span><span class="o">[</span>--terms-json<span class="w"> </span>PATH<span class="p">|</span>-<span class="o">]</span><span class="w"> </span><span class="o">[</span>inline<span class="w"> </span>flags<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>arc<span class="w">    </span><span class="o">[</span>--regime<span class="w"> </span>increasing_returns<span class="p">|</span>replicable<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>stress<span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>levy<span class="w">   </span><span class="o">[</span>--chi-target<span class="w"> </span><span class="m">1</span>.0<span class="o">]</span><span class="w"> </span><span class="o">[</span>--levy-base<span class="w"> </span>capital_yield<span class="p">|</span>machine_output<span class="o">]</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w">  </span><span class="o">[</span>--regime<span class="w"> </span>...<span class="o">]</span><span class="w"> </span><span class="o">[</span>--points<span class="w"> </span>N<span class="o">]</span><span class="w"> </span><span class="o">[</span>--capital-output-ratio<span class="w"> </span><span class="m">4</span>.0<span class="o">]</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w">  </span><span class="o">[</span>--terms-json<span class="w"> </span>PATH<span class="p">|</span>-<span class="o">]</span><span class="w"> </span><span class="o">[</span>inline<span class="w"> </span>flags<span class="o">]</span>
 </span></code></pre></div>
 <p><code>--levy-base machine_output</code> uses the physically-consistent base
 <code>ε·total_EOH</code> (the pipeline's own measure of automated production) instead of
@@ -2159,15 +2149,15 @@ exit; never fires at canonical defaults, rows marked <code>!</code> when active)
 <code>--estate-escheat</code> sets the baseline capital-estate share (default 0.15 =
 <code>ESTATE_LEVY_FRACTION</code>, the D5 doctrine extended); raise
 <code>--min-viable-population</code> to stress the escalation trigger.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># The doctrine arc (dilution default)</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># §8.9a purchase model for comparison</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>target
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># Force the escalation clause to fire (40× founding cohort)</span>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>escalated<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="w">    </span>--min-viable-population<span class="w"> </span><span class="m">200000</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># The doctrine arc (dilution default)</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># §8.9a purchase model for comparison</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>target
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="c1"># Force the escalation clause to fire (40× founding cohort)</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>recal<span class="w"> </span>--phi-policy<span class="w"> </span>escalated<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">    </span>--min-viable-population<span class="w"> </span><span class="m">200000</span>
 </span></code></pre></div>
 <h3 id="contestability-formation">contestability formation<a class="headerlink" href="#contestability-formation" title="Permanent link">&para;</a></h3>
 <p>The §8.9c formation-feedback simulation: formation is financed or it does
@@ -2178,46 +2168,46 @@ and ε derives from the capital actually formed. <code>--charter-share 0</code> 
 null anchor; <code>--hurdle</code>/<code>--full-supply</code> toward fiat-like returns quantify
 the Condition III finding (zero interest makes the charter affordable:
 s* = 0.50 vs ≈ 0.10 fiat-like).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># The doctrine run (share-first)</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># The crawling counterfactual</span>
-</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--priority<span class="w"> </span>dividend<span class="w"> </span>--years<span class="w"> </span><span class="m">120</span>
-</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
-</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="c1"># The fiat-world counterfactual (dividend driven to zero mid-arc)</span>
-</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--hurdle<span class="w"> </span><span class="m">0</span>.06<span class="w"> </span>--full-supply<span class="w"> </span><span class="m">0</span>.18
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># The doctrine run (share-first)</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># The crawling counterfactual</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--priority<span class="w"> </span>dividend<span class="w"> </span>--years<span class="w"> </span><span class="m">120</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="c1"># The fiat-world counterfactual (dividend driven to zero mid-arc)</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>formation<span class="w"> </span>--hurdle<span class="w"> </span><span class="m">0</span>.06<span class="w"> </span>--full-supply<span class="w"> </span><span class="m">0</span>.18
 </span></code></pre></div>
 <h3 id="contestability-audit">contestability audit<a class="headerlink" href="#contestability-audit" title="Permanent link">&para;</a></h3>
 <p>Checks proposed membership terms against the χ invariant (the code audits the
 contract; it does not legislate it). Terms come from a JSON file, stdin (<code>-</code>),
 or inline flags (<code>--vesting-years</code>, <code>--admission-cost</code>, <code>--exit-notice-years</code>,
 <code>--minimum-hours</code>, <code>--dividend-fraction</code>); inline flags override JSON keys.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Inline: an admission fee at high ε breaches the invariant</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
-</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># From a terms file</span>
-</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--terms-json<span class="w"> </span>terms.json<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4
-</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
-</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="c1"># §8.8 closure flags: same admission fee, but a funded commons finances exit</span>
-</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-26-9"><a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="w">    </span>--commons-balance<span class="w"> </span>1e10<span class="w"> </span>--commons-dividend<span class="w"> </span>--underwriting-policy
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Inline: an admission fee at high ε breaches the invariant</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># From a terms file</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--terms-json<span class="w"> </span>terms.json<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="c1"># §8.8 closure flags: same admission fee, but a funded commons finances exit</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>contestability<span class="w"> </span>audit<span class="w"> </span>--admission-cost<span class="w"> </span><span class="m">800</span><span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.9<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a><span class="w">    </span>--commons-balance<span class="w"> </span>1e10<span class="w"> </span>--commons-dividend<span class="w"> </span>--underwriting-policy
 </span></code></pre></div>
 <p><strong>Terms JSON format</strong> (all fields optional; absent fields keep canonical defaults):</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="p">{</span>
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="w">  </span><span class="nt">"vesting_years"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="w">  </span><span class="nt">"admission_cost_teh"</span><span class="p">:</span><span class="w"> </span><span class="mf">250.0</span><span class="p">,</span>
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="w">  </span><span class="nt">"exit_notice_years"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="w">  </span><span class="nt">"minimum_hours_annual"</span><span class="p">:</span><span class="w"> </span><span class="mf">400.0</span><span class="p">,</span>
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="w">  </span><span class="nt">"dividend_policy_fraction"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span>
-</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="p">}</span>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="p">{</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="nt">"vesting_years"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.0</span><span class="p">,</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">  </span><span class="nt">"admission_cost_teh"</span><span class="p">:</span><span class="w"> </span><span class="mf">250.0</span><span class="p">,</span>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="w">  </span><span class="nt">"exit_notice_years"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="w">  </span><span class="nt">"minimum_hours_annual"</span><span class="p">:</span><span class="w"> </span><span class="mf">400.0</span><span class="p">,</span>
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a><span class="w">  </span><span class="nt">"dividend_policy_fraction"</span><span class="p">:</span><span class="w"> </span><span class="mf">1.0</span>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="p">}</span>
 </span></code></pre></div>
 <hr />
 <h2 id="coasean-collective-federation-67-87">coasean — Collective Federation (§§6–7, §8.7)<a class="headerlink" href="#coasean-collective-federation-67-87" title="Permanent link">&para;</a></h2>
 <p>Research-tier federation mechanics. <code>--format table|json</code> goes before the subcommand.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>n1-check<span class="w">                  </span><span class="c1"># N=1 regression anchor</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>count<span class="w">                     </span><span class="c1"># emergent N(ε) across the arc</span>
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>federation<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4<span class="w">  </span><span class="c1"># per-collective snapshot</span>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w">     </span><span class="c1"># multi-period arc</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>n1-check<span class="w">                  </span><span class="c1"># N=1 regression anchor</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>count<span class="w">                     </span><span class="c1"># emergent N(ε) across the arc</span>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>federation<span class="w"> </span>--epsilon<span class="w"> </span><span class="m">0</span>.4<span class="w">  </span><span class="c1"># per-collective snapshot</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w">     </span><span class="c1"># multi-period arc</span>
 </span></code></pre></div>
 <h3 id="coasean-simulate-flags">coasean simulate flags<a class="headerlink" href="#coasean-simulate-flags" title="Permanent link">&para;</a></h3>
 <table>
@@ -2262,12 +2252,12 @@ or inline flags (<code>--vesting-years</code>, <code>--admission-cost</code>, <c
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># The full two-tier arc: consolidation escheat, tithe, and the χ invariant</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w"> </span>--dynamics<span class="w"> </span>--commons<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.3
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># §8.8 closure: seeded commons + universal dividend → exit financeable across the arc</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">21</span><span class="w"> </span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span>--dynamics<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="w">    </span>--g-priv<span class="w"> </span><span class="m">0</span>.02<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.2<span class="w"> </span>--commons<span class="w"> </span>--commons-dividend<span class="w"> </span>--commons-start<span class="w"> </span><span class="m">1</span>.8e7
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># The full two-tier arc: consolidation escheat, tithe, and the χ invariant</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">10</span><span class="w"> </span>--dynamics<span class="w"> </span>--commons<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.3
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># §8.8 closure: seeded commons + universal dividend → exit financeable across the arc</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>python3<span class="w"> </span>utils/eoh_cli.py<span class="w"> </span>coasean<span class="w"> </span>simulate<span class="w"> </span>--periods<span class="w"> </span><span class="m">21</span><span class="w"> </span>--epsilon-start<span class="w"> </span><span class="m">0</span>.0<span class="w"> </span>--dynamics<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="w">    </span>--g-priv<span class="w"> </span><span class="m">0</span>.02<span class="w"> </span>--levy-rate<span class="w"> </span><span class="m">0</span>.2<span class="w"> </span>--commons<span class="w"> </span>--commons-dividend<span class="w"> </span>--commons-start<span class="w"> </span><span class="m">1</span>.8e7
 </span></code></pre></div>
 
 

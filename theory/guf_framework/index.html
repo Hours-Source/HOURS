@@ -487,6 +487,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../epsilon_arc/" class="md-nav__link">
         
   
@@ -1480,7 +1501,7 @@
 <p>This manual sets forth the complete mathematical framework for calculating Ground Use Fees (GUF) across all stewardship lease categories. The framework codifies the principle that land, as a finite common resource not created by human labor, cannot be priced under the standard Price-Labor Identity. Instead, the GUF represents the annual temporal cost to the collective of granting exclusive use of a parcel to an individual or entity.</p>
 <p>This cost is derived from three physically grounded components: the opportunity value of the land to the community, the ecosystem-service displacement caused by its development, and the infrastructure burden of supporting its use.</p>
 <p>All fees described herein are denominated in Time-Equivalent Hours (TEH) and are subject to the standard constitutional provisions governing temporal currency, including the zero-interest identity (Condition III) and the public auditability mandate.</p>
-<p><strong>Epsilon parameterization.</strong> Every mechanism in this framework is a function of ε, the observed automation level of the civilization. The GUF exhibits a characteristic arc across the ε range: at ε = 0 (subsistence), land use is directly linked to personal EOH fulfillment and the formal fee approaches a minimal flat base. At moderate ε, urbanization, institutional complexity, and demand pressure drive the fee to its peak. At ε = 0.99 (post-scarcity), labor-content costs have collapsed and the fee contracts to a stewardship-only floor. This arc shape — low at the extremes, highest in the middle — is the signature of a mechanism that correctly expresses the transition.</p>
+<p><strong>Epsilon parameterization.</strong> Every mechanism in this framework is a function of ε, the observed automation level of the civilization. The NLSA specification gives the fee a bell-shaped arc: near a flat base at subsistence, peaking at moderate ε, contracting to a stewardship floor at post-scarcity. <strong>The shipped fee does not follow that arc.</strong> Ψ was retired as the default (author sign-off, 2026-08-20 — §4.2), so the fee responds to automation only through what a holding costs — labor content α(ε) in the base fee and replacement cost κ(ε) in the ecosystem term, both falling — and for a given serviced parcel it falls monotonically as ε rises. The low end of the NLSA arc survives in a different form: a remote parcel with no location value pays exactly zero at every ε, because the fee follows the absence of serviced land, not a scaling curve.</p>
 <hr />
 <h1 id="1-the-master-ground-use-fee-equation">1. The Master Ground Use Fee Equation<a class="headerlink" href="#1-the-master-ground-use-fee-equation" title="Permanent link">&para;</a></h1>
 <h2 id="11-general-form">1.1 General Form<a class="headerlink" href="#11-general-form" title="Permanent link">&para;</a></h2>
@@ -1498,12 +1519,26 @@
 <p><strong>Ψ(ε)</strong> = the Epsilon Scaling Function, a global multiplier that shapes the GUF across the automation arc (see Section 4)</p>
 <p><strong>Ω(p)</strong> = the Occupancy Fraction, the share of the year the parcel is under active exclusive use (default 1.0; see Section 2.7)</p>
 <p>The product <code>A(p) × L(p) × U(p,ε) × D(p) × Z(p)</code> constitutes the Base Fee, denominated in TEH per year. The terms E(p,ε) and I(p,ε) are additive surcharges, also in TEH per year.</p>
+<div class="admonition note">
+<p class="admonition-title">The shipped equation adds a per-parcel term</p>
+<p>The code implements Eq. 1 with the Ψ policy made explicit and one term added:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>GUF(p) = max[ floor, (Ψ_b·Base + Ψ_e·E + Ψ_i·I) × Ω(p) + P(ε) ]
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>P(ε)   = parcel_rate × α(ε)
+</span></code></pre></div>
+<ul>
+<li><strong>(Ψ_b, Ψ_e, Ψ_i)</strong> are set by the Ψ policy. Under the default they are all 1 (§4.2); under <code>bell</code> they are all Ψ(ε), which is exactly Eq. 1.</li>
+<li><strong>P(ε)</strong> is a flat charge per parcel, so a collective's total follows its parcel count as well as its area. Less than half of the measured hours of servicing land follow area; much of the rest follows the number of parcels — deeds, assessments, inspections, refuse rounds — which an area-only fee cannot express. Subdividing a hectare therefore costs more, because subdivision genuinely creates that work.</li>
+<li>The rate is measured from the servicing census and is a <strong>lower bound</strong>.</li>
+<li>P sits <strong>outside Ω</strong> (a half-occupied parcel is still one parcel), never carries Ψ (α already carries its ε-response), and applies only where L(p) &gt; 0, so a parcel with no location value still pays exactly zero.</li>
+<li>Setting <code>parcel_rate = 0</code> recovers Eq. 1.</li>
+</ul>
+</div>
 <h2 id="12-dimensional-analysis">1.2 Dimensional Analysis<a class="headerlink" href="#12-dimensional-analysis" title="Permanent link">&para;</a></h2>
 <p>A(p): SLU. L(p): dimensionless. U(p,ε): TEH/(SLU×year). D(p), Z(p): dimensionless (baseline 1.0). E(p,ε), I(p,ε): TEH/year. Ψ(ε): dimensionless. Ω(p): dimensionless (0 to 1).</p>
 <p>Dimensional product: SLU × 1 × (TEH/SLU×year) × 1 × 1 = TEH/year. Full GUF: dimensionless × (TEH/year) × dimensionless = TEH/year. ✓</p>
 <p><img alt="GUF master equation assembly flow" src="../../images/guf_master_equation.svg" /></p>
 <h2 id="13-the-guf-floor">1.3 The GUF Floor<a class="headerlink" href="#13-the-guf-floor" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>GUF(p) = max[GUF_floor(collective), GUF_formula(p)]    (Eq. 2)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>GUF(p) = max[GUF_floor(collective), GUF_formula(p)]    (Eq. 2)
 </span></code></pre></div>
 <p>Each collective defines its own GUF floor. Recommended default: 0.0 TEH/year. Conservation credits that would reduce the fee below the floor are handled separately through Trust disbursements — the GUF is always a non-negative transfer from steward to collective, and rewards for exceptional stewardship are a separate positive transfer from collective to steward.</p>
 <hr />
@@ -1516,7 +1551,7 @@
 </div>
 <h2 id="22-location-value-index-lp">2.2 Location Value Index — L(p)<a class="headerlink" href="#22-location-value-index-lp" title="Permanent link">&para;</a></h2>
 <p>The Location Value Index captures the relative desirability of a parcel's geographic position, independent of structures or improvements.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>L(p) = ω₁C(p) + ω₂T(p) + ω₃S(p) + ω₄N(p)    (Eq. 3)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>L(p) = ω₁C(p) + ω₂T(p) + ω₃S(p) + ω₄N(p)    (Eq. 3)
 </span></code></pre></div>
 <table>
 <thead>
@@ -1547,13 +1582,13 @@
 <p>Regional boards may adjust weights within ±0.10 of the default provided the total remains 1.0.</p>
 <p><img alt="L(p) sub-index weights and composition" src="../../images/guf_lvi_weights.svg" /></p>
 <p><strong>Centrality (C(p)):</strong> Gravity model for multi-center jurisdictions.
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>C(p) = Σ_k Z_k / d(p,k)^γ    (Eq. 4)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>C(p) = Σ_k Z_k / d(p,k)^γ    (Eq. 4)
 </span></code></pre></div>
 Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional.</p>
 <p><strong>Transit Accessibility (T(p)):</strong> Destinations reachable within travel-time thresholds. Standard thresholds: 30 min employment, 20 min education, 15 min healthcare, 20 min commerce.</p>
 <p><strong>Services Density (S(p)):</strong> Essential service points within radius r_s, weighted by category. Healthcare λ=1.5, educational λ=1.3, food retail λ=1.0, general commerce λ=0.8, community facilities λ=0.7.</p>
 <p><strong>Natural Amenity (N(p)):</strong>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>N(p) = Σ_f Q_f × e^(−δ · d(p,f))    (Eq. 8)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>N(p) = Σ_f Q_f × e^(−δ · d(p,f))    (Eq. 8)
 </span></code></pre></div>
 δ = 0.3 km⁻¹ recommended; max influence radius 10 km.</p>
 <div class="admonition warning">
@@ -1562,7 +1597,7 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 </div>
 <h2 id="23-use-category-coefficient-up">2.3 Use Category Coefficient — U(p,ε)<a class="headerlink" href="#23-use-category-coefficient-up" title="Permanent link">&para;</a></h2>
 <p>Reference values calibrated at ε = 0.40, scaled by the labor-content function:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>U(p,ε) = U_ref(p) × α(ε)    (Eq. 9)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>U(p,ε) = U_ref(p) × α(ε)    (Eq. 9)
 </span></code></pre></div>
 <table>
 <thead>
@@ -1631,21 +1666,25 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 </tbody>
 </table>
 <p>The Conservation Overlay carries a negative coefficient. If the credit drives the total below the GUF floor, the fee is clamped at the floor; rewards beyond the floor are disbursed separately from the Trust.</p>
+<div class="admonition note">
+<p class="admonition-title">The shipped rates are a hundred times this table</p>
+<p>The table gives the NLSA reference rates. The code ships each at <strong>a hundred times</strong> these values (<code>GUF_USE_SCALE_FACTOR</code>), a scaling retained from the NLSA template and not yet re-derived. Measured against the census of the work that servicing land actually takes, the realised fee sits close to that census on rural land and well above it on urban land — and part of the urban gap is the fee's single scaling basis rather than its level, which is what the per-parcel term (§1.1) begins to address. The ten use ratios remain an open item.</p>
+</div>
 <h2 id="24-demand-pressure-modifier-dp">2.4 Demand Pressure Modifier — D(p)<a class="headerlink" href="#24-demand-pressure-modifier-dp" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>D(p) = 1 + η × ln(1 + Δ(p))    (Eq. 11)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>D(p) = 1 + η × ln(1 + Δ(p))    (Eq. 11)
 </span></code></pre></div>
 <p>where Δ(p) = (W_demand − W_supply) / W_supply. η = 0.15 residential, 0.25 commercial.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>D(p) ≤ D_max = 1.8    (Eq. 13)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>D(p) ≤ D_max = 1.8    (Eq. 13)
 </span></code></pre></div>
 <p>Logarithmic form ensures diminishing sensitivity. Never drops below 1.0.</p>
 <p><strong>Zone Adjustment Factor Z(p):</strong> Set by Regional Land Board. Default 1.0; permitted range 0.80–1.25. Values outside this range require national oversight approval.</p>
 <h2 id="25-ecosystem-displacement-surcharge-ep">2.5 Ecosystem Displacement Surcharge — E(p,ε)<a class="headerlink" href="#25-ecosystem-displacement-surcharge-ep" title="Permanent link">&para;</a></h2>
 <p>The most philosophically novel component. Derived from the estimated labor-time required to replace natural services:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>E(p,ε) = Σ_s V_s(p) × κ_s(ε) × (1 − ρ_s(p))    (Eq. 14)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>E(p,ε) = Σ_s V_s(p) × κ_s(ε) × (1 − ρ_s(p))    (Eq. 14)
 </span></code></pre></div>
 <p>where V_s(p) is annual natural service volume, κ_s(ε) is labor-time replacement cost, and ρ_s(p) is the retained service fraction.</p>
 <p><strong>κ_s(ε) functional form:</strong>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>κ_s(ε) = κ_s_max × (1 − ε)^(β_s) + κ_s_floor    (Eq. 15)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>κ_s(ε) = κ_s_max × (1 − ε)^(β_s) + κ_s_floor    (Eq. 15)
 </span></code></pre></div></p>
 <table>
 <thead>
@@ -1703,12 +1742,12 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 </table>
 <p>Retained service fractions (ρ_s) are assessed by certified Ecosystem Auditors at each 5-year review cycle. Leaseholders who improve ρ values between cycles see their surcharge decrease at the next review.</p>
 <h2 id="26-infrastructure-proximity-premium-ip">2.6 Infrastructure Proximity Premium — I(p,ε)<a class="headerlink" href="#26-infrastructure-proximity-premium-ip" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>I(p,ε) = Σ_k [H_k(ε_k) / (Y_k × B_k)] × e^(−μ_k · d(p,k)) × χ(p,k)    (Eq. 16)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>I(p,ε) = Σ_k [H_k(ε_k) / (Y_k × B_k)] × e^(−μ_k · d(p,k)) × χ(p,k)    (Eq. 16)
 </span></code></pre></div>
 <p>H_k: total TEH invested in asset k at automation level ε_k. Y_k: design life in years. B_k: beneficiary parcel count. μ_k: distance-decay rate (0.5 km⁻¹ transit, 0.2 km⁻¹ utilities, 0.8 km⁻¹ public spaces).</p>
 <p>Legacy assets built at lower ε retain their original H_k values — the labor was real. Over time, as legacy assets are replaced with lower-TEH-cost infrastructure, aggregate I(p) contracts.</p>
 <h2 id="27-occupancy-fraction-p">2.7 Occupancy Fraction — Ω(p)<a class="headerlink" href="#27-occupancy-fraction-p" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Ω(p) ∈ (0.0, 1.0],  default = 1.0    (Eq. 17)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Ω(p) ∈ (0.0, 1.0],  default = 1.0    (Eq. 17)
 </span></code></pre></div>
 <p>For nearly all parcels Ω = 1.0. Exclusive use is exclusive regardless of physical presence — the collective is excluded year-round. Extension point for time-shared or seasonal parcels.</p>
 <hr />
@@ -1717,14 +1756,31 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <hr />
 <h1 id="4-epsilon-parameterization">4. Epsilon Parameterization<a class="headerlink" href="#4-epsilon-parameterization" title="Permanent link">&para;</a></h1>
 <h2 id="41-the-arc-shape">4.1 The Arc Shape<a class="headerlink" href="#41-the-arc-shape" title="Permanent link">&para;</a></h2>
+<p><strong>The shipped fee (<code>psi_policy="retired"</code>).</strong> Monotone in ε for a given parcel, because both of its cost responses — α(ε) and κ(ε) — fall:</p>
+<ul>
+<li><strong>ε = 0:</strong> Labor content is highest, so a <em>serviced</em> parcel pays about half again its ε = 0.40 fee. A parcel with no location value pays exactly zero at every ε.</li>
+<li><strong>ε = 0.40:</strong> The calibration reference. All three Ψ policies agree exactly here, because Ψ(0.40) = 1 by construction.</li>
+<li><strong>ε = 0.99:</strong> Labor content has collapsed and the fee falls to roughly a tenth of its reference value.</li>
+</ul>
+<p><strong>The NLSA arc (<code>psi_policy="bell"</code>), kept as the published specification:</strong></p>
 <ul>
 <li><strong>ε = 0:</strong> Land possession linked to personal EOH fulfillment. Minimal institutional infrastructure. GUF approaches a flat base.</li>
 <li><strong>ε = 0.30–0.60:</strong> Urbanization intensive. Institutional capacity high. Demand peaks. Infrastructure substantial. GUF at maximum.</li>
 <li><strong>ε = 0.99:</strong> Labor costs collapsed. Infrastructure maintenance automated. Fee falls to stewardship-only floor.</li>
 </ul>
-<p><img alt="Ψ(ε) bell curve across the automation arc" src="../../images/guf_epsilon_arc.svg" /></p>
+<p>The bell was retired because its two ends fail for different reasons: at the high end Ψ repeats α's "labor costs collapse" (one mechanism counted twice), and at the low end it nets a claim about whether a fee can be <em>collected</em> against what a holding <em>costs</em>.</p>
+<p><img alt="Ψ(ε) bell curve across the automation arc — the NLSA form, not the shipped fee" src="../../images/guf_epsilon_arc.svg" /></p>
 <h2 id="42-the-epsilon-scaling-function">4.2 The Epsilon Scaling Function — Ψ(ε)<a class="headerlink" href="#42-the-epsilon-scaling-function" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Ψ(ε) = 4ε^a × (1 − ε)^b + Ψ_floor    (Eq. 18)
+<div class="admonition warning">
+<p class="admonition-title">Retired as the shipped default (author sign-off, 2026-08-20)</p>
+<p>The model runs with Ψ ≡ 1 (<code>psi_policy="retired"</code>). Ψ duplicated α's
+response to falling labour content at the high end — two terms encoding one
+mechanism — and made a category error at the low end. The fee's ε-response
+is carried by α (§4.3). This section is kept as the NLSA specification, and
+<code>psi_policy="bell"</code> still applies it. §4.1 and §4.4 give both the shipped
+and the NLSA behaviour.</p>
+</div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Ψ(ε) = 4ε^a × (1 − ε)^b + Ψ_floor    (Eq. 18)
 </span></code></pre></div>
 <table>
 <thead>
@@ -1752,10 +1808,10 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 </tr>
 </tbody>
 </table>
-<p>This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.40) ≈ 1.06, Ψ(ε=0.99) ≈ 0.03.</p>
+<p>This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.99) ≈ 0.03, and a peak at ε = a/(a+b) = 0.40. With the NLSA's leading coefficient of 4 the peak is ≈ 1.06, which is what the §11 worked example uses. <strong>The code derives that coefficient from a, b and the floor instead (<code>GUF_PSI_NORM</code>), so its peak is exactly 1.00</strong> — the NLSA's 4 claimed to normalize the curve to 1 and did not.</p>
 <h2 id="43-the-labor-content-scaling-function">4.3 The Labor-Content Scaling Function — α(ε)<a class="headerlink" href="#43-the-labor-content-scaling-function" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>α(ε) = (1 − ε)^ζ + α_floor    (Eq. 19)
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>α_normalized(ε) = α(ε) / α(0.40)    (Eq. 20)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>α(ε) = (1 − ε)^ζ + α_floor    (Eq. 19)
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>α_normalized(ε) = α(ε) / α(0.40)    (Eq. 20)
 </span></code></pre></div>
 <p>ζ = 0.8 recommended; α_floor = 0.05. Normalized so α(0.40) = 1.0.</p>
 <h2 id="44-boundary-verification">4.4 Boundary Verification<a class="headerlink" href="#44-boundary-verification" title="Permanent link">&para;</a></h2>
@@ -1763,39 +1819,40 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <thead>
 <tr>
 <th>ε</th>
-<th>Expected GUF Behavior</th>
-<th>Verification Check</th>
+<th>NLSA check (<code>bell</code>)</th>
+<th>Shipped fee (<code>retired</code>)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>0.00</td>
-<td>Near-zero; flat base fee only</td>
 <td>GUF &lt; 0.05 × GUF(ε=0.40)</td>
+<td>A serviced parcel pays <strong>more</strong> than at the reference; a parcel with no location value pays exactly 0</td>
 </tr>
 <tr>
 <td>0.40</td>
-<td>Reference calibration point</td>
 <td>GUF matches published reference rates</td>
+<td>Identical to <code>bell</code> — Ψ(0.40) = 1</td>
 </tr>
 <tr>
 <td>0.90</td>
-<td>Substantially reduced</td>
 <td>GUF &lt; 0.25 × GUF(ε=0.40)</td>
+<td>Under a third of the reference, <strong>not</strong> under a quarter</td>
 </tr>
 <tr>
 <td>0.99</td>
-<td>Near-zero stewardship floor</td>
 <td>GUF &lt; 0.05 × GUF(ε=0.40)</td>
+<td>Roughly a tenth of the reference — <strong>this NLSA condition does not survive</strong>; it is the cost terms falling without Ψ's second discount</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>boundary_verification()</code></p>
+<p>The NLSA conditions that fail under the default are recorded as a consequence of the retirement, not relaxed to pass.</p>
+<p><strong>Tests:</strong> <code>tests/test_land_guf.py</code> pins both §4.4 end conditions under <code>psi_policy="bell"</code>, pins that they do <strong>not</strong> hold under the default (the fee is higher at ε = 0 and lower at ε = 0.90 than at the reference), and pins the exact zero for a parcel with no location value. The shape words in §4.1 and this table ("about half again", "under a third", "roughly a tenth") are pinned as ranges on both the urban archetype and the §11 parcel.</p>
 <hr />
 <h1 id="5-rate-change-constraints-and-transition-protections">5. Rate Change Constraints and Transition Protections<a class="headerlink" href="#5-rate-change-constraints-and-transition-protections" title="Permanent link">&para;</a></h1>
 <h2 id="51-the-review-cycle-cap">5.1 The Review Cycle Cap<a class="headerlink" href="#51-the-review-cycle-cap" title="Permanent link">&para;</a></h2>
 <p>GUF rates are recalculated every 5 years. To prevent displacement through sudden fee increases:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>GUF_applied(t) = min[GUF_formula(t), GUF_applied(t−1) × (1 + φ)]    (Eq. 22)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>GUF_applied(t) = min[GUF_formula(t), GUF_applied(t−1) × (1 + φ)]    (Eq. 22)
 </span></code></pre></div>
 <p>φ = 0.10 (10% per cycle). A 40% true increase takes ~4 cycles (20 years) to fully apply.</p>
 <div class="admonition note">
@@ -1804,9 +1861,9 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 </div>
 <h2 id="52-the-income-linked-subsidy">5.2 The Income-Linked Subsidy<a class="headerlink" href="#52-the-income-linked-subsidy" title="Permanent link">&para;</a></h2>
 <p>For residential primary parcels, effective GUF is modified by income:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>σ(Y) = 0.25                                    if Y &lt; 0.4Ŷ    (Eq. 24a)
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>σ(Y) = 0.25 + 0.75 × [(Y − 0.4Ŷ) / (0.6Ŷ)]  if 0.4Ŷ ≤ Y &lt; Ŷ  (Eq. 24b)
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>σ(Y) = 1.0                                     if Y ≥ Ŷ         (Eq. 24c)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>σ(Y) = 0.25                                    if Y &lt; 0.4Ŷ    (Eq. 24a)
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>σ(Y) = 0.25 + 0.75 × [(Y − 0.4Ŷ) / (0.6Ŷ)]  if 0.4Ŷ ≤ Y &lt; Ŷ  (Eq. 24b)
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>σ(Y) = 1.0                                     if Y ≥ Ŷ         (Eq. 24c)
 </span></code></pre></div>
 <p>Y = annual post-levy income; Ŷ = national median. Leaseholders below 40% of median pay 25% of GUF. Subsidy cost is funded from the Trust's land fund.</p>
 <hr />
@@ -1852,8 +1909,8 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <p><strong>Stewardship Rewards:</strong> Where conservation practices exceed what the GUF credit mechanism covers, the Trust may disburse TEH as a stewardship reward — a separate positive transfer backed by verified ecological EOH fulfillment. Never netted against the GUF in the ledger.</p>
 <hr />
 <h1 id="8-cross-collective-infrastructure">8. Cross-Collective Infrastructure<a class="headerlink" href="#8-cross-collective-infrastructure" title="Permanent link">&para;</a></h1>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>χ(p,k) = 1.0     if asset k is owned by parcel p's collective    (Eq. 25a)
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>χ(p,k) = χ_ext   if asset k is owned by a different collective   (Eq. 25b)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>χ(p,k) = 1.0     if asset k is owned by parcel p's collective    (Eq. 25a)
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>χ(p,k) = χ_ext   if asset k is owned by a different collective   (Eq. 25b)
 </span></code></pre></div>
 <p>χ_ext = 0.3 recommended. The benefiting collective does not bear the maintenance EOH, so the reduced weighting reflects benefit without corresponding obligation.</p>
 <hr />
@@ -1866,15 +1923,15 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <p>The declaration specifies: affected zone (by parcel registry), services lost, restoration assessment (recoverable vs. permanently altered), and causal analysis (attributing contribution drivers).</p>
 <h2 id="93-the-v_s-baseline-reset">9.3 The V_s Baseline Reset<a class="headerlink" href="#93-the-v_s-baseline-reset" title="Permanent link">&para;</a></h2>
 <p><strong>Restoration pathway:</strong> V_s(p) is reset to the <em>restoration target state</em> — service levels the ecosystem is expected to provide once restoration labor is complete. E(p,ε) is calculated against where the ecosystem is going, preventing the paradox of reduced fees in degraded zones.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>V_s_reset(p) = V_s_target(p),  if restoration committed    (Eq. 27)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>V_s_reset(p) = V_s_target(p),  if restoration committed    (Eq. 27)
 </span></code></pre></div>
 <p><strong>Abandonment pathway:</strong> V_s(p) is reset to the degraded baseline (E(p,ε) falls). A <strong>Rebuilding Surcharge</strong> R_b(p,ε) is added for all parcels in the affected zone:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>R_b(p,ε) = Σ_s [V_s_lost(p) × κ_s(ε)] / Y_r    (Eq. 28)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>R_b(p,ε) = Σ_s [V_s_lost(p) × κ_s(ε)] / Y_r    (Eq. 28)
 </span></code></pre></div>
 <p>V_s_lost(p) = pre-collapse minus post-collapse service volumes. Y_r = amortization period (recommended: 50 years). The surcharge is distributed across all affected parcels, weighted by area.</p>
 <p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>rebuilding_surcharge()</code></p>
 <h2 id="94-modified-guf-under-write-down">9.4 Modified GUF Under Write-Down<a class="headerlink" href="#94-modified-guf-under-write-down" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>GUF_wd(p) = Ψ(ε) × [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E_reset(p,ε) + I(p,ε) + R_b(p,ε)] × Ω(p)    (Eq. 29)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>GUF_wd(p) = Ψ(ε) × [A(p)×L(p)×U(p,ε)×D(p)×Z(p) + E_reset(p,ε) + I(p,ε) + R_b(p,ε)] × Ω(p)    (Eq. 29)
 </span></code></pre></div>
 <p>E_reset uses the reset V_s baseline; R_b = 0 under restoration, positive under abandonment. The 10% per-cycle rate cap still applies.</p>
 <p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>ground_use_fee_writedown()</code></p>
@@ -1891,8 +1948,8 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <li><strong>Accelerated ρ_s review</strong> — extraordinary review of retained service fractions for all parcels in the warned zone</li>
 <li><strong>Trust ecology fund priority</strong> — warned zone receives priority allocation for directed stewardship labor</li>
 </ol>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>ratio = unfulfilled_eoh / total_eoh
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>warning = ratio &gt; threshold
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>ratio = unfulfilled_eoh / total_eoh
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>warning = ratio &gt; threshold
 </span></code></pre></div>
 <p><strong>Code:</strong> <code>hours_eoh/land/guf.py</code> → <code>eoh_accumulation_warning()</code></p>
 <p><img alt="Ecological write-down warning and pathways" src="../../images/guf_writedown_pathways.svg" /></p>
@@ -1901,7 +1958,7 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <h2 id="101-zero-income-and-sufficiency-guarantee-parcels">10.1 Zero-Income and Sufficiency Guarantee Parcels<a class="headerlink" href="#101-zero-income-and-sufficiency-guarantee-parcels" title="Permanent link">&para;</a></h2>
 <p>For Sufficiency Guarantee recipients: σ = 0.0, effective GUF = zero. Full formula-derived GUF absorbed by the Trust's sufficiency allocation.</p>
 <h2 id="102-agricultural-soil-health-credit">10.2 Agricultural Soil-Health Credit<a class="headerlink" href="#102-agricultural-soil-health-credit" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>ΔGUF_soil = −c_soil × A(p) × ΔSHI(p)    (Eq. 26)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ΔGUF_soil = −c_soil × A(p) × ΔSHI(p)    (Eq. 26)
 </span></code></pre></div>
 <p>ΔSHI(p) = change in Soil Health Index (organic matter, microbial activity, water retention, nutrient cycling; scaled 0–1). c_soil = 0.05 TEH/SLU per SHI point recommended. Applied before the GUF floor.</p>
 <h2 id="103-transition-era-legacy-parcels">10.3 Transition-Era Legacy Parcels<a class="headerlink" href="#103-transition-era-legacy-parcels" title="Permanent link">&para;</a></h2>
@@ -1909,43 +1966,54 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <hr />
 <h1 id="11-worked-example-residential-parcel-at-040">11. Worked Example: Residential Parcel at ε = 0.40<a class="headerlink" href="#11-worked-example-residential-parcel-at-040" title="Permanent link">&para;</a></h1>
 <p><strong>Parcel:</strong> Mid-density residential, 4.2 km from city center. Area: 3.5 SLU. Use: Residential Primary. Green cover: 35% native landscaping. Nearest transit: 800 m (45,000 TEH cost, 50-yr life, 1,800 parcels). Nearest park: 400 m (8,000 TEH, 75-yr life, 500 parcels). Leaseholder income: 3,200 TEH/yr. National median: 3,500 TEH/yr. Z(p) = 1.0. Ω(p) = 1.0.</p>
+<div class="admonition note">
+<p class="admonition-title">This is the published NLSA example, not the shipped fee</p>
+<p>It is reproduced as the regression anchor and differs from what
+<code>ground_use_fee()</code> computes today in three declared ways:</p>
+<ul>
+<li><strong>Ψ is 1.0 at ε = 0.40, not 1.06</strong> — retired by default (Ψ ≡ 1), and normalized to peak at exactly 1.00 even under <code>bell</code> (§4.2) — so Step 5's bracket is not scaled.</li>
+<li><strong>The use coefficient ships at a hundred times the NLSA rate</strong> (<code>GUF_USE_*</code>, an open item — see <code>record/guf.md</code>), so the base fee is a hundred times Step 2's.</li>
+<li><strong>A per-parcel term is added outside the bracket</strong> (adopted 2026-08-30), which Eq. 1 does not have.</li>
+</ul>
+<p><code>tests/test_land_guf.py</code> asserts the example's components against the code at a zero per-parcel rate, and asserts the shipped fee as the example plus the term, so the differences are demonstrated rather than hidden.</p>
+</div>
 <p><strong>Step 1: Epsilon Scaling Function</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Ψ(0.40) = 4 × 0.40^0.8 × (1 − 0.40)^1.2 + 0.02
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>         = 4 × 0.481 × 0.542 + 0.02
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>         = 1.041 + 0.02 ≈ 1.06
+<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>Ψ(0.40) = 4 × 0.40^0.8 × (1 − 0.40)^1.2 + 0.02
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>         = 4 × 0.481 × 0.542 + 0.02
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>         = 1.041 + 0.02 ≈ 1.06
 </span></code></pre></div>
 <p><strong>Step 2: Base Fee</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>A(p)          = 3.5 SLU
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>L(p)          = 0.35×0.55 + 0.30×0.71 + 0.20×0.68 + 0.15×0.58 = 0.629
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>U(p, 0.40)    = 0.10 × α(0.40) = 0.10 × 1.0 = 0.10 TEH/SLU/yr
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>D(p)          = 1 + 0.15 × ln(1 + 0.15) = 1.021
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>Z(p)          = 1.0
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>Base Fee = 3.5 × 0.629 × 0.10 × 1.021 × 1.0 = 0.225 TEH/yr
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>A(p)          = 3.5 SLU
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>L(p)          = 0.35×0.55 + 0.30×0.71 + 0.20×0.68 + 0.15×0.58 = 0.629
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>U(p, 0.40)    = 0.10 × α(0.40) = 0.10 × 1.0 = 0.10 TEH/SLU/yr
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>D(p)          = 1 + 0.15 × ln(1 + 0.15) = 1.021
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>Z(p)          = 1.0
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>Base Fee = 3.5 × 0.629 × 0.10 × 1.021 × 1.0 = 0.225 TEH/yr
 </span></code></pre></div>
 <p><strong>Step 3: Ecosystem Displacement Surcharge</strong></p>
 <p>Services: water filtration 0.4 ML/yr (κ=1.2, ρ=0.30), carbon 0.15 t/yr (κ=2.5, ρ=0.25), thermal 12 CDD (κ=0.03, ρ=0.20).</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>E(p) = [0.4×1.2×(1−0.30)] + [0.15×2.5×(1−0.25)] + [12×0.03×(1−0.20)]
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>     = 0.336 + 0.281 + 0.288 = 0.905 TEH/yr
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>E(p) = [0.4×1.2×(1−0.30)] + [0.15×2.5×(1−0.25)] + [12×0.03×(1−0.20)]
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>     = 0.336 + 0.281 + 0.288 = 0.905 TEH/yr
 </span></code></pre></div>
 <p><strong>Step 4: Infrastructure Proximity Premium</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>Transit: [45,000 / (50 × 1,800)] × e^(−0.5×0.8) × 1.0 = 0.500 × 0.670 = 0.335
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>Park:    [8,000 / (75 × 500)] × e^(−0.8×0.4) × 1.0  = 0.213 × 0.726 = 0.155
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>I(p) = 0.335 + 0.155 = 0.490 TEH/yr
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>Transit: [45,000 / (50 × 1,800)] × e^(−0.5×0.8) × 1.0 = 0.500 × 0.670 = 0.335
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>Park:    [8,000 / (75 × 500)] × e^(−0.8×0.4) × 1.0  = 0.213 × 0.726 = 0.155
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>I(p) = 0.335 + 0.155 = 0.490 TEH/yr
 </span></code></pre></div>
 <p><strong>Step 5: Total GUF Before Adjustments</strong></p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>GUF_formula = 1.06 × [0.225 + 0.905 + 0.490] × 1.0
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>            = 1.06 × 1.620 = 1.718 TEH/yr
+<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>GUF_formula = 1.06 × [0.225 + 0.905 + 0.490] × 1.0
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>            = 1.06 × 1.620 = 1.718 TEH/yr
 </span></code></pre></div>
 <p><strong>Step 6: Review Cycle Cap</strong></p>
 <p>Previous cycle: 1.52 TEH/yr. Cap: 1.52 × 1.10 = 1.672 TEH/yr. Since 1.718 &gt; 1.672, the cap binds.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>GUF_applied = 1.672 TEH/yr  (excess of 0.046 deferred to next cycle)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>GUF_applied = 1.672 TEH/yr  (excess of 0.046 deferred to next cycle)
 </span></code></pre></div>
 <p><strong>Step 7: Income-Linked Subsidy</strong></p>
 <p>Y = 3,200 TEH. Ŷ = 3,500 TEH. 0.4Ŷ = 1,400. 0.6Ŷ = 2,100.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>σ(3200) = 0.25 + 0.75 × [(3,200 − 1,400) / 2,100] = 0.25 + 0.643 = 0.893
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>GUF_effective = 1.672 × 0.893 = 1.493 TEH/yr
+<div class="language-text highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>σ(3200) = 0.25 + 0.75 × [(3,200 − 1,400) / 2,100] = 0.25 + 0.643 = 0.893
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>GUF_effective = 1.672 × 0.893 = 1.493 TEH/yr
 </span></code></pre></div>
 <p><strong>Result:</strong> The leaseholder pays 1.493 TEH per year (~0.124 TEH/month), approximately 0.5% of annual post-levy income.</p>
 <hr />
@@ -1980,8 +2048,8 @@ Normalized to 0–1 across the jurisdiction. γ = 1.5 metropolitan, 1.2 regional
 <tr>
 <td>Epsilon Shape Parameters</td>
 <td>4.2</td>
-<td>a=0.8, b=1.2, floor=0.02</td>
-<td>Calibrated to local arc trajectory</td>
+<td>Retired (Ψ ≡ 1); NLSA a=0.8, b=1.2, floor=0.02 under <code>psi_policy="bell"</code></td>
+<td>Whether to reinstate a scaling curve, and its shape</td>
 </tr>
 <tr>
 <td>GUF Floor</td>

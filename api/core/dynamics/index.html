@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1057,45 +1078,45 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#deferred_eohaccumulated_deferred-current_eoh-fulfillment_rate-p-float" class="md-nav__link">
+  <a href="#deferred_eohaccumulated_eoh-fulfilled_eoh-float" class="md-nav__link">
     <span class="md-ellipsis">
-      deferred_eoh(accumulated_deferred, current_eoh, fulfillment_rate, p) → float
+      deferred_eoh(accumulated_eoh, fulfilled_eoh) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#eoh_compoundingdeferred_eoh-compounding_rate-years-p-float" class="md-nav__link">
+  <a href="#eoh_compoundingdeferred-asset_type-time_deferred-float" class="md-nav__link">
     <span class="md-ellipsis">
-      eoh_compounding(deferred_eoh, compounding_rate, years, p) → float
+      eoh_compounding(deferred, asset_type, time_deferred, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#compounding_profiledeferred_eoh-years-p-listdict" class="md-nav__link">
+  <a href="#compounding_profileasset_type-deferred-listdict" class="md-nav__link">
     <span class="md-ellipsis">
-      compounding_profile(deferred_eoh, years, p) → list[dict]
+      compounding_profile(asset_type, deferred, …) → list[dict]
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#deferred_eoh_paydowndeferred_eoh-paydown_teh_per_year-epsilon-p-listdict" class="md-nav__link">
+  <a href="#deferred_eoh_paydownregenerative_result-current_deferred-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      deferred_eoh_paydown(deferred_eoh, paydown_teh_per_year, epsilon, p) → list[dict]
+      deferred_eoh_paydown(regenerative_result, current_deferred) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#update_deferred_from_fulfillmentdeferred-fulfilled-p-float" class="md-nav__link">
+  <a href="#update_deferred_from_fulfillmentcurrent_deferred-fulfilled_eoh-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      update_deferred_from_fulfillment(deferred, fulfilled, p) → float
+      update_deferred_from_fulfillment(current_deferred, fulfilled_eoh) → dict
     </span>
   </a>
   
@@ -1117,36 +1138,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#regenerative_offsetlabor_teh-service_type-epsilon-p-dict" class="md-nav__link">
+  <a href="#regenerative_offsetlabor_type-regenerative_hours-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_offset(labor_teh, service_type, epsilon, p) → dict
+      regenerative_offset(labor_type, regenerative_hours, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#regenerative_vs_maintenance_comparisontotal_teh-split_fraction-epsilon-p-dict" class="md-nav__link">
+  <a href="#regenerative_vs_maintenance_comparisonlabor_hours-regen_type-current_eoh_demand-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_vs_maintenance_comparison(total_teh, split_fraction, epsilon, p) → dict
+      regenerative_vs_maintenance_comparison(labor_hours, regen_type, current_eoh_demand, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#eoh_reduction_ratioasset_teh_cost-asset_eoh_eliminated-design_life-p-float" class="md-nav__link">
+  <a href="#eoh_reduction_ratioproduction_cost_eoh-annual_maintenance_eoh-annual_eoh_eliminated-design_life-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      eoh_reduction_ratio(asset_teh_cost, asset_eoh_eliminated, design_life, p) → float
+      eoh_reduction_ratio(production_cost_eoh, annual_maintenance_eoh, annual_eoh_eliminated, design_life, …) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#regenerative_investment_requiredtarget_eoh_reduction-years-epsilon-p-float" class="md-nav__link">
+  <a href="#regenerative_investment_requiredeoh_reduction_target-labor_type-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_investment_required(target_eoh_reduction, years, epsilon, p) → float
+      regenerative_investment_required(eoh_reduction_target, labor_type, epsilon, …) → dict
     </span>
   </a>
   
@@ -1168,27 +1189,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rank_investment_candidatescandidates-epsilon-p-listdict" class="md-nav__link">
+  <a href="#rank_investment_candidatescandidates-epsilon-listdict" class="md-nav__link">
     <span class="md-ellipsis">
-      rank_investment_candidates(candidates, epsilon, p) → list[dict]
+      rank_investment_candidates(candidates, epsilon) → list[dict]
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#optimal_investmentbudget_teh-candidates-epsilon-p-dict" class="md-nav__link">
+  <a href="#optimal_investmentavailable_labor_eoh-candidates-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      optimal_investment(budget_teh, candidates, epsilon, p) → dict
+      optimal_investment(available_labor_eoh, candidates, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#maintenance_strategy_compareasset-strategies-epsilon-p-dict" class="md-nav__link">
+  <a href="#maintenance_strategy_compareasset_type-annual_eoh-teh_value-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      maintenance_strategy_compare(asset, strategies, epsilon, p) → dict
+      maintenance_strategy_compare(asset_type, annual_eoh, teh_value, …) → dict
     </span>
   </a>
   
@@ -1601,45 +1622,45 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#deferred_eohaccumulated_deferred-current_eoh-fulfillment_rate-p-float" class="md-nav__link">
+  <a href="#deferred_eohaccumulated_eoh-fulfilled_eoh-float" class="md-nav__link">
     <span class="md-ellipsis">
-      deferred_eoh(accumulated_deferred, current_eoh, fulfillment_rate, p) → float
+      deferred_eoh(accumulated_eoh, fulfilled_eoh) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#eoh_compoundingdeferred_eoh-compounding_rate-years-p-float" class="md-nav__link">
+  <a href="#eoh_compoundingdeferred-asset_type-time_deferred-float" class="md-nav__link">
     <span class="md-ellipsis">
-      eoh_compounding(deferred_eoh, compounding_rate, years, p) → float
+      eoh_compounding(deferred, asset_type, time_deferred, …) → float
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#compounding_profiledeferred_eoh-years-p-listdict" class="md-nav__link">
+  <a href="#compounding_profileasset_type-deferred-listdict" class="md-nav__link">
     <span class="md-ellipsis">
-      compounding_profile(deferred_eoh, years, p) → list[dict]
+      compounding_profile(asset_type, deferred, …) → list[dict]
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#deferred_eoh_paydowndeferred_eoh-paydown_teh_per_year-epsilon-p-listdict" class="md-nav__link">
+  <a href="#deferred_eoh_paydownregenerative_result-current_deferred-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      deferred_eoh_paydown(deferred_eoh, paydown_teh_per_year, epsilon, p) → list[dict]
+      deferred_eoh_paydown(regenerative_result, current_deferred) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#update_deferred_from_fulfillmentdeferred-fulfilled-p-float" class="md-nav__link">
+  <a href="#update_deferred_from_fulfillmentcurrent_deferred-fulfilled_eoh-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      update_deferred_from_fulfillment(deferred, fulfilled, p) → float
+      update_deferred_from_fulfillment(current_deferred, fulfilled_eoh) → dict
     </span>
   </a>
   
@@ -1661,36 +1682,36 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#regenerative_offsetlabor_teh-service_type-epsilon-p-dict" class="md-nav__link">
+  <a href="#regenerative_offsetlabor_type-regenerative_hours-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_offset(labor_teh, service_type, epsilon, p) → dict
+      regenerative_offset(labor_type, regenerative_hours, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#regenerative_vs_maintenance_comparisontotal_teh-split_fraction-epsilon-p-dict" class="md-nav__link">
+  <a href="#regenerative_vs_maintenance_comparisonlabor_hours-regen_type-current_eoh_demand-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_vs_maintenance_comparison(total_teh, split_fraction, epsilon, p) → dict
+      regenerative_vs_maintenance_comparison(labor_hours, regen_type, current_eoh_demand, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#eoh_reduction_ratioasset_teh_cost-asset_eoh_eliminated-design_life-p-float" class="md-nav__link">
+  <a href="#eoh_reduction_ratioproduction_cost_eoh-annual_maintenance_eoh-annual_eoh_eliminated-design_life-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      eoh_reduction_ratio(asset_teh_cost, asset_eoh_eliminated, design_life, p) → float
+      eoh_reduction_ratio(production_cost_eoh, annual_maintenance_eoh, annual_eoh_eliminated, design_life, …) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#regenerative_investment_requiredtarget_eoh_reduction-years-epsilon-p-float" class="md-nav__link">
+  <a href="#regenerative_investment_requiredeoh_reduction_target-labor_type-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      regenerative_investment_required(target_eoh_reduction, years, epsilon, p) → float
+      regenerative_investment_required(eoh_reduction_target, labor_type, epsilon, …) → dict
     </span>
   </a>
   
@@ -1712,27 +1733,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rank_investment_candidatescandidates-epsilon-p-listdict" class="md-nav__link">
+  <a href="#rank_investment_candidatescandidates-epsilon-listdict" class="md-nav__link">
     <span class="md-ellipsis">
-      rank_investment_candidates(candidates, epsilon, p) → list[dict]
+      rank_investment_candidates(candidates, epsilon) → list[dict]
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#optimal_investmentbudget_teh-candidates-epsilon-p-dict" class="md-nav__link">
+  <a href="#optimal_investmentavailable_labor_eoh-candidates-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      optimal_investment(budget_teh, candidates, epsilon, p) → dict
+      optimal_investment(available_labor_eoh, candidates, epsilon) → dict
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#maintenance_strategy_compareasset-strategies-epsilon-p-dict" class="md-nav__link">
+  <a href="#maintenance_strategy_compareasset_type-annual_eoh-teh_value-dict" class="md-nav__link">
     <span class="md-ellipsis">
-      maintenance_strategy_compare(asset, strategies, epsilon, p) → dict
+      maintenance_strategy_compare(asset_type, annual_eoh, teh_value, …) → dict
     </span>
   </a>
   
@@ -1766,46 +1787,50 @@
 <p>Time-evolution of EOH obligations: compounding from deferred maintenance, regenerative labor offsets, investment ranking, and paydown schedules.</p>
 <hr />
 <h2 id="deferred-maintenance">Deferred Maintenance<a class="headerlink" href="#deferred-maintenance" title="Permanent link">&para;</a></h2>
-<h3 id="deferred_eohaccumulated_deferred-current_eoh-fulfillment_rate-p-float"><code>deferred_eoh(accumulated_deferred, current_eoh, fulfillment_rate, p)</code> → <code>float</code><a class="headerlink" href="#deferred_eohaccumulated_deferred-current_eoh-fulfillment_rate-p-float" title="Permanent link">&para;</a></h3>
-<p>Net change in deferred EOH over a period: <code>current_eoh × (1 − fulfillment_rate)</code> minus decay from previous deferrals.</p>
-<h3 id="eoh_compoundingdeferred_eoh-compounding_rate-years-p-float"><code>eoh_compounding(deferred_eoh, compounding_rate, years, p)</code> → <code>float</code><a class="headerlink" href="#eoh_compoundingdeferred_eoh-compounding_rate-years-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="deferred_eohaccumulated_eoh-fulfilled_eoh-float"><code>deferred_eoh(accumulated_eoh, fulfilled_eoh)</code> → <code>float</code><a class="headerlink" href="#deferred_eohaccumulated_eoh-fulfilled_eoh-float" title="Permanent link">&para;</a></h3>
+<p>The maintenance deficit: accumulated EOH obligation minus what was fulfilled.</p>
+<h3 id="eoh_compoundingdeferred-asset_type-time_deferred-float"><code>eoh_compounding(deferred, asset_type, time_deferred, …)</code> → <code>float</code><a class="headerlink" href="#eoh_compoundingdeferred-asset_type-time_deferred-float" title="Permanent link">&para;</a></h3>
 <p>Models non-linear compounding of deferred EOH. A neglected roof does not need five years of routine maintenance — it needs replacement. Behavior is discontinuous, not smooth like monetary interest.</p>
 <div class="admonition important">
 <p class="admonition-title">Not interest</p>
 <p>EOH compounding is physics, not a social convention. It generates obligation without creating TEH. No party benefits from the compounding; all parties pay through degraded systems.</p>
 </div>
-<h3 id="compounding_profiledeferred_eoh-years-p-listdict"><code>compounding_profile(deferred_eoh, years, p)</code> → <code>list[dict]</code><a class="headerlink" href="#compounding_profiledeferred_eoh-years-p-listdict" title="Permanent link">&para;</a></h3>
+<h3 id="compounding_profileasset_type-deferred-listdict"><code>compounding_profile(asset_type, deferred, …)</code> → <code>list[dict]</code><a class="headerlink" href="#compounding_profileasset_type-deferred-listdict" title="Permanent link">&para;</a></h3>
 <p>Projects deferred EOH accumulation over a period.</p>
-<h3 id="deferred_eoh_paydowndeferred_eoh-paydown_teh_per_year-epsilon-p-listdict"><code>deferred_eoh_paydown(deferred_eoh, paydown_teh_per_year, epsilon, p)</code> → <code>list[dict]</code><a class="headerlink" href="#deferred_eoh_paydowndeferred_eoh-paydown_teh_per_year-epsilon-p-listdict" title="Permanent link">&para;</a></h3>
-<p>Models the paydown trajectory given a sustained fulfillment investment.</p>
-<h3 id="update_deferred_from_fulfillmentdeferred-fulfilled-p-float"><code>update_deferred_from_fulfillment(deferred, fulfilled, p)</code> → <code>float</code><a class="headerlink" href="#update_deferred_from_fulfillmentdeferred-fulfilled-p-float" title="Permanent link">&para;</a></h3>
+<h3 id="deferred_eoh_paydownregenerative_result-current_deferred-dict"><code>deferred_eoh_paydown(regenerative_result, current_deferred)</code> → <code>dict</code><a class="headerlink" href="#deferred_eoh_paydownregenerative_result-current_deferred-dict" title="Permanent link">&para;</a></h3>
+<p>Retires accumulated deferred EOH through regenerative labour, from a <code>regenerative_offset()</code> result.</p>
+<h3 id="update_deferred_from_fulfillmentcurrent_deferred-fulfilled_eoh-dict"><code>update_deferred_from_fulfillment(current_deferred, fulfilled_eoh)</code> → <code>dict</code><a class="headerlink" href="#update_deferred_from_fulfillmentcurrent_deferred-fulfilled_eoh-dict" title="Permanent link">&para;</a></h3>
 <p>Updates the deferred balance after a fulfillment event.</p>
 <hr />
 <h2 id="regenerative-labor">Regenerative Labor<a class="headerlink" href="#regenerative-labor" title="Permanent link">&para;</a></h2>
-<h3 id="regenerative_offsetlabor_teh-service_type-epsilon-p-dict"><code>regenerative_offset(labor_teh, service_type, epsilon, p)</code> → <code>dict</code><a class="headerlink" href="#regenerative_offsetlabor_teh-service_type-epsilon-p-dict" title="Permanent link">&para;</a></h3>
+<h3 id="regenerative_offsetlabor_type-regenerative_hours-epsilon-dict"><code>regenerative_offset(labor_type, regenerative_hours, epsilon)</code> → <code>dict</code><a class="headerlink" href="#regenerative_offsetlabor_type-regenerative_hours-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Quantifies the future EOH reduction from regenerative labor (soil enrichment, preventive maintenance) versus maintenance labor (current EOH fulfillment).</p>
-<h3 id="regenerative_vs_maintenance_comparisontotal_teh-split_fraction-epsilon-p-dict"><code>regenerative_vs_maintenance_comparison(total_teh, split_fraction, epsilon, p)</code> → <code>dict</code><a class="headerlink" href="#regenerative_vs_maintenance_comparisontotal_teh-split_fraction-epsilon-p-dict" title="Permanent link">&para;</a></h3>
+<h3 id="regenerative_vs_maintenance_comparisonlabor_hours-regen_type-current_eoh_demand-epsilon-dict"><code>regenerative_vs_maintenance_comparison(labor_hours, regen_type, current_eoh_demand, epsilon)</code> → <code>dict</code><a class="headerlink" href="#regenerative_vs_maintenance_comparisonlabor_hours-regen_type-current_eoh_demand-epsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Compares outcomes of allocating labor to regenerative vs. maintenance work over a planning horizon.</p>
-<h3 id="eoh_reduction_ratioasset_teh_cost-asset_eoh_eliminated-design_life-p-float"><code>eoh_reduction_ratio(asset_teh_cost, asset_eoh_eliminated, design_life, p)</code> → <code>float</code><a class="headerlink" href="#eoh_reduction_ratioasset_teh_cost-asset_eoh_eliminated-design_life-p-float" title="Permanent link">&para;</a></h3>
-<p>Ratio of EOH eliminated to EOH generated (maintenance burden) for a proposed investment. Values &gt; 1.0 indicate a net EOH reduction — the case for building.</p>
-<h3 id="regenerative_investment_requiredtarget_eoh_reduction-years-epsilon-p-float"><code>regenerative_investment_required(target_eoh_reduction, years, epsilon, p)</code> → <code>float</code><a class="headerlink" href="#regenerative_investment_requiredtarget_eoh_reduction-years-epsilon-p-float" title="Permanent link">&para;</a></h3>
-<p>TEH investment required to achieve a target future EOH reduction through regenerative labor.</p>
+<h3 id="eoh_reduction_ratioproduction_cost_eoh-annual_maintenance_eoh-annual_eoh_eliminated-design_life-dict"><code>eoh_reduction_ratio(production_cost_eoh, annual_maintenance_eoh, annual_eoh_eliminated, design_life, …)</code> → <code>dict</code><a class="headerlink" href="#eoh_reduction_ratioproduction_cost_eoh-annual_maintenance_eoh-annual_eoh_eliminated-design_life-dict" title="Permanent link">&para;</a></h3>
+<p>Ratio of EOH eliminated to EOH generated (maintenance burden) for a proposed investment. Values &gt; 1.0 indicate a net EOH reduction — the case for building. Research-only: not wired into the dashboard or simulation.</p>
+<h3 id="regenerative_investment_requiredeoh_reduction_target-labor_type-epsilon-dict"><code>regenerative_investment_required(eoh_reduction_target, labor_type, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#regenerative_investment_requiredeoh_reduction_target-labor_type-epsilon-dict" title="Permanent link">&para;</a></h3>
+<p>Annual labour hours needed to achieve a target future EOH reduction rate through regenerative labour.</p>
 <hr />
 <h2 id="investment-ranking">Investment Ranking<a class="headerlink" href="#investment-ranking" title="Permanent link">&para;</a></h2>
-<h3 id="rank_investment_candidatescandidates-epsilon-p-listdict"><code>rank_investment_candidates(candidates, epsilon, p)</code> → <code>list[dict]</code><a class="headerlink" href="#rank_investment_candidatescandidates-epsilon-p-listdict" title="Permanent link">&para;</a></h3>
+<p>These three are research-only tools — not wired into the dashboard or simulation.</p>
+<h3 id="rank_investment_candidatescandidates-epsilon-listdict"><code>rank_investment_candidates(candidates, epsilon)</code> → <code>list[dict]</code><a class="headerlink" href="#rank_investment_candidatescandidates-epsilon-listdict" title="Permanent link">&para;</a></h3>
 <p>Ranks infrastructure investment candidates by their EOH reduction ratio. Highest-leverage investments first.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.eoh_dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">rank_investment_candidates</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"water treatment"</span><span class="p">,</span> <span class="s2">"teh_cost"</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span> <span class="s2">"eoh_eliminated"</span><span class="p">:</span> <span class="mi">80000</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">40</span><span class="p">},</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"road resurfacing"</span><span class="p">,</span> <span class="s2">"teh_cost"</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span> <span class="s2">"eoh_eliminated"</span><span class="p">:</span> <span class="mi">5000</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">]</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">ranked</span> <span class="o">=</span> <span class="n">rank_investment_candidates</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"water treatment"</span><span class="p">,</span> <span class="s2">"production_cost_eoh"</span><span class="p">:</span> <span class="mi">50_000</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>     <span class="s2">"annual_maintenance_eoh"</span><span class="p">:</span> <span class="mi">1_000</span><span class="p">,</span> <span class="s2">"annual_eoh_eliminated"</span><span class="p">:</span> <span class="mi">8_000</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">40</span><span class="p">},</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"road resurfacing"</span><span class="p">,</span> <span class="s2">"production_cost_eoh"</span><span class="p">:</span> <span class="mi">10_000</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>     <span class="s2">"annual_maintenance_eoh"</span><span class="p">:</span> <span class="mi">400</span><span class="p">,</span> <span class="s2">"annual_eoh_eliminated"</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span> <span class="s2">"design_life"</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">]</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">ranked</span> <span class="o">=</span> <span class="n">rank_investment_candidates</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.40</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nb">print</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ranked</span><span class="p">])</span>   <span class="c1"># highest net EOH reduction first</span>
 </span></code></pre></div>
-<h3 id="optimal_investmentbudget_teh-candidates-epsilon-p-dict"><code>optimal_investment(budget_teh, candidates, epsilon, p)</code> → <code>dict</code><a class="headerlink" href="#optimal_investmentbudget_teh-candidates-epsilon-p-dict" title="Permanent link">&para;</a></h3>
-<p>Selects the optimal set of investments within a TEH budget to maximize EOH reduction.</p>
-<h3 id="maintenance_strategy_compareasset-strategies-epsilon-p-dict"><code>maintenance_strategy_compare(asset, strategies, epsilon, p)</code> → <code>dict</code><a class="headerlink" href="#maintenance_strategy_compareasset-strategies-epsilon-p-dict" title="Permanent link">&para;</a></h3>
-<p>Compares maintenance strategies (preventive vs. reactive vs. deferred) over a planning horizon in TEH cost and EOH outcome.</p>
+<h3 id="optimal_investmentavailable_labor_eoh-candidates-epsilon-dict"><code>optimal_investment(available_labor_eoh, candidates, epsilon)</code> → <code>dict</code><a class="headerlink" href="#optimal_investmentavailable_labor_eoh-candidates-epsilon-dict" title="Permanent link">&para;</a></h3>
+<p>Allocates a labour budget (<code>available_labor_eoh</code>, h/yr) across candidates to maximise EOH reduction.</p>
+<h3 id="maintenance_strategy_compareasset_type-annual_eoh-teh_value-dict"><code>maintenance_strategy_compare(asset_type, annual_eoh, teh_value, …)</code> → <code>dict</code><a class="headerlink" href="#maintenance_strategy_compareasset_type-annual_eoh-teh_value-dict" title="Permanent link">&para;</a></h3>
+<p>Compares the total human-labour EOH cost of three strategies over a horizon — continuous maintenance, deferral to write-down, and replacement at write-down — and names the cheapest.</p>
 
 
 

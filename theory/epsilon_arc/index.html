@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://wiki.hoursframework.org/theory/epsilon_arc/">
       
       
-        <link rel="prev" href="../prior_art/">
+        <link rel="prev" href="../anchor_comparison/">
       
       
         <link rel="next" href="../four_domains/">
@@ -471,6 +471,27 @@
   
   <span class="md-ellipsis">
     Prior Art and Limitations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
   </span>
   
 
@@ -1561,7 +1582,7 @@
 
 
 <h1 id="the-arc">The ε Arc<a class="headerlink" href="#the-arc" title="Permanent link">&para;</a></h1>
-<p>The framework's primary object is the transition itself — not any particular point on it, but the continuous arc from ε = 0 to ε = 1. This transition is not a policy choice, a historical stage, or a development theory. It is a physical consequence of how entropy obligations get fulfilled. As machines take over more of the work that entropy demands, human labor is progressively liberated. The transition describes that liberation quantitatively.</p>
+<p>The framework's primary object is the transition itself — not any particular point on it, but the continuous arc from ε = 0 toward its limit at ε = 1. This transition is not a policy choice, a historical stage, or a development theory. The framework models it as a consequence of how entropy obligations get fulfilled. As machines take over more of the work that entropy demands, human labor is progressively liberated. The transition describes that liberation quantitatively.</p>
 <p><img alt="Automation Arc" src="../../images/automation_arc.svg" /></p>
 <hr />
 <h2 id="what-changes-with">What Changes with ε<a class="headerlink" href="#what-changes-with" title="Permanent link">&para;</a></h2>
@@ -1576,28 +1597,34 @@
 </thead>
 <tbody>
 <tr>
-<td>Human share of EOH fulfillment</td>
-<td>100%</td>
-<td>60%</td>
-<td>1%</td>
+<td>Machine capability (the input)</td>
+<td>none</td>
+<td>the calibration reference</td>
+<td>near its maximum</td>
+</tr>
+<tr>
+<td>Human share of the obligation (observed)</td>
+<td>all of it</td>
+<td>more than the 60% the index implies</td>
+<td><strong>well above 1%</strong> — care resists automation</td>
 </tr>
 <tr>
 <td>Personal EOH on collective ledger</td>
-<td>~0%</td>
-<td>~14%</td>
-<td>~87%</td>
+<td>almost none</td>
+<td>a small share</td>
+<td>most of it</td>
 </tr>
 <tr>
-<td>TEH prices (relative to ε=0)</td>
+<td>Floor prices (relative to ε=0)</td>
 <td>1.0×</td>
-<td>~0.72×</td>
-<td>~0.11×</td>
+<td>lower</td>
+<td>a small fraction</td>
 </tr>
 <tr>
 <td>Care registration share</td>
-<td>~5%</td>
+<td>low</td>
 <td>rising</td>
-<td>~95%</td>
+<td>nearly full</td>
 </tr>
 <tr>
 <td>Source of TEH destruction</td>
@@ -1607,7 +1634,10 @@
 </tr>
 </tbody>
 </table>
-<p>These are illustrative numbers, not hard limits.</p>
+<p>These are shapes, not figures. Run <code>eoh arc</code> for the live values, and read
+<strong>observable ε</strong> — the machine share the ledger records — separately from the
+capability index: they diverge because personal components keep automation
+floors, so observable ε does not reach 1.</p>
 <hr />
 <h2 id="what-does-not-change-with">What Does Not Change with ε<a class="headerlink" href="#what-does-not-change-with" title="Permanent link">&para;</a></h2>
 <p>The physical reality of entropy. Personal bodies still need food, water, shelter, and care regardless of how automated the production systems are. Infrastructure still degrades. Ecological systems still require stewardship. Knowledge still atrophies. The <a href="../four_domains/">four entropy domains</a> are invariant. What changes is who — or what — fulfills the obligations they generate.</p>
@@ -1622,7 +1652,7 @@
 <p>Any mechanism that only works at ε = 0.40 (the current calibration reference) is calibrated for a moment, not for the arc. The test is whether it produces physically grounded results at both extremes.</p>
 </div>
 <p><strong>At ε = 0:</strong> The ledger sees almost no registered activity — most personal EOH is private, most production is household-scale, and TEH barely circulates. The framework must remain well-defined in this regime, not merely degrade gracefully to it.</p>
-<p><strong>At ε = 0.99:</strong> Prices have collapsed, human labor is near-zero, and TEH destruction approaches zero despite full real consumption. The ledger must remain solvent, the floor must still rise, and the account identity must still hold.</p>
+<p><strong>At ε = 0.99:</strong> Floor prices have collapsed, human labor is a small share of the obligation — small, not zero, because care resists automation — and TEH destruction approaches zero despite full real consumption. The ledger must remain solvent, the floor must still rise, and the account identity must still hold.</p>
 <hr />
 <h2 id="d3s-shape-as-the-signature-of-the-transition">D3's Shape as the Signature of the Transition<a class="headerlink" href="#d3s-shape-as-the-signature-of-the-transition" title="Permanent link">&para;</a></h2>
 <p>Terminal TEH destruction (D3) rises as ε grows — more personal EOH moves onto the collective ledger, more goods are priced and consumed within the system. Then it falls as basket prices collapse faster than registration grows. That rise-then-fall arc is what a mechanism that correctly expresses the transition looks like.</p>
@@ -1632,7 +1662,7 @@
 <p><strong>ε = 0 — Subsistence:</strong> Nearly all labor is personal EOH fulfillment, most of it internal to the household and unregistered by the collective ledger. The formal monetary economy is small. Personal EOH on-ledger is near-zero. Focus: building infrastructure that begins reducing personal EOH burden and expanding the scope of collectively registered labor.</p>
 <p><strong>ε = 0.40 — Current equilibrium:</strong> Production has substantially reduced personal EOH. A growing capital stock generates increasing infrastructure and ecological EOH. Production and stewardship labor are well-established in the collective ledger. Focus: scaling production, beginning the shift toward stewardship capacity, and progressively admitting care labor to the ledger as the collective's stake in human capital formation rises.</p>
 <p><strong>ε = 0.90 — Near-post-scarcity:</strong> Automation handles most production and much stewardship. Personal EOH in human-labor terms is low. Care labor is broadly registered and compensated. Focus: maintaining distributed competency, sustaining ecological systems, and fully recognizing care as the economy's core function.</p>
-<p><strong>ε = 0.99 — Effective post-scarcity:</strong> Remaining human labor is almost entirely care, judgment, and knowledge maintenance — all registered, all compensated. Prices have collapsed. TEH supply contracts on both creation and destruction sides simultaneously. Focus: ensuring the floor rises with automation, sustaining the knowledge EOH domain, and preserving the human capacity to intervene when automated systems fail.</p>
+<p><strong>ε = 0.99 — Effective post-scarcity:</strong> Remaining human labor is almost entirely care, judgment, and knowledge maintenance — all registered, all compensated. Floor prices have collapsed. TEH supply contracts on both creation and destruction sides simultaneously. Focus: ensuring the floor rises with automation, sustaining the knowledge EOH domain, and preserving the human capacity to intervene when automated systems fail.</p>
 <hr />
 <p><em>See also: <a href="../three_economies/">Three Economies</a> — how the center of economic gravity moves along this arc.</em></p>
 

@@ -482,6 +482,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -1682,7 +1703,7 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 </span></code></pre></div>
 <p>Verify the environment:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">    </span><span class="c1"># 1040 tests should pass</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w">    </span><span class="c1"># the whole suite should pass (1 skip is expected)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>mypy<span class="w"> </span>hours_eoh/
 </span></code></pre></div>
 <p>Requires Python ≥ 3.10.</p>
@@ -1710,27 +1731,37 @@
 </tr>
 <tr>
 <td><code>scenarios/</code></td>
-<td><code>core/</code></td>
-<td><code>land/</code>, <code>research/</code></td>
+<td><code>core/</code>, <code>land/</code></td>
+<td><code>research/</code></td>
+</tr>
+<tr>
+<td><code>reference/</code></td>
+<td>nothing from the package — pure data</td>
+<td>everything; any layer may import it</td>
 </tr>
 <tr>
 <td><code>research/</code></td>
 <td><code>core/</code> (re-exports only)</td>
 <td><code>scenarios/</code>, <code>land/</code></td>
 </tr>
+<tr>
+<td><code>utils/</code></td>
+<td>any layer</td>
+<td>— (no layer imports <code>utils/</code>)</td>
+</tr>
 </tbody>
 </table>
-<p>New scenario code goes in <code>scenarios/</code>. <code>core/stress.py</code> is a backward-compat shim — do not add to it.</p>
+<p>New scenario code goes in <code>scenarios/</code>. The former <code>core/stress.py</code> was removed — do not recreate it.</p>
 <hr />
 <h2 id="writing-new-functions">Writing New Functions<a class="headerlink" href="#writing-new-functions" title="Permanent link">&para;</a></h2>
 <h3 id="eoh-generation-functions">EOH generation functions<a class="headerlink" href="#eoh-generation-functions" title="Permanent link">&para;</a></h3>
 <p>Take <strong>physical state</strong> as primary inputs: <code>capital_stock</code>, <code>ecosystem_health</code>, <code>population_age_distribution</code>, <code>knowledge_base_size</code>, <code>monitoring_capability</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_eoh_function</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">capital_stock</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">ecosystem_health</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="c1"># ...</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># optional backward compat only</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">p</span><span class="p">:</span> <span class="n">EohParams</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># template</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_eoh_function</span><span class="p">(</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">capital_stock</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">ecosystem_health</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="c1"># ...</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">epsilon</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># optional backward compat only</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span></code></pre></div>
 <p>When <code>epsilon</code> is provided for backward compat, use <code>canonical_physical_state(epsilon)</code> to derive the physical state. Do not use ε as a proxy for unspecified physical assumptions in new code.</p>
@@ -1762,8 +1793,8 @@
 <ul>
 <li>No comments explaining <em>what</em> code does — well-named identifiers do that.</li>
 <li>Add a comment only when the <em>why</em> is non-obvious: a hidden constraint, a physical invariant, a specific mission statement reference.</li>
-<li>No docstrings longer than one short line.</li>
-<li><code>mypy --strict</code> must pass cleanly.</li>
+<li>Docstrings follow the house form: a one-line summary, then the physical rationale, <code>Args</code>, <code>Returns</code> and the Mission Statement reference.</li>
+<li><code>python3 -m mypy hours_eoh/</code> must pass cleanly under the repo's configuration (it is not <code>--strict</code>).</li>
 <li>No anonymous constants. If you add a calibrated number, it goes in <code>data.py</code> first.</li>
 </ul>
 <hr />

@@ -484,6 +484,27 @@
   
   
     <li class="md-nav__item">
+      <a href="../theory/anchor_comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    What Anchors a Unit of Account
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../theory/epsilon_arc/" class="md-nav__link">
         
   
@@ -3231,6 +3252,111 @@ the evidence band, on the asymmetric-loss argument below. Still <code>CHOSEN</co
 <td>the INSTITUTIONAL population. ATUS covers households only, so the institutionalised elderly — who need the most care — are outside the frame entirely, and 1.48 is a lower bound for the elderly population as a whole. CMS Payroll-Based Journal reports nurse staffing hours per resident-day for every certified US nursing home and would close it. Recipient-side ACTIVITY monitoring would NOT: datasets of that class (TIHM was checked) record the monitored person's own movement and physiology rather than anyone's care hours, and are home-based cohorts, so they re-measure the population ATUS already covers.<br>measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025 denominators (scenario run care_curve), replacing a shipped 2.5 that was asserted. Bound to the measurement by test rather than by expression — data.py sits below reference/ and cannot import it — so test_the_elderly_weight_was_adopted_from_this_measurement fails if either side moves alone. Tier B, not A: a large national survey, but with a named systematic exclusion, below.</td>
 </tr>
 <tr>
+<td><code>AGE_CARE_SHARE_INFANT</code></td>
+<td>1.0</td>
+<td>dimensionless care share of a band's obligation</td>
+<td>measured<br>form: care_minutes / (self_minutes + care_minutes) per band, ATUS 2021-2025, computed live by <code>scenarios.care_curve.implied_weights()</code> and pinned here by <code>tests/test_care_keys.py</code> — bound by TEST because <code>data.py</code> is the base layer and cannot import a scenario (failure mode 4's stated remedy).</td>
+<td><strong>errs</strong> LOW for the elderly share — 30.5 min/day is a mean over 35 years of age and EXCLUDES the institutional population by construction, which is where the terminal-window load concentrates. The two ATUS routes for this figure disagree 7.1x (<code>care_demand.elderly_route_disagreement</code>), unreconciled.<br>WHY THE SPLIT EXISTS. <code>eoh_weight</code> was ONE scalar per band carrying two obligations that move on entirely different drivers — dependant care tracks FERTILITY and household composition, frailty care tracks LONGEVITY and morbidity. Bundled, neither could be measured against its own source, and ELDERLY_EOH_EPSILON_FACTOR asserted a single answer for both at once.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_SHARE_CHILD</code></td>
+<td>0.887261</td>
+<td>dimensionless care share of a band's obligation</td>
+<td>measured<br>form: care_minutes / (self_minutes + care_minutes) per band, ATUS 2021-2025, computed live by <code>scenarios.care_curve.implied_weights()</code> and pinned here by <code>tests/test_care_keys.py</code> — bound by TEST because <code>data.py</code> is the base layer and cannot import a scenario (failure mode 4's stated remedy).</td>
+<td><strong>errs</strong> LOW for the elderly share — 30.5 min/day is a mean over 35 years of age and EXCLUDES the institutional population by construction, which is where the terminal-window load concentrates. The two ATUS routes for this figure disagree 7.1x (<code>care_demand.elderly_route_disagreement</code>), unreconciled.<br>WHY THE SPLIT EXISTS. <code>eoh_weight</code> was ONE scalar per band carrying two obligations that move on entirely different drivers — dependant care tracks FERTILITY and household composition, frailty care tracks LONGEVITY and morbidity. Bundled, neither could be measured against its own source, and ELDERLY_EOH_EPSILON_FACTOR asserted a single answer for both at once.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_SHARE_WORKING_AGE</code></td>
+<td>0.043861</td>
+<td>dimensionless care share of a band's obligation</td>
+<td>measured<br>form: care_minutes / (self_minutes + care_minutes) per band, ATUS 2021-2025, computed live by <code>scenarios.care_curve.implied_weights()</code> and pinned here by <code>tests/test_care_keys.py</code> — bound by TEST because <code>data.py</code> is the base layer and cannot import a scenario (failure mode 4's stated remedy).</td>
+<td><strong>errs</strong> LOW for the elderly share — 30.5 min/day is a mean over 35 years of age and EXCLUDES the institutional population by construction, which is where the terminal-window load concentrates. The two ATUS routes for this figure disagree 7.1x (<code>care_demand.elderly_route_disagreement</code>), unreconciled.<br>WHY THE SPLIT EXISTS. <code>eoh_weight</code> was ONE scalar per band carrying two obligations that move on entirely different drivers — dependant care tracks FERTILITY and household composition, frailty care tracks LONGEVITY and morbidity. Bundled, neither could be measured against its own source, and ELDERLY_EOH_EPSILON_FACTOR asserted a single answer for both at once.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_SHARE_ELDERLY</code></td>
+<td>0.128292</td>
+<td>dimensionless care share of a band's obligation</td>
+<td>measured<br>form: care_minutes / (self_minutes + care_minutes) per band, ATUS 2021-2025, computed live by <code>scenarios.care_curve.implied_weights()</code> and pinned here by <code>tests/test_care_keys.py</code> — bound by TEST because <code>data.py</code> is the base layer and cannot import a scenario (failure mode 4's stated remedy).</td>
+<td><strong>errs</strong> LOW for the elderly share — 30.5 min/day is a mean over 35 years of age and EXCLUDES the institutional population by construction, which is where the terminal-window load concentrates. The two ATUS routes for this figure disagree 7.1x (<code>care_demand.elderly_route_disagreement</code>), unreconciled.<br>WHY THE SPLIT EXISTS. <code>eoh_weight</code> was ONE scalar per band carrying two obligations that move on entirely different drivers — dependant care tracks FERTILITY and household composition, frailty care tracks LONGEVITY and morbidity. Bundled, neither could be measured against its own source, and ELDERLY_EOH_EPSILON_FACTOR asserted a single answer for both at once.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_KEY_INFANT</code></td>
+<td>'dependant'</td>
+<td>none, a classification label</td>
+<td>convention<br>form: which driver a band's care obligation moves on. <code>dependant</code> for care received by a minor: they are not impaired, they are young, and the load tracks fertility and household composition. <code>frailty</code> for care received by an adult: an adult receiving care is doing so because of impairment, and the load tracks morbidity — which is where an actuarial table plugs in and where the compression/expansion question lives.</td>
+<td>—<br>THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share, dependant care is ~83% of measured care and frailty care ~12% (the balance is working-age care, itself frailty-keyed). An LTC actuarial table therefore settles about an eighth of care; it does not settle care.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_KEY_CHILD</code></td>
+<td>'dependant'</td>
+<td>none, a classification label</td>
+<td>convention<br>form: which driver a band's care obligation moves on. <code>dependant</code> for care received by a minor: they are not impaired, they are young, and the load tracks fertility and household composition. <code>frailty</code> for care received by an adult: an adult receiving care is doing so because of impairment, and the load tracks morbidity — which is where an actuarial table plugs in and where the compression/expansion question lives.</td>
+<td>—<br>THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share, dependant care is ~83% of measured care and frailty care ~12% (the balance is working-age care, itself frailty-keyed). An LTC actuarial table therefore settles about an eighth of care; it does not settle care.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_KEY_WORKING_AGE</code></td>
+<td>'frailty'</td>
+<td>none, a classification label</td>
+<td>convention<br>form: which driver a band's care obligation moves on. <code>dependant</code> for care received by a minor: they are not impaired, they are young, and the load tracks fertility and household composition. <code>frailty</code> for care received by an adult: an adult receiving care is doing so because of impairment, and the load tracks morbidity — which is where an actuarial table plugs in and where the compression/expansion question lives.</td>
+<td>—<br>THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share, dependant care is ~83% of measured care and frailty care ~12% (the balance is working-age care, itself frailty-keyed). An LTC actuarial table therefore settles about an eighth of care; it does not settle care.</td>
+</tr>
+<tr>
+<td><code>AGE_CARE_KEY_ELDERLY</code></td>
+<td>'frailty'</td>
+<td>none, a classification label</td>
+<td>convention<br>form: which driver a band's care obligation moves on. <code>dependant</code> for care received by a minor: they are not impaired, they are young, and the load tracks fertility and household composition. <code>frailty</code> for care received by an adult: an adult receiving care is doing so because of impairment, and the load tracks morbidity — which is where an actuarial table plugs in and where the compression/expansion question lives.</td>
+<td>—<br>THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share, dependant care is ~83% of measured care and frailty care ~12% (the balance is working-age care, itself frailty-keyed). An LTC actuarial table therefore settles about an eighth of care; it does not settle care.</td>
+</tr>
+<tr>
+<td><code>CAPITAL_PERSONAL_SERVING_SHARE</code></td>
+<td>0.1128706625</td>
+<td>dimensionless share of capital stock</td>
+<td>derived<br>form: Σ(tiers[t].teh_per_capita · personal_fulfillment_rate) / Σ teh_per_capita over CAPITAL_MACHINE_PROFILES at the <code>standard</code> tier. Computed from the profiles rather than restated — <code>tests/scenarios/test_abatement_split.py</code> pins it against the live calculation.</td>
+<td>—<br>WHY IT EXISTS. <code>a(K)</code> reduces the PERSONAL obligation and was taking TOTAL capital, so a data centre abated water-hauling. The typing was never missing — <code>personal_fulfillment_rate</code> has been on every profile — only unused. Callers holding a total capital stock multiply by this to get the K that <code>abatement_fraction</code> actually wants.</td>
+</tr>
+<tr>
+<td><code>DEFLATION_SWEEP_SCALES</code></td>
+<td>(0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 10.0)</td>
+<td>multiples of the standard capital tier</td>
+<td>convention<br>form: the capital sweep <code>scenarios.deflation_loop</code> runs. Chosen to reach BOTH ends of the arc — ε below 0.10 at the bottom and above 0.90 at the top — because the interesting behaviour is at both and a sweep narrow around the reference capital reports "no effect" and is wrong: abatement's dampening crosses over at about 1.9x reference and only appears above it.</td>
+<td>—<br>A SWEEP RANGE IS A CHOICE AND THIS ONE DECIDES THE ANSWER, which is why it is named rather than inlined. <code>test_the_sweep_reaches_both_ends_of_the_arc</code> fails if it stops spanning the arc.</td>
+</tr>
+<tr>
+<td><code>CAPACITY_MEASUREMENT_BAND</code></td>
+<td>(18, 69)</td>
+<td>inclusive age bounds in years</td>
+<td>convention<br>form: the band MEASURED_CAPACITY_H_YR is measured over, restated here because the constant it qualifies lives here and the qualifier must travel with it. <code>reference.mtus_time_use.measured_capacity</code> states it in prose — "hours per adult per year, ages 18-69" — and there is no constant there to bind to, so this is a RESTATEMENT and <code>tests/test_measured_capacity.py</code> pins the pair.</td>
+<td>—<br>IT DOES NOT MATCH AGE_GROUP_RANGES["working_age"] = (18, 64), and that mismatch is the point of naming it. The adult share multiplied by MEASURED_CAPACITY_H_YR selects 18-64 while the capacity itself is measured over 18-69, so 65-69 sit in the denominator of c and outside the numerator of a. Measured and reported by <code>scenarios.feasibility.capacity_band_alignment()</code>, deliberately not adopted.</td>
+</tr>
+<tr>
+<td><code>AGE_CAPACITY_WEIGHT_INFANT</code></td>
+<td>0.0</td>
+<td>dimensionless share of adult capacity, per age group</td>
+<td>placeholder<br>form: the SUPPLY-side mirror of the AGE_WEIGHT_* constants. Those weight how much personal obligation an age group GENERATES; these weight how much capacity it SUPPLIES. Until 2026-09-04 only the demand side was weighted, and supply was the bare <code>working_age</code> fraction — which asserted, without saying so, that the elderly supply exactly zero while generating 1.48x the obligation. The shipped values reproduce that assertion EXACTLY (0.60), so nothing moves; what changes is that the assertion is now visible, and that a demographic shock moves supply and demand together instead of only one.</td>
+<td><strong>errs</strong> LOW — a zero here understates supply, which makes every feasibility test HARDER to pass. That is the safe direction: the failure to avoid is a model that reports a population as self-sustaining when it is not. A 12-year-old and a 70-year-old both do most of their own self-maintenance, so the true values are above zero and the shipped supply is a LOWER bound.<br>entropy-resistance labour BY AGE BAND — paid work plus unpaid domestic work plus childcare, the same three fields <code>measured_capacity</code> counts, tabulated for under-18 and over-64 rather than pooled over 18-69. MTUS carries the underlying diaries; the shipped extract does not carry that cut. Settling the elderly weight needs only the band split, which is a narrower ask than the child weight.<br><code>elderly</code> = 0.0 CONTRADICTS c's OWN BAND, which is the live defect here: 65-69 ARE inside the 18-69 window c is measured over, so the arithmetic drops them from the numerator while keeping them in the denominator. On US 2025 single-year ages that is 5.83 percentage points of adult share. Measured and reported by <code>scenarios.feasibility.capacity_band_alignment()</code> and DELIBERATELY NOT ADOPTED: correcting supply alone makes ε=0 feasible and closes the standing over-determination, while <code>AGE_WEIGHT_ELDERLY</code> = 1.48 is documented as a LOWER bound, so demand is understated too by an unmeasured amount. A one-sided fix that dissolves the finding is the outcome <code>tests/test_measured_capacity.py</code> warns against by name.</td>
+</tr>
+<tr>
+<td><code>AGE_CAPACITY_WEIGHT_CHILD</code></td>
+<td>0.0</td>
+<td>dimensionless share of adult capacity, per age group</td>
+<td>placeholder<br>form: the SUPPLY-side mirror of the AGE_WEIGHT_* constants. Those weight how much personal obligation an age group GENERATES; these weight how much capacity it SUPPLIES. Until 2026-09-04 only the demand side was weighted, and supply was the bare <code>working_age</code> fraction — which asserted, without saying so, that the elderly supply exactly zero while generating 1.48x the obligation. The shipped values reproduce that assertion EXACTLY (0.60), so nothing moves; what changes is that the assertion is now visible, and that a demographic shock moves supply and demand together instead of only one.</td>
+<td><strong>errs</strong> LOW — a zero here understates supply, which makes every feasibility test HARDER to pass. That is the safe direction: the failure to avoid is a model that reports a population as self-sustaining when it is not. A 12-year-old and a 70-year-old both do most of their own self-maintenance, so the true values are above zero and the shipped supply is a LOWER bound.<br>entropy-resistance labour BY AGE BAND — paid work plus unpaid domestic work plus childcare, the same three fields <code>measured_capacity</code> counts, tabulated for under-18 and over-64 rather than pooled over 18-69. MTUS carries the underlying diaries; the shipped extract does not carry that cut. Settling the elderly weight needs only the band split, which is a narrower ask than the child weight.<br><code>elderly</code> = 0.0 CONTRADICTS c's OWN BAND, which is the live defect here: 65-69 ARE inside the 18-69 window c is measured over, so the arithmetic drops them from the numerator while keeping them in the denominator. On US 2025 single-year ages that is 5.83 percentage points of adult share. Measured and reported by <code>scenarios.feasibility.capacity_band_alignment()</code> and DELIBERATELY NOT ADOPTED: correcting supply alone makes ε=0 feasible and closes the standing over-determination, while <code>AGE_WEIGHT_ELDERLY</code> = 1.48 is documented as a LOWER bound, so demand is understated too by an unmeasured amount. A one-sided fix that dissolves the finding is the outcome <code>tests/test_measured_capacity.py</code> warns against by name.</td>
+</tr>
+<tr>
+<td><code>AGE_CAPACITY_WEIGHT_WORKING_AGE</code></td>
+<td>1.0</td>
+<td>dimensionless share of adult capacity, per age group</td>
+<td>placeholder<br>form: the SUPPLY-side mirror of the AGE_WEIGHT_* constants. Those weight how much personal obligation an age group GENERATES; these weight how much capacity it SUPPLIES. Until 2026-09-04 only the demand side was weighted, and supply was the bare <code>working_age</code> fraction — which asserted, without saying so, that the elderly supply exactly zero while generating 1.48x the obligation. The shipped values reproduce that assertion EXACTLY (0.60), so nothing moves; what changes is that the assertion is now visible, and that a demographic shock moves supply and demand together instead of only one.</td>
+<td><strong>errs</strong> LOW — a zero here understates supply, which makes every feasibility test HARDER to pass. That is the safe direction: the failure to avoid is a model that reports a population as self-sustaining when it is not. A 12-year-old and a 70-year-old both do most of their own self-maintenance, so the true values are above zero and the shipped supply is a LOWER bound.<br>entropy-resistance labour BY AGE BAND — paid work plus unpaid domestic work plus childcare, the same three fields <code>measured_capacity</code> counts, tabulated for under-18 and over-64 rather than pooled over 18-69. MTUS carries the underlying diaries; the shipped extract does not carry that cut. Settling the elderly weight needs only the band split, which is a narrower ask than the child weight.<br><code>elderly</code> = 0.0 CONTRADICTS c's OWN BAND, which is the live defect here: 65-69 ARE inside the 18-69 window c is measured over, so the arithmetic drops them from the numerator while keeping them in the denominator. On US 2025 single-year ages that is 5.83 percentage points of adult share. Measured and reported by <code>scenarios.feasibility.capacity_band_alignment()</code> and DELIBERATELY NOT ADOPTED: correcting supply alone makes ε=0 feasible and closes the standing over-determination, while <code>AGE_WEIGHT_ELDERLY</code> = 1.48 is documented as a LOWER bound, so demand is understated too by an unmeasured amount. A one-sided fix that dissolves the finding is the outcome <code>tests/test_measured_capacity.py</code> warns against by name.</td>
+</tr>
+<tr>
+<td><code>AGE_CAPACITY_WEIGHT_ELDERLY</code></td>
+<td>0.3083</td>
+<td>dimensionless share of the elderly band inside the capacity measurement window</td>
+<td>instance<br>form: n(65..69) / n(65..100) on US 2025 single-year ages — <code>reference/data/census_age_2020_2025.csv</code>, the same extract <code>reference.care_demand.population_shares</code> reads. NOT zero, and not 1.0: <code>MEASURED_CAPACITY_H_YR</code> is measured over CAPACITY_MEASUREMENT_BAND (18-69), so the part of the elderly band inside that window supplies at the pooled adult rate by construction, and the part above 69 is outside the quantity.</td>
+<td><strong>you supply</strong> the deploying collective's own age structure — the share of its 65+ population that falls inside CAPACITY_MEASUREMENT_BAND. Supply it with AGE_GROUP_FRACTIONS, from the same source; the two describe one demography.<br><strong>shipped default</strong> 0.3083, US 2025 single-year ages (n(65..69)/n(65..100) = 19,921,459 / 64,617,088).<br>THIS IS AN INSTANCE VALUE AND MUST TRAVEL WITH <code>AGE_GROUP_FRACTIONS</code>. Both describe one age structure. A collective supplying its own fractions and keeping this default has mixed two demographies — the frame seam this repo has found in seven places.</td>
+</tr>
+<tr>
 <td><code>AGE_GROUPS</code></td>
 <td><dict: 4 keys></td>
 <td>composite of AGE_GROUP_RANGES, AGE_GROUP_FRACTIONS and the AGE_WEIGHT_* constants</td>
@@ -3242,7 +3368,7 @@ the evidence band, on the asymmetric-loss argument below. Still <code>CHOSEN</co
 <td>600.0</td>
 <td>hours/year per working-age-equivalent</td>
 <td>bounded<br>form: S_a — the autarky-referenced SURVIVAL standard. Hard-bounded above by (L−R)/w = 627: a survival standard exceeding labour supply is extinction. Set independently and CHECKED rather than pinned to the bound, so scenarios/feasibility.py can still fail it — a constant that cannot fail its own test says nothing.</td>
-<td><strong>band</strong> hard upper bound (L−R)/w = 627 h/yr per working-age-equivalent, from this file's own H_REF × workforce fraction. 600 sits just inside it.<br><strong>errs</strong> LOW. Set below the supply bound rather than at it, so it understates the survival obligation if anything, which keeps ε_suff optimistic. Deliberate: the bound is CHECKED by scenarios/feasibility.py rather than pinned, because a constant that cannot fail its own test says nothing.<br>minimum-subsistence time-allocation studies covering only the components that kill you if unmet — food, water, shelter, warmth.</td>
+<td><strong>band</strong> hard upper bound (L−R)/w = 733 h/yr per working-age-equivalent, from this file's own H_REF × workforce fraction. 600 sits inside it. Was 627 until 2026-09-09: the capital-path decision zeroes the infrastructure requirement at ε=0, so R falls and the bound rises — the margin widened without the standard moving.<br><strong>errs</strong> LOW. Set below the supply bound rather than at it, so it understates the survival obligation if anything, which keeps ε_suff optimistic. Deliberate: the bound is CHECKED by scenarios/feasibility.py rather than pinned, because a constant that cannot fail its own test says nothing.<br>minimum-subsistence time-allocation studies covering only the components that kill you if unmet — food, water, shelter, warmth.</td>
 </tr>
 <tr>
 <td><code>PERSONAL_EOH_SUFFICIENCY</code></td>
@@ -3252,25 +3378,60 @@ the evidence band, on the asymmetric-loss argument below. Still <code>CHOSEN</co
 <td><strong>band</strong> 390–926 h/yr from the capital-inventory + time-use identity at MODERN capital — which measures F_c, not F_a, the two reconciled by 38–74% abatement. Independently, 'all needs met' requires ~30% abatement at ε=0.99, putting F_a mid-band.<br><strong>errs</strong> HIGH. It is the autarky-referenced standard, so it MAY exceed labour supply — that gap is why collectives form, not an error. Erring high overstates what a decent life costs alone, which overstates the case for collective delivery rather than understating a survival risk.<br>cross-cultural time allocation at a stated adequacy standard, plus the capital-inventory + time-use identity route. Cross-checks already in hand: the identity route gives F_c(modern) = 390–926, implying 38–74% abatement, and "all needs met" requires ~30% at ε=0.99 — 1500 sits mid-band against both.</td>
 </tr>
 <tr>
+<td><code>PERSONAL_ABATABILITY_NUTRITION</code></td>
+<td>0.85</td>
+<td>dimensionless ceiling, fraction of a component removable</td>
+<td>instance<br>form: the most of each personal component that infrastructure can EVER remove. Split out of PERSONAL_EOH_COMPONENTS on 2026-09-08 because that table's own confidence note said one figure could not express its two halves — "The SHARES have a measurement against them… The ABATABILITIES have nothing" — and the two now carry their own tags. The assembled dict is byte-identical; <code>tests/scenarios/test_abatement_split.py</code> pins that.</td>
+<td><strong>you supply</strong> the collective's own development state — for each component, the hours currently spent on it and the hours that would remain with the infrastructure in question in place. That difference IS the abatability, and only the collective standing at the pre-infrastructure baseline can observe it.<br><strong>shipped default</strong> the Block II desk ceilings — nutrition 0.85, shelter 0.90, health 0.60, care 0.25 — whose ORDERING is tested and whose LEVELS are not.<br>FIVE CONSTANTS ARE BLOCKED ON THE SAME VANISHED BASELINE — these, the two automation floors, ABATEMENT_HALF_CAPITAL_TEH and PERSONAL_SIGMOID_DEFAULTS. All need a low-capital counterfactual, and none can be unblocked by collecting more: rich-country panels sit at one saturated level and no surveyed frame is truly unassisted. The baseline is not withheld data, it is a state the surveyed world has largely stopped containing — which is exactly why the intake route is the only one that does not require it to come back. <code>PRACTICE_EQUIPMENT_WIDTHS_FT</code> already took this route for the same reason.</td>
+</tr>
+<tr>
+<td><code>PERSONAL_ABATABILITY_SHELTER</code></td>
+<td>0.9</td>
+<td>dimensionless ceiling, fraction of a component removable</td>
+<td>instance<br>form: the most of each personal component that infrastructure can EVER remove. Split out of PERSONAL_EOH_COMPONENTS on 2026-09-08 because that table's own confidence note said one figure could not express its two halves — "The SHARES have a measurement against them… The ABATABILITIES have nothing" — and the two now carry their own tags. The assembled dict is byte-identical; <code>tests/scenarios/test_abatement_split.py</code> pins that.</td>
+<td><strong>you supply</strong> the collective's own development state — for each component, the hours currently spent on it and the hours that would remain with the infrastructure in question in place. That difference IS the abatability, and only the collective standing at the pre-infrastructure baseline can observe it.<br><strong>shipped default</strong> the Block II desk ceilings — nutrition 0.85, shelter 0.90, health 0.60, care 0.25 — whose ORDERING is tested and whose LEVELS are not.<br>FIVE CONSTANTS ARE BLOCKED ON THE SAME VANISHED BASELINE — these, the two automation floors, ABATEMENT_HALF_CAPITAL_TEH and PERSONAL_SIGMOID_DEFAULTS. All need a low-capital counterfactual, and none can be unblocked by collecting more: rich-country panels sit at one saturated level and no surveyed frame is truly unassisted. The baseline is not withheld data, it is a state the surveyed world has largely stopped containing — which is exactly why the intake route is the only one that does not require it to come back. <code>PRACTICE_EQUIPMENT_WIDTHS_FT</code> already took this route for the same reason.</td>
+</tr>
+<tr>
+<td><code>PERSONAL_ABATABILITY_HEALTH</code></td>
+<td>0.6</td>
+<td>dimensionless ceiling, fraction of a component removable</td>
+<td>instance<br>form: the most of each personal component that infrastructure can EVER remove. Split out of PERSONAL_EOH_COMPONENTS on 2026-09-08 because that table's own confidence note said one figure could not express its two halves — "The SHARES have a measurement against them… The ABATABILITIES have nothing" — and the two now carry their own tags. The assembled dict is byte-identical; <code>tests/scenarios/test_abatement_split.py</code> pins that.</td>
+<td><strong>you supply</strong> the collective's own development state — for each component, the hours currently spent on it and the hours that would remain with the infrastructure in question in place. That difference IS the abatability, and only the collective standing at the pre-infrastructure baseline can observe it.<br><strong>shipped default</strong> the Block II desk ceilings — nutrition 0.85, shelter 0.90, health 0.60, care 0.25 — whose ORDERING is tested and whose LEVELS are not.<br>FIVE CONSTANTS ARE BLOCKED ON THE SAME VANISHED BASELINE — these, the two automation floors, ABATEMENT_HALF_CAPITAL_TEH and PERSONAL_SIGMOID_DEFAULTS. All need a low-capital counterfactual, and none can be unblocked by collecting more: rich-country panels sit at one saturated level and no surveyed frame is truly unassisted. The baseline is not withheld data, it is a state the surveyed world has largely stopped containing — which is exactly why the intake route is the only one that does not require it to come back. <code>PRACTICE_EQUIPMENT_WIDTHS_FT</code> already took this route for the same reason.</td>
+</tr>
+<tr>
+<td><code>PERSONAL_ABATABILITY_CARE</code></td>
+<td>0.25</td>
+<td>dimensionless ceiling, fraction of a component removable</td>
+<td>instance<br>form: the most of each personal component that infrastructure can EVER remove. Split out of PERSONAL_EOH_COMPONENTS on 2026-09-08 because that table's own confidence note said one figure could not express its two halves — "The SHARES have a measurement against them… The ABATABILITIES have nothing" — and the two now carry their own tags. The assembled dict is byte-identical; <code>tests/scenarios/test_abatement_split.py</code> pins that.</td>
+<td><strong>you supply</strong> the collective's own development state — for each component, the hours currently spent on it and the hours that would remain with the infrastructure in question in place. That difference IS the abatability, and only the collective standing at the pre-infrastructure baseline can observe it.<br><strong>shipped default</strong> the Block II desk ceilings — nutrition 0.85, shelter 0.90, health 0.60, care 0.25 — whose ORDERING is tested and whose LEVELS are not.<br>FIVE CONSTANTS ARE BLOCKED ON THE SAME VANISHED BASELINE — these, the two automation floors, ABATEMENT_HALF_CAPITAL_TEH and PERSONAL_SIGMOID_DEFAULTS. All need a low-capital counterfactual, and none can be unblocked by collecting more: rich-country panels sit at one saturated level and no surveyed frame is truly unassisted. The baseline is not withheld data, it is a state the surveyed world has largely stopped containing — which is exactly why the intake route is the only one that does not require it to come back. <code>PRACTICE_EQUIPMENT_WIDTHS_FT</code> already took this route for the same reason.</td>
+</tr>
+<tr>
 <td><code>PERSONAL_EOH_COMPONENTS</code></td>
 <td><dict: 4 keys></td>
-<td>share = fraction of the personal obligation; abatability = fraction removable</td>
+<td>share = fraction of the personal obligation</td>
 <td>placeholder<br>form: the shares are the original desk estimate's own four terms (208/156/208/936 over 1508), so they are internally consistent with PERSONAL_EOH_SUFFICIENCY rather than independent of it. The abatability ceilings are the per-component most that infrastructure can ever remove, and their ORDERING encodes the block's structural prediction: abatability and sufficiency are ANTI-CORRELATED, because what infrastructure removes is survival-shaped work and what it cannot remove is care (the Baumol case). That prediction is TESTED in TestAntiCorrelationPrediction, not asserted here — changing these weights falsifies it.</td>
-<td>per-component pointers are on each line below. a_max = Σ share × abatability = 0.4483 is DERIVED from this table, so it is not a free parameter; the table is where the judgement lives.</td>
+<td>per-component pointers are on each line below. a_max = Σ share × abatability = 0.4483 is DERIVED from this table, so it is not a free parameter; the table is where the judgement lives.<br>THE ABATABILITIES LEFT THIS TABLE ON 2026-09-08, split into the PERSONAL_ABATABILITY_* family above and retagged <code>instance</code> — every one of their pointers named a delta from a local baseline, which is not a measurement awaiting collection. The confidence below was always mostly the shares; now it is only the shares, and the sentence about two halves that one figure could not express is resolved rather than restated.</td>
 </tr>
 <tr>
 <td><code>ABATEMENT_HALF_CAPITAL_TEH</code></td>
-<td>1000.0</td>
-<td>TEH of capital per capita</td>
+<td>112.870662</td>
+<td>TEH of PERSONAL-SERVING capital per capita</td>
 <td>placeholder<br>form: K_half in a(K) = a_max · K/(K + K_half). It sets the PACE of abatement along the arc, not its ceiling.</td>
 <td>the identity route run at two or more capital levels — B(K) measured at matched (inventory, time-use) pairs pins a_max and K_half together.<br>THE LEAST-GROUNDED CONSTANT IN BLOCK II, and the only new free parameter the block introduced. Report the sensitivity alongside any abatement figure until it is measured.</td>
+</tr>
+<tr>
+<td><code>PERSONAL_EOH_BASE_CLIMATE_FRAME</code></td>
+<td>'SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)'</td>
+<td>none — a named agro-ecological / climate stratum</td>
+<td>instance<br>form: the zone PERSONAL_EOH_BASE describes. Not a modifier ON the base: the base has always been a figure for SOME climate and never said which, and naming it is what makes the base and its falsifier commensurable.</td>
+<td><strong>you supply</strong> the deploying collective's own agro-ecological zone, stated the way LSMS_AGRO_ECOLOGY states this one — growing-season structure, irrigation and frost, plus heating and cooling degree-days for the shelter term.<br><strong>shipped default</strong> "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)", matching the only priced component.<br>A COLLECTIVE OUTSIDE THAT ZONE MUST SUPPLY BOTH THIS AND A BASE. They travel together, like AGE_GROUP_FRACTIONS and AGE_CAPACITY_WEIGHT_ELDERLY: keeping the shipped base while declaring another zone asserts that personal maintenance costs the same at every latitude, which is the claim the shelter row's degree-day intensity exists to deny.</td>
 </tr>
 <tr>
 <td><code>PERSONAL_EOH_BASE</code></td>
 <td>1000.0</td>
 <td>hours/year per working-age-equivalent</td>
 <td>bounded<br>form: the ABATEMENT-COLLAPSED operating value — one number standing in for F_a × (1 − a(K)) at an unstated point on the arc. 1000 ≈ 1500 × (1 − 1/3), and a ≈ 33% sits mid-range between the 10% "all needs met" requires at ε = 0.40 and the 38–74% the identity route implies at modern capital. Retired when abatement becomes the default generation path.</td>
-<td><strong>band</strong> 390–1006 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w = 396–1006 across subsistence parameters, and the accounting identity B = (M+H−R)/w = 390–926, whose M comes from a capital inventory and is B-FREE.<br><strong>errs</strong> HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>the band itself is now stale in a way that errs SAFE. It was derived at w = 1.475; w is 1.3528 after two age-weight measurements, and a lower w RAISES the supply-ceiling arm, so the band is wider than stated rather than wrong. Re-deriving it is owed and would raise this figure without any new data.</td>
+<td><strong>band</strong> 482–1147 h/yr per working-age-equivalent, from two instruments sharing no assumption: the supply ceiling (L−R)/w across subsistence parameters, and the accounting identity B = (M+H−R)/w, whose M comes from a capital inventory and is B-FREE. RE-DERIVED 2026-09-04 from 390–1006, and with no new data: w fell 1.475 → 1.3528 across two age-weight measurements and a lower w raises the ceiling arm, which the block below said was owed. The band is computed live by <code>feasibility.over_determination_report()</code> and pinned by <code>tests/scenarios/test_feasibility.py::TestTheBandIsLive</code> — it was restated here and went stale once already. RE-DERIVED AGAIN 2026-09-09, from 427–1092, by the capital-path decision: an unspecified capital stock resolves along the canonical arc, so the non-personal requirement R falls to zero at ε=0 and the ceiling arm (L−R)/w rises. Fourth move in the LOOSENING direction and the over-determination still does not clear.<br><strong>errs</strong> HIGH. Set at the TOP of the band on an asymmetric loss function: too low hides a real shortfall (the model reports feasible, capital is under-built, and the deficit is paid in unserved biological obligation), while too high only over-builds capital. Erring high is the mortality-minimising error.<br>the capital-inventory + time-use identity, NOT time-use data alone — see the circularity section in docs/parameter_provenance.md. Partial progress: core/eoh_generation.personal_statutory_floor() now builds a currency-free floor from physical quantities, but only one of seven basket components is priced (nutrition production, 330.9 h/person·yr), so coverage is 6.9% and the floor cannot yet falsify this value.<br>THE MISMATCH WAS NOT THERMAL'S DOING. The earlier reading was that costing thermal would break the single global scalar; in fact nutrition already had, being the first and only component priced. Of eight basket components, six were climate-conditioned through DELIVERY, one through the QUANTITY (thermal, since merged into shelter) and one not at all — care, which is 62.1% of the obligation. There is no climate-free component to price first.</td>
 </tr>
 <tr>
 <td><code>BASKET_DIET_KCAL_PER_DAY</code></td>
@@ -3285,6 +3446,41 @@ the evidence band, on the asymmetric-loss argument below. Still <code>CHOSEN</co
 <td>litres per person per day</td>
 <td>convention<br>form: the WHO "basic access" service level. A declared adequacy threshold — the quantity is well-established; the labour to deliver it is not measured anywhere in this repo.</td>
 <td>—<br>DORMANT BUT ARMED. The water component carries <code>hours_per_unit=None</code>, so this multiplies into nothing today and becomes load-bearing the moment anyone prices water collection. Nothing would announce that transition, which is the reason it is tagged here rather than left in the basket module.</td>
+</tr>
+<tr>
+<td><code>BASKET_WATER_DISTANCE_M</code></td>
+<td>1000.0</td>
+<td>metres, one-way, to the household's water source</td>
+<td>instance<br>form: the SITE property in the water component's physical form — litres x distance x hours per (litre.metre) at a stated carry. Distance is a property of the PLACE, exactly as degree-days is: a village of 100 and a city of a million beside one spring both walk the same way. It is carried here for that use and is NOT multiplied into the floor — water's <code>hours_per_unit</code> is still None.</td>
+<td><strong>you supply</strong> YOU MEASURE IT — the one-way distance from dwellings to the source your collective actually draws from, in the season that binds. Dry-season distance is the constraint, not the annual mean, because the obligation is set by the worst case a household must still meet. Nothing about YOUR siting is derivable from this framework.<br><strong>shipped default</strong> 1,000 m — a round-number stand-in carried so the row has a unit, standing in for nothing measured. It is never multiplied into the floor.<br><code>BASKET_THERMAL_DEGREE_DAYS_PER_YEAR</code> is the same KIND of quantity — a place property on the quantity side — and is tagged <code>placeholder</code> rather than <code>instance</code>. REPORTED, not changed here: retagging it moves the placeholder ratchet and is the author's call.</td>
+</tr>
+<tr>
+<td><code>BASKET_WATER_CARRY_LITRES</code></td>
+<td>20.0</td>
+<td>litres carried per trip</td>
+<td>instance</td>
+<td><strong>you supply</strong> YOUR containers. Jerrycan, headpan, yoked pair, handcart or a donkey — this is CAPITAL, not a human constant, and it is the variable a collective can most cheaply change. Doubling it halves collection time exactly, which is why it belongs beside distance rather than inside an hours-per-litre average that hides it.<br><strong>shipped default</strong> 20 L — one full jerrycan, the commonest single-container unit and about the upper limit of what an adult carries 1 km repeatedly. Carried so the row has a unit; it is NOT multiplied into the floor, because <code>hours_per_unit</code> on the water row is still None.</td>
+</tr>
+<tr>
+<td><code>BASKET_WATER_CARRIED_FRACTION</code></td>
+<td>1.0</td>
+<td>dimensionless fraction of BASKET_WATER_LITRES_PER_DAY</td>
+<td>instance</td>
+<td><strong>you supply</strong> YOUR practice and siting. The share of the daily quantity that must be CARRIED HOME rather than used at the source. Washing and laundry at a river cost transport nothing; drinking, cooking and sanitation water must come back. It is a joint property of where the source is and how the collective lives, so no survey of another population transfers.<br><strong>shipped default</strong> 1.0 — ALL of it carried, which is the conservative corner and is deliberately the worst case rather than a central estimate. A collective that washes at the source declares less and its obligation falls; one that pipes water declares a distance near zero and the term vanishes. Errs HIGH by construction.</td>
+</tr>
+<tr>
+<td><code>WATER_WALKING_SPEED_M_S</code></td>
+<td>1.2</td>
+<td>metres per second</td>
+<td>measured<br>form: preferred walking speed carrying a load, the one term in the water form that is NOT an instance. It is human locomotion, not a property of a place or a practice, and it is the reason the component is computable at all once the three instances are declared.</td>
+<td>—<br>1.2 m/s is the standard preferred walking speed for adults and sits at the low end of the unloaded range (1.2-1.4), which is the right end for a loaded walk over uneven ground. Head-loading studies find near-free carriage up to ~20% of body mass, so the loaded and unloaded speeds are close at the carries this form contemplates. A collective on steep or broken terrain declares a lower figure.</td>
+</tr>
+<tr>
+<td><code>CARE_CHILDCARE_HOURS_PER_PERSON_YEAR</code></td>
+<td>168.07344</td>
+<td>hours per person per year of childcare delivered</td>
+<td>bounded<br>form: the median of <code>reference.mtus_time_use.childcare_hours_per_person_year</code> over MTUS codes 28–31, 977,809 diaries, 21 countries, PROPWT-weighted. Bound by TEST rather than expression, since data.py sits below reference/ — the same treatment MEASURED_CAPACITY_H_YR receives.</td>
+<td><strong>band</strong> 99.5–331.2 h/person·yr — the full MTUS range, 16.36 min/day (BG1965) to 54.44 (US1998) across the 46 of 50 samples that carry the childcare codes. The shipped value is the MEDIAN, 27.61 min/day, on the same reasoning as MEASURED_CAPACITY_H_YR: the samples are not a probability sample of anything, so a mean would weight whichever countries ran more surveys.<br><strong>errs</strong> LOW, and the repo had already MEASURED how low before this was priced. <code>COMPONENT_CODES_MTUS</code> records that this code set runs <strong>0.827 of ATUS care</strong> (spread 0.113) and 1.099 of the household-member codes alone — both outside the 5% bar that nutrition (1.015) and shelter (0.976) clear — and concludes "it is NOT admitted to COMPONENT_CODES_MTUS". That determination stands and this constant is priced past it DELIBERATELY, as a declared bound rather than as the component: <code>COMPONENT_STATUS["care"]["status"]</code> is <code>bound</code>, and reading it as the value is the error that status exists to prevent. Two further reasons it errs LOW, either alone sufficient. (1) CHILDcare only — elder and adult care are outside these codes, and elder care is the leg whose two ATUS routes disagree 7.13x. (2) It measures care DELIVERED, not care OWED, and no sample here delivers all of what is owed. The model's care is broader again than ATUS's, covering household AND non-household members, so 0.827 is itself an upper estimate of the fraction captured.<br>A CODE SET THAT CLEARS THE 5% BAR — that is the bar this repo already set for a code set BEING a component, and childcare does not clear it. Concretely: elder and adult care on the same footing, which needs the 7.13x ATUS route disagreement reconciled first (<code>care_demand.elderly_route_disagreement</code>), and a dependency structure stated per sample so the figure is commensurable across age distributions — care hours per person-year are meaningless without one. THE POINT OF PRICING IT NOW is that the comparison names the missing data: a floor built from what exists shows what has to be collected, and the whole thing is rerun when it is.<br>THE BENCHMARK RUNS BACKWARDS FOR CARE, which is why this could not reuse the nutrition template. For nutrition the low-capital frame gives the HIGHER figure and is the unassisted floor. For childcare the low-capital frames give the LOWER — ZA2010 17.6 and BG1965 16.4 against US1998's 54.4 — because a poorer society serves less of the same obligation rather than owing less of it. So the unassisted end is the wrong end to read a care floor off, and the high-capital median is the better lower bound. Recorded because it inverts the reasoning every other component here uses.</td>
 </tr>
 <tr>
 <td><code>BASKET_SHELTER_M2_PER_PERSON</code></td>
@@ -4328,10 +4524,10 @@ constant the generated tables cannot see.</p>
 <tbody>
 <tr>
 <td><code>KNOWLEDGE_EOH_BASE</code></td>
-<td>298675342.966</td>
+<td>297779308.1</td>
 <td>embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION</td>
 <td>derived-then-FROZEN<br>form: recovered from the O<em>NET 30.3 / BLS spine already shipped in reference/data/ by inverting the documented log-minmax normalization of f_training: 11,001.3 h/worker embodied training stock over 751 occupations → 5,501.0 h/person at E/P = 0.500 → de-anchored to ε=0 by ÷ kbs(ε</em>)·cpu(ε<em>). Anchor and base are solved TOGETHER at the fixed point ε</em> = 0.3828 (scenarios/knowledge_base.epsilon_ref_fixed_point, 6 damped iterations), because a one-shot anchor cannot be self-consistent when the constant it sets sits inside the quantity that checks it. FROZEN against data-vintage churn; it FOLLOWS internal drift, because a change to any constant inside total_eoh changes the derivation's own inputs. Re-anchored 2026-08-09 (Finding E, ε<em> 0.4522), 2026-08-10 (the AGE_GROUPS elderly revalue, ε</em> 0.3828), 2026-08-16 (SKILL_WORKING_LIFE_YEARS measured at 37.5, ε<em> 0.38689) and 2026-08-17 (the Phase-4b frame resolution, ε</em> 0.386619). THE THIRD RE-ANCHOR IS THE CHEAPEST AND THE MOST REASSURING: a 6.7% rise in the renewal rate moved this constant by −2.0%, because the fixed point absorbs most of it. The coupling is real and it is damped, which is the property a one-shot anchor could not demonstrate. THE FOURTH IS SMALLER STILL — +0.13% — and it says something about the model rather than about this constant: the ecological domain was corrected DOWNWARD by 464× and the knowledge base barely moved, because ecological is so small a share of total_eoh that even a 464× error in it is nearly invisible to everything downstream. That is the domain-balance defect restated as a sensitivity, and it converged in ONE iteration. THE FIFTH IS THE SMALLEST OF ALL — +0.00047%, 2026-08-28, when Phase 4f relocated the whole STANDING ecological obligation to GUF. Removing an entire domain term moved this constant in its seventh significant figure, and it converged in one iteration again. Read the two together: the fourth re-anchor said a 464× error in the ecological domain was nearly invisible downstream; the fifth says deleting the domain's recurring term outright is nearly invisible too. Both are the same sensitivity finding, and after 4f it is no longer a defect — it is the partition, which puts that obligation in GUF where it scales with land held rather than with the ledger.</td>
-<td>an O<em>NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>RE-ANCHORED AN EIGHTH AND NINTH TIME ON 2026-09-03, both by the floors table. Eighth: 392,689,985.65 -&gt; 361,259,674.30 (-8.00%), epsilon</em> 0.446277 -&gt; 0.464313, when NUTRITION_AUTOMATION_FLOOR was adopted. Ninth: 361,259,674.30 -&gt; 298,675,342.97 (-17.32%), epsilon* -&gt; 0.506816, when CARE_AUTOMATION_FLOOR was raised 0.15 -&gt; 0.2808. The ninth is the LARGEST move this constant has ever made — larger than Phase 2's -16.73% — because care is 62.1% of the personal domain and personal is 91-97% of the total. Both raise the human share of personal EOH and therefore the labour residual the anchor is solved against. This constant's own test says to expect exactly that and NOT to work around it.</td>
+<td>an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR resolves by whatever settles Finding B. The capital-inventory route is unusable (Finding A).<br>RE-ANCHORED A TENTH TIME, -0.30% (2026-09-04), by retiring the elderly ε-drift. Removing it RAISES personal EOH per capita at ε&gt;0 — the drift moved population from a heavier weight (child 1.82) to a lighter one (elderly 1.48), so its stated direction was never its arithmetic — which raises total EOH and lowers the labour residual this anchor is solved against. The smallest of the ten moves, and mechanical.</td>
 </tr>
 <tr>
 <td><code>KNOWLEDGE_EPS_EXPONENT</code></td>
@@ -5107,6 +5303,13 @@ are asserted.</p>
 <td><strong>band</strong> the conventional inter-rater agreement reading — κ ≥ 0.80 good, 0.67–0.80 tentative, below 0.67 unreliable (Krippendorff; Landis–Koch)<br><strong>errs</strong> LOW. Both thresholds sit BELOW the conventional bar — 0.70 WARN against a 0.80 'good' line, 0.50 CRIT against 0.67 'unreliable' — so the gate is more permissive than the literature would set it. That is the unsafe direction for assessment quality, and it should be argued or tightened.<br>convention exists and is close at hand — these sit near the established Krippendorff/Cohen κ reading (≥0.80 good, 0.67–0.80 tentative, below that unreliable). Adopting a cited standard would move both to <code>convention</code>; as written they are the framework's own rounder numbers.</td>
 </tr>
 <tr>
+<td><code>REGISTER_CADENCE</code></td>
+<td>'episodic'</td>
+<td>none — a named regime</td>
+<td>instance</td>
+<td><strong>you supply</strong> YOUR register's design. How often a registrant must attest that a registered obligation was fulfilled: at the moment of the act ("continuous"), or at intervals on the sunset clock ("episodic"). It is a governance decision, not a physical fact — a register re-reviewing annually costs several times one re-reviewing every five years for identical physical obligation.<br><strong>shipped default</strong> "episodic", and the default errs in the SAFE direction, which is why it is this one. Episodic is the COSTLIER of the two regimes the evidence supports, so defaulting to it states the framework's audit claim at its weakest and any measurement can only improve it. Continuous is NOT forbidden and is not always dearer — see the two regimes below.<br>THE HEADROOM RISES WITH AUTOMATION EXACTLY AS THE INSTRUMENTATION THAT WOULD MAKE CONTINUOUS RECORDING CHEAP ARRIVES — verification may consume 12.0% of the obligation at eps=0 and 607% at eps=0.90. So a cadence that is episodic at low automation and continuous at high automation is coherent rather than a fudge, and nothing here forbids declaring it that way.</td>
+</tr>
+<tr>
 <td><code>SCARCITY_ROLLING_WINDOW</code></td>
 <td>3</td>
 <td>periods</td>
@@ -5181,39 +5384,179 @@ are asserted.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>CARE_REG_START_SHARE</code></td>
+<td>0.05</td>
+<td>fraction of care EOH registered at ε=0</td>
+<td>placeholder<br>form: the LEVEL the sigmoid starts from — formal education and public health are admitted even at subsistence; the rest of care is not.</td>
+<td>the formal/informal split of care labour TODAY, which is a cross-section rather than a panel and is therefore the most nearly reachable of the four. <code>reference/atus_time_use.py</code> already separates household care from paid care; what it lacks is the low-capital end.</td>
+</tr>
+<tr>
+<td><code>CARE_REG_INFLECTION</code></td>
+<td>0.45</td>
+<td>automation level ε at the sigmoid's steepest point</td>
+<td>placeholder<br>form: the POSITION of the transition on the arc — where admission accelerates.</td>
+<td>a cross-country panel indexed by automation. A cross-section cannot locate an inflection: you need societies at different ε, or one society observed across a transition, and neither is a formal/informal split measured once.<br>THE HIGHEST-LEVERAGE FIELD OF THE FOUR, and the one this split makes visible. A 10% move here shifts the composite registration share −5.68% against start_share's +0.23%.</td>
+</tr>
+<tr>
+<td><code>CARE_REG_RATE</code></td>
+<td>8.0</td>
+<td>dimensionless logistic steepness</td>
+<td>placeholder<br>form: how FAST the transition happens once it starts — a rate, not a level and not a position, which is why it resolves differently from either.</td>
+<td>a TIME SERIES through a registration transition. No cross-section at any number of countries settles a steepness; it needs the same society observed while the share is moving.</td>
+</tr>
+<tr>
+<td><code>CARE_REG_SATURATION</code></td>
+<td>0.95</td>
+<td>fraction of care EOH registered as ε → 1</td>
+<td>normative<br>form: the ASYMPTOTE. <code>start + (saturation − start) × logistic(...)</code>, so this is the ceiling itself and not a span — the <code>growth</code> field of the production and stewardship sigmoids occupies the same slot and means something different.</td>
+<td><strong>decided by</strong> a charter judgement that some care stays informal at ANY automation level. No dataset returns it, because no society has run at high ε for the observation to exist; asserting 0.95 rather than 1.0 is a commitment about what a ledger should recognise, not a measurement that came out short.<br><em>no measurement settles this</em></td>
+</tr>
+<tr>
 <td><code>CARE_SIGMOID_DEFAULTS</code></td>
 <td>{'start_share': 0.05, 'inflection': 0.45, 'rate': 8.0, 'saturation': 0.95}</td>
-<td>start_share/saturation fractions; inflection in ε; rate dimensionless</td>
-<td>placeholder<br>form: physics-adjacent in shape only — admission to a collective ledger plausibly follows slow onset, mid-range acceleration and saturation below 1.0 (some care stays informal at any automation level). Every one of the four numbers is asserted.</td>
-<td>the measured formal/informal split of care labour against an automation index — the share of care hours that pass through a paid or recorded channel. ATUS separates household care from paid care and is now partly ingested (reference/atus_time_use.py), so the start_share is the most nearly reachable of the four; the inflection needs a cross-country panel.<br>docs/parameter_provenance.md's Registration table still lists start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped here — caught by this migration, corrected in the generated table.</td>
+<td>composite of the CARE_REG_* constants</td>
+<td>derived<br>form: assembled from the four constants above. Retained as the public shape — <code>core/registration.py</code> and every caller read this dict — and the assembled value is identical to the hand-written one it replaces. New code should prefer the specific constant it needs.</td>
+<td>—<br>docs/parameter_provenance.md's Registration table once listed start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped here; caught by the 2026-08 migration and corrected in the generated table.</td>
+</tr>
+<tr>
+<td><code>PRODUCTION_REG_BASE</code></td>
+<td>0.15</td>
+<td>fraction of production EOH registered at ε=0</td>
+<td>placeholder<br>form: the LEVEL at subsistence. Organised trade and grain accounting exist there but are a minority of production labour, giving ~25% total registration at ε=0 rather than the 70% an earlier value implied.</td>
+<td>the recorded share of production hours today — a cross-section, like the care start_share and reachable by the same instrument.<br>the ONE field of the twenty across these five sigmoids that carries a written physical argument rather than an assertion.</td>
+</tr>
+<tr>
+<td><code>PRODUCTION_REG_GROWTH</code></td>
+<td>0.84</td>
+<td>fraction of production EOH, the SPAN above the base</td>
+<td>placeholder<br>form: NOT an asymptote — <code>base + growth × logistic(...)</code>, so the ceiling is base + growth = 0.99. The care, personal and knowledge sigmoids put an asymptote in this slot instead, and the two parameterisations are not interchangeable. Splitting is what makes that visible.</td>
+<td>the same panel the ceiling needs; a span is a difference of two levels and cannot be read off one observation.</td>
+</tr>
+<tr>
+<td><code>PRODUCTION_REG_RATE</code></td>
+<td>20.0</td>
+<td>dimensionless logistic steepness</td>
+<td>placeholder<br>form: how fast production admission completes once it starts — near-complete by ε=0.25.</td>
+<td>a time series through the transition, as for every rate here.</td>
+</tr>
+<tr>
+<td><code>PRODUCTION_REG_INFLECTION</code></td>
+<td>0.1</td>
+<td>automation level ε at the sigmoid's steepest point</td>
+<td>placeholder<br>form: an EARLY inflection — production is the first layer admitted to the ledger because production labour is the easiest to verify.</td>
+<td>a cross-country panel indexed by automation.</td>
 </tr>
 <tr>
 <td><code>PRODUCTION_SIGMOID_DEFAULTS</code></td>
 <td>{'base': 0.15, 'growth': 0.84, 'rate': 20.0, 'inflection': 0.1}</td>
-<td>base/growth fractions; inflection in ε; rate dimensionless</td>
-<td>placeholder<br>form: base + growth × logistic(rate × (ε − inflection)). Physics-adjacent in SHAPE only: admission plausibly follows slow onset then acceleration. The four numbers are asserted.</td>
-<td>the share of production hours passing through a recorded channel, against an automation index — the same instrument the care sigmoid needs, read on a different labour category.<br>the base carries a written physical argument (min3, resolved) that the others do not — organised trade and grain accounting exist at subsistence but are a minority of production labour, giving ~25% total registration at ε=0 rather than the 70% an earlier value implied.</td>
+<td>composite of the PRODUCTION_REG_* constants</td>
+<td>derived<br>form: assembled from the four above; identical to the dict it replaces.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>STEWARDSHIP_REG_BASE</code></td>
+<td>0.05</td>
+<td>fraction of stewardship EOH registered at ε=0</td>
+<td>placeholder<br>form: the LEVEL at subsistence — ~7% total once the sigmoid is applied.</td>
+<td>the recorded share of communal maintenance labour today — shared wells, paths, drainage. A cross-section, like the other two ε=0 levels here.</td>
+</tr>
+<tr>
+<td><code>STEWARDSHIP_REG_GROWTH</code></td>
+<td>0.9</td>
+<td>fraction of stewardship EOH, the SPAN above the base</td>
+<td>placeholder<br>form: NOT an asymptote — ceiling is base + growth = 0.95. See PRODUCTION_REG_GROWTH on why this slot means two different things across the five sigmoids.</td>
+<td>a panel; a span is a difference of two levels.</td>
+</tr>
+<tr>
+<td><code>STEWARDSHIP_REG_RATE</code></td>
+<td>10.0</td>
+<td>dimensionless logistic steepness</td>
+<td>convention<br>form: TUNED, not asserted and not measured. Raised from 6.0 to 10.0 so that logistic(0) ≈ 0.018 and the ε=0 value stays near the floor instead of contributing a spurious 8% baseline. The number is chosen to make the sigmoid's own tail behave, which is a fitting decision about functional form rather than a claim about stewardship labour.</td>
+<td>—<br>invisible to the shadow-constant scan until the 2026-08 migration, because 10.0 sits in <code>utils.provenance._INNOCUOUS</code> while its two siblings here were counted.</td>
+</tr>
+<tr>
+<td><code>STEWARDSHIP_REG_INFLECTION</code></td>
+<td>0.4</td>
+<td>automation level ε at the sigmoid's steepest point</td>
+<td>placeholder<br>form: mid-arc — later than production, earlier than personal or knowledge.</td>
+<td>a cross-country panel indexed by automation.</td>
 </tr>
 <tr>
 <td><code>STEWARDSHIP_SIGMOID_DEFAULTS</code></td>
 <td>{'base': 0.05, 'growth': 0.9, 'rate': 10.0, 'inflection': 0.4}</td>
-<td>base/growth fractions; inflection in ε; rate dimensionless</td>
-<td>placeholder<br>form: base + growth × logistic(rate × (ε − inflection)).</td>
-<td>the recorded share of communal maintenance labour — shared wells, paths, drainage — against an automation index.<br>the rate was RAISED from 6.0 to 10.0 to hold logistic(0) ≈ 0.018, so the ε=0 value stays near the floor instead of contributing a spurious 8% baseline. That makes it a tuned value, and until this migration it was invisible to the shadow-constant scan because 10.0 sits in the <code>utils.provenance._INNOCUOUS</code> set while its two siblings here were counted.</td>
+<td>composite of the STEWARDSHIP_REG_* constants</td>
+<td>derived<br>form: assembled from the four above; identical to the dict it replaces.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>PERSONAL_REG_START_SHARE</code></td>
+<td>0.0</td>
+<td>fraction of personal EOH registered at ε=0</td>
+<td>convention<br>form: 0.0 BY CONSTRUCTION rather than by estimate. At subsistence personal needs are met privately and the collective ledger recognises none of it — that is what ε=0 MEANS for this domain, so the number follows from the definition and no measurement could return a different one.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>PERSONAL_REG_SATURATION</code></td>
+<td>0.95</td>
+<td>fraction of personal EOH registered as ε → 1</td>
+<td>normative<br>form: the ASYMPTOTE, not a span. <code>start + (saturation − start) × logistic(...)</code>.</td>
+<td><strong>decided by</strong> a charter judgement that some personal EOH stays private at any automation level — grief, intimacy. The old note called this "a normative reading wearing a placeholder's tag"; it now wears its own. No dataset settles what a ledger SHOULD decline to recognise.<br><em>no measurement settles this</em></td>
+</tr>
+<tr>
+<td><code>PERSONAL_REG_RATE</code></td>
+<td>7.0</td>
+<td>dimensionless logistic steepness</td>
+<td>placeholder<br>form: slower than care, faster than stewardship.</td>
+<td>a time series through the transition, as for every rate here.</td>
+</tr>
+<tr>
+<td><code>PERSONAL_REG_INFLECTION</code></td>
+<td>0.65</td>
+<td>automation level ε at the sigmoid's steepest point</td>
+<td>placeholder<br>form: LATE — capital systems must mature before the collective can fulfil personal obligations at scale.</td>
+<td>a cross-country panel indexed by automation.<br>the highest-leverage single number in the whole registration layer. The personal domain is 76.6% of the mint at ε=0.40 and the least registered, so <code>scenarios/register_capture</code> ranks it the widest capture channel; this field is where its share is positioned.</td>
 </tr>
 <tr>
 <td><code>PERSONAL_SIGMOID_DEFAULTS</code></td>
 <td>{'start_share': 0.0, 'saturation': 0.95, 'rate': 7.0, 'inflection': 0.65}</td>
-<td>start/saturation fractions; inflection in ε; rate dimensionless</td>
-<td>placeholder<br>form: start + (saturation − start) × logistic(rate × (ε − inflection)).</td>
-<td>the share of personal-domain hours delivered through collective systems against an automation index. <code>reference/atus_time_use.py</code> measures the numerator's high-ε end; the low-ε end needs a low-capital time-use survey.<br>start is 0.0 by construction — at subsistence, personal needs are met privately and the collective ledger recognises none of it. The saturation below 1.0 is a claim that some personal EOH stays private at any automation level (grief, intimacy), which is a normative reading wearing a placeholder's tag; it is not something a dataset settles.</td>
+<td>composite of the PERSONAL_REG_* constants</td>
+<td>derived<br>form: assembled from the four above; identical to the dict it replaces.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>KNOWLEDGE_REG_BASE</code></td>
+<td>0.0</td>
+<td>fraction of knowledge EOH registered at ε=0</td>
+<td>convention<br>form: 0.0 by construction, as for the personal start_share: there is no formal verification apparatus at subsistence, so there is nothing to register through. The number follows from what ε=0 means rather than from an estimate.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>KNOWLEDGE_REG_SATURATION</code></td>
+<td>0.8</td>
+<td>fraction of knowledge EOH registered as ε → 1</td>
+<td>normative<br>form: the ASYMPTOTE. <code>base + (saturation − base) × logistic(...)</code>.</td>
+<td><strong>decided by</strong> a charter judgement that tacit skill, judgement and creative insight are never FULLY admissible however good automated verification becomes. The old note called this an argument rather than a measurement; it is a claim about what a ledger can in principle recognise, and the 0.80 is where this framework draws it.<br><em>no measurement settles this</em></td>
+</tr>
+<tr>
+<td><code>KNOWLEDGE_REG_RATE</code></td>
+<td>5.0</td>
+<td>dimensionless logistic steepness</td>
+<td>placeholder<br>form: the slowest of the five — knowledge work is harder to verify than care labour, so admission completes gradually.</td>
+<td>a time series through the transition. Harder here than elsewhere because the DENOMINATOR — what counts as knowledge work — is itself contested, so the series has to fix a definition before it can move.</td>
+</tr>
+<tr>
+<td><code>KNOWLEDGE_REG_INFLECTION</code></td>
+<td>0.7</td>
+<td>automation level ε at the sigmoid's steepest point</td>
+<td>normative<br>form: the LATEST inflection of the five.</td>
+<td><strong>decided by</strong> a charter judgement that peer review, credentialing and automated audit need mature automation to operate at scale. The old note grouped this with the saturation as "arguments, not measurements", and unlike the other four inflections here no cross-country panel decides it — the claim is about what verification REQUIRES, not about where societies happen to sit.<br><em>no measurement settles this</em></td>
 </tr>
 <tr>
 <td><code>KNOWLEDGE_SIGMOID_DEFAULTS</code></td>
 <td>{'base': 0.0, 'saturation': 0.8, 'rate': 5.0, 'inflection': 0.7}</td>
-<td>base/saturation fractions; inflection in ε; rate dimensionless</td>
-<td>placeholder<br>form: base + (saturation − base) × logistic(rate × (ε − inflection)).</td>
-<td>the share of knowledge-work hours subject to formal verification against an automation index — harder than the other four, because the denominator (what counts as knowledge work) is itself contested.<br>saturation 0.80 asserts that tacit skill, judgement and creative insight are never fully admissible however automated verification becomes. The late inflection asserts that peer review, credentialing and automated audit need mature automation to operate at scale. Both are arguments, not measurements.</td>
+<td>composite of the KNOWLEDGE_REG_* constants</td>
+<td>derived<br>form: assembled from the four above; identical to the dict it replaces.</td>
+<td>—</td>
 </tr>
 <tr>
 <td><code>LABOR_CATEGORY_DEFAULTS</code></td>
@@ -5280,7 +5623,7 @@ are asserted.</p>
 <td>{'nutrition': (18, 19), 'shelter': (20, 21, 22)}</td>
 <td>MTUS harmonised activity codes</td>
 <td>derived<br>form: the MTUS six-digit activity codes making up each personal-EOH component, IDENTIFIED rather than assumed. US samples appear in both MTUS and ATUS, so the same population-year is coded twice and independently; a code set is the component it claims to be only if its level tracks the ATUS family across every overlapping year. Measured by <code>automation_floors.validate_code_mapping()</code>: nutrition (18,19) reproduces ATUS 0202 at a mean ratio of 1.0147 over 21 years (spread 0.037), and shelter (20,21,22) reproduces 0201+0203+0204+0207+0208 at 0.9757 (spread 0.068). No number here is fitted — the codes were picked, then checked.</td>
-<td>—<br>care and health carry no MTUS code set. MTUS puts meals inside its personal-care block where the repo's definition excludes them, and the health component is dominated by ATUS 0804 (using health services), which has no clean MTUS counterpart. Absent, not zero.</td>
+<td>—<br>THE PUBLISHED LABELS CONFIRM THESE SETS AND WERE READ LATE (2026-09-10). <code>utils/mtus_ingest.py</code> derived them by solving against the file's own aggregates because no codebook ships with the DATA — which is true, and was wrongly taken to mean the labels were unobtainable. MTUS User Guide, October 2020 (Release 7.0), Table 2: 18 "Food preparation, cooking" and 19 "Set table, wash/put away dishes" are nutrition; 20 "Cleaning", 21 "Laundry, ironing, clothing repair" and 22 "Home/vehicle maintenance/improvement" are shelter. Two things the labels add that solving could not. First, the per-code identification: only 21 maps cleanly onto its ATUS family (0.9921), while 20 and 22 are resolvable as a block and not individually — <code>component_shares.shelter_frame_check()</code>. Second, a DIFFERENCE with MTUS's own 25-category housework aggregate (Table 3), which is 20+21+23 and puts 22 under "Maintain home/vehicle, re-fuel". This set excludes 23 and includes 22. The aggregate still reproduces ATUS at 0.9757, so it is a difference the validation absorbed rather than a defect — recorded, not resolved.</td>
 </tr>
 <tr>
 <td><code>MAPPING_TOLERANCE</code></td>
@@ -5300,7 +5643,7 @@ are asserted.</p>
 <td><code>PERSONAL_AUTOMATION_FLOORS</code></td>
 <td>{'care': 0.2808, 'nutrition': 0.2808}</td>
 <td>dimensionless human-labour fraction</td>
-<td>placeholder<br>form: the floor on the human share of a personal-EOH component — the fraction that stays human-carried however high epsilon goes. Only <code>care</code> is listed, bound to CARE_AUTOMATION_FLOOR by EXPRESSION so the two cannot diverge. A component that is ABSENT carries no floor and behaves exactly as the uniform (1 - epsilon) split does today.</td>
+<td>placeholder<br>form: the floor on the human share of a personal-EOH component — the fraction that stays human-carried however high epsilon goes. TWO of the four are listed: <code>care</code> and, since 2026-09-03, <code>nutrition</code>. Each is bound to its own constant by EXPRESSION so the table cannot diverge from them. A component that is ABSENT carries no floor and behaves exactly as the uniform (1 - epsilon) split does today.</td>
 <td>a time-use split of each component's activities into those whose value depends on a HUMAN performing them and those where only the output matters. FIELD: the share of hours in the first class. The repo already carries the bridge — <code>scenarios/component_shares</code> maps ATUS tier-2 codes onto these four components — so what is missing is the relational/substitutable split WITHIN each component, not the mapping to them. That split is a declared JUDGEMENT and must be isolated the way STEWARDSHIP_ATTRIBUTIONS isolates its occupation→land-class attribution; it is not read off the data. Note the ceiling errs HIGH: every floor added lowers observable_epsilon_ceiling (0.9124 shipped; 0.8589 with all three filled at care's own value).<br>HEALTH REMAINS UNMEASURED. It is dominated by ATUS 0804 (using health services), which has no clean MTUS counterpart. Absent, not zero.</td>
 </tr>
 <tr>
@@ -5701,7 +6044,7 @@ outcomes, and this is why.</p>
 <td>0.05</td>
 <td>fraction shift per ε unit</td>
 <td>placeholder<br>form: automation improves medicine, so lives lengthen and the elderly fraction grows. Direction is arguable; the magnitude is asserted, and it is secondary to the dominant ε effect in the fulfillment split.</td>
-<td>a longitudinal life-expectancy series against a measured automation index.</td>
+<td><strong>RETIRED</strong> — superseded by AGE_CARE_KEY_ELDERLY + AGE_CARE_SHARE_ELDERLY — the care obligation is now split by DRIVER, so a morbidity trajectory is supplied against the <code>frailty</code> key rather than asserted for both keys at once by one scalar.<br>nothing settles THIS constant; it was a stand-in for a morbidity model and the replacement is a socket for one, not a better value for it. What would settle the QUESTION it stood in for: disability prevalence by age (Sullivan-method HLE tables) against a longitudinal series, supplied through the <code>frailty</code> care key.<br>RETIRED 2026-09-04 (author decision), and NOT for its size — the whole effect was at most −0.128% on personal EOH per capita. Three reasons: (1) IT ASSERTED AN ANSWER TO AN UNSETTLED QUESTION. Whether longer lives mean more frail years or the same frail window arriving later is unresolved and differs by country and condition. Its own form field conceded "direction is arguable; the magnitude is asserted". (2) ONE CONSTANT, TWO MECHANISMS, COMPOSED — failure mode 11. <code>trajectory.canonical_age_distribution</code> used it to SHIFT population from <code>child</code> to <code>elderly</code>; <code>population.py</code> used it TWICE as an INTENSITY multiplier on elderly EOH, on the different rationale that "deferred personal care becomes a registered EOH obligation at higher ε". A demographic claim and a registration claim sharing one scalar. (3) THE TWO PATHS DISAGREED. <code>total_eoh</code> never applied the intensity multiplier, so generation and <code>population_eoh_curve</code> reported different elderly EOH at the same ε — two accounts of one quantity. And the registration rationale is a containment violation in spirit: registration makes an obligation visible, it does not create one. Its stated direction was also not its arithmetic — "elderly EOH rises" while the shift LOWERED total personal EOH, moving people from a heavier weight (child 1.82) to a lighter one (elderly 1.48).</td>
 </tr>
 <tr>
 <td><code>INFANT_EOH_EPSILON_FACTOR</code></td>
