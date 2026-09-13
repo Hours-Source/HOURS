@@ -75,7 +75,7 @@ Before committing any new function, verify every point:
 - [ ] Physically meaningful at **ε = 0** (subsistence: near-zero collective economy, private EOH, minimal ledger)
 - [ ] Physically meaningful at **ε = 0.40** (current equilibrium: calibration reference)
 - [ ] Physically meaningful at **ε = 0.90** (near-post-scarcity: care-dominant, automation-heavy)
-- [ ] Physically meaningful at **ε = 0.99** (effective post-scarcity: prices collapsed, labor near-zero)
+- [ ] Physically meaningful at **ε = 0.99** (effective post-scarcity: floor prices collapsed, human labor a small share — not zero)
 
 **Structural requirements:**
 

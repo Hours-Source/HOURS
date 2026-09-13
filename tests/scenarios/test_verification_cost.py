@@ -1,7 +1,8 @@
 """
 Verification cost against the obligation it serves — `scenarios/verification_cost.py`.
 
-WHAT IS AT STAKE. `anchor_comparison_draft.md` §7 states a falsification
+WHAT IS AT STAKE. `docs/theory/anchor_comparison.md` ("What would change our
+mind") states a falsification
 condition in as many words: *if verification cost, once costed, exceeds the
 obligation it verifies at any point on the arc, the anchor is not cheaper to
 audit than the incumbents.* Phase 1 counted the workers; this module puts them
@@ -13,7 +14,7 @@ declared and honoured, that the two scaling bases are both reported and neither
 adopted, and that the whole thing changes no shipped number.
 
 THE FIRST OF THOSE IS THE ONE THAT MATTERS. A crossover search that can only
-ever return None answers §7 by construction, which would make the framework's
+ever return None answers the falsifier by construction, which would make the framework's
 own falsifier unfalsifiable — the `LEVY_SUFFICIENCY_WARN` failure, applied to
 the anchor's central claim. `test_the_search_can_find_a_crossover` forces one.
 """
@@ -33,7 +34,7 @@ BASES = ("per_capita", "per_registered")
 class TestTheFalsifierCanActuallyFire:
     """
     RECURRING FAILURE MODE 9, asked in both directions: can it fire, and can it
-    NOT fire? A §7 answer produced by a search incapable of finding anything is
+    NOT fire? A falsifier answer produced by a search incapable of finding anything is
     not an answer.
     """
 
@@ -44,7 +45,7 @@ class TestTheFalsifierCanActuallyFire:
                 c = VC.verification_crossover(scope=scope, basis=basis)
                 assert c["crossover_epsilon"] is None, (
                     f"{scope}/{basis} now crosses at {c['crossover_epsilon']} — "
-                    "§7's falsification condition is met and the anchor page "
+                    "the audit falsification condition is met and the anchor page "
                     "must stop claiming the audit advantage past that ε"
                 )
 
@@ -213,7 +214,7 @@ class TestTheVerdictIsComputedNotRestated:
         monkeypatch.setattr(VC, "verification_hours_per_capita", lambda scope="core": 5_000.0)
         r = VC.verification_report()
         assert "does not hold" in r["verdict"]
-        assert "§7" in r["verdict"]
+        assert "What would change our mind" in r["verdict"]
 
     def test_the_report_carries_its_own_caveats(self):
         r = VC.verification_report()

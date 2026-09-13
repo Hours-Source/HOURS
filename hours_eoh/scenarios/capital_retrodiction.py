@@ -6,7 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 REPORTING ONLY. No constant moves and no shipped number changes;
 `TestRetrodictionChangesNothing` fails the moment that stops being true.
 
-WHAT THIS SETTLES. `anchor_comparison_draft.md` §7 carries a falsification
+WHAT THIS SETTLES. `docs/theory/anchor_comparison.md` ("What would change our
+mind") carries a falsification
 condition — *if a retrodiction produces an implausible ε, the endogenous-supply
 property is not reading the world it says it reads* — and it HAD FIRED: the one
 run against a real economy gave ε = 0.777–1.000, saturated, for a US where 158M

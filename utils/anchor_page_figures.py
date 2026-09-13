@@ -80,7 +80,7 @@ def _debt_share() -> float:
 #: the number — mode 13 says the drift is in the prose, so the prose is what has
 #: to travel beside the call.
 FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
-    # §3.1 / §5.1 / §6 / §7 — the verification apparatus
+    # Gold · Obligation precedes issuance · Where the work points · What would change our mind — the verification apparatus
     "verification_peak_core": (
         lambda: _verification_peak("core"),
         "the apparatus peaks at a low single-digit percentage of the obligation, narrow scope",
@@ -111,7 +111,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: verification_hours_us("broad")["workers"],
         "measured headcount, broad scope",
     ),
-    # §6 / §7 — the registrant side, priced by the declared cadence
+    # Where the work points · What would change our mind — the registrant side, priced by the declared cadence
     "corridor_verdict_shipped_default": (
         lambda: corridor_is_usable()["verdict"],
         "on the shipped episodic cadence the corridor is closed and usable",
@@ -133,7 +133,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         ["affordable_from_epsilon"]["continuous_human"],
         "human-performed continuous recording becomes affordable only from mid-arc",
     ),
-    # §4 — the shock table
+    # How they compare — the shock table
     "shock_labour_minting": (
         lambda: hours_shock_response()["shocks"]["labour_halves"]["minting_change"],
         "labour halves: the base responds to labour alone",
@@ -144,13 +144,13 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
     ),
     "shock_capital_minting": (
         lambda: hours_shock_response()["shocks"]["capital_halves"]["minting_change"],
-        "capital halves: minting unmoved — the gap section 5.2 concedes",
+        "capital halves: minting unmoved — the gap the supply claim concedes",
     ),
     "shock_ecosystem_minting": (
         lambda: hours_shock_response()["shocks"]["ecosystem_halves"]["minting_change"],
         "ecosystem halves: blind by charter, and the page keeps it visible",
     ),
-    # §5.1 / §6 — registration
+    # Obligation precedes issuance · Where the work points — registration
     "registration_share": (
         lambda: registration_leverage(0.40)["baseline_share"],
         "the registered share at the reference epsilon — most human EOH mints nothing",
@@ -159,12 +159,12 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: registration_leverage(0.40)["elasticity"],
         "registration is unit elastic on the money supply",
     ),
-    # §5.2 — the second instrument
+    # Supply is endogenous to the population — the second instrument
     "instrument_verdict": (
         lambda: instrument_comparison()["verdict"],
         "the labour and capital routes to epsilon are adjacent, not overlapping",
     ),
-    # §5.3 — observable epsilon and its ceiling
+    # ε is the share of obligation still dependent on human agency — the ceiling
     "observable_epsilon_at_top_capability": (
         lambda: eoh_to_teh_pipeline(0.99)["epsilon_observable"],
         "at capability 0.99 the observable machine share stays well short of 1",
@@ -181,7 +181,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         lambda: observable_epsilon_ceiling(total_eoh(epsilon=0.99)),
         "the ceiling on the epsilon=0.99 mix — higher, so a smaller human residual",
     ),
-    # §4 / §5 — the accounts
+    # How strongly HOURS claims it — the accounts
     "delivery_ratio_at_zero": (
         lambda: (obligation_accounts(0.0)["delivery"]
                  / obligation_accounts(0.0)["obligation"]),
@@ -197,7 +197,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
                  / obligation_accounts(0.99)["obligation"]),
         "delivery as a share of the obligation at post-scarcity",
     ),
-    # §6 / §8 — the constants
+    # Where the work points · How strongly HOURS claims it — the constants
     "constants_total": (
         lambda: pv.debt_summary(pv.load()).total,
         "every constant is tagged and published with its basis",
@@ -206,7 +206,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
         _debt_share,
         "roughly two constants in five are placeholder or bounded",
     ),
-    # §3.7 / §4 — the not-unique result
+    # Mutual credit · How they compare — the not-unique result
     "anchors_classified": (
         lambda: len(determinacy_table()),
         "anchors classified from their own definitions",

@@ -86,4 +86,4 @@ Total care stipend obligation from population demographics.
 
 ## Key Design Invariant
 
-The fiscal system must remain solvent at ε = 0 (near-zero creation and destruction) and at ε = 0.99 (near-zero creation and destruction from price collapse). Revenue streams that depend on production output are supplementary. The Stewardship Allocation — which scales with the capital stock — is the foundational revenue source that persists even at full automation.
+The fiscal system must remain solvent at ε = 0 (near-zero creation and destruction) and at ε = 0.99 (near-zero creation and destruction as floor prices collapse). Revenue streams that depend on production output are supplementary. The Stewardship Allocation — which scales with the capital stock — is the foundational revenue source that persists even at full automation.

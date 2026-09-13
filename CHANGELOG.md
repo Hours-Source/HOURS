@@ -9,6 +9,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+**The signed-off transparency pass reaches the front pages (2026-09-12)**
+- `overview.md`, `design_principles.md`, `three_economies.md` and the arc
+  waypoints now carry the positions adopted on 2026-08-15: ε → 1 as a limit,
+  prices as floor prices, and currency that records and shows its work rather
+  than measuring value. Design Principle 8 no longer says a green dashboard means
+  the system works.
+- `guf_framework.md` gives the shipped fee (Ψ retired, monotone in ε) beside the
+  NLSA bell in §4.1 and §4.4, and labels the worked example as the published
+  NLSA form.
+
 ### Added
 
 **The anchor comparison is published, and the docs are gated (2026-09-12)**

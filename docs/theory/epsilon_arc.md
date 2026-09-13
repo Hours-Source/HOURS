@@ -1,6 +1,6 @@
 # The ε Arc
 
-The framework's primary object is the transition itself — not any particular point on it, but the continuous arc from ε = 0 to ε = 1. This transition is not a policy choice, a historical stage, or a development theory. It is a physical consequence of how entropy obligations get fulfilled. As machines take over more of the work that entropy demands, human labor is progressively liberated. The transition describes that liberation quantitatively.
+The framework's primary object is the transition itself — not any particular point on it, but the continuous arc from ε = 0 toward its limit at ε = 1. This transition is not a policy choice, a historical stage, or a development theory. The framework models it as a consequence of how entropy obligations get fulfilled. As machines take over more of the work that entropy demands, human labor is progressively liberated. The transition describes that liberation quantitatively.
 
 ![Automation Arc](../images/automation_arc.svg)
 
@@ -65,7 +65,7 @@ D2 was income-driven and calibrated to the middle of the arc — it could not pr
 
 **ε = 0.90 — Near-post-scarcity:** Automation handles most production and much stewardship. Personal EOH in human-labor terms is low. Care labor is broadly registered and compensated. Focus: maintaining distributed competency, sustaining ecological systems, and fully recognizing care as the economy's core function.
 
-**ε = 0.99 — Effective post-scarcity:** Remaining human labor is almost entirely care, judgment, and knowledge maintenance — all registered, all compensated. Prices have collapsed. TEH supply contracts on both creation and destruction sides simultaneously. Focus: ensuring the floor rises with automation, sustaining the knowledge EOH domain, and preserving the human capacity to intervene when automated systems fail.
+**ε = 0.99 — Effective post-scarcity:** Remaining human labor is almost entirely care, judgment, and knowledge maintenance — all registered, all compensated. Floor prices have collapsed. TEH supply contracts on both creation and destruction sides simultaneously. Focus: ensuring the floor rises with automation, sustaining the knowledge EOH domain, and preserving the human capacity to intervene when automated systems fail.
 
 ---
 

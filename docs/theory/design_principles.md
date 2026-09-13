@@ -54,9 +54,9 @@ The four-factor assessment (training, demand, scarcity, impact) measures four di
 
 ## 5. The floor rises with automation; it never falls
 
-As automation reduces the human labor content of the Sufficiency basket, the Guarantee's purchasing power increases automatically. This is not a policy decision — it is a mathematical consequence of the system's structure. TEH-denominated prices fall as automation handles more EOH, so the same nominal TEH buys more.
+As automation reduces the human labor content of the Sufficiency basket, the Guarantee's purchasing power increases automatically. This is not a policy decision — within the model it follows from the system's structure. TEH-denominated floor prices fall as automation handles more EOH, so the same nominal TEH buys more of the basket.
 
-The nominal TEH amount may remain constant while the real standard of living it provides grows.
+The nominal TEH amount may remain constant while the real standard of living it provides grows. This is a claim about the **floor**: prices above it are discovered by exchange, and the framework makes no promise about them.
 
 !!! danger "Non-negotiable"
     Any proposed modification that would allow the floor to decline in real terms — through basket redefinition, regional manipulation, or conditional erosion — violates the system's core commitment. Model it, flag it, reject it.
@@ -85,7 +85,7 @@ If a function produces discontinuities, infinities, or undefined behavior as aut
 
 The papers describe a system. The code tests whether that system is self-consistent, fiscally solvent, and robust to shocks. Every claim in the papers should be verifiable by running a function. Every parameter should be sweepable to find its failure boundary.
 
-The dashboard is not a summary — it is a structural integrity check. If the dashboard shows green, the system works. If it shows red, the papers have a problem, not the code.
+The dashboard is not a summary — it is a structural integrity check, and it shows its work. **Green means every check it runs passes on the accounts it was given — not that the system works**, because a check sees only what it tests, and no verdict may outrank the weakest input it rests on. Red means a condition failed or an indicator is in its crisis range; yellow means the structural conditions pass but an indicator is near its warning boundary; the overall status is the worst of them. Either way the papers, the calibration or the accounts have a problem to look at, and the reading is reported, never tuned away.
 
 **Code:** `hours_eoh/core/dashboard.py` → `system_dashboard()`
 
@@ -96,7 +96,7 @@ The dashboard is not a summary — it is a structural integrity check. If the da
 The current calibration reference (ε = 0.40) is a validation anchor, not a design target. The test is whether a mechanism produces *meaningful, physically grounded results at both extremes*:
 
 - **At ε = 0:** Near-zero collective economy. TEH barely circulates. Most EOH is private. Registration shares are near their floor values. The ledger must be well-defined and solvent here.
-- **At ε = 0.99:** Near-zero-price economy. Human labor is negligible. Basket prices have collapsed. TEH creation and destruction both approach zero. The floor must still rise. The account identity must still hold.
+- **At ε = 0.99:** Near-zero floor prices. Human labor is a small share of the obligation — small, not zero, because care resists automation. Floor basket prices have collapsed. TEH creation and destruction both approach zero. The floor must still rise. The account identity must still hold.
 
 A mechanism that gives the right answer at ε = 0.40 but breaks at the extremes is a calibration artifact. A mechanism that gives the right answer at both extremes and everywhere in between is an expression of the transition.
 

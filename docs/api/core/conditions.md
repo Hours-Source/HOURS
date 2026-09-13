@@ -78,7 +78,7 @@ accounts it passes are stand-ins built inside `utils/dashboard_cmd.py` rather
 than tracked quantities. For a real collective, pass your own ledger figures.
 
 !!! important "The dashboard is the constitution's test bench"
-    If the dashboard shows green, the system works. If it shows red, the papers have a problem, not the code. See [Design Principle 8](../../theory/design_principles.md#8-the-code-is-the-constitutions-test-bench).
+    Green means every check it runs passes on the accounts it was given — not that the system works. A yellow or red reading is reported, never tuned away. See [Design Principle 8](../../theory/design_principles.md#8-the-code-is-the-constitutions-test-bench).
 
 ---
 

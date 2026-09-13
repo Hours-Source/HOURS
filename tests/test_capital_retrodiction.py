@@ -1,7 +1,8 @@
 """
 Reading ε off a real economy — `reference/capital_inventory` + `scenarios/capital_retrodiction`.
 
-WHAT IS AT STAKE. §7 of the anchor comparison carries a live falsifier — *if a
+WHAT IS AT STAKE. The anchor comparison ("What would change our mind") carries a
+live falsifier — *if a
 retrodiction produces an implausible ε, the endogenous-supply property is not
 reading the world it says it reads* — and it HAD FIRED. The only run against a
 real economy gave ε = 0.777–1.000, saturated, for a US where 158M people work,

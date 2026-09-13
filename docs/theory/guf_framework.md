@@ -18,7 +18,7 @@ This cost is derived from three physically grounded components: the opportunity 
 
 All fees described herein are denominated in Time-Equivalent Hours (TEH) and are subject to the standard constitutional provisions governing temporal currency, including the zero-interest identity (Condition III) and the public auditability mandate.
 
-**Epsilon parameterization.** Every mechanism in this framework is a function of ε, the observed automation level of the civilization. The GUF exhibits a characteristic arc across the ε range: at ε = 0 (subsistence), land use is directly linked to personal EOH fulfillment and the formal fee approaches a minimal flat base. At moderate ε, urbanization, institutional complexity, and demand pressure drive the fee to its peak. At ε = 0.99 (post-scarcity), labor-content costs have collapsed and the fee contracts to a stewardship-only floor. This arc shape — low at the extremes, highest in the middle — is the signature of a mechanism that correctly expresses the transition.
+**Epsilon parameterization.** Every mechanism in this framework is a function of ε, the observed automation level of the civilization. The NLSA specification gives the fee a bell-shaped arc: near a flat base at subsistence, peaking at moderate ε, contracting to a stewardship floor at post-scarcity. **The shipped fee does not follow that arc.** Ψ was retired as the default (author sign-off, 2026-08-20 — §4.2), so the fee responds to automation only through what a holding costs — labor content α(ε) in the base fee and replacement cost κ(ε) in the ecosystem term, both falling — and for a given serviced parcel it falls monotonically as ε rises. The low end of the NLSA arc survives in a different form: a remote parcel with no location value pays exactly zero at every ε, because the fee follows the absence of serviced land, not a scaling curve.
 
 ---
 
@@ -216,11 +216,21 @@ Conservation credits may reduce the base fee but cannot drive the total GUF belo
 
 ## 4.1 The Arc Shape
 
+**The shipped fee (`psi_policy="retired"`).** Monotone in ε for a given parcel, because both of its cost responses — α(ε) and κ(ε) — fall:
+
+- **ε = 0:** Labor content is highest, so a *serviced* parcel pays about half again its ε = 0.40 fee. A parcel with no location value pays exactly zero at every ε.
+- **ε = 0.40:** The calibration reference. All three Ψ policies agree exactly here, because Ψ(0.40) = 1 by construction.
+- **ε = 0.99:** Labor content has collapsed and the fee falls to roughly a tenth of its reference value.
+
+**The NLSA arc (`psi_policy="bell"`), kept as the published specification:**
+
 - **ε = 0:** Land possession linked to personal EOH fulfillment. Minimal institutional infrastructure. GUF approaches a flat base.
 - **ε = 0.30–0.60:** Urbanization intensive. Institutional capacity high. Demand peaks. Infrastructure substantial. GUF at maximum.
 - **ε = 0.99:** Labor costs collapsed. Infrastructure maintenance automated. Fee falls to stewardship-only floor.
 
-![Ψ(ε) bell curve across the automation arc](../images/guf_epsilon_arc.svg)
+The bell was retired because its two ends fail for different reasons: at the high end Ψ repeats α's "labor costs collapse" (one mechanism counted twice), and at the low end it nets a claim about whether a fee can be *collected* against what a holding *costs*.
+
+![Ψ(ε) bell curve across the automation arc — the NLSA form, not the shipped fee](../images/guf_epsilon_arc.svg)
 
 ## 4.2 The Epsilon Scaling Function — Ψ(ε)
 
@@ -229,9 +239,8 @@ Conservation credits may reduce the base fee but cannot drive the total GUF belo
     response to falling labour content at the high end — two terms encoding one
     mechanism — and made a category error at the low end. The fee's ε-response
     is carried by α (§4.3). This section is kept as the NLSA specification, and
-    `psi_policy="bell"` still applies it, but **§4.1's arc and the §4.4 boundary
-    table describe the bell form, not the shipped fee**: under the shipped
-    default the fee does not collapse toward zero at ε = 0.
+    `psi_policy="bell"` still applies it. §4.1 and §4.4 give both the shipped
+    and the NLSA behaviour.
 
 ```
 Ψ(ε) = 4ε^a × (1 − ε)^b + Ψ_floor    (Eq. 18)
@@ -243,7 +252,7 @@ Conservation credits may reduce the base fee but cannot drive the total GUF belo
 | b | 1.2 | Controls fall speed toward ε = 1 |
 | Ψ_floor | 0.02 | Minimum scaling at extremes |
 
-This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.40) ≈ 1.06, Ψ(ε=0.99) ≈ 0.03.
+This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.99) ≈ 0.03, and a peak at ε = a/(a+b) = 0.40. With the NLSA's leading coefficient of 4 the peak is ≈ 1.06, which is what the §11 worked example uses. **The code derives that coefficient from a, b and the floor instead (`GUF_PSI_NORM`), so its peak is exactly 1.00** — the NLSA's 4 claimed to normalize the curve to 1 and did not.
 
 ## 4.3 The Labor-Content Scaling Function — α(ε)
 
@@ -256,14 +265,16 @@ This produces a bell-shaped curve: Ψ(ε=0) ≈ 0.02, Ψ(ε=0.40) ≈ 1.06, Ψ(�
 
 ## 4.4 Boundary Verification
 
-| ε | Expected GUF Behavior | Verification Check |
+| ε | NLSA check (`bell`) | Shipped fee (`retired`) |
 |---|---|---|
-| 0.00 | Near-zero; flat base fee only | GUF < 0.05 × GUF(ε=0.40) |
-| 0.40 | Reference calibration point | GUF matches published reference rates |
-| 0.90 | Substantially reduced | GUF < 0.25 × GUF(ε=0.40) |
-| 0.99 | Near-zero stewardship floor | GUF < 0.05 × GUF(ε=0.40) |
+| 0.00 | GUF < 0.05 × GUF(ε=0.40) | A serviced parcel pays **more** than at the reference; a parcel with no location value pays exactly 0 |
+| 0.40 | GUF matches published reference rates | Identical to `bell` — Ψ(0.40) = 1 |
+| 0.90 | GUF < 0.25 × GUF(ε=0.40) | Under a third of the reference, **not** under a quarter |
+| 0.99 | GUF < 0.05 × GUF(ε=0.40) | Roughly a tenth of the reference — **this NLSA condition does not survive**; it is the cost terms falling without Ψ's second discount |
 
-**Code:** `hours_eoh/land/guf.py` → `boundary_verification()`
+The NLSA conditions that fail under the default are recorded as a consequence of the retirement, not relaxed to pass.
+
+**Tests:** `tests/test_land_guf.py` pins both §4.4 end conditions under `psi_policy="bell"`, pins that they do **not** hold under the default (the fee is higher at ε = 0 and lower at ε = 0.90 than at the reference), and pins the exact zero for a parcel with no location value. The shape words in §4.1 and this table ("about half again", "under a third", "roughly a tenth") are pinned as ranges on both the urban archetype and the §11 parcel.
 
 ---
 
@@ -437,6 +448,16 @@ Parcels converted from pre-TEH ownership carry a historical baseline GUF. These 
 
 **Parcel:** Mid-density residential, 4.2 km from city center. Area: 3.5 SLU. Use: Residential Primary. Green cover: 35% native landscaping. Nearest transit: 800 m (45,000 TEH cost, 50-yr life, 1,800 parcels). Nearest park: 400 m (8,000 TEH, 75-yr life, 500 parcels). Leaseholder income: 3,200 TEH/yr. National median: 3,500 TEH/yr. Z(p) = 1.0. Ω(p) = 1.0.
 
+!!! note "This is the published NLSA example, not the shipped fee"
+    It is reproduced as the regression anchor and differs from what
+    `ground_use_fee()` computes today in three declared ways:
+
+    - **Ψ is 1.0 at ε = 0.40, not 1.06** — retired by default (Ψ ≡ 1), and normalized to peak at exactly 1.00 even under `bell` (§4.2) — so Step 5's bracket is not scaled.
+    - **The use coefficient ships at a hundred times the NLSA rate** (`GUF_USE_*`, an open item — see `record/guf.md`), so the base fee is a hundred times Step 2's.
+    - **A per-parcel term is added outside the bracket** (adopted 2026-08-30), which Eq. 1 does not have.
+
+    `tests/test_land_guf.py` asserts the example's components against the code at a zero per-parcel rate, and asserts the shipped fee as the example plus the term, so the differences are demonstrated rather than hidden.
+
 **Step 1: Epsilon Scaling Function**
 
 ```
@@ -519,7 +540,7 @@ The land stewardship authority is subject to annual audit by the temporal ledger
 |---|---|---|---|
 | Density Bonus | 2.1 | None | FAR threshold, reduction formula, minimum floor |
 | Community Maturity Metrics | 2.2.6 | Not included | Sub-index, dampening, feedback monitoring |
-| Epsilon Shape Parameters | 4.2 | a=0.8, b=1.2, floor=0.02 | Calibrated to local arc trajectory |
+| Epsilon Shape Parameters | 4.2 | Retired (Ψ ≡ 1); NLSA a=0.8, b=1.2, floor=0.02 under `psi_policy="bell"` | Whether to reinstate a scaling curve, and its shape |
 | GUF Floor | 1.3 | 0.0 TEH/yr | Any non-negative value |
 | Zone Adjustment Range | 2.4.1 | Z=1.0 (range 0.80–1.25) | Zone designations and justifications |
 | Occupancy Fraction | 2.7 | Ω=1.0 | Qualifying categories, verification rules |

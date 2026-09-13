@@ -10,7 +10,8 @@ counted the workers, this converts them to hours at a declared frame and puts
 them beside the obligation. Phase 3 — whether the term enters `total_eoh` —
 moves every ratio computed against the obligation and needs the author.
 
-WHAT THIS ANSWERS. `anchor_comparison_draft.md` §7 states a falsification
+WHAT THIS ANSWERS. `docs/theory/anchor_comparison.md` ("What would change our
+mind") states a falsification
 condition: *if verification cost, once costed, exceeds the obligation it
 verifies at any point on the arc, the anchor is not cheaper to audit than the
 incumbents.* That was unanswerable while the term did not exist. It is
@@ -1210,7 +1211,7 @@ def verification_report(scope: str = "core", **state: Any) -> dict:
         verdict = (
             "the audit advantage does not hold across the whole arc under "
             + " and ".join(reachable)
-            + "; see §7 of the anchor comparison"
+            + "; see 'What would change our mind' in the anchor comparison"
         )
     else:
         verdict = (

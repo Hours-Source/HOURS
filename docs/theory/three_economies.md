@@ -26,7 +26,7 @@ At low automation, care labor is embedded in subsistence — most of it remains 
 - Accelerating through the mid-automation range (complexity demands quality human capital)
 - Full registration reached well before post-scarcity
 
-The currency measures relational labor. The floor becomes a platform. The conditional tier evolves to recognize contribution broadly defined.
+The currency records relational labor. The floor becomes a platform. The conditional tier evolves to recognize contribution broadly defined.
 
 ---
 
@@ -34,7 +34,7 @@ The currency measures relational labor. The floor becomes a platform. The condit
 
 The production economy uses human capital (built by care) to create goods, infrastructure, and systems that reduce aggregate EOH. Production labor is the most legible form of entropy resistance — goods made, structures built, systems constructed — and is therefore the first layer most collectives admit to the ledger.
 
-The currency measures that labor honestly. Prices tell you how much human life went into making something. The multiplier rewards investment in capability. The floor guarantees that no one is disposable.
+The currency records that labor and shows its work. A good's floor price shows how much human labor the obligations behind it carry; what the good is worth above that, exchange discovers. The multiplier rewards investment in capability. The floor guarantees that no one is disposable.
 
 ### The production economy's defining logic
 
@@ -46,7 +46,7 @@ This zone shrinks as automation expands — not because it becomes less importan
 
 ## The Stewardship Economy — Upper Zone
 
-The stewardship economy is where automation takes civilization. Machines produce goods. Humans maintain the machines, the infrastructure, the ecological systems, and the knowledge base that make abundance possible. The currency measures that maintenance labor. Prices tell you how much human judgment and care sustains the systems everyone depends on.
+The stewardship economy is where automation takes civilization. Machines produce goods. Humans maintain the machines, the infrastructure, the ecological systems, and the knowledge base that make abundance possible. The currency records that maintenance labor. Floor prices show how much human judgment and care the systems everyone depends on require.
 
 ### The stewardship economy's defining logic
 

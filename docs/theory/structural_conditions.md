@@ -2,7 +2,7 @@
 
 A TEH-denominated economy achieves stable, within-collective floor-guaranteed operation if and only if the first three conditions are maintained simultaneously. The fourth condition is not required for monetary stability but is strongly recommended for civilizational resilience.
 
-*(Scope note: within-collective inflation is structurally impossible at all ε by Condition I. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility holds as ε→1. See the [Coasean federation module](../api/research.md) (`hours_eoh/research/coasean.py`) and reconciliation §7.)*
+*(Scope note: within a collective, the **floor** cannot inflate at any ε — Condition I is a supply identity, so no TEH exists without a verified record of work behind it. That is a floor property, not a claim about all prices: prices above the floor are discovered by exchange and can move. Inter-collective exchange-rate drift is possible during the automation transition in a polycentric federation. System-wide inflation-impossibility survives only as the ε→1 limit case. See the [Coasean federation module](../api/research.md) (`hours_eoh/research/coasean.py`) and reconciliation §7.)*
 
 ---
 
@@ -14,7 +14,7 @@ A TEH-denominated economy achieves stable, within-collective floor-guaranteed op
 
     **Circulatory vs. destructive flows:** Spending that transfers TEH between parties is circulatory, not destructive. Levies and fiscal mechanisms that collect TEH are circulatory — they redirect TEH into capital investment, stewardship allocation, and social programs, but do not destroy it. Only terminal consumption and capital write-down remove TEH from existence.
 
-    **Arc requirement:** The ledger identity must hold at ε = 0 (where barely any TEH is created or destroyed) and at ε = 0.99 (where both creation and destruction approach zero from price collapse). A verification mechanism that works only in the middle of the arc is incomplete.
+    **Arc requirement:** The ledger identity must hold at ε = 0 (where barely any TEH is created or destroyed) and at ε = 0.99 (where both creation and destruction approach zero as floor prices collapse). A verification mechanism that works only in the middle of the arc is incomplete.
 
     **Code:** `hours_eoh/core/conditions.py` → `condition_i_check()`
 

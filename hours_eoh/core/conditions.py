@@ -305,6 +305,9 @@ def dashboard_snapshot(
     Reference: Mission Statement §"Principle 8 — The code is the constitution's
     test bench. If the dashboard shows green, the system works. If it shows
     red, the papers have a problem, not the code."
+    Adopted reading (transparency pass, 2026-08-15; docs Design Principle 8):
+    "GREEN" means every condition checked passes on the inputs given, not that
+    the system works.
     """
     c1 = condition_i_check(teh_created, teh_destroyed, teh_observed)
     c2 = condition_ii_check(mean_multiplier, band_low, band_high)

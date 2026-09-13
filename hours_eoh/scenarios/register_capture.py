@@ -13,8 +13,8 @@ The framework's stated criticism of fiat is that issuance rests on discretion th
 holder cannot see. The property that answers the hole-digger objection — that
 only registered obligation mints — is the SAME property that concentrates that
 risk in whoever maintains the register. That is not an incidental weakness; it is
-the anchor's own argument turned around, and §7 of the anchor page carries it as
-a live falsifier.
+the anchor's own argument turned around, and the anchor page carries it as a
+live falsifier under "What would change our mind".
 
 WHAT THIS MODULE DOES NOT DO, and the boundary is the point
 ------------------------------------------------------------

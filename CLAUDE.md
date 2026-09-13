@@ -175,7 +175,7 @@ hours_eoh/
     labour_epsilon.py  ε READ OFF TIME USE — the SECOND instrument, currency-free. ONE
                        judgement against the capital route's three; reports OVERLAP/ADJACENT/
                        DIVERGENT and never asserts agreement. REPORTING ONLY
-    verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the §7 falsifier,
+    verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the audit falsifier,
                        answered: no crossover on the arc under either scaling basis. Frame
                        DECLARED (US census → per-capita → caller's frame); REPORTING ONLY
 
@@ -502,7 +502,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,671 tests passing (1 skipped), mypy clean on 101 source files** (verified
+**4,673 tests passing (1 skipped), mypy clean on 101 source files** (verified
 2026-09-12). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -535,7 +535,7 @@ this whole structure forbids.**
 - The discovery layer above the floor is a 120-line stub; every purchasing-power
   claim is scoped to the floor.
 - Registration capture is BOUNDED IN VOLUME and not in DISTRIBUTION
-  (2026-09-12, §8a adopted) — registering cannot create obligation and the mint
+  (2026-09-12, "What HOURS adds" adopted) — registering cannot create obligation and the mint
   cannot exceed what was served, but who a captured register admits is not
   represented. A research area downstream of exchange work at scale. The
   contestability arc addresses EXIT, this is VOICE.

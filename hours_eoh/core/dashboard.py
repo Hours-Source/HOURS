@@ -2,9 +2,11 @@
 System Dashboard and Structural Integrity
 
 The dashboard is the primary structural integrity check (Principle 8):
-"The code is the constitution's test bench." If the dashboard shows green,
-the system is coherent. If any indicator shows red, the papers have a
-problem, not the code.
+"The code is the constitution's test bench." Green means every check it runs
+passes on the accounts it was given — not that the system works, since a check
+sees only what it tests. A yellow or red reading means the papers, the
+calibration or the accounts have a problem, and it is reported, never tuned
+away.
 
 Structure:
   5.1  Condition monitors (I–IV) — foundational structural conditions

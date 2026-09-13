@@ -388,7 +388,8 @@ class TestGroundUseFee:
         # NLSA §10 components: base_fee scales with GUF_USE_RESIDENTIAL_PRIMARY (10.0 TEH/SLU/yr);
         # base = 3.5 × 0.629 × 10.0 × D ≈ 22.5. Eco and infra use caller-supplied kappa_ref
         # values so are unchanged: eco=0.905, infra=0.490.
-        # Ψ(0.40) ≈ 1.062 → GUF ≈ 1.062 × (22.5 + 0.905 + 0.490) ≈ 25.4.
+        # Ψ is normalized so Ψ(0.40) = 1 under every policy (raw Eq. 18 gives
+        # ≈1.06) → GUF ≈ 22.5 + 0.905 + 0.490 + parcel_term.
         result = self._nlsa_example(0.40)
         assert result["base_fee"]      == pytest.approx(22.5, abs=0.05)
         assert result["eco_surcharge"] == pytest.approx(0.905, abs=0.005)
@@ -1515,3 +1516,35 @@ class TestTheConservationCreditClampIsADecision:
             "was stranded at ecological_eoh until 2026-08-30, which made this "
             "argument false at the documented entry point"
         )
+
+
+class TestTheShippedArcShapeWordsOnThePage:
+    """
+    `docs/theory/guf_framework.md` §4.1/§4.4 describe the shipped fee in shape
+    words rather than figures (2026-09-12), so the words are what is pinned:
+    "about half again" at ε=0, "under a third" at 0.90, "roughly a tenth" at
+    0.99, each relative to ε=0.40. Checked on BOTH inputs the page speaks for —
+    the urban archetype and the §11 parcel — because their ecosystem terms
+    decay at different rates and one input could drift out of a word the other
+    still fits.
+    """
+
+    @staticmethod
+    def _ratios(fee_at):
+        ref = fee_at(0.40)
+        return {e: fee_at(e) / ref for e in (0.0, 0.90, 0.99)}
+
+    def _assert_shape_words(self, r):
+        assert 1.3 <= r[0.0] <= 1.6, f"'about half again' at ε=0: {r[0.0]:.3f}"
+        assert 0.25 <= r[0.90] < 1 / 3, f"'under a third, not a quarter': {r[0.90]:.3f}"
+        assert 0.08 <= r[0.99] <= 0.15, f"'roughly a tenth' at ε=0.99: {r[0.99]:.3f}"
+
+    def test_urban_archetype(self):
+        from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
+        inventory = make_urban_collective()
+        self._assert_shape_words(self._ratios(
+            lambda e: compute_collective_guf(inventory, e)["guf_gross_revenue"]))
+
+    def test_section_11_parcel(self):
+        example = TestGroundUseFee()._nlsa_example
+        self._assert_shape_words(self._ratios(lambda e: example(e)["guf_formula"]))
