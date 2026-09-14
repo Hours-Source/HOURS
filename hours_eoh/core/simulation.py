@@ -392,8 +392,10 @@ def simulate_period(
     teh_this_period = pipeline["teh_created"]
 
     # Labor income = TEH created this period (what registered human workers earned).
-    # At ε=0: full teh_created; at ε=0.99: teh_created approaches zero as human_eoh_share
-    # collapses. This is physics-derived, not a geometric decay formula.
+    # It does not fall monotonically with ε. It is smallest at ε=0, where almost none of
+    # the obligation is registered, rises through most of the arc as registration widens
+    # faster than the human share narrows, and falls only late — at ε=0.99 it stays far
+    # above its ε=0 level. Derived from the pipeline, not a geometric decay formula.
     # labor_income_scale overrides for scenario testing (e.g., income-shock stress tests).
     labor_income = labor_income_scale if labor_income_scale is not None else teh_this_period
     labor_income = max(LABOR_INCOME_MIN_TEH, labor_income)
