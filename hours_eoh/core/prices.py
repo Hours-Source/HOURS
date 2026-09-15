@@ -660,6 +660,12 @@ def cpi_goods_destruction(
     that are never paid for directly by individuals (guarantee-funded or
     collectively provisioned goods).
 
+    PAUSED in `simulate_period` since 2026-09-15 (`use_cpi_destruction=False`),
+    not retired. Under decision (a) a machine-delivered good's labour mints in
+    infrastructure, so at the floor there is nothing here to destroy, and D3
+    over effective personal EOH already prices delivery. Kept for a market-level
+    split, where part of a good discharges obligation and the rest is market.
+
     Args:
         capital_personal_eoh_fulfilled_total: Total personal EOH fulfilled by
             capital infrastructure across the entire population (EOH/year).

@@ -64,6 +64,8 @@ Sweeps ε from 0 to 0.99 and flags any step at which floor purchasing power decl
 
 D4 TEH destruction: when capital assets (water treatment, hospitals, energy grids) deliver personal-EOH services, those services are consumed at their embedded labor price and the TEH is destroyed at the point of delivery.
 
+**Paused in `simulate_period`** (`use_cpi_destruction=False` by default). The machine-delivered good's labour mints in infrastructure, so at the floor it has nothing for D4 to destroy, and D3 over effective personal EOH already prices delivery. The function is kept for a market-level split, where part of a good discharges obligation and the rest trades as market.
+
 ---
 
 ## Additional Functions

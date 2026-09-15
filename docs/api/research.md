@@ -77,7 +77,7 @@ the collective. Two components: sufficiency guarantee (what the collective owes
 them regardless) + Trust dividend per capita.
 
 Returns keys: `p`, `guarantee_per_person`, `trust_dividend_per_capita`,
-`capital_fulfilled_per_person`, `epsilon`.
+`effective_personal_eoh_per_person`, `epsilon`.
 
 ### `entry_cost(epsilon, regime, k0, k_slope) → float`
 

@@ -77,8 +77,8 @@ Each destruction mechanism is switched by a keyword argument of `simulate_period
 |---|---|---|---|
 | Capital write-down | D1 | A failure rate on the capital stock, reduced as monitoring improves — an aggregate proxy, not `execute_writedown()` per asset | always on |
 | Income-driven consumption | D2 | A consumption rate on period income (net wages plus the Trust dividend), falling as purchasing power rises | on, unless `use_d3=True` |
-| Biology-anchored consumption | D3 | On-ledger personal EOH converted to baskets at the basket price | `use_d3=False` |
-| Capital-delivered services | D4 | `cpi_goods_destruction()` | `use_cpi_destruction=True` |
+| Biology-anchored consumption | D3 | On-ledger personal EOH × its human-carried share × `M_FLOOR` (1 TEH per human obligation hour) | `use_d3=False` |
+| Capital-delivered services | D4 | `cpi_goods_destruction()` — **paused**: D3 already covers delivery, and a machine-delivered good has no floor price to destroy. Kept for a market-level split | `use_cpi_destruction=False` |
 | Death events | D5 | `estate_dissolution()`; the estate levy returns to the Trust | `use_estate_dissolution=True` |
 | Accumulation ceiling | D6 | `accumulation_ceiling_commitment()` — commits the excess to capital formation rather than destroying it | `use_accumulation_ceiling=False` |
 

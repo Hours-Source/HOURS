@@ -147,13 +147,15 @@ def aggregate_personal_eoh_fulfilled(
 ) -> dict:
     """
     Aggregate annual_personal_eoh_fulfilled across a capital fleet and derive
-    the per-capita value needed by sufficiency_guarantee().
+    its per-capita value.
 
     Each asset in the fleet that directly fulfills personal biological EOH
     (water treatment, hospitals, energy grids) contributes its
     annual_personal_eoh_fulfilled to the collective total. Dividing by
-    population gives the per-capita coverage that reduces the guarantee's
-    EOH reimbursement component.
+    population gives per-capita coverage. It no longer reduces the guarantee:
+    since 2026-09-15 `sufficiency_guarantee` is sized on
+    `effective_personal_eoh`, whose human share already carries machine
+    fulfilment.
 
     Args:
         assets: List of Asset dicts. Assets without annual_personal_eoh_fulfilled
@@ -168,8 +170,9 @@ def aggregate_personal_eoh_fulfilled(
           "population":                         float,
         }
 
-    Usage: pass result["per_capita_fulfilled"] to sufficiency_guarantee() as
-    capital_personal_eoh_fulfilled_per_person.
+    Usage: a reported coverage figure. Do NOT pass it to sufficiency_guarantee()
+    as capital_personal_eoh_fulfilled_per_person — that parameter is deprecated
+    and not applied (it warns).
 
     Reference: Mission Statement §"Capital stock fulfills personal EOH on behalf
     of the population — water treatment, healthcare infrastructure, energy grids."

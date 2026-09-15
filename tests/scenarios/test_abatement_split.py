@@ -289,19 +289,29 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
         assert rate["computing_ai"] < 0.05
         assert rate["environmental_monitoring"] == 0.0
 
-    def test_the_fiscal_layer_already_subtracts_the_other_channel(self) -> None:
+    def test_the_fiscal_layer_carries_the_other_channel_as_a_product(self) -> None:
         """
-        Where it would bite a person. `sufficiency_guarantee` reimburses
-        `max(0, raw − capital_personal_eoh_fulfilled)`. If abatement became the
-        generation default, `raw` would already be reduced by a(K) — the same
-        tap subtracted twice from what someone is owed.
+        Where it would bite a person. Until 2026-09-15 `sufficiency_guarantee`
+        reimbursed `max(0, raw − capital_personal_eoh_fulfilled)`, a double
+        SUBTRACTION if abatement became the default. It now reimburses
+        `raw × personal_human_fraction(ε) × M_FLOOR` and ignores the subtraction —
+        so the subtraction is gone, but a(K) lowering `raw` and a human share
+        reflecting machine fulfilment would still be two terms for one tap.
+        Checked by behaviour, not source text: the supplied subtraction moves
+        nothing, and the human share does.
         """
-        import inspect
-        from hours_eoh.core import fiscal
-        src = inspect.getsource(fiscal.sufficiency_guarantee)
-        assert "capital_personal_eoh_fulfilled_per_person" in src
-        assert "max(0.0, raw_eoh_per_person - capital_personal_eoh_fulfilled_per_person)" in src
-        assert removal_audit()["fiscal_double_subtracts"] is True
+        import warnings as _w
+        from hours_eoh.core.fiscal import sufficiency_guarantee
+        base = sufficiency_guarantee(1_000_000, 0.90)
+        with _w.catch_warnings():
+            _w.simplefilter("ignore", DeprecationWarning)
+            supplied = sufficiency_guarantee(
+                1_000_000, 0.90, capital_personal_eoh_fulfilled_per_person=500.0)
+        assert supplied["eoh_reimbursement_per_person"] == base["eoh_reimbursement_per_person"]
+        assert base["eoh_reimbursement_per_person"] < base["raw_eoh_per_person"]
+        audit = removal_audit()
+        assert audit["fiscal_double_subtracts"] is False
+        assert audit["fiscal_double_counts"] is True
 
     def test_abatement_is_still_not_the_generation_default(self) -> None:
         """The double subtraction is not live, and this is what keeps it so."""

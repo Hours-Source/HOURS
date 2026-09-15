@@ -26,9 +26,13 @@ TEH directed toward fulfilling infrastructure entropy obligations from the capit
 
 TEH directed toward ecological EOH fulfillment and natural system stewardship.
 
+### `effective_personal_eoh(epsilon, personal_eoh_base, automation_response)` → `float`
+
+Personal obligation hours per person that still need human labour at ε: the age-weighted obligation × its human-carried share. The obligation itself does not fall with automation; this does. Labour embodied in machine-delivered goods mints in infrastructure and is not in this share.
+
 ### `sufficiency_guarantee(population, epsilon, …)` → `dict`
 
-The floor — minimum TEH guaranteed to every collective member. Real purchasing power rises automatically with automation (same nominal TEH, lower basket prices). See [Design Principle 5](../../theory/design_principles.md#5-the-floor-rises-with-automation-it-never-falls).
+The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays `effective_personal_eoh(ε)` at `M_FLOOR`, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. `capital_personal_eoh_fulfilled_per_person` is deprecated and not applied. See [Design Principle 5](../../theory/design_principles.md#5-the-floor-rises-with-automation-it-never-falls).
 
 ---
 

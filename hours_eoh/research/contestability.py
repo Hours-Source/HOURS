@@ -68,7 +68,7 @@ from hours_eoh.data import (
 # Recompute locally — do not import the private constant from fiscal.py.
 _AGE_WEIGHTED_EOH_MEAN: float = sum(
     v["fraction"] * v["eoh_weight"] for v in AGE_GROUPS.values()
-)  # ≈ 1.475
+)  # computed from AGE_GROUPS; do not restate the figure
 
 
 # ---------------------------------------------------------------------------
@@ -87,26 +87,24 @@ def portable_endowment(
         P(ε) = S(ε) + D(ε)
 
     Where:
-        S(ε) = sufficiency_guarantee(ε, capital_fulfilled=ε·ā·EOH_base)["total_per_person"]
-               — the per-recipient guarantee floor; eoh_reimbursement declines to zero as
-                 machines fulfill personal EOH; meaningful-activity bonus grows quadratically
+        S(ε) = sufficiency_guarantee(ε)["total_per_person"]
+               — the per-recipient guarantee floor: effective personal EOH at
+                 M_FLOOR plus the meaningful-activity bonus
         D(ε) = trust_balance · DEP_RATE · DIV_RATE / population
                — per-capita Trust dividend (universal, not tenure-dependent)
-        ā    = _AGE_WEIGHTED_EOH_MEAN ≈ 1.475
-               — population-weighted EOH load per person
+
+    UNTIL 2026-09-15 S was computed with `capital_fulfilled = ε·ā·EOH_base`
+    subtracted from the gross obligation — a double discount, because the
+    machine-met hours still cost TEH on the curve the basket falls on (0.06× the
+    acquisition cost at ε=0.99). S now rests on `effective_personal_eoh`, the
+    human-carried share, so it no longer approaches the bonus alone at the top.
 
     NOTE: P is modeled as population-average. Individual P with tenure-based
     vesting is a known extension (§9 open item 7).
 
-    Worked example (ε=0.40, population=1M, trust_balance=35B TEH):
-        capital_fulfilled = 0.40 × 1.475 × 1500 = 885 h/yr
-        S ≈ 2332 − 885 + 162 ≈ 1609 TEH/person   (guarantee, ε-scaled)
-        D = 35B × 0.045 × 0.40 / 1M = 630 TEH/person
-        P ≈ 2239 TEH/person
-
-    ε-behavior:
-        ε=0.00: P ≈ 2962 TEH/person (full eoh reimbursement + base meaningful-activity)
-        ε=0.99: P ≈ 948  TEH/person (eoh reimbursement ≈ 0; only bonus + dividend)
+    ε-behavior: P is highest at ε=0 (full human-carried obligation) and falls as
+    the human share falls; it stays above the dividend plus bonus at ε=0.99
+    because care and nutrition carry automation floors. Figures: call it.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -115,18 +113,16 @@ def portable_endowment(
 
     Returns:
         dict with keys: p, guarantee_per_person, trust_dividend_per_capita,
-        capital_fulfilled_per_person, epsilon.
+        effective_personal_eoh_per_person, epsilon.
     """
     if not 0.0 <= epsilon <= 0.99:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if population <= 0:
         raise ValueError(f"population must be positive, got {population}")
 
-    capital_fulfilled = epsilon * _AGE_WEIGHTED_EOH_MEAN * PERSONAL_EOH_BASE
     guarantee = sufficiency_guarantee(
         population=population,
         epsilon=epsilon,
-        capital_personal_eoh_fulfilled_per_person=capital_fulfilled,
     )
     trust_dividend = trust_balance * DEP_RATE * DIV_RATE / population
     p = guarantee["total_per_person"] + trust_dividend
@@ -135,7 +131,7 @@ def portable_endowment(
         "p": p,
         "guarantee_per_person": guarantee["total_per_person"],
         "trust_dividend_per_capita": trust_dividend,
-        "capital_fulfilled_per_person": capital_fulfilled,
+        "effective_personal_eoh_per_person": guarantee["effective_personal_eoh_per_person"],
         "epsilon": epsilon,
     }
 

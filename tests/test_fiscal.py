@@ -251,7 +251,10 @@ class TestSufficiencyGuarantee:
     def test_guarantee_result_keys(self):
         """New EOH-reimbursement model returns expected keys."""
         result = sufficiency_guarantee(1_000_000, 0.40)
-        for key in ("raw_eoh_per_person", "capital_personal_eoh_fulfilled_per_person",
+        assert "capital_personal_eoh_fulfilled_per_person" not in result
+        for key in ("raw_eoh_per_person", "personal_human_fraction",
+                    "effective_personal_eoh_per_person", "teh_per_obligation_hour",
+                    "capital_personal_eoh_fulfilled_supplied_not_applied",
                     "eoh_reimbursement_per_person", "meaningful_activity_teh_effective",
                     "total_per_person", "eoh_reimbursement_total",
                     "meaningful_activity_total", "total_cost_teh"):
@@ -263,40 +266,100 @@ class TestSufficiencyGuarantee:
         g_90 = sufficiency_guarantee(1_000_000, 0.90)
         assert g_90["meaningful_activity_teh_effective"] > g_0["meaningful_activity_teh_effective"]
 
-    def test_eoh_reimbursement_independent_of_epsilon(self):
-        """EOH reimbursement per person is fixed — biology does not change with automation."""
+    # RETIRED 2026-09-15: `test_eoh_reimbursement_independent_of_epsilon`
+    # ("biology does not change with automation") pinned the conflation the
+    # effective_personal_eoh build removes — the OBLIGATION does not change, the
+    # TEH needed to acquire it does. The raw obligation is still pinned flat below.
+
+    def test_raw_obligation_independent_of_epsilon(self):
+        """What a person needs does not fall with automation."""
         g_0  = sufficiency_guarantee(1_000_000, 0.0)
         g_90 = sufficiency_guarantee(1_000_000, 0.90)
-        assert g_0["eoh_reimbursement_per_person"] == pytest.approx(
-            g_90["eoh_reimbursement_per_person"], rel=1e-9
-        )
+        assert g_0["raw_eoh_per_person"] == pytest.approx(g_90["raw_eoh_per_person"], rel=1e-12)
 
-    def test_capital_fulfillment_zero_by_default(self):
-        """Without capital fulfillment, reimbursement equals full age-weighted personal EOH."""
-        g = sufficiency_guarantee(1_000_000, 0.40)
-        assert g["capital_personal_eoh_fulfilled_per_person"] == 0.0
-        assert g["eoh_reimbursement_per_person"] == pytest.approx(g["raw_eoh_per_person"])
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_reimbursement_is_effective_obligation_at_the_floor_rate(self, eps):
+        from hours_eoh.core.fiscal import effective_personal_eoh
+        from hours_eoh.core.eoh_fulfillment import personal_human_fraction
+        from hours_eoh.data import M_FLOOR
+        g = sufficiency_guarantee(1_000_000, eps)
+        h = personal_human_fraction(eps)
+        assert g["personal_human_fraction"] == pytest.approx(h, rel=1e-12)
+        assert g["effective_personal_eoh_per_person"] == pytest.approx(
+            g["raw_eoh_per_person"] * h, rel=1e-12)
+        assert g["effective_personal_eoh_per_person"] == pytest.approx(
+            effective_personal_eoh(eps), rel=1e-12)
+        assert g["eoh_reimbursement_per_person"] == pytest.approx(
+            g["effective_personal_eoh_per_person"] * M_FLOOR, rel=1e-12)
+        assert g["teh_per_obligation_hour"] == M_FLOOR
 
-    def test_capital_fulfillment_reduces_reimbursement(self):
-        """Capital fulfillment reduces EOH reimbursement by the fulfilled amount."""
-        g_base    = sufficiency_guarantee(1_000_000, 0.40)
-        fulfilled = 500.0
-        g_partial = sufficiency_guarantee(
-            1_000_000, 0.40,
-            capital_personal_eoh_fulfilled_per_person=fulfilled,
-        )
-        expected = g_base["raw_eoh_per_person"] - fulfilled
-        assert g_partial["eoh_reimbursement_per_person"] == pytest.approx(expected, rel=1e-6)
-        assert g_partial["total_cost_teh"] < g_base["total_cost_teh"]
+    def test_reimbursement_falls_with_the_human_share(self):
+        """At ε=0 nothing is automated, so effective equals raw; above it, less."""
+        reimb = [sufficiency_guarantee(1_000_000, e)["eoh_reimbursement_per_person"]
+                 for e in (0.0, 0.40, 0.90, 0.99)]
+        g_0 = sufficiency_guarantee(1_000_000, 0.0)
+        assert reimb[0] == pytest.approx(g_0["raw_eoh_per_person"], rel=1e-12)
+        assert all(a > b for a, b in zip(reimb, reimb[1:]))
+        assert reimb[-1] > 0.0
 
-    def test_capital_fulfillment_floored_at_zero(self):
-        """Over-fulfillment floors reimbursement at zero."""
-        g = sufficiency_guarantee(
-            1_000_000, 0.40,
-            capital_personal_eoh_fulfilled_per_person=9_999.0,
-        )
-        assert g["eoh_reimbursement_per_person"] == 0.0
-        assert g["total_cost_teh"] > 0.0  # meaningful_activity_teh still paid
+    def test_automation_response_changes_the_reimbursement(self):
+        """The two curves coincide at ε=0 and diverge above it — so a test only at
+        ε=0 could not tell which one the guarantee is sized on."""
+        for eps, differ in ((0.0, False), (0.90, True)):
+            pc = sufficiency_guarantee(1_000_000, eps, automation_response="per_component")
+            un = sufficiency_guarantee(1_000_000, eps, automation_response="uniform")
+            if differ:
+                assert pc["eoh_reimbursement_per_person"] > un["eoh_reimbursement_per_person"] * 1.5
+            else:
+                assert pc["eoh_reimbursement_per_person"] == pytest.approx(
+                    un["eoh_reimbursement_per_person"], rel=1e-12)
+
+    def test_capital_fulfillment_default_is_silent(self):
+        import warnings as _w
+        with _w.catch_warnings():
+            _w.simplefilter("error", DeprecationWarning)
+            g = sufficiency_guarantee(1_000_000, 0.40)
+        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 0.0
+
+    def test_capital_fulfillment_is_deprecated_and_not_applied(self):
+        """A supplied subtraction warns, is echoed under a key saying it was not
+        applied, and moves nothing — the human share already carries it."""
+        g_base = sufficiency_guarantee(1_000_000, 0.40)
+        with pytest.warns(DeprecationWarning):
+            g = sufficiency_guarantee(
+                1_000_000, 0.40,
+                capital_personal_eoh_fulfilled_per_person=500.0,
+            )
+        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 500.0
+        assert g["eoh_reimbursement_per_person"] == g_base["eoh_reimbursement_per_person"]
+        assert g["total_cost_teh"] == g_base["total_cost_teh"]
+
+
+class TestEffectivePersonalEoh:
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_finite_positive_and_bounded_by_the_obligation(self, eps):
+        from hours_eoh.core.fiscal import effective_personal_eoh, _AGE_WEIGHTED_EOH_MEAN
+        from hours_eoh.data import PERSONAL_EOH_BASE
+        v = effective_personal_eoh(eps)
+        assert math.isfinite(v)
+        assert 0.0 < v <= _AGE_WEIGHTED_EOH_MEAN * PERSONAL_EOH_BASE * (1 + 1e-12)
+
+    def test_non_increasing_on_a_fine_grid(self):
+        from hours_eoh.core.fiscal import effective_personal_eoh
+        vals = [effective_personal_eoh(i / 1000) for i in range(0, 991)]
+        assert all(a >= b for a, b in zip(vals, vals[1:]))
+
+    def test_scales_with_the_base(self):
+        from hours_eoh.core.fiscal import effective_personal_eoh
+        assert effective_personal_eoh(0.40, personal_eoh_base=2000.0) == pytest.approx(
+            2.0 * effective_personal_eoh(0.40, personal_eoh_base=1000.0), rel=1e-12)
+
+    def test_care_floors_keep_it_above_uniform_at_the_top(self):
+        from hours_eoh.core.fiscal import effective_personal_eoh
+        pc = effective_personal_eoh(0.99, automation_response="per_component")
+        un = effective_personal_eoh(0.99, automation_response="uniform")
+        assert pc > 5.0 * un
 
 
 # ===========================================================================
@@ -1619,28 +1682,41 @@ class TestTheInjectionRegisterIsComplete:
         been promoted out of the injection class.
         """
         import inspect
-        from hours_eoh.core.fiscal import fiscal_snapshot, _STATE_TO_PARAM
+        from hours_eoh.core.fiscal import (
+            fiscal_snapshot, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
         state_readable = set(_STATE_TO_PARAM.values())
         return {p for p in inspect.signature(fiscal_snapshot).parameters
-                if any(m in p for m in self.MARKERS) and p not in state_readable}
+                if any(m in p for m in self.MARKERS) and p not in state_readable
+                and p not in DEPRECATED_NOT_APPLIED}
 
     def test_promotion_removes_a_parameter_from_the_injection_class(self):
         """
-        The rule, demonstrated on the two it already moved.
-        `capital_eoh_eliminated` and `capital_personal_eoh_fulfilled_per_person`
-        are still parameters — a caller may pass either — but they are no longer
-        INJECTIONS, because `make_economy_state` carries them and core can be
-        handed them. The register caught this overlap on its first run.
+        The rule, demonstrated on the one still promoted.
+        `capital_eoh_eliminated` is still a parameter — a caller may pass it —
+        but it is no longer an INJECTION, because `make_economy_state` carries
+        it and core can be handed it. The register caught this overlap on its
+        first run. `capital_personal_eoh_fulfilled_per_person` was promoted with
+        it and left state on 2026-09-15, when the guarantee stopped applying it.
         """
         import inspect
         from hours_eoh.core.fiscal import (
             fiscal_snapshot, INJECTION_REGISTER, _STATE_TO_PARAM)
-        promoted = {"capital_eoh_eliminated",
-                    "capital_personal_eoh_fulfilled_per_person"}
+        promoted = {"capital_eoh_eliminated"}
         params = set(inspect.signature(fiscal_snapshot).parameters)
         assert promoted <= params, "still reachable as parameters"
         assert promoted <= set(_STATE_TO_PARAM.values()), "readable from state"
         assert not (promoted & set(INJECTION_REGISTER)), "no longer injections"
+
+    def test_a_deprecated_parameter_is_accepted_and_in_neither_register(self):
+        """Accepted for compatibility, not applied, and so neither state (a key
+        accepted and ignored) nor an injection (a value core is told and uses)."""
+        import inspect
+        from hours_eoh.core.fiscal import (
+            fiscal_snapshot, INJECTION_REGISTER, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
+        params = set(inspect.signature(fiscal_snapshot).parameters)
+        assert DEPRECATED_NOT_APPLIED <= params
+        assert not (DEPRECATED_NOT_APPLIED & set(_STATE_TO_PARAM.values()))
+        assert not (DEPRECATED_NOT_APPLIED & set(INJECTION_REGISTER))
 
     def test_every_injected_parameter_is_classified(self):
         from hours_eoh.core.fiscal import INJECTION_REGISTER

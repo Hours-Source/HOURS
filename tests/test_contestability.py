@@ -61,7 +61,7 @@ class TestPortableEndowment:
         result = portable_endowment(0.40, _POP, _TRUST)
         assert set(result.keys()) == {
             "p", "guarantee_per_person", "trust_dividend_per_capita",
-            "capital_fulfilled_per_person", "epsilon",
+            "effective_personal_eoh_per_person", "epsilon",
         }
 
     def test_p_higher_at_epsilon_zero_than_epsilon_99(self):
@@ -76,14 +76,22 @@ class TestPortableEndowment:
         result = portable_endowment(0.40, _POP, _TRUST)
         assert result["trust_dividend_per_capita"] > 0
 
-    def test_capital_fulfilled_zero_at_epsilon_zero(self):
-        result = portable_endowment(0.0, _POP, _TRUST)
-        assert result["capital_fulfilled_per_person"] == pytest.approx(0.0)
+    # Until 2026-09-15 these pinned `capital_fulfilled = ε·ā·base`, the
+    # subtraction that double-discounted S. S now rests on effective personal EOH.
 
-    def test_capital_fulfilled_grows_with_epsilon(self):
-        c_lo = portable_endowment(0.40, _POP, _TRUST)["capital_fulfilled_per_person"]
-        c_hi = portable_endowment(0.90, _POP, _TRUST)["capital_fulfilled_per_person"]
-        assert c_hi > c_lo
+    def test_effective_obligation_is_the_guarantees(self):
+        from hours_eoh.core.fiscal import effective_personal_eoh, sufficiency_guarantee
+        for eps in KEY_EPSILONS:
+            r = portable_endowment(eps, _POP, _TRUST)
+            assert r["effective_personal_eoh_per_person"] == pytest.approx(
+                effective_personal_eoh(eps), rel=1e-12)
+            assert r["guarantee_per_person"] == pytest.approx(
+                sufficiency_guarantee(_POP, eps)["total_per_person"], rel=1e-12)
+
+    def test_effective_obligation_falls_with_epsilon(self):
+        e_lo = portable_endowment(0.40, _POP, _TRUST)["effective_personal_eoh_per_person"]
+        e_hi = portable_endowment(0.90, _POP, _TRUST)["effective_personal_eoh_per_person"]
+        assert e_hi < e_lo
 
     def test_invalid_epsilon_raises(self):
         with pytest.raises(ValueError):

@@ -292,7 +292,8 @@ def civilization_epsilon(civ: dict) -> dict:
     Note on double-counting: capital_eoh_eliminated is NOT passed to the TEH
     pipeline because ε already encodes all machine fulfillment (including
     system EOH elimination). Passing both would double-count machine capacity.
-    capital_personal_eoh_fulfilled IS passed for fiscal guarantee sizing.
+    capital_personal_eoh_fulfilled is passed to the pipeline for reporting; it
+    no longer sizes the guarantee (effective_personal_eoh does, since 2026-09-15).
 
     Mission Statement: §"ε is a physical observable — the civilization's
     measured progress toward post-scarcity, expressed as the fraction of EOH
@@ -371,7 +372,7 @@ def civilization_epsilon(civ: dict) -> dict:
         )
 
     # capital_eoh_eliminated=0: ε already encodes all machine fulfillment.
-    # capital_personal_eoh_fulfilled passed for fiscal guarantee sizing.
+    # capital_personal_eoh_fulfilled passed for reporting; the guarantee no longer reads it.
     pipeline = eoh_to_teh_pipeline(
         epsilon=epsilon,
         population=population,
@@ -397,7 +398,6 @@ def civilization_epsilon(civ: dict) -> dict:
         epsilon=epsilon,
         ecosystem_health=ecosystem_health,
         deferred_ecological=deferred_ecological,
-        capital_personal_eoh_fulfilled_per_person=personal_fulfilled / population,
         infra_eoh_override=eoh_gross["infrastructure"],
         eco_eoh_override=eoh_gross["ecological"],
     )

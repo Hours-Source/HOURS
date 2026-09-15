@@ -1746,9 +1746,9 @@ def total_eoh(
             capital stock size; only the human-labor burden decreases via (1-ε).
         capital_personal_eoh_fulfilled: Aggregate personal EOH fulfilled by the
             capital stock per year (sum of annual_personal_eoh_fulfilled across
-            all assets). Passed through to the return dict so fiscal.py can
-            compute per-capita fulfillment and reduce the guarantee's EOH
-            reimbursement accordingly. Does NOT alter total personal EOH demand
+            all assets). Passed through to the return dict for reporting. It no
+            longer reduces the guarantee, which since 2026-09-15 is sized on
+            effective_personal_eoh. Does NOT alter total personal EOH demand
             — the biological obligation still exists, but capital handles it.
         infrastructure_compounding_eoh: Deferred-maintenance compounding spike
             (pre-computed via eoh_compounding()) added to baseline infrastructure

@@ -90,7 +90,7 @@ print(result["teh_created"], result["labor_constrained"])
 | D1 | Capital write-down | `capital.py` → `execute_writedown()` |
 | D2 | Income-driven consumption | `simulation.py` → `simulate_period()` (the default) |
 | D3 | Biology-anchored consumption | `simulation.py` → `simulate_period(use_d3=True)` |
-| D4 | CPI delivery | `prices.py` → `cpi_goods_destruction()` |
+| D4 | CPI delivery (paused in `simulate_period`) | `prices.py` → `cpi_goods_destruction()` |
 | D5 | Estate dissolution | `capital.py` → `estate_dissolution()` |
 | D6 | Accumulation ceiling | `fiscal.py` → `accumulation_ceiling_commitment()` |
 

@@ -418,6 +418,7 @@ class RemovalAudit(TypedDict):
     rows: list[dict]
     disjointness_established: bool
     fiscal_double_subtracts: bool
+    fiscal_double_counts: bool
     verdict: str
 
 
@@ -446,13 +447,17 @@ def removal_audit(population: float = 1_000_000.0) -> RemovalAudit:
     environmental monitoring 0.00).
 
     AND THE CONSEQUENCE IS FISCAL, WHICH IS WHERE IT BITES A PERSON.
-    `fiscal.sufficiency_guarantee` computes the EOH reimbursement as
-    `max(0, raw_eoh_per_person − capital_personal_eoh_fulfilled_per_person)`.
-    If abatement became the generation default, `raw_eoh_per_person` would
-    ALREADY be reduced by a(K) — so the same tap would reduce what a person is
-    owed twice: once as an obligation removed, once as an obligation met.
-    Nothing in the repo forbids that today because abatement is not wired; this
-    records it before it is.
+    Until 2026-09-15 `fiscal.sufficiency_guarantee` reimbursed
+    `max(0, raw_eoh_per_person − capital_personal_eoh_fulfilled_per_person)` —
+    if abatement became the generation default, the same tap would reduce what a
+    person is owed twice, as a SUBTRACTION. The `effective_personal_eoh` build
+    retired that subtraction: the reimbursement is now
+    `ā · base · personal_human_fraction(ε) · M_FLOOR`. That moves the latent
+    double count into a PRODUCT rather than closing it — `base` lowered by a(K)
+    and a human share reflecting machines meeting the obligation are still two
+    terms not shown to be disjoint. So `fiscal_double_subtracts` is now False
+    and `fiscal_double_counts` stays True. Nothing forbids it today because
+    abatement is not wired; this records it before it is.
 
     units: hours per capita per year. ε-behaviour: none — both channels are
     capital-driven and ε-free.
@@ -490,7 +495,10 @@ def removal_audit(population: float = 1_000_000.0) -> RemovalAudit:
         # Nothing here demonstrates the two channels are disjoint, and that is
         # the honest verdict rather than an accusation that they overlap.
         "disjointness_established": False,
-        "fiscal_double_subtracts": True,
+        # No subtraction remains since the 2026-09-15 build; the double count
+        # survives as a product — see the docstring.
+        "fiscal_double_subtracts": False,
+        "fiscal_double_counts": True,
         "verdict": (
             f"a(K)'s claimed REMOVAL exceeds the measured SUBSTITUTION channel "
             f"by {best:.1f}-{worst:.1f}x across the capital tiers, converging "

@@ -19,6 +19,7 @@ survival", §"The registration boundary" (care), §"Land is held by the collecti
 
 from __future__ import annotations
 import math
+import warnings
 
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
@@ -30,12 +31,12 @@ from hours_eoh.data import (
     ACCUMULATION_CEILING_MULTIPLIER, BASE_LIFETIME_EARNINGS_TEH,
     MEAN_MULTIPLIER_REFERENCE, LAND_HECTARES_PER_CAPITA,
     CARE_AUTOMATION_FLOOR, SUFF_GUARANTEE_STRUCTURAL_MIN,
-    PROVIDER_CAP_EQUIVALENTS,
+    PROVIDER_CAP_EQUIVALENTS, M_FLOOR,
 )
 from hours_eoh.core.eoh_generation import (
     infrastructure_eoh, ecological_eoh, resolve_capital_stock,
 )
-from hours_eoh.core.eoh_fulfillment import human_eoh_share
+from hours_eoh.core.eoh_fulfillment import human_eoh_share, personal_human_fraction
 
 
 # ---------------------------------------------------------------------------
@@ -45,8 +46,9 @@ from hours_eoh.core.eoh_fulfillment import human_eoh_share
 # 2026-08-28 as CARE_AUTOMATION_FLOOR and SUFF_GUARANTEE_STRUCTURAL_MIN. Both
 # were shadow constants: untagged, and a +7% move failed no test.
 # SUFF_GUARANTEE_EPS_DECAY imported from data.py
-# Population-weighted mean EOH weight from default AGE_GROUPS fractions (constant):
-# 0.07×3.0 + 0.16×1.5 + 0.60×1.0 + 0.17×2.5 = 1.475
+# Population-weighted mean EOH weight from default AGE_GROUPS fractions (constant).
+# Computed, not restated: the figure once written here (1.475) outlived the
+# AGE_GROUPS it described.
 _AGE_WEIGHTED_EOH_MEAN: float = sum(
     v["fraction"] * v["eoh_weight"] for v in AGE_GROUPS.values()
 )
@@ -379,6 +381,53 @@ def ecological_allocation(
     }
 
 
+def effective_personal_eoh(
+    epsilon: float,
+    personal_eoh_base: float = PERSONAL_EOH_BASE,
+    automation_response: str = "per_component",
+) -> float:
+    """
+    Personal obligation hours per person that still need human labour at ε.
+
+    `personal_eoh` — what a person needs to stay alive — does not fall with
+    automation. This does: it is the part of that obligation machines do not
+    carry, and so the part that has to be acquired with TEH. The author's split
+    (2026-09-13), built 2026-09-15.
+
+    Governing equation:
+
+        effective = ā × personal_eoh_base × personal_human_fraction(ε)
+
+    ā is the population-weighted age EOH mean. `personal_human_fraction` is the
+    curve `human_eoh_per_domain` splits the personal domain with, so the
+    guarantee and the pipeline cannot disagree about how much of the obligation
+    is human-carried.
+
+    Under decision (a) (2026-09-15) the labour embodied in machine-delivered
+    goods — maintenance, operation, construction — mints where it is
+    registered, in infrastructure and knowledge. It is NOT in this share, so at
+    the `M_FLOOR` price a machine-delivered good costs nothing.
+
+    WHAT THIS DOES NOT CLOSE. If abatement a(K) became the generation default,
+    `personal_eoh_base` would already be lowered by capital while the human
+    share also reflects machines meeting the obligation — two terms not shown to
+    be disjoint (`scenarios/abatement_split.removal_audit`). The build moved
+    that latent double count from a subtraction into this product; it did not
+    remove it.
+
+    units: hours per person per year.
+    ε-behaviour: ā × base at ε=0, where nothing is automated; non-increasing in
+    ε; stays well above zero at 0.99 under `per_component` because care and
+    nutrition carry automation floors, and falls to 1% of ā × base under
+    `uniform`.
+
+    Reference: Mission Statement §"The sufficiency guarantee: purchasing power
+    never declines"; record/fulfilment.md#guarantee-priced-in-hours.
+    """
+    return (_AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
+            * personal_human_fraction(epsilon, automation_response))
+
+
 def sufficiency_guarantee(
     population: float,
     epsilon: float,
@@ -387,15 +436,19 @@ def sufficiency_guarantee(
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
     floor_fraction: float = 0.15,
     capital_personal_eoh_fulfilled_per_person: float = 0.0,
+    automation_response: str = "per_component",
 ) -> dict:
     """
     Compute the cost of the sufficiency guarantee at a given automation level.
 
     The guarantee has two components per recipient:
-    1. EOH reimbursement: 1 TEH per EOH of personal biological entropy burden.
-       Covers the metabolic/care obligation that exists regardless of labor
-       participation. Uses the population-weighted average age EOH weight so
-       the payment reflects the actual biological mix (infants, elderly, etc.).
+    1. EOH reimbursement: `effective_personal_eoh(ε)` at `M_FLOOR`, 1 TEH per
+       HUMAN obligation hour (author decision A, 2026-09-14). The obligation is
+       age-weighted so the payment reflects the biological mix; only its
+       human-carried share is paid, because only that share costs TEH at the
+       floor. Until 2026-09-15 this paid the GROSS obligation in hours and
+       subtracted capital-fulfilled hours on request, which over-paid at the
+       default and double-discounted when a caller supplied the subtraction.
     2. Meaningful activity TEH: discretionary spending bonus beyond biological
        subsistence. Scales quadratically with ε so non-participants have real
        purchasing power as the labor pool shrinks at high automation — without
@@ -407,8 +460,13 @@ def sufficiency_guarantee(
     structural minimum remains for those between labor engagements or unable
     to work.
 
-    Principle 5: the guarantee's purchasing power rises with automation because
-    the meaningful activity component grows with ε while the basket price falls.
+    Principle 5: the reimbursement buys the same human-carried obligation at
+    every ε, so its purchasing power against that obligation is flat; any rise
+    comes from the meaningful-activity term. Whether Principle 5 is restated as
+    a property of that term is an open author item, not settled here. THREE
+    TERMS NOW RESPOND TO ε — the human share, the ε² bonus, and
+    `SUFF_GUARANTEE_EPS_DECAY` on recipients — and whether they compose as one
+    mechanism counted more than once (failure mode 11) is not yet audited.
 
     Args:
         population: Total population.
@@ -417,40 +475,38 @@ def sufficiency_guarantee(
         meaningful_activity_teh: Discretionary spending bonus at ε=0 (TEH/yr).
         meaningful_activity_scale: Quadratic growth factor: bonus = base×(1+scale×ε²).
         floor_fraction: Fraction of population receiving the guarantee.
-        capital_personal_eoh_fulfilled_per_person: Personal EOH already fulfilled
-            by the capital stock per person per year (= total capital fulfillment /
-            population). Reduces the EOH reimbursement component: the guarantee
-            only reimburses UNFULFILLED personal EOH. The biological demand still
-            exists — capital handles fulfillment, reducing what individuals need
-            TEH to address. Floored at zero so over-fulfillment doesn't go negative.
+        capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15 and
+            NOT APPLIED. The human share in `effective_personal_eoh` already
+            carries machine fulfilment, so subtracting capital-fulfilled hours
+            too was two terms for one mechanism. A nonzero value warns and is
+            echoed as `capital_personal_eoh_fulfilled_supplied_not_applied`.
+        automation_response: "per_component" (default) or "uniform" — which
+            personal human share the reimbursement is sized on.
 
     Governing equations (two-component guarantee per recipient):
 
-        raw_eoh = ā × personal_eoh_base          (ā = 1.475, age-weighted EOH mean)
-        eoh_reimb = max(0, raw_eoh − capital_fulfilled_per_person)  [TEH/yr]
-        meaningful_activity = base × (1 + scale × ε²)              [TEH/yr]
+        raw_eoh   = ā × personal_eoh_base                  (ā age-weighted EOH mean)
+        effective = raw_eoh × personal_human_fraction(ε)   [h/yr]
+        eoh_reimb = effective × M_FLOOR                    [TEH/yr]
+        meaningful_activity = base × (1 + scale × ε²)      [TEH/yr]
         total_per_person = eoh_reimb + meaningful_activity
         total_cost = recipients × total_per_person
 
-    As ε rises from 0 to 1, total_cost_teh *falls* (fewer recipients × smaller
-    reimbursement as capital handles more personal EOH) even as per-person
-    purchasing power rises (meaningful_activity grows with ε²).
-
-    Worked examples (population=1M, capital_fulfilled=0, canonical defaults):
-
-        ε     recipients  eoh_reimb/person  ma_teh/person  total/person  total_cost
-        0.00    150,000       2,213 TEH        120 TEH      2,333 TEH      350M TEH
-        0.40    130,000       2,213 TEH        149 TEH      2,361 TEH      307M TEH
-        0.70    115,000       2,213 TEH        208 TEH      2,421 TEH      278M TEH
+    As ε rises, eoh_reimb falls with the human share, recipients fall with
+    `SUFF_GUARANTEE_EPS_DECAY`, and the bonus rises with ε². No worked table is
+    written here: the last one outlived two reprices. Call the function.
 
     Returns:
         dict: {
           "population":                              float,
           "floor_fraction":                          float,
           "recipients":                              float,
-          "raw_eoh_per_person":                      float,  TEH/yr — age-weighted, pre-fulfillment
-          "capital_personal_eoh_fulfilled_per_person": float,
-          "eoh_reimbursement_per_person":            float,  TEH/yr — max(0, raw − capital_fulfilled)
+          "raw_eoh_per_person":                      float,  h/yr — age-weighted gross obligation
+          "personal_human_fraction":                 float,  human-carried share at ε
+          "effective_personal_eoh_per_person":       float,  h/yr — raw × human share
+          "teh_per_obligation_hour":                 float,  M_FLOOR
+          "capital_personal_eoh_fulfilled_supplied_not_applied": float,  deprecated input, echoed
+          "eoh_reimbursement_per_person":            float,  TEH/yr — effective × M_FLOOR
           "meaningful_activity_teh_effective":       float,  TEH/yr — ε-scaled discretionary bonus
           "total_per_person":                        float,  TEH/yr
           "eoh_reimbursement_total":                 float,  TEH/yr — aggregate
@@ -467,8 +523,20 @@ def sufficiency_guarantee(
     # when a caller passes a floor_fraction smaller than the minimum.
     floor_fraction = max(floor_fraction, SUFF_GUARANTEE_STRUCTURAL_MIN)
 
+    if capital_personal_eoh_fulfilled_per_person:
+        warnings.warn(
+            "capital_personal_eoh_fulfilled_per_person is deprecated and not "
+            "applied: effective_personal_eoh's human share already carries "
+            "machine fulfilment, so subtracting it too counts one mechanism twice.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     raw_eoh_per_person = _AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
-    eoh_reimbursement_per_person = max(0.0, raw_eoh_per_person - capital_personal_eoh_fulfilled_per_person)
+    human_fraction = personal_human_fraction(epsilon, automation_response)
+    effective_per_person = effective_personal_eoh(
+        epsilon, personal_eoh_base, automation_response)
+    eoh_reimbursement_per_person = effective_per_person * M_FLOOR
 
     # Meaningful activity TEH grows quadratically with ε: as the labor pool shrinks,
     # non-participants need more purchasing power; quadratic prevents premature
@@ -496,7 +564,11 @@ def sufficiency_guarantee(
         "floor_fraction":                            effective_fraction,
         "recipients":                                recipients,
         "raw_eoh_per_person":                        raw_eoh_per_person,
-        "capital_personal_eoh_fulfilled_per_person": capital_personal_eoh_fulfilled_per_person,
+        "personal_human_fraction":                   human_fraction,
+        "effective_personal_eoh_per_person":         effective_per_person,
+        "teh_per_obligation_hour":                   M_FLOOR,
+        "capital_personal_eoh_fulfilled_supplied_not_applied":
+            capital_personal_eoh_fulfilled_per_person,
         "eoh_reimbursement_per_person":              eoh_reimbursement_per_person,
         "meaningful_activity_teh_effective":         meaningful_activity_teh_effective,
         "total_per_person":                          total_per_person,
@@ -701,11 +773,21 @@ PROMOTABLE_CATEGORIES: frozenset[str] = frozenset(
     {"unmodelled_state", "recompute_avoidance"}
 )
 
+#: Parameters still ACCEPTED, for API compatibility, and NOT APPLIED. Neither
+#: injected nor state: none of the four categories fits a value the function
+#: has stopped using, and forcing one would misclassify it. Listed so the
+#: register tests can exclude them visibly rather than by a quiet name filter.
+#: `capital_personal_eoh_fulfilled_per_person` joined 2026-09-15, when the
+#: guarantee moved onto `effective_personal_eoh`.
+DEPRECATED_NOT_APPLIED: frozenset[str] = frozenset(
+    {"capital_personal_eoh_fulfilled_per_person"}
+)
+
 #: The economy-state keys `fiscal_snapshot` can read, mapped to its own
 #: parameter names. `make_economy_state()` in core/simulation.py already carries
 #: every one of them — the container existed before this function accepted it.
-#: Only two names differ, and both differences are historical rather than
-#: meaningful.
+#: Only one name differs (`labor_income_teh` → `labor_income`), and the
+#: difference is historical rather than meaningful.
 _STATE_TO_PARAM: dict[str, str] = {
     "trust_balance":                  "trust_balance",
     "labor_income_teh":               "labor_income",
@@ -716,7 +798,12 @@ _STATE_TO_PARAM: dict[str, str] = {
     "ecosystem_health":               "ecosystem_health",
     "deferred_ecological":            "deferred_ecological",
     "capital_eoh_eliminated":         "capital_eoh_eliminated",
-    "capital_personal_eoh_fulfilled": "capital_personal_eoh_fulfilled_per_person",
+    # `capital_personal_eoh_fulfilled` UNMAPPED 2026-09-15. The guarantee no
+    # longer applies it (effective_personal_eoh carries machine fulfilment), so
+    # a mapping would be a key accepted and ignored — which
+    # `test_every_mapped_key_actually_reaches_the_result` then passed only
+    # because the value was echoed back. The mapping also read an AGGREGATE
+    # state key (make_economy_state) into a PER-PERSON parameter.
 }
 
 
@@ -772,9 +859,9 @@ def fiscal_snapshot(
         floor_fraction: Fraction of population receiving the guarantee.
         meaningful_activity_teh: Discretionary spending bonus at ε=0.
         meaningful_activity_scale: Quadratic ε-growth factor for the bonus.
-        capital_personal_eoh_fulfilled_per_person: Per-person personal EOH
-            already fulfilled by the capital stock. Passed through to
-            sufficiency_guarantee() to reduce the reimbursement component.
+        capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15.
+            Forwarded to sufficiency_guarantee(), which warns on a nonzero value
+            and does not apply it.
         capital_eoh_eliminated: Aggregate EOH eliminated by the capital stock
             (sum of annual_eoh_eliminated across all assets). When provided,
             the Trust is automatically sized against the reduced infrastructure
@@ -800,7 +887,7 @@ def fiscal_snapshot(
         Trust_end = Trust_start − depreciation(dep_rate) − dividend(div_rate) + levy_inflow
 
     As ε rises from 0 to 1, labor_income falls (machines do more), levy_inflow
-    falls with it, but guarantee_cost also falls (capital fulfills personal EOH),
+    falls with it, but guarantee_cost also falls (the human-carried share of personal EOH falls),
     creating a long-run fiscal equilibrium — provided Trust grew large enough
     during mid-arc to fund obligations through dividend alone.
 
@@ -808,7 +895,7 @@ def fiscal_snapshot(
         levy_inflow     =   6.2M TEH  (494M × 1.25% suff_levy)
         stewardship     = 282M TEH    (capital stock infrastructure obligation)
         ecological      =   0.9M TEH  (healthy ecosystem)
-        guarantee       = 307M TEH    (130K recipients × 2,361 TEH/person)
+        guarantee       = (predates the 2026-09-15 effective_personal_eoh build — call the function)
         trust_dividend  = 630M TEH    (35B × 4.5% dep × 40% div)
         surplus_deficit =  46.6M TEH  → solvent=True; trust_stable=False (Trust eroding)
 
@@ -873,9 +960,6 @@ def fiscal_snapshot(
         deferred_ecological = _resolved.get("deferred_ecological", deferred_ecological)
         capital_eoh_eliminated = _resolved.get(
             "capital_eoh_eliminated", capital_eoh_eliminated)
-        capital_personal_eoh_fulfilled_per_person = _resolved.get(
-            "capital_personal_eoh_fulfilled_per_person",
-            capital_personal_eoh_fulfilled_per_person)
 
     # Written as an explicit disjunction rather than a computed list so the
     # type narrows past it: after this, the six are floats whatever route

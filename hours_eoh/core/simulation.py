@@ -36,7 +36,7 @@ from hours_eoh.data import (
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
-    MEAN_MULTIPLIER_REFERENCE,
+    MEAN_MULTIPLIER_REFERENCE, M_FLOOR,
 )
 
 
@@ -193,8 +193,12 @@ def simulate_period(
     # Care economy wiring (new-15)
     care_stipend_aggregate: float | None = None,  # None → auto-computed from demographics each period
                                                   # 0.0 → explicitly disable; >0 → caller override
-    # D4 — CPI transaction-level destruction (Option 2)
-    use_cpi_destruction: bool = True,     # TEH destroyed when capital delivers personal-EOH services
+    # D4 — CPI transaction-level destruction (Option 2). PAUSED 2026-09-15, not
+    # retired: under decision (a) a machine-delivered good's labour minted in
+    # infrastructure, so it has no floor price for D4 to destroy, and D3 over
+    # effective personal EOH already covers delivery. Held for a market-level
+    # split, where part of a good discharges obligation and the rest is market.
+    use_cpi_destruction: bool = False,    # TEH destroyed when capital delivers personal-EOH services
     # D5 — Estate dissolution on death (Option 1)
     use_estate_dissolution: bool = True,  # TEH written down on death above personal reserve
     estate_inheritance_fraction: float = ESTATE_INHERITANCE_FRACTION,
@@ -400,9 +404,6 @@ def simulate_period(
     labor_income = labor_income_scale if labor_income_scale is not None else teh_this_period
     labor_income = max(LABOR_INCOME_MIN_TEH, labor_income)
 
-    # Per-person personal EOH fulfilled (for guarantee reduction)
-    cap_per_person = cap_pers_fulfil / max(new_population, 1.0)
-
     # ---- 6. Fiscal pipeline ------------------------------------------------
     # THE EVOLVED STATE, PASSED AS A STATE. This unpacked into nineteen loose
     # keyword arguments until 2026-08-29 — ten of which `make_economy_state`
@@ -424,7 +425,10 @@ def simulate_period(
         "ecosystem_health":               new_eco_health,
         "deferred_ecological":            new_deferred,
         "capital_eoh_eliminated":         cap_eoh_elim,
-        "capital_personal_eoh_fulfilled": cap_per_person,
+        # `capital_personal_eoh_fulfilled` is NOT passed (2026-09-15): the
+        # guarantee is sized on effective personal EOH, whose human share
+        # already carries machine fulfilment. Subtracting capital-fulfilled
+        # hours as well was two terms for one mechanism.
     }
     fiscal = fiscal_snapshot(
         state=fiscal_state,
@@ -465,9 +469,22 @@ def simulate_period(
         pers_reg_share         = _pers_reg(eps)
         personal_eoh_on_ledger = personal_eoh_total * pers_reg_share
         baskets_consumed       = personal_eoh_on_ledger / max(basket_eoh_content, 1.0)
-        consumption            = baskets_consumed * _basket_price(eps)
+        # PRICED ON EFFECTIVE PERSONAL EOH (2026-09-15; author decisions A and
+        # (a)). On-ledger obligation × the human-carried share × M_FLOOR, 1 TEH
+        # per human obligation hour. The share is read off the SAME split the
+        # period reports below, so the price and the reported human EOH are one
+        # curve. Machine-delivered goods clear at a floor price of zero: their
+        # labour minted in infrastructure, not here. Until this date D3 priced
+        # the GROSS on-ledger obligation at `basket_price` (0.12 TEH/h at ε=0)
+        # while D4 destroyed the machine-delivered part again.
+        d3_personal_human_fraction = (
+            human_eoh_per_domain(pipeline["eoh_by_domain"], eps)["personal"]
+            / personal_eoh_total
+        ) if personal_eoh_total > 0.0 else 0.0
+        consumption            = personal_eoh_on_ledger * d3_personal_human_fraction * M_FLOOR
         consumption_rate_eff   = None
     else:
+        d3_personal_human_fraction = None
         period_income          = fiscal["levies"]["worker_net"] + fiscal["trust"]["dividend"]
         pp_ratio               = _basket_price(0.0) / max(_basket_price(eps), 1e-6)
         consumption_rate_eff   = base_consumption_rate / max(1.0, pp_ratio)
@@ -477,9 +494,12 @@ def simulate_period(
 
     # D4: CPI transaction-level destruction — TEH destroyed when capital
     #     delivers personal-EOH services at embedded labor price.
+    #     `capital_personal_eoh_fulfilled` is AGGREGATE (make_economy_state's
+    #     docstring, and the guarantee path above divides it by population).
+    #     Until 2026-09-15 this multiplied it by population as well, destroying
+    #     population× the delivered services — ~6e5× the period's mint at 1M.
     if use_cpi_destruction:
-        cap_personal_total = cap_pers_fulfil * population
-        d4 = _cpi_dest(cap_personal_total, eps, basket_eoh_content)
+        d4 = _cpi_dest(cap_pers_fulfil, eps, basket_eoh_content)
     else:
         d4 = {"teh_destroyed": 0.0, "baskets_delivered": 0.0,
               "basket_price": _basket_price(eps), "mechanism": "D4_disabled"}
@@ -586,6 +606,7 @@ def simulate_period(
         # D3 biology-anchored consumption fields (None when D2 active)
         "personal_eoh_on_ledger":     personal_eoh_on_ledger, # D3: personal EOH demand on collective ledger
         "baskets_consumed":           baskets_consumed,        # D3: sufficiency baskets consumed this period
+        "d3_personal_human_fraction": d3_personal_human_fraction,  # D3: human-carried share the price used
         # D4: CPI transaction-level destruction
         "d4_cpi":                     d4,
         # D5: Estate dissolution on death

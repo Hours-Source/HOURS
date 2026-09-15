@@ -628,6 +628,32 @@ class TestSimulatePeriodDestructionMechanisms:
         _, res_hi = simulate_period(state_hi, use_cpi_destruction=True)
         assert res_hi["d4_cpi"]["teh_destroyed"] > res_lo["d4_cpi"]["teh_destroyed"]
 
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_d4_reads_capital_fulfilment_as_aggregate(self, eps):
+        """The state key is AGGREGATE. Two populations with the same aggregate
+        delivery must destroy the same TEH, and exactly what the D4 function
+        returns for that aggregate. The ordering tests above cannot see a
+        population factor: every state they compare shares one population."""
+        from hours_eoh.core.prices import cpi_goods_destruction
+        aggregate = 1.0e8
+        destroyed = []
+        for pop in (1_000_000.0, 3_000_000.0):
+            state = make_economy_state(epsilon=eps, population=pop,
+                                       capital_personal_eoh_fulfilled=aggregate)
+            _, result = simulate_period(state, use_cpi_destruction=True)
+            destroyed.append(result["d4_cpi"]["teh_destroyed"])
+        expected = cpi_goods_destruction(aggregate, eps)["teh_destroyed"]
+        assert destroyed[0] == pytest.approx(expected, rel=1e-12)
+        assert destroyed[1] == pytest.approx(expected, rel=1e-12)
+
+    def test_d4_is_paused_by_default(self):
+        """Paused 2026-09-15, not retired: D3 over effective personal EOH covers
+        delivery. A nonzero capital delivery must not reach D4 unless asked."""
+        state = self._state_with_capital_eoh(cap_pers_fulfil=1.0e8)
+        _, result = simulate_period(state)
+        assert result["d4_cpi"]["mechanism"] == "D4_disabled"
+        assert result["d4_cpi"]["teh_destroyed"] == 0.0
+
     def test_d5_disabled_produces_zero_estate_destruction(self):
         state = self._state_with_large_holdings()
         _, result = simulate_period(state, use_estate_dissolution=False)
@@ -699,6 +725,44 @@ class TestSimulatePeriodDestructionMechanisms:
         d4 = result["d4_cpi"]["teh_destroyed"]
         d5 = result["d5_estate"]["teh_destroyed"]
         assert result["teh_destroyed"] >= d4 + d5 - 1e-6
+
+
+class TestD3OnEffectivePersonalEoh:
+    """D3 prices on-ledger personal EOH × its human-carried share × M_FLOOR."""
+
+    @staticmethod
+    def _consumption(eps: float) -> tuple[float, dict]:
+        from hours_eoh.data import CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE
+        state = make_economy_state(epsilon=eps, population=1_000_000.0)
+        new_state, r = simulate_period(state, use_d3=True, use_cpi_destruction=False,
+                                       use_estate_dissolution=False)
+        writedown = (new_state["capital_stock_teh"] * CAPITAL_FAILURE_RATE
+                     * (1.0 - CAPITAL_WRITEDOWN_MONITORING_SLOPE * eps))
+        return r["teh_destroyed"] - writedown, r
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_d3_is_on_ledger_times_human_share_at_the_floor_rate(self, eps):
+        from hours_eoh.data import M_FLOOR
+        consumption, r = self._consumption(eps)
+        share = r["human_eoh_by_domain"]["personal"] / r["eoh_by_domain"]["personal"]
+        assert r["d3_personal_human_fraction"] == pytest.approx(share, rel=1e-12)
+        expected = r["personal_eoh_on_ledger"] * share * M_FLOOR
+        assert consumption == pytest.approx(expected, rel=1e-9)
+
+    def test_d3_share_differs_from_one_above_zero(self):
+        """At ε=0 the share is 1 and gross equals effective — the ε=0 trap. The
+        pin above only discriminates where the share is well below 1."""
+        _, r0 = self._consumption(0.0)
+        _, r9 = self._consumption(0.90)
+        assert r0["d3_personal_human_fraction"] == pytest.approx(1.0)
+        assert r9["d3_personal_human_fraction"] < 0.5
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_d3_does_not_retire_more_than_the_period_minted(self, eps):
+        """A CHECK on the shipped arc, not a theorem: demand-side registration
+        and labour registration are different curves."""
+        consumption, r = self._consumption(eps)
+        assert consumption <= r["teh_created"]
 
 
 class TestMultiPeriodDestructionArc:
