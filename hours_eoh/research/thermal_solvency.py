@@ -55,6 +55,14 @@ PASS CONDITIONS — fixed in advance, in writing, so they cannot move later:
   4. The labour to service it exists.
   5. Arc coherence: finite and meaningful at every ε.
 
+SINCE 2026-09-15 (minted TEH is the wage) the conditions are unchanged but what
+1–3 can see is not. The Trust owes only the guarantee, so ecological and
+stewardship labour — and with them the thermal load — no longer reach Trust
+solvency or the cover-expenditure levy, and condition 3 compares coverage
+against a balance neither is charged to. Conditions 1–3 are near-vacuous for
+this question; the gate now breaks on condition 4, labour. The margin grew
+48.2 → 335.3 h/t for that reason, not because the fisc got stronger.
+
 ALL FIVE, or the layer stays advisory. A failure here is a publishable finding —
 "the thermal overage is not fiscally absorbable" would be among the strongest
 results the framework has produced — and must be reported, not tuned around.

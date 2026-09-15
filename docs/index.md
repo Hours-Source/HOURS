@@ -37,7 +37,7 @@ The economy organizes resistance to entropy across four physical domains:
 
 -   **Ecological**
 
-    Soil fertility, water cycles, pollination, fisheries, climate stability. Co-equal Trust obligation.
+    Soil fertility, water cycles, pollination, fisheries, climate stability. Co-equal with stewardship; paid at the mint.
 
 -   **Knowledge**
 

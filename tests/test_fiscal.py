@@ -424,12 +424,16 @@ class TestTrustManagement:
         ann_dep = p["trust_base"] * p["dep_rate"]
         dividend = ann_dep * p["div_rate"]
         expected_revenue = dividend + levy
-        expected_exp = stew + guar
+        # Minted TEH is the wage (2026-09-15): stewardship is paid at the mint,
+        # so the Trust's expenditure is the guarantee alone and `stew` is
+        # reported, not charged. Until then this pinned stew + guar.
+        expected_exp = guar
 
         result = trust_management(p["trust_base"], levy, stew, guar,
                                    p["dep_rate"], p["div_rate"])
         assert result["total_revenue"]     == pytest.approx(expected_revenue)
         assert result["total_expenditure"] == pytest.approx(expected_exp)
+        assert result["paid_by_mint"]      == pytest.approx(stew)
         assert result["surplus_deficit"]   == pytest.approx(expected_revenue - expected_exp)
 
     def test_all_result_keys_present(self):
@@ -944,7 +948,8 @@ class TestMinLevyForSolvency:
         )
         assert result["stewardship_cost"] == pytest.approx(100_000.0)
         assert result["guarantee_cost"]   == pytest.approx(100_000.0)
-        assert result["total_expenditure"] == pytest.approx(200_000.0)
+        # The guarantee only: stewardship is paid at the mint (2026-09-15).
+        assert result["total_expenditure"] == pytest.approx(100_000.0)
 
     def test_full_solvency_rate_increases_with_cost(self):
         low  = min_levy_for_solvency(TRUST_BASE_TEH, stewardship_teh=1e6,  guarantee_teh=1e6,  labor_income=5e9)
@@ -1054,21 +1059,31 @@ class TestFiscalSnapshotEcological:
                     "teh_allocated", "funding_gap", "fully_funded", "funding_coverage"):
             assert key in eco
 
-    def test_ecological_teh_counted_in_trust_expenditure(self):
+    def test_ecological_teh_is_paid_by_the_mint_not_the_trust(self):
+        """Until 2026-09-15 this pinned trust expenditure = stew + eco +
+        guarantee: the Trust paid a second time for hours the mint had paid.
+        Under the wage doctrine both stay visible as `paid_by_mint` and the
+        Trust owes the guarantee alone."""
         result = self._snap()
         stew_alloc = result["stewardship"]["teh_allocated"]
         eco_alloc  = result["ecological"]["teh_allocated"]
         trust_exp  = result["trust"]["total_expenditure"]
         guarantee  = result["guarantee"]["total_cost_teh"]
-        assert trust_exp == pytest.approx(stew_alloc + eco_alloc + guarantee, rel=1e-6)
+        assert stew_alloc > 0.0
+        assert trust_exp == pytest.approx(guarantee, rel=1e-12)
+        assert result["paid_by_mint"] == pytest.approx(stew_alloc + eco_alloc, rel=1e-12)
 
-    def test_degraded_ecosystem_reduces_solvency(self):
+    def test_degraded_ecosystem_moves_the_mint_requirement_not_solvency(self):
         """
         PHASES 4e/4f: `ecosystem_health` no longer reaches the fisc through the
         ecological domain — condition changes what the HOLDER owes via GUF, not
         what the Trust allocates. Asserted by supplying the obligation the
         pre-partition policy would have produced, which is what
         `relocated_to_guf` now reports on every snapshot.
+
+        Until 2026-09-15 a degraded ecosystem REDUCED Trust solvency. Ecological
+        labour is registered and paid at the mint, so the larger requirement
+        now shows in `paid_by_mint` and leaves the Trust's surplus unchanged.
         """
         from hours_eoh.core.eoh_generation import ecological_eoh
         def snap_at(h):
@@ -1079,8 +1094,9 @@ class TestFiscalSnapshotEcological:
                     standing_response="domain"),
             )
         healthy, degraded = snap_at(0.95), snap_at(0.25)
+        assert degraded["paid_by_mint"] > healthy["paid_by_mint"]
         assert (degraded["trust"]["surplus_deficit"]
-                < healthy["trust"]["surplus_deficit"])
+                == pytest.approx(healthy["trust"]["surplus_deficit"], rel=1e-12))
 
     def test_health_no_longer_moves_the_fisc_by_default(self):
         """The consequence, pinned: the relocation is reported, not silent."""
@@ -1159,16 +1175,24 @@ class TestFiscalSnapshotCareStipend:
         result = self._base()
         assert result["care_stipend"] == 0.0
 
-    def test_care_stipend_aggregate_included_in_expenditure(self):
+    def test_care_stipend_is_paid_by_the_mint_not_charged_to_the_trust(self):
+        """THE NO-DOUBLE-COUNT PIN (2026-09-15). Registered care labour mints
+        its pay; until this date the stipend was also Trust expenditure, and
+        this test asserted it raised expenditure. It must now move
+        `paid_by_mint` by exactly its amount and leave the Trust untouched."""
         base     = self._base(care_stipend_aggregate=0.0)
         with_care = self._base(care_stipend_aggregate=100_000_000.0)
-        assert with_care["trust"]["total_expenditure"] > base["trust"]["total_expenditure"]
-        assert with_care["trust"]["surplus_deficit"] < base["trust"]["surplus_deficit"]
+        assert with_care["paid_by_mint"] - base["paid_by_mint"] == pytest.approx(100_000_000.0)
+        assert with_care["trust"]["total_expenditure"] == base["trust"]["total_expenditure"]
+        assert with_care["trust"]["surplus_deficit"] == base["trust"]["surplus_deficit"]
 
-    def test_care_stipend_flows_through_to_solvency(self):
-        large_care = TRUST_BASE_TEH
-        result = self._base(care_stipend_aggregate=large_care)
-        assert result["trust"]["surplus_deficit"] < 0.0
+    def test_even_a_trust_sized_care_stipend_cannot_make_the_trust_insolvent(self):
+        """Formerly `test_care_stipend_flows_through_to_solvency`, which drove
+        the surplus negative with a stipend the size of the Trust."""
+        base = self._base(care_stipend_aggregate=0.0)
+        result = self._base(care_stipend_aggregate=TRUST_BASE_TEH)
+        assert result["solvent"] == base["solvent"]
+        assert result["trust"]["surplus_deficit"] == base["trust"]["surplus_deficit"]
 
     def test_backward_compat_no_care_stipend(self):
         result = self._base()

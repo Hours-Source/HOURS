@@ -143,7 +143,9 @@ def test_coequality_holds_under_load():
 
 def test_labour_is_nowhere_near_binding():
     """The ecological domain, even doubled, is a fraction of a percent of the
-    collective's labour capacity — the constraint that binds is fiscal."""
+    collective's labour capacity at the shipped intensity. (Until 2026-09-15
+    this said the binding constraint is fiscal; when the gate breaks it now
+    breaks on labour — see test_labour_is_now_the_binding_condition.)"""
     for r in solvency_gate()["verdicts"]:
         assert r["labor_fraction"] < 0.01
 
@@ -171,20 +173,29 @@ def test_backward_query_finds_a_finite_breaking_point():
     # ecological obligation is negligible in the ledger — the domain-balance
     # defect — not because the fisc is strong. That caveat predates this change
     # and is unaffected by it.
-    assert b["breaking_value"] == pytest.approx(48.2, rel=0.05)
+    #
+    # 48.2 → 335.3 (2026-09-15): minted TEH is the wage, so the Trust no longer
+    # pays for ecological and stewardship labour the mint already paid. The
+    # loaded ecological requirement stopped reaching Trust solvency at all, and
+    # the gate now breaks on LABOUR (see the next test). This is not a stronger
+    # fisc: the fiscal conditions went near-vacuous for this question.
+    assert b["breaking_value"] == pytest.approx(335.3, rel=0.05)
     assert b["shipped_value"] == CDR_LABOR_HOURS_PER_TONNE
-    # 67.6 → 74.5 → 80.3, same mechanism each time.
-    assert b["margin"] == pytest.approx(80.3, rel=0.05)
+    # 67.6 → 74.5 → 80.3 → 558.9, the last by the same doctrine change.
+    assert b["margin"] == pytest.approx(558.9, rel=0.05)
     assert b["verdict"] == "robust"
 
 
-def test_trust_solvency_is_the_binding_condition():
-    """It is the Trust that gives way first, not labour and not co-equality —
-    so the gate's sensitivity is fiscal, which is what makes the margin the
-    right thing to report."""
-    g = solvency_gate(labor_hours_per_tonne=100.0)
+def test_labour_is_now_the_binding_condition():
+    """Until 2026-09-15 the Trust gave way first (`trust_insolvent` at 100
+    h/t). Under the wage doctrine the Trust owes only the guarantee, so a
+    thermal overage carried as ecological labour cannot make it insolvent; the
+    gate now breaks when that labour cannot be worked. 100 h/t passes and 400
+    fails, on labour alone."""
+    assert solvency_gate(labor_hours_per_tonne=100.0)["passes"] is True
+    g = solvency_gate(labor_hours_per_tonne=400.0)
     assert g["passes"] is False
-    assert g["failures"] == ["trust_insolvent"]
+    assert g["failures"] == ["labor_unavailable"]
 
 
 def test_monotone_in_labour_intensity():

@@ -26,6 +26,11 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **The layer withholds the budget where the sign is undetermined.** Carrying λ
   honestly widens the indeterminate band 2×, and that is reported rather than
   resolved.
+- **The solvency gate now breaks on labour, not the Trust** (2026-09-15). Minted
+  TEH is the wage, so the Trust owes only the guarantee and the thermal load no
+  longer reaches it: breaking intensity 48.2 → 335.3 h/t, binding
+  `labor_unavailable`. Pass conditions 1–3 are near-vacuous for this question;
+  the wider margin is not a stronger fisc.
 - **`epsilon_current` is derived where an inventory exists**; global ε_max keeps a
   chosen `epsilon_current` and travels with its sensitivity band, because no
   measured world capital inventory in TEH exists.

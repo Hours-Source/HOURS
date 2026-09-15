@@ -165,6 +165,8 @@ hours_eoh/
     obligation_accounts.py  The three accounts — OBLIGATION / DELIVERY / STOCK — and anchor_sensitivity();
                        REPORTING ONLY; the partition closes to float equality against total_eoh()
     arc_stability.py   Can the system STAND STILL here: obligation met, delivery pays, stock stationary
+    stationarity.py    STAND STILL in labour hours AND TEH, under the doctrine that minted TEH is
+                       the wage: the Trust owes only the guarantee; REPORTING ONLY
     component_shares.py  The desk component shares measured against observed ATUS time use; a BOUND, REPORTING ONLY
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
@@ -241,7 +243,7 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
 
 **Per-domain registration split**: personal EOH uses `personal_eoh_registration_share(ε)` (near-zero at ε=0 — off-ledger subsistence); non-personal domains use `total_registration_share(ε)`. These are different mechanisms; do not conflate them.
 
-**Ecological co-equal with stewardship**: `ecological_allocation()` and `stewardship_allocation()` are co-equal Trust obligations. Neither is residual.
+**Ecological co-equal with stewardship**: `ecological_allocation()` and `stewardship_allocation()` are co-equal requirements. Neither is residual. **Both are paid at the mint, not by the Trust** (minted TEH is the wage, 2026-09-15): `trust_management` returns them as `paid_by_mint` and its expenditure is the guarantee alone.
 
 **Zero interest (Condition III)**: balances grow only through labor income minus expenditure. EOH compounding is physics (entropy), not interest — it does not create TEH.
 
@@ -502,8 +504,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,678 tests passing (1 skipped), mypy clean on 101 source files** (verified
-2026-09-12). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
+**4,742 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-15). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -597,7 +599,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**106 test files. The name rule covers 73 of them:** `tests/test_<module>.py`
+**107 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

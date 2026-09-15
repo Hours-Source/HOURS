@@ -610,7 +610,7 @@ def trust_management(
     Trust flows this period:
     1. Annual depreciation: annDep = trust × dep_rate
        (The "spending capacity" the Trust can mobilize)
-    2. Dividend (paid out): annDep × div_rate → funds stewardship + guarantee
+    2. Dividend (paid out): annDep × div_rate → funds the guarantee
     3. Renewal (stays in Trust): annDep × (1 - div_rate) → reinvested
     4. Levy inflows: replenish trust from labor income
     5. End balance: trust - annDep + renewal + levy_revenue
@@ -619,11 +619,15 @@ def trust_management(
     Args:
         trust_balance: Trust balance at start of period (TEH).
         levy_revenue: Total levy revenue collected this period (TEH).
-        stewardship_cost: TEH required for stewardship allocation.
+        stewardship_cost: TEH required for registered stewardship (and, from
+            fiscal_snapshot, ecological and care) labour. Paid at the mint, so
+            REPORTED as `paid_by_mint` and never charged to the Trust
+            (2026-09-15).
         guarantee_cost: TEH required for sufficiency guarantee.
         dep_rate: Annual depreciation rate of trust balance.
         div_rate: Fraction of depreciation paid as dividend.
         epsilon: Automation level (for context/reporting).
+        guf_revenue: Ground Use Fee inflow (TEH); circulatory, like the levy.
 
     Returns:
         dict: {
@@ -632,8 +636,9 @@ def trust_management(
           "dividend":          float,    (= annDep × div_rate; available for spending)
           "renewal":           float,    (= annDep × (1 - div_rate); stays in trust)
           "levy_inflow":       float,
-          "total_revenue":     float,    (dividend + levy)
-          "total_expenditure": float,    (stewardship + guarantee)
+          "total_revenue":     float,    (dividend + levy + GUF)
+          "total_expenditure": float,    (the guarantee only)
+          "paid_by_mint":      float,    (stewardship_cost as supplied; not a Trust figure)
           "surplus_deficit":   float,    (positive = surplus)
           "solvent":           bool,
           "trust_end":         float,    (projected end-of-period balance)
@@ -663,7 +668,13 @@ def trust_management(
     # circulatory TEH flowing to the Trust"), so no TEH is created here and
     # Condition III is untouched.
     total_revenue     = dividend + levy_revenue + guf_revenue
-    total_expenditure = stewardship_cost + guarantee_cost
+    # MINTED TEH IS THE WAGE (author decision, 2026-09-15). Stewardship,
+    # ecological and care labour is registered, and registration mints its
+    # pay: `teh_created = registered_eoh × mean_multiplier`. Charging the Trust
+    # for the same hours paid them twice. The Trust owes only the guarantee.
+    # `stewardship_cost` is still accepted and returned as `paid_by_mint`, so
+    # the requirement stays visible, and it enters no Trust figure.
+    total_expenditure = guarantee_cost
     surplus_deficit   = total_revenue - total_expenditure
 
     # Trust balance evolves: loses depreciation, gains renewal and both inflows
@@ -686,6 +697,7 @@ def trust_management(
                               if guf_revenue > 0.0 else 0.0),
         "total_revenue":     total_revenue,
         "total_expenditure": total_expenditure,
+        "paid_by_mint":      stewardship_cost,
         "surplus_deficit":   surplus_deficit,
         "solvent":           surplus_deficit >= 0.0,
         "trust_end":         trust_end,
@@ -852,7 +864,7 @@ def fiscal_snapshot(
         capital_age_ratio: Mean asset age ratio.
         population: Total population.
         epsilon: Automation level.
-        levy_rates: Dict of levy rates. Defaults to {"sufficiency": 0.0125}.
+        levy_rates: Dict of levy rates. Defaults to {"sufficiency": SUFF_LEVY_RATE}.
         mean_multiplier: Mean workforce multiplier.
         dep_rate: Trust depreciation rate.
         div_rate: Trust dividend fraction.
@@ -881,7 +893,11 @@ def fiscal_snapshot(
 
     Solvency identity (Trust is solvent when):
 
-        levy_inflow + Trust_dividend ≥ stewardship + ecological + guarantee + care_stipend
+        levy_inflow + GUF + Trust_dividend ≥ guarantee
+
+    Stewardship, ecological and care labour are registered and paid at the
+    mint (minted TEH is the wage, 2026-09-15); they are returned as
+    `paid_by_mint` and are not Trust expenditure.
 
     Trust dynamics each period:
         Trust_end = Trust_start − depreciation(dep_rate) − dividend(div_rate) + levy_inflow
@@ -891,13 +907,9 @@ def fiscal_snapshot(
     creating a long-run fiscal equilibrium — provided Trust grew large enough
     during mid-arc to fund obligations through dividend alone.
 
-    Worked example at ε=0.40 (population=1M, Trust=35B TEH, labor_income=494M TEH):
-        levy_inflow     =   6.2M TEH  (494M × 1.25% suff_levy)
-        stewardship     = 282M TEH    (capital stock infrastructure obligation)
-        ecological      =   0.9M TEH  (healthy ecosystem)
-        guarantee       = (predates the 2026-09-15 effective_personal_eoh build — call the function)
-        trust_dividend  = 630M TEH    (35B × 4.5% dep × 40% div)
-        surplus_deficit =  46.6M TEH  → solvent=True; trust_stable=False (Trust eroding)
+    No worked example is restated here: the one that stood predated the
+    effective_personal_eoh build, the wage doctrine and the 4.5% levy, and
+    was wrong on all three (mode 7). Call the function.
 
     Returns:
         dict with "levies", "stewardship", "ecological", "guarantee", "trust",
@@ -1039,9 +1051,11 @@ def fiscal_snapshot(
         floor_fraction=floor_fraction,
         capital_personal_eoh_fulfilled_per_person=capital_personal_eoh_fulfilled_per_person,
     )
-    # new-15: care stipend is care-labor compensation from the Trust — co-equal
-    # with stewardship and ecological as a structural obligation, distinct from
-    # the sufficiency guarantee (which is a floor, not labor compensation).
+    # new-15: care stipend is care-labour compensation — co-equal with
+    # stewardship and ecological as a requirement, distinct from the
+    # sufficiency guarantee (a floor, not labour compensation). Since
+    # 2026-09-15 all three are paid at the mint and reach the Trust as
+    # `paid_by_mint` only; the Trust owes the guarantee.
     trust     = trust_management(
         trust_balance, levies["total_levied"],
         stew["teh_allocated"] + eco["teh_allocated"] + care_stipend_aggregate,
@@ -1117,6 +1131,9 @@ def fiscal_snapshot(
         "ecological":       eco,
         "guarantee":        guarantee,
         "care_stipend":     care_stipend_aggregate,
+        # stewardship + ecological + care requirement, paid at the mint and
+        # never charged to the Trust (2026-09-15).
+        "paid_by_mint":     trust["paid_by_mint"],
         "trust":            trust,
         "solvent":          trust["solvent"],
         "epsilon":          epsilon,
@@ -1683,7 +1700,7 @@ def min_levy_for_solvency(
 
     cover_expenditures:
         levy ≥ max(0, expenditure − dividend).
-        The dividend funds as much of stewardship + guarantee as it can;
+        The dividend funds as much of the guarantee as it can;
         the levy covers the remainder. Trust balance still declines.
 
     stable_trust:
@@ -1715,9 +1732,9 @@ def min_levy_for_solvency(
         dict: {
           "trust_balance":          float,
           "dividend":               float,   (= trust × dep_rate × div_rate)
-          "stewardship_cost":       float,
+          "stewardship_cost":       float,   (paid by the mint; not in expenditure)
           "guarantee_cost":         float,
-          "total_expenditure":      float,
+          "total_expenditure":      float,   (the guarantee only)
           "current_surplus":        float,   (dividend − expenditure; negative = gap)
           "cover_expenditures":     float,   (min levy to cover costs from dividend)
           "stable_trust":           float,   (min levy to prevent trust drawdown)
@@ -1752,7 +1769,9 @@ def min_levy_for_solvency(
         guar = sufficiency_guarantee(population=population, epsilon=epsilon)
         guarantee_teh = guar["total_cost_teh"]
 
-    total_expenditure = stewardship_teh + guarantee_teh
+    # Minted TEH is the wage (2026-09-15): stewardship is paid at the mint and
+    # is reported, not owed. See trust_management().
+    total_expenditure = guarantee_teh
     current_surplus   = dividend - total_expenditure
 
     # Three levy targets

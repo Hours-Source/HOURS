@@ -11,7 +11,7 @@ cannot half-state a frame.
 import pytest
 
 from hours_eoh.core.simulation import make_economy_state
-from hours_eoh.data import SLU_HECTARES
+from hours_eoh.data import SLU_HECTARES, SUFF_LEVY_RATE
 from hours_eoh.land.collective import make_urban_collective, make_rural_collective
 from hours_eoh.scenarios.collective import collective_snapshot, land_hectares_of
 
@@ -165,7 +165,7 @@ class TestTheFrameIsStatedOnce:
         r = collective_snapshot(_state(), parcels=make_urban_collective())
         levied = r["fiscal"]["levies"]["total_levied"]
         assert levied == pytest.approx(
-            r["pipeline"]["teh_created"] * 0.0125, rel=1e-9
+            r["pipeline"]["teh_created"] * SUFF_LEVY_RATE, rel=1e-9
         )
 
     def test_the_parcels_supply_both_the_fee_and_the_area(self):
@@ -346,7 +346,10 @@ class TestArcCoherence:
         assert ratios == sorted(ratios, reverse=True), (
             f"expected a monotone fall now the levy base does not collapse: {ratios}"
         )
-        assert ratios[0] > 10.0, "still far above the levy at subsistence"
+        # `> 10` until 2026-09-15, a LEVEL this docstring disowns. The levy rose
+        # 1.25% → 4.5% and ε=0 reads 9.19. The shape claim is which stream
+        # dominates at each end: the fee at subsistence, the levy at the top.
+        assert ratios[0] > 1.0, "the fee dominates the levy at subsistence"
         assert ratios[-1] < 1.0, "and below it at post-scarcity"
 
     def test_the_fee_never_vanishes_across_the_arc(self):

@@ -33,8 +33,14 @@ def test_rate_calibration_returns_expected_keys(small_urban_50):
 
 
 def test_rate_calibration_converges_at_unity(small_urban_50):
-    # Use population=50 so that 50 parcels can plausibly produce levy-equivalent GUF
-    result = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10)
+    # The levy rate is bound EXPLICITLY at 1.25% (the rate before 2026-09-15):
+    # this tests the solver, not the default levy. At the 4.5% default the k
+    # ceiling (1,000) binds and the sample reaches 0.62 of the levy, so it
+    # cannot converge at unity. The old comment said population=50 made this
+    # plausible; measured, `population` does not move `levy_revenue` here
+    # (797,263 / 797,419 / 798,970 TEH at 5 / 50 / 500), so it was never the lever.
+    result = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10,
+                                  levy_rates={"sufficiency": 0.0125})
     assert result["converged"] is True
     assert abs(result["achieved_ratio"] - 1.0) <= 0.25  # sample approximation ±25%
 

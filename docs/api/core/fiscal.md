@@ -16,7 +16,7 @@ Collects levies from labour income, each rate a fraction of gross. Circulatory: 
 
 ## Trust Allocations
 
-The Trust has three co-equal obligations. Neither is residual — both `ecological_allocation` and `stewardship_allocation` are primary claims on Trust revenue.
+Ecological and stewardship requirements are co-equal — neither is residual. Since 2026-09-15 (minted TEH is the wage) both are paid at the mint, not by the Trust; the Trust owes only the guarantee.
 
 ### `stewardship_allocation(capital_stock_teh, capital_age_ratio, epsilon, available_teh, …)` → `dict`
 
@@ -40,7 +40,7 @@ The floor — minimum TEH guaranteed to every collective member. The EOH reimbur
 
 ### `trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)` → `dict`
 
-Full Trust solvency calculation — revenues in, obligations out, surplus/deficit.
+Full Trust solvency calculation — revenues in, the guarantee out, surplus/deficit. `stewardship_cost` is returned as `paid_by_mint` and is not expenditure.
 
 ### `fiscal_snapshot(epsilon, …)` → `dict`
 

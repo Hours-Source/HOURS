@@ -614,8 +614,8 @@ print(f"Exit financeable:  {exit_fin['exit_financeable']}  "
 ## 5. Interpreting outputs
 
 **`fiscal_snapshot()["solvent"] = False`**
-The Trust cannot fund its obligations (stewardship + guarantee + ecological) from
-dividend + levy. Action: increase `TRUST_BASE_TEH` (build reserves), raise
+The Trust cannot fund the guarantee from dividend + levy + GUF. Stewardship,
+ecological and care labour are paid at the mint and are not Trust expenditure. Action: increase `TRUST_BASE_TEH` (build reserves), raise
 `SUFF_LEVY_RATE`, or reduce `DEP_RATE` / `DIV_RATE`. Run `eoh sensitivity` to
 find the minimum trust balance for solvency at your ε.
 

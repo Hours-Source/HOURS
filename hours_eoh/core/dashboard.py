@@ -252,8 +252,9 @@ def fiscal_health_check(
     Phase 5.3: Fiscal health check — trust solvency, purchasing power, levy sufficiency.
 
     Three pillars of fiscal health:
-    1. Trust solvency: Can the Trust fund both stewardship and the sufficiency
-       guarantee simultaneously? A solvent trust has positive surplus_deficit.
+    1. Trust solvency: Can the Trust fund the sufficiency guarantee?
+       Stewardship and ecological labour are paid at the mint (2026-09-15)
+       and are not Trust expenditure. A solvent trust has positive surplus_deficit.
     2. Floor purchasing power trend: Is the floor PP index ≥ 1.0? Is it
        materially above baseline? (Principle 5 — it must never decline.)
     3. Levy sufficiency: Do levies cover at least LEVY_SUFFICIENCY_WARN fraction

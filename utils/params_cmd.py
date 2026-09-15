@@ -20,7 +20,7 @@ from typing import Any
 from hours_eoh.params import EohParams
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import TRUST_BASE_TEH
+from hours_eoh.data import SUFF_LEVY_RATE, TRUST_BASE_TEH
 
 from utils.formatters import bold, fmt_float, green, red, dim
 
@@ -102,7 +102,7 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
     )
     teh_created  = float(pipeline.get("teh_created", 0.0))
     labor_income = float(pipeline.get("registered_eoh", 0.0)) * 2200.0
-    levy_rates = {"sufficiency": float(data.get("suff_levy_rate", 0.0125))}
+    levy_rates = {"sufficiency": float(data.get("suff_levy_rate", SUFF_LEVY_RATE))}
     snap = fiscal_snapshot(
         epsilon=eps,
         population=float(data["population"]),

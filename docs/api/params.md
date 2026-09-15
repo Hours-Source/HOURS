@@ -69,7 +69,7 @@ Single source of truth for all named constants. No anonymous numeric literals an
 | `GUF_USE_RESIDENTIAL_PRIMARY` | 10.0 TEH/SLU/yr (recalibrated ×100 from 0.10) |
 | `GUF_USE_COMMERCIAL_RETAIL` | 30.0 TEH/SLU/yr (recalibrated ×100 from 0.30) |
 
-All `GUF_USE_*` constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) is co-equal with levy revenue at ε = 0.40 — the design target.
+All `GUF_USE_*` constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) is co-equal with levy revenue at ε = 0.40 — the design target at the 1.25% levy. Since `SUFF_LEVY_RATE` rose to 4.5% (2026-09-15) the target is not met (fee ≈ 0.91× levy on the urban archetype), and the ratios were not re-fitted to it.
 
 **Conditions and Simulation**
 

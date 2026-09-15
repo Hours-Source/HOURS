@@ -2968,22 +2968,20 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 # ---------------------------------------------------------------------------
 # provenance-block: Fiscal architecture
 # tag: normative | units: fraction of labor income
-# decided_by: charter. RETAGGED 2026-08-09 from placeholder, after running the
-#   derivation its old pointer named. min_levy_for_solvency() returns
-#   cover_expenditures_rate = None at EVERY ε on the canonical configuration:
-#   the dividend alone runs a surplus (630M TEH against a 397M peak
-#   expenditure at ε=0), so the levy rate REQUIRED for solvency is zero
-#   throughout. This constant is therefore not a mis-calibrated solvency
-#   figure awaiting measurement — it is a redistributive commitment, and
-#   deriving it would set it to 0, which is a different policy rather than a
-#   better calibration.
-# note: at canonical ε=0.40 it raises ≈6.2M TEH/yr against a 307M TEH
-#   guarantee — it does not fund the guarantee and was never sized to; the
-#   Trust dividend does. That is the whole finding, and it is why the solvency
-#   derivation cannot set it. What a charter would weigh instead: the levy's
-#   incidence on labour income at low ε, where labour income is nearly all
-#   income.
-SUFF_LEVY_RATE:               float = 0.0125            # sufficiency levy rate on labor income
+# decided_by: author, 2026-09-15 — raised 1.25% → 4.5% with the wage doctrine
+#   (minted TEH is the wage; the Trust owes only the guarantee).
+# form: scenarios/stationarity.py swept levy × base: the smallest rate at which
+#   the Trust stands still on the TEH side from ε=0 to 0.99 is 4.48%, with the
+#   V1 guarantee at 5% need, base PERSONAL_EOH_BASE (1,000 h), the urban land
+#   fee and no inheritance. Rounded up to 4.5%.
+# note: SIZED TO A DESIGN THE DEFAULT DOES NOT RUN. V1 is PROPOSED, not adopted;
+#   under the shipped guarantee 4.5% does not reach the end of the arc
+#   (record/fulfilment.md). The 2026-08-09 rationale — "the dividend alone runs
+#   a surplus, so the required rate is zero" — held only while the Trust was
+#   charged for minted hours and a large dividend was assumed; it no longer
+#   describes this constant. Incidence on labour income at low ε, where labour
+#   income is nearly all income, remains the charter's question.
+SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate on labor income
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
@@ -3300,7 +3298,8 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   editing this constant — pass your own.
 # default: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so
 #   the annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
-#   stewardship, ecological and guarantee obligations at mid-arc. Calibrated to
+#   stewardship, ecological and guarantee obligations at mid-arc (STALE since
+#   2026-09-15: the Trust owes only the guarantee; not re-sized). Calibrated to
 #   a target, like GUF_USE_* and DEFAULT_SEGMENTS. It is the most-consumed
 #   constant in the repo (77 call sites outside data.py), so every canonical
 #   solvency result rests on it and none of them is evidence about YOUR fisc.
@@ -3689,7 +3688,9 @@ GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 # Calibrated so aggregate GUF across a 1M-population land inventory (~400k residential
 # + 20k commercial parcels) is co-equal with levy revenue at mid-arc (ε≈0.40).
 # At ×100 vs. the original abstract unit values: residential GUF ≈ 9.3M TEH/yr,
-# commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×).
+# commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×)
+# AT THE 1.25% LEVY. Since SUFF_LEVY_RATE rose to 4.5% (2026-09-15) that target is
+# not met and these were deliberately not re-fitted to it.
 # tag: placeholder | units: TEH per Standard Land Unit per year, at ε=0.40 | family: GUF_USE_*
 # form: NLSA Eq. 9 — midpoints of the manual's per-category ranges.
 # note: CALIBRATED TO A TARGET, and retagged on that basis (2026-08-09). These
