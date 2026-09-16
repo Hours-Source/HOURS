@@ -197,11 +197,20 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
                              levy_rate=r_star - 1e-3)["stationary"] is False
 
     def test_the_bottom_of_the_arc_costs_more_than_the_middle_but_the_top_binds(self):
-        """THE FRICTION, MEASURED. Without the fee the requirement is a U:
-        subsistence carries nearly all of the personal obligation by hand while
-        registration is near zero, so the mint is small against what is owed.
-        The bump is real and it is not what binds — the ε=0.99 corner needs
-        2.4× the bottom, which is what the shipped 4.5% is sized to."""
+        """THE FRICTION, MEASURED — and its mechanism DECOMPOSED rather than
+        asserted (corrected 2026-09-16; the first version said "registration is
+        near zero so the mint is small", which cannot be the cause because
+        under V1 registration scales the guarantee AND the mint).
+
+            r*_nofee = r_personal × need × per_person ÷ mint_per_capita
+
+        ε=0 → 0.19: registration ×3.69, guarantee per person ×0.87, mint per
+        capita ×4.23 — the mint OUTRUNS registration, so the ratio falls.
+        0.19 → 0.99: registration ×23.8 against mint per capita ×4.63 while the
+        guarantee per person only halves — registration SATURATES (0.87 of
+        people on ledger) and the mint plateaus, so the ratio rises. The bump
+        is real and it is not what binds: the ε=0.99 corner needs 2.4× the
+        bottom, which is what the shipped 4.5% is sized to."""
         def r_nofee(e):
             r = self._teh(e)
             return r["guarantee_owed"] / r["mint"]
