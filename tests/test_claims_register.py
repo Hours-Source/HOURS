@@ -882,15 +882,23 @@ def _shadow_bound_still_8() -> bool:
     return m is not None and int(m.group(1)) == 8
 
 
-def _confidence_ratchet_is_133_of_150() -> bool:
+def _confidence_ratchet_is_131_of_148() -> bool:
     """Imports nothing of its own: the gate's OWN filter, not a copy of it —
-    re-implementing it dropped `if not s.bound` once already (corpus F-038)."""
+    re-implementing it dropped `if not s.bound` once already (corpus F-038).
+
+    MOVED 133/150 -> 131/148 ON 2026-09-16, and this predicate is why the move
+    was noticed. `DEFAULT_SEGMENTS` and `SKILL_DECAY_RATE` were retagged
+    `placeholder` -> `baseline`, leaving SOFT_TAGS entirely. Two other copies of
+    this figure had already drifted unnoticed — CLAUDE.md said "125 of 141" and
+    `test_confidence.py`'s docstring said 138 — while this one, the only gated
+    copy, was exactly right. That is the argument for the gate in one line.
+    """
     from tests.test_confidence import BASELINE_WITHOUT, SOFT_TAGS
     from utils import provenance as pv
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (133, 150, 133)
+    return (len(without), len(soft), BASELINE_WITHOUT) == (131, 148, 131)
 
 
 def _scan_is_data_py_only() -> bool:
@@ -963,8 +971,8 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("133 of 150 placeholder/bounded constants carry no confidence",
-                      "caveat", _confidence_ratchet_is_133_of_150),
+    OpenItemPredicate("131 of 148 placeholder/bounded constants carry no confidence",
+                      "caveat", _confidence_ratchet_is_131_of_148),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
                       "caveat", _kappa_ratio_is_12_to_69),

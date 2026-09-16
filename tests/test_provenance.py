@@ -18,6 +18,7 @@ Two halves, and the split matters:
 
 from __future__ import annotations
 
+import pathlib
 import re
 
 import pytest
@@ -425,7 +426,11 @@ def test_audit_csv_has_a_header_and_one_row_per_record():
 
     assert lines[0] == ",".join(pv.CSV_COLUMNS)
     assert len(lines) == 2
-    assert lines[1] == "ALPHA,0.5,fraction,placeholder,,,Demo,,,a study,,,,,,"
+    # Two columns added 2026-09-16 (`compares`, `expected`, for the `baseline`
+    # tag), so the row carries two more empty fields before `note`. Pinned as a
+    # literal deliberately: the audit CSV is the public artifact, and a column
+    # appearing or vanishing should be a visible act in a diff.
+    assert lines[1] == "ALPHA,0.5,fraction,placeholder,,,Demo,,,a study,,,,,,,,"
 
 
 def test_audit_csv_carries_the_band_and_the_error_direction():
@@ -938,6 +943,125 @@ def test_ancestry_terminates_on_a_cycle():
     )
     scanned = pv.scan(src, {"A": 1.0, "B": 2.0})
     assert pv.unanchored_ancestors("A", scanned) == []
+
+
+# --- the `baseline` tag: a refuted value kept RUNNABLE as a comparison -------
+#
+# `placeholder` means "no measurement stands behind it". For a refuted baseline
+# that is the opposite of true: the measurement happened, it replaced the value,
+# and the value is kept as the control it replaced. Filing it under placeholder
+# overstated the debt and made a constant with a live JOB read as one nobody had
+# reached. `superseded_by` alone records a STATUS and invites deletion;
+# `compares:` records the job and `expected:` records what the comparison should
+# show — bound to a test, because an expectation nothing runs is prose.
+
+
+def _tag_src(fields: str) -> str:
+    return (
+        "# provenance-block: Demo\n"
+        f"{fields}"
+        "OLD_RATE: float = 0.10\n"
+        "# tag: measured | units: fraction\n"
+        "NEW_RATE: float = 0.03\n"
+    )
+
+
+_GOOD_BASELINE = (
+    "# tag: baseline | units: fraction\n"
+    "# superseded_by: NEW_RATE\n"
+    "# compares: NEW_RATE — the measured replacement\n"
+    # A continuation is `#` followed by THREE OR MORE spaces — un-indented
+    # prose closes the block instead of being absorbed into the last field.
+    # Getting this wrong first time is why this fixture is written out in full
+    # rather than built by string surgery.
+    "# expected: NEW_RATE sits strictly below this. Evaluated by\n"
+    "#   tests/test_demo.py::TestDemo::test_ordering\n"
+)
+
+
+def _issues(fields: str) -> list[str]:
+    return pv.problems(pv.scan(_tag_src(fields), {"OLD_RATE": 0.10, "NEW_RATE": 0.03}))
+
+
+def test_a_complete_baseline_is_accepted():
+    assert not [i for i in _issues(_GOOD_BASELINE) if "OLD_RATE" in i]
+
+
+@pytest.mark.parametrize(
+    "drop, expected_message",
+    [
+        ("# superseded_by: NEW_RATE\n", "names no superseded_by"),
+        ("# compares: NEW_RATE — the measured replacement\n", "states no compares"),
+    ],
+)
+def test_a_baseline_missing_a_required_field_is_refused(drop, expected_message):
+    issues = _issues(_GOOD_BASELINE.replace(drop, ""))
+    assert any(expected_message in i for i in issues), issues
+
+
+def test_a_baseline_with_no_expected_is_refused():
+    fields = (
+        "# tag: baseline | units: fraction\n"
+        "# superseded_by: NEW_RATE\n"
+        "# compares: NEW_RATE\n"
+    )
+    assert any("states no expected" in i for i in _issues(fields)), _issues(fields)
+
+
+def test_an_expectation_that_names_no_test_is_refused():
+    """THE CONDITION THAT MAKES THIS A CHECK RATHER THAN A SENTENCE.
+
+    `DEFAULT_SEGMENTS` carried an exemplary expectation in prose — the synthetic
+    mean sits ON the band ceiling because it was built to, the measured one
+    sits inside on its own evidence — and nothing evaluated it. Prose drifts
+    from the number it describes; this repo has caught that nine times.
+    """
+    fields = (
+        "# tag: baseline | units: fraction\n"
+        "# superseded_by: NEW_RATE\n"
+        "# compares: NEW_RATE\n"
+        "# expected: NEW_RATE sits strictly below this.\n"
+    )
+    assert any("names no test" in i for i in _issues(fields)), _issues(fields)
+
+
+class TestTheShippedBaselinesNameTestsThatExist:
+    """A citation to a test that no longer exists is the same drift one step
+    removed — it reads as evidence and checks nothing."""
+
+    _CITE = re.compile(r"(tests/[\w/]+\.py)::(\w+)(?:::(\w+))?")
+
+    def _baselines(self, scanned):
+        return [r for r in scanned.records if r.tag == "baseline"]
+
+    def test_there_is_at_least_one_baseline_to_check(self, scanned):
+        """`exercised` asserted alongside `passes`: if the tag fell out of use
+        every assertion below would pass while checking nothing."""
+        assert self._baselines(scanned), "no constant carries the baseline tag"
+
+    def test_every_cited_test_exists(self, scanned):
+        repo = pathlib.Path(__file__).resolve().parent.parent
+        for rec in self._baselines(scanned):
+            m = self._CITE.search(rec.expected)
+            assert m, f"{rec.name}: expected: cites no test path"
+            path = repo / m.group(1)
+            assert path.exists(), f"{rec.name}: cites {m.group(1)}, which does not exist"
+            src = path.read_text(encoding="utf-8")
+            for symbol in (m.group(2), m.group(3)):
+                if not symbol:
+                    continue
+                assert f"class {symbol}" in src or f"def {symbol}" in src, (
+                    f"{rec.name}: cites {symbol} in {m.group(1)}, which does not define it"
+                )
+
+    def test_every_baseline_names_its_readers(self, scanned):
+        """A baseline that operative code reads must name every reader, so the
+        exemption stays as narrow as the comparison it is granted for."""
+        for rec in self._baselines(scanned):
+            if pv.operative_consumers(rec.name):
+                assert rec.baseline_in.strip(), (
+                    f"{rec.name}: read by operative code but declares no baseline_in"
+                )
 
 
 # --- baseline_in: the refuted-baseline exemption ----------------------------

@@ -1049,7 +1049,7 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 # Default workforce tier segments: (name, fraction, mean_multiplier)
 # Calibrated so weighted mean = 2.10 at ε=0.
 # 0.20×1.20 + 0.50×1.87 + 0.25×2.80 + 0.05×4.50 = 2.100
-# tag: placeholder | units: fractions of workforce and dimensionless multipliers
+# tag: baseline | units: fractions of workforce and dimensionless multipliers
 # note: CALIBRATED TO A TARGET — the segment means were set so the weighted
 #   mean lands on 2.10, the top of the constitutional band, at ε=0. Same class
 #   as the GUF_USE_* rates: a value reverse-engineered from a desired outcome.
@@ -1060,6 +1060,16 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 #   immediately: it caught that measured.py's layer paragraph still asserted
 #   "DEFAULT_SEGMENTS remains the core default" after that stopped being true.
 # superseded_by: hours_eoh.reference.onet_multipliers.registry_segments
+# compares: hours_eoh.reference.onet_multipliers.registry_segments() — the
+#   measured O*NET 30.3/BLS workforce that replaced this synthetic one as the
+#   default. This value is kept so "what the synthetic set said" stays runnable
+#   against it rather than being quoted from memory.
+# expected: the SYNTHETIC weighted mean sits EXACTLY on M_BAND_HIGH (2.10)
+#   because it was built to, while the MEASURED mean sits strictly inside the
+#   band on its own evidence. That contrast is the whole content of the
+#   comparison — it is what "calibrated to the target it is checked against"
+#   looks like when you can see both sides. Evaluated by
+#   tests/test_multipliers.py::TestMeasuredWorkforceIsTheDefault::test_the_measured_mean_is_inside_the_band_on_its_own_evidence
 # baseline_in: hours_eoh/core/multipliers.py, hours_eoh/core/dashboard.py, hours_eoh/scenarios/measured.py
 # resolves_by: nothing further — the measured path replaced it 2026-08-16.
 #   `registry_segments()` (O*NET 30.3/BLS, 751 occupations, 94.2% of US
@@ -2573,7 +2583,7 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 # every pre-K-IV result in this repo was produced at, so reproducing an old
 # figure means passing it explicitly rather than guessing what it was.
 # It is NOT a renewal rate: see the credibility check under the split.
-# tag: placeholder | units: fraction of the knowledge stock renewed per year
+# tag: baseline | units: fraction of the knowledge stock renewed per year
 # form: DEPRECATED as of Block K-IV — retained, not deleted, per the
 #   additive-not-destructive rule. Nothing defaults to it; the default renewal
 #   rate is SKILL_TRANSMISSION_RATE. Kept because it is the value every
@@ -2586,6 +2596,15 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   K-III separates: transmission (cohort turnover) and CPD (staying current
 #   while working).
 # superseded_by: SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE
+# compares: SKILL_TRANSMISSION_RATE — the adopted K-IV doctrine (cohort
+#   transmission alone, the only one of the three containing no CHOSEN
+#   component). Every pre-K-IV figure in this repo was produced at 0.10, so
+#   reproducing one means passing this explicitly.
+# expected: SKILL_TRANSMISSION_RATE is STRICTLY BELOW this value — the adopted
+#   doctrine renews the stock more slowly than the refuted placeholder did, and
+#   the direction is the point: a knowledge base derived from the slower rate is
+#   LARGER, which is why K-III's mixed derivation understated it. Evaluated by
+#   tests/test_knowledge_base.py::TestKIVAdoption::test_default_renewal_rate_is_the_lower_credible_doctrine
 # baseline_in: hours_eoh/core/eoh_generation.py, hours_eoh/scenarios/knowledge_base.py
 # baseline_labels: shipped, ratio_to_shipped, shipped_over_split
 # resolves_by: nothing. It is not awaiting a measurement; the measurement

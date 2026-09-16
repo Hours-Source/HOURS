@@ -106,10 +106,20 @@ from typing import Any, Iterable, Mapping, Sequence
 #: measurement the framework owes — it is the input an institution brings, and
 #: filing it under "unmeasured" both overstates the framework's debt and hides
 #: the intake path from the analyst who has to supply it.
+#: ``baseline`` was split out of ``placeholder`` (2026-09-16) for the third time
+#: this scheme has had to make that split, and for the same reason as the other
+#: two: `placeholder` means "no measurement stands behind it", and a refuted
+#: baseline is the opposite — the measurement HAPPENED, it replaced this value,
+#: and the value is kept so the comparison stays runnable. Filing it under
+#: "unmeasured" overstated the framework's debt and, worse, made a constant with
+#: a live JOB read as one nobody had got to yet. `superseded_by` alone could not
+#: fix that: it records a STATUS ("not live") and invites deletion, where
+#: `compares:` records the job and `expected:` records the relation the
+#: comparison should show.
 TAGS: frozenset[str] = frozenset(
     {
         "physics", "measured", "derived", "bounded",
-        "placeholder", "normative", "instance",
+        "placeholder", "normative", "instance", "baseline",
     }
 )
 
@@ -152,6 +162,15 @@ NEEDS_DECIDER: frozenset[str] = frozenset({"normative"})
 #: ``default:`` is where that stays visible.
 NEEDS_SUPPLIER: frozenset[str] = frozenset({"instance"})
 
+#: A ``baseline`` must name what it is kept to be compared against AND the
+#: relation that comparison should show. Both, because the risk of this tag is
+#: the mirror of ``instance``'s: it can launder "nobody deleted this" into "this
+#: is the control". A control has a counterpart and a stated expectation; a
+#: leftover has neither. ``expected:`` must end in the test that evaluates it —
+#: see ``problems`` — because an expectation nothing runs is prose, and this
+#: repo has caught nine status notes outliving the decision they described.
+NEEDS_COMPARISON: frozenset[str] = frozenset({"baseline"})
+
 #: Claiming a measurement would settle a charter decision is the category error
 #: this split exists to correct, so the field is refused rather than ignored.
 #: Same for ``instance``: no dataset settles another jurisdiction's capital stock.
@@ -177,6 +196,8 @@ FIELDS: frozenset[str] = frozenset(
         "supplied_by",   # instance: what the institution measures, and the intake path
         "default",       # instance: what the SHIPPED number is, and what rests on it
         "superseded_by", # any tag: the live replacement; marks this one not-live
+        "compares",      # baseline: the LIVE counterpart this value is kept to measure against
+        "expected",      # baseline: the relation the comparison should show, and the test that evaluates it
     }
 )
 
@@ -235,6 +256,8 @@ class TagBlock:
     supplied_by: str = ""
     default: str = ""
     superseded_by: str = ""
+    compares: str = ""
+    expected: str = ""
     family: str = ""
     note: str = ""
 
@@ -262,6 +285,17 @@ class Record:
     supplied_by: str = ""
     default: str = ""
     superseded_by: str = ""
+    #: ``baseline``: the LIVE counterpart this value is kept to be measured
+    #: against. Gated: required under the tag, because a baseline with nothing
+    #: to compare to is not a baseline, it is a value nobody deleted.
+    compares: str = ""
+    #: ``baseline``: the relation the comparison should show, ending in the test
+    #: that EVALUATES it (``tests/test_x.py::TestY::test_z``). Gated: the test
+    #: must exist. A hand-written expectation no gate reads is the shape that
+    #: goes stale (mode 7) and the shape that gets quietly fitted to whatever
+    #: the comparison currently prints (mode 9) — `DEFAULT_SEGMENTS` carried a
+    #: perfectly good expectation in prose for a month and nothing evaluated it.
+    expected: str = ""
     #: Constants an ANCHORED band/derivation rests on, comma-separated. Gated:
     #: no named ancestor may be a placeholder, transitively.
     band_from: str = ""
@@ -379,6 +413,8 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
             supplied_by=fields.get("supplied_by", ""),
             default=fields.get("default", ""),
             superseded_by=fields.get("superseded_by", ""),
+            compares=fields.get("compares", ""),
+            expected=fields.get("expected", ""),
             family=fields.get("family", ""),
             note=fields.get("note", ""),
         ),
@@ -490,6 +526,8 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
                         supplied_by=source_block.supplied_by,
                         default=source_block.default,
                         superseded_by=source_block.superseded_by,
+                        compares=source_block.compares,
+                        expected=source_block.expected,
                     )
                 )
             i += 1
@@ -1437,6 +1475,47 @@ def problems(scanned: Scan) -> list[str]:
                 f"band."
             )
 
+    # `baseline` — the tag for a value kept RUNNABLE as a comparison. Four
+    # conditions. The first two are the tag's content; the third stops it
+    # becoming a quiet way to shed measurement debt; the fourth is what makes
+    # `expected:` a check rather than a sentence.
+    for rec in scanned.records:
+        if rec.tag not in NEEDS_COMPARISON:
+            continue
+        if not rec.superseded_by.strip():
+            found.append(
+                f"{rec.name}: tagged baseline but names no superseded_by. A "
+                f"baseline is kept BECAUSE something replaced it; without the "
+                f"replacement named, the tag claims a job it cannot show."
+            )
+        if not rec.compares.strip():
+            found.append(
+                f"{rec.name}: tagged baseline but states no compares:. A "
+                f"baseline with nothing to compare against is not a control, "
+                f"it is a value nobody deleted."
+            )
+        expected = rec.expected.strip()
+        if not expected:
+            found.append(
+                f"{rec.name}: tagged baseline but states no expected:. Name the "
+                f"relation the comparison should show — an ordering, a "
+                f"direction, strictly-inside versus exactly-on — and the test "
+                f"that evaluates it."
+            )
+        elif "::" not in expected or "tests/" not in expected:
+            found.append(
+                f"{rec.name}: expected: names no test. It must end in the test "
+                f"that EVALUATES the relation, as "
+                f"tests/test_x.py::TestY::test_z — an expectation nothing runs "
+                f"is prose, and prose drifts from the number it describes."
+            )
+        if operative_consumers(rec.name) and not rec.baseline_in.strip():
+            found.append(
+                f"{rec.name}: tagged baseline and READ by operative code, but "
+                f"declares no baseline_in. Name every reader, so the exemption "
+                f"stays as narrow as the comparison it is granted for."
+            )
+
     # `baseline_in:` — a RETIRED constant that operative code still reads as the
     # refuted comparison. Three conditions, and the middle one is the whole
     # point: a baseline claim buys exemption from "no readers", never from "no
@@ -1756,6 +1835,8 @@ CSV_COLUMNS = (
     "supplied_by",
     "default",
     "superseded_by",
+    "compares",
+    "expected",
     "note",
 )
 
@@ -1789,6 +1870,8 @@ def audit_csv(scanned: Scan) -> str:
                 r.supplied_by,
                 r.default,
                 r.superseded_by,
+                r.compares,
+                r.expected,
                 r.note,
             ]
         )
@@ -1827,6 +1910,13 @@ def doc_table(records: Iterable[Record]) -> str:
         elif r.tag == "instance":
             parts.append(f"**you supply** {_cell(r.supplied_by)}")
             parts.append(f"**shipped default** {_cell(r.default)}")
+        elif r.tag == "baseline":
+            # A baseline is answerable to a comparison, not to a dataset. The
+            # table says what it is measured against and what that should show,
+            # for the same reason the normative row says who decided.
+            parts.append(f"**compares against** {_cell(r.compares)}")
+            parts.append(f"**expected** {_cell(r.expected)}")
+            parts.append("_kept runnable; no measurement is owed on it_")
         else:
             if r.band:
                 parts.append(f"**band** {_cell(r.band)}")

@@ -9,7 +9,7 @@ THE RULE (author decision, 2026-09-11, `record/theory.md#the-verdict-ladder`):
     CERTAIN    physics, derived, derived-then-FROZEN — and arithmetic that closes
     INSTANCE   measured, instance, convention — only as good as its census,
                checkable for FEASIBILITY within a stable bound
-    POSSIBLE   placeholder, bounded, normative — and that is the ceiling
+    POSSIBLE   placeholder, bounded, normative, baseline — and that is the ceiling
 
 This module computes, for any function in the package, the transitive set of
 `data.py` constants it could rest on, and therefore the strongest verdict it is
@@ -92,6 +92,13 @@ TIER_OF_TAG: dict[str, str] = {
     "placeholder": "POSSIBLE",
     "bounded": "POSSIBLE",
     "normative": "POSSIBLE",
+    # `baseline` (2026-09-16) sits in POSSIBLE, which is DELIBERATELY the same
+    # tier it carried as `placeholder`, so retagging a refuted baseline moves no
+    # verdict and no census count. A baseline may only be READ in a reporting
+    # position, so in principle it never feeds a live result and the question is
+    # moot; this walk is static and over-approximates on purpose, and the safe
+    # direction for a value the framework has moved OFF is the weakest tier.
+    "baseline": "POSSIBLE",
 }
 
 #: Weakest wins, so a verdict is the MAX over its inputs.

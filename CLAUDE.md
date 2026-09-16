@@ -512,7 +512,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,779 tests passing (1 skipped), mypy clean on 102 source files** (verified
+**4,787 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-16). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -562,7 +562,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- **125 of 141** placeholder/bounded constants carry no confidence figure;
+- **131 of 148** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and
@@ -628,7 +628,7 @@ are the ones worth knowing by name.
 | `test_care_keys.py` | The two care drivers split — dependant care tracks fertility, frailty care tracks morbidity — `self_weight + care_weight == eoh_weight` exactly, the shares bound by test to their ATUS source, and the retired elderly ε-drift read by nothing. |
 | `test_registration_containment.py` | Registration RELOCATES obligation and never creates it — registered ≤ human ≤ gross per domain across the arc, and `total_eoh` accepts no registration parameter, so the ledger cannot manufacture the demand that justifies the TEH it mints. |
 | `test_record_index.py` | The `record/` index globbed from disk, not hand-kept: every area file linked from `record/README.md`, no README row claiming an area is migrated while the file is a stub, and every generated entry index current. |
-| `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. |
+| `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. Plus the `baseline` tag (2026-09-16): a refuted value kept runnable must name `superseded_by`, `compares` (the live counterpart) and `expected` (the relation, ending in the test that evaluates it) — **and that test must exist in the tree**, because a citation to a deleted test reads as evidence and checks nothing. |
 | `test_confidence.py` | The confidence ratchet — the count of placeholder/bounded constants *without* a confidence figure may not rise. |
 | `test_dataset_governance.py` | A dataset's stated method against the constants it governs, sha256-fingerprinted so a regenerated file breaks the build until the constants are re-checked. |
 | `test_parameter_wiring.py` | A parameter that is accepted, changes nothing at any configuration tried, and that no test passes by name. |
