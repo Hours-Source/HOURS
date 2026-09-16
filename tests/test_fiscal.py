@@ -1098,7 +1098,7 @@ class TestEcologicalAllocation:
         )
         for key in ("ecological_eoh_total", "human_ecological_eoh", "teh_required",
                     "teh_allocated", "funding_gap", "fully_funded",
-                    "funding_coverage", "epsilon"):
+                    "epsilon"):
             assert key in result
 
     def test_teh_allocated_capped_at_available(self):
@@ -1140,13 +1140,55 @@ class TestEcologicalAllocation:
         )
         assert result["ecological_eoh_total"] == pytest.approx(999_999.0)
 
-    def test_funding_coverage_one_when_fully_funded(self):
+    def test_allocation_meets_the_requirement_when_funded(self):
+        """RESTATED 2026-09-16: `funding_coverage` was removed with the thermal
+        co-equality condition, its only consumer. The BEHAVIOUR it reported is
+        still here and still worth pinning — coverage was just a ratio of two
+        keys that remain."""
         result = ecological_allocation(0.70, 0.40, available_teh=1e12, **PRE_PARTITION)
-        assert result["funding_coverage"] == pytest.approx(1.0)
+        # Without the obligation supplied this reads 0 == 0 and pins nothing —
+        # the vacuity the sibling collapse test inherited from the old coverage
+        # pair. Guarded here for the same reason.
+        assert result["teh_required"] > 0.0
+        assert result["teh_allocated"] == pytest.approx(result["teh_required"])
+        assert result["funding_gap"] == pytest.approx(0.0)
+        assert result["fully_funded"] is True
 
-    def test_funding_coverage_proportional_when_underfunded(self):
-        result = ecological_allocation(0.70, 0.40, available_teh=0.0)
-        assert result["funding_coverage"] == pytest.approx(0.0)
+    def test_allocation_collapses_when_nothing_is_available(self):
+        """AND THE OBLIGATION MUST BE SUPPLIED, OR THIS TESTS NOTHING.
+
+        The test this replaces ran without `PRE_PARTITION`, where the ecological
+        requirement is ZERO by default — the recurring cost moved to GUF — so
+        `coverage = 0 / max(0, 1) = 0.0` held whatever the allocation did. It
+        passed for four weeks on a configuration with nothing to fund. The
+        `teh_required > 0` guard below is what stops that recurring.
+        """
+        result = ecological_allocation(0.70, 0.40, available_teh=0.0, **PRE_PARTITION)
+        assert result["teh_required"] > 0.0, (
+            "supply the obligation or the collapse is unobservable"
+        )
+        assert result["teh_allocated"] == pytest.approx(0.0)
+        assert result["funding_gap"] == pytest.approx(result["teh_required"])
+        assert result["fully_funded"] is False
+
+    def test_allocation_is_proportional_in_between(self):
+        """THE CASE THE OLD NAME CLAIMED AND NEVER TESTED.
+
+        `test_funding_coverage_proportional_when_underfunded` asserted the ratio
+        at `available_teh=0.0` — the corner, where it is 0.0 by construction and
+        proportionality cannot be observed. A partial balance is what shows the
+        allocation tracking what is available, so the restatement tests it.
+        """
+        full = ecological_allocation(0.70, 0.40, available_teh=1e12, **PRE_PARTITION)
+        assert full["teh_required"] > 0.0, (
+            "a proportionality test on a zero requirement observes nothing"
+        )
+        half = ecological_allocation(0.70, 0.40, available_teh=full["teh_required"] / 2.0,
+                                     **PRE_PARTITION)
+        assert half["teh_required"] == pytest.approx(full["teh_required"])
+        assert half["teh_allocated"] == pytest.approx(full["teh_required"] / 2.0)
+        assert half["funding_gap"] == pytest.approx(full["teh_required"] / 2.0)
+        assert half["fully_funded"] is False
 
 
 class TestFiscalSnapshotEcological:
@@ -1173,7 +1215,7 @@ class TestFiscalSnapshotEcological:
         result = self._snap()
         eco = result["ecological"]
         for key in ("ecological_eoh_total", "human_ecological_eoh", "teh_required",
-                    "teh_allocated", "funding_gap", "fully_funded", "funding_coverage"):
+                    "teh_allocated", "funding_gap", "fully_funded"):
             assert key in eco
 
     def test_ecological_teh_is_paid_by_the_mint_not_the_trust(self):

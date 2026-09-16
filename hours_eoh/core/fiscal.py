@@ -124,15 +124,18 @@ def _allocation_metrics(
     epsilon: float,
     available_teh: float,
     mean_multiplier: float,
-) -> tuple[float, float, float, float, bool, float]:
+) -> tuple[float, float, float, float, bool]:
     """Shared computation for stewardship_allocation() and ecological_allocation()."""
     human_eoh     = human_eoh_share(total_eoh, epsilon)
     teh_required  = human_eoh * mean_multiplier
     teh_allocated = min(teh_required, available_teh)
     funding_gap   = max(0.0, teh_required - available_teh)
     fully_funded  = funding_gap < 1.0
-    coverage      = teh_allocated / max(teh_required, 1.0)
-    return human_eoh, teh_required, teh_allocated, funding_gap, fully_funded, coverage
+    # `coverage` (allocated / required) was removed 2026-09-16 with the thermal
+    # co-equality condition, its only consumer. It reported how much of a
+    # requirement a Trust balance could have covered, for labour the Trust has
+    # not funded since the wage doctrine landed.
+    return human_eoh, teh_required, teh_allocated, funding_gap, fully_funded
 
 
 def stewardship_allocation(
@@ -161,10 +164,16 @@ def stewardship_allocation(
     SINCE 2026-09-15 THAT CAP ANSWERS A VESTIGIAL QUESTION. Minted TEH is the
     wage, so this labour is paid at the mint and no Trust balance bounds it:
     `teh_required` is what the collective owes, and callers reporting what was
-    paid must read THAT. `teh_allocated`, `funding_gap`, `fully_funded` and
-    `funding_coverage` now answer "what could the Trust have funded" — kept
-    because research/thermal_solvency.py's co-equality condition compares the
-    two coverages, and that gate is restated before they go.
+    paid must read THAT. `teh_allocated`, `funding_gap` and `fully_funded` now
+    answer "what could the Trust have funded".
+
+    `funding_coverage` WENT ON 2026-09-16 with the thermal co-equality condition
+    that was its only consumer. The other three survive on size, not principle:
+    `teh_allocated` has 18 operative call sites and 15 in tests, `available_teh`
+    17 and 29, and `research/recalibration.py` uses the key name `funding_gap`
+    for a different quantity — so removing them is a public-API change under the
+    §3 additive-not-destructive guardrail, sized separately rather than taken as
+    a tail on the retirement that unblocked it.
 
     Args:
         capital_stock_teh: Total capital stock value in TEH (baseline at ε=0).
@@ -187,7 +196,6 @@ def stewardship_allocation(
           "teh_allocated":            float,   (min(required, available))
           "funding_gap":              float,   (0 if fully funded)
           "fully_funded":             bool,
-          "funding_coverage":         float,   (allocated / required)
           "epsilon":                  float,
         }
 
@@ -206,7 +214,7 @@ def stewardship_allocation(
             base_maint_rate=infra_maint_rate,
         )
 
-    human_eoh, teh_required, teh_allocated, funding_gap, fully_funded, coverage = (
+    human_eoh, teh_required, teh_allocated, funding_gap, fully_funded = (
         _allocation_metrics(total_infra_eoh, epsilon, available_teh, mean_multiplier)
     )
 
@@ -217,7 +225,6 @@ def stewardship_allocation(
         "teh_allocated":            teh_allocated,
         "funding_gap":              funding_gap,
         "fully_funded":             fully_funded,
-        "funding_coverage":         coverage,
         "epsilon":                  epsilon,
     }
 
@@ -289,7 +296,6 @@ def ecological_allocation(
           "teh_allocated":        float,   (min(required, available))
           "funding_gap":          float,   (0 if fully funded)
           "fully_funded":         bool,
-          "funding_coverage":     float,   (allocated / required)
           "epsilon":              float,
         }
 
@@ -362,7 +368,7 @@ def ecological_allocation(
             standing_response=standing_response,
         )
 
-    human_eoh, teh_required, teh_allocated, funding_gap, fully_funded, coverage = (
+    human_eoh, teh_required, teh_allocated, funding_gap, fully_funded = (
         _allocation_metrics(total_eco_eoh, epsilon, available_teh, mean_multiplier)
     )
 
@@ -373,7 +379,6 @@ def ecological_allocation(
         "teh_allocated":        teh_allocated,
         "funding_gap":          funding_gap,
         "fully_funded":         fully_funded,
-        "funding_coverage":     coverage,
         "epsilon":              epsilon,
         # What the pre-partition policy would have charged here. Zero above with
         # a positive figure here means the obligation MOVED to GUF, not that it

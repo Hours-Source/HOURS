@@ -181,8 +181,10 @@ def thermal_load_arc(
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]
-        # Coverage: what the ecological obligation costs in TEH, against the levy
-        # take available to fund it. funding_coverage is the direct ratio.
+        # What the ecological obligation costs in TEH, against the levy take.
+        # This reads `teh_required` — the obligation — and always did; the
+        # comment used to name `funding_coverage`, a key it never used and which
+        # was removed on 2026-09-16 with the co-equality condition.
         eco_required = float(snap.get("ecological", {}).get("teh_required", 0.0))
         levy = float(snap.get("levies", {}).get("total_levied", 0.0))
         rows.append(ThermalLoadRow(
