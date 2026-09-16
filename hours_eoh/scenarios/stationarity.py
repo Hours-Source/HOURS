@@ -235,7 +235,7 @@ def stationarity_at(
     standard_base = personal_base_for(standard) if standard is not None else PERSONAL_EOH_BASE
     base = standard_base if personal_base is None else personal_base
     at_standard = standard is not None and base == standard_base
-    capital = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     p = eoh_to_teh_pipeline(
         epsilon=epsilon, population=population, capital_stock=capital,
         **({"personal_standard": standard} if at_standard

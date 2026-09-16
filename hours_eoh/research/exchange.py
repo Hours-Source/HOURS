@@ -707,7 +707,7 @@ def n1_accounting_anchor(
     # jurisdiction with no capital: the anchor could not be built at the origin
     # at all. Which of those two rules should give is a live question for the
     # exchange layer, not something this decision settles.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, None)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, None, population=population)
     frame = CollectiveFrame.per_capita_land(
         collective_id=0,
         population=population,

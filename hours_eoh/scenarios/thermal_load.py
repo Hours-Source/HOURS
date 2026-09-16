@@ -141,7 +141,7 @@ def thermal_load_arc(
         # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε.
         # Resolved once per point so the four calls below cannot read different
         # capital for the same ε.
-        cap_at_eps = resolve_capital_stock(capital_stock, eps)
+        cap_at_eps = resolve_capital_stock(capital_stock, eps, population=population)
         # COMPUTED AT THE PRE-PARTITION POLICY, and the reason is the module's
         # question. `load_ratio` asks how much the thermal obligation moves the
         # ECOLOGICAL DOMAIN — which presupposes a domain to move. Phases 4e/4f

@@ -204,7 +204,7 @@ def trust_depletion_stress(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     profile = stressor_profile or {}
     initial_state = make_economy_state(
         epsilon=epsilon,

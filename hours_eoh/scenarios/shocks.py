@@ -108,7 +108,7 @@ def automation_failure_shock(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     from hours_eoh.core.trajectory import canonical_physical_state as _cps
     _state = _cps(epsilon)
 
@@ -399,7 +399,7 @@ def ecological_eoh_spike(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     eoh_before = ecological_eoh(ecosystem_health_before, epsilon,
                                 base_rate=base_rate,
                                 deferred=deferred_ecological_eoh)
@@ -525,7 +525,7 @@ def labor_income_shock(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if not 0.0 <= income_fraction <= 1.0:
         raise ValueError(f"income_fraction must be in [0, 1], got {income_fraction}")
 
@@ -657,7 +657,7 @@ def compound_shock(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     individual_outcomes: dict = {}
     combined_eoh_delta: float = 0.0
 

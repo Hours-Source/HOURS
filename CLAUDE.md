@@ -357,7 +357,13 @@ someone remembering it, which is what this section is for.
    by callers that moved the population without moving them. *The tell:* grep the
    `units:` field for a stated frame, not the name. *Do:* state the frame; a
    frame-invariant share is the check that it is stated.
-   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain only)
+   **`CAPITAL_STOCK_DEFAULT`'s instance was CLOSED 2026-09-16** — 24 call sites
+   wired, and at the documented entry point per-capita output had run
+   913.65 / 339.64 / 282.23 TEH at populations 1e5 / 1e6 / 1e7 for identical
+   capital intensity. **`TRUST_BASE_TEH`'s is still open**, same declaration and
+   the same shape of repair available.
+   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain) and
+   `tests/test_capital_scale_resolution.py` (capital chain)
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -506,8 +512,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,765 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-15). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
+**4,779 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-16). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -627,6 +633,7 @@ are the ones worth knowing by name.
 | `test_dataset_governance.py` | A dataset's stated method against the constants it governs, sha256-fingerprinted so a regenerated file breaks the build until the constants are re-checked. |
 | `test_parameter_wiring.py` | A parameter that is accepted, changes nothing at any configuration tried, and that no test passes by name. |
 | `test_ecological_scale_resolution.py` | Every caller entering the ecological scale chain with a population in scope states its frame. |
+| `test_capital_scale_resolution.py` | The same rule for the CAPITAL chain, wrappers included (`total_eoh`, `eoh_to_teh_pipeline`), plus the runtime half: per-capita output frame-invariant across the arc, a supplied stock never rescaled, and omitting population still reading the reference frame. **States its own gap:** crediting a supplied stock is static, so `capital_stock=None` passed beside a population would defeat it. |
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |

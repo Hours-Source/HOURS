@@ -109,8 +109,15 @@ def guf_rate_calibration(
     # THE SEAM ITSELF IS UPSTREAM AND IS NOT FIXED HERE: `eoh_to_teh_pipeline`
     # resolves the same 1M-frame default for every caller who names a
     # population without a stock. This repairs one caller.
-    capital = (resolve_capital_stock(None, epsilon) * (population / REFERENCE_FRAME_POPULATION)
-               if capital_stock_teh is None else capital_stock_teh)
+    # CONVERTED 2026-09-16, WHEN THE SEAM NAMED ABOVE WAS CLOSED UPSTREAM. This
+    # did the frame arithmetic by hand because the resolver had no way to hear
+    # about a population; it now does. Both would have COMPOSED if both
+    # survived — the resolver scaling by population/REFERENCE_FRAME_POPULATION
+    # and this line multiplying by it again — which is failure mode 11 exactly:
+    # two terms, one mechanism, neither wrong alone. Identical value, one
+    # mechanism, and the branch goes too: a supplied stock is returned as given
+    # because the resolver never rescales one.
+    capital = resolve_capital_stock(capital_stock_teh, epsilon, population)
     labor_income = eoh_to_teh_pipeline(epsilon=epsilon, population=population,
                                        capital_stock=capital)["teh_created"]
     levy_revenue = levy_collection(labor_income, rates)["total_levied"]

@@ -111,7 +111,7 @@ def guf_fiscal_integration(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     configs = [_DEFAULT_PARCEL] if parcel_configs is None else parcel_configs
 
     parcel_results = [
@@ -494,7 +494,7 @@ def automation_levy_guf_stress(
         # follow the apparatus the arc says exists at that ε, not the one it had
         # when the run started.
         stew_cost    = stewardship_allocation(
-            resolve_capital_stock(capital_stock_teh, eps),
+            resolve_capital_stock(capital_stock_teh, eps, population=population),
             capital_age_ratio, eps, bal
         )["teh_allocated"]
         guar_cost    = sufficiency_guarantee(

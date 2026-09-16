@@ -96,7 +96,7 @@ def epsilon_sweep(
         # so the sweep still sweeps capital. Resolved once per point and used by
         # both the infrastructure term and the fiscal snapshot, so the two cannot
         # read different capital for the same ε.
-        cap_at_eps = resolve_capital_stock(capital_stock_teh, eps)
+        cap_at_eps = resolve_capital_stock(capital_stock_teh, eps, population=population)
         kbs_at_eps = resolve_knowledge_base_size(knowledge_base_size, eps)
 
         pers_eoh  = personal_eoh(population, age_distribution, eps)

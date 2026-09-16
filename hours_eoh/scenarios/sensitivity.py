@@ -82,7 +82,7 @@ def fiscal_parameter_sweep(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction", "capital_age_ratio"}
     if parameter not in SUPPORTED:
         raise ValueError(f"parameter must be one of {SUPPORTED}, got '{parameter}'")

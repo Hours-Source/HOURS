@@ -280,7 +280,7 @@ def m_below_band_drift(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     return _run_drift_scenario(
         band_limit=M_BAND_LOW,
         breach_above=False,
@@ -349,7 +349,7 @@ def m_above_band_drift(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     return _run_drift_scenario(
         band_limit=M_BAND_HIGH,
         breach_above=True,
@@ -417,7 +417,7 @@ def m_band_sweep(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if m_values is None:
         m_values = [round(1.5 + 0.10 * i, 2) for i in range(11)]
 

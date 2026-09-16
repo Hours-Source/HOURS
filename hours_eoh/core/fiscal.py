@@ -1645,7 +1645,7 @@ def trust_solvency_trajectory(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     # Auto-compute period costs if not provided
     if stewardship_cost_per_period is None:
         stew_result = stewardship_allocation(
@@ -1915,7 +1915,7 @@ def min_levy_for_solvency(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     ann_dep  = trust_balance * dep_rate
     dividend = ann_dep * div_rate
 

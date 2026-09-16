@@ -209,7 +209,7 @@ def run_collective_period(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     pipeline = eoh_to_teh_pipeline(
         epsilon,
         population=population,
@@ -277,7 +277,7 @@ def make_federation(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if n is None:
         n = coasean_collective_count(epsilon)
 
@@ -379,7 +379,7 @@ def n1_regression_anchor(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     ref_pipeline, ref_fiscal = run_collective_period(
         epsilon,
         population=population,
@@ -1199,7 +1199,7 @@ def simulate_federation(
     # its whole span with no apparatus, heterogeneity would produce no
     # inter-collective inflation, and the seed would stop mattering. That is a
     # property of multiplicative growth from zero, not a result about federations.
-    capital_t = resolve_capital_stock(capital_stock_teh, None)
+    capital_t = resolve_capital_stock(capital_stock_teh, None, population=population)
     commons_t = commons_start if commons else 0.0
     prev_tau: float | None = None
     prev_eps: float | None = None

@@ -413,6 +413,19 @@ class TestOpenItemsCannotGoStaleSilently:
             "rather than servicing, so adopting either would repeat the "
             "SKILL_WORKING_LIFE_YEARS wrong-instrument error."
         ),
+        "TRUST_BASE_TEH": (
+            "needs the repair the CAPITAL frame took on 2026-09-16, which is "
+            "known to work and is the same shape: give the resolver a "
+            "`population` defaulting to REFERENCE_FRAME_POPULATION, scale the "
+            "RESOLVED value by population / REFERENCE_FRAME_POPULATION (never a "
+            "supplied one), wire the callers that have a population in scope, "
+            "and extend tests/test_capital_scale_resolution.py to the balance "
+            "chain. What is NOT yet known is the size: the capital chain had 25 "
+            "callers with a population in scope and 22 of them defaulted to the "
+            "reference frame, so the blast radius was almost nil — this "
+            "constant's callers have not been surveyed, and that survey is the "
+            "first step, not the wiring."
+        ),
     }
 
     #: An ITEM is a bullet whose bold lead IS the marker. Prose that merely

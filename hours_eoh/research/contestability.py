@@ -1169,7 +1169,7 @@ def levy_schedule_for_chi(
     # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
     # capital_stock arg), so it resolves with no ε — the canonical base — and
     # this function's numbers are unchanged by the capital-path decision.
-    capital_stock = resolve_capital_stock(capital_stock, None)
+    capital_stock = resolve_capital_stock(capital_stock, None, population=population)
     if levy_base not in ("capital_yield", "machine_output"):
         raise ValueError(
             f"levy_base must be 'capital_yield' or 'machine_output', got {levy_base!r}"
@@ -1255,7 +1255,7 @@ def chi_arc(
     # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
     # capital_stock arg), so it resolves with no ε — the canonical base — and
     # this function's numbers are unchanged by the capital-path decision.
-    capital_stock = resolve_capital_stock(capital_stock, None)
+    capital_stock = resolve_capital_stock(capital_stock, None, population=population)
     rows = []
     for i in range(n_points):
         eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
