@@ -132,13 +132,40 @@ def test_gate_passes_at_every_epsilon():
     for r in solvency_gate()["verdicts"]:
         assert r["passes"] is True, r["epsilon"]
         assert r["trust_solvent"] and r["levy_feasible"]
-        assert r["coequal"] and r["labor_feasible"]
+        assert r["labor_feasible"]
 
 
-def test_coequality_holds_under_load():
-    """Ecological must not become residual while stewardship stays funded."""
+def test_the_coequality_condition_is_retired_and_stays_retired():
+    """RETIRED 2026-09-16 (author decision), asserted rather than merely absent.
+
+    This file used to hold `test_coequality_holds_under_load`, pinning
+    `eco_coverage >= stew_coverage - 0.25`. The condition compared two Trust
+    FUNDING coverages — `min(required, trust_balance) / required` — against a
+    balance that, since the wage doctrine (2026-09-15), funds neither ecological
+    nor stewardship labour. Measured across trust balances 1e6–3.5e10 and
+    ε ∈ {0, 0.40, 0.90} it passed 9 of 9, and at its most extreme cell
+    (trust 1e6, ε=0) stewardship coverage was 0.0056 against ecological 0.7013 —
+    a 69-point gap in the safe direction. It could not fail.
+
+    It was retired rather than restated against requirements, because that would
+    assert "ecological must not be much smaller than stewardship", which nothing
+    in the theory claims: Phases 4e/4f moved both recurring ecological terms to
+    GUF on purpose. A check that manufactures a requirement the framework does
+    not hold shapes later work around a demand nobody made.
+
+    The DOCTRINE is untouched — the two allocations remain co-equal requirements,
+    both paid at the mint. This test exists so the retirement cannot be undone by
+    accident, and so a reader who greps for the old keys finds the reason.
+    """
     for r in solvency_gate()["verdicts"]:
-        assert r["eco_coverage"] >= r["stew_coverage"] - 0.25
+        for gone in ("coequal", "eco_coverage", "stew_coverage"):
+            assert gone not in r, (
+                f"{gone} is back in the solvency verdict. It reports a Trust "
+                "funding ratio for labour the Trust does not fund; if it is "
+                "needed again, the question it answers has changed and the "
+                "module docstring should say how."
+            )
+        assert "ecological_became_residual" not in r["failures"]
 
 
 def test_labour_is_nowhere_near_binding():

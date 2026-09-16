@@ -92,6 +92,11 @@ class TestTheCensusCannotDriftSilently:
                  346 = 31/93/222 after the three water constants (2026-09-11)
                  345 = 31/93/221 after LEVY_SUFFICIENCY_WARN was RETIRED
                        (2026-09-16)
+                 344 = 31/93/220 after ELDERLY_EOH_EPSILON_FACTOR was DELETED
+                       (2026-09-16) — retired 2026-09-04 with zero readers for
+                       twelve days, so it was neither debt nor a `baseline`
+                       (nothing live to compare against); the reasoning moved to
+                       record/personal.md, which a test now requires to exist
 
         **The 2026-09-16 move is the first DOWNWARD one, and it is the good
         direction for a reason worth stating.** POSSIBLE fell because a
@@ -109,10 +114,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 345
+        assert c["total"] == 344
         assert c["counts"]["CERTAIN"] == 31
         assert c["counts"]["INSTANCE"] == 93
-        assert c["counts"]["POSSIBLE"] == 221
+        assert c["counts"]["POSSIBLE"] == 220
 
     def test_possible_is_still_the_largest_tier(self):
         """

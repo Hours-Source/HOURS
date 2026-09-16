@@ -337,7 +337,6 @@ def _gate(args: argparse.Namespace) -> None:
         f"{r['eco_loaded_eoh']:,.0f}",
         f"{r['load_ratio']:.2f}×",
         f"{r['labor_income_loaded']:,.0f}",
-        formatters.fmt_pct(r["eco_coverage"]),
         formatters.fmt_pct(r["labor_fraction"]),
         formatters.green("PASS") if r["passes"] else formatters.red("FAIL " + ",".join(r["failures"])),
     ] for r in g["verdicts"]]
@@ -345,7 +344,9 @@ def _gate(args: argparse.Namespace) -> None:
         f"\nFiscal solvency gate — ΔT_max {args.delta_t} K, {args.hours_per_tonne} h/t, "
         f"{args.years:.0f} yr, FLOW convention\n"))
     print(formatters.table(
-        ["ε", "eco base h/yr", "eco loaded", "load", "labour income", "eco cov", "labour", ""], body))
+        # "eco cov" dropped 2026-09-16 with the co-equality retirement: it printed
+        # a Trust funding ratio for labour the Trust does not fund.
+        ["ε", "eco base h/yr", "eco loaded", "load", "labour income", "labour", ""], body))
     verdict = formatters.green("PASS") if g["passes"] else formatters.red("FAIL")
     print(f"\n  overall: {verdict}    null-load baseline passes: {g['baseline_passes']} "
           f"(failures attributable: {g['attributable']})")

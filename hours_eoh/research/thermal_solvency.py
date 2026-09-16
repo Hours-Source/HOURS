@@ -55,15 +55,37 @@ PASS CONDITIONS — fixed in advance, in writing, so they cannot move later:
   4. The labour to service it exists.
   5. Arc coherence: finite and meaningful at every ε.
 
-SINCE 2026-09-15 (minted TEH is the wage) the conditions are unchanged but what
-1–3 can see is not. The Trust owes only the guarantee, so ecological and
-stewardship labour — and with them the thermal load — no longer reach Trust
-solvency or the cover-expenditure levy, and condition 3 compares coverage
-against a balance neither is charged to. Conditions 1–3 are near-vacuous for
-this question; the gate now breaks on condition 4, labour. The margin grew
-48.2 → 335.3 h/t for that reason, not because the fisc got stronger.
+SINCE 2026-09-15 (minted TEH is the wage) what conditions 1–3 can see changed.
+The Trust owes only the guarantee, so ecological and stewardship labour — and
+with them the thermal load — no longer reach Trust solvency or the
+cover-expenditure levy. Conditions 1–2 are near-vacuous for this question; the
+gate now breaks on labour. The margin grew 48.2 → 335.3 h/t for that reason, not
+because the fisc got stronger.
 
-ALL FIVE, or the layer stays advisory. A failure here is a publishable finding —
+CO-EQUALITY WAS RETIRED 2026-09-16 (author decision), and it is worth saying why
+rather than quietly dropping it. It asked whether the Trust's ecological funding
+coverage stayed within a tolerance of its stewardship coverage — "ecological must
+not become residual". Both coverages are `min(required, trust_balance) / required`
+against a balance that, since the wage doctrine, funds NEITHER domain: they are
+artifacts of a cap that no longer means anything. Measured across trust balances
+1e6–3.5e10 and ε ∈ {0, 0.40, 0.90} it passed 9 of 9, and at its most extreme cell
+(trust 1e6, ε=0) stewardship coverage was 0.0056 against ecological 0.7013 — a
+69-point gap in the SAFE direction. It could not fail.
+
+Restating it against REQUIREMENTS rather than coverages was considered and
+rejected: that would assert "the ecological requirement must not be much smaller
+than the stewardship one", which no part of the theory claims. Phases 4e/4f moved
+both recurring ecological terms to GUF deliberately, so a small ecological line
+in the Trust's books is the partition working, not a failure. A check that
+manufactures a requirement the framework does not hold is worse than no check —
+it shapes later work around a demand nobody made.
+
+The DOCTRINE is untouched: `ecological_allocation` and `stewardship_allocation`
+remain co-equal requirements and neither is residual (CLAUDE.md § Key design
+invariants). Both are paid at the mint. What was retired is a Trust-funding
+comparison that has had nothing to compare since the mint started paying.
+
+ALL FOUR, or the layer stays advisory. A failure here is a publishable finding —
 "the thermal overage is not fiscally absorbable" would be among the strongest
 results the framework has produced — and must be reported, not tuned around.
 
@@ -108,7 +130,11 @@ REF_AVAILABLE_LABOR = REF_POPULATION * 0.50 * 2000.0
 DEFAULT_PROGRAMME_YEARS = THERMAL_PROGRAMME_YEARS
 #: Co-equality tolerance: how far ecological funding coverage may fall below
 #: stewardship's before ecological counts as residual. CHOSEN.
-COEQUALITY_TOLERANCE = 0.25
+# COEQUALITY_TOLERANCE = 0.25 was retired here on 2026-09-16 with the condition
+# it parameterised. It set how far ecological funding coverage could fall below
+# stewardship coverage before the verdict called ecological "residual" — a
+# tolerance on a comparison between two figures the Trust no longer funds. See
+# the module docstring for why the condition was retired rather than restated.
 
 ARC_EPSILONS: tuple[float, ...] = (0.0, 0.40, 0.90, 0.99)
 
@@ -130,9 +156,10 @@ class SolvencyVerdict(TypedDict):
     trust_end: float
     trust_solvent: bool
     levy_feasible: bool
-    eco_coverage: float
-    stew_coverage: float
-    coequal: bool
+    # `eco_coverage`, `stew_coverage` and `coequal` were removed 2026-09-16 with
+    # the condition they served. They reported `min(required, trust_balance) /
+    # required` against a balance that funds neither domain — a ratio with no
+    # remaining meaning, kept only because something read it.
     human_eco_eoh: float
     labor_fraction: float         # share of available labour the domain consumes
     labor_feasible: bool
@@ -204,10 +231,14 @@ def solvency_at_epsilon(
     ecosystem_health: float = REF_ECOSYSTEM_HEALTH,
     trust_balance: float = REF_TRUST_BALANCE,
     available_labor: float = REF_AVAILABLE_LABOR,
-    coequality_tolerance: float = COEQUALITY_TOLERANCE,
 ) -> SolvencyVerdict:
     """
-    Run the five pass conditions at one ε, with and without the thermal load.
+    Run the pass conditions at one ε, with and without the thermal load.
+
+    THREE runtime checks since the 2026-09-16 co-equality retirement — trust
+    solvency, levy feasibility, labour availability — against the four-item
+    design list in the module docstring, whose fourth item (suite and mypy
+    green) is not a runtime quantity.
 
     The obligation is injected through `thermal_obligation` — a real term in the
     ecological domain — so it flows through the entire pipeline rather than being
@@ -224,12 +255,14 @@ def solvency_at_epsilon(
     )
 
     # ONE POLICY FOR THE WHOLE VERDICT. This function compares a LOADED
-    # ecological requirement against a baseline and checks co-equality of
-    # funding — all of which presuppose the ecological obligation sits in the
-    # domain. Phases 4e/4f (adopted 2026-08-28/29) move both recurring terms to
-    # GUF, so the pipeline, the snapshot and the baseline must be evaluated at
-    # the same pre-partition policy or the co-equality check compares a live
-    # stewardship coverage against an emptied ecological one.
+    # ecological requirement against a baseline, which presupposes the
+    # ecological obligation sits in the domain. Phases 4e/4f (adopted
+    # 2026-08-28/29) move both recurring terms to GUF, so the pipeline, the
+    # snapshot and the baseline must be evaluated at the same pre-partition
+    # policy — otherwise the baseline is 0.0 and `load_ratio` divides by zero.
+    # (Until 2026-09-16 this paragraph also covered the co-equality check, which
+    # compared a live stewardship coverage against an emptied ecological one.
+    # That check is retired; the reason for one policy survives it.)
     base_pipe = eoh_to_teh_pipeline(
         epsilon, population=population, capital_stock=capital_stock,
         capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
@@ -258,7 +291,10 @@ def solvency_at_epsilon(
         population=population, labor_income=loaded_pipe["teh_created"],
     )
 
-    eco, stew, trust = snap["ecological"], snap["stewardship"], snap["trust"]
+    # `stew` went with the co-equality condition on 2026-09-16: the snapshot's
+    # stewardship block had exactly one consumer here, that check's coverage
+    # ratio, so reading it now would be dead weight.
+    eco, trust = snap["ecological"], snap["trust"]
     # Frame the ecological baseline from THIS run's population, as `total_eoh`
     # does. Found 2026-08-17 by the scale-resolution gate on its first run —
     # the fifth instance of the defect, and the one four manual passes missed.
@@ -281,7 +317,6 @@ def solvency_at_epsilon(
     trust_ok = bool(snap["solvent"]) and trust["trust_end"] >= 0.0
     # Cover-expenditure, NOT full-solvency: see pass condition 2.
     levy_ok = levy["cover_expenditures"] <= loaded_pipe["teh_created"]
-    coequal = eco["funding_coverage"] >= stew["funding_coverage"] - coequality_tolerance
     labor_ok = labor_fraction <= 1.0
 
     failures: list[str] = []
@@ -289,8 +324,6 @@ def solvency_at_epsilon(
         failures.append("trust_insolvent")
     if not levy_ok:
         failures.append("levy_exceeds_labor_income")
-    if not coequal:
-        failures.append("ecological_became_residual")
     if not labor_ok:
         failures.append("labor_unavailable")
 
@@ -305,9 +338,6 @@ def solvency_at_epsilon(
         trust_end=trust["trust_end"],
         trust_solvent=trust_ok,
         levy_feasible=levy_ok,
-        eco_coverage=eco["funding_coverage"],
-        stew_coverage=stew["funding_coverage"],
-        coequal=coequal,
         human_eco_eoh=human_eco,
         labor_fraction=labor_fraction,
         labor_feasible=labor_ok,
@@ -324,7 +354,7 @@ def solvency_gate(
     **kwargs: float,
 ) -> dict:
     """
-    The gate: all five conditions at every ε, or the thermal layer stays advisory.
+    The gate: all four conditions at every ε, or the thermal layer stays advisory.
 
     Returns the per-ε verdicts, the overall pass/fail, and the union of failure
     reasons. A FAIL is a result to report, not an obstacle to tune around — a

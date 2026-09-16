@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import pytest
 
-from hours_eoh.data import AGE_GROUPS, ELDERLY_EOH_EPSILON_FACTOR
+from hours_eoh.data import AGE_GROUPS
 
 KEYS = {"dependant", "frailty"}
 
@@ -122,6 +122,10 @@ class TestTheEpsilonDriftIsRetired:
                 if (isinstance(node, ast.Name)
                         and node.id == "ELDERLY_EOH_EPSILON_FACTOR"):
                     readers.append(str(path.relative_to(root)))
+        # Since the 2026-09-16 deletion this would pass vacuously — a name that
+        # does not exist is read by nobody — so the sibling test asserts the
+        # assignment is gone from data.py as well. Kept because a reintroduced
+        # constant WITH readers must fail here, not only there.
         assert not readers, (
             f"ELDERLY_EOH_EPSILON_FACTOR is read again in {sorted(set(readers))}. "
             "It asserted an answer to the morbidity compression/expansion "
@@ -157,13 +161,38 @@ class TestTheEpsilonDriftIsRetired:
                 "does not — two accounts of elderly EOH."
             )
 
-    def test_the_constant_is_still_present_and_documented(self) -> None:
+    def test_the_constant_is_deleted_and_the_reason_is_recorded(self) -> None:
+        """DELETED 2026-09-16 (author decision). This test is the inversion of
+        the one it replaces, and the reversal is the point.
+
+        It used to assert the value and argue that retention was necessary:
+        "the scheme has no `retired` tag, and the tag block is where the reason
+        lives. Deleting it would remove the only record of what was assumed for
+        how long." Both halves stopped being true. The scheme gained a
+        `baseline` tag on 2026-09-16 — which this constant does NOT qualify for,
+        because a baseline is kept to be COMPARED against something live and
+        this one has zero readers anywhere, nothing to compare. And the reason
+        no longer depends on the tag block: it is in `record/personal.md`, which
+        is where a retired rationale belongs once no code reaches the value.
+
+        So the assertion becomes: the assignment is gone, and the reasoning is
+        somewhere a reader will actually find it.
         """
-        Retained, not deleted: the scheme has no `retired` tag, and the tag
-        block is where the reason lives. Deleting it would remove the only
-        record of what was assumed for how long.
-        """
-        assert ELDERLY_EOH_EPSILON_FACTOR == 0.05
+        import pathlib
+        repo = pathlib.Path(__file__).resolve().parent.parent
+        data_py = (repo / "hours_eoh" / "data.py").read_text(encoding="utf-8")
+        assert "ELDERLY_EOH_EPSILON_FACTOR:" not in data_py, (
+            "the constant is back in data.py. It asserted an answer to the "
+            "morbidity compression/expansion question and drove two mechanisms "
+            "from one scalar; a morbidity trajectory belongs on the `frailty` "
+            "care key."
+        )
+        recorded = (repo / "record" / "personal.md").read_text(encoding="utf-8")
+        assert "ELDERLY_EOH_EPSILON_FACTOR" in recorded, (
+            "the constant was deleted but its reasoning is nowhere in "
+            "record/personal.md — deleting the tag block without recording why "
+            "is exactly what the retained-not-deleted argument warned against"
+        )
 
     def test_the_stated_gaps_are_still_stated(self) -> None:
         doc = __doc__ or ""

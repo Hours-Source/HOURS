@@ -3451,44 +3451,6 @@ BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours sa
 # ---------------------------------------------------------------------------
 # provenance-block: Human capital and population
 # tag: placeholder | units: fraction shift per ε unit
-# form: automation improves medicine, so lives lengthen and the elderly
-#   fraction grows. Direction is arguable; the magnitude is asserted, and it
-#   is secondary to the dominant ε effect in the fulfillment split.
-# note: RETIRED 2026-09-04 (author decision), and NOT for its size — the whole
-#   effect was at most −0.128% on personal EOH per capita. Three reasons:
-#   (1) IT ASSERTED AN ANSWER TO AN UNSETTLED QUESTION. Whether longer lives
-#   mean more frail years or the same frail window arriving later is unresolved
-#   and differs by country and condition. Its own form field conceded
-#   "direction is arguable; the magnitude is asserted".
-#   (2) ONE CONSTANT, TWO MECHANISMS, COMPOSED — failure mode 11.
-#   `trajectory.canonical_age_distribution` used it to SHIFT population from
-#   `child` to `elderly`; `population.py` used it TWICE as an INTENSITY
-#   multiplier on elderly EOH, on the different rationale that "deferred
-#   personal care becomes a registered EOH obligation at higher ε". A
-#   demographic claim and a registration claim sharing one scalar.
-#   (3) THE TWO PATHS DISAGREED. `total_eoh` never applied the intensity
-#   multiplier, so generation and `population_eoh_curve` reported different
-#   elderly EOH at the same ε — two accounts of one quantity. And the
-#   registration rationale is a containment violation in spirit: registration
-#   makes an obligation visible, it does not create one.
-#   Its stated direction was also not its arithmetic — "elderly EOH rises"
-#   while the shift LOWERED total personal EOH, moving people from a heavier
-#   weight (child 1.82) to a lighter one (elderly 1.48).
-# superseded_by: AGE_CARE_KEY_ELDERLY + AGE_CARE_SHARE_ELDERLY — the care
-#   obligation is now split by DRIVER, so a morbidity trajectory is supplied
-#   against the `frailty` key rather than asserted for both keys at once by one
-#   scalar.
-# confidence: 0 — nothing reads it. `tests/test_care_keys.py` pins that, which
-#   is what makes the retirement real rather than announced; the tag stays
-#   `placeholder` because the scheme has no `retired` value and the gate refuses
-#   one for a constant any layer still declares.
-# resolves_by: nothing settles THIS constant; it was a stand-in for a morbidity
-#   model and the replacement is a socket for one, not a better value for it.
-#   What would settle the QUESTION it stood in for: disability prevalence by age
-#   (Sullivan-method HLE tables) against a longitudinal series, supplied through
-#   the `frailty` care key.
-ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # RETIRED — read nothing from this
-# tag: placeholder | units: fraction shift per ε unit
 # form: infant personal EOH declines with automation — formula feeding,
 #   monitoring and sanitation displace caregiver hours. This is the abatement
 #   claim of Block II applied to one age group, and note it runs OPPOSITE to
@@ -4376,17 +4338,30 @@ CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant br
 # tag: placeholder | units: fraction of automation value held in common
 # form: φ(0) — even at subsistence some automation value is commonly held (the
 #   Trust baseline).
-# superseded_by: hours_eoh.research.recalibration — §8.9b makes φ(ε) emerge
-#   from the charter formation share under a stated policy (dilution / target /
-#   escalated) rather than from a floor plus a power law. Kept for the
-#   superseded arm.
+# note: THE `superseded_by` HERE WAS WRONG AND WAS WITHDRAWN 2026-09-16 (author
+#   sign-off). It named `hours_eoh.research.recalibration` as the replacement,
+#   on the reading that §8.9b makes φ(ε) emerge from the charter formation share
+#   rather than from a floor plus a power law. That module CONSUMES this value:
+#   `commonized_fraction()` reads it, and `recalibration.phi_actual(ε, "target")`
+#   returns exactly `commonized_fraction(ε)` — pinned by
+#   `tests/test_recalibration.py::test_target_policy_is_commonized_fraction`.
+#   A successor that calls the thing it supposedly replaced has not replaced it.
+#   The tag was hiding a LIVE parameter inside the retired set, where the gate
+#   exempts it from naming what would settle it.
+# resolves_by: measured commonization shares across real collectives at known ε
+#   — the same evidence §8.9b's charter-formation model needs, since that model
+#   reads this value as its target policy rather than deriving one.
 CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at ε=0
 # tag: placeholder | units: dimensionless power
 # form: sub-linear growth of commonization early in the arc (ε^1.5 rather than
 #   ε), asserting that political-economy constraints make rapid commonization
 #   hard.
-# superseded_by: hours_eoh.research.recalibration — the charter-formation
-#   model, as above.
+# note: `superseded_by` withdrawn 2026-09-16 (author sign-off) for the same
+#   reason as CONTESTABILITY_PHI_FLOOR above — `commonized_fraction()` reads
+#   this exponent and the §8.9b model calls that function as its target policy.
+# resolves_by: measured commonization shares across real collectives at known ε,
+#   with the floor above — one measurement settles the pair, since they are the
+#   two parameters of a single curve.
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
 # tag: instance | units: fraction per year
 # form: g_priv, the private capital growth rate. The Piketty-inversion

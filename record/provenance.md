@@ -13,8 +13,8 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **345 constants in `data.py`, all tagged** — `provenance 345/345` *(gated)*.
-  placeholder 129 (37.4%), normative 71 (20.6%), convention 43 (12.5%), measured
+- **344 constants in `data.py`, all tagged** — `provenance 344/344` *(gated)*.
+  placeholder 128 (37.2%), normative 71 (20.6%), convention 43 (12.5%), measured
   28 (8.1%), instance 22 (6.4%), derived 22 (6.4%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The 68
@@ -53,7 +53,7 @@ recalled. Regenerate with `eoh provenance check`.
   share **+0.23% / −0.66% / +2.91% / −5.68%**, a **25× leverage spread** inside
   one constant, on the quantity that is unit-elastic on the money supply.
   *Settles by:* a pass over the 30, mixed units first.
-- **131 of 148 placeholder/bounded constants carry no confidence figure.**
+- **131 of 147 placeholder/bounded constants carry no confidence figure.**
   *(caveat)* Ratcheted; may not rise. 125 → 133 (sigmoid split), 133 → 131 (two
   baselines retagged, 2026-09-16); arithmetic in `tests/test_confidence.py`.
 - **Two of four personal automation floors carry a value; both are improved

@@ -463,6 +463,44 @@ class TestSystemDashboard:
         assert result["fiscal_health"]["levy_status"] == "YELLOW"
         assert result["overall_status"] == "YELLOW"
 
+    def test_a_suppressed_indicator_is_declared_not_invisible(self):
+        """MASKING MUST BE DECLARED, NEVER INFERRED (2026-09-16).
+
+        `personal_registration_status` is in neither flag loop, so at ε=0 it
+        reads RED while `red_flags` is empty — and to a reader of the flag list
+        that was indistinguishable from the indicator being GREEN, absent, or
+        forgotten. The exclusion is CORRECT: personal EOH is off-ledger at
+        subsistence by design, while REGISTRATION_WARN/_CRIT are ε-invariant, so
+        the indicator reports RED for a state the framework considers right.
+        Re-pointing it at an ε-aware threshold is a charter decision, not a fix.
+
+        What was wrong is that the masking was inferred from absence. This pins
+        the three facts together so they cannot drift apart: the indicator IS
+        red, the red-flag list stays clean, and the suppression is reported with
+        its reason.
+        """
+        result = system_dashboard(**_normal_dashboard_kwargs(0.0))
+        assert result["eoh_health"]["personal_registration_status"] == "RED"
+        assert result["red_flags"] == []
+        suppressed = result["suppressed_flags"]
+        assert any("personal_registration" in s for s in suppressed), suppressed
+        assert any("RED" in s for s in suppressed), suppressed
+        # The reason travels with it — a declared exclusion with no stated
+        # reason is an allowlist entry nobody reviews.
+        assert any("by design" in s for s in suppressed), suppressed
+
+    def test_a_suppressed_indicator_does_not_leak_into_the_verdict(self):
+        """The other half: suppression must not change `overall_status`.
+
+        If a suppressed RED ever raised the overall verdict, the exclusion
+        would be doing two jobs and the flag lists would stop meaning what they
+        say. At ε=0 the dashboard is YELLOW on the levy pillar alone.
+        """
+        result = system_dashboard(**_normal_dashboard_kwargs(0.0))
+        assert result["suppressed_flags"], "expected a suppressed indicator here"
+        assert result["overall_status"] == "YELLOW"
+        assert result["red_flags"] == []
+
     def test_no_red_flags_at_eps90_normal_operation(self):
         # At high ε: TEH creation shrinks → levy-to-guarantee ratio drops below 2%
         # threshold (YELLOW). This is expected — at high automation the trust dividend

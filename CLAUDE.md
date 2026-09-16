@@ -512,8 +512,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,787 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-16). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
+**4,789 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-16). Provenance **344/344**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -562,7 +562,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- **131 of 148** placeholder/bounded constants carry no confidence figure;
+- **131 of 147** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and

@@ -535,6 +535,8 @@ def system_dashboard(
           "overall_status":       str,   ("GREEN"/"YELLOW"/"RED")
           "red_flags":            list[str],
           "yellow_flags":         list[str],
+          "suppressed_flags":     list[str],   (indicators DECLARED out of the
+                                                two lists above, with the reason)
           "epsilon":              float,
         }
 
@@ -607,6 +609,40 @@ def system_dashboard(
         elif status == "YELLOW":
             yellow_flags.append(f"Fiscal — {indicator}: YELLOW")
 
+    # DECLARED SUPPRESSION (2026-09-16). MASKING MUST BE DECLARED, NEVER
+    # INFERRED — the rule `tests/test_ecological_scale_resolution.py` states in
+    # as many words, applied here.
+    #
+    # `personal_registration_status` is in neither loop above, and until today
+    # that exclusion was invisible: at ε=0 it reads RED while `red_flags` is
+    # empty, which to a reader of the flag list is indistinguishable from the
+    # indicator being GREEN, or absent, or forgotten.
+    #
+    # THE EXCLUSION IS CORRECT AND STAYS. Personal EOH is off-ledger at
+    # subsistence BY DESIGN — `personal_eoh_registration_share(0)` is near zero
+    # because the obligation is private, not because anything is failing — while
+    # REGISTRATION_WARN/_CRIT are ε-invariant. So the indicator reports RED for a
+    # state the framework considers right, which is the caveat already recorded
+    # in `record/provenance.md`. Re-pointing it at an ε-aware threshold (the
+    # shape `pp_status` uses) would be a charter decision about how much personal
+    # obligation must be on the ledger at each ε, not a defect fix.
+    #
+    # What was wrong is only that the masking was inferred from absence. It is
+    # now reported, with its reason, so a suppressed RED is visible as suppressed.
+    suppressed_flags: list[str] = []
+    for indicator, key, reason in (
+        ("personal_registration", "personal_registration_status",
+         "personal EOH is off-ledger at subsistence by design while "
+         "REGISTRATION_WARN/_CRIT are ε-invariant, so this reads RED for a "
+         "state the framework considers correct; an ε-aware threshold is a "
+         "charter decision, not a fix"),
+    ):
+        status = eoh_h[key]
+        if status in ("RED", "YELLOW"):
+            suppressed_flags.append(
+                f"EOH health — {indicator}: {status} (suppressed: {reason})"
+            )
+
     # Contestability (reconciliation §8, amended §8.9 2026-08-05).
     #
     # The ADOPTED invariant is three-channel exit financeability; χ = P/K_entry is
@@ -669,5 +705,8 @@ def system_dashboard(
         "overall_status":       overall_status,
         "red_flags":            red_flags,
         "yellow_flags":         yellow_flags,
+        # Indicators deliberately kept OUT of the two lists above, reported so
+        # the masking is declared rather than inferred from absence.
+        "suppressed_flags":     suppressed_flags,
         "epsilon":              epsilon,
     }
