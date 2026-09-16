@@ -53,7 +53,11 @@ STATED LIMITS
     collective's parcel COUNT scales it, defaulting to population × the measured
     national parcels per person. The shipped archetypes are synthetic, and
     `record/guf.md` records the fee's level as structurally mis-set.
-  * `v1` AND `v2` ARE PROPOSED, NOT ADOPTED. `shipped` is the default design.
+  * `v1` IS THE DEFAULT DESIGN HERE (author, 2026-09-16: "assume we adopt V1"),
+    and this module is REPORTING ONLY — `core.fiscal.sufficiency_guarantee`
+    still computes the shipped design, so adopting V1 in the fisc is a separate
+    decision. `v2` remains proposed. Pass `guarantee="shipped"` for the
+    pre-adoption reading.
   * The arc path in `drawdown` is a SCENARIO CHOICE. How fast ε advances is
     unknown; nothing here assumes a speed unless the caller supplies one.
 
@@ -76,6 +80,7 @@ from hours_eoh.core.fiscal import (
     aggregate_care_stipend_from_demographics,
     stewardship_allocation,
     sufficiency_guarantee,
+    trust_management,
 )
 from hours_eoh.data import (
     ARC_REPORTING_POINTS,
@@ -156,7 +161,7 @@ def stationarity_at(
     personal_base: float | None = None,
     capital_stock_teh: float | None = None,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
-    guarantee: str = "shipped",
+    guarantee: str = "v1",
     need_fraction: float | None = None,
     levy_rate: float = SUFF_LEVY_RATE,
     guf_parcels: list[dict] | None = None,
@@ -403,7 +408,14 @@ def drawdown(
         if key not in cache:
             cache[key] = stationarity_at(key, **kw)
         row = cache[key]
-        trust = trust + row["teh"]["inflow"] - row["teh"]["guarantee_owed"]
+        # BOUND to core's rule rather than restating it (2026-09-15, when
+        # `trust_management` adopted the same arithmetic): balance − owed +
+        # inflows. dep_rate and div_rate no longer enter the balance, so the
+        # two cannot drift apart at any rate.
+        trust = trust_management(
+            trust, row["teh"]["levy"], 0.0, row["teh"]["guarantee_owed"],
+            guf_revenue=row["teh"]["guf"],
+        )["trust_end"]
         if trust < t_min:
             t_min, e_min = trust, e
         if trust < 0.0 and fail_year is None:

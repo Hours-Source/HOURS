@@ -3296,13 +3296,20 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   reading possible; scale by population against the 1M reference. Every
 #   fiscal function takes trust_balance as an argument, so nothing requires
 #   editing this constant — pass your own.
-# default: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so
-#   the annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
-#   stewardship, ecological and guarantee obligations at mid-arc (STALE since
-#   2026-09-15: the Trust owes only the guarantee; not re-sized). Calibrated to
-#   a target, like GUF_USE_* and DEFAULT_SEGMENTS. It is the most-consumed
-#   constant in the repo (77 call sites outside data.py), so every canonical
-#   solvency result rests on it and none of them is evidence about YOUR fisc.
+# default: THE NUMBER IS RETAINED AND ITS RATIONALE IS WITHDRAWN (author,
+#   2026-09-16). It was sized backwards — chosen so the annual dividend
+#   (Trust × DEP_RATE × DIV_RATE = 630M TEH) covered stewardship, ecological
+#   and guarantee obligations at mid-arc. The Trust carries none of the first
+#   two since 2026-09-15 (minted TEH is the wage), and the dividend no longer
+#   leaves the balance at all (only what is owed does), so nothing is left of
+#   the derivation. It is NOT re-sized: re-fitting it to the new rule would be
+#   the same move that produced it. What it now is: the shipped INHERITANCE —
+#   what a collective converting from a previous system brings — and a
+#   civilisation starting from subsistence has 0.0, which is what
+#   `scenarios/stationarity` defaults `trust_start` to. 35e9 is a SCENARIO,
+#   not a derivation. It is the most-consumed constant in the repo (77 call
+#   sites outside data.py), so every canonical solvency result rests on it and
+#   none of them is evidence about YOUR fisc — pass your own.
 TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); sized for EOH-reimbursement guarantee
 # tag: bounded | units: fraction of Trust per year
 # band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
@@ -3685,23 +3692,25 @@ GUF_LVI_W_SERVICES:        float = 0.20
 GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 
 # Use category reference rates at ε=0.40 (TEH/SLU/year) — midpoints of NLSA Eq. 9 ranges
-# Calibrated so aggregate GUF across a 1M-population land inventory (~400k residential
-# + 20k commercial parcels) is co-equal with levy revenue at mid-arc (ε≈0.40).
-# At ×100 vs. the original abstract unit values: residential GUF ≈ 9.3M TEH/yr,
-# commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×)
-# AT THE 1.25% LEVY. Since SUFF_LEVY_RATE rose to 4.5% (2026-09-15) that target is
-# not met and these were deliberately not re-fitted to it.
+# THE CO-EQUALITY TARGET IS WITHDRAWN (author, 2026-09-16). These were scaled
+# ×100 so aggregate GUF over a 1M-population inventory would land co-equal with
+# levy revenue at mid-arc; GUF is a PORTION of Trust inflow and was never owed
+# an equality with the levy. The ×100 is retained as a number — re-fitting it to
+# a new target would repeat the move that produced it (§5) — and what settles
+# the level is still the servicing census in `resolves_by`, unrun.
 # tag: placeholder | units: TEH per Standard Land Unit per year, at ε=0.40 | family: GUF_USE_*
 # form: NLSA Eq. 9 — midpoints of the manual's per-category ranges.
-# note: CALIBRATED TO A TARGET, and retagged on that basis (2026-08-09). These
-#   were scaled ×100 from the template's abstract unit values so that
-#   aggregate GUF over a 1M-population inventory (~400k residential + 20k
-#   commercial parcels) lands co-equal with levy revenue at mid-arc:
-#   residential ≈ 9.3M TEH/yr, commercial ≈ 4.1M, total ≈ 13.4M against levy ≈
-#   6.2M (≈2.2×). A value reverse-engineered from a desired outcome is CHOSEN
-#   under this scheme's own precedent — _ECOLOGICAL_SPIKE_INTENSITY was
-#   retagged for the same reason on 2026-08-05 — whatever the ratios between
-#   categories rest on.
+# note: CALIBRATED TO A TARGET THAT IS NOW WITHDRAWN (retagged 2026-08-09;
+#   target withdrawn by the author 2026-09-16). These were scaled ×100 from the
+#   template's abstract unit values so that aggregate GUF over a 1M-population
+#   inventory (~400k residential + 20k commercial parcels) landed co-equal with
+#   levy revenue at mid-arc: residential ≈ 9.3M TEH/yr, commercial ≈ 4.1M,
+#   total ≈ 13.4M against levy ≈ 6.2M (≈2.2×) at the 1.25% levy. The tag stays
+#   `placeholder` for the same reason it always did — a value reverse-engineered
+#   from a desired outcome is CHOSEN under this scheme's own precedent
+#   (_ECOLOGICAL_SPIKE_INTENSITY, 2026-08-05) — and withdrawing the target does
+#   not make it measured. It makes the ratios unjustified rather than justified
+#   by a goal the framework no longer holds.
 # resolves_by: a servicing census indexed by USE CATEGORY — collective
 #   labour-hours per year attributable to servicing each category (roads,
 #   utilities, inspection, dispute resolution). THIS FIELD USED TO PROMISE THAT
@@ -4051,7 +4060,9 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 # note: THE VALUE PHASE 2 EXISTS TO TEST. It was chosen so aggregate GUF over a
 #   1M-population inventory would land co-equal with levy revenue at mid-arc —
 #   a value reverse-engineered from a desired outcome, which is why GUF_USE_* is
-#   tagged `placeholder` rather than measured. `eoh scenario run
+#   tagged `placeholder` rather than measured. THAT TARGET IS WITHDRAWN (author,
+#   2026-09-16): GUF is a portion of Trust inflow, not the levy's equal. The
+#   scalar is unchanged, because withdrawing a target is not a licence to refit. `eoh scenario run
 #   servicing_census` measures the quantity the fee is DEFINED as and finds this
 #   overshoots by ~35× in aggregate, implying ~2.8 in its place. It is NOT
 #   changed on that finding: the census settles the LEVEL and cannot settle the

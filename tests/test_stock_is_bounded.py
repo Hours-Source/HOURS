@@ -214,12 +214,27 @@ class TestNothingGrowsWithoutLabour:
     """
 
     def test_the_trust_has_no_interest_term(self):
+        """
+        THE SHARP FORM (2026-09-15). This asserted `trust_end < trust_start`
+        with nothing owed, which held only because the dividend left the
+        balance unconditionally. Unspent capacity is now retained, so a quiet
+        period is FLAT — and flat is not a yield. What Condition III actually
+        forbids is the balance itself moving the balance: for identical flows
+        the movement must be the same at any size, so no term can depend on
+        the holding.
+        """
         from hours_eoh.core.fiscal import trust_management
+        def delta(balance):
+            r = trust_management(trust_balance=balance, levy_revenue=1.0e6,
+                                 stewardship_cost=0.0, guarantee_cost=4.0e5)
+            return r["trust_end"] - r["trust_start"]
+        assert delta(1.0e9) == pytest.approx(delta(1.0e11), rel=1e-12)
+        assert delta(1.0e9) == pytest.approx(1.0e6 - 4.0e5, rel=1e-12)
         quiet = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
                                  stewardship_cost=0.0, guarantee_cost=0.0)
-        assert quiet["trust_end"] < quiet["trust_start"], (
-            "with no inflows a balance must fall; if it rose, something is "
-            "paying a return on a holding"
+        assert quiet["trust_end"] == pytest.approx(quiet["trust_start"], rel=1e-12), (
+            "a quiet period must not GROW the balance; if it rose, something "
+            "is paying a return on a holding"
         )
 
     def test_a_larger_holding_earns_no_premium_rate(self):

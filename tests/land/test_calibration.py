@@ -33,16 +33,54 @@ def test_rate_calibration_returns_expected_keys(small_urban_50):
 
 
 def test_rate_calibration_converges_at_unity(small_urban_50):
-    # The levy rate is bound EXPLICITLY at 1.25% (the rate before 2026-09-15):
-    # this tests the solver, not the default levy. At the 4.5% default the k
-    # ceiling (1,000) binds and the sample reaches 0.62 of the levy, so it
-    # cannot converge at unity. The old comment said population=50 made this
-    # plausible; measured, `population` does not move `levy_revenue` here
-    # (797,263 / 797,419 / 798,970 TEH at 5 / 50 / 500), so it was never the lever.
-    result = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10,
-                                  levy_rates={"sufficiency": 0.0125})
+    # TWO DEFECTS FIXED 2026-09-15, and the target is now hit EXACTLY rather
+    # than within ±25%:
+    #   1. `population` did not move `levy_revenue` (797,263 / 797,419 / 798,970
+    #      TEH at 5 / 50 / 500 people), because the pipeline resolved the
+    #      1M-frame default capital stock at every frame. Capital travels with
+    #      the frame now, so 50 people and 50 parcels is a coherent pairing.
+    #   2. The solver's fixed leg summed only E and I, missing the flat
+    #      per-parcel charge P(ε) the fee has added since 2026-08-30 — 4.723
+    #      TEH/parcel here, 236.15 over the inventory, invariant in k. It
+    #      overshot every target by exactly that: 1.149 asked for 1.0, 0.649
+    #      asked for 0.5.
+    result = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10)
     assert result["converged"] is True
-    assert abs(result["achieved_ratio"] - 1.0) <= 0.25  # sample approximation ±25%
+    assert result["achieved_ratio"] == pytest.approx(1.0, rel=1e-6)
+
+
+def test_the_target_is_hit_exactly_at_several_ratios_and_frames(small_urban_50):
+    """The solver is exact where a k exists, not merely close: a residual it
+    cannot see would show up as a constant offset across targets, which is how
+    the P(ε) omission was found."""
+    for target in (0.25, 0.5, 1.0, 2.0):
+        r = guf_rate_calibration(small_urban_50, target, population=104.0, tolerance=0.10)
+        assert r["converged"] is True
+        assert r["achieved_ratio"] == pytest.approx(target, rel=1e-6)
+    # And the frame reaches the solve: levy revenue scales with population.
+    a = guf_rate_calibration(small_urban_50, 1.0, population=50.0)
+    b = guf_rate_calibration(small_urban_50, 1.0, population=500.0)
+    assert b["levy_revenue"] == pytest.approx(10.0 * a["levy_revenue"], rel=1e-9)
+
+
+def test_an_unreachable_target_reports_failure_rather_than_a_clamped_k(small_urban_50):
+    """`converged` must be able to say no. Below the fixed leg — the part of
+    the fee no use-coefficient can scale — no k reaches the target, and k
+    clamps at its 0.01 floor instead of going negative."""
+    r = guf_rate_calibration(small_urban_50, 1.0, population=50.0, tolerance=0.10,
+                             levy_rates={"sufficiency": 0.0125})
+    assert r["converged"] is False
+    assert r["calibrated_multiplier"] == pytest.approx(0.01)
+    assert r["achieved_ratio"] > 1.0
+
+
+def test_the_capital_stock_reaches_the_levy_base(small_urban_50):
+    """The frame's third extensive is wired, not merely accepted."""
+    lean = guf_rate_calibration(small_urban_50, 1.0, population=50.0,
+                                capital_stock_teh=1.0e5)
+    rich = guf_rate_calibration(small_urban_50, 1.0, population=50.0,
+                                capital_stock_teh=1.0e9)
+    assert rich["levy_revenue"] > 100.0 * lean["levy_revenue"]
 
 
 def test_rate_calibration_multiplier_positive(small_urban_50):

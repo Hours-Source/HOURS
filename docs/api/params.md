@@ -69,7 +69,7 @@ Single source of truth for all named constants. No anonymous numeric literals an
 | `GUF_USE_RESIDENTIAL_PRIMARY` | 10.0 TEH/SLU/yr (recalibrated ×100 from 0.10) |
 | `GUF_USE_COMMERCIAL_RETAIL` | 30.0 TEH/SLU/yr (recalibrated ×100 from 0.30) |
 
-All `GUF_USE_*` constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) is co-equal with levy revenue at ε = 0.40 — the design target at the 1.25% levy. Since `SUFF_LEVY_RATE` rose to 4.5% (2026-09-15) the target is not met (fee ≈ 0.91× levy on the urban archetype), and the ratios were not re-fitted to it.
+All `GUF_USE_*` constants were recalibrated ×100 so that aggregate GUF for a 1 M-population territory (~420 k parcels) would land co-equal with levy revenue at ε = 0.40. **That target is withdrawn** (author, 2026-09-16): GUF is a *portion* of Trust inflow alongside the labour levy and the estate levy, never owed an equality with any of them. The ×100 is unchanged — withdrawing a target is not a licence to refit — and what would settle the level is still the unrun servicing census.
 
 **Conditions and Simulation**
 

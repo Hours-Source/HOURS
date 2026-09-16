@@ -45,11 +45,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   below capital, a small gap, no currency in the labour chain. Shared
   denominator, so the SPLIT is what is checked.
 - **The audit falsifier IS ANSWERED ON THE SHIPPED DEFAULT** *(2026-09-11)*.
-  Priced as a share of the obligation — the only frame-invariant unit — every
-  episodic regime fits with an order of magnitude to spare. Cadence is an
-  `instance` defaulting to `episodic`; `continuous` stays **open** below
-  ε≈0.57, because human recording runs at clinical intensity and the cheap
-  machine regime needs a prior document personal EOH does not produce.
+  Priced as a share of the obligation, every episodic regime fits with an order
+  of magnitude to spare. Cadence is an `instance` defaulting to `episodic`;
+  `continuous` stays **open** below ε≈0.57 — why, in the entries.
   [cadence](#register-cadence-declared),
   [which-binds](#which-bound-actually-binds).
 - **The framework cannot claim its frame is "most defensible".** Eight anchors
@@ -72,15 +70,17 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   `floor_claim_across_the_arc` flags its own result as internal. *Settles by:* a
   theorem, not code.
 - **Capture is AGGREGATE-BOUNDED; DISTRIBUTION is the exposure.** *(gap)*
-  Bounded three ways and shrinking along the arc. **What is unbounded is who
+  Bounded three ways and shrinking along the arc; **what is unbounded is who
   gets paid**, and the model is per-capita throughout. EXIT is contestability;
   this is VOICE. *Settles by:* a distributional layer, **downstream of exchange
-  work not yet done at scale** — no real-output term and no goods layer, so
-  nothing yet for a distribution to be over. Research area, not a measurement.
+  work not yet done at scale** — nothing yet for a distribution to be over.
   [capture-aggregate-bounded](#capture-aggregate-bounded).
 - **The supply claim's capital axis is weaker than argued** *(pointer)* — a
   destroyed stock books no rebuild, so the response is pro-cyclical.
   [fulfilment.md](fulfilment.md#capital-reconstruction-gap).
+- **Levy incidence at ε=0 is uncomputed.** *(person)* 4.5% is sized to the
+  ε=0.99 corner; the bottom needs 1.33× the cheapest point. *Settles by:* a
+  flat vs ε-varying rate. [fulfilment.md](fulfilment.md#guarantee-priced-in-hours).
 - **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may
   be sufficient; further is monetary economics, not entropy accounting, and is
   the surface growth §15 warns about. **Do not build without a reason to.**

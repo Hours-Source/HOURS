@@ -108,7 +108,9 @@ class TestTheTrustOwesOnlyTheGuarantee:
     @pytest.mark.parametrize("eps", ARC)
     def test_owed_is_the_guarantee_and_the_booking_is_reported_separately(self, eps):
         from hours_eoh.core.fiscal import sufficiency_guarantee, aggregate_care_stipend_from_demographics
-        r = stationarity_at(eps, standard="sufficiency")["teh"]
+        # `guarantee="shipped"` is explicit since V1 became the default here
+        # (2026-09-16): this test is the SHIPPED identity, against core.
+        r = stationarity_at(eps, standard="sufficiency", guarantee="shipped")["teh"]
         g = sufficiency_guarantee(1e6, eps, personal_eoh_base=1500.0)
         assert r["guarantee_owed"] == pytest.approx(g["total_cost_teh"], rel=1e-12)
         assert r["paid_by_mint"] >= aggregate_care_stipend_from_demographics(1e6, eps)
@@ -170,6 +172,55 @@ class TestD3IsTheSimulationsQuantity:
         assert mine == pytest.approx(r["teh_destroyed"] - writedown, rel=1e-9)
 
 
+class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
+    """The author's question, 2026-09-16: is standing still at every ε a design
+    success or an oversized levy, and is there a threshold below which it fails
+    that reads as the friction of first organising resources?"""
+
+    def _teh(self, eps, **kw):
+        return stationarity_at(eps, need_fraction=0.05, **kw)["teh"]
+
+    def test_v1_is_the_reporting_default(self):
+        assert self._teh(0.40)["guarantee_design"] == "v1"
+
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.99))
+    def test_the_required_levy_is_the_closed_form_and_the_verdict_agrees(self, eps):
+        """r*(ε) = max(0, (owed − GUF) / mint), and the verdict turns there.
+        The fee is uncapped here, so it does not move with the levy and the
+        form is exact rather than a fixed point."""
+        r = self._teh(eps, guf_parcels=URBAN)
+        r_star = max(0.0, (r["guarantee_owed"] - r["guf"]) / r["mint"])
+        assert self._teh(eps, guf_parcels=URBAN,
+                         levy_rate=r_star + 1e-6)["stationary"] is True
+        if r_star > 1e-3:
+            assert self._teh(eps, guf_parcels=URBAN,
+                             levy_rate=r_star - 1e-3)["stationary"] is False
+
+    def test_the_bottom_of_the_arc_costs_more_than_the_middle_but_the_top_binds(self):
+        """THE FRICTION, MEASURED. Without the fee the requirement is a U:
+        subsistence carries nearly all of the personal obligation by hand while
+        registration is near zero, so the mint is small against what is owed.
+        The bump is real and it is not what binds — the ε=0.99 corner needs
+        2.4× the bottom, which is what the shipped 4.5% is sized to."""
+        def r_nofee(e):
+            r = self._teh(e)
+            return r["guarantee_owed"] / r["mint"]
+        bottom, middle, top = r_nofee(0.0), r_nofee(0.19), r_nofee(0.99)
+        assert bottom > middle, "the bottom is dearer than the cheapest point"
+        assert top > bottom, "and the top is dearer still — the corner binds"
+        assert bottom / middle == pytest.approx(1.327, rel=0.02)
+        assert top / bottom == pytest.approx(1.806, rel=0.02)
+
+    def test_the_uncapped_fee_exceeds_the_whole_mint_at_subsistence(self):
+        """Why "the fee covers the bottom" is a SYMPTOM. record/guf.md already
+        records the fee's level as structurally mis-set; this is that defect
+        seen from the fiscal side, and the payable cap is the honest figure."""
+        r = self._teh(0.0, guf_parcels=URBAN)
+        assert r["guf_uncapped"] / r["mint"] > 1.0
+        capped = self._teh(0.0, guf_parcels=URBAN, guf_cap="payable")
+        assert capped["guf"] / capped["mint"] < 0.5
+
+
 class TestBandsAndDrawdown:
 
     def test_bands_report_all_three_and_the_sides_end_differently(self):
@@ -192,7 +243,7 @@ class TestBandsAndDrawdown:
         short = stationary_bands(guarantee="v1", need_fraction=0.05, guf_parcels=URBAN,
                                  levy_rate=0.044)
         assert short["teh"]["upper"] < 0.99
-        assert stationary_bands(guf_parcels=URBAN)["teh"]["upper"] is None
+        assert stationary_bands(guf_parcels=URBAN, guarantee="shipped")["teh"]["upper"] is None
 
     def test_drawdown_fails_where_the_teh_side_is_short_and_holds_where_it_is_not(self):
         # Inside the band V1 at 5% need stands still on with the land fee — a

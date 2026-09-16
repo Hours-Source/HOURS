@@ -430,8 +430,29 @@ def simulate_period(
         # already carries machine fulfilment. Subtracting capital-fulfilled
         # hours as well was two terms for one mechanism.
     }
+    # D5 IS COMPUTED BEFORE THE FISCAL PERIOD CLOSES (2026-09-16), so that every
+    # path TEH returns to the Trust by arrives through `trust_management` and
+    # the balance identity lives in ONE place. It was added to `new_trust_bal`
+    # after the fact, alongside GUF, which put the identity in three.
+    # Numerically unchanged: both terms are start-of-period quantities.
+    from hours_eoh.core.capital import estate_dissolution as _estate_diss
+    current_total_supply = teh_endowment + teh_created_cum - teh_destr_cum
+    current_circ_approx  = max(0.0, current_total_supply - state["trust_balance"] - cap_embodied)
+    if use_estate_dissolution:
+        d5 = _estate_diss(
+            current_circ_approx, population, eps,
+            inheritance_fraction=estate_inheritance_fraction,
+            estate_levy_fraction=estate_levy_fraction,
+            personal_reserve_years=estate_reserve_years,
+        )
+    else:
+        d5 = {"teh_destroyed": 0.0, "teh_levied_to_trust": 0.0,
+              "teh_inherited": 0.0, "mechanism": "D5_disabled"}
+
     fiscal = fiscal_snapshot(
         state=fiscal_state,
+        guf_revenue=(guf_net_inflow or 0.0),
+        estate_levy_aggregate=d5["teh_levied_to_trust"],
         levy_rates=levy_rates,
         mean_multiplier=mean_multiplier,
         dep_rate=dep_rate,
@@ -442,13 +463,9 @@ def simulate_period(
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         care_stipend_aggregate=care_stipend_aggregate,
     )
+    # Every inflow is inside this figure now — levy, GUF and the estate levy —
+    # so nothing is added to the balance after the fiscal period closes.
     new_trust_bal = fiscal["trust"]["trust_end"]
-
-    # GUF revenue injection: circulatory TEH from ground-use fees added directly
-    # to Trust balance after the fiscal period closes. Mirrors guf_trust_inflow()
-    # wiring into trust_management() for callers that pre-compute GUF externally.
-    if guf_net_inflow is not None:
-        new_trust_bal = new_trust_bal + guf_net_inflow
 
     # ---- 7. TEH destruction — D1 capital accounting + D2/D3 consumption
     #         + D4 CPI delivery + D5 estate dissolution + D6 ceiling (opt-in)
@@ -505,21 +522,9 @@ def simulate_period(
               "basket_price": _basket_price(eps), "mechanism": "D4_disabled"}
 
     # D5: Estate dissolution — TEH written down on death above personal reserve.
-    #     Also levies a fraction to Trust (circulatory).
-    #     Uses start-of-period circulating TEH as the estate proxy.
-    current_total_supply = teh_endowment + teh_created_cum - teh_destr_cum
-    current_circ_approx  = max(0.0, current_total_supply - state["trust_balance"] - cap_embodied)
-    if use_estate_dissolution:
-        d5 = _estate_diss(
-            current_circ_approx, population, eps,
-            inheritance_fraction=estate_inheritance_fraction,
-            estate_levy_fraction=estate_levy_fraction,
-            personal_reserve_years=estate_reserve_years,
-        )
-        new_trust_bal = new_trust_bal + d5["teh_levied_to_trust"]
-    else:
-        d5 = {"teh_destroyed": 0.0, "teh_levied_to_trust": 0.0,
-              "teh_inherited": 0.0, "mechanism": "D5_disabled"}
+    #     Computed ABOVE, before the fiscal period closes, so its Trust levy
+    #     reaches the balance through `trust_management` with the other two
+    #     return paths. `current_circ_approx` is defined there and used below.
 
     # D6: Accumulation ceiling (disabled by default) — excess above ceiling
     #     committed to capital formation (moves to capital_embodied, not destroyed yet).

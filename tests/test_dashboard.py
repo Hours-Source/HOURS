@@ -609,7 +609,12 @@ class TestTheCliAssemblyIsComputedNotInvented:
                 ecosystem_health=f["ecosystem_health"],
                 workforce_fraction=float(p["workforce_fraction"])))
             trust = period["fiscal"]["trust"]
-            assert kw["expenditures"] == pytest.approx(trust["dividend"]), f"at ε={eps}"
+            # Until 2026-09-15 this was the DIVIDEND, which left the balance
+            # whether or not anything was owed. What the Trust owes is what
+            # leaves it now, and the identity below closes on that.
+            assert kw["expenditures"] == pytest.approx(trust["total_expenditure"]), f"at ε={eps}"
+            assert kw["expenditures"] == pytest.approx(
+                period["fiscal"]["guarantee"]["total_cost_teh"]), f"at ε={eps}"
             assert kw["expenditures"] != pytest.approx(0.90 * kw["earnings"])
             # The balance identity closes on the simulated Trust — not by the
             # command computing balance_end from its own earnings.

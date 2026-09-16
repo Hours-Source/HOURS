@@ -620,8 +620,15 @@ ecological and care labour are paid at the mint and are not Trust expenditure. A
 find the minimum trust balance for solvency at your ε.
 
 **`trust["trust_stable"] = False`** (even when solvent)
-Trust is eroding — expenditures exceed inflows. Long-run: Trust will deplete.
+Trust is eroding — the guarantee exceeds levy + GUF inflows, so the balance is
+paying the difference out of principal. Long-run: the Trust depletes.
 Action: raise levy or build reserves now while the economy is labor-intensive.
+
+Since 2026-09-15 only what the Trust OWES leaves it (unspent dividend is
+retained), so at the shipped defaults `trust_stable` is **True at every ε** and
+the balance GROWS — levy inflow exceeds the guarantee across the arc. Eroding is
+now the exception rather than the default; `trust["guarantee_unfunded"]` reports
+what the balance and inflows together could not cover.
 
 **`exit_financing()["exit_financeable"] = False`**
 No channel finances a member out within one vesting period, so exit from the

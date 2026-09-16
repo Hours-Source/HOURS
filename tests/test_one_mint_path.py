@@ -191,18 +191,22 @@ class TestOneMintPath:
 
 class TestTheTrustDrawsDownRatherThanCreates:
 
-    def test_the_dividend_leaves_the_balance(self):
+    def test_the_guarantee_leaves_the_balance(self):
         """
-        `trust_end = start − dividend + inflows`. The dividend is a DRAWDOWN of a
-        held stock, not income: with no inflows the balance must fall by exactly
-        the dividend, so nothing is created on the way out.
+        `trust_end = start − guarantee + inflows`. What the Trust owes is a
+        DRAWDOWN of a held stock, not income: with no inflows the balance must
+        fall by exactly the guarantee, so nothing is created on the way out.
+
+        Until 2026-09-15 the DIVIDEND left the balance instead, whether or not
+        anything was owed, and the guarantee never appeared in it.
         """
         from hours_eoh.core.fiscal import trust_management
         t = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
-                             stewardship_cost=0.0, guarantee_cost=0.0)
-        assert t["trust_end"] == pytest.approx(
-            t["trust_start"] - t["dividend"], rel=1e-12
-        )
+                             stewardship_cost=0.0, guarantee_cost=4.0e8)
+        assert t["trust_end"] == pytest.approx(t["trust_start"] - 4.0e8, rel=1e-12)
+        quiet = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
+                                 stewardship_cost=0.0, guarantee_cost=0.0)
+        assert quiet["trust_end"] == pytest.approx(quiet["trust_start"], rel=1e-12)
 
     def test_inflows_move_the_balance_one_for_one(self):
         from hours_eoh.core.fiscal import trust_management

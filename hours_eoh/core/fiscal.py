@@ -592,6 +592,7 @@ def trust_management(
     div_rate: float = DIV_RATE,
     epsilon: float = 0.40,
     guf_revenue: float = 0.0,
+    estate_levy: float = 0.0,
 ) -> dict:
     """
     Fiscal balance of the Trust for one period.
@@ -612,9 +613,16 @@ def trust_management(
        (The "spending capacity" the Trust can mobilize)
     2. Dividend (paid out): annDep × div_rate → funds the guarantee
     3. Renewal (stays in Trust): annDep × (1 - div_rate) → reinvested
-    4. Levy inflows: replenish trust from labor income
-    5. End balance: trust - annDep + renewal + levy_revenue
-       = trust × (1 - dep_rate × div_rate) + levy_revenue
+    4. Inflows — the three paths TEH returns by: the labour LEVY, the ground
+       use FEE, and the ESTATE levy (TEH unused at death, moved from
+       circulation rather than destroyed).
+    5. End balance: trust − guarantee_cost + levy + GUF + estate_levy
+       Only what is OWED leaves (2026-09-15). Flows 1–3 are reporting only:
+       unspent capacity stays in the Trust, so a period owing nothing and
+       receiving nothing leaves the balance flat. The Trust still handles the
+       DRAWDOWN: when the guarantee exceeds inflows the difference comes out
+       of principal, and `guarantee_unfunded` reports what principal could not
+       cover either.
 
     Args:
         trust_balance: Trust balance at start of period (TEH).
@@ -628,6 +636,9 @@ def trust_management(
         div_rate: Fraction of depreciation paid as dividend.
         epsilon: Automation level (for context/reporting).
         guf_revenue: Ground Use Fee inflow (TEH); circulatory, like the levy.
+        estate_levy: Estate-dissolution inflow (TEH) — `capital.estate_dissolution`'s
+            `teh_levied_to_trust`, the share of an unused estate that returns to
+            the Trust instead of being destroyed. Circulatory (2026-09-16).
 
     Returns:
         dict: {
@@ -639,6 +650,7 @@ def trust_management(
           "total_revenue":     float,    (dividend + levy + GUF)
           "total_expenditure": float,    (the guarantee only)
           "paid_by_mint":      float,    (stewardship_cost as supplied; not a Trust figure)
+          "guarantee_unfunded": float,   (what balance + inflows could not cover)
           "surplus_deficit":   float,    (positive = surplus)
           "solvent":           bool,
           "trust_end":         float,    (projected end-of-period balance)
@@ -667,7 +679,17 @@ def trust_management(
     # minted. `land/guf.py` says so in its own header ("GUF revenue is
     # circulatory TEH flowing to the Trust"), so no TEH is created here and
     # Condition III is untouched.
-    total_revenue     = dividend + levy_revenue + guf_revenue
+    # THE PATHS BY WHICH TEH RETURNS TO THE TRUST (author, 2026-09-16). Three,
+    # and all three are transfers rather than mint: the labour LEVY, the ground
+    # use FEE, and the ESTATE levy — TEH left unused at death, which D5 moves
+    # from circulation to the Trust rather than destroying. `simulation` used to
+    # add the fee and the estate levy to the balance AFTER this function ran, so
+    # the Trust's identity lived in three places; they arrive here now.
+    #
+    # D6's accumulation ceiling is deliberately NOT one of them: it commits
+    # excess to CAPITAL, not to the Trust, and folding it in would be a doctrine
+    # change rather than a wiring fix.
+    total_revenue     = dividend + levy_revenue + guf_revenue + estate_levy
     # MINTED TEH IS THE WAGE (author decision, 2026-09-15). Stewardship,
     # ecological and care labour is registered, and registration mints its
     # pay: `teh_created = registered_eoh × mean_multiplier`. Charging the Trust
@@ -677,11 +699,30 @@ def trust_management(
     total_expenditure = guarantee_cost
     surplus_deficit   = total_revenue - total_expenditure
 
-    # Trust balance evolves: loses depreciation, gains renewal and both inflows
-    # (dividend goes out; renewal stays; levy and GUF come in)
-    trust_end = trust_balance - ann_dep + renewal + levy_revenue + guf_revenue
-    # Equivalently: trust_end = trust_balance - div_rate*annDep + levy_revenue
-    # = trust_balance - dividend + levy_revenue
+    # WHAT LEAVES THE TRUST IS WHAT THE TRUST OWES (author decision, 2026-09-15:
+    # "unspent dividend should not leave the trust").
+    #
+    # Until today this subtracted the DIVIDEND whether or not anything was owed,
+    # so the balance fell by 630M TEH/yr at the 1M reference while the guarantee
+    # — the Trust's only obligation — never appeared in the balance at all. A
+    # trajectory therefore could not fail on the guarantee: `surplus_deficit`
+    # saw it and `trust_end` did not, which is two accounts of one quantity.
+    #
+    # The dividend is now what it always said it was in the line above: SPENDING
+    # CAPACITY the Trust can mobilise. `ann_depreciation`, `dividend` and
+    # `renewal` are REPORTING ONLY and enter no balance arithmetic; unspent
+    # capacity stays in the Trust.
+    #
+    # NOT CLAMPED AT ZERO. A negative balance is the failure signal three
+    # callers already read (`scenarios/long_run` sign crossings,
+    # `research/thermal_solvency`'s `trust_end >= 0.0`, `stationarity.drawdown`),
+    # and clamping would blind all three with a green suite. What cannot be paid
+    # is reported as `guarantee_unfunded` instead.
+    inflows   = levy_revenue + guf_revenue + estate_levy
+    trust_end = trust_balance - guarantee_cost + inflows
+    guarantee_unfunded = max(
+        0.0, guarantee_cost - max(0.0, trust_balance + inflows)
+    )
 
     return {
         "trust_start":       trust_balance,
@@ -690,6 +731,8 @@ def trust_management(
         "renewal":           renewal,
         "levy_inflow":       levy_revenue,
         "guf_inflow":        guf_revenue,
+        "estate_levy_inflow": estate_levy,
+        "total_inflow":      inflows,
         # The claim land/guf.py makes, made checkable: GUF over levy. > 1 means
         # the fee has overtaken the contracting labour base.
         "guf_over_levy":     (guf_revenue / levy_revenue
@@ -700,6 +743,9 @@ def trust_management(
         "paid_by_mint":      stewardship_cost,
         "surplus_deficit":   surplus_deficit,
         "solvent":           surplus_deficit >= 0.0,
+        # What the guarantee could not be paid from the balance and this
+        # period's inflows. Reported, never folded into the balance.
+        "guarantee_unfunded": guarantee_unfunded,
         "trust_end":         trust_end,
         "trust_stable":      trust_end >= trust_balance,
         "epsilon":           epsilon,
@@ -766,6 +812,11 @@ INJECTION_REGISTER: dict[str, str] = {
     "eco_eoh_override":                          "recompute_avoidance",
     "thermal_obligation":                        "unmodelled_state",
     "care_stipend_aggregate":                    "unmodelled_state",
+    # 2026-09-16: `core/capital.estate_dissolution` computes it and
+    # `simulate_period` must, because it needs circulating TEH — which fiscal is
+    # not given. Core MODELS this one, so it is recompute-avoidance rather than
+    # unmodelled state, and it retires when a state carries the estate flow.
+    "estate_levy_aggregate":                     "recompute_avoidance",
     # PROMOTED 2026-08-29, and the register caught it on its first run:
     # `capital_eoh_eliminated` and `capital_personal_eoh_fulfilled_per_person`
     # were classified here AND appear in `_STATE_TO_PARAM`, because
@@ -840,6 +891,7 @@ def fiscal_snapshot(
     deferred_ecological: float = 0.0,
     eco_eoh_override: float | None = None,
     care_stipend_aggregate: float = 0.0,
+    estate_levy_aggregate: float = 0.0,
     thermal_obligation: float = 0.0,
     ecological_area_hectares: float | None = None,
     ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
@@ -871,6 +923,10 @@ def fiscal_snapshot(
         floor_fraction: Fraction of population receiving the guarantee.
         meaningful_activity_teh: Discretionary spending bonus at ε=0.
         meaningful_activity_scale: Quadratic ε-growth factor for the bonus.
+        estate_levy_aggregate: Estate-dissolution inflow (TEH) for the period —
+            `capital.estate_dissolution`'s `teh_levied_to_trust`. One of the
+            three paths TEH returns to the Trust by (2026-09-16); passed in
+            because it needs circulating TEH, which this function is not given.
         capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15.
             Forwarded to sufficiency_guarantee(), which warns on a nonzero value
             and does not apply it.
@@ -900,7 +956,8 @@ def fiscal_snapshot(
     `paid_by_mint` and are not Trust expenditure.
 
     Trust dynamics each period:
-        Trust_end = Trust_start − depreciation(dep_rate) − dividend(div_rate) + levy_inflow
+        Trust_end = Trust_start − guarantee + levy_inflow + GUF
+    Only what the Trust owes leaves it (2026-09-15); unspent dividend is retained.
 
     As ε rises from 0 to 1, labor_income falls (machines do more), levy_inflow
     falls with it, but guarantee_cost also falls (the human-carried share of personal EOH falls),
@@ -1062,6 +1119,7 @@ def fiscal_snapshot(
         guarantee["total_cost_teh"],
         dep_rate, div_rate, epsilon,
         guf_revenue=guf_revenue,
+        estate_levy=estate_levy_aggregate,
     )
 
     # THE PARTITION'S OWN QUESTION, NOW ANSWERABLE (2026-08-29).
@@ -1704,13 +1762,19 @@ def min_levy_for_solvency(
         the levy covers the remainder. Trust balance still declines.
 
     stable_trust:
-        levy ≥ dividend.
-        The levy replaces the dividend paid out so the trust balance holds flat.
-        Does not require covering all expenditures from levy alone.
+        levy ≥ the guarantee.
+        What leaves the Trust is what it owes (2026-09-15), so the levy that
+        holds the balance flat is the guarantee, not the dividend. The dividend
+        is spending capacity and is retained when unspent.
 
     full_solvency:
-        levy ≥ max(dividend, expenditure − dividend).
-        The union: trust stays flat AND all expenditures are covered.
+        levy ≥ max(stable_trust, expenditure − dividend).
+
+    THE THREE TARGETS HAVE COLLAPSED TO TWO, and that is reported rather than
+    hidden: expenditure IS the guarantee now, so `cover_expenditures`
+    (= guarantee − dividend) can never exceed `stable_trust` (= guarantee), and
+    `full_solvency` equals `stable_trust` at every configuration. The three keys
+    are kept because callers read them by name; `targets_collapsed` says so.
 
     If labor_income is provided, each levy target is also expressed as a rate
     (fraction of labor income). Rates > 1.0 indicate infeasible targets.
@@ -1774,9 +1838,9 @@ def min_levy_for_solvency(
     total_expenditure = guarantee_teh
     current_surplus   = dividend - total_expenditure
 
-    # Three levy targets
+    # Three levy targets — two of them now equal; see the docstring.
     cover_exp    = max(0.0, total_expenditure - dividend)
-    stable_trust = dividend
+    stable_trust = guarantee_teh
     full_solv    = max(cover_exp, stable_trust)
 
     def rate(levy: float) -> float | None:
@@ -1794,6 +1858,7 @@ def min_levy_for_solvency(
         "cover_expenditures":      cover_exp,
         "stable_trust":            stable_trust,
         "full_solvency":           full_solv,
+        "targets_collapsed":       True,
         "cover_expenditures_rate": rate(cover_exp),
         "stable_trust_rate":       rate(stable_trust),
         "full_solvency_rate":      rate(full_solv),

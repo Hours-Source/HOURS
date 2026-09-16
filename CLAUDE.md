@@ -504,7 +504,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,742 tests passing (1 skipped), mypy clean on 102 source files** (verified
+**4,754 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-15). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -632,7 +632,7 @@ are the ones worth knowing by name.
 | `test_anchor_page_figures.py` | The published anchor comparison (`docs/theory/anchor_comparison.md`) and its figure emitter. Every figure still reachable, a renamed key RAISES rather than returning an empty collection, every STRUCTURAL statement on the page (verdict strings, designed zeros, unit elasticity, eight anchors, not-unique) read from the page and checked against the functions, the superseded ratio-transfer figures forbidden, and each shape word's range pinned. **States its own gap:** a shape claim can drift inside its range unnoticed. |
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
-| `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
+| `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down only what it OWES, and no term in its balance depends on the balance — the sharp form since 2026-09-15, when unspent dividend stopped leaving). |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
 
 ### Cross-cutting, or named differently from the module

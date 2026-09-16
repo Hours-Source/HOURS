@@ -40,7 +40,7 @@ The floor — minimum TEH guaranteed to every collective member. The EOH reimbur
 
 ### `trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)` → `dict`
 
-Full Trust solvency calculation — revenues in, the guarantee out, surplus/deficit. `stewardship_cost` is returned as `paid_by_mint` and is not expenditure.
+Full Trust solvency calculation — revenues in, the guarantee out, surplus/deficit. `stewardship_cost` is returned as `paid_by_mint` and is not expenditure. Balance: `trust_end = start − guarantee + levy + GUF`; only what the Trust owes leaves it, and unspent dividend is retained (2026-09-15), so `ann_depreciation`, `dividend` and `renewal` are reporting only. What the balance and this period's inflows could not cover is `guarantee_unfunded`.
 
 ### `fiscal_snapshot(epsilon, …)` → `dict`
 

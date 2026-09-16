@@ -385,6 +385,40 @@ class TestTrustManagement:
                 f"Trust must be solvent at ε={eps} with conservative expenditures"
             )
 
+    def test_all_three_return_paths_reach_the_balance_identically(self):
+        """THE PATHS TEH RETURNS BY (2026-09-16): levy, ground use fee, estate
+        levy. Each is a transfer, so a TEH arriving by any of them must move the
+        balance by exactly one TEH — and `total_inflow` is their sum."""
+        base = trust_management(1.0e9, 0.0, 0.0, 0.0)
+        by_levy = trust_management(1.0e9, 1.0e6, 0.0, 0.0)
+        by_guf = trust_management(1.0e9, 0.0, 0.0, 0.0, guf_revenue=1.0e6)
+        by_estate = trust_management(1.0e9, 0.0, 0.0, 0.0, estate_levy=1.0e6)
+        for path in (by_levy, by_guf, by_estate):
+            assert path["trust_end"] - base["trust_end"] == pytest.approx(1.0e6)
+            assert path["total_inflow"] == pytest.approx(1.0e6)
+        both = trust_management(1.0e9, 1.0e6, 0.0, 0.0,
+                                guf_revenue=2.0e6, estate_levy=3.0e6)
+        assert both["total_inflow"] == pytest.approx(6.0e6)
+        assert both["estate_levy_inflow"] == pytest.approx(3.0e6)
+
+    def test_trust_stable_can_be_false_and_reports_what_it_cannot_fund(self):
+        """`trust_stable` must be able to fire in BOTH directions (2026-09-15).
+        Under retention the shipped configuration is stable at every ε — levy
+        inflow exceeds the guarantee across the arc — so the erosion case needs
+        its own pin, or the flag reads as an unfalsifiable True."""
+        eroding = trust_management(trust_balance=1.0e9, levy_revenue=1.0e6,
+                                   stewardship_cost=0.0, guarantee_cost=5.0e7)
+        assert eroding["trust_stable"] is False
+        assert eroding["trust_end"] < eroding["trust_start"]
+        assert eroding["guarantee_unfunded"] == 0.0, "principal still covers it"
+
+        # And the balance can be driven past what exists, which is the only
+        # state `guarantee_unfunded` reports.
+        broke = trust_management(trust_balance=1.0e6, levy_revenue=0.0,
+                                 stewardship_cost=0.0, guarantee_cost=5.0e6)
+        assert broke["guarantee_unfunded"] == pytest.approx(4.0e6)
+        assert broke["trust_end"] < 0.0, "not clamped: the deficit stays visible"
+
     def test_trust_insolvent_when_expenditures_exceed_revenue(self):
         p = EohParams()
         result = trust_management(
@@ -408,7 +442,12 @@ class TestTrustManagement:
 
         result = trust_management(trust_start, levy, 0.0, 0.0, 0.045, 0.40)
 
-        expected_end = trust_start - dep + renewal + levy
+        # Until 2026-09-15 the dividend left the balance whether or not anything
+        # was owed: `trust_start − dep + renewal + levy`. Unspent capacity is now
+        # retained, so with nothing owed the levy is the whole movement.
+        assert dep == pytest.approx(result["ann_depreciation"])
+        assert renewal == pytest.approx(result["renewal"])
+        expected_end = trust_start + levy
         assert result["trust_end"] == pytest.approx(expected_end, rel=1e-6)
 
     def test_trust_balance_decline_without_levy(self):
@@ -584,12 +623,17 @@ class TestTrustSolvencyTrajectory:
 
     def test_insolvency_detected_when_floor_exceeded(self):
         """Trust must be flagged insolvent once balance drops below the solvency floor."""
+        # A GUARANTEE IS NOW REQUIRED FOR THE BALANCE TO FALL AT ALL (2026-09-15):
+        # what the Trust owes is what leaves it, so a Trust owing nothing holds
+        # flat for ever and never crosses the floor. Before, the dividend drained
+        # it whether or not anything was owed, and this test passed with every
+        # cost set to zero — it was measuring depreciation, not insolvency.
         result = trust_solvency_trajectory(
             initial_trust_balance=1_000.0,
             n_periods=50,
             levy_revenue_per_period=0.0,
             stewardship_cost_per_period=0.0,
-            guarantee_cost_per_period=0.0,
+            guarantee_cost_per_period=20.0,
             solvency_floor=500.0,
         )
         assert result["solvent_throughout"] is False
@@ -597,6 +641,12 @@ class TestTrustSolvencyTrajectory:
         assert result["first_insolvency"] < 50
 
     def test_first_insolvency_none_when_always_solvent(self):
+        """BOTH DIRECTIONS, because one of them stopped being reachable
+        (2026-09-15). With the levy above the guarantee the balance now GROWS
+        every period, so `solvent_throughout` is true by construction and pins
+        nothing on its own — the dividend used to drain it, and the levy had to
+        beat that. The companion below is what makes this pair falsifiable:
+        the same call with the guarantee above the levy crosses the floor."""
         result = trust_solvency_trajectory(
             initial_trust_balance=TRUST_BASE_TEH,
             n_periods=10,
@@ -606,6 +656,17 @@ class TestTrustSolvencyTrajectory:
         )
         assert result["first_insolvency"] is None
         assert result["solvent_throughout"] is True
+        assert result["final_balance"] > TRUST_BASE_TEH
+
+        drained = trust_solvency_trajectory(
+            initial_trust_balance=TRUST_BASE_TEH,
+            n_periods=10,
+            levy_revenue_per_period=100_000_000.0,
+            stewardship_cost_per_period=100_000_000.0,
+            guarantee_cost_per_period=5_000_000_000.0,
+        )
+        assert drained["solvent_throughout"] is False
+        assert drained["first_insolvency"] is not None
 
     def test_period_balances_finite(self):
         result = trust_solvency_trajectory(
@@ -899,9 +960,17 @@ class TestMinLevyForSolvency:
                     "stable_trust", "full_solvency", "feasible", "epsilon"):
             assert key in result
 
-    def test_stable_trust_equals_dividend(self):
+    def test_stable_trust_equals_the_guarantee(self):
+        """Until 2026-09-15 the levy that held the balance flat replaced the
+        DIVIDEND, because the dividend left whether or not anything was owed.
+        Only the guarantee leaves now, so that is what a flat balance needs —
+        and `cover_expenditures` (guarantee − dividend) can no longer exceed
+        it, which collapses full_solvency onto stable_trust."""
         result = self._run()
-        assert result["stable_trust"] == pytest.approx(result["dividend"])
+        assert result["stable_trust"] == pytest.approx(result["guarantee_cost"])
+        assert result["full_solvency"] == pytest.approx(result["stable_trust"])
+        assert result["cover_expenditures"] <= result["stable_trust"] + 1e-9
+        assert result["targets_collapsed"] is True
 
     def test_full_solvency_geq_stable_trust(self):
         result = self._run()
@@ -1166,6 +1235,19 @@ class TestFiscalSnapshotCareStipend:
             epsilon=0.40,
             **kwargs,
         )
+
+    def test_the_estate_levy_reaches_the_trust_through_the_snapshot(self):
+        """The third return path is wired end to end, not just accepted:
+        `simulate_period` computes D5 before the fiscal period closes and hands
+        the levy here, so the balance identity lives in `trust_management`
+        alone (2026-09-16)."""
+        base = self._base()
+        with_estate = self._base(estate_levy_aggregate=7.0e6)
+        assert with_estate["trust"]["estate_levy_inflow"] == pytest.approx(7.0e6)
+        assert (with_estate["trust"]["trust_end"]
+                - base["trust"]["trust_end"]) == pytest.approx(7.0e6)
+        assert (with_estate["trust"]["total_inflow"]
+                - base["trust"]["total_inflow"]) == pytest.approx(7.0e6)
 
     def test_care_stipend_field_in_return(self):
         result = self._base()

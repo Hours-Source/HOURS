@@ -109,13 +109,16 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
         teh_created=float(after["teh_created_cumulative"]),
         teh_destroyed=float(after["teh_destroyed_cumulative"]),
         teh_observed=float(period["teh_total_supply"]) - float(after["teh_endowment"]),
-        # The Trust balance's own identity: the dividend LEAVES the balance to
-        # fund spending, and levy and GUF inflows enter it
-        # (`fiscal.trust_management`). Stewardship and guarantee are paid from
-        # the dividend, not from the balance.
+        # The Trust balance's own identity (2026-09-15): what the Trust OWES
+        # leaves the balance, and levy and GUF inflows enter it
+        # (`fiscal.trust_management`). Stewardship, ecological and care labour
+        # are paid at the mint and never appear here; unspent dividend is
+        # retained, so the dividend is capacity and not an outflow. Read
+        # `total_expenditure` rather than the guarantee directly, so this stays
+        # bound to whatever core charges the Trust.
         balance_start=float(trust["trust_start"]),
         earnings=float(trust["levy_inflow"]) + float(trust["guf_inflow"]),
-        expenditures=float(trust["dividend"]),
+        expenditures=float(trust["total_expenditure"]),
         balance_end=float(trust["trust_end"]),
         certified_by_domain=certified_by_domain,
         workforce_size=workforce,

@@ -16,8 +16,9 @@ the fee reflects real costs rather than speculative value."
 
 from __future__ import annotations
 
-from hours_eoh.data import SUFF_LEVY_RATE
+from hours_eoh.data import REFERENCE_FRAME_POPULATION, SUFF_LEVY_RATE
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import levy_collection
 from hours_eoh.land.guf import (
     USE_CATEGORIES,
@@ -44,8 +45,9 @@ _LVI_SUB_KEYS: frozenset[str] = frozenset(
 def guf_rate_calibration(
     parcel_inventory: list[dict],
     target_guf_levy_ratio: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     epsilon: float = 0.40,
+    capital_stock_teh: float | None = None,
     levy_rates: dict | None = None,
     tolerance: float = 0.01,
     psi_policy: str = "retired",
@@ -71,8 +73,11 @@ def guf_rate_calibration(
     Args:
         parcel_inventory:      Standard parcel dicts (see collective.py schema).
         target_guf_levy_ratio: e.g. 1.0 → GUF ≈ levy revenue; 0.5 → GUF = half levy.
-        population:            For levy revenue calculation.
+        population:            For levy revenue calculation. The capital stock
+                               travels with it — see `capital_stock_teh`.
         epsilon:               Automation level [0.0, 0.99].
+        capital_stock_teh:     The collective's ACTUAL stock. None → the arc's
+                               stock at this ε, scaled to `population`.
         levy_rates:            Override default levy rates.
         tolerance:             Acceptable |achieved_ratio − target| for converged=True.
         psi_policy:            One of land.guf.PSI_POLICIES; default `retired`.
@@ -89,7 +94,25 @@ def guf_rate_calibration(
     """
     rates = levy_rates or {"sufficiency": SUFF_LEVY_RATE}
 
-    labor_income = eoh_to_teh_pipeline(epsilon=epsilon, population=population)["teh_created"]
+    # CAPITAL IS THE THIRD EXTENSIVE, AND IT TRAVELS WITH THE FRAME (2026-09-15).
+    # Until today this called the pipeline with `population` alone, so the
+    # undeclared default stock — `CAPITAL_STOCK_DEFAULT`, declared "at the 1M
+    # reference population" — was handed to collectives of any size: levy
+    # revenue came back 797k TEH at 5, 50 and 500 people, and `population` moved
+    # the target not at all. That made the fee/levy ratio this function solves
+    # for uninterpretable at any frame but 1M. Same defect as the one
+    # `scenarios/frame.py` fixed, and the same repair, including its ORDER:
+    # resolve the arc's stock at this ε FIRST, then scale by the frame, because
+    # a supplied stock is never rescaled by the callee. What the frame holds
+    # fixed is capital INTENSITY, not the absolute stock.
+    #
+    # THE SEAM ITSELF IS UPSTREAM AND IS NOT FIXED HERE: `eoh_to_teh_pipeline`
+    # resolves the same 1M-frame default for every caller who names a
+    # population without a stock. This repairs one caller.
+    capital = (resolve_capital_stock(None, epsilon) * (population / REFERENCE_FRAME_POPULATION)
+               if capital_stock_teh is None else capital_stock_teh)
+    labor_income = eoh_to_teh_pipeline(epsilon=epsilon, population=population,
+                                       capital_stock=capital)["teh_created"]
     levy_revenue = levy_collection(labor_income, rates)["total_levied"]
 
     target_guf = target_guf_levy_ratio * levy_revenue
@@ -102,15 +125,30 @@ def guf_rate_calibration(
     # Decomposing with a single Ψ would solve for a k the fee never uses.
     psi_b, psi_e, psi_i = base_result["psi_applied"]
 
-    # Decompose into scalable (base_fee driven) and fixed (E+I driven)
+    # Decompose into scalable (base_fee driven) and fixed (everything else).
+    #
+    # THE FIXED LEG IS THE RESIDUAL OF THE APPLIED FEE, NOT A RE-LISTED SUBSET
+    # OF ITS COMPONENTS (2026-09-15). Until today it summed only E and I, so it
+    # missed the flat per-parcel charge `P(ε) = parcel_rate × α(ε)` that
+    # `ground_use_fee` has added since 2026-08-30 — outside the bracket and
+    # therefore outside the old decomposition. Measured on the shipped urban
+    # archetype: 4.723 TEH per parcel, 236.15 over 50, INVARIANT in k (checked
+    # at k = 0.5, 1, 2, 4), which is exactly the constant by which the solver
+    # overshot its target — the ratio came back 1.149 when asked for 1.0, and
+    # 0.649 when asked for 0.5. Mode 10, in the function CLAUDE.md already
+    # cites for mode 10: it solved a model of the fee that the fee does not
+    # implement. Deriving the residual from `guf_applied` makes it robust to
+    # the next term added outside the bracket, rather than to this one only.
+    #
+    # `guf_applied` is post-floor and post-Ω, so where the floor binds the
+    # residual absorbs it; the sample verification below is what catches that.
     scalable_sum = 0.0
     fixed_sum    = 0.0
     for parcel, row in zip(parcel_inventory, by_parcel):
-        omega        = max(0.0, min(1.0, float(parcel.get("occupancy_fraction", 1.0))))
-        scalable_sum += psi_b * row["base_fee"] * omega
-        fixed_sum    += (
-            psi_e * row["eco_surcharge"] + psi_i * row["infra_premium"]
-        ) * omega
+        omega         = max(0.0, min(1.0, float(parcel.get("occupancy_fraction", 1.0))))
+        scalable      = psi_b * row["base_fee"] * omega
+        scalable_sum += scalable
+        fixed_sum    += float(row["guf_applied"]) - scalable
 
     converged = True
     if scalable_sum < 1e-9:
