@@ -57,7 +57,7 @@ EOH-side health: the deferred-maintenance ratio, the compounding rate of the def
 
 ### `fiscal_health_check(trust_balance, labor_income, capital_stock_teh, capital_age_ratio, population, floor_teh, epsilon, …)` → `dict`
 
-Fiscal health: Trust solvency (can it fund stewardship and the guarantee together), the floor purchasing-power index, and levy sufficiency against the guarantee.
+Fiscal health: Trust solvency (can it fund the guarantee — stewardship and ecological labour are paid at the mint, not by the Trust, and are reported rather than owed), the floor purchasing-power index, and levy sufficiency — whether inflows cover the guarantee or the Trust is drawing down principal to pay it.
 
 ### `system_dashboard(epsilon, teh_created, teh_destroyed, teh_observed, balance_start, earnings, expenditures, balance_end, certified_by_domain, workforce_size, total_eoh, fulfilled_eoh, trust_balance, labor_income, capital_stock_teh, capital_age_ratio, population, floor_teh, …)` → `dict`
 

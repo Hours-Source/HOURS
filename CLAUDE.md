@@ -390,7 +390,9 @@ someone remembering it, which is what this section is for.
    `in_band: True` unfalsifiable. Same class: `GUF_USE_*`, `TRUST_BASE_TEH`,
    `CAPITAL_MACHINE_PROFILES`, `ECOLOGICAL_SPIKE_INTENSITY`. *Do:* ask **both**
    questions of every threshold — can it fire, and can it NOT fire?
-   `LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration;
+   `LEVY_SUFFICIENCY_WARN` could not fire on the shipped configuration and was
+   **retired 2026-09-16** — the dashboard pillar it drove now asks whether
+   inflows cover the guarantee, an identity with no threshold to calibrate;
    `settlement_report`'s breach was unconditionally true before a single trade.
 
 10. **THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** *(corpus F-008)* — latent until a default
@@ -504,8 +506,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,760 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-15). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
+**4,765 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-15). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

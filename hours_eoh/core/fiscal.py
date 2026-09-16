@@ -158,6 +158,14 @@ def stewardship_allocation(
     than it has. Any gap between required and available indicates a funding
     shortfall that must be flagged.
 
+    SINCE 2026-09-15 THAT CAP ANSWERS A VESTIGIAL QUESTION. Minted TEH is the
+    wage, so this labour is paid at the mint and no Trust balance bounds it:
+    `teh_required` is what the collective owes, and callers reporting what was
+    paid must read THAT. `teh_allocated`, `funding_gap`, `fully_funded` and
+    `funding_coverage` now answer "what could the Trust have funded" — kept
+    because research/thermal_solvency.py's co-equality condition compares the
+    two coverages, and that gate is restated before they go.
+
     Args:
         capital_stock_teh: Total capital stock value in TEH (baseline at ε=0).
         capital_age_ratio: Mean asset age relative to design life, ∈ [0, 1].
@@ -1115,7 +1123,12 @@ def fiscal_snapshot(
     # `paid_by_mint` only; the Trust owes the guarantee.
     trust     = trust_management(
         trust_balance, levies["total_levied"],
-        stew["teh_allocated"] + eco["teh_allocated"] + care_stipend_aggregate,
+        # REQUIRED, not allocated. `teh_allocated` is capped at the Trust
+        # balance, and since 2026-09-15 the Trust does not fund this labour —
+        # the mint does. Reporting the capped figure as `paid_by_mint`
+        # understated the wage bill by the whole funding gap (at trust 1e6:
+        # 1.0e6 reported against 7.786e7 required). Failure mode 10.
+        stew["teh_required"] + eco["teh_required"] + care_stipend_aggregate,
         guarantee["total_cost_teh"],
         dep_rate, div_rate, epsilon,
         guf_revenue=guf_revenue,
@@ -1619,6 +1632,8 @@ def trust_solvency_trajectory(
           "min_balance":          float,
           "total_levy_inflow":    float,
           "total_expenditure":    float,
+          "stewardship_cost_per_period": float,  (paid at the MINT; reported,
+                                                  never Trust expenditure)
           "trend":                str,   ("GROWING", "STABLE", "DECLINING", "INSOLVENT")
           "years_to_insolvency":  float | None,  (extrapolated; None if solvent)
           "solvency_floor":       float,
@@ -1639,7 +1654,12 @@ def trust_solvency_trajectory(
             epsilon=epsilon,
             available_teh=initial_trust_balance,
         )
-        stewardship_cost_per_period = stew_result["teh_allocated"]
+        # REQUIRED, not allocated — the FOURTH site of the 2026-09-16 cap fix,
+        # and the one most likely to mislead: this figure is computed ONCE from
+        # the OPENING balance and then reported for every period of the
+        # trajectory, so a collective that starts poor would have understated
+        # its stewardship wage bill for the whole run.
+        stewardship_cost_per_period = stew_result["teh_required"]
 
     if guarantee_cost_per_period is None:
         guar_result = sufficiency_guarantee(population=population, epsilon=epsilon)
@@ -1724,6 +1744,13 @@ def trust_solvency_trajectory(
         "min_balance":         min_balance,
         "total_levy_inflow":   total_levy_inflow,
         "total_expenditure":   total_expenditure,
+        # SURFACED 2026-09-16. This was computed, passed to trust_management as
+        # `stewardship_cost`, and then discarded — so the cap defect fixed above
+        # was LATENT here rather than misreported, and no test could see it
+        # either way. A figure the function computes and hides is how this class
+        # of defect survives; returning it makes it pinnable. Paid at the mint:
+        # reported, never Trust expenditure.
+        "stewardship_cost_per_period": stewardship_cost_per_period,
         "trend":               trend,
         "years_to_insolvency": years_to_insolvency,
         "solvency_floor":      solvency_floor,
@@ -1899,7 +1926,9 @@ def min_levy_for_solvency(
             epsilon=epsilon,
             available_teh=trust_balance,
         )
-        stewardship_teh = stew["teh_allocated"]
+        # REQUIRED, not allocated: reported as `stewardship_cost`, paid at the
+        # mint, and never capped by a Trust balance that does not fund it.
+        stewardship_teh = stew["teh_required"]
 
     if guarantee_teh is None:
         guar = sufficiency_guarantee(population=population, epsilon=epsilon)

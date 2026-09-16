@@ -280,7 +280,7 @@ class TestFiscalHealthCheck:
         )
         assert result["trust_status"] in ("GREEN", "RED")
         assert result["pp_status"] in ("GREEN", "YELLOW", "RED")
-        assert result["levy_status"] in ("GREEN", "YELLOW")
+        assert result["levy_status"] in ("GREEN", "YELLOW", "RED")
 
 
 # ===========================================================================
@@ -319,6 +319,78 @@ class TestFiscalHealthCheckNewParams:
                                  eco_eoh_override=obligation)
         assert result["ecological_cost"] > 0.0
 
+    def test_levy_pillar_reaches_all_three_verdicts(self):
+        """THE THRESHOLD THAT COULD NOT FIRE, REPLACED BY AN IDENTITY (2026-09-16).
+
+        `LEVY_SUFFICIENCY_WARN` warned below 2% guarantee coverage while the
+        shipped levy delivered ≈2% — calibrated to the value it watched, so
+        GREEN was the only reachable verdict (failure mode 9). Raising the levy
+        to 4.5% moved the configuration further above it without making it
+        bite; at the shipped default the levy now covers 1.61x the guarantee.
+
+        The replacement asks whether current flow carries the obligation, which
+        has no threshold to calibrate. Failure mode 12 says a gate that has
+        never fired is untested, so each verdict is reached here by measurement,
+        not assumed: GREEN at the shipped default, YELLOW while inflows fall
+        short and principal covers the rest, RED when balance and inflows
+        together cannot pay the guarantee at all.
+        """
+        def at(**kw):
+            a = dict(trust_balance=TRUST_BASE_TEH, labor_income=5_000_000_000.0,
+                     capital_stock_teh=CAPITAL_STOCK_DEFAULT, capital_age_ratio=0.30,
+                     population=1_000_000.0, floor_teh=MEANINGFUL_ACTIVITY_TEH_BASE,
+                     epsilon=0.40)
+            a.update(kw)
+            return fiscal_health_check(**a)
+
+        shipped = at()
+        assert shipped["levy_status"] == "GREEN"
+        assert shipped["levy_to_guarantee_ratio"] > 1.0
+
+        # Inflows short of the guarantee: the balance pays the difference, so
+        # the Trust is solvent this period and shrinking.
+        drawing = at(labor_income=1_000_000_000.0)
+        assert drawing["levy_status"] == "YELLOW"
+        assert drawing["levy_to_guarantee_ratio"] < 1.0
+
+        # Neither the balance nor the inflows can cover it.
+        unfunded = at(trust_balance=1.0e5, labor_income=1.0e7)
+        assert unfunded["levy_status"] == "RED"
+
+    def test_ecological_cost_does_not_move_with_the_trust_balance(self):
+        """Third site of the 2026-09-16 cap fix, and it had no pin either.
+
+        `ecological_cost` reported `teh_allocated`, which is `min(required,
+        trust_balance)` — so the figure was bounded by the balance it was then
+        compared against for `ecological_status`, half a tautology (failure
+        mode 2). The mint pays this labour; the requirement is physical and
+        does not shrink because the Trust is empty.
+        """
+        from hours_eoh.core.eoh_generation import ecological_eoh
+        obligation = ecological_eoh(0.70, 0.40, health_response="domain",
+                                    standing_response="domain")
+        # NOT via _base_call: it passes trust_balance itself, and this test
+        # exists precisely to vary that argument.
+        def at(balance):
+            return fiscal_health_check(
+                trust_balance=balance,
+                labor_income=5_000_000_000.0,
+                capital_stock_teh=CAPITAL_STOCK_DEFAULT,
+                capital_age_ratio=0.30,
+                population=1_000_000.0,
+                floor_teh=MEANINGFUL_ACTIVITY_TEH_BASE,
+                epsilon=0.40,
+                ecosystem_health=0.70,
+                eco_eoh_override=obligation,
+            )
+        # The starved balance must sit BELOW the requirement or the cap never
+        # binds and the case tests nothing: the requirement here is 8.556e5,
+        # so 1.0e6 would have passed under the old code too.
+        starved = 1.0e5
+        rich, broke = at(3.5e10), at(starved)
+        assert broke["ecological_cost"] == pytest.approx(rich["ecological_cost"], rel=1e-12)
+        assert broke["ecological_cost"] > starved
+
     def test_ecological_cost_is_zero_by_default_under_the_partition(self):
         """The adopted behaviour, pinned so the zero is deliberate not silent."""
         assert self._base_call(ecosystem_health=0.70)["ecological_cost"] == 0.0
@@ -352,23 +424,44 @@ class TestFiscalHealthCheckNewParams:
 
 class TestSystemDashboard:
 
-    def test_green_at_eps0_normal_operation(self):
-        """Dashboard must show GREEN at ε=0 under normal operating conditions."""
-        kwargs = _normal_dashboard_kwargs(0.0)
-        result = system_dashboard(**kwargs)
-        assert result["overall_status"] == "GREEN", (
-            f"Expected GREEN at ε=0; got {result['overall_status']}. "
-            f"Red flags: {result['red_flags']}"
-        )
+    def test_normal_operation_at_eps0_draws_principal_and_says_so(self):
+        """RESTATED 2026-09-16 — this asserted GREEN, and GREEN was an artefact.
 
-    def test_green_at_eps40_normal_operation(self):
-        """Dashboard must show GREEN at ε=0.40 under normal conditions."""
-        kwargs = _normal_dashboard_kwargs(0.40)
-        result = system_dashboard(**kwargs)
-        assert result["overall_status"] == "GREEN", (
-            f"Expected GREEN at ε=0.40; got {result['overall_status']}. "
-            f"Red flags: {result['red_flags']}"
-        )
+        `LEVY_SUFFICIENCY_WARN` warned below 2% guarantee coverage. This
+        configuration delivers **44.81%** at ε=0 — twenty-two times the
+        threshold — so the pillar reported GREEN while the Trust paid more than
+        half the guarantee out of principal. The threshold is retired and the
+        pillar now asks whether inflows carry the obligation; they do not here,
+        and the dashboard says YELLOW.
+
+        Nothing about the modelled economy changed. What changed is that the
+        indicator can now express the state it is in, so this test pins the
+        MEASURED verdict rather than the one the threshold made inevitable.
+        No condition fails and nothing is RED — the arc is intact.
+        """
+        result = system_dashboard(**_normal_dashboard_kwargs(0.0))
+        assert result["conditions_all_pass"] is True
+        assert result["red_flags"] == []
+        assert result["fiscal_health"]["levy_to_guarantee_ratio"] == pytest.approx(
+            0.4481, abs=1e-3)
+        assert result["fiscal_health"]["levy_status"] == "YELLOW"
+        assert result["overall_status"] == "YELLOW"
+        assert "Fiscal — levy_sufficiency: YELLOW" in result["yellow_flags"]
+
+    def test_normal_operation_at_eps40_draws_principal_and_says_so(self):
+        """The ε=0.40 half of the pair above; coverage is 46.72% here.
+
+        Both ends of the arc are pinned because a single ε is the trap failure
+        mode 3 names: a pillar that reports one verdict at 0.40 and another at
+        0 would look correct from either point alone.
+        """
+        result = system_dashboard(**_normal_dashboard_kwargs(0.40))
+        assert result["conditions_all_pass"] is True
+        assert result["red_flags"] == []
+        assert result["fiscal_health"]["levy_to_guarantee_ratio"] == pytest.approx(
+            0.4672, abs=1e-3)
+        assert result["fiscal_health"]["levy_status"] == "YELLOW"
+        assert result["overall_status"] == "YELLOW"
 
     def test_no_red_flags_at_eps90_normal_operation(self):
         # At high ε: TEH creation shrinks → levy-to-guarantee ratio drops below 2%

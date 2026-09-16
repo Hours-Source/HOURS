@@ -590,8 +590,39 @@ class TestTrustSolvencyTrajectory:
         )
         for key in ("periods", "solvent_throughout", "first_insolvency",
                     "final_balance", "min_balance", "total_levy_inflow",
-                    "total_expenditure", "trend"):
+                    "total_expenditure", "stewardship_cost_per_period", "trend"):
             assert key in result
+
+    def test_stewardship_cost_does_not_move_with_the_opening_balance(self):
+        """THE FOURTH AND LATENT SITE OF THE CAP (fixed and surfaced 2026-09-16).
+
+        This function sized `stewardship_cost_per_period` from
+        `stewardship_allocation(available_teh=initial_trust_balance)` and read
+        the ALLOCATED figure — capped by the OPENING balance and then held for
+        every period of the run, so a collective that starts poor would
+        understate its stewardship wage bill for the whole trajectory.
+
+        It was latent rather than misreported: the value went into
+        `trust_management` as `stewardship_cost`, which under the wage doctrine
+        enters no Trust figure, and the trajectory returned none of it. It is
+        surfaced now, because a quantity the function computes and hides is one
+        no test can pin.
+
+        The requirement at these defaults is 1.078067e8, so a 1.0e6 opening
+        balance sits well below it and the old cap genuinely binds here.
+        """
+        rich  = trust_solvency_trajectory(initial_trust_balance=3.5e10, n_periods=3)
+        broke = trust_solvency_trajectory(initial_trust_balance=1.0e6, n_periods=3)
+        assert broke["stewardship_cost_per_period"] == pytest.approx(
+            rich["stewardship_cost_per_period"], rel=1e-12)
+        assert broke["stewardship_cost_per_period"] == pytest.approx(1.078067e8, rel=1e-4)
+        # Larger than the balance that used to cap it, which is the whole point.
+        assert broke["stewardship_cost_per_period"] > 1.0e6
+        # An explicitly supplied cost is still honoured untouched.
+        supplied = trust_solvency_trajectory(
+            initial_trust_balance=1.0e6, n_periods=3,
+            stewardship_cost_per_period=42_000_000.0)
+        assert supplied["stewardship_cost_per_period"] == pytest.approx(42_000_000.0)
 
     def test_period_count_matches_n_periods(self):
         result = trust_solvency_trajectory(
@@ -972,6 +1003,23 @@ class TestMinLevyForSolvency:
         assert result["cover_expenditures"] <= result["stable_trust"] + 1e-9
         assert result["targets_collapsed"] is True
 
+    def test_stewardship_cost_does_not_move_with_the_trust_balance(self):
+        """Same cap, same fix as fiscal_snapshot (2026-09-16), and this site
+        had no pin at all — the suite stayed green through the change, which
+        is failure mode 1: nobody was testing the quantity.
+
+        `stewardship_cost` is REPORTED here and paid at the mint; it is not in
+        `total_expenditure`. Sizing it by what the Trust happens to hold made a
+        poor collective look like it owed less stewardship labour than a rich
+        one with identical capital.
+        """
+        rich  = self._run(trust_balance=3.5e10)
+        broke = self._run(trust_balance=1.0e6)
+        assert broke["stewardship_cost"] == pytest.approx(
+            rich["stewardship_cost"], rel=1e-12)
+        # And it is genuinely larger than the balance that used to cap it.
+        assert broke["stewardship_cost"] > broke["trust_balance"]
+
     def test_full_solvency_geq_stable_trust(self):
         result = self._run()
         assert result["full_solvency"] >= result["stable_trust"] - 1e-9
@@ -1134,13 +1182,45 @@ class TestFiscalSnapshotEcological:
         Under the wage doctrine both stay visible as `paid_by_mint` and the
         Trust owes the guarantee alone."""
         result = self._snap()
-        stew_alloc = result["stewardship"]["teh_allocated"]
-        eco_alloc  = result["ecological"]["teh_allocated"]
-        trust_exp  = result["trust"]["total_expenditure"]
-        guarantee  = result["guarantee"]["total_cost_teh"]
-        assert stew_alloc > 0.0
+        # REQUIRED, not allocated. This assertion read `teh_allocated` until
+        # 2026-09-16 and passed — but only because TRUST_BASE_TEH is large
+        # enough that allocated == required here. The two keys coincide at this
+        # one balance, so the test could not see the cap; the starved-Trust
+        # case below is what distinguishes them.
+        stew_req  = result["stewardship"]["teh_required"]
+        eco_req   = result["ecological"]["teh_required"]
+        trust_exp = result["trust"]["total_expenditure"]
+        guarantee = result["guarantee"]["total_cost_teh"]
+        assert stew_req > 0.0
         assert trust_exp == pytest.approx(guarantee, rel=1e-12)
-        assert result["paid_by_mint"] == pytest.approx(stew_alloc + eco_alloc, rel=1e-12)
+        assert result["paid_by_mint"] == pytest.approx(stew_req + eco_req, rel=1e-12)
+
+    def test_a_starved_trust_does_not_shrink_what_the_mint_paid(self):
+        """THE CAP THAT SURVIVED THE WAGE DOCTRINE (fixed 2026-09-16).
+
+        `stewardship_allocation` caps its allocation at the Trust balance —
+        correct while the Trust funded stewardship, meaningless once the mint
+        does. `fiscal_snapshot` kept passing the ALLOCATED figure, so a Trust
+        with nothing in it reported a wage bill of whatever it happened to
+        hold: at trust_balance=1e6 the requirement is 1.4374e8 and
+        `paid_by_mint` read 1.0e6, understating the hours the mint paid by
+        99.3%. Failure mode 10 — the reported value was not the applied one.
+
+        The mint pays registered hours actually worked. No Trust balance
+        bounds that, so `paid_by_mint` must not move with one.
+        """
+        rich   = self._snap(trust_balance=3.5e10)
+        broke  = self._snap(trust_balance=1.0e6)
+        # The requirement is a physical quantity: same capital, same ε, same
+        # population, so it is identical in both runs.
+        assert broke["stewardship"]["teh_required"] == pytest.approx(
+            rich["stewardship"]["teh_required"], rel=1e-12)
+        # The ALLOCATION does differ — the vestigial Trust-funding question
+        # still has its old answer, which is what made the bug invisible.
+        assert broke["stewardship"]["teh_allocated"] < rich["stewardship"]["teh_allocated"]
+        # What the mint paid does NOT.
+        assert broke["paid_by_mint"] == pytest.approx(rich["paid_by_mint"], rel=1e-12)
+        assert broke["paid_by_mint"] > broke["trust"]["trust_start"]
 
     def test_degraded_ecosystem_moves_the_mint_requirement_not_solvency(self):
         """

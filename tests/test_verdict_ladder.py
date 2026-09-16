@@ -90,6 +90,17 @@ class TestTheCensusCannotDriftSilently:
         history: 342 = 31/89/222 at adoption (2026-09-11)
                  343 = 31/90/222 after REGISTER_CADENCE (2026-09-11)
                  346 = 31/93/222 after the three water constants (2026-09-11)
+                 345 = 31/93/221 after LEVY_SUFFICIENCY_WARN was RETIRED
+                       (2026-09-16)
+
+        **The 2026-09-16 move is the first DOWNWARD one, and it is the good
+        direction for a reason worth stating.** POSSIBLE fell because a
+        constant left `data.py` entirely: the levy-sufficiency threshold was
+        calibrated to the value it watched, so the pillar it drove could only
+        ever report GREEN. It was replaced by an identity — do inflows cover
+        the guarantee — which needs no constant at all. The framework got no
+        more measured; it got one less thing to have to measure, which is the
+        only kind of count reduction this ratchet should ever see.
 
         **Note what the three water constants did to the SHARES**: INSTANCE rose
         and POSSIBLE did not move, because declaring a component resolves it
@@ -98,10 +109,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 346
+        assert c["total"] == 345
         assert c["counts"]["CERTAIN"] == 31
         assert c["counts"]["INSTANCE"] == 93
-        assert c["counts"]["POSSIBLE"] == 222
+        assert c["counts"]["POSSIBLE"] == 221
 
     def test_possible_is_still_the_largest_tier(self):
         """

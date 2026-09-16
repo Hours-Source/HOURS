@@ -4291,16 +4291,19 @@ PP_INDEX_WARN:             float = 1.05                            # YELLOW thre
 #   point that makes the threshold 1.0 at ε=0.
 # resolves_by: n/a — it inherits PP_INDEX_WARN's standing by construction.
 PP_INDEX_WARN_SLOPE:       float = (PP_INDEX_WARN - 1.0) / 0.40  # per-ε slope: threshold = 1 + slope×ε
-# tag: normative | units: fraction of the sufficiency guarantee covered by levy
-# note: set at 2%, and the shipped SUFF_LEVY_RATE covers ≈2% of the guarantee
-#   at canonical defaults — so this indicator is calibrated to sit just at the
-#   value it watches. It will not warn about the configuration it was drawn
-#   around.
-# decided_by: a charter decision on the minimum share of the guarantee that
-#   current labour should fund, rather than the Trust dividend. That is a real
-#   solvency question and deserves a threshold argued independently of the
-#   default.
-LEVY_SUFFICIENCY_WARN:     float = 0.02   # YELLOW if levy covers < 2% of guarantee
+# LEVY_SUFFICIENCY_WARN WAS RETIRED HERE ON 2026-09-16. It warned when the levy
+# covered less than 2% of the guarantee, and the shipped SUFF_LEVY_RATE
+# delivered ≈2% at canonical defaults — a threshold set at the value it watched,
+# so GREEN was the only verdict the shipped configuration could produce. It is
+# this repo's named example of failure mode 9, cited as such in CLAUDE.md,
+# record/theory.md and two scenario docstrings; those citations stand and now
+# describe something retired rather than something shipping.
+#
+# It is not re-pointed, because a second threshold would be a second account of
+# a question already answered: dashboard.fiscal_health_check's third pillar now
+# asks whether inflows cover the guarantee or the Trust is drawing principal —
+# the identity trust_end >= trust_start, which has no free parameter and so
+# cannot be calibrated to its own configuration.
 # tag: normative | units: fraction of care-registration saturation | family: CARE_ADMISSION_*
 # decided_by: a charter decision on how much care must be on the ledger
 #   before admission counts as working. The quantity watched resolves with

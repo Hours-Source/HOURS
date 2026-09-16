@@ -1342,10 +1342,16 @@ and `CAPITAL_MACHINE_PROFILES` (tiers set to bracket the mid-arc ε they are sup
 to produce). All four are the `_ECOLOGICAL_SPIKE_INTENSITY` pattern the 2026-08-05
 pass named; they were simply not looked at then.
 
-**`LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration.** It warns when
-the levy covers < 2% of the guarantee, and `SUFF_LEVY_RATE` covers ≈2% at canonical
-defaults. An indicator calibrated to the value it watches will not warn about the
-configuration it was drawn around.
+**`LEVY_SUFFICIENCY_WARN` could not fire on the shipped configuration, and was
+retired on 2026-09-16.** It warned when the levy covered < 2% of the guarantee, and
+`SUFF_LEVY_RATE` covered ≈2% at canonical defaults. An indicator calibrated to the
+value it watches will not warn about the configuration it was drawn around.
+
+It was **not re-pointed at a new threshold**, because a threshold is what made it
+unfalsifiable. The dashboard pillar it drove now asks whether inflows cover the
+guarantee or the Trust is drawing principal — the identity `trust_end >=
+trust_start`, which has no free parameter and therefore cannot be drawn around its
+own defaults. All three verdicts are reachable, and each is pinned.
 
 ---
 
@@ -1600,16 +1606,18 @@ says so.
 | `COMPOUNDING_CRIT` | 0.5 | fraction of original EOH added by compounding | normative | **decided by** the compounding rate at which ASSET_TYPES' power-law escalation outruns any feasible maintenance response — derivable from that table plus a labour-supply constraint, so this is a wiring debt rather than a data debt.<br>_no measurement settles this_ |
 | `PP_INDEX_WARN` | 1.05 | purchasing-power index (1.0 = parity) | normative<br>form: the threshold is ε-scaled, threshold = 1 + slope × ε, because purchasing power is expected to RISE across the arc — so a flat 1.05 would pass trivially at high ε. | **decided by** a charter decision on how much purchasing-power gain the arc is expected to deliver before the absence of it counts as a warning.<br>_no measurement settles this_ |
 | `PP_INDEX_WARN_SLOPE` | 0.125 | purchasing-power index per ε unit | derived<br>form: (PP_INDEX_WARN − 1.0) / 0.40 — the slope through the ε=0.40 reference point that makes the threshold 1.0 at ε=0. | n/a — it inherits PP_INDEX_WARN's standing by construction. |
-| `LEVY_SUFFICIENCY_WARN` | 0.02 | fraction of the sufficiency guarantee covered by levy | normative | **decided by** a charter decision on the minimum share of the guarantee that current labour should fund, rather than the Trust dividend. That is a real solvency question and deserves a threshold argued independently of the default.<br>_no measurement settles this_<br>set at 2%, and the shipped SUFF_LEVY_RATE covers ≈2% of the guarantee at canonical defaults — so this indicator is calibrated to sit just at the value it watches. It will not warn about the configuration it was drawn around. |
 | `CARE_ADMISSION_GREEN_FRAC` | 0.2 | fraction of care-registration saturation | normative | **decided by** a charter decision on how much care must be on the ledger before admission counts as working. The quantity watched resolves with CARE_SIGMOID_DEFAULTS; the thresholds are the framework's own bar.<br>_no measurement settles this_ |
 | `CARE_ADMISSION_YELLOW_FRAC` | 0.1 | fraction of care-registration saturation | normative | **decided by** a charter decision on how much care must be on the ledger before admission counts as working. The quantity watched resolves with CARE_SIGMOID_DEFAULTS; the thresholds are the framework's own bar.<br>_no measurement settles this_ |
 <!-- /provenance:table -->
 
-Two honest problems visible in the table above:
+Two honest problems this block has carried (the first no longer appears in the
+table above — the constant was retired on 2026-09-16 and the row went with it):
 
-- **`LEVY_SUFFICIENCY_WARN` is calibrated to the value it watches.** It warns when the
-  levy covers < 2% of the guarantee, and the shipped `SUFF_LEVY_RATE` covers ≈2% at
-  canonical defaults. It will not warn about the configuration it was drawn around.
+- **`LEVY_SUFFICIENCY_WARN` was calibrated to the value it watched, and is now
+  RETIRED (2026-09-16).** It warned when the levy covered < 2% of the guarantee, and
+  the shipped `SUFF_LEVY_RATE` covered ≈2% at canonical defaults, so it would not
+  warn about the configuration it was drawn around. Its pillar was replaced by an
+  identity rather than another threshold; see the note above.
 - **`REGISTRATION_WARN`/`_CRIT` are ε-invariant** while `total_registration_share(ε)`
   is low *by design* at low ε — so at subsistence the indicator reads RED for a state
   the framework considers correct.
