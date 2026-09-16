@@ -78,6 +78,7 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline, human_eoh_per_do
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
 from hours_eoh.core.fiscal import (
     aggregate_care_stipend_from_demographics,
+    assessed_levy_rate,
     stewardship_allocation,
     sufficiency_guarantee,
     trust_management,
@@ -103,6 +104,7 @@ __all__ = [
     "stationarity_arc",
     "stationary_bands",
     "drawdown",
+    "reserve_plan",
     "stationarity_report",
 ]
 
@@ -435,6 +437,110 @@ def drawdown(
     }
 
 
+def reserve_plan(
+    epsilon: float = 0.40,
+    *,
+    years_of_guarantee: float,
+    insure_at_epsilon: float = 0.99,
+    build_years: float = 25.0,
+    **kw: Any,
+) -> dict:
+    """
+    What a reserve of N years of guarantee costs, and whether the shipped levy
+    would ever build one. REPORTING ONLY.
+
+    THE RULE (author, 2026-09-16): hold the Trust's slack as a DECLARED reserve
+    with a ceiling — "N years of the guarantee, held against an arc that may
+    not advance" — rather than as the residue of a levy sized to the far end of
+    the arc. The levy itself is then assessed on the realized obligation
+    (`fiscal.assessed_levy_rate`), and the reserve is a second, named line.
+
+    N IS REQUIRED AND HAS NO DEFAULT. A shipped reserve level is a rationing
+    rule about how much the present owes the future, the same reason
+    `scenarios/frailty` ships no care default.
+
+    PEG N TO THE ε YOU ARE INSURING AGAINST, NOT TO TODAY. The guarantee at
+    ε=0.99 is ~35× the guarantee at subsistence, so "ten years of cover" sized
+    at the bottom buys almost nothing at the top. `insure_at_epsilon` is that
+    choice, declared.
+
+    THE FINDING THIS FUNCTION EXISTS TO SHOW: read as a reserve rule, the
+    shipped flat rate banks 17.8 years of guarantee per year at ε=0 and NONE at
+    ε=0.99 — it fills instantly where a reserve is least needed and cannot fill
+    at all where it is, because at the corner the rate IS the requirement.
+
+    Args:
+        epsilon: Where the collective is now — the reserve is paid from here.
+        years_of_guarantee: N. Required; must be > 0.
+        insure_at_epsilon: The ε whose guarantee N is counted in.
+        build_years: Over how many years the reserve is built.
+        **kw: Forwarded to `stationarity_at` (population, guarantee design,
+            need_fraction, guf_parcels, levy_rate, …).
+
+    Returns:
+        dict with `target_teh`, `increment_rate` (share of the mint),
+        `increment_per_capita`, `shipped_surplus`, `years_to_fill_at_shipped_rate`
+        (None when the shipped rate never fills it), `fills_at_shipped_rate`,
+        the `assessed` rate including the increment, and a verdict.
+
+    Raises:
+        ValueError: on a non-positive N or build horizon, or an ε out of range.
+    """
+    if years_of_guarantee <= 0.0:
+        raise ValueError(f"years_of_guarantee must be > 0, got {years_of_guarantee}")
+    if build_years <= 0.0:
+        raise ValueError(f"build_years must be > 0, got {build_years}")
+    if not 0.0 <= insure_at_epsilon <= 0.99:
+        raise ValueError(
+            f"insure_at_epsilon must be in [0.0, 0.99], got {insure_at_epsilon}")
+
+    population = float(kw.get("population", 1.0e6))
+    here = stationarity_at(epsilon, **kw)["teh"]
+    insured = stationarity_at(insure_at_epsilon, **kw)["teh"]
+
+    target = years_of_guarantee * insured["guarantee_owed"]
+    increment = target / (build_years * here["mint"]) if here["mint"] > 0.0 else float("inf")
+    # The shipped levy's surplus over what is owed here — what a flat rate
+    # banks per year, which is the quantity the reserve rule replaces.
+    surplus = here["levy"] + here["guf"] - here["guarantee_owed"]
+    fills = surplus > 0.0
+    assessed = assessed_levy_rate(
+        here["guarantee_owed"], here["mint"],
+        guf_revenue=here["guf"], reserve_increment=increment,
+    )
+    return {
+        "epsilon":                       epsilon,
+        "years_of_guarantee":            years_of_guarantee,
+        "insure_at_epsilon":             insure_at_epsilon,
+        "build_years":                   build_years,
+        "guarantee_here":                here["guarantee_owed"],
+        "guarantee_insured":             insured["guarantee_owed"],
+        "target_teh":                    target,
+        "mint":                          here["mint"],
+        "increment_rate":                increment,
+        "increment_per_capita":          increment * here["mint"] / population,
+        "shipped_surplus":               surplus,
+        "shipped_surplus_in_years_here": surplus / here["guarantee_owed"] if here["guarantee_owed"] > 0.0 else None,
+        "years_to_fill_at_shipped_rate": (target / surplus) if fills else None,
+        "fills_at_shipped_rate":         fills,
+        "assessed":                      assessed,
+        "reporting_only":                True,
+        "verdict": (
+            f"{years_of_guarantee:g} years of the ε={insure_at_epsilon:.2f} guarantee "
+            f"is {target:,.0f} TEH. Built over {build_years:g} years from ε={epsilon:.2f}, "
+            f"that is {increment * 100:.3f}% of the mint "
+            f"({increment * here['mint'] / population:,.3f} TEH per person per year) "
+            f"on top of a pay-as-you-go rate of "
+            f"{assessed['pay_as_you_go_rate'] * 100:.3f}%. "
+            + (f"The shipped flat levy banks it in "
+               f"{target / surplus:,.1f} years."
+               if fills else
+               "The shipped flat levy NEVER fills it here — at this ε the rate "
+               "is the requirement and there is no surplus.")
+        ),
+    }
+
+
 def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
     """The report. CLI: `eoh scenario run stationarity`."""
     here = stationarity_at(epsilon, **kw)
@@ -447,11 +553,21 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
         s = f"[{b['lower']:.2f}, {b['upper']:.2f}]"
         return s if b["contiguous"] else s + " (NOT contiguous)"
 
+    # What the ADOPTED rule would charge here (author, 2026-09-16): the levy
+    # assessed on the realized obligation. Reported alongside the shipped flat
+    # rate rather than replacing it as this report's default — the TEH side
+    # exists to test whether inflows cover the guarantee, and assessing the
+    # levy FROM the guarantee would make that verdict true by construction.
+    assessed = assessed_levy_rate(
+        here["teh"]["guarantee_owed"], here["teh"]["mint"],
+        guf_revenue=here["teh"]["guf"],
+    )
     return {
         "epsilon":  epsilon,
         "here":     here,
         "arc":      arc,
         "bands":    bands,
+        "assessed_levy": assessed,
         "verdict": (
             f"At ε={epsilon:.2f}, base={here['personal_base']:,.0f} h, guarantee="
             f"{here['teh']['guarantee_design']!r}: labour "

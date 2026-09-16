@@ -230,6 +230,92 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
         assert capped["guf"] / capped["mint"] < 0.5
 
 
+class TestTheReserveRuleAndTheAssessedLevy:
+    """The rule adopted 2026-09-16: assess the levy on the realized obligation,
+    and hold the slack as a DECLARED reserve with a ceiling."""
+
+    def test_the_assessed_rate_stands_still_by_construction_and_says_so(self):
+        from hours_eoh.core.fiscal import assessed_levy_rate
+        for eps in ARC:
+            r = stationarity_at(eps, need_fraction=0.05, guf_parcels=URBAN)["teh"]
+            a = assessed_levy_rate(r["guarantee_owed"], r["mint"], guf_revenue=r["guf"])
+            at = stationarity_at(eps, need_fraction=0.05, guf_parcels=URBAN,
+                                 levy_rate=a["rate"] + 1e-9)["teh"]
+            assert at["stationary"] is True
+            assert a["feasible"] is True
+
+    def test_a_reserve_increment_is_what_makes_the_trust_grow(self):
+        """Pay-as-you-go holds the balance still; only the declared increment
+        accumulates. BOTH BRANCHES of the rule are pinned, because the fee can
+        already over-cover: at ε=0.40 the uncapped urban fee is 2.51× the V1
+        guarantee, so the assessed rate is correctly ZERO there and equality
+        cannot hold — it holds where the levy is the only inflow."""
+        from hours_eoh.core.fiscal import assessed_levy_rate
+        # Branch 1: the levy is the only inflow, so the assessed rate lands
+        # exactly on what is owed.
+        n = stationarity_at(0.40, need_fraction=0.05)["teh"]
+        rate = assessed_levy_rate(n["guarantee_owed"], n["mint"])
+        still = stationarity_at(0.40, need_fraction=0.05, levy_rate=rate["rate"])["teh"]
+        assert still["inflow"] == pytest.approx(still["guarantee_owed"], rel=1e-9)
+        assert rate["covered_by_inflows"] is False
+        # ...and only a declared increment accumulates.
+        plus = assessed_levy_rate(n["guarantee_owed"], n["mint"], reserve_increment=0.01)
+        grows = stationarity_at(0.40, need_fraction=0.05, levy_rate=plus["rate"])["teh"]
+        assert grows["inflow"] > grows["guarantee_owed"]
+        # Branch 2: the other return paths already cover it, so nothing is owed
+        # of the levy at all.
+        r = stationarity_at(0.40, need_fraction=0.05, guf_parcels=URBAN)["teh"]
+        covered = assessed_levy_rate(r["guarantee_owed"], r["mint"], guf_revenue=r["guf"])
+        assert covered["covered_by_inflows"] is True
+        assert covered["pay_as_you_go_rate"] == 0.0
+        assert r["guf"] > 2.0 * r["guarantee_owed"]
+
+    def test_the_reserve_requires_its_own_size_and_refuses_nonsense(self):
+        with pytest.raises(TypeError):
+            mod.reserve_plan(0.40)            # N has no default, deliberately
+        with pytest.raises(ValueError):
+            mod.reserve_plan(0.40, years_of_guarantee=0.0)
+        with pytest.raises(ValueError):
+            mod.reserve_plan(0.40, years_of_guarantee=10.0, build_years=0.0)
+        with pytest.raises(ValueError):
+            mod.reserve_plan(0.40, years_of_guarantee=10.0, insure_at_epsilon=1.5)
+
+    def test_the_reserve_is_pegged_to_the_epsilon_it_insures_against(self):
+        """35x between the ends, so N sized at the bottom buys almost nothing
+        at the top — the choice is declared, not defaulted."""
+        at_top = mod.reserve_plan(0.0, years_of_guarantee=10.0, insure_at_epsilon=0.99,
+                                  need_fraction=0.05, guf_parcels=URBAN)
+        at_here = mod.reserve_plan(0.0, years_of_guarantee=10.0, insure_at_epsilon=0.0,
+                                   need_fraction=0.05, guf_parcels=URBAN)
+        assert at_top["target_teh"] > 30.0 * at_here["target_teh"]
+        assert at_top["increment_rate"] > at_here["increment_rate"]
+
+    def test_the_shipped_flat_rate_fills_instantly_at_the_bottom_and_never_at_the_top(self):
+        """THE FINDING, PINNED. A flat rate sized to the corner banks a reserve
+        where one is least needed and cannot bank one where it is."""
+        bottom = mod.reserve_plan(0.0, years_of_guarantee=5.0, need_fraction=0.05,
+                                  guf_parcels=URBAN, guf_cap="payable")
+        assert bottom["fills_at_shipped_rate"] is True
+        assert bottom["shipped_surplus_in_years_here"] > 10.0   # 17.81 measured
+        assert bottom["years_to_fill_at_shipped_rate"] < 10.0
+
+        # At the corner the flat rate IS the requirement. Without the fee there
+        # is no surplus at all; with it there is a sliver — 1,353 years to bank
+        # five years of cover, which is "never" in every sense but the sign.
+        top_no_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05)
+        assert top_no_fee["fills_at_shipped_rate"] is False
+        assert top_no_fee["years_to_fill_at_shipped_rate"] is None
+        assert "NEVER fills" in top_no_fee["verdict"]
+        top_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05,
+                                   guf_parcels=URBAN)
+        assert top_fee["years_to_fill_at_shipped_rate"] > 1000.0
+
+    def test_the_report_carries_the_assessed_rate_beside_the_shipped_one(self):
+        rep = stationarity_report(0.40, need_fraction=0.05, guf_parcels=URBAN)
+        assert rep["assessed_levy"]["pay_as_you_go_rate"] >= 0.0
+        assert rep["assessed_levy"]["reserve_increment"] == 0.0
+
+
 class TestBandsAndDrawdown:
 
     def test_bands_report_all_three_and_the_sides_end_differently(self):

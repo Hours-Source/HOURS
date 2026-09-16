@@ -1734,6 +1734,78 @@ def trust_solvency_trajectory(
 # Inverse solvency query
 # ---------------------------------------------------------------------------
 
+def assessed_levy_rate(
+    guarantee_owed: float,
+    mint: float,
+    *,
+    guf_revenue: float = 0.0,
+    estate_levy: float = 0.0,
+    reserve_increment: float = 0.0,
+) -> dict:
+    """
+    THE LEVY ASSESSED ON THE REALIZED OBLIGATION (author decision, 2026-09-16).
+
+    The rate that holds the Trust still, computed from what was actually owed
+    and what the other return paths actually brought in:
+
+        rate = max(0, (guarantee_owed − guf − estate) / mint) + reserve_increment
+
+    WHY THIS RATHER THAN A RATE INDEXED TO ε. Both track a rising requirement;
+    only one of them prices the score. ε is a physical observable the economy
+    produces, and it has no fiscal consequence today — index the levy to it and
+    every register acquires a reason to misreport the one number the whole
+    framework reads. Capture is already bounded in VOLUME and not in
+    DISTRIBUTION (`record/theory.md`), so it should not also be given a price.
+    This rule needs no ε: it reads quantities the register already produces.
+
+    WHY THE SHIPPED FLAT RATE IS NOT THIS. `SUFF_LEVY_RATE` (4.5%) is sized to
+    the ε=0.99 corner, so it over-collects everywhere else — 8.80× the
+    requirement at ε=0.60 — and banks 17.8 years of guarantee per year at
+    subsistence while banking none at all at the top, where a reserve would
+    actually be needed. That surplus is not a levy question: the fiscal layer
+    decides who HOLDS TEH, never how much exists, and it was measured on
+    2026-09-16 to reach neither capital formation nor ε.
+
+    `reserve_increment` is the deliberate second line — see
+    `scenarios/stationarity.reserve_plan`, which sizes it in years of the
+    guarantee at the ε being insured against. It is not defaulted here for the
+    same reason no care level is: a shipped reserve is a rationing rule.
+
+    Args:
+        guarantee_owed: What the Trust owes this period (TEH).
+        mint: TEH created this period — the levy base.
+        guf_revenue: Ground Use Fee inflow (TEH).
+        estate_levy: Estate-dissolution inflow (TEH).
+        reserve_increment: Extra rate, as a share of the mint, for a reserve.
+
+    Returns:
+        dict: {
+          "rate":               float,  (pay-as-you-go + reserve)
+          "pay_as_you_go_rate": float,  (the part that stands still)
+          "reserve_increment":  float,
+          "covered_by_inflows": bool,   (the other paths already cover it)
+          "feasible":           bool,   (rate ≤ 1.0 — the mint can carry it)
+        }
+
+    Raises:
+        ValueError: on a non-positive mint or a negative reserve increment.
+    """
+    if mint <= 0.0:
+        raise ValueError(f"mint must be > 0 to assess a rate on it, got {mint}")
+    if reserve_increment < 0.0:
+        raise ValueError(f"reserve_increment must be >= 0, got {reserve_increment}")
+    residual = guarantee_owed - guf_revenue - estate_levy
+    payg = max(0.0, residual) / mint
+    rate = payg + reserve_increment
+    return {
+        "rate":               rate,
+        "pay_as_you_go_rate": payg,
+        "reserve_increment":  reserve_increment,
+        "covered_by_inflows": residual <= 0.0,
+        "feasible":           rate <= 1.0,
+    }
+
+
 def min_levy_for_solvency(
     trust_balance: float,
     epsilon: float = 0.40,

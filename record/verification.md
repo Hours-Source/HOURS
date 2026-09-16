@@ -9,7 +9,7 @@ failure modes, loaded every session, because they do not belong to an area — t
 frame seam was found in six subsystems, the stranded parameter in four. This file
 is their **evidence**: the sessions in which each was found, with the numbers.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
+Migrated from `CLAUDE.md` 2026-09-03; entries verbatim.
 
 ---
 
@@ -17,14 +17,13 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 
 - **Twelve gates ship**, indexed in `CLAUDE.md` § Test file index under *"Gates —
   they check the repo, not a module"*. The `record/` split added
-  `tests/test_record_index.py` (34 tests — index staleness, cross-link
-  resolution, the live-surface budget, and the failure-mode citation form) and
-  widened the corpus in `tests/test_claims_register.py` to span `record/*.md`.
+  `tests/test_record_index.py` (34 tests) and widened the corpus in
+  `tests/test_claims_register.py` to span `record/*.md`.
 - **Two gates live OUTSIDE the repo, because what they check does.**
   `~/.claude/corpus/check.py` validates the portable corpus and that every
   `F-0NN` this file cites resolves; `~/.claude/corpus/check_memory.py` validates
-  that session-memory pointers reach real `record/` anchors, that commit shas
-  named there exist, and that no entry is filed in two stores. Neither can run
+  session-memory pointers, the commit shas they name, and that nothing is filed
+  in two stores. Neither can run
   in CI — memory and the corpus are not inside any repo — so they are manual and
   say so.
 - **Exactly ONE mint call site** across `core/`, `land/` and `scenarios/`,
@@ -38,12 +37,11 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **The wiring ratchet stands at 12** *(gated)* — parameters accepted, inert at
   every configuration tried, and never passed by name in the suite. The count may
   not rise, and each is declared with its reason.
-- **No constant in `data.py` is denominated in currency** *(gated)* — so the
-  monetised route is currency-free too, and the real distinction is CENSUS versus
-  VALUATION, not the presence of a price.
+- **No constant in `data.py` is denominated in currency** *(gated)* — the real
+  distinction is CENSUS versus VALUATION, not the presence of a price.
 - **Measured pin coverage (2026-08-27), and the two gaps compound**: 0 of 232
-  `data.py` scalars unpinned, **34 of 63 shadow constants** unpinned at the time
-  of the sweep. `data.py` is 100% tagged AND 100% pinned; outside it, 0% tagged
+  `data.py` scalars unpinned, **34 of 63 shadow constants** unpinned then.
+  `data.py` is 100% tagged AND 100% pinned; outside it, 0% tagged
   and 46% pinned. Later work took the shadow figure to 9 of 38, all nine
   deliberate.
 
@@ -53,6 +51,9 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 - **Dynamic stability / oscillation** *(gap)* (review §6) is unbuilt. `arc_stability`
   answers stationarity, **not** whether the coupled capital→automation→income→
   formation loop oscillates. Nothing tests for limit cycles.
+- **No channel from held TEH to formation** *(gap)* — levy and Trust balance
+  move capital, mint and ε not at all (measured 2026-09-16). *Settles by:* an
+  investment-demand channel. [fulfilment](fulfilment.md#guarantee-priced-in-hours).
 - **The claims register checks only some of the open items** *(gap)* — the
   predicate landed, the coverage did not. Counts are live, not restated. `OPEN_ITEM_PREDICATES` gives each item
   an observable whose DIRECTION its kind sets: a `gap` fails when its closure
