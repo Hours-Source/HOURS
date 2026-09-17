@@ -135,8 +135,10 @@ must travel together: they are all extensive, so pairing one jurisdiction's
 population with another's land silently rescales the ecological domain.
 `CAPITAL_STOCK_DEFAULT` and `TRUST_BASE_TEH` say "at the 1M reference
 population" in their own tag blocks and are per-frame quantities — running the
-US population against the unscaled default models 335M people holding the
-capital of 1M. `scenarios/frame.py` declares named frames and
+US population against an unscaled default would model 335M people holding the
+capital, and the Trust, of 1M. Since 2026-09-16/17 both RESOLVE against the
+population you pass: an unsupplied value travels with your frame, and a value
+you supply is used exactly as given. `scenarios/frame.py` declares named frames and
 `eoh scenario run frame` shows what an undeclared pairing costs.
 
 **Converting capital stock to TEH**: if you have capital stock in dollars, divide by
@@ -185,10 +187,15 @@ provenance CSV on `tag == instance` for the complete list**; the ones below are
 grouped by what they describe, and the list grows as the framework learns to
 ask rather than assume.
 
-- **`TRUST_BASE_TEH`** — the most-consumed constant in the repo. Sized
-  *backwards*: chosen so the dividend covers the obligations it must fund.
-  Supply your Trust's real balance. Every fiscal function takes `trust_balance`
-  as an argument, so you need not edit the constant — pass your own.
+- **`TRUST_BASE_TEH`** — the shipped INHERITANCE: what a collective converting
+  from a previous system brings. It was sized *backwards* (chosen so the
+  dividend covered the obligations it funded), and **that rationale was
+  withdrawn by the author on 2026-09-16 and the number deliberately not
+  re-fitted** — so it is a SCENARIO, not a derivation. A civilisation starting
+  from subsistence brings 0.0, and 0.0 is honoured as zero. Supply your Trust's
+  real balance. Every fiscal function takes `trust_balance` as an argument, so
+  you need not edit the constant — pass your own, and an unsupplied one resolves
+  against your population.
 - **`CAPITAL_STOCK_DEFAULT`** — your gross fixed capital stock in TEH, and it is
   the stock you hold NOW: since 2026-09-09 a supplied stock is used exactly as
   given and is never rescaled by ε. The shipped value is stated **at the 1M
@@ -615,7 +622,8 @@ print(f"Exit financeable:  {exit_fin['exit_financeable']}  "
 
 **`fiscal_snapshot()["solvent"] = False`**
 The Trust cannot fund the guarantee from dividend + levy + GUF. Stewardship,
-ecological and care labour are paid at the mint and are not Trust expenditure. Action: increase `TRUST_BASE_TEH` (build reserves), raise
+ecological and care labour are paid at the mint and are not Trust expenditure. Action: pass a larger `trust_balance`
+(build reserves — not by editing the constant), raise
 `SUFF_LEVY_RATE`, or reduce `DEP_RATE` / `DIV_RATE`. Run `eoh sensitivity` to
 find the minimum trust balance for solvency at your ε.
 
@@ -718,7 +726,8 @@ What the model **cannot** tell you:
   so aggregate GUF matches levy revenue at mid-arc), `DEFAULT_SEGMENTS` (means
   set so the weighted mean lands on a chosen point in the band — and it is the live default
   in `core/multipliers.py`, so any call omitting `segments` inherits it),
-  `TRUST_BASE_TEH` (sized to cover the obligations it funds), and
+  `TRUST_BASE_TEH` (sized to cover the obligations it funded — **that target
+  was withdrawn 2026-09-16 and the value was not re-fitted**), and
   `CAPITAL_MACHINE_PROFILES` (tiers set to bracket the ε they are meant to
   produce). A result that depends on one of these is not independent evidence
   for it.

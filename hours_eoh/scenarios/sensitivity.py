@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import Callable
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     SUFF_LEVY_RATE,
     DEP_RATE,
     DIV_RATE,
@@ -31,6 +30,7 @@ from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.eoh_generation import (  # noqa: F401
     epsilon_delta_sensitivity, resolve_capital_stock,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 def fiscal_parameter_sweep(
@@ -38,7 +38,7 @@ def fiscal_parameter_sweep(
     values: list[float],
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     labor_income: float = 2_200_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
@@ -83,6 +83,7 @@ def fiscal_parameter_sweep(
     Raises:
         ValueError: If parameter is not one of the supported names.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)

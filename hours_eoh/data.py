@@ -3350,10 +3350,25 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   what a collective converting from a previous system brings — and a
 #   civilisation starting from subsistence has 0.0, which is what
 #   `scenarios/stationarity` defaults `trust_start` to. 35e9 is a SCENARIO,
-#   not a derivation. It is the most-consumed constant in the repo (77 call
-#   sites outside data.py), so every canonical solvency result rests on it and
+#   not a derivation. It WAS the most-consumed constant in the repo (77 call
+#   sites outside data.py); the 2026-09-17 frame repair moved consumers onto
+#   core.fiscal.resolve_trust_balance(), leaving 4 code sites outside data.py
+#   (56 more in tests). Every canonical solvency result still rests on it and
 #   none of them is evidence about YOUR fisc — pass your own.
-TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); sized for EOH-reimbursement guarantee
+# note: THE FRAME IS RESOLVED, NOT ASSUMED (2026-09-17). Consumers take
+#   `trust_balance: float | None = None` and resolve an unsupplied balance
+#   against THEIR OWN population via core.fiscal.resolve_trust_balance(), so
+#   the inheritance travels with the frame and per-capita Trust is what stays
+#   fixed. A SUPPLIED balance is the ACTUAL balance and is never rescaled; 0.0
+#   means "this collective has no inheritance" and is honoured as zero. Two
+#   sites keep an explicit default because they have NO population in scope and
+#   so nothing to resolve against — research/contestability.min_levy_for_pi and
+#   scenarios/shocks.demographic_shock — and both DECLARE that in their
+#   docstrings. Before the repair, ten CLI flags defaulted --trust-balance to
+#   this constant while --population sat beside them freely settable, so
+#   `--population 335000000` ran 335M people on a 1M-person Trust.
+#   Gated by tests/test_trust_scale_resolution.py.
+TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); the shipped INHERITANCE — sizing rationale withdrawn 2026-09-16
 # tag: bounded | units: fraction of Trust per year
 # band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
 #   derived in this file from CAPITAL_MACHINE_PROFILES design lives (≈20 yr →

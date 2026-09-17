@@ -31,13 +31,14 @@ from typing import Any
 from hours_eoh.data import (
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
-    TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
+    CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
     LABOR_INCOME_MIN_TEH, WORKFORCE_FRACTION_MIN,
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
     MEAN_MULTIPLIER_REFERENCE, M_FLOOR,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ def make_economy_state(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
     workforce_fraction: float = 0.60,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     labor_income_teh: float = 5_000_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
@@ -77,7 +78,10 @@ def make_economy_state(
         epsilon: Current automation level [0.0, 0.99].
         population: Total population (all ages).
         workforce_fraction: Fraction of population in active workforce [0, 1].
-        trust_balance: Trust fund balance at start of this period (TEH).
+        trust_balance: Trust fund balance at start of this period (TEH). None
+            (the default) resolves the 1M-reference inheritance to THIS
+            population — see `fiscal.resolve_trust_balance`. A supplied balance
+            is the collective's actual Trust and is never rescaled.
         labor_income_teh: Recorded labor income from the last completed period (TEH).
                           Written for observability; simulate_period() derives income
                           from the EOH pipeline (teh_created), not from this field.
@@ -128,14 +132,20 @@ def make_economy_state(
     # a supplied size is no longer rescaled by the pipeline.
     _knowledge    = _cps(epsilon)["knowledge_base_size"] if knowledge_complexity is None else knowledge_complexity
     _cap_embodied = _capital if capital_embodied_teh is None else capital_embodied_teh
-    _endowment    = (trust_balance + _cap_embodied) if teh_endowment is None else teh_endowment
+    # THE FRAME (2026-09-17). An unspecified balance is the 1M-reference
+    # inheritance scaled to THIS population; a supplied one is the collective's
+    # actual Trust and is never rescaled. Resolved BEFORE the endowment, which
+    # derives from it — otherwise the endowment would keep the reference frame
+    # while the balance moved, and the two would disagree inside one state.
+    _trust        = resolve_trust_balance(trust_balance, population)
+    _endowment    = (_trust + _cap_embodied) if teh_endowment is None else teh_endowment
     _monitoring   = _cps(epsilon)["monitoring_capability"] if monitoring_capability is None else monitoring_capability
     return {
         "epsilon":                       epsilon,
         "population":                    population,
         "workforce_fraction":            workforce_fraction,
         "workforce_size":                population * workforce_fraction,
-        "trust_balance":                 trust_balance,
+        "trust_balance":                 _trust,
         "labor_income_teh":              labor_income_teh,
         "capital_stock_teh":             _capital,
         "capital_age_ratio":             capital_age_ratio,

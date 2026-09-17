@@ -16,7 +16,6 @@ from typing import Any
 from hours_eoh.data import (
     AGE_GROUPS,
     ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA, SKILL_TRANSMISSION_RATE,
-    TRUST_BASE_TEH,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CAPITAL_STOCK_DEFAULT,
 )
@@ -34,6 +33,7 @@ from hours_eoh.core.registration import (
 )
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
 from hours_eoh.core.fiscal import fiscal_snapshot
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 def epsilon_sweep(
@@ -43,7 +43,7 @@ def epsilon_sweep(
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
     knowledge_base_size: float | None = None,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     floor_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     jump_threshold: float = 5.0,
 ) -> dict:
@@ -77,6 +77,7 @@ def epsilon_sweep(
           "status":                 "OK" or "ISSUES_FOUND",
         }
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     age_distribution = {
         group: AGE_GROUPS[group]["fraction"] * population
         for group in AGE_GROUPS

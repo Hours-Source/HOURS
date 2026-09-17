@@ -354,16 +354,23 @@ someone remembering it, which is what this section is for.
 6. **THE FRAME SEAM** *(corpus F-002, F-005, F-030)* — a quantity that must travel with the population/land
    frame and does not. Seven instances, including `CAPITAL_STOCK_DEFAULT` and
    `TRUST_BASE_TEH`, both declared "at the 1M reference population" and consumed
-   by callers that moved the population without moving them. *The tell:* grep the
+   by callers that moved the population without moving them — **both are now
+   CLOSED (2026-09-16, 2026-09-17), each with its own gate.** *The tell:* grep the
    `units:` field for a stated frame, not the name. *Do:* state the frame; a
    frame-invariant share is the check that it is stated.
    **`CAPITAL_STOCK_DEFAULT`'s instance was CLOSED 2026-09-16** — 24 call sites
    wired, and at the documented entry point per-capita output had run
    913.65 / 339.64 / 282.23 TEH at populations 1e5 / 1e6 / 1e7 for identical
-   capital intensity. **`TRUST_BASE_TEH`'s is still open**, same declaration and
-   the same shape of repair available.
-   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain) and
-   `tests/test_capital_scale_resolution.py` (capital chain)
+   capital intensity. **`TRUST_BASE_TEH`'s was CLOSED 2026-09-17** — 26 sites,
+   of which four were invisible to a scan keyed on the parameter NAME (a second
+   and third name, a dataclass FIELD, a `.get()` default), plus ten CLI flags
+   that defaulted the Trust to the 1M constant beside a settable `--population`:
+   at the US frame that ran 335M people on 104.48 TEH/capita against 35,000.
+   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain),
+   `tests/test_capital_scale_resolution.py` (capital chain) and
+   `tests/test_trust_scale_resolution.py` (the Trust) — the last keyed on the
+   QUANTITY rather than the parameter name, because name-keying hid four sites:
+   a second and third parameter name, a dataclass FIELD and a `.get()` default.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -512,8 +519,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,796 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-16). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
+**4,838 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-17). Provenance **345/345**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -607,13 +614,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**107 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
+**109 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 33 files the rule does not cover are all listed below, plus two that do
+The 35 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -634,6 +641,7 @@ are the ones worth knowing by name.
 | `test_parameter_wiring.py` | A parameter that is accepted, changes nothing at any configuration tried, and that no test passes by name. |
 | `test_ecological_scale_resolution.py` | Every caller entering the ecological scale chain with a population in scope states its frame. |
 | `test_capital_scale_resolution.py` | The same rule for the CAPITAL chain, wrappers included (`total_eoh`, `eoh_to_teh_pipeline`), plus the runtime half: per-capita output frame-invariant across the arc, a supplied stock never rescaled, and omitting population still reading the reference frame. **States its own gap:** crediting a supplied stock is static, so `capital_stock=None` passed beside a population would defeat it. |
+| `test_trust_scale_resolution.py` | The same rule for the TRUST chain, keyed on the QUANTITY not the parameter name: no parameter default, class field, `.get()` default or CLI flag may hold `TRUST_BASE_TEH` where a population is in scope. The two frameless sites are allowlisted, must DECLARE why, and the reason is re-checked rather than trusted. Verified by breaking it five ways. **States its own gap:** static and shallow — it cannot see a caller that multiplies the constant inline, nor one hard-coding 35_000_000_000.0. |
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |

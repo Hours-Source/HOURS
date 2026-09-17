@@ -56,6 +56,7 @@ from hours_eoh.data import (
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 __all__ = [
     "CollectiveFrame",
@@ -121,7 +122,7 @@ class CollectiveFrame:
     population:        float
     land_hectares:     float
     capital_stock_teh: float
-    trust_balance:     float = TRUST_BASE_TEH
+    trust_balance:     float | None = None
     capital_age_ratio: float = 0.50
     ecosystem_health:  float = 0.70
     label:             str = ""
@@ -133,8 +134,14 @@ class CollectiveFrame:
                     f"{name} must be > 0 — a frame with no {name} is not a "
                     f"jurisdiction, got {getattr(self, name)!r}"
                 )
-        if self.trust_balance < 0.0:
-            raise ValueError(f"trust_balance must be >= 0, got {self.trust_balance!r}")
+        # (e) 2026-09-17: the inheritance travels with the frame. An unsupplied
+        # balance resolves against THIS frame's population, never the 1M
+        # reference — the pairing this class exists to refuse. A supplied
+        # balance is the ACTUAL balance and is never rescaled.
+        _trust = resolve_trust_balance(self.trust_balance, self.population)
+        if _trust < 0.0:
+            raise ValueError(f"trust_balance must be >= 0, got {_trust!r}")
+        object.__setattr__(self, "trust_balance", _trust)
         for name in ("capital_age_ratio", "ecosystem_health"):
             v = getattr(self, name)
             if not 0.0 <= v <= 1.0:
@@ -679,7 +686,7 @@ def n1_accounting_anchor(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
     capital_stock_teh: float | None = None,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
 ) -> dict[str, Any]:
     """
@@ -700,6 +707,7 @@ def n1_accounting_anchor(
         dict with `teh_created_delta`, `pipeline_match`, `solvent_match`,
         `book_balances`, `money_supply_match`, and both sides' raw values.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: the anchor collective's capital is its ENDOWMENT, so an
     # unspecified one resolves with NO ε — the canonical base — exactly as
     # `coasean.simulate_federation` resolves the federation's. Resolving it

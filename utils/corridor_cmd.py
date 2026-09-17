@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 
-from hours_eoh.data import TRUST_BASE_TEH
 from hours_eoh.research.corridor import (
     contestability_axes,
     contestability_ceiling,
@@ -59,7 +58,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                            "survival — the floor is a survival floor). 'sufficiency' "
                            "reports the automation needed for a decent life, which is "
                            "a different and larger number")
-    band.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+    # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
+    # balance resolves against --population, so the inheritance travels with
+    # the frame. Supplying the flag states YOUR balance and it is used as given.
+    band.add_argument("--trust-balance", type=float, default=None,
                       dest="trust_balance",
                       help="Trust corpus — used by the superseded χ arm only")
     band.add_argument("--regime", choices=["increasing_returns", "replicable"],
@@ -87,7 +89,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     axes = sub2.add_parser(
         "axes", help="Both contestability axes side by side, and their disagreement")
     axes.add_argument("--population", type=float, default=1_000_000.0)
-    axes.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+    axes.add_argument("--trust-balance", type=float, default=None,
                       dest="trust_balance")
     axes.add_argument("--regime", choices=["increasing_returns", "replicable"],
                       default="increasing_returns")

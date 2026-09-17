@@ -52,7 +52,6 @@ from hours_eoh.scenarios.guf_stress import automation_levy_guf_stress
 from hours_eoh.data import (
     GUF_WRITEDOWN_AMORTIZATION_YEARS,
     GUF_EOH_ACCUMULATION_THRESHOLD,
-    TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
 )
 
@@ -225,7 +224,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             dest="epsilon_end", metavar="ε")
     inv_stress.add_argument("--periods", type=int, default=20)
     inv_stress.add_argument("--population", type=float, default=1_000_000.0)
-    inv_stress.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+    # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
+    # balance resolves against --population, so the inheritance travels with
+    # the frame. Supplying the flag states YOUR balance and it is used as given.
+    inv_stress.add_argument("--trust-balance", type=float, default=None,
                             dest="trust_balance")
     inv_stress.add_argument("--median-income", type=float, default=0.0,
                             dest="median_income")

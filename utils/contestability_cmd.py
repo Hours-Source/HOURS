@@ -89,7 +89,7 @@ from hours_eoh.research.formation import (
 )
 from hours_eoh.research.recalibration import recalibrated_arc
 from hours_eoh.data import (
-    TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
+    CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     FORMATION_FULL_SUPPLY_RATE, FORMATION_HURDLE_RATE_MIN,
@@ -122,7 +122,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     a.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
     a.add_argument("--population", type=float, default=1_000_000.0)
-    a.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+    # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
+    # balance resolves against --population, so the inheritance travels with
+    # the frame. Supplying the flag states YOUR balance and it is used as given.
+    a.add_argument("--trust-balance", type=float, default=None,
                    dest="trust_balance")
     a.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
                    dest="capital_stock")
@@ -138,7 +141,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     s.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
     s.add_argument("--population", type=float, default=1_000_000.0)
-    s.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH,
+    s.add_argument("--trust-balance", type=float, default=None,
                    dest="trust_balance")
     s.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
                    dest="capital_stock")
@@ -269,7 +272,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     dest="dividend_fraction",
                     help="Share of the pro-rata dividend actually distributed")
     au.add_argument("--epsilon", type=float, default=0.40)
-    au.add_argument("--collective-trust", type=float, default=TRUST_BASE_TEH,
+    au.add_argument("--collective-trust", type=float, default=None,
                     dest="collective_trust")
     au.add_argument("--collective-population", type=float, default=1_000_000.0,
                     dest="collective_population")

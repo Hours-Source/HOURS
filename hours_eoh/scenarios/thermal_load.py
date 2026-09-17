@@ -45,8 +45,9 @@ from typing import TypedDict
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 # Reference annual thermal obligation for a 1M-person collective at ε = 0.40,
 # from research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"] —
@@ -80,7 +81,7 @@ def thermal_load_arc(
     thermal_obligation: float = REFERENCE_THERMAL_FLOW_EOH,
     population: float = REFERENCE_POPULATION,
     arc: tuple[float, ...] = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99),
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock: float | None = None,
     ecosystem_health: float = 0.70,
 ) -> list[ThermalLoadRow]:
@@ -129,6 +130,7 @@ def thermal_load_arc(
         thermal_share_of_total     0.0011     (the ledger barely notices)
         personal_share_of_total    0.91
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     if thermal_obligation < 0.0:
         raise ValueError(
             f"thermal_obligation must be ≥ 0, got {thermal_obligation}"

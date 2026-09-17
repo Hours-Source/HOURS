@@ -64,6 +64,7 @@ from hours_eoh.data import (
     CONTESTABILITY_UNDERWRITE_FRACTION,
     TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 # Recompute locally — do not import the private constant from fiscal.py.
 _AGE_WEIGHTED_EOH_MEAN: float = sum(
@@ -78,7 +79,7 @@ _AGE_WEIGHTED_EOH_MEAN: float = sum(
 def portable_endowment(
     epsilon: float,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
 ) -> dict:
     """
     Population-average portable per-capita endowment P(ε).
@@ -109,12 +110,15 @@ def portable_endowment(
     Args:
         epsilon: Automation level [0.0, 0.99].
         population: Total population (default: 1M).
-        trust_balance: Trust fund balance in TEH (default: TRUST_BASE_TEH).
+        trust_balance: Trust fund balance in TEH. Default None →
+            resolved against `population`: the inheritance travels with
+            the frame, so a supplied balance is used exactly as given.
 
     Returns:
         dict with keys: p, guarantee_per_person, trust_dividend_per_capita,
         effective_personal_eoh_per_person, epsilon.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     if not 0.0 <= epsilon <= 0.99:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if population <= 0:
@@ -142,7 +146,7 @@ def portable_endowment_individual(
     vesting_years: float = CONTESTABILITY_VESTING_YEARS,
     savings: float = 0.0,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
 ) -> dict:
     """
     Individual portable endowment P_ind(ε) with tenure-based dividend vesting.
@@ -184,13 +188,16 @@ def portable_endowment_individual(
                        Default: CONTESTABILITY_VESTING_YEARS = 5.0.
         savings: Portable personal savings in TEH (≥ 0). Default 0.0.
         population: Total population (default: 1M).
-        trust_balance: Trust fund balance in TEH (default: TRUST_BASE_TEH).
+        trust_balance: Trust fund balance in TEH. Default None →
+            resolved against `population`: the inheritance travels with
+            the frame, so a supplied balance is used exactly as given.
 
     Returns:
         dict with keys: p_individual, vested_fraction, guarantee_per_person,
         trust_dividend_vested, trust_dividend_full, savings, tenure_years,
         epsilon.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     if tenure_years < 0.0:
         raise ValueError(f"tenure_years must be >= 0, got {tenure_years}")
     if vesting_years <= 0.0:
@@ -601,7 +608,7 @@ def commons_seed_required(
 def contestability_margin(
     epsilon: float,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     regime: str = "increasing_returns",
     k0: float = CONTESTABILITY_K0_TEH,
     k_slope: float = CONTESTABILITY_K_SLOPE,
@@ -646,6 +653,7 @@ def contestability_margin(
         status_marginal, passes, regime, epsilon, guarantee_per_person,
         trust_dividend_per_capita.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     p_result = portable_endowment(epsilon, population, trust_balance)
     p = p_result["p"]
     p_marginal = p_result["guarantee_per_person"]  # tenure=0: unvested dividend
@@ -929,9 +937,16 @@ def min_levy_for_pi(
     private capital stock. levy_as_fraction_of_automated_output > 1 means the
     required levy exceeds the entire automated output — correct behavior, not a bug.
 
+    FRAME: this function takes NO population, so trust_balance cannot
+    resolve against a frame. Its default is stated at the 1M reference
+    population and is the one place in the Trust chain where a caller
+    at another scale MUST pass a balance explicitly.
+
     CALIBRATION NOTE: τ = T/K ≈ 17.5 at canonical defaults is intentional
-    (see docs/parameter_provenance.md: TRUST_BASE_TEH is sized at 35,000
-    TEH/person to fund the guarantee; CAPITAL_STOCK_DEFAULT at 2,000
+    (see docs/parameter_provenance.md: TRUST_BASE_TEH STATES 35,000
+    TEH/person as a shipped INHERITANCE — its sizing rationale was
+    WITHDRAWN by the author 2026-09-16 and is deliberately not re-fitted;
+    CAPITAL_STOCK_DEFAULT at 2,000
     TEH/person). The Trust dwarfing private capital makes the g_Trust ≥ g_priv
     rate condition expensive in absolute TEH — a large T growing at 3% needs a
     large levy. But the binding constraint for exit is not τ's level; it is the
@@ -1036,14 +1051,15 @@ def trust_required_for_chi(
 
     Returns:
         dict with keys: trust_required, gap_vs_base (T_required −
-        TRUST_BASE_TEH; negative = current base suffices), dividend_required
+        the frame-resolved base; negative = current base suffices),
+        dividend_required
         (per-capita annual dividend needed), guarantee_per_person, k_entry,
         chi_target, epsilon.
     """
     if chi_target <= 0.0:
         raise ValueError(f"chi_target must be > 0, got {chi_target}")
 
-    p_result = portable_endowment(epsilon, population, TRUST_BASE_TEH)
+    p_result = portable_endowment(epsilon, population)
     s = p_result["guarantee_per_person"]
     k = entry_cost(epsilon, regime, k0, k_slope)
 
@@ -1052,7 +1068,7 @@ def trust_required_for_chi(
 
     return {
         "trust_required":       trust_required,
-        "gap_vs_base":          trust_required - TRUST_BASE_TEH,
+        "gap_vs_base":          trust_required - resolve_trust_balance(None, population),
         "dividend_required":    dividend_required,
         "guarantee_per_person": s,
         "k_entry":              k,
@@ -1099,7 +1115,7 @@ def levy_schedule_for_chi(
     population: float = 1_000_000.0,
     capital_stock: float | None = None,
     chi_target: float = CONTESTABILITY_CHI_CRIT,
-    trust_start: float = TRUST_BASE_TEH,
+    trust_start: float | None = None,
     levy_base: str = "capital_yield",
 ) -> list[dict]:
     """
@@ -1154,7 +1170,8 @@ def levy_schedule_for_chi(
             arc (static model; K(ε) dynamics are research/coasean.py Phase 3).
             Used only when levy_base="capital_yield".
         chi_target: Required contestability margin. Default: 1.0.
-        trust_start: Trust balance at ε=0. Default: TRUST_BASE_TEH.
+        trust_start: Trust balance at ε=0. Default None → resolved against
+            `population` (the inheritance travels with the frame).
         levy_base: "capital_yield" (default, §8.7-era static base) or
             "machine_output" (physically-consistent base, proposed §8.8 M3).
 
@@ -1166,6 +1183,7 @@ def levy_schedule_for_chi(
         chi_check is contestability_margin() recomputed at trust_target — it
         must satisfy chi ≥ chi_target at every row (asserted in tests).
     """
+    trust_start = resolve_trust_balance(trust_start, population)
     # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
     # capital_stock arg), so it resolves with no ε — the canonical base — and
     # this function's numbers are unchanged by the capital-path decision.
@@ -1226,7 +1244,7 @@ def chi_arc(
     n_points: int = 20,
     regime: str = "increasing_returns",
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock: float | None = None,
 ) -> list[dict]:
     """
@@ -1252,6 +1270,7 @@ def chi_arc(
             epsilon, p, k_entry, chi_population_avg, chi_marginal, phi, tau,
             levy_fraction, levy_feasible, status.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: K is HELD FIXED across this arc by contract (see the
     # capital_stock arg), so it resolves with no ε — the canonical base — and
     # this function's numbers are unchanged by the capital-path decision.

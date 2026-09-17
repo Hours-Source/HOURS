@@ -33,6 +33,7 @@ from hours_eoh.data import (
     CARE_AUTOMATION_FLOOR, SUFF_GUARANTEE_STRUCTURAL_MIN,
     PROVIDER_CAP_EQUIVALENTS, M_FLOOR,
     SUFF_NEED_FRACTION,
+    TRUST_BASE_TEH, REFERENCE_FRAME_POPULATION,
 )
 from hours_eoh.core.eoh_generation import (
     infrastructure_eoh, ecological_eoh, resolve_capital_stock,
@@ -59,6 +60,56 @@ from hours_eoh.core.registration import personal_eoh_registration_share
 #:               households directly, which is what subsistence IS.
 #:   "v2"        every on-ledger person, the charter option without a need term.
 GUARANTEE_DESIGNS: tuple[str, ...] = ("shipped", "v1", "v2")
+
+
+def resolve_trust_balance(
+    trust_balance: float | None,
+    population: float = REFERENCE_FRAME_POPULATION,
+) -> float:
+    """
+    Resolve the Trust balance, scaling an UNSPECIFIED one to the caller's frame.
+
+    **A SUPPLIED BALANCE IS THE ACTUAL BALANCE AND IS NEVER RESCALED** — the same
+    doctrine `resolve_capital_stock` follows. A caller who names a balance is
+    naming their Trust; scaling it would destroy their input. Only `None`
+    resolves.
+
+    THE FRAME (2026-09-17). `TRUST_BASE_TEH` is declared "at the 1M reference
+    population" and, until this resolver, every caller that moved the population
+    without moving it inherited a Trust sized for a million people. Measured on
+    `trust_depletion_stress` with the default balance:
+
+        population      trust floor per capita
+        1e5             350,037.40      (10x the intended 35,000)
+        1e6              35,007.39      (the reference frame)
+        1e7               3,507.39
+        3.35e8              111.87      (understated 335x)
+
+    THE DEFECT WAS DOCUMENTED AND STILL HAPPENED, which is why this is code and
+    not a note. `TRUST_BASE_TEH`'s own `supplied_by` field already told callers
+    "every fiscal function takes trust_balance as an argument … pass your own",
+    and `utils/scenario_cmd.py` even writes the rule out in full — "Capital and
+    Trust scale with it, because both are declared at the 1M reference
+    population" — then applies it by hand at ONE call site out of 89. A correct
+    rule, correctly written down, that eight callers in nine silently skip.
+
+    The inheritance is a PER-CAPITA quantity — what previous generations passed
+    on, per person — so it scales with population by construction. That is what
+    makes this a frame conversion rather than a policy choice.
+
+    units: TEH. ε-behaviour: none — an inheritance is a stock, not a trajectory.
+
+    Args:
+        trust_balance: The collective's actual balance, or None to resolve.
+        population: The frame. Defaults to the 1M reference, so an unwired
+            caller reads exactly what it read before.
+
+    Returns:
+        The balance in the caller's frame.
+    """
+    if trust_balance is not None:
+        return trust_balance
+    return TRUST_BASE_TEH * population / REFERENCE_FRAME_POPULATION
 
 
 # ---------------------------------------------------------------------------
@@ -1101,6 +1152,23 @@ def fiscal_snapshot(
         deferred_ecological = _resolved.get("deferred_ecological", deferred_ecological)
         capital_eoh_eliminated = _resolved.get(
             "capital_eoh_eliminated", capital_eoh_eliminated)
+
+    # THE ONE RESOLVABLE QUANTITY (2026-09-17). An unspecified Trust balance is
+    # derivable from a stated frame — the inheritance is per capita — so `None`
+    # resolves here rather than raising. The other five go on raising: that
+    # guard exists to stop a caller silently forgetting a required input, and it
+    # is only weakened for the value the framework can honestly supply.
+    #
+    # ORDER MATTERS. This sits AFTER the `state=` block, so a state-carried
+    # balance still wins, and it is gated on a stated population, so the frame
+    # it scales to is one the caller named rather than one assumed.
+    #
+    # ZERO IS NOT NONE, AND THAT IS THE POINT. "This collective has no
+    # inheritance" stays sayable: 0.0 is an explicit balance and is honoured
+    # untouched, which is the subsistence case `scenarios/stationarity` defaults
+    # `trust_start` to. Only "unspecified" resolves.
+    if trust_balance is None and population is not None:
+        trust_balance = resolve_trust_balance(None, population)
 
     # Written as an explicit disjunction rather than a computed list so the
     # type narrows past it: after this, the six are floats whatever route

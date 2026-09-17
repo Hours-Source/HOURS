@@ -1952,6 +1952,117 @@ class TestFiscalSnapshotAcceptsAState:
         assert report["fiscal"]["solvent"] in (True, False)
 
 
+class TestTheInheritanceTravelsWithTheFrame:
+    """
+    THE TRUST FRAME, CLOSED 2026-09-17 (author-directed).
+
+    `TRUST_BASE_TEH` is declared "at the 1M reference population", and every
+    caller that moved the population without moving it inherited a Trust sized
+    for a million people. Measured on `trust_depletion_stress` before the fix:
+
+        population      trust floor per capita
+        1e5             350,037.40    (10x the intended 35,000)
+        1e6              35,007.39    (the reference frame)
+        3.35e8              111.87    (understated 335x)
+
+    THE DEFECT WAS DOCUMENTED AND HAPPENED ANYWAY, which is why it is code now
+    and not a note. The constant's own `supplied_by` field already said "every
+    fiscal function takes trust_balance as an argument … pass your own", and
+    `utils/scenario_cmd.py` writes the scaling rule out in full — then applies
+    it by hand at ONE call site out of 89.
+    """
+
+    _BASE = dict(labor_income=1e9, capital_stock_teh=2.4e9,
+                 capital_age_ratio=0.3, epsilon=0.40)
+
+    def test_an_unspecified_balance_resolves_to_the_callers_frame(self):
+        one_m = fiscal_snapshot(trust_balance=None, population=1e6, **self._BASE)
+        us = fiscal_snapshot(trust_balance=None, population=3.35e8, **self._BASE)
+        assert one_m["trust"]["trust_start"] == pytest.approx(TRUST_BASE_TEH)
+        # The per-capita inheritance is the invariant, not the aggregate.
+        assert (us["trust"]["trust_start"] / 3.35e8
+                == pytest.approx(TRUST_BASE_TEH / 1e6, rel=1e-12))
+
+    def test_a_supplied_balance_is_never_rescaled(self):
+        """The doctrine `resolve_capital_stock` follows: a caller who names a
+        balance is naming their Trust, and scaling it would destroy their
+        input."""
+        r = fiscal_snapshot(trust_balance=7.5e9, population=3.35e8, **self._BASE)
+        assert r["trust"]["trust_start"] == 7.5e9
+
+    def test_no_inheritance_stays_sayable(self):
+        """ZERO IS NOT NONE, and the distinction is load-bearing.
+
+        A collective converting from subsistence brings nothing — which is what
+        `scenarios/stationarity` defaults `trust_start` to. If 0.0 were treated
+        as "unspecified" it would silently acquire an inheritance it does not
+        have, and the arc's starting condition would become unrepresentable.
+        """
+        r = fiscal_snapshot(trust_balance=0.0, population=3.35e8, **self._BASE)
+        assert r["trust"]["trust_start"] == 0.0
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.99])
+    def test_the_resolution_is_epsilon_free(self, eps):
+        """An inheritance is a stock, not a trajectory. Adoption can be tested
+        at any ε without the frame moving underneath it."""
+        r = fiscal_snapshot(trust_balance=None, population=1e6,
+                            labor_income=1e9, capital_stock_teh=2.4e9,
+                            capital_age_ratio=0.3, epsilon=eps)
+        assert r["trust"]["trust_start"] == pytest.approx(TRUST_BASE_TEH)
+
+    def test_the_guard_still_bites_for_everything_else(self):
+        """ONLY the balance became resolvable, and only against a stated frame.
+
+        The missing-quantities error exists so a caller cannot silently forget a
+        required input. It is weakened for exactly one value — the one the
+        framework can honestly derive — and a probe that found the other five
+        had gone quiet would mean the guard had been traded away wholesale.
+        """
+        with pytest.raises(ValueError, match="missing required quantities"):
+            fiscal_snapshot(trust_balance=None, population=None, **self._BASE)
+        with pytest.raises(ValueError, match="labor_income"):
+            fiscal_snapshot(trust_balance=1e9, population=1e6,
+                            capital_stock_teh=2.4e9, capital_age_ratio=0.3,
+                            epsilon=0.40, labor_income=None)
+
+    def test_the_state_builder_honours_a_supplied_balance_untouched(self):
+        """THE PATH WHERE THE RESOLVER IS THE ONLY PROTECTION, and it had no
+        test until a mutation found the hole (2026-09-17).
+
+        `fiscal_snapshot` calls the resolver only when the balance is None, so
+        the "never rescaled" doctrine is enforced there by the CALL SITE. But
+        `make_economy_state` calls it unconditionally — on that path the
+        resolver itself is what stands between a caller's explicit Trust and a
+        silent rescaling. A mutation making the resolver scale supplied values
+        passed all eight pins, because every one of them reached it through
+        `fiscal_snapshot`'s guard.
+
+        Both branches are exercised here, at an OFF-REFERENCE population where
+        a wrongly-applied scale factor is 335x rather than 1.0 and therefore
+        cannot hide.
+        """
+        from hours_eoh.core.simulation import make_economy_state
+        supplied = make_economy_state(population=3.35e8, trust_balance=7.5e9)
+        assert supplied["trust_balance"] == 7.5e9
+        # And the endowment derives from the supplied balance, not a rescaled one.
+        assert supplied["teh_endowment"] == pytest.approx(
+            7.5e9 + supplied["capital_embodied_teh"], rel=1e-12)
+        none_left = make_economy_state(population=3.35e8, trust_balance=0.0)
+        assert none_left["trust_balance"] == 0.0
+
+    def test_the_state_builder_resolves_the_same_way(self):
+        """`make_economy_state` and `fiscal_snapshot` must not disagree about
+        what an unspecified inheritance means — two routes to one value is how
+        `psi` came to differ from `psi_applied`."""
+        from hours_eoh.core.simulation import make_economy_state
+        s = make_economy_state(population=3.35e8)
+        r = fiscal_snapshot(trust_balance=None, population=3.35e8, **self._BASE)
+        assert s["trust_balance"] == pytest.approx(r["trust"]["trust_start"])
+        # And the endowment derives from the RESOLVED balance, not the raw
+        # default — otherwise the two would disagree inside one state.
+        assert s["teh_endowment"] > s["trust_balance"]
+
+
 class TestTheInjectionRegisterIsComplete:
     """
     THE REGISTER IS CHECKED, NOT JUST WRITTEN (2026-08-29).

@@ -79,7 +79,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_N_MAX,
     COASEAN_BOUNDARY_EXPONENT,
@@ -100,6 +99,7 @@ from hours_eoh.research.contestability import (
     tau_gradient_check,
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +234,7 @@ def make_federation(
     epsilon: float,
     n: int | None = None,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
@@ -275,6 +275,7 @@ def make_federation(
     Returns:
         List of Collective objects, one per collective.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
@@ -340,7 +341,7 @@ def make_federation(
 def n1_regression_anchor(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
@@ -377,6 +378,7 @@ def n1_regression_anchor(
           "ref_solvent"        — reference solvent bool
           "fed_solvent"        — federation solvent bool
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
@@ -985,7 +987,7 @@ def _consolidation_escheat(
 def simulate_federation(
     epsilon_trajectory: list[float],
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     heterogeneity: float = 0.10,
@@ -1183,6 +1185,7 @@ def simulate_federation(
                                            entry_capacity ≥ 1 (proposed §8.8
                                            combined invariant)
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     rng = _random.Random(seed)
     records: list[dict[str, Any]] = []
     prev_rates: dict[tuple[int, int], float] = {}
