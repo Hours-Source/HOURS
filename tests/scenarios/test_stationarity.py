@@ -340,6 +340,61 @@ class TestBandsAndDrawdown:
         assert short["teh"]["upper"] < 0.99
         assert stationary_bands(guf_parcels=URBAN, guarantee="shipped")["teh"]["upper"] is None
 
+    def test_the_report_runs_the_adopted_configuration_and_says_so(self):
+        """THE PUBLISHED VERDICT WAS AN ARTEFACT OF AN UNSUPPLIED INPUT.
+
+        Until 2026-09-16 the CLI called `stationarity_report(epsilon, standard=)`
+        and nothing else, so the report priced no land fee and resolved
+        `need_fraction` to the guarantee's own `floor_fraction` (~0.15, three
+        times the adopted 0.05). It published "TEH stands still nowhere" at
+        every ε — true for a collective holding no land, and presented as the
+        framework's answer while the adopted configuration stands still across
+        the whole arc.
+
+        Both halves are pinned here: the band is real, and the configuration
+        that produced it is RETURNED rather than left to be inferred.
+        """
+        from hours_eoh.scenarios.stationarity import stationarity_report
+        from hours_eoh.data import SUFF_LEVY_RATE, SUFF_NEED_FRACTION
+
+        rep = stationarity_report(0.40)
+        cfg = rep["configuration"]
+        assert cfg["guarantee_design"] == "v1"
+        assert cfg["need_fraction"] == SUFF_NEED_FRACTION
+        assert cfg["levy_rate"] == SUFF_LEVY_RATE
+        assert cfg["land_fee_priced"] is True
+        assert rep["bands"]["teh"]["any_stationary"] is True
+        assert rep["bands"]["both"]["any_stationary"] is True
+
+    def test_a_caller_naming_no_land_loses_the_top_of_the_arc_not_the_band(self):
+        """WHAT THE FEE ACTUALLY DOES, decomposed rather than assumed.
+
+        The first version of this test asserted the band went EMPTY without
+        land, because the CLI's published verdict said "nowhere" and the fee
+        looked like the cause. It is not. Measured over both factors:
+
+            parcels   need                TEH band
+            none      0.05 (adopted)      [0.00, 0.97]
+            none      ~0.15 (old default) nowhere
+            urban     0.05 (adopted)      [0.00, 0.99]
+            urban     ~0.15 (old default) [0.00, 0.53]
+
+        "Nowhere" was the CONJUNCTION of a missing fee and a need fraction three
+        times the adopted one, and the need fraction did more of the work —
+        either fix alone removes it. What the fee does on its own is carry the
+        TOP of the arc, where registration has saturated and the mint has
+        plateaued while the guarantee has not.
+        """
+        from hours_eoh.scenarios.stationarity import stationarity_report
+
+        no_land = stationarity_report(0.40, guf_parcels=[])
+        with_land = stationarity_report(0.40)
+        assert no_land["configuration"]["land_fee_priced"] is False
+        assert with_land["configuration"]["land_fee_priced"] is True
+        # The band survives without land — it is shorter, not absent.
+        assert no_land["bands"]["teh"]["any_stationary"] is True
+        assert no_land["bands"]["teh"]["upper"] < with_land["bands"]["teh"]["upper"]
+
     def test_drawdown_fails_where_the_teh_side_is_short_and_holds_where_it_is_not(self):
         # Inside the band V1 at 5% need stands still on with the land fee — a
         # point where something is owed, so holding is not by construction.

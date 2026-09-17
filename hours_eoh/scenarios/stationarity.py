@@ -89,9 +89,10 @@ from hours_eoh.data import (
     M_FLOOR,
     PERSONAL_EOH_BASE,
     SUFF_LEVY_RATE,
+    SUFF_NEED_FRACTION,
     US_REFERENCE_POPULATION,
 )
-from hours_eoh.land.collective import compute_collective_guf
+from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
 from hours_eoh.reference.parcels import national_parcel_count
 from hours_eoh.scenarios.arc_stability import STANDARDS, band_from_flags, stability_at
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
@@ -147,7 +148,12 @@ def _guarantee_owed(
     personal_eoh_base: float,
 ) -> tuple[float, dict]:
     g = sufficiency_guarantee(population, epsilon, personal_eoh_base=personal_eoh_base)
-    need = g["floor_fraction"] if need_fraction is None else need_fraction
+    # ADOPTED 2026-09-16: `None` resolves to SUFF_NEED_FRACTION, the V1 need
+    # fraction the levy was sized against. It used to resolve to the guarantee's
+    # own `floor_fraction` (0.15 at ε=0 decaying to 0.1005) — roughly three times
+    # the adopted value, so the module's default ran V1 at a need fraction
+    # nobody had chosen, and the published bands were for that configuration.
+    need = SUFF_NEED_FRACTION if need_fraction is None else need_fraction
     if design == "shipped":
         return g["total_cost_teh"], g
     if design == "v1":
@@ -201,7 +207,9 @@ def stationarity_at(
         adult_capacity_h_yr: Hours an adult can supply in a year.
         guarantee: One of `GUARANTEE_DESIGNS`.
         need_fraction: For `v1`, the share of on-ledger people receiving the
-            guarantee. None uses the shipped decaying fraction.
+            guarantee. None uses `SUFF_NEED_FRACTION` (0.05), the adopted value
+            the levy was sized against. Raising it moves the Trust's whole
+            liability — at 10% the required levy roughly doubles.
         levy_rate: Levy as a share of the mint.
         guf_parcels: A parcel SAMPLE that prices the fee. None → no land fee,
             and `guf` is 0.0.
@@ -542,7 +550,22 @@ def reserve_plan(
 
 
 def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
-    """The report. CLI: `eoh scenario run stationarity`."""
+    """The report. CLI: `eoh scenario run stationarity`.
+
+    THE FEE IS PART OF THE CONFIGURATION, AND UNTIL 2026-09-16 THIS REPORT RAN
+    WITHOUT ONE. `stationarity_at` takes a parcel SAMPLE and prices the land fee
+    from it; given none, `guf` is 0.0 and the TEH side has only the levy. The CLI
+    passed no parcels, so the published verdict read "TEH stands still nowhere"
+    at every ε — true for a collective that holds no land, and presented as the
+    framework's answer. With the urban sample the record names as the adopted
+    basis, the TEH side stands still on [0.00, 0.99] at the shipped 1,000 h base.
+
+    So the report now supplies that inventory when the caller names none, and
+    RETURNS the configuration it ran under. A caller passing `guf_parcels`
+    explicitly — including an empty list, for the no-land case — is honoured.
+    """
+    if "guf_parcels" not in kw:
+        kw = {**kw, "guf_parcels": make_urban_collective(10_000)}
     here = stationarity_at(epsilon, **kw)
     bands = stationary_bands(**kw)
     arc = stationarity_arc(**kw)
@@ -576,7 +599,22 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             f"Labour stands still on {_band(bands['labour'])}, TEH on "
             f"{_band(bands['teh'])}, both on {_band(bands['both'])} "
             f"(to ±{bands['step']}). Under the doctrine that minted TEH is the "
-            "wage, the Trust owes only the guarantee."
+            "wage, the Trust owes only the guarantee. Configuration: "
+            f"guarantee={here['teh']['guarantee_design']!r} at "
+            f"need={SUFF_NEED_FRACTION:g}, levy={SUFF_LEVY_RATE:.3%}, land fee "
+            f"{'priced from a parcel sample' if here['teh']['guf'] > 0.0 else 'ABSENT'}"
+            f" — the fee is what carries the TEH side at low ε, where almost "
+            "nothing is registered to levy."
         ),
+        # WHAT WAS RUN, returned rather than left to be inferred. A band is only
+        # meaningful against its configuration, and the fee's presence changes
+        # the TEH side from "nowhere" to the whole arc.
+        "configuration": {
+            "guarantee_design": here["teh"]["guarantee_design"],
+            "need_fraction":    SUFF_NEED_FRACTION,
+            "levy_rate":        SUFF_LEVY_RATE,
+            "land_fee_priced":  here["teh"]["guf"] > 0.0,
+            "personal_base":    here["personal_base"],
+        },
         "reporting_only": True,
     }

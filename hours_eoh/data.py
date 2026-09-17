@@ -2993,14 +2993,38 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 #   the Trust stands still on the TEH side from ε=0 to 0.99 is 4.48%, with the
 #   V1 guarantee at 5% need, base PERSONAL_EOH_BASE (1,000 h), the urban land
 #   fee and no inheritance. Rounded up to 4.5%.
-# note: SIZED TO A DESIGN THE DEFAULT DOES NOT RUN. V1 is PROPOSED, not adopted;
-#   under the shipped guarantee 4.5% does not reach the end of the arc
+# note: SIZED TO A DESIGN THE REPORTING LAYER NOW RUNS, AND CORE STILL DOES NOT.
+#   Until 2026-09-16 this read "sized to a design the default does not run": V1
+#   was proposed and nothing defaulted to it. `scenarios/stationarity` now
+#   defaults to V1 at `SUFF_NEED_FRACTION`, so the rate and the design it was
+#   sized against finally agree there. **`core/` still books
+#   `sufficiency_guarantee`'s shipped aggregation**, which at ε=0 demands a levy
+#   of 812% of the mint — unfundable by construction, since nothing mints that
+#   was not registered — against V1's 8.07%. That gap is the open item, not this
+#   constant. Under the shipped guarantee 4.5% does not reach the end of the arc
 #   (record/fulfilment.md). The 2026-08-09 rationale — "the dividend alone runs
 #   a surplus, so the required rate is zero" — held only while the Trust was
 #   charged for minted hours and a large dividend was assumed; it no longer
 #   describes this constant. Incidence on labour income at low ε, where labour
 #   income is nearly all income, remains the charter's question.
 SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate on labor income
+# tag: normative | units: fraction of on-ledger people receiving the guarantee
+# decided_by: author, 2026-09-15 (V1 proposed) and 2026-09-16 (adopted as the
+#   reporting default, and named here). It is a charter decision about WHO the
+#   guarantee reaches — people between engagements, in retraining, or unable to
+#   work — not a measurable share, and no dataset settles it.
+# form: V1 sizes the Trust's liability as
+#   population × personal_registration_share(ε) × this fraction × the guarantee
+#   per person. The alternative charter option, V2 ("universal"), drops this
+#   term and pays every on-ledger person.
+# note: NAMED 2026-09-16, AND IT WAS LOAD-BEARING BEFORE IT HAD A NAME.
+#   `SUFF_LEVY_RATE`'s own `form:` field above cites "the V1 guarantee at 5%
+#   need" as the basis on which 4.5% was sized, and the figure existed only as a
+#   bare 0.05 in about ten test lines and in record prose. A number that sizes
+#   the levy and decides who the guarantee reaches is not a test fixture.
+#   Changing it moves the Trust's whole liability: at 10% need the required levy
+#   roughly doubles (record/fulfilment.md).
+SUFF_NEED_FRACTION:           float = 0.05              # V1: share of on-ledger people the guarantee reaches
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
