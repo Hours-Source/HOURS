@@ -347,14 +347,19 @@ class TestFiscalHealthCheckNewParams:
         assert shipped["levy_status"] == "GREEN"
         assert shipped["levy_to_guarantee_ratio"] > 1.0
 
+        # RESTATED 2026-09-16 with the V1 adoption. The liability fell ~300x at
+        # low ε — the Trust owes what is ON the ledger — so the configurations
+        # that produce each verdict moved with it. Measured, not guessed:
+        # 29.74x at the default, 5.95x at 1e9 income, 0.5948 at 1e8.
+        #
         # Inflows short of the guarantee: the balance pays the difference, so
         # the Trust is solvent this period and shrinking.
-        drawing = at(labor_income=1_000_000_000.0)
+        drawing = at(labor_income=1.0e8)
         assert drawing["levy_status"] == "YELLOW"
         assert drawing["levy_to_guarantee_ratio"] < 1.0
 
         # Neither the balance nor the inflows can cover it.
-        unfunded = at(trust_balance=1.0e5, labor_income=1.0e7)
+        unfunded = at(trust_balance=1.0e5, labor_income=1.0e5)
         assert unfunded["levy_status"] == "RED"
 
     def test_ecological_cost_does_not_move_with_the_trust_balance(self):
@@ -424,44 +429,62 @@ class TestFiscalHealthCheckNewParams:
 
 class TestSystemDashboard:
 
-    def test_normal_operation_at_eps0_draws_principal_and_says_so(self):
-        """RESTATED 2026-09-16 — this asserted GREEN, and GREEN was an artefact.
+    def test_normal_operation_no_longer_draws_principal_at_eps0(self):
+        """RESTATED TWICE, AND THE SECOND TIME IS THE INTERESTING ONE.
 
-        `LEVY_SUFFICIENCY_WARN` warned below 2% guarantee coverage. This
-        configuration delivers **44.81%** at ε=0 — twenty-two times the
-        threshold — so the pillar reported GREEN while the Trust paid more than
-        half the guarantee out of principal. The threshold is retired and the
-        pillar now asks whether inflows carry the obligation; they do not here,
-        and the dashboard says YELLOW.
+        First (2026-09-16, morning): this asserted GREEN, and GREEN was an
+        artefact — `LEVY_SUFFICIENCY_WARN` warned below 2% coverage while the
+        configuration delivered 44.81%, so the pillar could only ever say GREEN
+        while the Trust paid more than half the guarantee out of principal. The
+        threshold was retired and the verdict became YELLOW at 0.4481.
 
-        Nothing about the modelled economy changed. What changed is that the
-        indicator can now express the state it is in, so this test pins the
-        MEASURED verdict rather than the one the threshold made inevitable.
-        No condition fails and nothing is RED — the arc is intact.
+        Second (2026-09-16, V1 adoption): the liability itself changed. The
+        Trust now owes what is ON the ledger — 731,530 TEH at ε=0 against
+        220,920,000 under the shipped aggregation — so the same levy covers it
+        many times over and the verdict is GREEN again. **Same verdict as the
+        original, for the opposite reason**: then because the threshold could
+        not fire, now because the obligation is one the ledger can fund.
+
+        THE RATIO IS NOT PINNED, AND THAT IS DELIBERATE. It reads 135.33 here,
+        but that measures the FIXTURE: `_normal_dashboard_kwargs` supplies a
+        labor_income of 2.2e9 at ε=0 against a pipeline mint of 27.2M — 80.88x.
+        Against the mint the levy covers V1 at 1.67x. Pinning 135.33 would pin
+        the fixture's inflated levy base and call it a property of the design.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.0))
         assert result["conditions_all_pass"] is True
         assert result["red_flags"] == []
-        assert result["fiscal_health"]["levy_to_guarantee_ratio"] == pytest.approx(
-            0.4481, abs=1e-3)
-        assert result["fiscal_health"]["levy_status"] == "YELLOW"
-        assert result["overall_status"] == "YELLOW"
-        assert "Fiscal — levy_sufficiency: YELLOW" in result["yellow_flags"]
+        assert result["fiscal_health"]["levy_status"] == "GREEN"
+        assert result["fiscal_health"]["levy_to_guarantee_ratio"] > 1.0
+        assert result["overall_status"] == "GREEN"
 
-    def test_normal_operation_at_eps40_draws_principal_and_says_so(self):
-        """The ε=0.40 half of the pair above; coverage is 46.72% here.
+    def test_normal_operation_no_longer_draws_principal_at_eps40(self):
+        """The ε=0.40 half of the pair above.
 
-        Both ends of the arc are pinned because a single ε is the trap failure
-        mode 3 names: a pillar that reports one verdict at 0.40 and another at
-        0 would look correct from either point alone.
+        Both ends are pinned because a single ε is the trap failure mode 3
+        names. And the pillar has NOT become unfalsifiable by this change — at
+        ε=0.90 it still reads YELLOW (coverage 0.8705), because the mint
+        plateaus there while the guarantee does not. That case is pinned in
+        `test_the_levy_pillar_still_bites_at_the_top_of_the_arc`.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.40))
         assert result["conditions_all_pass"] is True
         assert result["red_flags"] == []
-        assert result["fiscal_health"]["levy_to_guarantee_ratio"] == pytest.approx(
-            0.4672, abs=1e-3)
+        assert result["fiscal_health"]["levy_status"] == "GREEN"
+        assert result["fiscal_health"]["levy_to_guarantee_ratio"] > 1.0
+        assert result["overall_status"] == "GREEN"
+
+    def test_the_levy_pillar_still_bites_at_the_top_of_the_arc(self):
+        """A pillar that went GREEN everywhere would be the retired threshold
+        in a new costume. Under V1 it does not: registration saturates, the
+        mint plateaus, and the guarantee keeps rising, so coverage falls back
+        below 1.0 at high ε and the verdict returns to YELLOW.
+        """
+        result = system_dashboard(**_normal_dashboard_kwargs(0.90))
+        assert result["fiscal_health"]["levy_to_guarantee_ratio"] < 1.0
         assert result["fiscal_health"]["levy_status"] == "YELLOW"
         assert result["overall_status"] == "YELLOW"
+        assert "Fiscal — levy_sufficiency: YELLOW" in result["yellow_flags"]
 
     def test_a_suppressed_indicator_is_declared_not_invisible(self):
         """MASKING MUST BE DECLARED, NEVER INFERRED (2026-09-16).
@@ -494,12 +517,17 @@ class TestSystemDashboard:
 
         If a suppressed RED ever raised the overall verdict, the exclusion
         would be doing two jobs and the flag lists would stop meaning what they
-        say. At ε=0 the dashboard is YELLOW on the levy pillar alone.
+        say. At ε=0 the dashboard is GREEN on every pillar since the V1
+        adoption, while `personal_registration_status` is RED and suppressed —
+        which makes this the sharpest possible form of the check: a RED
+        indicator sitting inside an otherwise wholly GREEN verdict.
         """
         result = system_dashboard(**_normal_dashboard_kwargs(0.0))
         assert result["suppressed_flags"], "expected a suppressed indicator here"
-        assert result["overall_status"] == "YELLOW"
+        assert result["eoh_health"]["personal_registration_status"] == "RED"
+        assert result["overall_status"] == "GREEN"
         assert result["red_flags"] == []
+        assert result["yellow_flags"] == []
 
     def test_no_red_flags_at_eps90_normal_operation(self):
         # At high ε: TEH creation shrinks → levy-to-guarantee ratio drops below 2%

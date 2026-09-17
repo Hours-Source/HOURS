@@ -143,22 +143,37 @@ def _guarantee_owed(
     design: str,
     population: float,
     epsilon: float,
-    personal_registration_share: float,
     need_fraction: float | None,
     personal_eoh_base: float,
 ) -> tuple[float, dict]:
-    g = sufficiency_guarantee(population, epsilon, personal_eoh_base=personal_eoh_base)
-    # ADOPTED 2026-09-16: `None` resolves to SUFF_NEED_FRACTION, the V1 need
-    # fraction the levy was sized against. It used to resolve to the guarantee's
-    # own `floor_fraction` (0.15 at ε=0 decaying to 0.1005) — roughly three times
-    # the adopted value, so the module's default ran V1 at a need fraction
-    # nobody had chosen, and the published bands were for that configuration.
+    """The guarantee owed under a design — DELEGATED to core since 2026-09-16.
+
+    This module used to carry its own copy of the V1 and V2 formulas while core
+    computed only the shipped aggregation. Once `sufficiency_guarantee` gained a
+    `design` parameter the copy became a second account of one quantity, and it
+    immediately behaved like one: with the local branch still in place,
+    `design="shipped"` called core WITHOUT `design=`, so it received core's new
+    V1 default and "shipped" silently stopped meaning shipped.
+
+    The delegation changes no number. This module passed the PIPELINE's realized
+    personal registration share while core uses
+    `registration.personal_eoh_registration_share(ε)`; they were measured equal
+    to 1e-12 at ε ∈ {0, 0.20, 0.40, 0.70, 0.90, 0.99}, which is why the
+    parameter could be dropped rather than threaded through.
+
+    `None` resolves to SUFF_NEED_FRACTION — the V1 need fraction the levy was
+    sized against. It used to resolve to the guarantee's own `floor_fraction`
+    (0.15 at ε=0 decaying to 0.1005), roughly three times the adopted value, so
+    the module's default ran V1 at a need fraction nobody had chosen.
+    """
     need = SUFF_NEED_FRACTION if need_fraction is None else need_fraction
-    if design == "shipped":
-        return g["total_cost_teh"], g
-    if design == "v1":
-        return population * personal_registration_share * need * g["total_per_person"], g
-    return population * personal_registration_share * g["total_per_person"], g
+    g = sufficiency_guarantee(
+        population, epsilon,
+        personal_eoh_base=personal_eoh_base,
+        design=design,
+        need_fraction=need,
+    )
+    return g["total_cost_teh"], g
 
 
 def stationarity_at(
@@ -298,8 +313,7 @@ def stationarity_at(
     else:
         guf = min(guf_uncapped, float(guf_cap) * mint)
 
-    owed, g = _guarantee_owed(guarantee, population, epsilon, r_personal,
-                              need_fraction, base)
+    owed, g = _guarantee_owed(guarantee, population, epsilon, need_fraction, base)
     inflow = levy + guf
     deficit = max(0.0, owed - inflow)
 

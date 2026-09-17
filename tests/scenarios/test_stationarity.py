@@ -111,7 +111,13 @@ class TestTheTrustOwesOnlyTheGuarantee:
         # `guarantee="shipped"` is explicit since V1 became the default here
         # (2026-09-16): this test is the SHIPPED identity, against core.
         r = stationarity_at(eps, standard="sufficiency", guarantee="shipped")["teh"]
-        g = sufficiency_guarantee(1e6, eps, personal_eoh_base=1500.0)
+        # `design="shipped"` is explicit on BOTH sides since core's own default
+        # became V1 (2026-09-16). It was explicit on the left already; leaving it
+        # implicit on the right silently compared the shipped aggregation against
+        # a V1 one — 322,380,000 vs 1,067,494 at ε=0. A test of an identity must
+        # name the design on both sides of it.
+        g = sufficiency_guarantee(1e6, eps, personal_eoh_base=1500.0,
+                                  design="shipped")
         assert r["guarantee_owed"] == pytest.approx(g["total_cost_teh"], rel=1e-12)
         assert r["paid_by_mint"] >= aggregate_care_stipend_from_demographics(1e6, eps)
         assert r["stationary"] == (r["inflow"] >= r["guarantee_owed"])

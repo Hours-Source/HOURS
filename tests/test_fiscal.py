@@ -226,11 +226,37 @@ class TestSufficiencyGuarantee:
             assert result["total_cost_teh"] > 0
             assert math.isfinite(result["total_cost_teh"])
 
-    def test_fewer_recipients_needed_at_higher_epsilon(self):
-        """At higher ε: rising PP means fewer people need the floor guarantee."""
-        g_0  = sufficiency_guarantee(1_000_000, 0.0)
-        g_90 = sufficiency_guarantee(1_000_000, 0.90)
+    def test_fewer_recipients_needed_at_higher_epsilon_under_the_shipped_design(self):
+        """At higher ε: rising PP means fewer people need the floor guarantee.
+
+        NAMED AS SHIPPED 2026-09-16, because V1 — now core's default — reverses
+        it. The claim is the shipped design's: the recipient share is a CHOSEN
+        floor fraction that decays with ε.
+        """
+        g_0  = sufficiency_guarantee(1_000_000, 0.0, design="shipped")
+        g_90 = sufficiency_guarantee(1_000_000, 0.90, design="shipped")
         assert g_90["floor_fraction"] < g_0["floor_fraction"]
+
+    def test_v1_inverts_it_because_recipients_track_the_register(self):
+        """THE DEFAULT DESIGN RUNS THE OPPOSITE WAY, and it is not a defect.
+
+        V1 derives the recipient share instead of choosing it: r(ε) × the need
+        fraction. Registration RISES with automation, so the share covered rises
+        too — 0.000497 at ε=0 to 0.040468 at 0.90, which is 497 people per
+        million against 40,468.
+
+        The two designs answer different questions. Shipped asks how many people
+        NEED the floor, and says fewer as purchasing power rises. V1 asks how
+        many the Trust OWES it to, and says more as the ledger grows. The
+        unregistered remainder at low ε is not unserved — it is discharged by
+        households directly, which is what subsistence is.
+        """
+        v1_0  = sufficiency_guarantee(1_000_000, 0.0)
+        v1_90 = sufficiency_guarantee(1_000_000, 0.90)
+        assert v1_0["guarantee_design"] == "v1", "V1 is the default since 2026-09-16"
+        assert v1_90["floor_fraction"] > v1_0["floor_fraction"]
+        assert v1_0["recipients"] == pytest.approx(497.0, abs=1.0)
+        assert v1_90["recipients"] == pytest.approx(40_468.0, abs=1.0)
 
     def test_structural_minimum_always_preserved(self):
         """Even at ε=0.99, some fraction always at floor (not zero)."""
@@ -1577,7 +1603,7 @@ class TestTheGuaranteeAndCareFloors:
         different charter.
         """
         for eps in (0.0, 0.40, 0.90, 0.99, 1.0):
-            g = sufficiency_guarantee(1_000_000.0, eps)
+            g = sufficiency_guarantee(1_000_000.0, eps, design="shipped")
             assert g["floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN - 1e-12, (
                 f"guarantee floor breached at ε={eps}: {g['floor_fraction']}"
             )
@@ -1585,15 +1611,58 @@ class TestTheGuaranteeAndCareFloors:
     def test_a_caller_cannot_set_a_guarantee_below_the_minimum(self):
         """The clamp is the mechanism — the commitment is not a default that a
         caller may quietly undercut."""
-        g = sufficiency_guarantee(1_000_000.0, 0.0, floor_fraction=0.0)
+        g = sufficiency_guarantee(1_000_000.0, 0.0, floor_fraction=0.0,
+                                  design="shipped")
         assert g["floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN - 1e-12
 
     def test_the_guarantee_floor_decays_but_stays_above_the_minimum(self):
         """Both halves: it does shrink with automation, and it does not vanish."""
-        lo = sufficiency_guarantee(1_000_000.0, 0.0)["floor_fraction"]
-        hi = sufficiency_guarantee(1_000_000.0, 0.99)["floor_fraction"]
+        lo = sufficiency_guarantee(1_000_000.0, 0.0, design="shipped")["floor_fraction"]
+        hi = sufficiency_guarantee(1_000_000.0, 0.99, design="shipped")["floor_fraction"]
         assert hi < lo, "the floor should shrink with automation"
         assert hi > SUFF_GUARANTEE_STRUCTURAL_MIN
+
+    def test_the_structural_minimum_does_not_bind_under_the_default_design(self):
+        """THE FLOOR'S FLOOR IS A SHIPPED-DESIGN MECHANISM, AND SAYING SO IS THE
+        POINT (2026-09-16).
+
+        This class states it pins these floors "as BEHAVIOUR — that the floor
+        exists, binds, and cannot be argued below". Under V1, core's default
+        since 2026-09-16, it does not bind at any ε:
+
+            eps    v1 recipient share    structural min
+            0.00   0.000497              0.05
+            0.40   0.007032              0.05
+            0.90   0.040468              0.05
+            0.99   0.043476              0.05
+
+        497 people per million at subsistence, against the 50,000 the shipped
+        design guarantees. That is NOT the commitment being quietly abandoned —
+        it is the commitment meaning something different under a design that
+        DERIVES the recipient share from the register instead of CHOOSING it.
+        SUFF_GUARANTEE_STRUCTURAL_MIN clamps a chosen floor fraction; V1 has no
+        chosen floor fraction to clamp.
+
+        The unregistered remainder is not unserved: at ε=0 almost nothing is on
+        the ledger, and those obligations are discharged by households directly,
+        which is what subsistence is. What the Trust owes and what people need
+        are different quantities, and V1 books the first.
+
+        Pinned here so the divergence is a stated fact rather than an absence —
+        a charter commitment that silently stops binding is exactly what this
+        class was built to prevent.
+        """
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            v1 = sufficiency_guarantee(1_000_000.0, eps)
+            assert v1["guarantee_design"] == "v1"
+            assert v1["floor_fraction"] < SUFF_GUARANTEE_STRUCTURAL_MIN, (
+                f"V1 reached the structural minimum at ε={eps}; if that is now "
+                "intended, this test and the charter it records must both change"
+            )
+        # And the shipped design still honours it — the mechanism is intact,
+        # it simply governs one design.
+        assert sufficiency_guarantee(1_000_000.0, 0.99, design="shipped")[
+            "floor_fraction"] >= SUFF_GUARANTEE_STRUCTURAL_MIN
 
     def test_care_stipend_floors_at_the_relational_fraction(self):
         """

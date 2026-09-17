@@ -55,7 +55,10 @@ def fiscal_parameter_sweep(
       "levy_rate"        — overall levy rate (applied to both levy buckets)
       "dep_rate"         — Trust depreciation rate
       "div_rate"         — Trust dividend fraction
-      "floor_fraction"   — fraction of population receiving guarantee
+      "floor_fraction"   — fraction of population receiving guarantee. Swept
+                           against `design="shipped"`, the only design that
+                           reads it; under V1 it moves nothing.
+      "need_fraction"    — V1: share of ON-LEDGER people the guarantee reaches
       "capital_age_ratio" — mean asset age ratio (affects stewardship cost)
 
     Args:
@@ -83,7 +86,12 @@ def fiscal_parameter_sweep(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction", "capital_age_ratio"}
+    # `need_fraction` added 2026-09-16 with the V1 adoption. `floor_fraction`
+    # survives but is swept against `design="shipped"`, because that is the only
+    # design that reads it: under V1 it moved nothing, and a swept parameter
+    # that changes no output is failure mode 5 wearing a sweep's clothes.
+    SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction",
+                 "need_fraction", "capital_age_ratio"}
     if parameter not in SUPPORTED:
         raise ValueError(f"parameter must be one of {SUPPORTED}, got '{parameter}'")
 
@@ -109,6 +117,9 @@ def fiscal_parameter_sweep(
             kwargs["div_rate"] = val
         elif parameter == "floor_fraction":
             kwargs["floor_fraction"] = val
+            kwargs["design"] = "shipped"
+        elif parameter == "need_fraction":
+            kwargs["need_fraction"] = val
         elif parameter == "capital_age_ratio":
             kwargs["capital_age_ratio"] = val
 

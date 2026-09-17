@@ -32,11 +32,33 @@ from hours_eoh.data import (
     MEAN_MULTIPLIER_REFERENCE, LAND_HECTARES_PER_CAPITA,
     CARE_AUTOMATION_FLOOR, SUFF_GUARANTEE_STRUCTURAL_MIN,
     PROVIDER_CAP_EQUIVALENTS, M_FLOOR,
+    SUFF_NEED_FRACTION,
 )
 from hours_eoh.core.eoh_generation import (
     infrastructure_eoh, ecological_eoh, resolve_capital_stock,
 )
 from hours_eoh.core.eoh_fulfillment import human_eoh_share, personal_human_fraction
+from hours_eoh.core.registration import personal_eoh_registration_share
+
+#: The guarantee designs, owned HERE because core books the liability. Moved
+#: from `scenarios/stationarity` on 2026-09-16, which now imports it back —
+#: `scenarios/` may import `core/`, never the reverse, so one definition can sit
+#: in core and serve both. Two accounts of a vocabulary is how `psi` and
+#: `psi_applied` diverged.
+#:
+#:   "shipped"   recipients = population × a floor fraction decayed with ε.
+#:               Denominated OUTSIDE the register: at ε=0 it asks the Trust for
+#:               220.92 TEH per capita while the whole mint is 27.2 TEH per
+#:               capita, so the levy that holds the balance flat is 812% of the
+#:               mint. Nothing mints what was not registered, so this is not an
+#:               expensive liability, it is an unfundable one.
+#:   "v1"        recipients = population × personal_eoh_registration_share(ε)
+#:               × `need_fraction`. ADOPTED 2026-09-16: the Trust owes what is
+#:               ON the ledger, to the share of those people the charter covers.
+#:               The unregistered remainder is not absent — it is discharged by
+#:               households directly, which is what subsistence IS.
+#:   "v2"        every on-ledger person, the charter option without a need term.
+GUARANTEE_DESIGNS: tuple[str, ...] = ("shipped", "v1", "v2")
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +472,8 @@ def sufficiency_guarantee(
     floor_fraction: float = 0.15,
     capital_personal_eoh_fulfilled_per_person: float = 0.0,
     automation_response: str = "per_component",
+    design: str = "v1",
+    need_fraction: float = SUFF_NEED_FRACTION,
 ) -> dict:
     """
     Compute the cost of the sufficiency guarantee at a given automation level.
@@ -525,6 +549,7 @@ def sufficiency_guarantee(
           "eoh_reimbursement_total":                 float,  TEH/yr — aggregate
           "meaningful_activity_total":               float,  TEH/yr
           "total_cost_teh":                          float,  TEH/yr — total guarantee cost
+          "guarantee_design":                        str,    which design produced it
           "epsilon":                                 float,
         }
 
@@ -545,6 +570,13 @@ def sufficiency_guarantee(
             stacklevel=2,
         )
 
+    if design not in GUARANTEE_DESIGNS:
+        raise ValueError(
+            f"design must be one of {GUARANTEE_DESIGNS}, got {design!r}"
+        )
+    if not 0.0 <= need_fraction <= 1.0:
+        raise ValueError(f"need_fraction must be in [0, 1], got {need_fraction}")
+
     raw_eoh_per_person = _AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
     human_fraction = personal_human_fraction(epsilon, automation_response)
     effective_per_person = effective_personal_eoh(
@@ -560,12 +592,29 @@ def sufficiency_guarantee(
 
     total_per_person = eoh_reimbursement_per_person + meaningful_activity_teh_effective
 
-    # At higher ε, fewer people need the guarantee (rising PP means less hardship),
-    # but a structural minimum remains (training periods, illness, care commitments).
-    effective_fraction = (
-        SUFF_GUARANTEE_STRUCTURAL_MIN
-        + (floor_fraction - SUFF_GUARANTEE_STRUCTURAL_MIN) * (1.0 - SUFF_GUARANTEE_EPS_DECAY * epsilon)
-    )
+    # WHO THE GUARANTEE REACHES — the design question, adopted 2026-09-16.
+    if design == "shipped":
+        # At higher ε, fewer people need the guarantee (rising PP means less
+        # hardship), but a structural minimum remains (training periods,
+        # illness, care commitments). DENOMINATED OUTSIDE THE REGISTER: see
+        # GUARANTEE_DESIGNS for why that makes it unfundable at low ε.
+        effective_fraction = (
+            SUFF_GUARANTEE_STRUCTURAL_MIN
+            + (floor_fraction - SUFF_GUARANTEE_STRUCTURAL_MIN) * (1.0 - SUFF_GUARANTEE_EPS_DECAY * epsilon)
+        )
+    else:
+        # The Trust owes what is ON the ledger. `personal_eoh_registration_share`
+        # is the same curve the pipeline splits the personal domain with, so the
+        # liability and the mint that funds it move together instead of being
+        # two unrelated quantities compared at the end.
+        #
+        # THIS ALSO RETIRES ONE LEG OF THE MODE-11 TRIPLE. The shipped branch
+        # applies SUFF_GUARANTEE_EPS_DECAY to the recipient fraction while the
+        # activity bonus scales with ε² and `personal_human_fraction(ε)` carries
+        # a third ε-response. Under v1 the decay term is gone from recipients —
+        # registration is the ε-response, and there is only one of it.
+        on_ledger = personal_eoh_registration_share(epsilon)
+        effective_fraction = on_ledger * (need_fraction if design == "v1" else 1.0)
 
     recipients = population * effective_fraction
     eoh_reimbursement_total = recipients * eoh_reimbursement_per_person
@@ -588,6 +637,7 @@ def sufficiency_guarantee(
         "eoh_reimbursement_total":                   eoh_reimbursement_total,
         "meaningful_activity_total":                 meaningful_activity_total,
         "total_cost_teh":                            total_cost_teh,
+        "guarantee_design":                          design,
         "epsilon":                                   epsilon,
     }
 
@@ -895,6 +945,8 @@ def fiscal_snapshot(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     floor_fraction: float = 0.15,
+    design: str = "v1",
+    need_fraction: float = SUFF_NEED_FRACTION,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
     capital_personal_eoh_fulfilled_per_person: float = 0.0,
@@ -933,7 +985,14 @@ def fiscal_snapshot(
         mean_multiplier: Mean workforce multiplier.
         dep_rate: Trust depreciation rate.
         div_rate: Trust dividend fraction.
-        floor_fraction: Fraction of population receiving the guarantee.
+        floor_fraction: Fraction of population receiving the guarantee. Read
+            ONLY by `design="shipped"` — V1 and V2 derive the share from the
+            register instead of choosing it.
+        design: One of `GUARANTEE_DESIGNS`. Default `v1` (adopted 2026-09-16):
+            the Trust owes what is ON the ledger. `shipped` books the older
+            aggregation, which at ε=0 demands a levy of 812% of the mint.
+        need_fraction: For `v1`, the share of on-ledger people the guarantee
+            reaches. Default `SUFF_NEED_FRACTION`.
         meaningful_activity_teh: Discretionary spending bonus at ε=0.
         meaningful_activity_scale: Quadratic ε-growth factor for the bonus.
         estate_levy_aggregate: Estate-dissolution inflow (TEH) for the period —
@@ -1120,6 +1179,12 @@ def fiscal_snapshot(
         meaningful_activity_scale=meaningful_activity_scale,
         floor_fraction=floor_fraction,
         capital_personal_eoh_fulfilled_per_person=capital_personal_eoh_fulfilled_per_person,
+        # FORWARDED 2026-09-16. Without these the snapshot could only ever book
+        # the default design, which stranded `floor_fraction`: a caller sweeping
+        # it got identical costs at 0.05, 0.15 and 0.30 because V1 does not read
+        # it. A parameter accepted and inert is failure mode 5.
+        design=design,
+        need_fraction=need_fraction,
     )
     # new-15: care stipend is care-labour compensation — co-equal with
     # stewardship and ecological as a requirement, distinct from the

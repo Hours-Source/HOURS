@@ -25,11 +25,34 @@ class TestFiscalParameterSweep:
         assert any(solvency), "At least one levy rate should be solvent"
 
     def test_floor_fraction_sweep(self):
+        """SWEPT AGAINST THE DESIGN THAT READS IT (2026-09-16).
+
+        When V1 became the default guarantee design this sweep went INERT —
+        0.05, 0.15 and 0.30 all returned a guarantee cost of 7,564,933, because
+        V1 derives the recipient share from the register and never looks at
+        `floor_fraction`. A swept parameter that moves no output is failure
+        mode 5, and this test is what caught it.
+        """
         result = fiscal_parameter_sweep("floor_fraction", [0.05, 0.15, 0.30])
         assert len(result["results"]) == 3
         # Higher floor_fraction → higher guarantee cost → lower surplus
         costs = [r["guarantee_cost"] for r in result["results"]]
         assert costs[0] < costs[2]
+        assert len({round(c, 6) for c in costs}) == 3, (
+            "the sweep is inert — every value returned the same cost, which "
+            "means the parameter is not reaching the design that reads it"
+        )
+
+    def test_need_fraction_sweep_is_live_under_the_default_design(self):
+        """The V1 counterpart: the share of ON-LEDGER people the guarantee
+        reaches. This is the parameter that actually governs the liability under
+        the adopted design, so it is the one a sensitivity run should move."""
+        result = fiscal_parameter_sweep("need_fraction", [0.025, 0.05, 0.10])
+        costs = [r["guarantee_cost"] for r in result["results"]]
+        assert len({round(c, 6) for c in costs}) == 3
+        assert costs[0] < costs[1] < costs[2]
+        # Linear in the need fraction: doubling it doubles what is owed.
+        assert costs[2] == pytest.approx(2.0 * costs[1], rel=1e-9)
 
     def test_invalid_parameter_raises(self):
         with pytest.raises(ValueError):
