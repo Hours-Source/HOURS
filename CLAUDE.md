@@ -519,9 +519,9 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,853 tests passing (1 skipped), mypy clean on 102 source files** (verified
+**4,856 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-17). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
-**126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
+**131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
 **The status log was split by subject area on 2026-09-03/04** (`b2892ac`) — this

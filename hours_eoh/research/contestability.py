@@ -160,8 +160,24 @@ def portable_endowment_individual(
                membership-independent (reconciliation §8.1), so it never vests.
         D(ε) — per-capita Trust dividend. Vests linearly over vesting_years;
                a new member (tenure=0) commands none of it on exit.
-        savings — portable personal savings; add to P but are not guaranteed
-               (reconciliation §8.1).
+        savings — WHAT THIS MEMBER BROUGHT: prior work carried in at joining
+               (TEH, and assets that reduce EOH), plus anything saved since.
+               Added to P and NOT guaranteed (reconciliation §8.1), which is
+               correct for an asset claim: the floor is unconditional, the
+               dividend vests, and what you carried in is yours and at risk.
+               ADOPTED 2026-09-17 (author): the exit rule stays the portable
+               endowment and prior work lives HERE, rather than exit paying a
+               share of the collective's prior-work stock. Measured reason: a
+               per-capita share claims the Trust to EXACTLY 100% with no buffer
+               (127.4% once assets are included, i.e. unfundable from the
+               liquid balance), and sustainable turnover under it is exactly the
+               dividend rate, 1.8%/yr. The portable endowment claims 18.6% at
+               ε=0 and sustains ~9.7%.
+               THE ASYMMETRY THIS LEAVES IS REAL AND IS NOT A BUG HERE: full
+               tenure buys 157.7 TEH against the 8,760 a joiner may carry in —
+               1.8%, a factor of 55.6 — so membership is worth little beside
+               arriving with assets. That is a DEP_RATE/DIV_RATE calibration
+               question, not an exit-rule question, and it is open.
 
     This closes §9 open item 7 at the mechanism level: the population-average
     χ in portable_endowment() overstates exit viability for recent members.

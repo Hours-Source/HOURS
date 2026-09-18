@@ -985,3 +985,64 @@ class TestMachineOutputLevyBase:
         rows = levy_schedule_for_chi(n_points=10, levy_base="machine_output")
         for r in rows:
             assert r["chi_check"] >= 1.0 - 1e-9
+
+class TestPriorWorkEntersThroughSavings:
+    """
+    THE EXIT RULE, DECIDED 2026-09-17 (author).
+
+    The choice was between exit paying the PORTABLE ENDOWMENT (S + vested D)
+    and exit paying a SHARE OF PRIOR WORK. The portable endowment stays, and
+    what a member brought lives in `savings` — a term that already existed,
+    is already additive to P, and is already excluded from the guarantee.
+
+    WHY, MEASURED. A per-capita share of prior work claims the Trust to
+    EXACTLY 100% (it IS population x per-capita, by construction), leaving no
+    buffer; including assets it claims 127.4%, which is unfundable from a
+    liquid balance because embodied capital cannot pay an exit without
+    dismantling the apparatus. Sustainable turnover under the share rule is
+    exactly the dividend rate, DEP_RATE x DIV_RATE = 1.8%/yr; under the
+    portable endowment it is ~9.7%.
+
+    WHAT IT DOES NOT FIX, pinned below so it stays visible: full tenure buys
+    157.7 TEH against the 8,760 a joiner may carry in. Membership is worth
+    1.8% of arriving with assets. That is a dividend-calibration question, and
+    pinning it here is what keeps it from living in prose.
+    """
+
+    def _pind(self, **kw):
+        from hours_eoh.research.contestability import portable_endowment_individual
+        return portable_endowment_individual(**kw)
+
+    def test_prior_work_reaches_the_exit_claim_through_savings(self):
+        from hours_eoh.data import TRUST_BASE_TEH_PER_CAPITA as PC
+        bare = self._pind(epsilon=0.40, tenure_years=0.0, savings=0.0)
+        brought = self._pind(epsilon=0.40, tenure_years=0.0, savings=PC)
+        assert brought["p_individual"] - bare["p_individual"] == pytest.approx(PC), (
+            "prior work must reach P additively and unchanged — if it is scaled "
+            "or capped on the way in, it is no longer 'what you brought'"
+        )
+
+    def test_the_floor_is_unconditional_and_the_asset_term_is_not(self):
+        """S never vests and never depends on what was brought; savings do."""
+        a = self._pind(epsilon=0.40, tenure_years=0.0, savings=0.0)
+        b = self._pind(epsilon=0.40, tenure_years=99.0, savings=5000.0)
+        assert a["guarantee_per_person"] == pytest.approx(b["guarantee_per_person"])
+
+    def test_tenure_is_worth_far_less_than_arriving_with_assets(self):
+        """
+        THE ASYMMETRY, PINNED AS A FACT RATHER THAN A WORRY.
+
+        A native with full tenure and nothing brought against a joiner on day
+        one carrying the shipped per-capita prior work. If this ratio ever
+        approaches 1 the dividend calibration has changed and the two-tier
+        concern has gone with it — which is a result worth failing a test over.
+        """
+        from hours_eoh.data import TRUST_BASE_TEH_PER_CAPITA as PC
+        native = self._pind(epsilon=0.40, tenure_years=99.0, savings=0.0)
+        joiner = self._pind(epsilon=0.40, tenure_years=0.0, savings=PC)
+        tenure_worth = native["trust_dividend_vested"]
+        assert tenure_worth < 0.05 * PC, (
+            f"tenure now buys {tenure_worth:,.1f} against {PC:,.0f} brought in; "
+            "if that has closed, re-read the exit-rule decision"
+        )
+        assert joiner["p_individual"] > native["p_individual"]
