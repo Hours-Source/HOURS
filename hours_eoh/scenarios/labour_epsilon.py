@@ -41,6 +41,7 @@ Layer: scenarios/ — imports from core/ and reference/, never the reverse.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from hours_eoh.data import REFERENCE_FRAME_POPULATION
@@ -61,7 +62,14 @@ __all__ = [
 _WORK_PREFIX: str = "05"
 
 
-def measured_hours(year: int | None = None, population: float = BEA_POPULATION) -> dict:
+def measured_hours(
+    year: int | None = None,
+    population: float = BEA_POPULATION,
+    *,
+    population_15_plus_supplied: float | None = None,
+    unpaid_per_15plus: float | None = None,
+    paid_per_15plus: float | None = None,
+) -> dict:
     """
     Human hours on obligation, per capita per year, from time diaries.
 
@@ -78,8 +86,38 @@ def measured_hours(year: int | None = None, population: float = BEA_POPULATION) 
     map. The paid half is the whole of ATUS work; how much of it discharges an
     obligation is the one judgement, and it lives in `reference/obligation_work`.
     """
+    # ALL THREE OR NONE (2026-09-18). A partial supply would divide one
+    # jurisdiction's unpaid hours by another's adult count, or set a foreign
+    # unpaid figure beside America's paid one — the half-ported instrument this
+    # parameterisation exists to prevent, at a finer grain. Refused rather than
+    # blended, because a blend produces a number and no error.
+    _supplied = (population_15_plus_supplied, unpaid_per_15plus, paid_per_15plus)
+    if any(v is not None for v in _supplied) and not all(v is not None for v in _supplied):
+        missing = [n for n, v in zip(
+            ("population_15_plus_supplied", "unpaid_per_15plus", "paid_per_15plus"),
+            _supplied) if v is None]
+        raise ValueError(
+            f"supply all three measured-hours inputs or none; missing {missing}. "
+            "A partial supply mixes two jurisdictions' time use into one reading."
+        )
+    # NARROWED STRUCTURALLY, NOT ASSERTED. `_own` is a runtime fact mypy cannot
+    # follow into the float() calls below, and a `type: ignore` there would hide
+    # a real None leak from a caller who supplied two of three. Binding the three
+    # inside the `is not None` test makes the narrowing something the checker can
+    # see, which is the same remedy used for the frozen-frame resolve.
+    if (population_15_plus_supplied is not None
+            and unpaid_per_15plus is not None
+            and paid_per_15plus is not None):
+        _own = True
+        _p15_own, _unpaid_own, _paid_own = (float(population_15_plus_supplied),
+                                            float(unpaid_per_15plus),
+                                            float(paid_per_15plus))
+    else:
+        _own = False
+        _p15_own = _unpaid_own = _paid_own = 0.0
+
     y = latest_year() if year is None else year
-    p15 = population_15_plus(y)
+    p15 = _p15_own if _own else population_15_plus(y)
     if population < p15:
         raise ValueError(
             f"population {population:,.0f} is below the survey's own 15+ count "
@@ -87,13 +125,16 @@ def measured_hours(year: int | None = None, population: float = BEA_POPULATION) 
             "population the ATUS 15+ figure belongs to, and the two travel "
             "together. Supplying a smaller one asserts more adults than people."
         )
-    unpaid_15 = observed_shares(y)["mapped_total"]
+    unpaid_15 = _unpaid_own if _own else observed_shares(y)["mapped_total"]
     # The reference layer already owns this conversion AND the days-per-year it
     # needs; re-declaring either would be a second account of one quantity.
-    paid_15 = hours_per_person_15plus(y, (_WORK_PREFIX,))
-    share_15 = population_15_plus(y) / population
+    paid_15 = _paid_own if _own else hours_per_person_15plus(y, (_WORK_PREFIX,))
+    share_15 = p15 / population
     return {
-        "year":              y,
+        # The ATUS survey year belongs to the SHIPPED series. Supplied hours have
+        # their own vintage this module does not know, so it is not asserted.
+        "year":              None if _own else y,
+        "hours_source":      "supplied" if _own else "shipped_atus",
         "frame":             "per capita, converted from ATUS per person 15+",
         "population":        population,
         "population_15_plus": population_15_plus(y),
@@ -110,6 +151,11 @@ def labour_epsilon(
     year: int | None = None,
     population: float = BEA_POPULATION,
     tol: float = 1e-9,
+    *,
+    population_15_plus_supplied: float | None = None,
+    unpaid_per_15plus: float | None = None,
+    paid_per_15plus: float | None = None,
+    employment: "Mapping[str, float] | None" = None,
 ) -> dict:
     """
     ε implied by measured human hours against the obligation they discharge.
@@ -135,8 +181,15 @@ def labour_epsilon(
     Raises:
         ValueError: on an unknown scope.
     """
-    hours = measured_hours(year, population)
-    share = obligation_share(scope)["share"]          # validates scope
+    hours = measured_hours(
+        year, population,
+        population_15_plus_supplied=population_15_plus_supplied,
+        unpaid_per_15plus=unpaid_per_15plus,
+        paid_per_15plus=paid_per_15plus,
+    )
+    # `employment` was ALREADY pluggable here before this work — one third of the
+    # labour side needed no change. It still validates scope.
+    share = obligation_share(scope, employment=employment)["share"]
     human = hours["unpaid_per_capita"] + hours["paid_per_capita"] * share
 
     eps = 0.5
@@ -182,12 +235,23 @@ def labour_epsilon(
         "total_obligation_per_capita": total_pc,
         "epsilon":            eps,
         "currency_used":      None,
+        # WHOSE TIME USE, AND WHOSE OCCUPATIONAL STRUCTURE. Carried out so a
+        # reader of a single result can tell a US reading from a ported one
+        # without inspecting the call.
+        "hours_source":       hours["hours_source"],
+        "employment_source":  "shipped_soc" if employment is None else "supplied",
     }
 
 
 def instrument_comparison(
     capital_rates: tuple[float, ...] = (15.94, 19.50, 23.17),
     population: float = BEA_POPULATION,
+    *,
+    inventory: "Mapping[str, float] | None" = None,
+    population_15_plus_supplied: float | None = None,
+    unpaid_per_15plus: float | None = None,
+    paid_per_15plus: float | None = None,
+    employment: "Mapping[str, float] | None" = None,
 ) -> dict:
     """
     The two instruments side by side, with the honest verdict about their gap.
@@ -201,8 +265,32 @@ def instrument_comparison(
     """
     from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
 
-    lab = {s: labour_epsilon(s, population=population)["epsilon"] for s in ("core", "broad")}
-    cap = [epsilon_from_inventory(r, scope="government", population=population)["epsilon"]
+    # BOTH ARMS OR NEITHER, AND THE REPORT SAYS WHICH. Threading only the
+    # capital inventory would compare a supplied capital reading against the
+    # SHIPPED US labour reading and return a confident verdict that means
+    # nothing — the half-ported instrument this parameterisation exists to make
+    # inexpressible rather than merely discouraged.
+    _lab_own = any(v is not None for v in
+                   (population_15_plus_supplied, unpaid_per_15plus,
+                    paid_per_15plus, employment))
+    _cap_own = inventory is not None
+    if _lab_own != _cap_own:
+        raise ValueError(
+            "supply BOTH arms or neither: "
+            f"capital={'supplied' if _cap_own else 'shipped'}, "
+            f"labour={'supplied' if _lab_own else 'shipped'}. Comparing one "
+            "jurisdiction's capital against another's time use produces a "
+            "verdict about no economy."
+        )
+    lab = {s: labour_epsilon(
+               s, population=population,
+               population_15_plus_supplied=population_15_plus_supplied,
+               unpaid_per_15plus=unpaid_per_15plus,
+               paid_per_15plus=paid_per_15plus,
+               employment=employment)["epsilon"]
+           for s in ("core", "broad")}
+    cap = [epsilon_from_inventory(r, scope="government", population=population,
+                                  inventory=inventory)["epsilon"]
            for r in capital_rates]
     lab_lo, lab_hi = lab["broad"], lab["core"]
     cap_lo, cap_hi = min(cap), max(cap)
@@ -223,6 +311,8 @@ def instrument_comparison(
             "instruments; what is cross-checked is the machine/human split"
         ),
         "judgements": {"labour": 1, "capital": 3},
+        "sources": {"capital": "supplied" if _cap_own else "shipped_bea",
+                    "labour":  "supplied" if _lab_own else "shipped_atus"},
     }
 
 
@@ -232,6 +322,12 @@ def reconciling_rate(
     hi: float = 200.0,
     tol: float = 1e-4,
     population: float = BEA_POPULATION,
+    *,
+    inventory: "Mapping[str, float] | None" = None,
+    population_15_plus_supplied: float | None = None,
+    unpaid_per_15plus: float | None = None,
+    paid_per_15plus: float | None = None,
+    employment: "Mapping[str, float] | None" = None,
 ) -> dict:
     """
     The currency-per-TEH rate at which the capital route would meet the labour route.
@@ -247,10 +343,19 @@ def reconciling_rate(
     """
     from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
 
-    target = labour_epsilon(scope, population=population)["epsilon"]
+    # The bisection assumes ε falls as the rate rises. VERIFIED 2026-09-18 for a
+    # SUPPLIED inventory too — strictly falling across rates 2 → 160 — so the
+    # bracket stays valid when the capital arm is ported.
+    target = labour_epsilon(
+        scope, population=population,
+        population_15_plus_supplied=population_15_plus_supplied,
+        unpaid_per_15plus=unpaid_per_15plus,
+        paid_per_15plus=paid_per_15plus,
+        employment=employment)["epsilon"]
     while hi - lo > tol:
         mid = (lo + hi) / 2.0
-        if epsilon_from_inventory(mid, scope="government", population=population)["epsilon"] > target:
+        if epsilon_from_inventory(mid, scope="government", population=population,
+                                  inventory=inventory)["epsilon"] > target:
             lo = mid            # ε falls as the rate rises
         else:
             hi = mid
