@@ -3424,6 +3424,20 @@ TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAM
 #   CAPITAL_MACHINE_PROFILES design lives — so the repo holds two aggregate
 #   depreciation rates, 0.045 and 0.05, on the same physical quantity. They
 #   should be reconciled to one derivation.
+# note: THE RESOLVES_BY WAS RUN, 2026-09-17, AND THE STATED DERIVATION DOES NOT
+#   REPRODUCE. A depreciation rate aggregates as a mean of RATES, not as the
+#   reciprocal of a mean life: δ = Σ(wᵢ/lifeᵢ)/Σwᵢ weighted by TEH at the
+#   `standard` tier gives 0.0428 (implied life 23.35 yr) — not the ≈20 yr → 1/20
+#   that the band and resolves_by above both assert. The profiles therefore
+#   support a value BELOW this band, not at its upper end.
+#   AND THE METHOD DOMINATES THE DISPUTE: weighted mean of rates 0.0428,
+#   reciprocal of the weighted mean life 0.0286, unweighted mean of rates
+#   0.0602 — a 2.1× spread, against the 11% gap these two constants are asked to
+#   reconcile. Choosing the aggregation IS the decision, and it is not made here.
+#   NEITHER VALUE IS CHANGED. Both err high against 0.0428, which by the `errs`
+#   field above is the SAFE direction, and re-fitting a calibration constant to a
+#   freshly-run derivation is an author decision (§5). See
+#   record/provenance.md#depreciation-derivation-does-not-reproduce.
 DEP_RATE:                     float = 0.045             # annual trust depreciation rate
 # tag: normative | units: fraction of annual depreciation
 # form: the dividend/renewal split. That a split exists is structural — pay
@@ -4827,6 +4841,13 @@ RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
 # resolves_by: n/a — it inherits CAPITAL_MACHINE_PROFILES' standing, which is
 #   CHOSEN. See DEP_RATE (0.045) for the same physical quantity derived a
 #   second way; the two should be reconciled to one.
+# note: THE `form:` ABOVE DOES NOT REPRODUCE, RUN 2026-09-17. Weighting
+#   CAPITAL_MACHINE_PROFILES by TEH at the `standard` tier and aggregating as a
+#   RATE gives δ = 0.0428 (life 23.35 yr), against the 0.05 held here and the
+#   "≈20 yr" the form claims. A `derived` tag asserts the value IS its stated
+#   formula, so this is a provenance defect rather than a caveat. Recorded and
+#   not repaired: retagging moves the verdict-ladder census and re-fitting is an
+#   author decision. See record/provenance.md#depreciation-derivation-does-not-reproduce.
 FORMATION_DEPRECIATION_RATE: float = 0.05
                                          # aggregate annual depreciation of machine capital.
                                          # Derived from CAPITAL_MACHINE_PROFILES design lives

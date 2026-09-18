@@ -1003,10 +1003,25 @@ class TestPriorWorkEntersThroughSavings:
     exactly the dividend rate, DEP_RATE x DIV_RATE = 1.8%/yr; under the
     portable endowment it is ~9.7%.
 
-    WHAT IT DOES NOT FIX, pinned below so it stays visible: full tenure buys
-    157.7 TEH against the 8,760 a joiner may carry in. Membership is worth
-    1.8% of arriving with assets. That is a dividend-calibration question, and
-    pinning it here is what keeps it from living in prose.
+    WHAT IT DOES NOT FIX, pinned below so it stays visible: the VESTED term is
+    one year's dividend, 157.7 TEH, against the 8,760 a joiner may carry in.
+
+    READ THAT COMPARISON CAREFULLY — it is a FLOW against a STOCK, and the
+    first version of this docstring (2026-09-17) called it "membership is worth
+    1.8% of arriving with assets", which is the category error this repo keeps
+    catching. 8,760 / 157.68 = 55.6 years: a member who receives the dividend
+    and SAVES it reaches parity with the joiner's stake, and saved dividends
+    enter `savings` like anything else. So the asymmetry is about TIMING, not a
+    permanent two-tier exit right.
+
+    NOR IS IT A CALIBRATION QUESTION, which the same first version also claimed.
+    Measured: the vested dividend is trust_pc x DEP_RATE x DIV_RATE, so even at
+    FORMATION_DEPRECIATION_RATE (0.05) and a 100% payout it maxes at 438 TEH/yr
+    against the 1,876 a native needs to clear chi at eps=0.40 and 3,732 at 0.90.
+    The required DIV_RATE at eps=0.40 is 4.76 — 476% of depreciation. No payout
+    policy closes it above eps=0. What the comparison actually measures is the
+    RC4 flow/stock mismatch that §8.9 retired, which is why the ADOPTED
+    invariant counts YEARS-to-finance rather than a one-year ratio.
     """
 
     def _pind(self, **kw):
