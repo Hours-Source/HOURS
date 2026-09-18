@@ -282,7 +282,19 @@ def run(args: argparse.Namespace) -> None:
     print(f"  abatement a(K) = {_o['abatement']:.4f}   "
           f"break-even ε = {_be(_capital, args.population):.4f}")
 
-    for flag_key, flag_label in [("red_flags", "Red flags"), ("yellow_flags", "Warnings")]:
+    # `suppressed_flags` is printed HERE and not only in --format json (2026-09-17).
+    # core.system_dashboard declared the masking on 2026-09-16 — "MASKING MUST BE
+    # DECLARED, NEVER INFERRED" — but the table path, which is the default and what
+    # a person actually reads, printed only the two flag lists. So at ε=0 the reader
+    # saw `Personal registration: RED` above an EMPTY red-flag list and an
+    # overall_status that did not reflect it, with nothing saying the exclusion was
+    # deliberate: the declaration existed in the library and was invisible at the
+    # documented entry point. Same shape as the ten --trust-balance defaults.
+    for flag_key, flag_label in [
+        ("red_flags", "Red flags"),
+        ("yellow_flags", "Warnings"),
+        ("suppressed_flags", "Suppressed — declared, and NOT counted in overall status"),
+    ]:
         flags = snap.get(flag_key, [])
         if flags:
             print()

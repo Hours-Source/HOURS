@@ -801,3 +801,65 @@ class TestTheCliAssemblyIsComputedNotInvented:
         assert DECLARED_CERTIFIED_FRACTION > COMPETENCY_THRESHOLD
         assert declared["condition_iv"]["passes"] is True
         assert low["condition_iv"]["passes"] is False
+
+class TestTheDeclaredSuppressionReachesTheReader:
+    """
+    THE FIRST OUTPUT-CAPTURING TEST IN THIS REPO, and the gap it closes.
+
+    `core.system_dashboard` declared the masking of `personal_registration_status`
+    on 2026-09-16 — "MASKING MUST BE DECLARED, NEVER INFERRED" — and the tests
+    above pin that the returned DICT carries `suppressed_flags`. Nothing pinned
+    that it is RENDERED. The table path is the default and is what a person
+    actually reads, and until 2026-09-17 it printed only `red_flags` and
+    `yellow_flags`: at ε=0 the reader saw `Personal registration: RED` above an
+    EMPTY red-flag list, with an overall status that did not reflect it and
+    nothing saying the exclusion was deliberate.
+
+    NO TEST IN THIS REPO CAPTURED CLI STDOUT — no capsys, no capfd, no
+    redirect_stdout anywhere under tests/. That is why a declaration could exist
+    in the library and be invisible at the documented entry point: the core pin
+    asserted the dict and the rendering was unguarded. Same shape as the ten
+    `--trust-balance` defaults, where every fix above the CLI was invisible.
+
+    It drives the real argparse tree rather than a hand-built namespace, because
+    a namespace I construct tests my reconstruction of the entry point, not the
+    entry point.
+    """
+
+    def _cli(self, capsys, *argv: str) -> str:
+        from utils.eoh_cli import build_parser
+        args = build_parser().parse_args(list(argv))
+        args.func(args)
+        return capsys.readouterr().out
+
+    def test_the_suppression_is_printed_at_subsistence(self, capsys):
+        out = self._cli(capsys, "dashboard", "--epsilon", "0")
+        assert "personal_registration" in out, (
+            "the suppressed indicator is not named in the default output — a "
+            "reader sees a RED value with an empty flag list and no reason"
+        )
+        assert "suppressed:" in out, "the reason is not rendered"
+        assert "NOT counted in overall status" in out, (
+            "a declared RED that does not move overall_status must SAY it does "
+            "not, or it reads as an inconsistency rather than a decision"
+        )
+
+    def test_nothing_is_printed_when_nothing_is_suppressed(self, capsys):
+        """
+        CAN FIRE AND CAN NOT-FIRE. A section that always prints would be
+        decorative; at ε=0.90 personal registration has risen and nothing is
+        suppressed, so the block must be absent.
+        """
+        out = self._cli(capsys, "dashboard", "--epsilon", "0.90")
+        assert "suppressed:" not in out
+
+    def test_the_json_path_carried_it_all_along(self, capsys):
+        """
+        `--format json` dumps the whole snapshot, so it was never blind. Pinned
+        to record that the defect was in the RENDERING and not in the data, and
+        that the two paths must not diverge again.
+        """
+        import json as _json
+        out = self._cli(capsys, "dashboard", "--epsilon", "0", "--format", "json")
+        snap = _json.loads(out)
+        assert any("personal_registration" in s for s in snap["suppressed_flags"])
