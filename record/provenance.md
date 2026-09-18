@@ -13,7 +13,7 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **345 constants in `data.py`, all tagged** — `provenance 345/345` *(gated)*.
+- **346 constants in `data.py`, all tagged** — `provenance 346/346` *(gated)*.
   placeholder 128 (37.1%), normative 72 (20.9%), convention 43 (12.5%), measured
   28 (8.1%), instance 22 (6.4%), derived 22 (6.4%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).

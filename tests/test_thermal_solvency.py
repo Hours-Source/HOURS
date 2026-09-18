@@ -37,7 +37,8 @@ def test_reference_matches_the_repo_sweep_calibration():
     """The gate must not invent its own economy — an uncalibrated trust balance
     was the first false failure."""
     from hours_eoh.research import thermal_solvency as ts
-    assert ts.REF_TRUST_BALANCE == 3.5e10
+    from hours_eoh.data import TRUST_BASE_TEH
+    assert ts.REF_TRUST_BALANCE == TRUST_BASE_TEH
     assert ts.REF_CAPITAL_AGE_RATIO == 0.30
     assert ts.REF_CAPITAL_STOCK == 2.0e9
 

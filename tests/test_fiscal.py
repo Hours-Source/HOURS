@@ -1961,9 +1961,14 @@ class TestTheInheritanceTravelsWithTheFrame:
     for a million people. Measured on `trust_depletion_stress` before the fix:
 
         population      trust floor per capita
-        1e5             350,037.40    (10x the intended 35,000)
+        1e5             350,037.40    (10x the then-intended 35,000)
         1e6              35,007.39    (the reference frame)
         3.35e8              111.87    (understated 335x)
+
+    Those figures are AT THE PRE-REPRICE 35,000 TEH/person. The inheritance
+    was repriced to 8,760 TEH/person on 2026-09-17, so the same measurement
+    now reads 8,767.39 per capita at every population. The DEFECT and its
+    ratios are what this table records, and they are unchanged by the level.
 
     THE DEFECT WAS DOCUMENTED AND HAPPENED ANYWAY, which is why it is code now
     and not a note. The constant's own `supplied_by` field already said "every

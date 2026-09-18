@@ -3332,29 +3332,69 @@ PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
 #   cap binds on top of that.
 # note: migrated from core/fiscal.py 2026-08-28 as a shadow constant.
 PROVIDER_CAP_EQUIVALENTS:     float = 2.50
+# tag: instance | units: TEH per person — the inheritance one person brings
+# supplied_by: your collective's actual Trust balance divided by its
+#   population, or, for a converting jurisdiction, the inventory it brings per
+#   head. Intake path: research/epsilon_inverse.capital_for_epsilon() makes an
+#   inventory-first reading possible. Nothing requires editing this constant —
+#   every fiscal function takes `trust_balance`, and an unsupplied one resolves
+#   against your population.
+# default: 8,760 TEH/person (author, 2026-09-17). WHAT IS BROUGHT IS PRIOR WORK,
+#   NOT AN ENTITLEMENT. People bring TEH, and assets that reduce EOH and carry
+#   EOH costs of their own, when a collective is FORMED or JOINED. 8,760 is what
+#   the CURRENT WORLD's prior work is assumed to amount to per head — an estimate
+#   of a real stock, NOT a hard number and NOT a per-head grant. A collective
+#   founded at subsistence brings 0.0, and a joiner may bring nothing; both are
+#   honoured as zero. `scenarios/stationarity` already defaults `trust_start`
+#   to 0.0, and CAPITAL_STOCK_DEFAULT says the same of capital ("Callers passing
+#   it at low ε are asserting capital the arc says is not there").
+#   NOTHING IS MINTED BY ARRIVING. Prior work already exists, so bringing it is a
+#   TRANSFER — which is why this doctrine leaves the one-mint-path gate,
+#   Condition III and trust_management's all-transfers property untouched. An
+#   earlier option under which joining MINTED 8,760 TEH was measured at 13.5% of
+#   the mint, cumulatively exceeding the whole founding stock within 200 periods,
+#   and was rejected: it would have created TEH for someone who had met no
+#   registered obligation, which is the hole-digger case the anchor argument
+#   exists to refuse (tests/test_one_mint_path.py).
+#   It replaces the 35,000 TEH/person implied by the former 35e9 aggregate,
+#   whose own sizing rationale was WITHDRAWN by the author 2026-09-16 and
+#   deliberately not re-fitted.
+#   The figure equals the hours in a calendar year (24 × 365); that equality is
+#   NOTED, not claimed as the derivation.
+# note: DO NOT POINT THIS AT THE CAPITAL RETRODICTION. `scenarios/
+#   capital_retrodiction` measures the gross fixed CAPITAL stock in TEH — which
+#   is the quantity CAPITAL_STOCK_DEFAULT holds and names in its own
+#   `supplied_by`, not this one. Its US grid spans 2,535–16,703 TEH/capita
+#   across scope, doctrine and conversion rate, so 8,760 landing mid-band is
+#   CONSISTENCY, not corroboration: a 6.6x range admits almost any mid-range
+#   figure. Attaching that instrument here would be binding a measurement to
+#   the wrong quantity (failure mode 8).
+# note: OPEN — IS 8,760 THE TEH COMPONENT OR THE TOTAL? `make_economy_state`
+#   builds `teh_endowment = trust_balance + capital_embodied_teh` = 8,760 + 2,400
+#   = 11,160 TEH/person. Under the prior-work doctrine capital IS prior work, so
+#   either this figure is the TEH component ONLY and the endowment is right, or
+#   it is TOTAL prior work and the endowment counts the assets twice. The two
+#   give different models and the question is DECLARED here rather than settled,
+#   because settling it by choosing whichever keeps the current number is the
+#   move that produced the withdrawn 35e9 rationale.
+TRUST_BASE_TEH_PER_CAPITA:    float = 8_760.0
 # tag: instance | units: TEH (at the 1M reference population)
-# supplied_by: your collective Trust's actual balance, or a capital inventory
-#   in TEH for the jurisdiction being modelled. Intake path:
-#   research/epsilon_inverse.capital_for_epsilon() makes an inventory-first
-#   reading possible; scale by population against the 1M reference. Every
-#   fiscal function takes trust_balance as an argument, so nothing requires
-#   editing this constant — pass your own.
-# default: THE NUMBER IS RETAINED AND ITS RATIONALE IS WITHDRAWN (author,
-#   2026-09-16). It was sized backwards — chosen so the annual dividend
-#   (Trust × DEP_RATE × DIV_RATE = 630M TEH) covered stewardship, ecological
-#   and guarantee obligations at mid-arc. The Trust carries none of the first
-#   two since 2026-09-15 (minted TEH is the wage), and the dividend no longer
-#   leaves the balance at all (only what is owed does), so nothing is left of
-#   the derivation. It is NOT re-sized: re-fitting it to the new rule would be
-#   the same move that produced it. What it now is: the shipped INHERITANCE —
-#   what a collective converting from a previous system brings — and a
-#   civilisation starting from subsistence has 0.0, which is what
-#   `scenarios/stationarity` defaults `trust_start` to. 35e9 is a SCENARIO,
-#   not a derivation. It WAS the most-consumed constant in the repo (77 call
-#   sites outside data.py); the 2026-09-17 frame repair moved consumers onto
-#   core.fiscal.resolve_trust_balance(), leaving 4 code sites outside data.py
-#   (56 more in tests). Every canonical solvency result still rests on it and
-#   none of them is evidence about YOUR fisc — pass your own.
+# supplied_by: nothing separately — supply TRUST_BASE_TEH_PER_CAPITA, which
+#   carries the judgement; this is its restatement at the package reference
+#   frame. Every fiscal function takes `trust_balance`, and an unsupplied one
+#   resolves against your population.
+# default: DEFINED equal to TRUST_BASE_TEH_PER_CAPITA × REFERENCE_FRAME_POPULATION
+#   = 8,760 × 1e6 = 8.76e9 (author, 2026-09-17), replacing the former 35e9
+#   whose sizing rationale was withdrawn 2026-09-16 and not re-fitted.
+# note: IT IS TAGGED `instance`, NOT `derived`, AND THE DIFFERENCE IS A COUNT.
+#   Tagging it `derived` — which its VALUE now is — moved it from the verdict
+#   ladder's INSTANCE tier to CERTAIN (31 → 32) at the moment of the reprice,
+#   because the ladder reads `derived` by its own tag and does not follow
+#   through to what the value bottoms out on (utils/provenance.py names this
+#   one-level gap). Its COMPUTATION became derived; its STANDING did not, and
+#   the tag records standing. Left as `derived` the framework would have read
+#   as more certain about the most-consumed solvency constant in the repo
+#   purely because a tag moved.
 # note: THE FRAME IS RESOLVED, NOT ASSUMED (2026-09-17). Consumers take
 #   `trust_balance: float | None = None` and resolve an unsupplied balance
 #   against THEIR OWN population via core.fiscal.resolve_trust_balance(), so
@@ -3368,7 +3408,7 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   this constant while --population sat beside them freely settable, so
 #   `--population 335000000` ran 335M people on a 1M-person Trust.
 #   Gated by tests/test_trust_scale_resolution.py.
-TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); the shipped INHERITANCE — sizing rationale withdrawn 2026-09-16
+TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAME_POPULATION
 # tag: bounded | units: fraction of Trust per year
 # band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
 #   derived in this file from CAPITAL_MACHINE_PROFILES design lives (≈20 yr →

@@ -503,8 +503,12 @@ def entry_underwriting(
     Worked example (ε=0.99, increasing_returns, commons=1.57e10):
         K_entry ≈ 4651; founding_need = 5000 × 4651 ≈ 2.33e7
         deployable = 0.5 × 1.57e10 ≈ 7.8e9 → entry_capacity ≈ 337  "OK"
-    At ε=0 the commons is typically empty (capacity 0) but χ_marginal ≈ 1.3
-    carries the invariant; the crossover is covered by seeding the commons —
+    At ε=0 the commons is typically empty (capacity 0) and χ_marginal does NOT
+    carry the invariant: it is 0.8182 "CRIT" there and is INDEPENDENT of the
+    trust balance (measured identical at 8.76e9, 3.5e10 and 5e11 — the marginal
+    member has no vested dividend by construction). An earlier "χ_marginal ≈ 1.3"
+    here was wrong by 1.6x and predates the 2026-09-17 reprice rather than being
+    caused by it. The crossover is covered by seeding the commons —
     see commons_seed_required().
 
     ε-behavior: founding_need rises with K_entry in the adversarial regime,
@@ -575,12 +579,17 @@ def commons_seed_required(
 
     At ε=0 the commons has collected no tithe and no escheat, so without a
     seed the entry-underwriting arm of the combined invariant starts at
-    capacity 0. χ_marginal ≈ 1.3 at ε=0 carries the invariant on its own
-    there, but the seed removes the early-arc window where both arms could
-    sag before escheat inflows begin.
+    capacity 0. An earlier note here said "χ_marginal ≈ 1.3 at ε=0 carries the
+    invariant on its own there" — MEASURED 0.8182, "CRIT", and independent of
+    the trust balance, so it does not. BOTH arms sag at ε=0, which strengthens
+    rather than weakens the case for the seed. (The figure was wrong before the
+    2026-09-17 reprice; χ_marginal does not depend on the inheritance.)
 
-    Worked example (defaults): 5000 × 1800 / 0.5 = 1.8e7 TEH — about 0.05%
-    of TRUST_BASE_TEH. The early-arc gap closes for ~1/2000th of the Trust.
+    Worked example (defaults): 5000 × 1800 / 0.5 = 1.8e7 TEH — 0.205% of
+    TRUST_BASE_TEH since the 2026-09-17 reprice to 8,760 TEH/person, where it
+    was 0.051% at the former 35e9. The seed is a FIXED TEH quantity and does
+    not scale with the Trust, so repricing the inheritance moved this share
+    4.0x and broke the "well under 0.1%" claim a test asserted.
 
     Args:
         min_viable_population: Smallest viable founding cohort (> 0).
@@ -615,6 +624,17 @@ def contestability_margin(
 ) -> dict:
     """
     Contestability margin χ(ε) = P(ε) / K_entry(ε).
+
+    SUPERSEDED BY §8.9 — bare χ is not the live invariant (record/
+    contestability.md § Live state). The ADOPTED test is
+    research/recalibration.exit_financing(): time-to-finance-exit within one
+    vesting period across three channels, and it takes NO trust balance, so it
+    is unaffected by the level of the inheritance. This function is retained
+    runnable as a documented negative result, exactly as trust_required_for_chi()
+    and levy_schedule_for_chi() are; research/corridor runs this axis as
+    contestability_ceiling_bare_chi() and contestability_axes() reports the
+    disagreement. Marked 2026-09-17, when the reprice to 8,760 TEH/person pushed
+    χ(0) from 1.1682 to 0.9058 while exit_financing stayed financeable at every ε.
 
     Governing equation (reconciliation §8.1):
         χ(ε) = P(ε) / K_entry(ε)   ≥ 1  required
@@ -942,7 +962,11 @@ def min_levy_for_pi(
     population and is the one place in the Trust chain where a caller
     at another scale MUST pass a balance explicitly.
 
-    CALIBRATION NOTE: τ = T/K ≈ 17.5 at canonical defaults is intentional
+    CALIBRATION NOTE: τ = T/K ≈ 4.38 at canonical defaults (8.76e9 / 2.0e9)
+    since the 2026-09-17 reprice to 8,760 TEH/person; it was 17.5 at the
+    former 35e9. The Trust still exceeds private capital, so the g_Trust ≥
+    g_priv condition below is still the binding one, but by 4.4x and not 17.5x.
+    The ordering is intentional
     (see docs/parameter_provenance.md: TRUST_BASE_TEH STATES 35,000
     TEH/person as a shipped INHERITANCE — its sizing rationale was
     WITHDRAWN by the author 2026-09-16 and is deliberately not re-fitted;
@@ -1034,7 +1058,9 @@ def trust_required_for_chi(
     Worked example (ε=0.99, increasing_returns, pop=1M, χ_target=1):
         K_entry ≈ 4651 TEH, S ≈ 318 TEH
         T_required = (4651 − 318) × 1M / (0.045 × 0.40) ≈ 2.41e11 TEH
-        — roughly 6.9× the canonical TRUST_BASE_TEH of 3.5e10. The invariant
+        — roughly 11.9× the canonical TRUST_BASE_TEH of 8.76e9 (it was 6.9×
+        of the former 3.5e10; the 2026-09-17 reprice raised the multiple
+        because the requirement is Trust-independent). The invariant
         is closable, but only with a Trust that grows ~7× across the arc.
 
     ε-behavior: in the increasing_returns regime T_required rises

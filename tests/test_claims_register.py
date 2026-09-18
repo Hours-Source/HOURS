@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 345 and total == 345
+    return tagged == 346 and total == 346
 
 
 def _shadow_count_is_33() -> bool:
@@ -195,13 +195,17 @@ def _teh_supply_is_orphaned_and_refuses_the_shipped_trajectory() -> bool:
                         and isinstance(node.func, ast.Name)
                         and node.func.id == "teh_supply"):
                     return False
+    state = make_economy_state()
     rows = run_simulation(make_economy_state(), n_periods=40)["period_results"]
-    try:
-        teh_supply(sum(r["teh_created"] for r in rows),
-                   sum(r["teh_destroyed"] for r in rows))
-    except ValueError:
-        return True
-    return False
+    created = sum(r["teh_created"] for r in rows)
+    destroyed = sum(r["teh_destroyed"] for r in rows)
+    endowment = state["teh_endowment"]
+    if endowment <= 0.0:
+        return False
+    if created < destroyed:
+        return True          # the old symptom: teh_supply refuses the flows
+    return abs((rows[-1]["teh_total_supply"] - teh_supply(created, destroyed))
+               - endowment) <= 1e-6 * max(1.0, endowment)
 
 
 def _no_constant_is_currency_denominated() -> bool:
@@ -259,7 +263,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 345/345",
+        anchor="provenance 346/346",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342. "
@@ -322,12 +326,15 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="It has ZERO callers, and it raises on the shipped model's own canonical trajectory",
+        anchor="It has ZERO callers, and its identity differs from the shipped one by exactly the endowment",
         check=_teh_supply_is_orphaned_and_refuses_the_shipped_trajectory,
         why=(
             "`teh_supply` states the bound the value-anchor argument WANTS and "
-            "describes an economy with no endowment. A caller appearing, or the "
-            "guard ceasing to fire, means the two accounts have silently merged."
+            "describes an economy with no endowment. A caller appearing means "
+            "the two accounts have merged. The guard used to be 'it raises on "
+            "the shipped trajectory', which only held while the inheritance was "
+            "large enough to make destruction outpace creation — it stopped "
+            "firing at the 2026-09-17 reprice without the accounts merging at all."
         ),
     ),
     Claim(

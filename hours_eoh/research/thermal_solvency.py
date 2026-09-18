@@ -107,6 +107,7 @@ from hours_eoh.data import (
     CDR_LABOR_HOURS_PER_TONNE,
     THERMAL_DT_LO,
     THERMAL_PROGRAMME_YEARS,
+    TRUST_BASE_TEH,
 )
 from hours_eoh.research.thermal_drawdown import allocation_share, drawdown_job
 
@@ -121,7 +122,11 @@ REF_WORLD_POPULATION = 8.16e9
 REF_CAPITAL_STOCK = 2.0e9
 REF_CAPITAL_AGE_RATIO = 0.30
 REF_ECOSYSTEM_HEALTH = 0.70
-REF_TRUST_BALANCE = 3.5e10
+#: BOUND to the constant 2026-09-17, not restated. It was a literal copy of
+#: TRUST_BASE_TEH's value, so the reprice to 8,760 TEH/person would have left
+#: this reference economy silently diverging from the sweep it claims above to
+#: MATCH. Binding keeps that claim true by construction rather than by memory.
+REF_TRUST_BALANCE = TRUST_BASE_TEH
 #: Available human labour: 50% of population × 2000 h/yr — the corridor's convention.
 REF_AVAILABLE_LABOR = REF_POPULATION * 0.50 * 2000.0
 #: Programme horizon — see data.THERMAL_PROGRAMME_YEARS. 40 yr keeps the work

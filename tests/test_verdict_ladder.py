@@ -105,6 +105,15 @@ class TestTheCensusCannotDriftSilently:
                        twelve days, so it was neither debt nor a `baseline`
                        (nothing live to compare against); the reasoning moved to
                        record/personal.md, which a test now requires to exist
+                 346 = 31/94/221 after TRUST_BASE_TEH_PER_CAPITA was NAMED
+                       (2026-09-17) — the inheritance repriced to 8,760
+                       TEH/person. INSTANCE rose because the per-capita figure
+                       is what an institution supplies. TRUST_BASE_TEH was KEPT
+                       `instance` rather than retagged `derived`, which its
+                       value now is: `derived` moved it to CERTAIN (31 -> 32),
+                       because the ladder reads that tag without following
+                       through to what the value bottoms out on. Its
+                       COMPUTATION became derived; its STANDING did not.
 
         **The 2026-09-16 move is the first DOWNWARD one, and it is the good
         direction for a reason worth stating.** POSSIBLE fell because a
@@ -122,9 +131,9 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 345
+        assert c["total"] == 346
         assert c["counts"]["CERTAIN"] == 31
-        assert c["counts"]["INSTANCE"] == 93
+        assert c["counts"]["INSTANCE"] == 94
         assert c["counts"]["POSSIBLE"] == 221
 
     def test_possible_is_still_the_largest_tier(self):

@@ -156,18 +156,41 @@ class TestContestabilityMargin:
             "epsilon", "guarantee_per_person", "trust_dividend_per_capita",
         }
 
-    def test_replicable_passes_at_all_key_epsilons(self):
-        for eps in KEY_EPSILONS:
+    def test_replicable_passes_above_epsilon_zero(self):
+        """
+        RETIRED AS A LIVE INVARIANT 2026-09-17 (author decision): bare χ is
+        SUPERSEDED by §8.9, so this pins the superseded axis' measured shape
+        rather than asserting χ ≥ 1 is required. Above ε=0 replicable still
+        clears; ε=0 is covered by the breach test below.
+        """
+        for eps in [e for e in KEY_EPSILONS if e > 0.0]:
             result = contestability_margin(eps, _POP, _TRUST, regime="replicable")
             assert result["passes"], (
-                f"replicable regime must satisfy χ ≥ 1 at ε={eps}, "
+                f"replicable regime still clears χ ≥ 1 above ε=0; at ε={eps} "
                 f"got χ={result['chi']:.3f}"
             )
 
-    def test_increasing_returns_passes_at_epsilon_zero(self):
-        result = contestability_margin(0.0, _POP, _TRUST, regime="increasing_returns")
-        assert result["passes"], (
-            f"χ must be ≥ 1 at ε=0 in increasing_returns, got χ={result['chi']:.3f}"
+    def test_bare_chi_breaches_at_epsilon_zero_and_the_adopted_axis_governs(self):
+        """
+        THE DISAGREEMENT, PINNED — the test_corridor precedent.
+
+        The 2026-09-17 reprice to 8,760 TEH/person cut the Trust dividend per
+        capita 630.00 -> 157.68 and took χ(0) from 1.1682 "WARN" to 0.9058
+        "CRIT" in BOTH regimes. That is a real degradation of the SUPERSEDED
+        axis. The adopted §8.9 invariant takes no trust balance at all and is
+        unmoved, which is why this is recorded rather than repaired.
+        """
+        from hours_eoh.research.recalibration import exit_financing
+        for regime in ("increasing_returns", "replicable"):
+            r = contestability_margin(0.0, _POP, _TRUST, regime=regime)
+            assert not r["passes"], (
+                f"bare χ breaches at ε=0 since the reprice; {regime} got "
+                f"χ={r['chi']:.4f}"
+            )
+            assert r["status"] == "CRIT"
+        assert exit_financing(0.0)["exit_financeable"] is True, (
+            "the ADOPTED invariant must still be financeable at ε=0 — if it is "
+            "not, the reprice broke exit for real and not merely on a retired axis"
         )
 
     def test_increasing_returns_breaches_at_epsilon_99(self):
@@ -340,12 +363,21 @@ class TestChiArc:
         for row in rows:
             assert set(row.keys()) == expected
 
-    def test_replicable_arc_all_pass(self):
+    def test_replicable_arc_passes_above_epsilon_zero(self):
+        """
+        RETIRED AS A LIVE INVARIANT 2026-09-17: bare χ is SUPERSEDED by §8.9.
+        Pins the superseded axis' shape — ε=0 breaches since the reprice
+        (χ=0.906), every later point clears.
+        """
         rows = chi_arc(n_points=10, regime="replicable")
-        for row in rows:
+        assert rows[0]["chi_population_avg"] < CONTESTABILITY_CHI_CRIT, (
+            "ε=0 is the point the reprice moved below 1; if it clears again the "
+            "inheritance changed and this pin should be re-measured"
+        )
+        for row in rows[1:]:
             assert row["chi_population_avg"] >= CONTESTABILITY_CHI_CRIT, (
-                f"replicable regime must keep χ ≥ 1 at ε={row['epsilon']:.3f}, "
-                f"got χ={row['chi_population_avg']:.3f}"
+                f"replicable regime still clears χ ≥ 1 above ε=0; at "
+                f"ε={row['epsilon']:.3f} got χ={row['chi_population_avg']:.3f}"
             )
 
     def test_increasing_returns_breaches_at_high_epsilon(self):
@@ -797,9 +829,37 @@ class TestCommonsSeedRequired:
         assert result["entry_capacity"] == pytest.approx(1.0)
         assert result["passes"] is True
 
-    def test_seed_is_small_vs_trust_base(self):
-        """The early-arc gap closes for well under 0.1% of the Trust."""
-        assert commons_seed_required() < 0.001 * TRUST_BASE_TEH
+    def test_the_seed_scales_with_what_it_is_made_of_and_nothing_else(self):
+        """
+        RE-POINTED 2026-09-17. This asserted the seed was "well under 0.1% of
+        the Trust" — a threshold against a quantity the seed has no relation
+        to. seed = min_viable_population · K_entry(0) / underwrite_fraction:
+        cohort size, founding cost, underwrite fraction, full stop. The reprice
+        moved TRUST_BASE_TEH 3.995x and the share went 0.051% -> 0.205%,
+        breaking a check that was never measuring the seed.
+
+        Asserting "the Trust does not move it" would be enforced by the
+        implementation — the function never reads TRUST_BASE_TEH, so that check
+        could not fail (failure mode 2). What is pinned instead is the SHAPE the
+        docstring claims, plus the structural absence.
+        """
+        import ast
+        import inspect
+        base = commons_seed_required()
+        assert commons_seed_required(min_viable_population=2
+                                     * CONTESTABILITY_MIN_VIABLE_POPULATION
+                                     ) == pytest.approx(2.0 * base)
+        assert commons_seed_required(underwrite_fraction=CONTESTABILITY_UNDERWRITE_FRACTION
+                                     / 2.0) == pytest.approx(2.0 * base)
+        assert commons_seed_required(k0=2.0 * CONTESTABILITY_K0_TEH) == pytest.approx(
+            2.0 * base)
+        src = inspect.getsource(commons_seed_required)
+        body = ast.parse(src.lstrip()).body[0]
+        names = {n.id for n in ast.walk(body) if isinstance(n, ast.Name)}
+        assert not {x for x in names if "TRUST" in x}, (
+            f"the seed now references a Trust constant: {names}. If that is "
+            "deliberate the independence above is no longer the property to pin."
+        )
 
     def test_validation(self):
         with pytest.raises(ValueError):

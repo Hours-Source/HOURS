@@ -166,7 +166,8 @@ class TestTrustDepletionStress:
 
         Under V1 — core's default since 2026-09-16 — the Trust owes only what is
         on the ledger, and at these inputs the levy more than covers it: the
-        floor is 35,007,388,914 against an opening 35,000,000,000, outcome
+        floor is 8,767,388,914 against an opening 8,760,000,000 (35,007,388,914
+        against 35,000,000,000 before the 2026-09-17 reprice), outcome
         STABLE with no insolvency. A depletion stress that cannot deplete is
         worth stating plainly rather than leaving as an inverted assertion, and
         the shipped design is still reachable for the old behaviour.

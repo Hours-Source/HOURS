@@ -1092,7 +1092,8 @@ def simulate_federation(
     The Baumol threat made credible: the commons can capitalize new
     collectives' trusts (capital stays commonized — §8.7c is respected).
     Seed the commons via commons_start ≥ commons_seed_required() (≈1.8e7 TEH
-    at defaults, ~0.05% of TRUST_BASE_TEH) to close the ε≈0 window before
+    at defaults, 0.205% of TRUST_BASE_TEH since the 2026-09-17 reprice to
+    8,760 TEH/person, where it was 0.051%) to close the ε≈0 window before
     escheat inflows begin.
 
     With commons_dividend=False every χ value and balance is float-exact
