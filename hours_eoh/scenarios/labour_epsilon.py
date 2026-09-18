@@ -141,16 +141,27 @@ def labour_epsilon(
 
     eps = 0.5
     for _ in range(200):
-        # THE OBLIGATION IS COMPUTED AT THE REFERENCE FRAME, NOT AT `population`,
-        # and this is the frame seam biting twice in one function. Passing the US
-        # population collapses the fixed point, because `CAPITAL_STOCK_DEFAULT`
-        # is stated "at the 1M reference population" and does NOT scale with the
-        # argument — 335M people would hold the capital of 1M, which the
-        # constant's own tag block warns about in as many words. Per-capita
-        # obligation is what is wanted and it is frame-invariant only where the
-        # extensive constants are actually calibrated. `population` remains the
-        # frame the MEASURED hours were converted into, which is a different
-        # quantity and stays separate.
+        # THE OBLIGATION IS COMPUTED AT THE REFERENCE FRAME, NOT AT `population`.
+        #
+        # THE ORIGINAL REASON FOR THIS IS RETRACTED (2026-09-18). It read:
+        # "passing the US population collapses the fixed point, because
+        # CAPITAL_STOCK_DEFAULT is stated at the 1M reference population and does
+        # NOT scale with the argument". That was true when written and the
+        # 2026-09-16 capital frame repair falsified it — `resolve_capital_stock`
+        # now scales the stock with the population it is given, gated by
+        # `tests/test_capital_scale_resolution.py`.
+        #
+        # MEASURED 2026-09-18: per-capita `total_eoh` is frame-INVARIANT to the
+        # last bit — 1,360.74 / 1,531.93 / 2,154.34 at ε = 0 / 0.40 / 0.90, ratio
+        # 1.0000000000 between the 1M and 335M frames. So this pin is now inert:
+        # it returns the same number either way, and it is kept because a
+        # per-capita quantity should be read at the frame its constants are
+        # calibrated at, not because the alternative breaks.
+        #
+        # `population` remains the frame the MEASURED hours were converted into,
+        # which is a different quantity and stays separate. That separation is
+        # what a foreign caller most needs to see: the hours are theirs, and the
+        # obligation they are divided by is still this package's.
         domains = total_eoh(epsilon=eps, population=REFERENCE_FRAME_POPULATION)
         total_pc = sum(domains[d] for d in
                        ("personal", "infrastructure", "ecological", "knowledge")

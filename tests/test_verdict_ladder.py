@@ -114,6 +114,16 @@ class TestTheCensusCannotDriftSilently:
                        because the ladder reads that tag without following
                        through to what the value bottoms out on. Its
                        COMPUTATION became derived; its STANDING did not.
+                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+                       (2026-09-18) — the arc's EVALUATION bound, which had
+                       existed only as a bare 0.99 at ~56 operative sites.
+                       INSTANCE rose because `convention` lands there, the
+                       same tier REFERENCE_FRAME_POPULATION sits in: the
+                       framework got one more thing it asks you to DECLARE,
+                       and CERTAIN did not move. It is deliberately NOT the
+                       achievable ceiling, which is derived and moves —
+                       observable_epsilon_ceiling() reads 0.788-0.877 under
+                       per_component, and the two are gated apart.
 
         **The 2026-09-16 move is the first DOWNWARD one, and it is the good
         direction for a reason worth stating.** POSSIBLE fell because a
@@ -131,9 +141,9 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 346
+        assert c["total"] == 347
         assert c["counts"]["CERTAIN"] == 31
-        assert c["counts"]["INSTANCE"] == 94
+        assert c["counts"]["INSTANCE"] == 95
         assert c["counts"]["POSSIBLE"] == 221
 
     def test_possible_is_still_the_largest_tier(self):

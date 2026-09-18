@@ -3643,6 +3643,35 @@ CANONICAL_CAPITAL_AGE_DRIFT:          float = 0.20  # age_ratio increases across
 CANONICAL_ECOSYSTEM_HEALTH_BASE:      float = 0.90  # ecosystem health at ε=0 on ideal trajectory
 CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of development pressure vs. stewardship)
 
+# tag: convention | units: dimensionless ε
+# form: the EVALUATION BOUND of the arc — where guards stop accepting, grids
+#   stop stepping and reports quote their top row. Conceptually the top is 1.0;
+#   evaluation stops at 0.99 because several ε-dependent terms are degenerate
+#   at exactly 1. It is a statement about where this package LOOKS, not about
+#   how far automation can go.
+# note: NOT THE ACHIEVABLE CEILING, WHICH IS DERIVED AND MOVES.
+#   `core.eoh_fulfillment.observable_epsilon_ceiling()` computes
+#   1 − personal_share · Σ share_c · floor_c — the highest observed machine
+#   share the declared care floors permit — reading 0.788 → 0.877 across the arc
+#   under `per_component`, against exactly 1.000 under `uniform`. ε does not
+#   reach 1 because CARE RESISTS AUTOMATION, and that ceiling is a function of
+#   the obligation MIX as well as of the floors, so a care-heavier civilisation
+#   has a lower one. The two are already gated apart:
+#   `tests/test_capability_vs_observable.py` asserts the derived ceiling is
+#   strictly below this convention. Conflating them would put a FIXED number
+#   where a MEASURED one belongs.
+# note: THIS NAMES ONE OF ~56 COPIES, AND THE REST ARE A RECORDED LEAD. The bare
+#   literal 0.99 appears at ~55 further operative sites across core/ and
+#   scenarios/ — 11 validation guards, 7 clamps, 7 grid constructions, 18
+#   default arcs and 4 bisection brackets. Migrating them touches guard
+#   semantics and grid arithmetic and is its own change with its own blast
+#   radius; it is NOT done here. This constant exists so a NEW site binds
+#   instead of copying.
+# decided_by: a reporting convention on where the arc is evaluated. No dataset
+#   settles where to stop looking; what IS measured is the achievable ceiling,
+#   and that is the function named above.
+EPSILON_ARC_MAX:                      float = 0.99  # the arc's evaluation bound, NOT the achievable ceiling
+
 # ---------------------------------------------------------------------------
 # Ground Use Fee (GUF) — land/guf.py constants
 # Template: NLSA Technical Manual TM-0042, Seventh Edition
