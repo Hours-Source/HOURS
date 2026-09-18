@@ -29,7 +29,8 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     fp = sub2.add_parser("fiscal", help="Sweep a fiscal parameter at a given ε")
     fp.add_argument("--parameter", required=True, metavar="PARAM",
                     help="Parameter to sweep (levy_rate, dep_rate, div_rate, "
-                         "floor_fraction, capital_age_ratio)")
+                         "floor_fraction, need_fraction, capital_age_ratio, "
+                         "trust_per_capita)")
     fp.add_argument("--values", required=True, metavar="V1,V2,...",
                     help="Comma-separated list of values to sweep")
     fp.add_argument("--epsilon", type=float, default=0.40, metavar="ε")

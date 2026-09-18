@@ -60,6 +60,12 @@ def fiscal_parameter_sweep(
                            reads it; under V1 it moves nothing.
       "need_fraction"    — V1: share of ON-LEDGER people the guarantee reaches
       "capital_age_ratio" — mean asset age ratio (affects stewardship cost)
+  "trust_per_capita" — PRIOR WORK brought per person, in TEH/person; applied
+                       as trust_balance = value x population. 0.0 is a
+                       subsistence founding. NOTE the guarantee is Trust-
+                       INDEPENDENT under V1, so `guarantee_cost` is flat across
+                       this sweep by construction and `surplus_deficit` is
+                       what moves, through the dividend.
 
     Args:
         parameter: Name of the parameter to sweep (see above).
@@ -92,7 +98,7 @@ def fiscal_parameter_sweep(
     # design that reads it: under V1 it moved nothing, and a swept parameter
     # that changes no output is failure mode 5 wearing a sweep's clothes.
     SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction",
-                 "need_fraction", "capital_age_ratio"}
+                 "need_fraction", "capital_age_ratio", "trust_per_capita"}
     if parameter not in SUPPORTED:
         raise ValueError(f"parameter must be one of {SUPPORTED}, got '{parameter}'")
 
@@ -123,6 +129,13 @@ def fiscal_parameter_sweep(
             kwargs["need_fraction"] = val
         elif parameter == "capital_age_ratio":
             kwargs["capital_age_ratio"] = val
+        elif parameter == "trust_per_capita":
+            # PRIOR WORK BROUGHT, per person (2026-09-17). Swept per-capita and
+            # multiplied up, because the frame holds INTENSITY fixed, not the
+            # aggregate — sweeping a raw balance at a fixed population would
+            # confound the level with the frame. 0.0 is a subsistence founding
+            # and is a valid point, not an edge case.
+            kwargs["trust_balance"] = val * population
 
         snap = fiscal_snapshot(**kwargs)
         results.append({
