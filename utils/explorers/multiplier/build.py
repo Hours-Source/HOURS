@@ -8,6 +8,7 @@ math are embedded in one HTML file.
 
 Where each thing comes from — nothing here is a copy:
     rows, provenance, bounds   hours_eoh/reference/data/ (registry, provenance, bounds)
+    slider range               the default `delta` of scenarios.multiplier_sensitivity.sweep_factor_weights
     weights, map constants     hours_eoh.data (M_FACTOR_WEIGHTS, M_IMPACT_SUBDOMAIN_WEIGHTS,
                                M_COMPOSITE_Z_*, M_IMPACT_COMPOSITE_*, M_FLOOR, M_GEOMETRIC_R,
                                M_BAND_*, M_MAX, MEAN_MULTIPLIER_REFERENCE)
@@ -34,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import inspect
 import json
 import math
 import re
@@ -52,6 +54,7 @@ from hours_eoh.core.multipliers import (  # noqa: E402
     impact_composite_from_subdomains,
     reference_multiplier,
 )
+from hours_eoh.scenarios.multiplier_sensitivity import sweep_factor_weights  # noqa: E402
 
 DATA_DIR = REPO_ROOT / "hours_eoh" / "reference" / "data"
 REGISTRY = DATA_DIR / "multiplier_registry_v5.csv"
@@ -116,6 +119,8 @@ def constants() -> dict[str, Any]:
         "band": [D.M_BAND_LOW, D.M_BAND_HIGH],
         "cap": D.M_MAX,
         "mean_reference": D.MEAN_MULTIPLIER_REFERENCE,
+        # The weight sliders span published ± this, the harness's own sweep range.
+        "weight_span": inspect.signature(sweep_factor_weights).parameters["delta"].default,
     }
 
 
