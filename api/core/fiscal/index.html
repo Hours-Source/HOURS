@@ -292,6 +292,24 @@
   
   
   
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tools/" class="md-tabs__link">
+          
+  
+  Explore
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
     <li class="md-tabs__item">
       <a href="../../../changelog/" class="md-tabs__link">
         
@@ -1036,6 +1054,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#effective_personal_eohepsilon-personal_eoh_base-automation_response-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      effective_personal_eoh(epsilon, personal_eoh_base, automation_response) → float
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sufficiency_guaranteepopulation-epsilon-dict" class="md-nav__link">
     <span class="md-ellipsis">
       sufficiency_guarantee(population, epsilon, …) → dict
@@ -1566,6 +1593,76 @@
   
   
   
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Explore
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Explore
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tools/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Browser Tools
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../../changelog/" class="md-nav__link">
         
@@ -1673,6 +1770,15 @@
   <a href="#ecological_allocationecosystem_health-epsilon-available_teh-dict" class="md-nav__link">
     <span class="md-ellipsis">
       ecological_allocation(ecosystem_health, epsilon, available_teh, …) → dict
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effective_personal_eohepsilon-personal_eoh_base-automation_response-float" class="md-nav__link">
+    <span class="md-ellipsis">
+      effective_personal_eoh(epsilon, personal_eoh_base, automation_response) → float
     </span>
   </a>
   
@@ -1826,8 +1932,10 @@
 <p>TEH directed toward fulfilling infrastructure entropy obligations from the capital stock. Grows with the capital stock, making it the dominant revenue-independent fiscal flow at high ε.</p>
 <h3 id="ecological_allocationecosystem_health-epsilon-available_teh-dict"><code>ecological_allocation(ecosystem_health, epsilon, available_teh, …)</code> → <code>dict</code><a class="headerlink" href="#ecological_allocationecosystem_health-epsilon-available_teh-dict" title="Permanent link">&para;</a></h3>
 <p>TEH directed toward ecological EOH fulfillment and natural system stewardship.</p>
+<h3 id="effective_personal_eohepsilon-personal_eoh_base-automation_response-float"><code>effective_personal_eoh(epsilon, personal_eoh_base, automation_response)</code> → <code>float</code><a class="headerlink" href="#effective_personal_eohepsilon-personal_eoh_base-automation_response-float" title="Permanent link">&para;</a></h3>
+<p>Personal obligation hours per person that still need human labour at ε: the age-weighted obligation × its human-carried share. The obligation itself does not fall with automation; this does. Labour embodied in machine-delivered goods mints in infrastructure and is not in this share.</p>
 <h3 id="sufficiency_guaranteepopulation-epsilon-dict"><code>sufficiency_guarantee(population, epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#sufficiency_guaranteepopulation-epsilon-dict" title="Permanent link">&para;</a></h3>
-<p>The floor — minimum TEH guaranteed to every collective member. Real purchasing power rises automatically with automation (same nominal TEH, lower basket prices). See <a href="../../../theory/design_principles/#5-the-floor-rises-with-automation-it-never-falls">Design Principle 5</a>.</p>
+<p>The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays <code>effective_personal_eoh(ε)</code> at <code>M_FLOOR</code>, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. <code>capital_personal_eoh_fulfilled_per_person</code> is deprecated and not applied. See <a href="../../../theory/design_principles/#5-the-floor-rises-with-automation-it-never-falls">Design Principle 5</a>.</p>
 <hr />
 <h2 id="trust-management">Trust Management<a class="headerlink" href="#trust-management" title="Permanent link">&para;</a></h2>
 <h3 id="trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict"><code>trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)</code> → <code>dict</code><a class="headerlink" href="#trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict" title="Permanent link">&para;</a></h3>
