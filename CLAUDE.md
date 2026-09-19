@@ -204,6 +204,11 @@ utils/                 Presentation layer — CLI and research helpers (see READ
                        shapes; its structural statements are gated against this dict
   provenance.py        data.py tag-block scanner + audit-CSV / doc-table generators
   provenance_cmd.py    `eoh provenance check | csv | table | doc`
+  explorers/           In-browser explorers published with the docs at tools/<name>/ — a
+                       template + a builder that embeds the shipped data and data.py
+                       constants, and REFUSES unless the repo's own functions reproduce
+                       what the page shows. Built by hooks/docs_explorers.py on every
+                       `mkdocs build`; the generated HTML is never committed
 ```
 
 **Layer rules:**
@@ -502,8 +507,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,678 tests passing (1 skipped), mypy clean on 101 source files** (verified
-2026-09-12). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
+**4,718 tests passing (1 skipped), mypy clean on 101 source files** (verified
+2026-09-18). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
 **126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -597,13 +602,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**106 test files. The name rule covers 73 of them:** `tests/test_<module>.py`
+**107 test files. The name rule covers 73 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 33 files the rule does not cover are all listed below, plus two that do
+The 34 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -631,6 +636,7 @@ are the ones worth knowing by name.
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
+| `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
 
 ### Cross-cutting, or named differently from the module
