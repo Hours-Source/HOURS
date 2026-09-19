@@ -18,6 +18,8 @@ site_dir: site
 # under strict mode. See hooks/docs_data_files.py.
 hooks:
   - hooks/docs_data_files.py
+  # Builds the in-browser explorers (utils/explorers/) into tools/<name>/.
+  - hooks/docs_explorers.py
 
 theme:
   name: material
@@ -119,6 +121,9 @@ nav:
     - Extending the Library: guides/extending.md
     - Running Scenarios: guides/scenarios_howto.md
     - Ecological Data Sources: guides/ecological_data_sources.md
+
+  - Explore:
+    - Browser Tools: tools/index.md
 
   - Changelog: changelog.md
   - Contributing: contributing.md

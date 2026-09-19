@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiplier Registry Explorer</title>
+<style>
+:root{
+  --bg:#F1F4F3; --panel:#FFFFFF; --ink:#1E2A32; --muted:#5B6972; --rule:#D3DBDD; --soft:#E6ECEC;
+  --training:#3B5BA9; --demand:#9C3F73; --scarcity:#23857A; --impact:#A97B12;
+  --a:#1E2A32; --b:#7A8B94; --band:rgba(35,133,122,.14); --good:#23857A; --warn:#A97B12;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --num:Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141B20; --panel:#1C252B; --ink:#E4EAEC; --muted:#9AA8AF; --rule:#33424A; --soft:#26323A;
+    --training:#86A1E6; --demand:#DB86B5; --scarcity:#5CC6B8; --impact:#E0B452;
+    --a:#E4EAEC; --b:#7F9099; --band:rgba(92,198,184,.16);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141B20; --panel:#1C252B; --ink:#E4EAEC; --muted:#9AA8AF; --rule:#33424A; --soft:#26323A;
+  --training:#86A1E6; --demand:#DB86B5; --scarcity:#5CC6B8; --impact:#E0B452;
+  --a:#E4EAEC; --b:#7F9099; --band:rgba(92,198,184,.16);
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+h1,h2,h3{font-family:var(--num);font-weight:600;line-height:1.2;margin:0}
+h1{font-size:clamp(1.6rem,3.2vw,2.3rem)}
+h2{font-size:1.3rem;margin-bottom:.35rem}
+h3{font-size:1.02rem}
+p{margin:.4rem 0}
+.lede{color:var(--muted);max-width:68ch}
+.num{font-family:var(--num);font-variant-numeric:tabular-nums lining-nums}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--scarcity);outline-offset:2px}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+
+/* search */
+.pickers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0 8px}
+.picker{position:relative}
+.picker label{display:block;font-weight:700;font-size:.9rem;margin-bottom:4px}
+.picker .row{display:flex;gap:6px}
+.picker input{width:100%;padding:11px 12px;border:1.5px solid var(--rule);border-radius:6px;background:var(--panel)}
+.picker input:focus{border-color:var(--ink);outline:none}
+.clear{border:1.5px solid var(--rule);background:var(--panel);border-radius:6px;padding:0 12px;cursor:pointer}
+.sug{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:4px;background:var(--panel);border:1.5px solid var(--rule);border-radius:6px;max-height:320px;overflow:auto;list-style:none;padding:4px 0;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.sug li{padding:7px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:12px}
+.sug li[aria-selected="true"],.sug li:hover{background:var(--soft)}
+.sug mark{background:none;color:inherit;font-weight:700;text-decoration:underline}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:0}
+
+/* scale */
+.scale{margin:18px 0 8px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px 18px 10px}
+.scale .sv{overflow-x:auto;padding-top:4px}
+.scale svg{width:100%;min-width:680px;height:auto;display:block;overflow:visible}
+.scale .lg{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.84rem;color:var(--muted)}
+
+/* job columns */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.cols.single{grid-template-columns:1fr}
+.job{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:20px;min-width:0}
+.job.b{border-top:4px solid var(--b)} .job.a{border-top:4px solid var(--a)}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.bignum{font-family:var(--num);font-size:3.2rem;line-height:1;font-weight:600;letter-spacing:-.01em}
+.bignum small{font-size:1rem;font-weight:400;color:var(--muted);display:block;text-align:right;margin-top:4px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 4px;padding:10px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.facts div span{display:block;font-size:.78rem;color:var(--muted)}
+.step{margin-top:20px}
+.step h3{display:flex;gap:10px;align-items:baseline}
+.step h3 .n{font-family:var(--num);color:var(--muted);font-weight:400}
+.step .why{font-size:.9rem;color:var(--muted);margin:2px 0 10px}
+.bar{display:grid;grid-template-columns:9.5rem 1fr 4.4rem;gap:10px;align-items:center;margin:6px 0;font-size:.92rem}
+.bar .track{height:12px;background:var(--soft);border-radius:3px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.bar .val{text-align:right;font-variant-numeric:tabular-nums}
+.bar .pct{display:block;font-family:var(--body);font-size:.74rem;color:var(--muted);text-align:right}
+.stack{display:flex;height:30px;border-radius:4px;overflow:hidden;background:var(--soft);margin:6px 0}
+.stack div{height:100%}
+.contrib{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:.84rem}
+.contrib b{display:block;font-variant-numeric:tabular-nums}
+.formula{background:var(--soft);border-radius:6px;padding:12px 14px;font-size:.95rem;overflow-x:auto}
+.formula .eq{font-family:var(--num);white-space:nowrap;font-size:1.05rem}
+.check{font-size:.85rem;margin-top:6px}
+.check.ok{color:var(--good)} .check.bad{color:#C2412D}
+
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;padding:1px 7px;border-radius:10px;border:1.2px solid currentColor;cursor:pointer;background:none;white-space:nowrap;line-height:1.5;vertical-align:1px}
+.tag::before{content:"";width:7px;height:7px;border-radius:50%}
+.tag.measured{color:var(--training)} .tag.measured::before{background:currentColor}
+.tag.derived{color:var(--scarcity)} .tag.derived::before{border:1.5px solid currentColor}
+.tag.chosen{color:var(--demand);border-style:dashed} .tag.chosen::before{background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 4px)}
+.tag.frozen{color:var(--muted)} .tag.frozen::before{background:currentColor;border-radius:1px}
+.tag.planned{color:var(--impact);border-style:dotted} .tag.planned::before{border:1.5px dotted currentColor}
+.tag.na{color:var(--muted);border-style:dotted} .tag.na::before{display:none}
+.tag.unsourced{color:#C2412D;border-style:double}
+
+/* compare */
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:20px;margin-top:16px}
+.diff{display:grid;grid-template-columns:9.5rem 1fr 4.2rem;gap:10px;align-items:center;margin:7px 0;font-size:.92rem}
+.diff .axis{position:relative;height:16px}
+.diff .axis::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;border-left:1.5px solid var(--rule)}
+.diff .d{position:absolute;top:2px;height:12px;border-radius:2px}
+.verdict{font-size:1.05rem;max-width:72ch;margin:6px 0 12px}
+
+/* what-if */
+details{margin-top:16px;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+details>summary{cursor:pointer;padding:16px 20px;font-family:var(--num);font-weight:600;font-size:1.1rem}
+details>.inner{padding:0 20px 20px}
+.sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 24px;margin:10px 0}
+.sliders label{display:flex;justify-content:space-between;font-size:.9rem}
+.sliders input{width:100%}
+.whatif-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px}
+.whatif-out div{background:var(--soft);border-radius:6px;padding:10px 12px}
+.reset{border:1.5px solid var(--rule);background:var(--panel);border-radius:6px;padding:6px 12px;cursor:pointer}
+
+/* tables */
+.tbl{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:700;white-space:nowrap}
+th button{background:none;border:0;padding:0;font-weight:700;cursor:pointer}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr.hl{background:var(--soft)}
+.linkish{background:none;border:0;padding:0;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.linkish:hover{text-decoration-color:currentColor}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters .tag[aria-pressed="false"]{opacity:.45}
+.browse-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.browse-top input{padding:8px 10px;border:1.5px solid var(--rule);border-radius:6px;background:var(--panel);min-width:240px}
+.pager{display:flex;gap:8px;align-items:center;margin-top:10px}
+.pager button{border:1.5px solid var(--rule);background:var(--panel);border-radius:6px;padding:4px 10px;cursor:pointer}
+footer{margin-top:32px;color:var(--muted);font-size:.85rem;max-width:80ch}
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--panel);border:1.5px dashed var(--rule);border-radius:8px;margin-top:16px}
+
+@media (max-width:760px){
+  .pickers,.cols{grid-template-columns:1fr}
+  .bar,.diff{grid-template-columns:7rem 1fr 3.2rem}
+  .bignum{font-size:2.5rem}
+  .contrib{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:no-preference){
+  .fill,.stack div,.d{transition:width .35s ease,left .35s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>What an hour of each occupation is minted at, and why</h1>
+    <p class="lede">Find an occupation to see its reference multiplier and every step that produced it: the measured inputs, the weights that were chosen, and the frozen scale that turns a score into a multiplier. Add a second occupation to see exactly where the two differ.</p>
+    <p class="lede">The reference multiplier sets the <strong>floor</strong> at which one hour of this work is minted as TEH. It is not a wage and says nothing about what the work earns above that floor.</p>
+    <p class="small muted" id="scope"></p>
+    <p class="small muted" id="meta"></p>
+    <p class="check bad" id="selfcheck" hidden></p>
+  </header>
+
+  <div class="pickers">
+    <div class="picker" data-slot="a">
+      <label for="in-a"><span class="swatch" style="background:var(--a)"></span>Occupation</label>
+      <div class="row"><input id="in-a" type="search" autocomplete="off" placeholder="Job title or SOC code, e.g. nurse or 29-1141" role="combobox" aria-expanded="false" aria-controls="sug-a"><button class="clear" data-clear="a" aria-label="Clear occupation">Clear</button></div>
+      <ul class="sug" id="sug-a" role="listbox" hidden></ul>
+    </div>
+    <div class="picker" data-slot="b">
+      <label for="in-b"><span class="swatch" style="background:var(--b)"></span>Compare with (optional)</label>
+      <div class="row"><input id="in-b" type="search" autocomplete="off" placeholder="Add a second occupation" role="combobox" aria-expanded="false" aria-controls="sug-b"><button class="clear" data-clear="b" aria-label="Clear comparison">Clear</button></div>
+      <ul class="sug" id="sug-b" role="listbox" hidden></ul>
+    </div>
+  </div>
+
+  <section class="scale" aria-label="Where the selected occupations sit among all occupations">
+    <div class="sv"><svg id="scale" viewBox="0 -16 1000 128" role="img" aria-labelledby="scale-desc"><desc id="scale-desc">Multiplier scale from 1.0 to 3.2, with one tick per occupation.</desc></svg></div>
+    <div class="lg">
+      <span>Each tick is one occupation, placed on the multiplier scale (log spacing)</span>
+      <span><span class="swatch" style="background:var(--band)"></span>Band the employment-weighted average is required to sit in <button class="tag chosen" data-prov="band">chosen</button> — a convention: R was solved so the average lands in it</span>
+      <span id="wmean"></span>
+    </div>
+  </section>
+
+  <div id="cols" class="cols"></div>
+  <div id="compare"></div>
+
+  <details id="whatif">
+    <summary>What if the factor weights were different?</summary>
+    <div class="inner">
+      <p class="small">The four factor weights are <button class="tag chosen" data-prov="factor_weights">chosen</button> and uncalibrated. The methodology tests each within ±0.10. Move them here to see how much a result depends on that choice. Weights are rescaled to sum to 1. The scale stays <strong>frozen</strong> <button class="tag frozen" data-prov="frozen_normalization_bounds">frozen</button>, exactly as the repo's sensitivity harness holds it: a score that moves past either frozen end is clipped at ×1.0 or at the top of the scale, and the number clipped is shown. <strong>These are explorations, not published values.</strong></p>
+      <p class="small muted">Read the order and the ratio first — they are what the data measures. The average and the band are shown for completeness; they are conventions.</p>
+      <div class="sliders" id="sliders"></div>
+      <button class="reset" id="reset-w">Restore published weights</button>
+      <div class="whatif-out" id="whatif-out"></div>
+    </div>
+  </details>
+
+  <section class="panel" id="browse">
+    <div class="browse-top">
+      <h2>All occupations</h2>
+      <input type="search" id="browse-q" placeholder="Filter this list" aria-label="Filter all occupations">
+    </div>
+    <p class="small muted">Select a title to view it. Use "Compare" to put it in the second slot.</p>
+    <div class="tbl"><table>
+      <thead><tr>
+        <th><button data-sort="title">Occupation</button></th>
+        <th class="r"><button data-sort="occ6">SOC</button></th>
+        <th class="r"><button data-sort="reference_multiplier">Multiplier</button></th>
+        <th class="r"><button data-sort="ep_employment_k">Employment (k)</button></th>
+        <th></th>
+      </tr></thead>
+      <tbody id="browse-body"></tbody>
+    </table></div>
+    <div class="pager"><button id="prev">Previous</button><span id="pageinfo" class="small muted"></span><button id="next">Next</button></div>
+  </section>
+
+  <section class="panel" id="prov">
+    <h2>Where each input comes from</h2>
+    <p class="small muted">Every constant and input behind the multiplier, with what would replace a judgment call with a measurement. Select a tag anywhere on the page to jump here.</p>
+    <div class="filters" id="prov-filters"></div>
+    <div class="tbl"><table>
+      <thead><tr><th>Input or constant</th><th>Value</th><th>Status</th><th>Source or note</th><th>Tested range</th><th>What would settle it</th></tr></thead>
+      <tbody id="prov-body"></tbody>
+    </table></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script id="math">
+/* The multiplier math, and nothing else: no DOM, no browser globals.
+   tests/test_explorer_build.py runs this block under node and compares it with
+   hours_eoh.core.multipliers and scenarios/multiplier_sensitivity.reconstruct.
+   Every constant arrives in C from hours_eoh/data.py via the builder. */
+var multiplierMath = function(C){
+  "use strict";
+  const FN = ["training","demand","scarcity","impact"];
+  const IN = ["dependency","substitutability","harm","temporal"];
+  const clip01 = x => Math.max(0, Math.min(1, x));
+  // impact_composite_from_subdomains: weighted sub-scores, affine onto the frozen range
+  function impactRaw(j, iw){ iw = iw || C.impact_weights; return IN.reduce((s,k)=>s+iw[k]*j["i_"+k], 0); }
+  function impactNorm(j, iw){ const b = C.impact_bounds; return clip01((impactRaw(j,iw)-b[0])/(b[1]-b[0])); }
+  // composite_from_factors
+  function composite(j, w, fImpact){
+    w = w || C.factor_weights;
+    const fi = (fImpact==null) ? j.f_impact : fImpact;
+    return w.training*j.f_training + w.demand*j.f_demand + w.scarcity*j.f_scarcity + w.impact*fi;
+  }
+  // reference_multiplier: z on the FROZEN range, m = floor · R^z
+  function zRaw(c){ const z = C.z_range; return (c-z[0])/(z[1]-z[0]); }
+  function position(c){ return clip01(zRaw(c)); }
+  function mult(c){ return C.floor*Math.pow(C.R, position(c)); }
+  function normalize(w){ const s = FN.reduce((a,k)=>a+w[k],0); return Object.fromEntries(FN.map(k=>[k, w[k]/s])); }
+  // scenarios.multiplier_sensitivity.reconstruct: rebuild f_impact, composite,
+  // then the FROZEN map. The z-range is never re-derived: a score past a frozen
+  // end-point is clipped, and the clip count is reported.
+  function reconstruct(jobs, w, iw){
+    const m = []; let clipped = 0, se = 0, sm = 0;
+    for(const j of jobs){
+      const c = composite(j, w, impactNorm(j, iw));
+      const zr = zRaw(c);
+      if(zr <= 0 || zr >= 1) clipped++;
+      const v = mult(c);
+      m.push(v); se += j.ep_employment_k; sm += j.ep_employment_k*v;
+    }
+    return {multiplier:m, weighted_mean:sm/se, spread_ratio:Math.max(...m)/Math.min(...m), clip_fraction:clipped/jobs.length, clipped};
+  }
+  // Pearson on ordinal ranks, as the repo's spearman()
+  function spearman(x, y){
+    const rk = a => { const idx=a.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]||p[1]-q[1]); const r=new Array(a.length); idx.forEach((p,i)=>r[p[1]]=i); return r; };
+    const rx=rk(x), ry=rk(y), n=x.length; let d2=0;
+    for(let i=0;i<n;i++) d2+=(rx[i]-ry[i])**2;
+    return 1 - 6*d2/(n*(n*n-1));
+  }
+  return {FN, IN, clip01, impactRaw, impactNorm, composite, zRaw, position, mult, normalize, reconstruct, spearman};
+};
+</script>
+<script>
+(function(){
+"use strict";
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const C = DATA.constants, META = DATA.meta, TAG_CLASSES = DATA.tag_classes;
+const COLS = DATA.columns;
+const JOBS = DATA.rows.map(r => Object.fromEntries(COLS.map((c,i)=>[c,r[i]])));
+const PROV = DATA.provenance;
+const M = multiplierMath(C);
+const W = {...C.factor_weights};
+const IW = {...C.impact_weights};
+const Z = C.z_range, R = C.R, FLOOR = C.floor, IB = C.impact_bounds, BAND = C.band;
+const byOcc = new Map(JOBS.map(j=>[String(j.occ6), j]));
+const N = JOBS.length;
+
+// A value stated in prose is read from the provenance CSV, never retyped.
+function provValue(key){ const p = PROV.find(x=>x.constant_or_input===key); return p ? p.value : "(unsourced)"; }
+const FACTORS = [
+  {k:"training", col:"f_training", name:"Training", color:"var(--training)",
+   what:"Time it takes to prepare: education, on-the-job training and experience (O*NET), on a log scale."},
+  {k:"demand", col:"f_demand", name:"Demand", color:"var(--demand)",
+   what:"How hard the work is to do: cognitive, physical, emotional and hazard load combined."},
+  {k:"scarcity", col:"f_scarcity", name:"Scarcity", color:"var(--scarcity)",
+   what:`How hard it is to fill: projected openings (O) and projected growth (G), BLS 2024–2034, weighted ${provValue("scarcity_leg_weights")}.`},
+  {k:"impact", col:"f_impact", name:"Impact", color:"var(--impact)",
+   what:"What depends on the work: built from the four sub-scores in step 1."}
+];
+const SUBS = [
+  {k:"dependency", col:"i_dependency", name:"Dependency", prov:"i_dependency",
+   what:"How widely industries rely on it (1 − concentration of its employment across industries)."},
+  {k:"substitutability", col:"i_substitutability", name:"Hard to substitute", prov:"i_substitutability_human",
+   what:"How few related occupations could step in (fewer routes in = higher)."},
+  {k:"harm", col:"i_harm", name:"Harm if done wrong", prov:"i_harm",
+   what:"Average of three O*NET work-context measures of consequence of error."},
+  {k:"temporal", col:"i_temporal", name:"Lasting effect", prov:"i_temporal_residualized",
+   what:"How long the work's effects persist, with the part explained by training removed."}
+];
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const socFmt = o => { const s=String(o); return s.slice(0,2)+"-"+s.slice(2); };
+const f3 = x => (x==null||isNaN(x)) ? "—" : x.toFixed(3);
+const f2 = x => x.toFixed(2);
+const pctWord = p => p>=99.5 ? "top of all" : p<0.5 ? "lowest of all" : `higher than ${Math.round(p)}%`;
+const clip01 = x => Math.max(0, Math.min(1, x));
+const money = x => x==null ? "not published" : "$" + Math.round(x).toLocaleString("en-US");
+const emp = x => x>=1000 ? (x/1000).toFixed(2)+"M" : Math.round(x).toLocaleString("en-US")+"k";
+function sortedCol(col){ return JOBS.map(j=>j[col]).filter(v=>v!=null).sort((a,b)=>a-b); }
+const SORTED = {};
+[...FACTORS.map(f=>f.col), ...SUBS.map(s=>s.col), "reference_multiplier","composite"].forEach(c=>SORTED[c]=sortedCol(c));
+function pctile(col, v){ // share of occupations strictly below v
+  const a = SORTED[col]; let lo=0, hi=a.length;
+  while(lo<hi){ const m=(lo+hi)>>1; if(a[m]<v) lo=m+1; else hi=m; }
+  return 100*lo/(a.length-1 || 1);
+}
+function rankOf(col, v){ return SORTED[col].filter(x=>x>v).length + 1; }
+const PROV_KEY = new Map(PROV.map(p=>[p.constant_or_input,p]));
+// The builder maps the CSV's closed tag vocabulary and fails on an unmapped tag,
+// so "unsourced" here means the page is out of step with the data — shown, not hidden.
+function tagClass(t){ return TAG_CLASSES[t] || "unsourced"; }
+const TAG_LABEL = {measured:"measured", derived:"derived", chosen:"chosen", frozen:"frozen", planned:"planned", na:"n/a", unsourced:"unsourced"};
+const TAG_KINDS = ["measured","derived","chosen","frozen","planned","na"];
+function tag(provKey, override){
+  const p = PROV_KEY.get(provKey); const c = override || tagClass(p ? p.tag : "");
+  return `<button class="tag ${c}" data-prov="${esc(provKey)}" title="${esc(p ? p.source_or_note : "")}">${TAG_LABEL[c]}</button>`;
+}
+
+/* ---------- math: see the "math" script block ---------- */
+const impactRaw = j => M.impactRaw(j), impactNorm = j => M.impactNorm(j);
+const composite = (j,w) => M.composite(j,w), position = c => M.position(c), mult = c => M.mult(c);
+const lowest = JOBS.reduce((a,b)=>a.composite<b.composite?a:b);
+const highest = JOBS.reduce((a,b)=>a.composite>b.composite?a:b);
+const totalEmp = JOBS.reduce((s,j)=>s+(j.ep_employment_k||0),0);
+const wmean = JOBS.reduce((s,j)=>s+(j.ep_employment_k||0)*j.reference_multiplier,0)/totalEmp;
+const BASE = M.reconstruct(JOBS, W);   // the published weights through the page's own math
+const BASE_I = new Map(JOBS.map((j,i)=>[j.occ6,i]));
+// Whole-registry self-check: if the page's math and the registry part ways, say so at the top.
+const MISMATCH = JOBS.filter((j,i)=>Math.abs(Math.round(BASE.multiplier[i]*1000)/1000 - j.reference_multiplier) >= 5e-4);
+
+/* ---------- state ---------- */
+const state = {a:null, b:null, w:{...W}};
+function readHash(){
+  const h = new URLSearchParams(location.hash.slice(1));
+  const a = byOcc.get((h.get("a")||"").replace("-","")), b = byOcc.get((h.get("b")||"").replace("-",""));
+  state.a = a || byOcc.get("291141") || JOBS[0];
+  state.b = h.has("a") ? (b||null) : (byOcc.get("472111")||null);
+}
+function writeHash(){
+  const p = new URLSearchParams();
+  if(state.a) p.set("a", socFmt(state.a.occ6));
+  if(state.b) p.set("b", socFmt(state.b.occ6));
+  try{ history.replaceState(null,"","#"+p.toString()); }catch(e){}
+}
+
+/* ---------- search ---------- */
+const INDEX = JOBS.map(j=>({j, t:j.title.toLowerCase(), s:String(j.occ6), sd:socFmt(j.occ6)}));
+function search(q){
+  q = q.trim().toLowerCase(); if(!q) return [];
+  const digits = q.replace(/[^0-9]/g,"");
+  const words = q.split(/\s+/).filter(Boolean);
+  const out = [];
+  for(const it of INDEX){
+    let score = 0;
+    if(digits.length>=2 && it.s.startsWith(digits)) score = 100 - digits.length;
+    else if(words.every(w=>it.t.includes(w))){
+      score = it.t.startsWith(q) ? 90 : it.t.split(/[\s,]+/).some(w=>w.startsWith(words[0])) ? 70 : 50;
+    }
+    if(score) out.push({it, score});
+  }
+  out.sort((a,b)=>b.score-a.score || a.it.t.length-b.it.t.length);
+  return out.slice(0,12).map(x=>x.it.j);
+}
+function highlight(title, q){
+  let h = esc(title);
+  q.trim().split(/\s+/).filter(w=>w.length>1).forEach(w=>{
+    h = h.replace(new RegExp("("+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"), "<mark>$1</mark>");
+  });
+  return h;
+}
+function setupPicker(slot){
+  const input = $("#in-"+slot), list = $("#sug-"+slot);
+  let items = [], active = -1;
+  function close(){ list.hidden = true; input.setAttribute("aria-expanded","false"); active=-1; }
+  function draw(){
+    items = search(input.value);
+    if(!items.length){
+      if(input.value.trim()){
+        list.innerHTML = `<li aria-disabled="true" class="muted">No occupation matches “${esc(input.value)}”. Try a shorter word or a SOC code.</li>`;
+        list.hidden = false;
+      } else close();
+      return;
+    }
+    list.innerHTML = items.map((j,i)=>`<li role="option" id="opt-${slot}-${i}" data-i="${i}" aria-selected="${i===active}"><span>${highlight(j.title,input.value)} <span class="muted small">${socFmt(j.occ6)}</span></span><span class="num">×${j.reference_multiplier.toFixed(3)}</span></li>`).join("");
+    list.hidden = false; input.setAttribute("aria-expanded","true");
+  }
+  function choose(j){ state[slot]=j; input.value=""; close(); render(); input.blur(); }
+  input.addEventListener("input", ()=>{active=-1; draw();});
+  input.addEventListener("focus", ()=>{ if(input.value) draw(); });
+  input.addEventListener("keydown", e=>{
+    if(e.key==="ArrowDown"){ active=Math.min(items.length-1,active+1); draw(); e.preventDefault(); }
+    else if(e.key==="ArrowUp"){ active=Math.max(0,active-1); draw(); e.preventDefault(); }
+    else if(e.key==="Enter"){ if(items.length) choose(items[Math.max(0,active)]); e.preventDefault(); }
+    else if(e.key==="Escape"){ close(); }
+  });
+  list.addEventListener("mousedown", e=>{ const li=e.target.closest("li[data-i]"); if(li){ e.preventDefault(); choose(items[+li.dataset.i]); }});
+  input.addEventListener("blur", ()=>setTimeout(close,120));
+}
+
+/* ---------- scale ---------- */
+function drawScale(){
+  const svg = $("#scale"), x = m => 20 + 960*Math.log(m)/Math.log(R);
+  let s = `<desc id="scale-desc">Multiplier scale from ${FLOOR.toFixed(1)} to ${R.toFixed(1)}, one tick per occupation.</desc>`;
+  s += `<rect x="${x(BAND[0])}" y="18" width="${x(BAND[1])-x(BAND[0])}" height="44" fill="var(--band)"/>`;
+  s += JOBS.map(j=>`<line x1="${x(j.reference_multiplier).toFixed(1)}" x2="${x(j.reference_multiplier).toFixed(1)}" y1="28" y2="52" stroke="var(--muted)" stroke-opacity=".28" stroke-width="1"/>`).join("");
+  s += `<line x1="20" x2="980" y1="62" y2="62" stroke="var(--rule)"/>`;
+  [1,1.5,2,2.5,3,3.2].forEach(v=>{ s+=`<line x1="${x(v)}" x2="${x(v)}" y1="62" y2="67" stroke="var(--muted)"/><text x="${x(v)}" y="82" font-size="13" text-anchor="middle" fill="var(--muted)" font-family="Georgia,serif">${v.toFixed(1)}</text>`; });
+  s += `<path d="M${x(wmean)} 18 l-5 -8 h10z" fill="var(--scarcity)"><title>Employment-weighted average ${wmean.toFixed(3)}</title></path>`;
+  const mark = (j, color, above) => {
+    const px = x(j.reference_multiplier);
+    const anchor = px < 120 ? "start" : px > 880 ? "end" : "middle";
+    return `<line x1="${px}" x2="${px}" y1="${above?6:22}" y2="${above?58:92}" stroke="${color}" stroke-width="3"/>` +
+      `<text x="${px}" y="${above?2:108}" font-size="13" font-weight="700" text-anchor="${anchor}" fill="${color}">${esc(shortTitle(j.title))} ×${j.reference_multiplier.toFixed(2)}</text>`;
+  };
+  if(state.b) s += mark(state.b, "var(--b)", false);
+  if(state.a) s += mark(state.a, "var(--a)", true);
+  svg.innerHTML = s;
+  $("#wmean").innerHTML = `<span style="color:var(--scarcity)">▼</span> Employment-weighted average: <span class="num">${wmean.toFixed(3)}</span> (band ${BAND[0]}–${BAND[1]}, a convention)`;
+}
+function shortTitle(t){ return t.length>34 ? t.slice(0,32).replace(/[\s,]+\S*$/,"")+"…" : t; }
+
+/* ---------- job card ---------- */
+function bar(label, v, color, col, extra, plain){
+  const p = pctile(col, v);
+  return `<div class="bar"><span title="${esc(extra||"")}">${label}</span><div class="track" role="img" aria-label="${esc(plain||label)} ${f3(v)}, ${pctWord(p)} of occupations"><div class="fill" style="width:${(v*100).toFixed(1)}%;background:${color}"></div></div><span class="val num">${f3(v)}<span class="pct">${pctWord(p).replace("higher than ","&gt;")}</span></span></div>`;
+}
+function jobCard(j, slot){
+  const c = composite(j), pos = position(c), m = mult(c);
+  const ok = Math.abs(Math.round(m*1000)/1000 - j.reference_multiplier) < 5e-4;
+  const iraw = impactRaw(j), inorm = impactNorm(j);
+  const rank = rankOf("reference_multiplier", j.reference_multiplier);
+  const isAnchorLow = j.occ6===lowest.occ6, isAnchorHigh = j.occ6===highest.occ6;
+  const contribs = FACTORS.map(f=>({f, v:W[f.k]*j[f.col]}));
+  const other = slot==="a" ? state.b : state.a;
+  return `<article class="job ${slot}" aria-label="${esc(j.title)}">
+    <div class="head">
+      <div><h2>${esc(j.title)}</h2><div class="muted small">SOC ${socFmt(j.occ6)}</div></div>
+      <div class="bignum num" aria-label="Reference multiplier ${j.reference_multiplier.toFixed(3)}">×${j.reference_multiplier.toFixed(3)}<small>rank ${rank} of ${N}</small></div>
+    </div>
+    <div class="facts">
+      <div><span>Employment (2024)</span><b class="num">${emp(j.ep_employment_k)}</b></div>
+      <div><span>Median wage (2025)</span><b class="num">${money(j.oews_median_wage)}</b></div>
+      <div><span>Multiplier percentile</span><b class="num">${Math.round(pctile("reference_multiplier", j.reference_multiplier))}</b></div>
+    </div>
+    <p class="small muted">Employment and wage are shown for context only; neither feeds the multiplier.</p>
+
+    <section class="step">
+      <h3><span class="n">1</span> What depends on this work</h3>
+      <p class="why">Four sub-scores ${tag("onet_related_occupations","measured")} ${tag("i_dependency")} are combined with weights ${SUBS.map(s=>Math.round(IW[s.k]*100)).join(" / ")} ${tag("impact_subdomain_weights")}, then placed on a fixed 0–1 range ${tag("outer_normalization")} to give the impact factor.</p>
+      ${SUBS.map(s=>bar(`${s.name} <span class="muted small">${Math.round(IW[s.k]*100)}%</span>`, j[s.col], "var(--impact)", s.col, s.what, s.name)).join("")}
+      <p class="small">Weighted sum <span class="num">${f3(iraw)}</span> on the frozen range <span class="num">${f3(IB[0])}–${f3(IB[1])}</span> → impact <b class="num">${f3(inorm)}</b>${Math.abs(inorm-j.f_impact)<1e-6?"":` <span class="check bad">(registry: ${f3(j.f_impact)})</span>`}</p>
+    </section>
+
+    <section class="step">
+      <h3><span class="n">2</span> The four factors</h3>
+      <p class="why">Each factor is a 0–1 score ${tag("f_training")} built from measured O*NET and BLS data ${tag("bls_ep_employment_PR","measured")}, scaled against frozen reference bounds ${tag("frozen_normalization_bounds")}. Hover a name for what it captures.</p>
+      ${FACTORS.map(f=>bar(f.name, j[f.col], f.color, f.col, f.what)).join("")}
+    </section>
+
+    <section class="step">
+      <h3><span class="n">3</span> Weighted into one score</h3>
+      <p class="why">Factors are weighted ${FACTORS.map(f=>Math.round(W[f.k]*100)).join(" / ")} ${tag("factor_weights")}, set for an automation level of ε = 0.40 ${tag("epsilon")}. Each segment is the points that factor adds.</p>
+      <div class="stack" role="img" aria-label="Composite ${f3(c)} made of ${contribs.map(x=>x.f.name+" "+f3(x.v)).join(", ")}">
+        ${contribs.map(x=>`<div style="width:${(x.v*100).toFixed(2)}%;background:${x.f.color}" title="${x.f.name}: ${f3(x.v)}"></div>`).join("")}
+      </div>
+      <div class="contrib">${contribs.map(x=>`<div><span class="swatch" style="background:${x.f.color}"></span>${x.f.name}<b class="num">+${f3(x.v)}</b><span class="muted small">${Math.round(W[x.f.k]*100)}% × ${f3(j[x.f.col])}</span></div>`).join("")}</div>
+      <p class="small">Composite score <b class="num">${f3(c)}</b>, ${pctWord(pctile("composite", c))} of occupations.</p>
+    </section>
+
+    <section class="step">
+      <h3><span class="n">4</span> Mapped onto the multiplier scale</h3>
+      <p class="why">The lowest composite in the registry (${esc(lowest.title)}, ${f3(Z[0])}) sits at the floor of ×${FLOOR.toFixed(1)} ${tag("multiplier_floor")}; the highest (${esc(highest.title)}, ${f3(Z[1])}) sits at ×${R.toFixed(1)} ${tag("spread_ratio_R")}. Both anchors are frozen at the ${META.reference_epoch} reference ${tag("reference_epoch")}. Scores in between are spaced geometrically ${tag("map_form")}.</p>
+      <div class="formula">
+        <div>Position on the scale = (${f3(c)} − ${f3(Z[0])}) ÷ (${f3(Z[1])} − ${f3(Z[0])}) = <b class="num">${f3(pos)}</b></div>
+        <div class="eq" style="margin-top:6px">${FLOOR.toFixed(1)} × ${R.toFixed(1)}<sup>${f3(pos)}</sup> = <b>${m.toFixed(3)}</b></div>
+      </div>
+      <p class="check ${ok?"ok":"bad"}">${ok ? "✓ Matches the published registry value" : "✗ Does not match the registry value "+j.reference_multiplier}${isAnchorLow?" · This occupation is the floor anchor, so it sits at ×1.0 by definition.":""}${isAnchorHigh?" · This occupation is the top anchor, so it sits at ×"+R.toFixed(1)+" by definition.":""}</p>
+      <p class="small muted">The constitutional cap is ×${C.cap.toFixed(1)} ${tag("multiplier_cap")}. The scale tops out at ×${R.toFixed(1)}, so the cap does not bind.</p>
+    </section>
+    ${other ? "" : `<p class="small muted" style="margin-top:18px">Add a second occupation above to see where the two differ.</p>`}
+  </article>`;
+}
+
+/* ---------- compare ---------- */
+function comparePanel(a, b){
+  const ca = composite(a), cb = composite(b), dc = ca - cb;
+  const ratio = a.reference_multiplier / b.reference_multiplier;
+  const deltas = FACTORS.map(f=>({f, d:W[f.k]*(a[f.col]-b[f.col])}));
+  const maxAbs = Math.max(0.02, ...deltas.map(x=>Math.abs(x.d)));
+  const hi = dc >= 0 ? a : b, lo = dc >= 0 ? b : a;
+  const sign = dc >= 0 ? 1 : -1;
+  const pushing = deltas.filter(x=>x.d*sign>0).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+  const against = deltas.filter(x=>x.d*sign<0).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+  let verdict;
+  if(Math.abs(dc) < 0.0005){
+    verdict = `These two occupations have effectively the same composite score, so their multipliers match.`;
+  } else {
+    const main = pushing[0];
+    verdict = `At the minting floor, an hour of ${esc(hi.title)} is minted at <b class="num">${(Math.max(ratio,1/ratio)).toFixed(2)}×</b> an hour of ${esc(lo.title)}. `+
+      `The biggest reason is <b>${main.f.name.toLowerCase()}</b> (+${f3(Math.abs(main.d))} composite points in its favour)`+
+      (pushing.length>1 ? `, with ${pushing.slice(1).map(x=>`${x.f.name.toLowerCase()} +${f3(Math.abs(x.d))}`).join(" and ")}` : "") + `.`+
+      (against.length ? ` ${against.map(x=>`${x.f.name} (−${f3(Math.abs(x.d))})`).join(" and ")} ${against.length>1?"pull":"pulls"} the other way,` : "") +
+      ` for a net gap of ${f3(Math.abs(dc))}.`;
+  }
+  const rows = deltas.map(x=>{
+    const w = 50*Math.abs(x.d)/maxAbs;
+    const left = x.d>=0 ? 50 : 50-w;
+    return `<div class="diff"><span>${x.f.name}</span><div class="axis" role="img" aria-label="${x.f.name} difference ${x.d>=0?"+":""}${f3(x.d)}"><div class="d" style="left:${left}%;width:${w}%;background:${x.f.color}"></div></div><span class="num r" style="text-align:right">${x.d>=0?"+":"−"}${f3(Math.abs(x.d))}</span></div>`;
+  }).join("");
+  const table = `<div class="tbl"><table><thead><tr><th>Factor</th><th class="r">Weight</th><th class="r">${esc(shortTitle(a.title))}</th><th class="r">${esc(shortTitle(b.title))}</th><th class="r">Difference</th></tr></thead><tbody>
+    ${FACTORS.map((f,i)=>`<tr><td><span class="swatch" style="background:${f.color}"></span>${f.name}</td><td class="r">${Math.round(W[f.k]*100)}%</td><td class="r">${f3(a[f.col])}</td><td class="r">${f3(b[f.col])}</td><td class="r">${deltas[i].d>=0?"+":"−"}${f3(Math.abs(deltas[i].d))} pts</td></tr>`).join("")}
+    ${SUBS.map(s=>`<tr><td class="muted">&nbsp;&nbsp;↳ ${s.name}</td><td class="r muted">${Math.round(IW[s.k]*100)}% of impact</td><td class="r muted">${f3(a[s.col])}</td><td class="r muted">${f3(b[s.col])}</td><td class="r muted">${(a[s.col]-b[s.col])>=0?"+":"−"}${f3(Math.abs(a[s.col]-b[s.col]))} score</td></tr>`).join("")}
+    <tr><td><b>Composite</b></td><td></td><td class="r"><b>${f3(ca)}</b></td><td class="r"><b>${f3(cb)}</b></td><td class="r"><b>${dc>=0?"+":"−"}${f3(Math.abs(dc))}</b></td></tr>
+    <tr><td><b>Multiplier</b></td><td></td><td class="r"><b>×${a.reference_multiplier.toFixed(3)}</b></td><td class="r"><b>×${b.reference_multiplier.toFixed(3)}</b></td><td class="r"><b>${ratio.toFixed(3)}×</b></td></tr>
+  </tbody></table></div>`;
+  return `<section class="panel" aria-label="Comparison">
+    <h2>Why the two differ</h2>
+    <p class="verdict">${verdict}</p>
+    <p class="small muted">This ratio is one of the things the data measures: it moves little when the normalization changes, unlike the overall range. It is a ratio of floors, not of pay.</p>
+    <p class="small muted">Bars show each factor's weighted difference in composite points. Right means it favours ${esc(shortTitle(a.title))}; left favours ${esc(shortTitle(b.title))}. Because the scale is geometric, every 0.1 of composite difference multiplies the ratio by ${Math.pow(R,0.1/(Z[1]-Z[0])).toFixed(3)}.</p>
+    ${rows}
+    ${table}
+    <p class="small"><button class="linkish" id="swap">Swap the two occupations</button></p>
+  </section>`;
+}
+
+/* ---------- what-if ---------- */
+function buildSliders(){
+  $("#sliders").innerHTML = FACTORS.map(f=>`<div><label for="w-${f.k}"><span><span class="swatch" style="background:${f.color}"></span>${f.name}</span><span class="num" id="wv-${f.k}"></span></label>
+    <input type="range" id="w-${f.k}" min="${(W[f.k]-0.10).toFixed(2)}" max="${(W[f.k]+0.10).toFixed(2)}" step="0.01" value="${W[f.k]}"></div>`).join("");
+  FACTORS.forEach(f=>$("#w-"+f.k).addEventListener("input", e=>{ state.w[f.k]=+e.target.value; renderWhatIf(); }));
+  $("#reset-w").addEventListener("click", ()=>{ state.w={...W}; FACTORS.forEach(f=>$("#w-"+f.k).value=W[f.k]); renderWhatIf(); });
+}
+function renderWhatIf(){
+  const w = M.normalize(state.w);
+  FACTORS.forEach(f=>$("#wv-"+f.k).textContent = `${Math.round(state.w[f.k]*100)} → ${(w[f.k]*100).toFixed(1)}%`);
+  const run = M.reconstruct(JOBS, w);
+  const rho = M.spearman(BASE.multiplier, run.multiplier);
+  const sortedM = [...run.multiplier].sort((a,b)=>b-a);
+  const cell = j => {
+    if(!j) return "";
+    const i = BASE_I.get(j.occ6), m = run.multiplier[i], r = sortedM.findIndex(v=>v<=m+1e-12)+1;
+    const r0 = rankOf("reference_multiplier", j.reference_multiplier);
+    const dm = m - j.reference_multiplier;
+    const zr = M.zRaw(M.composite(j, w, M.impactNorm(j)));
+    const clipNote = zr<=0 ? " · clipped at the floor" : zr>=1 ? " · clipped at the top" : "";
+    return `<div><b>${esc(shortTitle(j.title))}</b><br><span class="num">×${m.toFixed(3)}</span> <span class="muted small">(${dm>=0?"+":"−"}${Math.abs(dm).toFixed(3)} vs published${clipNote})</span><br><span class="small">Rank ${r} of ${N} <span class="muted">(published ${r0})</span></span></div>`;
+  };
+  let pair = "";
+  if(state.a && state.b){
+    const ia = BASE_I.get(state.a.occ6), ib = BASE_I.get(state.b.occ6);
+    const r1 = run.multiplier[ia]/run.multiplier[ib], r0 = BASE.multiplier[ia]/BASE.multiplier[ib];
+    pair = `<br><span class="small">Ratio of the two selected: <span class="num">${r1.toFixed(3)}×</span> <span class="muted">(published ${r0.toFixed(3)}×, ${r1>=r0?"+":"−"}${(100*Math.abs(r1/r0-1)).toFixed(1)}%)</span></span>`;
+  }
+  $("#whatif-out").innerHTML = cell(state.a) + cell(state.b) +
+    `<div><b>Whole registry</b><br><span class="small">Rank agreement with the published order: <span class="num">${rho.toFixed(3)}</span> (1 = identical)</span>${pair}`+
+    `<br><span class="small muted">Convention: weighted average ×${run.weighted_mean.toFixed(3)} (band ${BAND[0]}–${BAND[1]}) · spread ${run.spread_ratio.toFixed(2)}× · ${run.clipped} of ${N} clipped at a frozen end</span></div>`;
+}
+
+/* ---------- browse ---------- */
+const browse = {q:"", sort:"reference_multiplier", dir:-1, page:0, per:25};
+function renderBrowse(){
+  const q = browse.q.trim().toLowerCase();
+  let rows = JOBS.filter(j=>!q || j.title.toLowerCase().includes(q) || socFmt(j.occ6).includes(q) || String(j.occ6).includes(q));
+  rows.sort((a,b)=>{ const x=a[browse.sort], y=b[browse.sort]; return (typeof x==="string" ? x.localeCompare(y) : (x??-1)-(y??-1))*browse.dir; });
+  const pages = Math.max(1, Math.ceil(rows.length/browse.per));
+  browse.page = Math.min(browse.page, pages-1);
+  const slice = rows.slice(browse.page*browse.per, (browse.page+1)*browse.per);
+  $("#browse-body").innerHTML = slice.length ? slice.map(j=>`<tr class="${(state.a&&j.occ6===state.a.occ6)||(state.b&&j.occ6===state.b.occ6)?"hl":""}">
+    <td><button class="linkish" data-pick="a" data-occ="${j.occ6}">${esc(j.title)}</button></td>
+    <td class="r">${socFmt(j.occ6)}</td><td class="r num">×${j.reference_multiplier.toFixed(3)}</td><td class="r">${j.ep_employment_k.toLocaleString("en-US")}</td>
+    <td><button class="linkish small" data-pick="b" data-occ="${j.occ6}">Compare</button></td></tr>`).join("")
+    : `<tr><td colspan="5" class="muted">No occupation matches “${esc(browse.q)}”.</td></tr>`;
+  $("#pageinfo").textContent = `${rows.length} occupations · page ${browse.page+1} of ${pages}`;
+  $("#prev").disabled = browse.page===0; $("#next").disabled = browse.page>=pages-1;
+}
+
+/* ---------- provenance ---------- */
+const provFilter = new Set(TAG_KINDS);
+function renderProv(focus){
+  $("#prov-filters").innerHTML = `<span class="small">Show:</span>` + TAG_KINDS.map(t=>`<button class="tag ${t}" data-filter="${t}" aria-pressed="${provFilter.has(t)}">${TAG_LABEL[t]} (${PROV.filter(p=>tagClass(p.tag)===t).length})</button>`).join("");
+  $("#prov-body").innerHTML = PROV.filter(p=>provFilter.has(tagClass(p.tag))).map(p=>`<tr id="prov-${esc(p.constant_or_input)}" class="${p.constant_or_input===focus?"hl":""}">
+    <td><b>${esc(p.constant_or_input.replace(/_/g," "))}</b></td><td>${esc(p.value)}</td><td><span class="tag ${tagClass(p.tag)}" style="cursor:default">${esc(p.tag.replace(/_/g," ").toLowerCase())}</span></td>
+    <td>${esc(p.source_or_note)}</td><td>${esc(p.sensitivity_sweep||"—")}</td><td>${esc(p.resolves_by)}</td></tr>`).join("");
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(state.a && state.b && state.a.occ6===state.b.occ6) state.b = null;
+  writeHash();
+  const cols = $("#cols");
+  cols.className = "cols" + (state.b ? "" : " single");
+  if(!state.a && !state.b){
+    cols.innerHTML = `<div class="empty">Search for an occupation above to see how its multiplier was built.</div>`;
+  } else {
+    if(!state.a && state.b){ state.a = state.b; state.b = null; }
+    cols.innerHTML = jobCard(state.a,"a") + (state.b ? jobCard(state.b,"b") : "");
+  }
+  $("#compare").innerHTML = (state.a && state.b && state.a.occ6!==state.b.occ6) ? comparePanel(state.a, state.b) : "";
+  const sw = $("#swap"); if(sw) sw.onclick = ()=>{ [state.a,state.b]=[state.b,state.a]; render(); };
+  drawScale(); renderWhatIf(); renderBrowse();
+}
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[data-prov]");
+  if(t){
+    const key = t.dataset.prov, p = PROV_KEY.get(key);
+    if(p) provFilter.add(tagClass(p.tag));
+    renderProv(key);
+    const row = document.getElementById("prov-"+key);
+    (row||$("#prov")).scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"center"});
+    return;
+  }
+  const f = e.target.closest("[data-filter]");
+  if(f){ const k=f.dataset.filter; provFilter.has(k)?provFilter.delete(k):provFilter.add(k); renderProv(); return; }
+  const pk = e.target.closest("[data-pick]");
+  if(pk){ state[pk.dataset.pick] = byOcc.get(pk.dataset.occ); render(); window.scrollTo({top:0,behavior:"auto"}); return; }
+  const cl = e.target.closest("[data-clear]");
+  if(cl){ state[cl.dataset.clear] = null; $("#in-"+cl.dataset.clear).value=""; render(); return; }
+  const so = e.target.closest("[data-sort]");
+  if(so){ const k=so.dataset.sort; browse.dir = browse.sort===k ? -browse.dir : (k==="title"?1:-1); browse.sort=k; browse.page=0; renderBrowse(); }
+});
+$("#browse-q").addEventListener("input", e=>{ browse.q=e.target.value; browse.page=0; renderBrowse(); });
+$("#prev").addEventListener("click", ()=>{ browse.page--; renderBrowse(); });
+$("#next").addEventListener("click", ()=>{ browse.page++; renderBrowse(); });
+window.addEventListener("hashchange", ()=>{ readHash(); render(); });
+
+$("#meta").textContent = `${N} occupations. Methodology ${META.methodology}, reference epoch ${META.reference_epoch}. Sources: ${META.sources.join("; ")}.`;
+$("#scope").innerHTML = `What the data measures is the <strong>order</strong> of occupations and the <strong>ratio</strong> between any two. The overall range (×${FLOOR.toFixed(1)} to ×${R.toFixed(1)}) and where the average falls come from how the scores are normalized; they are conventions, not findings.`;
+if(MISMATCH.length){ const el=$("#selfcheck"); el.hidden=false; el.textContent = `✗ This page's math does not reproduce the registry for ${MISMATCH.length} occupation(s), e.g. ${MISMATCH[0].title}. Treat its figures as unverified.`; }
+$("#foot").innerHTML = `<p>Every multiplier on this page is recomputed in your browser from <code>multiplier_registry_v5.csv</code>, with the weights and scale constants taken from <code>hours_eoh/data.py</code>, then checked against the published value. The page was built only after the repository's own functions reproduced all ${N} registry rows. Links to a selection can be shared: the address updates as you choose occupations.</p><p>Normalization bounds, the scale anchors and R = ${R} are frozen at the reference epoch and must not be re-derived per data vintage. Factor and sub-factor weights are judgment calls awaiting calibration; see the table above for what would settle each one.</p>`;
+
+setupPicker("a"); setupPicker("b");
+buildSliders(); renderProv(); readHash(); render();
+})();
+</script>
+</body>
+</html>
