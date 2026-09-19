@@ -524,7 +524,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,897 tests passing (1 skipped), mypy clean on 102 source files** (verified
+**4,902 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-18). Provenance **347/347**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -655,7 +655,7 @@ are the ones worth knowing by name.
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
 | `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down only what it OWES, and no term in its balance depends on the balance — the sharp form since 2026-09-15, when unspent dividend stopped leaving). |
-| `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
+| `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. The weight sliders set SHARES that always total 100%, stay within published ± the harness's `delta`, and keep the other three's proportions when one moves — checked over a 2,000-move walk. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
 
 ### Cross-cutting, or named differently from the module

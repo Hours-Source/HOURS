@@ -113,7 +113,10 @@ details>summary{cursor:pointer;padding:16px 20px;font-family:var(--num);font-wei
 details>.inner{padding:0 20px 20px}
 .sliders{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 24px;margin:10px 0}
 .sliders label{display:flex;justify-content:space-between;font-size:.9rem}
-.sliders input{width:100%}
+.sliders input{width:100%;margin:6px 0 2px}
+.track-wrap{position:relative}
+.track-wrap::before{content:"";position:absolute;left:var(--mid);top:-1px;bottom:-1px;border-left:2px solid var(--muted);opacity:.55;pointer-events:none}
+.sliders .range{display:flex;justify-content:space-between;font-size:.76rem}
 .whatif-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:10px}
 .whatif-out div{background:var(--soft);border-radius:6px;padding:10px 12px}
 .reset{border:1.5px solid var(--rule);background:var(--panel);border-radius:6px;padding:6px 12px;cursor:pointer}
@@ -187,7 +190,7 @@ footer{margin-top:32px;color:var(--muted);font-size:.85rem;max-width:80ch}
   <details id="whatif">
     <summary>What if the factor weights were different?</summary>
     <div class="inner">
-      <p class="small">The four factor weights are <button class="tag chosen" data-prov="factor_weights">chosen</button> and uncalibrated. The methodology tests each within ±0.10. Move them here to see how much a result depends on that choice. Weights are rescaled to sum to 1. The scale stays <strong>frozen</strong> <button class="tag frozen" data-prov="frozen_normalization_bounds">frozen</button>, exactly as the repo's sensitivity harness holds it: a score that moves past either frozen end is clipped at ×1.0 or at the top of the scale, and the number clipped is shown. <strong>These are explorations, not published values.</strong></p>
+      <p class="small">The four factor weights are <button class="tag chosen" data-prov="factor_weights">chosen</button> and uncalibrated. Each slider sets that factor's <strong>share</strong> of the score, within <span id="span-pts"></span> either side of its published value, the range the methodology tests. The four shares always add up to 100%: moving one takes the difference from the other three in proportion to their size, and their sliders move to show it. The line on each track marks the published weight. The scale stays <strong>frozen</strong> <button class="tag frozen" data-prov="frozen_normalization_bounds">frozen</button>, exactly as the repo's sensitivity harness holds it: a score that moves past either frozen end is clipped at ×1.0 or at the top of the scale, and the number clipped is shown. <strong>These are explorations, not published values.</strong></p>
       <p class="small muted">Read the order and the ratio first — they are what the data measures. The average and the band are shown for completeness; they are conventions.</p>
       <div class="sliders" id="sliders"></div>
       <button class="reset" id="reset-w">Restore published weights</button>
@@ -266,6 +269,33 @@ var multiplierMath = function(C){
     }
     return {multiplier:m, weighted_mean:sm/se, spread_ratio:Math.max(...m)/Math.min(...m), clip_fraction:clipped/jobs.length, clipped};
   }
+  // The weight sliders set SHARES that always total 1. Setting factor k to v
+  // takes the difference from the other three in proportion to their current
+  // size, so their ratios to each other are kept (and a move is reversible).
+  // Each share stays inside [lo, hi]; a factor that hits its bound is held
+  // there and the rest is spread over the others. Always feasible when every
+  // range is published ± span: the others' ranges together cover more than
+  // any one slider can move.
+  function rangeOf(k){ const s = C.weight_span, p = C.factor_weights[k]; return [Math.max(0, p-s), Math.min(1, p+s)]; }
+  function rebalance(w, k, v){
+    const [lo, hi] = rangeOf(k);
+    v = Math.max(lo, Math.min(hi, v));
+    const out = {...w}; out[k] = v;
+    let free = FN.filter(x=>x!==k), rest = 1 - v;
+    for(let pass=0; pass<FN.length && free.length; pass++){
+      const tot = free.reduce((a,x)=>a+w[x], 0);
+      const held = [];
+      for(const x of free){
+        const [l, h] = rangeOf(x);
+        const t = tot > 0 ? rest*w[x]/tot : rest/free.length;
+        if(t < l){ out[x] = l; held.push(x); } else if(t > h){ out[x] = h; held.push(x); } else out[x] = t;
+      }
+      if(!held.length) break;
+      rest -= held.reduce((a,x)=>a+out[x], 0);
+      free = free.filter(x=>!held.includes(x));
+    }
+    return out;
+  }
   // Pearson on ordinal ranks, as the repo's spearman()
   function spearman(x, y){
     const rk = a => { const idx=a.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]||p[1]-q[1]); const r=new Array(a.length); idx.forEach((p,i)=>r[p[1]]=i); return r; };
@@ -273,7 +303,7 @@ var multiplierMath = function(C){
     for(let i=0;i<n;i++) d2+=(rx[i]-ry[i])**2;
     return 1 - 6*d2/(n*(n*n-1));
   }
-  return {FN, IN, clip01, impactRaw, impactNorm, composite, zRaw, position, mult, normalize, reconstruct, spearman};
+  return {FN, IN, clip01, impactRaw, impactNorm, composite, zRaw, position, mult, normalize, rangeOf, rebalance, reconstruct, spearman};
 };
 </script>
 <script>
@@ -553,15 +583,30 @@ function comparePanel(a, b){
 }
 
 /* ---------- what-if ---------- */
+const pct = x => (x*100).toFixed(1).replace(/\.0$/,"") + "%";
+function syncSliders(){
+  // Thumbs show the share in use; the other three move when one is dragged.
+  FACTORS.forEach(f=>{ $("#w-"+f.k).value = state.w[f.k]; });
+}
 function buildSliders(){
-  $("#sliders").innerHTML = FACTORS.map(f=>`<div><label for="w-${f.k}"><span><span class="swatch" style="background:${f.color}"></span>${f.name}</span><span class="num" id="wv-${f.k}"></span></label>
-    <input type="range" id="w-${f.k}" min="${(W[f.k]-0.10).toFixed(2)}" max="${(W[f.k]+0.10).toFixed(2)}" step="0.01" value="${W[f.k]}"></div>`).join("");
-  FACTORS.forEach(f=>$("#w-"+f.k).addEventListener("input", e=>{ state.w[f.k]=+e.target.value; renderWhatIf(); }));
-  $("#reset-w").addEventListener("click", ()=>{ state.w={...W}; FACTORS.forEach(f=>$("#w-"+f.k).value=W[f.k]); renderWhatIf(); });
+  $("#sliders").innerHTML = FACTORS.map(f=>{
+    const [lo, hi] = M.rangeOf(f.k), mid = 100*(W[f.k]-lo)/(hi-lo);
+    return `<div class="sl"><label for="w-${f.k}"><span><span class="swatch" style="background:${f.color}"></span>${f.name}</span><span id="wv-${f.k}"></span></label>
+    <div class="track-wrap" style="--mid:${mid.toFixed(2)}%"><input type="range" id="w-${f.k}" min="${lo}" max="${hi}" step="0.005" value="${W[f.k]}" aria-describedby="wr-${f.k}"></div>
+    <div class="range small muted" id="wr-${f.k}"><span>${pct(lo)}</span><span>published ${pct(W[f.k])}</span><span>${pct(hi)}</span></div></div>`;
+  }).join("");
+  FACTORS.forEach(f=>{
+    $("#w-"+f.k).addEventListener("input", e=>{ state.w = M.rebalance(state.w, f.k, +e.target.value); syncSliders(); renderWhatIf(); });
+  });
+  $("#span-pts").textContent = `${Math.round(C.weight_span*100)} points`;
+  $("#reset-w").addEventListener("click", ()=>{ state.w={...W}; syncSliders(); renderWhatIf(); });
 }
 function renderWhatIf(){
   const w = M.normalize(state.w);
-  FACTORS.forEach(f=>$("#wv-"+f.k).textContent = `${Math.round(state.w[f.k]*100)} → ${(w[f.k]*100).toFixed(1)}%`);
+  FACTORS.forEach(f=>{
+    const d = w[f.k] - W[f.k], same = Math.abs(d) < 5e-4;
+    $("#wv-"+f.k).innerHTML = `<b class="num">${pct(w[f.k])}</b> <span class="muted small">${same ? "published" : (d>0?"+":"−")+(100*Math.abs(d)).toFixed(1)+" pts"}</span>`;
+  });
   const run = M.reconstruct(JOBS, w);
   const rho = M.spearman(BASE.multiplier, run.multiplier);
   const sortedM = [...run.multiplier].sort((a,b)=>b-a);

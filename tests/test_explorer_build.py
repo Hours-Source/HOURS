@@ -33,7 +33,11 @@ from hours_eoh.core.multipliers import (
     reference_multiplier,
 )
 from hours_eoh.reference.onet_multipliers import load_registry
-from hours_eoh.scenarios.multiplier_sensitivity import _normalize, reconstruct, spearman
+import inspect
+
+from hours_eoh.scenarios.multiplier_sensitivity import (
+    _normalize, reconstruct, spearman, sweep_factor_weights,
+)
 from utils.explorers.multiplier import build as B
 
 
@@ -66,6 +70,7 @@ def test_payload_constants_are_data_py(html: str) -> None:
     assert C["impact_bounds"] == [D.M_IMPACT_COMPOSITE_LO, D.M_IMPACT_COMPOSITE_HI]
     assert (C["floor"], C["R"], C["cap"]) == (D.M_FLOOR, D.M_GEOMETRIC_R, D.M_MAX)
     assert C["band"] == [D.M_BAND_LOW, D.M_BAND_HIGH]
+    assert C["weight_span"] == inspect.signature(sweep_factor_weights).parameters["delta"].default
 
 
 def test_payload_rows_are_the_registry(html: str) -> None:
@@ -87,6 +92,8 @@ def _literal_weight_copies(src: str) -> list[str]:
         hits.append("impact weights in prose")
     if re.search(r"two thirds|one third", src):
         hits.append("scarcity leg weights in prose")
+    if re.search(r"[-+±]\s*0\.10\b|\b10 points\b", src):
+        hits.append("slider span as a literal")
     return hits
 
 
@@ -102,8 +109,9 @@ def test_literal_weight_scan_can_fire() -> None:
     """Against the draft's own sentences the scan must find all three copies."""
     draft = ("const IW = {dependency:.30, substitutability:.25};"
              " combined with weights 30 / 25 / 25 / 20 ${tag(...)}"
-             " projected openings (two thirds) and projected growth (one third)")
-    assert len(_literal_weight_copies(draft)) == 3
+             " projected openings (two thirds) and projected growth (one third)"
+             ' min="${(W[f.k]-0.10).toFixed(2)}"')
+    assert len(_literal_weight_copies(draft)) == 4
 
 
 def test_page_makes_no_external_requests(html: str) -> None:
@@ -232,3 +240,94 @@ def test_sweep_cases_can_tell_frozen_from_reanchored(node_result: dict) -> None:
     """The comparison above only bites if some case's spread differs from R —
     a re-anchored page would sit at exactly R everywhere."""
     assert any(abs(js["spread_ratio"] - D.M_GEOMETRIC_R) > 0.01 for js in node_result["runs"])
+
+
+# ---------------------------------------------------------------------------
+# The weight sliders — linked shares that always total 100%
+# ---------------------------------------------------------------------------
+
+_REBALANCE_DRIVER = r"""
+const fs = require("fs");
+const inp = JSON.parse(fs.readFileSync(0, "utf8"));
+const M = new Function(inp.math + "; return multiplierMath;")()(inp.constants);
+const P = inp.constants.factor_weights, FN = M.FN;
+const out = {};
+// every slider pushed to each end from the published weights
+out.ends = [];
+for (const k of FN) for (const v of [-1, 2]) out.ends.push({k, w: M.rebalance(P, k, v), range: M.rangeOf(k)});
+// away and back: the published weights must come back exactly
+out.roundtrip = FN.map(k => { const [lo, hi] = M.rangeOf(k);
+  return M.rebalance(M.rebalance(P, k, hi), k, P[k]); });
+// a long seeded random walk, including moves past the ends
+let seed = 12345; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+let w = {...P}; out.walk = []; out.ratios = [];
+for (let i = 0; i < 2000; i++) {
+  const k = FN[Math.floor(rnd() * 4)], [lo, hi] = M.rangeOf(k);
+  const before = {...w};
+  w = M.rebalance(w, k, lo - 0.05 + rnd() * (hi - lo + 0.1));
+  out.walk.push(w);
+  out.ratios.push({k, before, after: w});
+}
+out.ranges = Object.fromEntries(FN.map(k => [k, M.rangeOf(k)]));
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def rebalance_result(html: str) -> dict:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not on PATH — the slider rebalancing is UNTESTED in this run")
+    p = _payload(html)
+    out = subprocess.run([node, "-e", _REBALANCE_DRIVER],
+                         input=json.dumps({"math": _math_block(html), "constants": p["constants"]}),
+                         capture_output=True, text=True, check=True, timeout=60)
+    return json.loads(out.stdout)
+
+
+def test_slider_ranges_are_published_plus_minus_the_harness_delta(rebalance_result: dict) -> None:
+    delta = inspect.signature(sweep_factor_weights).parameters["delta"].default
+    for name, w in zip(B.FACTOR_NAMES, D.M_FACTOR_WEIGHTS):
+        lo, hi = rebalance_result["ranges"][name]
+        assert lo == pytest.approx(max(0.0, w - delta)) and hi == pytest.approx(min(1.0, w + delta))
+
+
+def test_every_slider_reaches_both_ends(rebalance_result: dict) -> None:
+    """The reported symptom was a slider that seemed to move only one way."""
+    for e in rebalance_result["ends"]:
+        lo, hi = e["range"]
+        assert e["w"][e["k"]] in (pytest.approx(lo), pytest.approx(hi))
+    reached = {(e["k"], round(e["w"][e["k"]], 9)) for e in rebalance_result["ends"]}
+    assert len(reached) == 2 * len(B.FACTOR_NAMES)
+
+
+def test_shares_always_total_one_and_stay_in_range(rebalance_result: dict) -> None:
+    ranges = rebalance_result["ranges"]
+    for w in rebalance_result["walk"] + [e["w"] for e in rebalance_result["ends"]]:
+        assert sum(w.values()) == pytest.approx(1.0, abs=1e-12)
+        for k, v in w.items():
+            assert ranges[k][0] - 1e-12 <= v <= ranges[k][1] + 1e-12
+
+
+def test_moving_one_keeps_the_others_proportions_unless_one_hits_a_bound(
+        rebalance_result: dict) -> None:
+    ranges = rebalance_result["ranges"]
+    checked = 0
+    for step in rebalance_result["ratios"]:
+        k, before, after = step["k"], step["before"], step["after"]
+        others = [x for x in B.FACTOR_NAMES if x != k]
+        at_bound = any(abs(after[x] - ranges[x][0]) < 1e-12 or abs(after[x] - ranges[x][1]) < 1e-12
+                       for x in others)
+        if at_bound:
+            continue
+        for a in others:
+            for b in others:
+                assert after[a] * before[b] == pytest.approx(after[b] * before[a], abs=1e-12)
+        checked += 1
+    assert checked > 100, "the walk must exercise the unclamped case"
+
+
+def test_moving_away_and_back_restores_the_published_weights(rebalance_result: dict) -> None:
+    for w in rebalance_result["roundtrip"]:
+        for name, pub in zip(B.FACTOR_NAMES, D.M_FACTOR_WEIGHTS):
+            assert w[name] == pytest.approx(pub, abs=1e-12)
