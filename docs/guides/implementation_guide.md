@@ -366,9 +366,16 @@ number.** The framework carries two instruments that share no data:
   with no currency in the chain and one judgement instead of three. Run
   `eoh scenario run labour_epsilon`.
 
-Run for the US, the two bands land close to each other without overlapping,
-which is the honest word for what a second instrument can show. Both divide by
-the same obligation, so they check the machine/human split, not the total.
+Run for the US, the two bands land close to each other without overlapping **at
+government scope and current-cost doctrine** — the one cell the comparison reads
+by default — and ADJACENT is the honest word for that. **Across the whole
+declared grid they OVERLAP**: 8 of the 18 cells fall inside the labour band
+(0.200–0.757 against 0.214–0.407). The capital route returns a grid precisely
+because its three judgements are undeclared, so *which verdict you get is a
+function of the scope and doctrine you pick, not a property of the instruments*.
+`instrument_comparison()` reports both, and takes `scope=` and `doctrine=`
+explicitly so the choice is yours and visible. Both divide by the same
+obligation, so they check the machine/human split, not the total.
 
 For a quick structural estimate from a capital description, use
 `civilization_epsilon()`:

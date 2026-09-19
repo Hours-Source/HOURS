@@ -309,3 +309,82 @@ class TestTheLabourArmTakesItsDataToo:
         a = LE.reconciling_rate("core")["reconciling_rate"]
         b = LE.reconciling_rate("core", inventory=inv, **self._shipped_inputs())["reconciling_rate"]
         assert a == pytest.approx(b, rel=1e-9)
+
+class TestTheVerdictIsAChoiceAndSaysSo:
+    """
+    THE PUBLISHED ADJACENT WAS ONE CELL OF A GRID (2026-09-18).
+
+    `instrument_comparison` hard-coded `scope="government"` and inherited
+    `doctrine="current_cost"`, so it read ONE corner of the capital grid and
+    reported the result as a property of the instruments. The capital route
+    returns 18 cells precisely BECAUSE its three judgements are undeclared.
+
+    Measured at the US frame: the corner gives ADJACENT at gap 0.046, while 8 of
+    the 18 declared cells fall inside the labour band and the full grid
+    (0.200-0.757) OVERLAPS it. The corner stays the headline — government /
+    current_cost is the most defensible single reading, and switching the
+    headline to the framing that AGREES would be calibrating to the answer, the
+    failure `reconciling_rate` names in its own docstring. What changes is that
+    the grid verdict is reported beside it and the choice is explicit.
+    """
+
+    def test_the_corner_is_still_the_headline(self):
+        c = LE.instrument_comparison()
+        assert c["verdict"] == "ADJACENT"
+        assert c["capital"]["scope"] == "government"
+        assert c["capital"]["doctrine"] == "current_cost"
+
+    def test_the_grid_verdict_is_reported_beside_it(self):
+        g = LE.instrument_comparison()["grid"]
+        assert g["available"] is True
+        assert g["verdict"] == "OVERLAP"
+        assert g["cells_total"] == 18
+        assert 0 < g["cells_inside_labour"] < g["cells_total"], (
+            "if NO cell or EVERY cell sits inside the labour band, the grid "
+            "verdict has stopped discriminating and this pin should be re-read"
+        )
+
+    def test_one_declared_judgement_flips_the_verdict(self):
+        """
+        THE POINT, AS A TEST RATHER THAN A SENTENCE. Doctrine alone moves it:
+        every government/historical_cost cell sits inside the labour band, every
+        current_cost one sits above it. A comparison whose answer turns on an
+        undeclared default was reporting a choice as a finding.
+        """
+        cur = LE.instrument_comparison(doctrine="current_cost")
+        hist = LE.instrument_comparison(doctrine="historical_cost")
+        assert cur["verdict"] == "ADJACENT"
+        assert hist["verdict"] == "OVERLAP", (
+            f"historical cost read {hist['capital']['low']:.4f}-"
+            f"{hist['capital']['high']:.4f} against labour "
+            f"{hist['labour']['low']:.4f}-{hist['labour']['high']:.4f}"
+        )
+
+    def test_scope_moves_it_too_and_is_not_hard_coded(self):
+        """A hard-coded scope would make every scope return the same numbers."""
+        got = {sc: LE.instrument_comparison(scope=sc)["capital"]["low"]
+               for sc in ("productive", "government", "residential")}
+        assert len(set(round(v, 9) for v in got.values())) == 3, got
+
+    def test_a_supplied_inventory_has_no_grid_and_says_so(self):
+        """The grid is a property of the SHIPPED table, not of anyone's data."""
+        from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
+        m = LE.measured_hours()
+        c = LE.instrument_comparison(
+            inventory=capital_by_profile("government", "current_cost"),
+            population_15_plus_supplied=m["population_15_plus"],
+            unpaid_per_15plus=m["unpaid_per_15plus"],
+            paid_per_15plus=m["paid_per_15plus"])
+        assert c["grid"]["available"] is False
+        assert "no declared scope/doctrine grid" in c["grid"]["note"]
+
+    def test_the_reader_facing_verdict_names_both(self):
+        """
+        The institution-facing string is where this matters: it is the starting
+        conversation, and it must not present a choice as a property.
+        """
+        v = LE.labour_epsilon_report()["verdict"]
+        assert "government/current_cost" in v
+        assert "ADJACENT" in v
+        assert "OVERLAP across the declared grid" in v
+        assert "depends on the scope and doctrine chosen" in v

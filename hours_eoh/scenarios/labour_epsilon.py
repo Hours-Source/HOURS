@@ -247,6 +247,8 @@ def instrument_comparison(
     capital_rates: tuple[float, ...] = (15.94, 19.50, 23.17),
     population: float = BEA_POPULATION,
     *,
+    scope: str = "government",
+    doctrine: str = "current_cost",
     inventory: "Mapping[str, float] | None" = None,
     population_15_plus_supplied: float | None = None,
     unpaid_per_15plus: float | None = None,
@@ -261,7 +263,26 @@ def instrument_comparison(
     Reports OVERLAP, ADJACENT or DIVERGENT rather than asserting agreement — a
     comparison that can only conclude "they agree" is not a comparison. The
     labour interval is [broad, core]; the capital interval is the span of the
-    supplied rates at government scope, current cost.
+    supplied rates AT ONE CELL of the capital grid.
+
+    THE VERDICT DEPENDS ON A CHOICE, AND THAT CHOICE IS NOW STATED (2026-09-18).
+    `scope` and `doctrine` were a hard-coded "government" and an inherited
+    `current_cost` default, so this function silently read ONE CORNER of a grid
+    the capital route insists must stay a grid — its three judgements being
+    undeclared is the whole reason it returns 18 cells. Measured at the US
+    frame: the corner gives ADJACENT with a gap of 0.046, while **8 of the 18
+    declared cells fall inside the labour band** and the full grid (0.2003 –
+    0.7571) OVERLAPS it.
+
+    The corner remains the headline because government/current_cost is the most
+    defensible single reading — switching the headline to the framing that
+    produces agreement would be calibrating to the answer, which is the failure
+    `reconciling_rate` warns about in its own docstring. The grid verdict is
+    reported BESIDE it under `grid`, so a reader sees that the answer is a
+    function of a declared choice rather than a property of the instruments.
+
+    A SUPPLIED inventory has no declared scope/doctrine grid to sweep, so
+    `grid["available"]` is False for a ported capital arm.
     """
     from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
 
@@ -289,8 +310,8 @@ def instrument_comparison(
                paid_per_15plus=paid_per_15plus,
                employment=employment)["epsilon"]
            for s in ("core", "broad")}
-    cap = [epsilon_from_inventory(r, scope="government", population=population,
-                                  inventory=inventory)["epsilon"]
+    cap = [epsilon_from_inventory(r, scope=scope, doctrine=doctrine,
+                                  population=population, inventory=inventory)["epsilon"]
            for r in capital_rates]
     lab_lo, lab_hi = lab["broad"], lab["core"]
     cap_lo, cap_hi = min(cap), max(cap)
@@ -301,11 +322,48 @@ def instrument_comparison(
         gap = cap_lo - lab_hi if cap_lo > lab_hi else lab_lo - cap_hi
         verdict = "ADJACENT" if gap < 0.05 else "DIVERGENT"
 
+    # THE GRID BESIDE THE CORNER. Same rates, so the two sweeps cannot differ by
+    # a rate set: `capital_rates` defaults to a 19.50 mid where the band's own
+    # derived mid is 19.5586, and passing it through keeps them one comparison.
+    if inventory is None:
+        from hours_eoh.scenarios.capital_retrodiction import retrodiction_grid
+        _rows = retrodiction_grid(rates=capital_rates, population=population)
+        _geps = [row["epsilon"] for row in _rows]
+        _glo, _ghi = min(_geps), max(_geps)
+        _inside = [row for row in _rows if lab_lo <= row["epsilon"] <= lab_hi]
+        if lab_hi >= _glo and _ghi >= lab_lo:
+            _gverdict, _ggap = "OVERLAP", 0.0
+        else:
+            _ggap = _glo - lab_hi if _glo > lab_hi else lab_lo - _ghi
+            _gverdict = "ADJACENT" if _ggap < 0.05 else "DIVERGENT"
+        grid_info: dict = {
+            "available":           True,
+            "low":                 _glo,
+            "high":                _ghi,
+            "verdict":             _gverdict,
+            "gap":                 _ggap,
+            "cells_inside_labour": len(_inside),
+            "cells_total":         len(_rows),
+            "note": (
+                "the capital route's three judgements are undeclared, which is why "
+                "it returns a grid; reading one cell of it is a choice and this "
+                "reports what the whole grid says"
+            ),
+        }
+    else:
+        grid_info = {
+            "available": False,
+            "note": ("a supplied inventory has no declared scope/doctrine grid to "
+                     "sweep — the grid is a property of the shipped table"),
+        }
+
     return {
         "labour":   {"low": lab_lo, "high": lab_hi, "by_scope": lab},
-        "capital":  {"low": cap_lo, "high": cap_hi, "rates": list(capital_rates)},
+        "capital":  {"low": cap_lo, "high": cap_hi, "rates": list(capital_rates),
+                     "scope": scope, "doctrine": doctrine},
         "gap":      gap,
         "verdict":  verdict,
+        "grid":     grid_info,
         "shared_denominator": (
             "both divide by total_eoh, so an error in the obligation passes both "
             "instruments; what is cross-checked is the machine/human split"
@@ -387,9 +445,21 @@ def labour_epsilon_report(population: float = BEA_POPULATION) -> dict:
         "cannot_settle":    what_this_cannot_settle(),
         "verdict": (
             f"labour route {comp['labour']['low']:.3f}–{comp['labour']['high']:.3f} against "
-            f"capital route {comp['capital']['low']:.3f}–{comp['capital']['high']:.3f}: "
+            f"capital route {comp['capital']['low']:.3f}–{comp['capital']['high']:.3f} "
+            f"at {comp['capital']['scope']}/{comp['capital']['doctrine']}: "
             f"{comp['verdict']}"
             + ("" if comp["verdict"] == "OVERLAP" else f", gap {comp['gap']:.3f}")
+            + (
+                ""
+                if not comp["grid"]["available"]
+                else (
+                    f" — but {comp['grid']['verdict']} across the declared grid "
+                    f"({comp['grid']['cells_inside_labour']} of "
+                    f"{comp['grid']['cells_total']} cells inside the labour band, "
+                    f"{comp['grid']['low']:.3f}–{comp['grid']['high']:.3f}), so the "
+                    f"verdict depends on the scope and doctrine chosen"
+                )
+            )
         ),
         "adopted":          False,
     }

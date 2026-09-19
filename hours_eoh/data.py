@@ -3369,14 +3369,36 @@ PROVIDER_CAP_EQUIVALENTS:     float = 2.50
 #   CONSISTENCY, not corroboration: a 6.6x range admits almost any mid-range
 #   figure. Attaching that instrument here would be binding a measurement to
 #   the wrong quantity (failure mode 8).
-# note: OPEN — IS 8,760 THE TEH COMPONENT OR THE TOTAL? `make_economy_state`
-#   builds `teh_endowment = trust_balance + capital_embodied_teh` = 8,760 + 2,400
-#   = 11,160 TEH/person. Under the prior-work doctrine capital IS prior work, so
-#   either this figure is the TEH component ONLY and the endowment is right, or
-#   it is TOTAL prior work and the endowment counts the assets twice. The two
-#   give different models and the question is DECLARED here rather than settled,
-#   because settling it by choosing whichever keeps the current number is the
-#   move that produced the withdrawn 35e9 rationale.
+# note: SETTLED 2026-09-18 (author) — THIS IS THE **TEH COMPONENT**, NOT TOTAL
+#   PRIOR WORK. `make_economy_state` builds
+#   `teh_endowment = trust_balance + capital_embodied_teh` = 8,760 + 2,400 =
+#   11,160 TEH/person, and that sum is CORRECT under this reading: the assets a
+#   collective brings are counted once, in the capital term.
+#   WHY NOT TOTAL, WHICH WAS THE ARGUABLE ALTERNATIVE. Total is the MEASURABLE
+#   reading — `capital_retrodiction` measures a capital stock in TEH — and it
+#   matches what a converting collective hands over, an economy rather than two
+#   separate things. Four objections beat it:
+#     1. THE TRUST WOULD BECOME A RESIDUAL. Total − capital = 8,760 − 2,400 =
+#        6,360, so the Trust stops being intake and becomes leftover arithmetic.
+#        Any error in the capital figure then moves the Trust by the same amount
+#        in the OPPOSITE direction — one measurement error, two constants,
+#        inversely coupled, and no way to tell which one a solvency result came
+#        from.
+#     2. IT IS UNFUNDABLE. Exit claims at 11,160/person are 127.4% of the liquid
+#        Trust (measured 2026-09-17). Embodied capital cannot pay an exit without
+#        dismantling the apparatus.
+#     3. ONE NUMBER CANNOT CARRY TWO DESTRUCTION RULES. D1 writes capital down;
+#        the Trust is drawn down only for what it OWES.
+#     4. IT COLLAPSES TWO ANSWERABLE QUESTIONS INTO ONE. This constant's
+#        `supplied_by` asks for a Trust balance per head; CAPITAL_STOCK_DEFAULT's
+#        asks for a gross fixed capital stock in TEH. An institution can answer
+#        those independently, and `epsilon_inverse.capital_for_epsilon` uses that
+#        independence to check an inventory against an ε.
+#   THE COST OF THIS CHOICE, STATED RATHER THAN GLOSSED: the TEH component has
+#   NO measurement path. Total had one; this does not, and no `resolves_by` is
+#   claimed for it. It is an `instance` figure an institution supplies, with
+#   8,760 shipped as a SCENARIO. Naming an instrument that measures a different
+#   quantity would be failure mode 8, which the note above already refuses.
 TRUST_BASE_TEH_PER_CAPITA:    float = 8_760.0
 # tag: instance | units: TEH (at the 1M reference population)
 # supplied_by: nothing separately — supply TRUST_BASE_TEH_PER_CAPITA, which

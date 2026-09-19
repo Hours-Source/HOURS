@@ -473,7 +473,7 @@ corpus when you need to CHECK for a mode, not to recognise one.** Validate with
 Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
 F-037) — written because the mapping made contact with the gap, not backfilled.
 Modes 1–3 and 6–13 each name findings that already existed. The corpus also
-holds 16 findings with no mode here, most of them `kind: method`, which is a
+holds 17 findings with no mode here, most of them `kind: method`, which is a
 different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
@@ -519,7 +519,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,878 tests passing (1 skipped), mypy clean on 102 source files** (verified
+**4,884 tests passing (1 skipped), mypy clean on 102 source files** (verified
 2026-09-18). Provenance **347/347**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -608,7 +608,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 44 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 45 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
