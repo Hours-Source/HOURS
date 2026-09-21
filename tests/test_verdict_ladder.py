@@ -115,6 +115,19 @@ class TestTheCensusCannotDriftSilently:
                        through to what the value bottoms out on. Its
                        COMPUTATION became derived; its STANDING did not.
                  347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+                 348 = 31/96/221 after
+                       LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA was NAMED
+                       (2026-09-21) — the capital grid swept by the low-ε floor
+                       diagnostic. INSTANCE rose for the same reason the entry
+                       below gives: `convention` lands there. **It is a probe
+                       grid for a REPORTING-ONLY table and governs no shipped
+                       output**, which is why the ladder's shares moved while
+                       every ε, obligation and verdict in the suite stayed
+                       bit-identical. The constant exists because the canonical
+                       arc's zero capital at ε=0 floors the labour instrument
+                       for 9 of 65 MTUS samples at `broad`; naming the grid
+                       makes the floor examinable without editing the arc.
+                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
                        (2026-09-18) — the arc's EVALUATION bound, which had
                        existed only as a bare 0.99 at ~56 operative sites.
                        INSTANCE rose because `convention` lands there, the
@@ -141,9 +154,9 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 347
+        assert c["total"] == 348
         assert c["counts"]["CERTAIN"] == 31
-        assert c["counts"]["INSTANCE"] == 95
+        assert c["counts"]["INSTANCE"] == 96
         assert c["counts"]["POSSIBLE"] == 221
 
     def test_possible_is_still_the_largest_tier(self):

@@ -44,7 +44,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from hours_eoh.data import REFERENCE_FRAME_POPULATION
+import inspect
+
+from hours_eoh.data import (
+    LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA,
+    REFERENCE_FRAME_POPULATION,
+)
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.reference.atus_time_use import (
     hours_per_person_15plus, latest_year, population_15_plus,
@@ -56,7 +61,50 @@ from hours_eoh.scenarios.component_shares import observed_shares
 __all__ = [
     "measured_hours", "labour_epsilon", "instrument_comparison",
     "reconciling_rate", "labour_epsilon_report",
+    "OBLIGATION_STATE_OWNED", "obligation_state_keys",
+    "low_epsilon_obligation_sensitivity",
 ]
+
+#: The three `total_eoh` parameters the fixed point sets for itself. `epsilon`
+#: is the variable being solved for, `population` is pinned to the reference
+#: frame, and `basis` is a contract of the whole module. A caller supplying any
+#: of them is not adjusting their state, they are breaking the solve — so these
+#: are refused by name rather than silently overridden.
+OBLIGATION_STATE_OWNED: frozenset[str] = frozenset({"epsilon", "population", "basis"})
+
+
+def obligation_state_keys() -> frozenset[str]:
+    """
+    The physical-state parameters `obligation_state` may carry.
+
+    Derived from `total_eoh`'s own signature rather than restated here, so a
+    parameter added there becomes supplyable without editing this list — the
+    copy-of-a-value failure this repo has found six times.
+    """
+    return frozenset(inspect.signature(total_eoh).parameters) - OBLIGATION_STATE_OWNED
+
+
+def _checked_obligation_state(
+    state: "Mapping[str, Any] | None",
+) -> dict[str, Any]:
+    """Validate a supplied obligation state, naming what is wrong with it."""
+    if state is None:
+        return {}
+    allowed = obligation_state_keys()
+    owned = sorted(k for k in state if k in OBLIGATION_STATE_OWNED)
+    if owned:
+        raise ValueError(
+            f"obligation_state may not set {owned}: the fixed point owns them "
+            "(epsilon is what it solves for, population is pinned to the "
+            "reference frame, basis is a module contract)"
+        )
+    unknown = sorted(k for k in state if k not in allowed)
+    if unknown:
+        raise ValueError(
+            f"obligation_state has no such total_eoh parameter: {unknown}. "
+            f"Supplyable keys: {sorted(allowed)}"
+        )
+    return dict(state)
 
 #: ATUS tier-1 prefix for work and work-related activities.
 _WORK_PREFIX: str = "05"
@@ -156,6 +204,7 @@ def labour_epsilon(
     unpaid_per_15plus: float | None = None,
     paid_per_15plus: float | None = None,
     employment: "Mapping[str, float] | None" = None,
+    obligation_state: "Mapping[str, Any] | None" = None,
 ) -> dict:
     """
     ε implied by measured human hours against the obligation they discharge.
@@ -177,9 +226,23 @@ def labour_epsilon(
             `reference/obligation_work.SCOPES`.
         year: ATUS survey year; None → latest.
         population: the frame.
+        obligation_state: the jurisdiction's OWN physical state, forwarded to
+            `total_eoh`. None (default) uses the canonical arc's state at each
+            iterate, which is what every reading before 2026-09-21 did.
+            **`capital_stock` is ABSOLUTE TEH at the reference frame, not per
+            capita** — multiply a per-capita figure by REFERENCE_FRAME_POPULATION
+            before passing it, or the frame seam closed for the Trust reopens
+            here. Keys are checked against `total_eoh`'s signature; `epsilon`,
+            `population` and `basis` are owned by this fixed point and refused.
+
+    Returns, beyond ε: `epsilon_raw` and `clamped`. ε is floored at 0.0, and the
+    floor is load-bearing — on the 65-sample MTUS panel it binds for 2 samples
+    at `core` and 9 at `broad`, almost all of them 1965-66. A clamped reading
+    reports 0.0000 whether the overshoot is 0.01 or 0.33, so `epsilon_raw`
+    carries the unclamped value and `clamped` says which you are looking at.
 
     Raises:
-        ValueError: on an unknown scope.
+        ValueError: on an unknown scope, or an unusable `obligation_state` key.
     """
     hours = measured_hours(
         year, population,
@@ -192,30 +255,39 @@ def labour_epsilon(
     share = obligation_share(scope, employment=employment)["share"]
     human = hours["unpaid_per_capita"] + hours["paid_per_capita"] * share
 
+    state = _checked_obligation_state(obligation_state)
+
     eps = 0.5
+    total_pc = 0.0
     for _ in range(200):
-        # THE OBLIGATION IS COMPUTED AT THE REFERENCE FRAME, NOT AT `population`.
+        # THE OBLIGATION IS COMPUTED AT THE REFERENCE FRAME, NOT AT `population`,
+        # AND — UNLESS `obligation_state` SAYS OTHERWISE — AT THE CANONICAL
+        # ARC'S PHYSICAL STATE RATHER THAN THE CALLER'S.
         #
-        # THE ORIGINAL REASON FOR THIS IS RETRACTED (2026-09-18). It read:
-        # "passing the US population collapses the fixed point, because
-        # CAPITAL_STOCK_DEFAULT is stated at the 1M reference population and does
-        # NOT scale with the argument". That was true when written and the
-        # 2026-09-16 capital frame repair falsified it — `resolve_capital_stock`
-        # now scales the stock with the population it is given, gated by
-        # `tests/test_capital_scale_resolution.py`.
+        # THE PIN WAS DESCRIBED AS INERT ON 2026-09-18 AND THAT WAS TRUE OF ONE
+        # VARIABLE ONLY. The measurement behind it stands: per-capita `total_eoh`
+        # is frame-INVARIANT in POPULATION to the last bit — 1,360.74 / 1,531.93
+        # / 2,154.34 at ε = 0 / 0.40 / 0.90, ratio 1.0000000000 between the 1M
+        # and 335M frames. What that reasoning did not reach is that the
+        # obligation is NOT invariant in STATE, and a foreign caller's state is
+        # not the canonical arc's.
         #
-        # MEASURED 2026-09-18: per-capita `total_eoh` is frame-INVARIANT to the
-        # last bit — 1,360.74 / 1,531.93 / 2,154.34 at ε = 0 / 0.40 / 0.90, ratio
-        # 1.0000000000 between the 1M and 335M frames. So this pin is now inert:
-        # it returns the same number either way, and it is kept because a
-        # per-capita quantity should be read at the frame its constants are
-        # calibrated at, not because the alternative breaks.
+        # MEASURED 2026-09-21, and it is why `obligation_state` now exists: the
+        # canonical arc holds capital_stock_teh = 0 at ε = 0, so infrastructure
+        # and ecological EOH are both 0.00 and the obligation collapses to
+        # personal-only. Against measured hours from a labour-intensive economy
+        # the fixed point then floors at ε = 0 — 9 of 65 MTUS samples at `broad`,
+        # RS1965 overshooting by 0.3267. Supplying that jurisdiction's own
+        # capital lifts it: US1965 unclamps near 4,000 TEH/capita, CZ1965 near
+        # 8,301, RS1965 near 16,000.
         #
         # `population` remains the frame the MEASURED hours were converted into,
         # which is a different quantity and stays separate. That separation is
         # what a foreign caller most needs to see: the hours are theirs, and the
-        # obligation they are divided by is still this package's.
-        domains = total_eoh(epsilon=eps, population=REFERENCE_FRAME_POPULATION)
+        # obligation they are divided by is this package's unless they supply
+        # their own state.
+        domains = total_eoh(epsilon=eps, population=REFERENCE_FRAME_POPULATION,
+                            **state)
         total_pc = sum(domains[d] for d in
                        ("personal", "infrastructure", "ecological", "knowledge")
                        ) / REFERENCE_FRAME_POPULATION
@@ -234,12 +306,93 @@ def labour_epsilon(
         "attributed_paid_per_capita": hours["paid_per_capita"] * share,
         "total_obligation_per_capita": total_pc,
         "epsilon":            eps,
+        # THE FLOOR, REPORTED RATHER THAN HIDDEN. `epsilon` is max(0, ·) and a
+        # clamped reading says 0.0000 whether the overshoot is 0.0001 or 0.33.
+        # `epsilon_raw` is that same quantity unclamped at the converged
+        # iterate, so "human hours exceed the modelled obligation" is a number
+        # instead of a silence. A negative value is a finding about the
+        # OBLIGATION or the ATTRIBUTION, not about the economy.
+        "epsilon_raw":        1.0 - human / total_pc,
+        "clamped":            (1.0 - human / total_pc) < 0.0,
         "currency_used":      None,
         # WHOSE TIME USE, AND WHOSE OCCUPATIONAL STRUCTURE. Carried out so a
         # reader of a single result can tell a US reading from a ported one
         # without inspecting the call.
         "hours_source":       hours["hours_source"],
         "employment_source":  "shipped_soc" if employment is None else "supplied",
+    }
+
+
+def low_epsilon_obligation_sensitivity(
+    human_per_capita: float,
+    capital_grid: tuple[float, ...] = LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA,
+) -> dict:
+    """
+    What the ε floor does as a jurisdiction's own capital replaces the arc's.
+
+    REPORTING ONLY, and deliberately NOT a change to `canonical_physical_state`.
+
+    THE CLAIM THIS EXPOSES AND DOES NOT TOUCH. The canonical arc holds
+    `capital_stock_teh = 0` at ε = 0. Infrastructure and ecological EOH are then
+    both 0.00 and the obligation is personal-only — 1,352.80 of 1,360.74 per
+    capita, 99.4%. Measured against a labour-intensive economy's hours the fixed
+    point floors at zero: on the 65-sample MTUS panel, 2 samples clamp at `core`
+    and 9 at `broad`, all but one of them 1965-66. Whether a subsistence economy
+    genuinely owes no infrastructure obligation is a THEORY question for the
+    author (CLAUDE.md §3), so this function measures the consequence and leaves
+    the arc alone.
+
+    MEASURED 2026-09-21, broad-scope hours: US1965 unclamps near 4,000
+    TEH/capita, CZ1965 near 8,301, RS1965 near 16,000. The US BEA reading of
+    8,301 sits inside the grid so a real economy is locatable in the sweep.
+
+    units: `capital_per_capita` in TEH/capita; `epsilon` dimensionless.
+
+    Args:
+        human_per_capita: the measured human obligation hours per capita —
+            `labour_epsilon(...)["human_per_capita"]`.
+        capital_grid: TEH per capita to sweep. Defaults to the declared probe
+            grid in `data.py`; nothing in it is anybody's measured stock.
+
+    Returns:
+        `rows`, one per grid point, each with the obligation it produces, the
+        clamped ε and the raw ε; plus `unclamps_at`, the first grid point where
+        the floor stops binding, or None if it binds throughout.
+    """
+    rows = []
+    unclamps_at: float | None = None
+    for cap in capital_grid:
+        eps = 0.5
+        total_pc = 0.0
+        for _ in range(200):
+            domains = total_eoh(
+                epsilon=eps, population=REFERENCE_FRAME_POPULATION,
+                capital_stock=cap * REFERENCE_FRAME_POPULATION,
+            )
+            total_pc = sum(domains[d] for d in
+                           ("personal", "infrastructure", "ecological", "knowledge")
+                           ) / REFERENCE_FRAME_POPULATION
+            nxt = max(0.0, 1.0 - human_per_capita / total_pc)
+            if abs(nxt - eps) < 1e-9:
+                eps = nxt
+                break
+            eps = nxt
+        raw = 1.0 - human_per_capita / total_pc
+        if raw >= 0.0 and unclamps_at is None:
+            unclamps_at = cap
+        rows.append({
+            "capital_per_capita": cap,
+            "total_obligation_per_capita": total_pc,
+            "epsilon": eps,
+            "epsilon_raw": raw,
+            "clamped": raw < 0.0,
+        })
+    return {
+        "human_per_capita": human_per_capita,
+        "rows": rows,
+        "unclamps_at": unclamps_at,
+        "reporting_only": True,
+        "does_not_change": "canonical_physical_state — see CLAUDE.md §3",
     }
 
 

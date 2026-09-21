@@ -2085,3 +2085,36 @@ heavy), absolute scale anchored only to order-of-consistency with Path C's measu
 within ~1.5×; NOT fitted). Path-B-shaped structure on Path-D magnitudes: the
 deliverable is the closed loop (one inventory → {ε, Φ, U, thermal ceiling}), not the
 numbers. Advisory only.
+
+---
+
+## Obligation-state probe — the low-ε floor diagnostic
+
+> **What this block exists to examine, and what it deliberately does not change.**
+> `labour_epsilon` solves ε = 1 − human_hours / total_eoh(ε) as a fixed point, and
+> until 2026-09-21 it always evaluated that obligation at the **canonical arc's**
+> physical state. The canonical arc holds `capital_stock_teh = 0` at ε = 0, so
+> infrastructure and ecological EOH are both 0.00 there and the obligation
+> collapses to personal-only — **1,352.80 of 1,360.74 per capita, 99.4%**.
+>
+> Measured against a labour-intensive economy's hours the fixed point then floors
+> at zero. On the 65-sample MTUS panel the floor binds for **2 samples at `core`
+> and 9 at `broad`**, all but one of them 1965–66 — the low-automation corner the
+> framework most needs to describe. RS1965 overshoots by **0.3267** and reports
+> the same 0.0000 as a sample overshooting by 0.0001.
+>
+> Two repairs shipped, both additive: `obligation_state` lets a caller supply
+> their OWN physical state (a supplied `capital_stock` lifts the floor —
+> US1965 near 4,000 TEH/capita, CZ1965 near 8,301, RS1965 near 16,000), and
+> `epsilon_raw` / `clamped` report the unclamped value so the overshoot survives.
+>
+> **Whether a subsistence economy genuinely owes no infrastructure obligation is
+> a THEORY claim and it is untouched.** `canonical_physical_state` is unchanged;
+> a test asserts it still returns zero capital at ε = 0, so this diagnostic cannot
+> quietly become a rewrite of the arc it was built to examine (CLAUDE.md §3).
+
+<!-- provenance:table "Obligation-state probe (low-ε floor diagnostic)" -->
+| Parameter | Default | Units | Tag | What would settle it |
+|---|---|---|---|---|
+| `LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA` | (0.0, 500.0, 1000.0, 2000.0, 4000.0, 8301.0, 16000.0) | TEH per capita, at the reference frame | convention<br>form: the capital levels swept by `scenarios.labour_epsilon.low_epsilon_obligation_sensitivity()`, which asks what the obligation would be if a jurisdiction's OWN capital replaced the canonical arc's. A PROBE GRID, not a measurement: no entry is anybody's measured capital stock, and nothing outside that REPORTING-ONLY table reads it. | —<br>this constant exists because the canonical arc sets `capital_stock_teh = 0` at ε = 0, which makes infrastructure and ecological EOH both 0.00 and collapses the obligation to personal-only (1,352.80 of 1,360.74 per capita, 99.4%). Whether a subsistence economy truly owes no infrastructure obligation is a THEORY claim; this grid lets the claim be examined without altering it. |
+<!-- /provenance:table -->

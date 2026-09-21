@@ -5600,3 +5600,25 @@ CAPITAL_THERMAL_PROFILES: dict[str, dict] = {
 #   still dissipates fossil heat, and κ̄ measures the electrons, not the
 #   paperwork.
 THERMAL_GRID_KAPPA_DEFAULT: float = 0.93  # CHOSEN/measured; resolves_by: physical grid mix, not procurement.
+
+# provenance-block: Obligation-state probe (low-ε floor diagnostic)
+# tag: convention | units: TEH per capita, at the reference frame
+# form: the capital levels swept by
+#   `scenarios.labour_epsilon.low_epsilon_obligation_sensitivity()`, which asks
+#   what the obligation would be if a jurisdiction's OWN capital replaced the
+#   canonical arc's. A PROBE GRID, not a measurement: no entry is anybody's
+#   measured capital stock, and nothing outside that REPORTING-ONLY table reads
+#   it.
+# note: the grid BRACKETS the US BEA reading of 8,301 TEH/capita used by the USA
+#   case study, so a reader can see where one real economy sits inside the
+#   sweep. The other endpoints are round numbers chosen to span it; moving them
+#   changes the RESOLUTION of a reported table and no shipped quantity.
+# note: this constant exists because the canonical arc sets
+#   `capital_stock_teh = 0` at ε = 0, which makes infrastructure and ecological
+#   EOH both 0.00 and collapses the obligation to personal-only (1,352.80 of
+#   1,360.74 per capita, 99.4%). Whether a subsistence economy truly owes no
+#   infrastructure obligation is a THEORY claim; this grid lets the claim be
+#   examined without altering it.
+LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA: tuple[float, ...] = (
+    0.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_301.0, 16_000.0,
+)

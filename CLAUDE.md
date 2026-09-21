@@ -176,7 +176,10 @@ hours_eoh/
                        `currency_per_teh` is REQUIRED; the band is not a default. REPORTING ONLY
     labour_epsilon.py  ε READ OFF TIME USE — the SECOND instrument, currency-free. ONE
                        judgement against the capital route's three; reports OVERLAP/ADJACENT/
-                       DIVERGENT and never asserts agreement. REPORTING ONLY
+                       DIVERGENT and never asserts agreement. The obligation it divides by
+                       is the CANONICAL arc's unless `obligation_state` supplies yours —
+                       and at ε=0 that arc holds no capital, so the ε floor bites.
+                       REPORTING ONLY
     verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the audit falsifier,
                        answered: no crossover on the arc under either scaling basis. Frame
                        DECLARED (US census → per-capita → caller's frame); REPORTING ONLY
@@ -357,7 +360,8 @@ someone remembering it, which is what this section is for.
    it. `gated by:` `tests/test_parameter_wiring.py`
 
 6. **THE FRAME SEAM** *(corpus F-002, F-005, F-030)* — a quantity that must travel with the population/land
-   frame and does not. Seven instances, including `CAPITAL_STOCK_DEFAULT` and
+   frame and does not. Seven instances in the population/land frame — and an
+   EIGHTH in STATE, at the end of this entry — including `CAPITAL_STOCK_DEFAULT` and
    `TRUST_BASE_TEH`, both declared "at the 1M reference population" and consumed
    by callers that moved the population without moving them — **both are now
    CLOSED (2026-09-16, 2026-09-17), each with its own gate.** *The tell:* grep the
@@ -376,6 +380,20 @@ someone remembering it, which is what this section is for.
    `tests/test_trust_scale_resolution.py` (the Trust) — the last keyed on the
    QUANTITY rather than the parameter name, because name-keying hid four sites:
    a second and third parameter name, a dataclass FIELD and a `.get()` default.
+   **THE EIGHTH INSTANCE IS IN STATE, NOT POPULATION (2026-09-21).**
+   `labour_epsilon` divided the caller's MEASURED hours by the CANONICAL arc's
+   obligation. The POPULATION half of that pin had been measured and found inert
+   — per-capita `total_eoh` is frame-invariant to the last bit — and a comment
+   said so; nobody asked the same question of STATE, for which it is not inert.
+   At ε=0 the arc holds zero capital, so infrastructure and ecological EOH are
+   both 0.00 and the obligation collapses to personal-only (99.4%); against a
+   labour-intensive economy's hours the fixed point then floors at ε=0 for
+   **9 of 65 MTUS samples at `broad`**, reporting 0.0000 for an overshoot of
+   0.0001 or 0.33 alike. *The tell:* a comment declaring one variable inert
+   where a SECOND variable was never tested — "inert" is a measurement about
+   what was measured. *Do:* when a pin is cleared for one dimension, name the
+   dimensions it was NOT cleared for. `gated by:`
+   `tests/test_labour_epsilon_state.py`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -524,8 +542,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,902 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-18). Provenance **347/347**, shadow ratchet **33**, confidence ratchet
+**4,920 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-21). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -619,13 +637,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**110 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
+**111 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 36 files the rule does not cover are all listed below, plus two that do
+The 37 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -674,6 +692,7 @@ are the ones worth knowing by name.
 | `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
 | `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
 | `test_labour_epsilon.py` | `reference/obligation_work.py` + `scenarios/labour_epsilon.py` — the second, currency-free instrument on ε. Pins that the comparison can report DISAGREEMENT, that the labour route stays currency-free, and that `population` is paired data rather than a free frame knob |
+| `test_labour_epsilon_state.py` | The obligation's STATE frame and the ε floor. The fixed point divided measured hours by the CANONICAL arc's obligation, whose capital is 0 at ε=0 — so a labour-intensive economy's hours exceed it and ε floors at zero (9 of 65 MTUS samples at `broad`). Pins that `obligation_state` lets a caller supply their own state, that `epsilon_raw` keeps the overshoot the clamp hides, that the supplyable keys come from `total_eoh`'s signature rather than a copy, and — the point of the file — that every shipped US figure is bit-identical. **Also pins that `canonical_physical_state` still holds zero capital at ε=0**, so the diagnostic cannot quietly become the theory change it exists to examine |
 | `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
