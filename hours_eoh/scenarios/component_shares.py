@@ -59,6 +59,7 @@ from hours_eoh.data import (
     PERSONAL_EOH_COMPONENTS,
 )
 from hours_eoh.reference import atus_time_use as atus
+from hours_eoh.reference import mtus_time_use as mtus
 
 __all__ = [
     "COMPONENT_CODES",
@@ -270,10 +271,15 @@ MTUS_LABELS_SOURCE: str = (
     "(read 2026-09-10, verbatim)"
 )
 
+#: DERIVED FROM THE PUBLISHED TABLE rather than retyped beside it (2026-09-21).
+#: The whole 69-category frame now lives in `reference/mtus_time_use`, verified
+#: against the file's own ACT_* aggregates. Keeping a second hand-typed copy of
+#: three of its rows is the copy-of-a-value failure this repo has found six
+#: times, so this selects from the one table instead. The SCOPE is unchanged —
+#: still exactly the shelter codes, which `shares_report` and
+#: `tests/scenarios/test_component_shares.py` both depend on.
 MTUS_CODE_LABELS: dict[int, str] = {
-    _C20: "Cleaning",
-    _C21: "Laundry, ironing, clothing repair",
-    _C22: "Home/vehicle maintenance/improvement",
+    c: mtus.ACTIVITY_LABELS[c] for c in _SHELTER_CODES
 }
 
 # AND THE SAME GUIDE'S 25-CATEGORY LIST GROUPS THEM DIFFERENTLY FROM THIS REPO.
