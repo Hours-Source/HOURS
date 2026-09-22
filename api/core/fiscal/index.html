@@ -1927,7 +1927,7 @@
 <p>Collects levies from labour income, each rate a fraction of gross. Circulatory: <code>worker_net + total_levied == labor_income</code>. Returns the total rate, total levied, worker net and the per-levy breakdown.</p>
 <hr />
 <h2 id="trust-allocations">Trust Allocations<a class="headerlink" href="#trust-allocations" title="Permanent link">&para;</a></h2>
-<p>The Trust has three co-equal obligations. Neither is residual — both <code>ecological_allocation</code> and <code>stewardship_allocation</code> are primary claims on Trust revenue.</p>
+<p>Ecological and stewardship requirements are co-equal — neither is residual. Since 2026-09-15 (minted TEH is the wage) both are paid at the mint, not by the Trust; the Trust owes only the guarantee.</p>
 <h3 id="stewardship_allocationcapital_stock_teh-capital_age_ratio-epsilon-available_teh-dict"><code>stewardship_allocation(capital_stock_teh, capital_age_ratio, epsilon, available_teh, …)</code> → <code>dict</code><a class="headerlink" href="#stewardship_allocationcapital_stock_teh-capital_age_ratio-epsilon-available_teh-dict" title="Permanent link">&para;</a></h3>
 <p>TEH directed toward fulfilling infrastructure entropy obligations from the capital stock. Grows with the capital stock, making it the dominant revenue-independent fiscal flow at high ε.</p>
 <h3 id="ecological_allocationecosystem_health-epsilon-available_teh-dict"><code>ecological_allocation(ecosystem_health, epsilon, available_teh, …)</code> → <code>dict</code><a class="headerlink" href="#ecological_allocationecosystem_health-epsilon-available_teh-dict" title="Permanent link">&para;</a></h3>
@@ -1939,7 +1939,7 @@
 <hr />
 <h2 id="trust-management">Trust Management<a class="headerlink" href="#trust-management" title="Permanent link">&para;</a></h2>
 <h3 id="trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict"><code>trust_management(trust_balance, levy_revenue, stewardship_cost, guarantee_cost, …)</code> → <code>dict</code><a class="headerlink" href="#trust_managementtrust_balance-levy_revenue-stewardship_cost-guarantee_cost-dict" title="Permanent link">&para;</a></h3>
-<p>Full Trust solvency calculation — revenues in, obligations out, surplus/deficit.</p>
+<p>Full Trust solvency calculation — revenues in, the guarantee out, surplus/deficit. <code>stewardship_cost</code> is returned as <code>paid_by_mint</code> and is not expenditure. Balance: <code>trust_end = start − guarantee + levy + GUF</code>; only what the Trust owes leaves it, and unspent dividend is retained (2026-09-15), so <code>ann_depreciation</code>, <code>dividend</code> and <code>renewal</code> are reporting only. What the balance and this period's inflows could not cover is <code>guarantee_unfunded</code>.</p>
 <h3 id="fiscal_snapshotepsilon-dict"><code>fiscal_snapshot(epsilon, …)</code> → <code>dict</code><a class="headerlink" href="#fiscal_snapshotepsilon-dict" title="Permanent link">&para;</a></h3>
 <p>Comprehensive fiscal state at ε — all revenue streams, all allocations, solvency status.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hours_eoh.core.fiscal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fiscal_snapshot</span>

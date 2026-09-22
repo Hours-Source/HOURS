@@ -2501,8 +2501,8 @@ a permanent excuse.</p>
 <tbody>
 <tr>
 <td><strong>Retrodiction</strong></td>
-<td><strong>Run for the US, by two instruments that share no data</strong> — a fixed-asset inventory (<code>scenarios/capital_retrodiction.py</code>) and time diaries (<code>scenarios/labour_epsilon.py</code>). They land adjacent, not overlapping; the capital route returns a grid rather than a number because three declared judgements set it. Both divide by the same obligation, so the machine/human split is checked and the level is not.</td>
-<td>A third instrument that does not divide by <code>total_eoh</code>, for which there is no candidate yet; and the same run for a second jurisdiction. A <em>failed</em> retrodiction is still a stronger result than another thousand tests.</td>
+<td><strong>Run for the US, by two instruments that share no data</strong> — a fixed-asset inventory (<code>scenarios/capital_retrodiction.py</code>) and time diaries (<code>scenarios/labour_epsilon.py</code>). <strong>The verdict is a function of which cell is read, not a property of the instruments</strong>: at <code>government</code> scope and <code>current_cost</code> doctrine the bands are ADJACENT, and across the whole declared grid they OVERLAP, with 8 of 18 cells inside the labour band. The capital route returns a grid rather than a number because three declared judgements set it. Both divide by the same obligation, so the machine/human split is checked and the level is not.</td>
+<td>A third instrument that does not divide by <code>total_eoh</code>, for which there is no candidate yet. <strong>A second jurisdiction is now partly answered</strong> — the labour arm ports and runs on MTUS time use, while the capital arm does not, because <code>capital_inventory</code> is BEA-bound and <code>currency_per_teh</code> has no default. A <em>failed</em> retrodiction is still a stronger result than another thousand tests.</td>
 </tr>
 <tr>
 <td><strong>Verification cost</strong></td>
