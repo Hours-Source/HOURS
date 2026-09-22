@@ -36,6 +36,31 @@ DECISIVE:
      data, so the observed share is a LOWER bound on care's true share and the
      4.82× is a LOWER bound on Phase 2's factor.
 
+     AND THE BOUND IS TWO-SIDED, which an earlier version of this module did
+     not say (2026-09-22, author-directed). The obvious repair — add the paid
+     care back at face value — OVERSHOOTS, because a paid hour and a household
+     hour do not discharge the same obligation per hour. Four mechanisms, all
+     DELIVERY rather than OBLIGATION in the sense `obligation_accounts` uses:
+     coordination overhead (handover, documentation, travel between clients,
+     compliance) that a co-resident's hour does not carry; LOST JOINT
+     PRODUCTION, since household care is often a by-product of co-presence
+     that a diary records as secondary or not at all, while a paid hour must
+     be dedicated; a STANDARD RATCHET, because regulated care is delivered to
+     a documented standard exceeding household practice, which is normative
+     and not physical; and a MEASUREMENT ASYMMETRY, paid care counted as
+     employment hours including non-contact time, unpaid care by diary recall.
+     One mechanism runs the other way and is NOT an artifact — morbidity
+     extension genuinely lengthens the frail period, and the repo's socket for
+     it (the `frailty` care key) has no intake.
+
+     So care's true share is BRACKETED, not merely bounded below. The lower
+     side is quantified here; the upper side is not, and `obligation_work`
+     cannot supply it — that module measures an EMPLOYMENT share and uses it
+     as an hours share, saying so itself, with part-time concentrated in
+     exactly the personal-care groups that would carry the bracket. Naming the
+     upper side without a number is the honest state; manufacturing one from a
+     known-biased conversion would be worse than the silence it replaced.
+
 THE ABATABILITIES CANNOT BE REACHED AT ALL, and their own pointers say why:
 every one names cross-development variation (WHO/UNICEF JMP, GBD, "across
 development levels"). `ABATEMENT_HALF_CAPITAL_TEH` is worse — its `resolves_by`
@@ -697,6 +722,27 @@ def share_comparison(year: int | None = None) -> dict:
             "the result in exactly this direction. The observed care share is "
             "therefore a LOWER bound on care's true share."
         ),
+        #: The bound is two-sided and the module used to report only one side.
+        #: The lower side stands — some care is bought, so unpaid understates.
+        #: The upper side is the repair that overshoots, and it has no number.
+        "bound_is_two_sided": True,
+        "upper_bound_reason": (
+            "adding the paid care back at face value OVERSHOOTS: a paid hour "
+            "carries coordination overhead, cannot be the by-product of "
+            "co-presence that household care often is, is delivered to a "
+            "regulated standard exceeding household practice, and is counted "
+            "as employment hours including non-contact time. These are "
+            "DELIVERY, not OBLIGATION. Morbidity extension runs the other way "
+            "and is not an artifact."
+        ),
+        "upper_bound_quantified": False,
+        "why_upper_not_quantified": (
+            "obligation_work measures an EMPLOYMENT share and uses it as an "
+            "hours share — it says so — and part-time is concentrated in the "
+            "personal-care groups that would carry the bracket. A number from "
+            "that conversion would be a known-biased upper side presented as "
+            "a measurement."
+        ),
     }
 
 
@@ -829,8 +875,14 @@ def phase_2_sensitivity(epsilon: float = 0.99, year: int | None = None) -> dict:
         "note": (
             "Both are LOWER bounds: the observed care share is itself a lower "
             "bound, because marketised care leaves unpaid time use. The "
-            "order-of-magnitude finding survives the swap; the level does not."
+            "order-of-magnitude finding survives the swap; the level does not. "
+            "The bound is TWO-SIDED and the upper side is not quantified: "
+            "adding paid care back at face value overshoots, because a paid "
+            "hour carries delivery overhead a household hour does not. See "
+            "share_comparison()['upper_bound_reason']."
         ),
+        "bound_is_two_sided": True,
+        "upper_bound_quantified": False,
     }
 
 

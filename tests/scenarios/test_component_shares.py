@@ -123,6 +123,53 @@ class TestTheDisagreementWithTheDeskEstimate:
         assert "MARKETISED" in c["bound_reason"]
         assert "LOWER bound" in c["bound_reason"]
 
+    def test_the_bound_is_two_sided_and_the_lower_side_survives(self):
+        """
+        ADOPTED 2026-09-22 (author). The module reported only the lower side.
+        Adding the paid care back at face value OVERSHOOTS, so the true share
+        is bracketed — but this is an ADDITION, not a retraction: some care is
+        bought, so unpaid still understates, and the lower side stands.
+        """
+        c = share_comparison()
+        assert c["bound_is_two_sided"] is True
+        assert "OVERSHOOTS" in c["upper_bound_reason"]
+        assert "LOWER bound" in c["bound_reason"]
+
+    def test_the_upper_side_is_declared_unquantified_and_says_why(self):
+        """
+        The honest state: `obligation_work` measures an EMPLOYMENT share and
+        uses it as an hours share — its own words — with part-time
+        concentrated in exactly the personal-care groups that would carry the
+        bracket. A number from that conversion would be a known-biased upper
+        side wearing a measurement's clothes.
+        """
+        c = share_comparison()
+        assert c["upper_bound_quantified"] is False
+        assert "EMPLOYMENT" in c["why_upper_not_quantified"]
+
+    def test_quantifying_the_upper_side_must_flip_the_flag(self):
+        """
+        THE GATE THAT BITES. If someone later derives a numeric upper share,
+        this fails until `upper_bound_quantified` is set True — so the claim
+        and the number cannot drift apart, which is failure mode 10.
+        """
+        c = share_comparison()
+        numeric_upper = any(
+            k for k, v in c.items()
+            if "upper" in k and isinstance(v, (int, float))
+            and not isinstance(v, bool)
+        )
+        assert numeric_upper is c["upper_bound_quantified"], (
+            "a numeric upper-side key exists while upper_bound_quantified is "
+            "False (or vice versa) — the reported value is not the applied one"
+        )
+
+    def test_the_sensitivity_carries_the_same_two_sidedness(self):
+        s = phase_2_sensitivity(0.99)
+        assert s["bound_is_two_sided"] is True
+        assert s["upper_bound_quantified"] is False
+        assert "TWO-SIDED" in s["note"]
+
 
 class TestTheAbatabilityDirection:
 
