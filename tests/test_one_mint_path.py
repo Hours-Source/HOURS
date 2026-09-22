@@ -191,18 +191,22 @@ class TestOneMintPath:
 
 class TestTheTrustDrawsDownRatherThanCreates:
 
-    def test_the_dividend_leaves_the_balance(self):
+    def test_the_guarantee_leaves_the_balance(self):
         """
-        `trust_end = start − dividend + inflows`. The dividend is a DRAWDOWN of a
-        held stock, not income: with no inflows the balance must fall by exactly
-        the dividend, so nothing is created on the way out.
+        `trust_end = start − guarantee + inflows`. What the Trust owes is a
+        DRAWDOWN of a held stock, not income: with no inflows the balance must
+        fall by exactly the guarantee, so nothing is created on the way out.
+
+        Until 2026-09-15 the DIVIDEND left the balance instead, whether or not
+        anything was owed, and the guarantee never appeared in it.
         """
         from hours_eoh.core.fiscal import trust_management
         t = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
-                             stewardship_cost=0.0, guarantee_cost=0.0)
-        assert t["trust_end"] == pytest.approx(
-            t["trust_start"] - t["dividend"], rel=1e-12
-        )
+                             stewardship_cost=0.0, guarantee_cost=4.0e8)
+        assert t["trust_end"] == pytest.approx(t["trust_start"] - 4.0e8, rel=1e-12)
+        quiet = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
+                                 stewardship_cost=0.0, guarantee_cost=0.0)
+        assert quiet["trust_end"] == pytest.approx(quiet["trust_start"], rel=1e-12)
 
     def test_inflows_move_the_balance_one_for_one(self):
         from hours_eoh.core.fiscal import trust_management
@@ -223,34 +227,84 @@ class TestFulfilmentIsAssumedUnlessLabourIsSupplied:
     module's own docstring says so — "without it the pipeline assumes every hour
     of human-carried EOH gets worked — a demand figure reported as fulfillment".
 
-    Measured here at its sharpest: with NO POPULATION AT ALL the default path
-    still mints, because infrastructure and knowledge obligations do not depend
-    on anyone existing. Supply the constraint and it mints exactly nothing.
+    Measured here at its sharpest: with NO POPULATION AT ALL but an APPARATUS
+    supplied, the default path still mints, because an infrastructure obligation
+    depends on the apparatus existing, not on anyone existing. Supply the
+    constraint and it mints exactly nothing.
 
     This is not a defect in the constraint — it is a statement about which path
     an institution must run to make the verification real, and the implementation
     guide should say so.
+
+    **RESTATED 2026-09-16, WHEN THE CAPITAL FRAME WAS CLOSED.** These cases used
+    to pass `population=0.0` and NO capital stock, and relied on the resolver
+    returning the 1M-reference stock whatever the population — the frame seam
+    itself was supplying the apparatus. Now a resolved stock scales with
+    population, so zero people means zero apparatus and zero obligation, and the
+    device stops working. The CLAIM is unchanged and is now stated the way it
+    always meant: supply the apparatus, remove every person, and the obligation
+    is still there.
+
+    The old wording also said "infrastructure AND KNOWLEDGE obligations do not
+    depend on anyone existing". The knowledge half was already false before this
+    change — `test_eoh_generation.py` has long pinned
+    `knowledge_eoh(None, epsilon=0.40, population=0.0) == 0.0`, because the
+    knowledge obligation scales with the people who carry the corpus. Only the
+    infrastructure half was ever true, and only because capital was unframed.
     """
 
-    def test_with_no_population_the_default_path_still_mints(self):
-        r = eoh_to_teh_pipeline(epsilon=0.40, population=0.0)
+    #: The apparatus the arc resolves at ε=0.40 in the reference frame. Supplied
+    #: EXPLICITLY here, because that is the whole point: a stock that is named is
+    #: the actual stock and is never rescaled by population.
+    APPARATUS_TEH = 2.4e9
+
+    def test_with_no_population_but_an_apparatus_the_default_path_still_mints(self):
+        r = eoh_to_teh_pipeline(
+            epsilon=0.40, population=0.0, capital_stock=self.APPARATUS_TEH
+        )
         assert r["teh_created"] > 0.0
+        assert abs(r["teh_created"] / 6.377970e7 - 1.0) < 1e-4
         assert r["labor_constrained"] is False
-        assert r["eoh_by_domain"]["personal"] == 0.0, (
-            "the obligation that remains is infrastructure and knowledge, "
-            "neither of which depends on a person existing"
+        assert r["eoh_by_domain"]["personal"] == 0.0
+        assert r["eoh_by_domain"]["knowledge"] == 0.0, (
+            "knowledge scales with the people who carry the corpus — it was "
+            "never part of the 'does not depend on anyone existing' claim"
+        )
+        assert abs(r["eoh_by_domain"]["infrastructure"] / 9.0e7 - 1.0) < 1e-9, (
+            "the obligation that remains is the apparatus's, and only its"
         )
 
     def test_with_the_constraint_supplied_it_mints_exactly_nothing(self):
         r = eoh_to_teh_pipeline(
-            epsilon=0.40, population=0.0, available_labor_eoh=0.0
+            epsilon=0.40, population=0.0, capital_stock=self.APPARATUS_TEH,
+            available_labor_eoh=0.0,
         )
         assert r["teh_created"] == 0.0
         assert r["deferred_total"] > 0.0, "the obligation is deferred, not erased"
+        assert abs(r["deferred_total"] / 5.4e7 - 1.0) < 1e-9
 
     def test_the_two_paths_disagree_and_that_is_the_finding(self):
-        assumed = eoh_to_teh_pipeline(epsilon=0.40, population=0.0)["teh_created"]
+        assumed = eoh_to_teh_pipeline(
+            epsilon=0.40, population=0.0, capital_stock=self.APPARATUS_TEH
+        )["teh_created"]
         verified = eoh_to_teh_pipeline(
-            epsilon=0.40, population=0.0, available_labor_eoh=0.0
+            epsilon=0.40, population=0.0, capital_stock=self.APPARATUS_TEH,
+            available_labor_eoh=0.0,
         )["teh_created"]
         assert assumed > verified == 0.0
+
+    def test_with_no_apparatus_and_no_population_nothing_is_resolved(self):
+        """THE FRAME CHANGE ITSELF, pinned rather than left as an absence.
+
+        Before 2026-09-16 this minted 3.3964e8 TEH: `population=0.0` with no
+        capital stock still resolved the 1M-reference apparatus, so a collective
+        of nobody carried the reference frame's entire maintenance burden. The
+        frame holds capital INTENSITY fixed, so zero people is zero apparatus.
+
+        Pinned in BOTH directions — the test above shows a named apparatus still
+        generates its obligation at zero population, so this zero is the frame
+        resolving correctly and not the pipeline going silent.
+        """
+        r = eoh_to_teh_pipeline(epsilon=0.40, population=0.0)
+        assert r["teh_created"] == 0.0
+        assert r["eoh_by_domain"]["infrastructure"] == 0.0

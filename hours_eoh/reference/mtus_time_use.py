@@ -69,7 +69,126 @@ __all__ = [
     "load_by_age",
     "band_minutes",
     "band_ratio",
+    "ACTIVITY_LABELS",
+    "ACTIVITY_LABELS_SOURCE",
 ]
+
+#: THE PUBLISHED 69-CATEGORY ACTIVITY FRAME, IN FULL (read 2026-09-21).
+#:
+#: `utils/mtus_ingest.py` derived the ACT_* aggregations by SOLVING against the
+#: file's own columns, because no codebook ships with the DATA. That is true of
+#: the data and was once wrongly read as true of the STUDY — the labels are
+#: published. Three of them were read on 2026-09-10 (codes 20/21/22, in
+#: `scenarios/component_shares`); this is the whole table.
+#:
+#: VERIFIED AGAINST THE FILE'S OWN AGGREGATES, which is what makes it evidence
+#: rather than transcription. Summing the published blocks reproduces the twelve
+#: ACT_* columns EXACTLY — ratio 1.0000 on US2024, ZA2010, KR2009, FR2009 and
+#: IT2008 for all four blocks tested:
+#:
+#:     ACT_WORK   = codes 7-14      ACT_EDUCA  = codes 15-17
+#:     ACT_CHCARE = codes 28-31     ACT_TRAVEL = codes 62-68
+#:
+#: That extends the two-sample derivation in `utils/mtus_ingest.py`, which had
+#: solved only PCARE {2,4,5,6}, CHCARE {28-31} and UNDOM {18-25,27}. WORK, EDUCA
+#: and TRAVEL had never been identified at all.
+#:
+#: A SECOND, INDEPENDENT CONFIRMATION came from a pattern nobody had named: US
+#: code 7 falls 176.1 -> 136.0 min/day between 2019 and 2020 while code 8 rises
+#: 19.3 -> 46.9 and stays elevated through 2024. The labels say 7 is paid work
+#: NOT at home and 8 is paid work AT home. The COVID shift lands exactly where
+#: the published labels predict, on a series read before they were.
+#:
+#: WHAT THE TABLE SETTLES ABOUT THE PERSONAL COMPONENTS. There is no medical or
+#: health category anywhere in the frame. Code 25 is the only entry the guide's
+#: prose associates with medical time — "receiving personal services (e.g.
+#: visiting the hairdresser, doctor)" — and it bundles the doctor with the
+#: hairdresser, which is the ATUS 0805 analogue this repo deliberately EXCLUDES.
+#: So `data.py`'s standing note — "the health component is dominated by ATUS
+#: 0804 ... which has no clean MTUS counterpart. Absent, not zero" — is now
+#: confirmed from the source rather than inferred from a failed search.
+ACTIVITY_LABELS: dict[int, str] = {
+    1:  "Imputed personal or household care",
+    2:  "Sleep and naps",
+    3:  "Imputed sleep",
+    4:  "Wash, dress, care for self",
+    5:  "Meals at work or school",
+    6:  "Other meals or snacks",
+    7:  "Paid work - main job (not at home)",
+    8:  "Paid work at home",
+    9:  "Second or other job not at home",
+    10: "Unpaid work to generate household income",
+    11: "Travel as a part of work",
+    12: "Work breaks",
+    13: "Other time at work place",
+    14: "Look for work",
+    15: "Regular schooling, education",
+    16: "Homework",
+    17: "Leisure/other education or training",
+    18: "Food preparation, cooking",
+    19: "Set table, wash/put away dishes",
+    20: "Cleaning",
+    21: "Laundry, ironing, clothing repair",
+    22: "Home/vehicle maintenance/improvement",
+    23: "Other domestic work",
+    24: "Purchase goods",
+    25: "Consume personal care services",
+    26: "Consume other services",
+    27: "Pet care (other than walk dog)",
+    28: "Physical, medical child care",
+    29: "Teach, help with homework",
+    30: "Read to, talk or play with child",
+    31: "Supervise, accompany, other child care",
+    32: "Adult care",
+    33: "Voluntary work, civic, organisational activity",
+    34: "Worship and religious activity",
+    35: "General out-of-home leisure",
+    36: "Attend sporting event",
+    37: "Cinema, theatre, opera, concert",
+    38: "Other public event, venue",
+    39: "Restaurant, café, bar, pub",
+    40: "Party, reception, social event, gambling",
+    41: "Imputed time away from home",
+    42: "General sport or exercise",
+    43: "Walking",
+    44: "Cycling",
+    45: "Other out-of-doors recreation",
+    46: "Gardening/forage, hunt/fish",
+    47: "Walk dogs",
+    48: "Receive or visit friends",
+    49: "Conversation (in person, phone)",
+    50: "Other in-home social, games",
+    51: "General indoor leisure",
+    52: "Artistic or musical activity",
+    53: "Written correspondence",
+    54: "Knit, crafts or hobbies",
+    55: "Relax, think, do nothing",
+    56: "Read",
+    57: "Listen to music, iPod, CD, audiobook",
+    58: "Listen to radio",
+    59: "Watch TV, DVD, video",
+    60: "Play computer games",
+    61: "Send e-mail, surf internet, computing",
+    62: "No activity but mode of recorded travel",
+    63: "Travel to or from work",
+    64: "Education-related travel",
+    65: "Travel for voluntary/civic/religious activity",
+    66: "Child/adult care-related travel",
+    67: "Travel for shopping, personal or household care",
+    68: "Travelling for other purposes",
+    69: "No recorded activity",
+}
+
+#: Where the table above came from, and the extent read. Distinct from
+#: `component_shares.MTUS_LABELS_SOURCE`, which records the 2026-09-10 read of
+#: three codes; this is the whole frame.
+ACTIVITY_LABELS_SOURCE: str = (
+    "MTUS User Guide, October 2020 (Release 7.0), Table 2 'Harmonised activity "
+    "codes (69-category)' — "
+    "https://www.timeuse.org/sites/default/files/2021-02/User%20Guide_2021.pdf "
+    "(full table read 2026-09-21, verbatim; verified against the file's own "
+    "ACT_* aggregates at ratio 1.0000 on four blocks)"
+)
 
 DATA_FILE = pathlib.Path(__file__).with_name("data") / "mtus_self_maintenance_by_age.csv"
 

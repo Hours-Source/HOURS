@@ -52,7 +52,6 @@ from hours_eoh.data import (
     COMPOUNDING_CRIT,
     PP_INDEX_WARN,
     PP_INDEX_WARN_SLOPE,
-    LEVY_SUFFICIENCY_WARN,
     CARE_ADMISSION_GREEN_FRAC,
     CARE_ADMISSION_YELLOW_FRAC,
 )
@@ -252,12 +251,16 @@ def fiscal_health_check(
     Phase 5.3: Fiscal health check — trust solvency, purchasing power, levy sufficiency.
 
     Three pillars of fiscal health:
-    1. Trust solvency: Can the Trust fund both stewardship and the sufficiency
-       guarantee simultaneously? A solvent trust has positive surplus_deficit.
+    1. Trust solvency: Can the Trust fund the sufficiency guarantee?
+       Stewardship and ecological labour are paid at the mint (2026-09-15)
+       and are not Trust expenditure. A solvent trust has positive surplus_deficit.
     2. Floor purchasing power trend: Is the floor PP index ≥ 1.0? Is it
        materially above baseline? (Principle 5 — it must never decline.)
-    3. Levy sufficiency: Do levies cover at least LEVY_SUFFICIENCY_WARN fraction
-       of the guarantee cost? Ensures fiscal burden sharing across the economy.
+    3. Levy sufficiency: does CURRENT FLOW cover the guarantee, or is the Trust
+       drawing down principal to pay it? RED when the balance and this period's
+       inflows together cannot pay it at all. Restated 2026-09-16, when the
+       fraction threshold it used to carry was retired — see data.py where
+       LEVY_SUFFICIENCY_WARN stood.
 
     Args:
         trust_balance: Current trust fund balance (TEH).
@@ -328,7 +331,10 @@ def fiscal_health_check(
                                     area_hectares=_eco_area)
     guar    = sufficiency_guarantee(population, epsilon)
     trust   = trust_management(trust_balance, levies["total_levied"],
-                                stew["teh_allocated"] + eco["teh_allocated"],
+                                # REQUIRED, not allocated — the mint pays this
+                                # labour, so no Trust balance caps it. See
+                                # fiscal_snapshot() for the defect this closes.
+                                stew["teh_required"] + eco["teh_required"],
                                 guar["total_cost_teh"],
                                 dep_rate, div_rate, epsilon)
     pp      = floor_purchasing_power(floor_teh, epsilon, baseline_basket_cost)
@@ -348,17 +354,40 @@ def fiscal_health_check(
     else:
         pp_status = "GREEN"
 
-    # Levy sufficiency: levy revenue vs. guarantee cost
+    # LEVY SUFFICIENCY — THE PILLAR THAT COULD NOT FIRE (restated 2026-09-16).
+    #
+    # This asked whether the levy covered at least LEVY_SUFFICIENCY_WARN = 2% of
+    # the guarantee. The shipped SUFF_LEVY_RATE delivered ≈2% at canonical
+    # defaults, so the indicator sat exactly on the value it watched and GREEN
+    # was the only verdict available — failure mode 9, in the repo's own named
+    # example of it. Raising the levy to 4.5% did not fix that; it only moved
+    # the configuration further above a threshold that still could not bite.
+    #
+    # The live question under the wage doctrine is not what fraction the levy
+    # covers but whether CURRENT FLOW carries the obligation: the Trust owes the
+    # guarantee, and inflows short of it are paid out of principal. That has no
+    # free threshold to calibrate — it is the identity trust_end >= trust_start
+    # — so this pillar can no longer be drawn around its own defaults. All three
+    # verdicts are reachable and `tests/test_dashboard.py` pins each one.
     levy_revenue = levies["total_levied"]
     guarantee_cost = guar["total_cost_teh"]
+    # Named for what it is: this function passes no GUF or estate levy, so the
+    # Trust's total inflow IS the levy here. The ratio is unchanged.
     levy_ratio = levy_revenue / max(guarantee_cost, 1.0)
-    if levy_ratio >= LEVY_SUFFICIENCY_WARN:
-        levy_status = "GREEN"
+    if trust["guarantee_unfunded"] > 0.0:
+        levy_status = "RED"     # balance + inflows cannot pay the guarantee at all
+    elif not trust["trust_stable"]:
+        levy_status = "YELLOW"  # inflows short of the guarantee — principal drawn
     else:
-        levy_status = "YELLOW"  # levy covers less than half of guarantee; trust must cover more
+        levy_status = "GREEN"   # current labour carries the obligation
 
-    # new-3: ecological status — healthy when allocated amount is covered by Trust
-    eco_cost = eco["teh_allocated"]
+    # new-3: ecological status — healthy when the requirement is small against
+    # the Trust. REQUIRED, not allocated: the capped figure is bounded by
+    # `trust_balance` by construction, so comparing it to a fraction of that
+    # balance was half a tautology (failure mode 2). The comparison itself is
+    # stale under the wage doctrine — the mint pays this — and is listed in
+    # `record/fulfilment.md` as the next stale pillar after the levy warn.
+    eco_cost = eco["teh_required"]
     eco_status = "GREEN" if eco_cost <= trust_balance * 0.30 else (
                  "YELLOW" if eco_cost <= trust_balance * 0.60 else "RED")
 
@@ -506,6 +535,8 @@ def system_dashboard(
           "overall_status":       str,   ("GREEN"/"YELLOW"/"RED")
           "red_flags":            list[str],
           "yellow_flags":         list[str],
+          "suppressed_flags":     list[str],   (indicators DECLARED out of the
+                                                two lists above, with the reason)
           "epsilon":              float,
         }
 
@@ -578,6 +609,40 @@ def system_dashboard(
         elif status == "YELLOW":
             yellow_flags.append(f"Fiscal — {indicator}: YELLOW")
 
+    # DECLARED SUPPRESSION (2026-09-16). MASKING MUST BE DECLARED, NEVER
+    # INFERRED — the rule `tests/test_ecological_scale_resolution.py` states in
+    # as many words, applied here.
+    #
+    # `personal_registration_status` is in neither loop above, and until today
+    # that exclusion was invisible: at ε=0 it reads RED while `red_flags` is
+    # empty, which to a reader of the flag list is indistinguishable from the
+    # indicator being GREEN, or absent, or forgotten.
+    #
+    # THE EXCLUSION IS CORRECT AND STAYS. Personal EOH is off-ledger at
+    # subsistence BY DESIGN — `personal_eoh_registration_share(0)` is near zero
+    # because the obligation is private, not because anything is failing — while
+    # REGISTRATION_WARN/_CRIT are ε-invariant. So the indicator reports RED for a
+    # state the framework considers right, which is the caveat already recorded
+    # in `record/provenance.md`. Re-pointing it at an ε-aware threshold (the
+    # shape `pp_status` uses) would be a charter decision about how much personal
+    # obligation must be on the ledger at each ε, not a defect fix.
+    #
+    # What was wrong is only that the masking was inferred from absence. It is
+    # now reported, with its reason, so a suppressed RED is visible as suppressed.
+    suppressed_flags: list[str] = []
+    for indicator, key, reason in (
+        ("personal_registration", "personal_registration_status",
+         "personal EOH is off-ledger at subsistence by design while "
+         "REGISTRATION_WARN/_CRIT are ε-invariant, so this reads RED for a "
+         "state the framework considers correct; an ε-aware threshold is a "
+         "charter decision, not a fix"),
+    ):
+        status = eoh_h[key]
+        if status in ("RED", "YELLOW"):
+            suppressed_flags.append(
+                f"EOH health — {indicator}: {status} (suppressed: {reason})"
+            )
+
     # Contestability (reconciliation §8, amended §8.9 2026-08-05).
     #
     # The ADOPTED invariant is three-channel exit financeability; χ = P/K_entry is
@@ -640,5 +705,8 @@ def system_dashboard(
         "overall_status":       overall_status,
         "red_flags":            red_flags,
         "yellow_flags":         yellow_flags,
+        # Indicators deliberately kept OUT of the two lists above, reported so
+        # the masking is declared rather than inferred from absence.
+        "suppressed_flags":     suppressed_flags,
         "epsilon":              epsilon,
     }

@@ -160,11 +160,23 @@ class TestTrustDepletionStress:
             "the obligation is now being charged BOTH to the domain and to GUF."
         )
 
-    def test_trust_floor_not_above_initial(self):
-        """Trust floor must be ≤ initial trust balance."""
+    def test_the_trust_no_longer_depletes_under_the_default_design(self):
+        """RESTATED 2026-09-16: this asserted the floor stays BELOW the opening
+        balance, which was true while the Trust booked the shipped guarantee.
+
+        Under V1 — core's default since 2026-09-16 — the Trust owes only what is
+        on the ledger, and at these inputs the levy more than covers it: the
+        floor is 8,767,388,914 against an opening 8,760,000,000 (35,007,388,914
+        against 35,000,000,000 before the 2026-09-17 reprice), outcome
+        STABLE with no insolvency. A depletion stress that cannot deplete is
+        worth stating plainly rather than leaving as an inverted assertion, and
+        the shipped design is still reachable for the old behaviour.
+        """
         from hours_eoh.data import TRUST_BASE_TEH
         result = trust_depletion_stress(n_periods=10)
-        assert result["trust_floor"] <= TRUST_BASE_TEH + 1.0
+        assert result["trust_floor"] >= TRUST_BASE_TEH
+        assert result["outcome"] == "STABLE"
+        assert result["first_insolvency"] is None
 
     def test_recommendation_is_string(self):
         result = trust_depletion_stress(n_periods=5)

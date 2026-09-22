@@ -248,7 +248,7 @@ def run_simulate(args: argparse.Namespace) -> None:
 
 def run_federation(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import make_federation, coasean_collective_count
-    from hours_eoh.data import TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT
+    from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 
     print("EXPERIMENTAL — research/coasean.py\n")
 
@@ -263,7 +263,6 @@ def run_federation(args: argparse.Namespace) -> None:
         epsilon=eps,
         n=n,
         population=args.population,
-        trust_balance=TRUST_BASE_TEH,
         capital_stock_teh=CAPITAL_STOCK_DEFAULT,
     )
 

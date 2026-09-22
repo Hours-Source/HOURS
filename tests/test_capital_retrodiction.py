@@ -255,3 +255,104 @@ class TestRetrodictionChangesNothing:
                 if name in p.read_text(encoding="utf-8", errors="ignore")
             ]
             assert not offenders, f"{offenders} import {name}"
+
+class TestTheInventoryCanBeSupplied:
+    """
+    STEP 1 OF MAKING THIS INSTRUMENT PORTABLE (2026-09-18).
+
+    The shipped BEA table stays the default and every US figure is bit-identical;
+    a non-US institution supplies its own inventory keyed by machine profile.
+
+    WHAT THIS CLASS EXISTS TO PROTECT is the half a naive branch drops. Scope and
+    doctrine are validated INSIDE `capital_by_profile`, so an implementation that
+    skips that call when an inventory is supplied would stop validating them for
+    exactly the caller most likely to get them wrong — someone porting the
+    instrument to another jurisdiction. The call is therefore unconditional and
+    its result discarded on the supplied path, which looks wasteful and is not.
+
+    AND THE SUPPLIED TABLE ARRIVES UNDECLARED. The shipped one is 36 rows each
+    carrying a `basis` (see TestTheJudgementsStayDeclared); a supplied mapping has
+    none, because mapping national accounts onto machine profiles is the user's
+    judgement. `inventory_source` reports which table produced a figure so the two
+    can never be read as the same kind of thing.
+    """
+
+    def test_the_default_reads_the_shipped_table(self):
+        a = CR.epsilon_from_inventory(20.0)
+        b = CR.epsilon_from_inventory(
+            20.0, inventory=CR.capital_by_profile("government", "current_cost"))
+        assert a["epsilon"] == pytest.approx(b["epsilon"], rel=1e-12)
+        assert a["capital_usd_b"] == pytest.approx(b["capital_usd_b"], rel=1e-12)
+
+    def test_a_supplied_inventory_is_used_as_given(self):
+        r = CR.epsilon_from_inventory(
+            20.0, inventory={"power_grid": 1000.0, "medical_systems": 500.0})
+        assert r["capital_usd_b"] == pytest.approx(1500.0)
+        assert r["inventory_source"] == "supplied"
+
+    def test_the_source_is_reported_so_the_two_cannot_be_confused(self):
+        assert CR.epsilon_from_inventory(20.0)["inventory_source"] == "shipped_bea"
+        assert CR.epsilon_from_inventory(
+            20.0, inventory={"power_grid": 1.0})["inventory_source"] == "supplied"
+
+    def test_the_bea_year_does_not_date_someone_elses_inventory(self):
+        assert CR.epsilon_from_inventory(20.0)["year"] == CR.BEA_YEAR
+        assert CR.epsilon_from_inventory(20.0, inventory={"power_grid": 1.0})["year"] is None
+
+    @pytest.mark.parametrize("scope,doctrine", [
+        ("nonsense", "current_cost"),
+        ("government", "nonsense"),
+    ])
+    def test_scope_and_doctrine_still_validate_on_the_supplied_path(self, scope, doctrine):
+        """THE PROPERTY A NAIVE BRANCH DROPS — the reason the call is unconditional."""
+        with pytest.raises(ValueError):
+            CR.epsilon_from_inventory(
+                20.0, scope=scope, doctrine=doctrine, inventory={"power_grid": 1.0})
+
+    def test_an_unknown_profile_is_refused_and_the_known_set_is_named(self):
+        with pytest.raises(ValueError, match="machine profiles"):
+            CR.epsilon_from_inventory(20.0, inventory={"not_a_profile": 1.0})
+
+    def test_a_negative_value_is_refused(self):
+        with pytest.raises(ValueError, match="must be >= 0"):
+            CR.epsilon_from_inventory(20.0, inventory={"power_grid": -1.0})
+
+    def test_the_rate_is_still_required_on_the_supplied_path(self):
+        """The conversion rate has no default, and an inventory is not a way in."""
+        with pytest.raises(ValueError, match="no default"):
+            CR.epsilon_from_inventory(0.0, inventory={"power_grid": 1.0})
+
+    def test_the_shipped_default_is_not_saturated(self):
+        assert CR.epsilon_from_inventory(20.0)["saturated"] is False
+
+    def test_a_supplied_inventory_can_saturate_and_says_so(self):
+        """
+        THE GAP SUPPLYING AN INVENTORY OPENED. The shipped grid has both a
+        no-saturation test and a can-fire test; a supplied inventory had neither,
+        so ε pinned at the arc endpoint by a too-low rate would read as a finding.
+        """
+        hot = CR.epsilon_from_inventory(0.5, inventory={"power_grid": 10_000.0})
+        assert hot["saturated"] is True
+        assert hot["epsilon"] >= CR._SATURATION_EPSILON
+
+    def test_the_existing_can_fire_case_now_reports_it(self):
+        hot = CR.epsilon_from_inventory(1.5, scope="residential")
+        assert hot["epsilon"] >= CR._SATURATION_EPSILON
+        assert hot["saturated"] is True
+
+    def test_the_per_call_key_and_the_report_share_one_threshold(self):
+        """
+        TWO ACCOUNTS OF ONE QUANTITY IS THE SHAPE THIS REPO KEEPS FINDING. The
+        per-call key and the grid census must be the same predicate, not two
+        literals that agree today.
+        """
+        report = CR.retrodiction_report()
+        by_key = [row for row in report["grid"]
+                  if row["epsilon"] >= CR._SATURATION_EPSILON]
+        assert report["saturated_cells"] == len(by_key)
+
+    def test_a_supplied_inventory_actually_moves_epsilon(self):
+        """NOT VACUOUS: a parameter that changes no output is failure mode 5."""
+        small = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 100.0})
+        large = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 10000.0})
+        assert large["epsilon"] > small["epsilon"]

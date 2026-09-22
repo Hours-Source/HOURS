@@ -37,7 +37,8 @@ def test_reference_matches_the_repo_sweep_calibration():
     """The gate must not invent its own economy — an uncalibrated trust balance
     was the first false failure."""
     from hours_eoh.research import thermal_solvency as ts
-    assert ts.REF_TRUST_BALANCE == 3.5e10
+    from hours_eoh.data import TRUST_BASE_TEH
+    assert ts.REF_TRUST_BALANCE == TRUST_BASE_TEH
     assert ts.REF_CAPITAL_AGE_RATIO == 0.30
     assert ts.REF_CAPITAL_STOCK == 2.0e9
 
@@ -132,18 +133,47 @@ def test_gate_passes_at_every_epsilon():
     for r in solvency_gate()["verdicts"]:
         assert r["passes"] is True, r["epsilon"]
         assert r["trust_solvent"] and r["levy_feasible"]
-        assert r["coequal"] and r["labor_feasible"]
+        assert r["labor_feasible"]
 
 
-def test_coequality_holds_under_load():
-    """Ecological must not become residual while stewardship stays funded."""
+def test_the_coequality_condition_is_retired_and_stays_retired():
+    """RETIRED 2026-09-16 (author decision), asserted rather than merely absent.
+
+    This file used to hold `test_coequality_holds_under_load`, pinning
+    `eco_coverage >= stew_coverage - 0.25`. The condition compared two Trust
+    FUNDING coverages — `min(required, trust_balance) / required` — against a
+    balance that, since the wage doctrine (2026-09-15), funds neither ecological
+    nor stewardship labour. Measured across trust balances 1e6–3.5e10 and
+    ε ∈ {0, 0.40, 0.90} it passed 9 of 9, and at its most extreme cell
+    (trust 1e6, ε=0) stewardship coverage was 0.0056 against ecological 0.7013 —
+    a 69-point gap in the safe direction. It could not fail.
+
+    It was retired rather than restated against requirements, because that would
+    assert "ecological must not be much smaller than stewardship", which nothing
+    in the theory claims: Phases 4e/4f moved both recurring ecological terms to
+    GUF on purpose. A check that manufactures a requirement the framework does
+    not hold shapes later work around a demand nobody made.
+
+    The DOCTRINE is untouched — the two allocations remain co-equal requirements,
+    both paid at the mint. This test exists so the retirement cannot be undone by
+    accident, and so a reader who greps for the old keys finds the reason.
+    """
     for r in solvency_gate()["verdicts"]:
-        assert r["eco_coverage"] >= r["stew_coverage"] - 0.25
+        for gone in ("coequal", "eco_coverage", "stew_coverage"):
+            assert gone not in r, (
+                f"{gone} is back in the solvency verdict. It reports a Trust "
+                "funding ratio for labour the Trust does not fund; if it is "
+                "needed again, the question it answers has changed and the "
+                "module docstring should say how."
+            )
+        assert "ecological_became_residual" not in r["failures"]
 
 
 def test_labour_is_nowhere_near_binding():
     """The ecological domain, even doubled, is a fraction of a percent of the
-    collective's labour capacity — the constraint that binds is fiscal."""
+    collective's labour capacity at the shipped intensity. (Until 2026-09-15
+    this said the binding constraint is fiscal; when the gate breaks it now
+    breaks on labour — see test_labour_is_now_the_binding_condition.)"""
     for r in solvency_gate()["verdicts"]:
         assert r["labor_fraction"] < 0.01
 
@@ -171,20 +201,29 @@ def test_backward_query_finds_a_finite_breaking_point():
     # ecological obligation is negligible in the ledger — the domain-balance
     # defect — not because the fisc is strong. That caveat predates this change
     # and is unaffected by it.
-    assert b["breaking_value"] == pytest.approx(48.2, rel=0.05)
+    #
+    # 48.2 → 335.3 (2026-09-15): minted TEH is the wage, so the Trust no longer
+    # pays for ecological and stewardship labour the mint already paid. The
+    # loaded ecological requirement stopped reaching Trust solvency at all, and
+    # the gate now breaks on LABOUR (see the next test). This is not a stronger
+    # fisc: the fiscal conditions went near-vacuous for this question.
+    assert b["breaking_value"] == pytest.approx(335.3, rel=0.05)
     assert b["shipped_value"] == CDR_LABOR_HOURS_PER_TONNE
-    # 67.6 → 74.5 → 80.3, same mechanism each time.
-    assert b["margin"] == pytest.approx(80.3, rel=0.05)
+    # 67.6 → 74.5 → 80.3 → 558.9, the last by the same doctrine change.
+    assert b["margin"] == pytest.approx(558.9, rel=0.05)
     assert b["verdict"] == "robust"
 
 
-def test_trust_solvency_is_the_binding_condition():
-    """It is the Trust that gives way first, not labour and not co-equality —
-    so the gate's sensitivity is fiscal, which is what makes the margin the
-    right thing to report."""
-    g = solvency_gate(labor_hours_per_tonne=100.0)
+def test_labour_is_now_the_binding_condition():
+    """Until 2026-09-15 the Trust gave way first (`trust_insolvent` at 100
+    h/t). Under the wage doctrine the Trust owes only the guarantee, so a
+    thermal overage carried as ecological labour cannot make it insolvent; the
+    gate now breaks when that labour cannot be worked. 100 h/t passes and 400
+    fails, on labour alone."""
+    assert solvency_gate(labor_hours_per_tonne=100.0)["passes"] is True
+    g = solvency_gate(labor_hours_per_tonne=400.0)
     assert g["passes"] is False
-    assert g["failures"] == ["trust_insolvent"]
+    assert g["failures"] == ["labor_unavailable"]
 
 
 def test_monotone_in_labour_intensity():

@@ -19,6 +19,14 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
   reachable and every NLSA §4.4 boundary condition is still pinned against
   `bell`. Ψ was retired for duplicating α at the high end and for a category
   error at the low end — see [term-basis-audit](#term-basis-audit-psi-retired).
+- **The co-equality target is WITHDRAWN** (author, 2026-09-16). The ×100 was
+  chosen so aggregate GUF would land co-equal with levy revenue at mid-arc; GUF
+  is a PORTION of Trust inflow — alongside the labour levy and the estate levy —
+  and was never owed an equality with any of them. Nothing is re-fitted on the
+  withdrawal: the ratios are now unjustified rather than justified by a goal the
+  framework no longer holds, and the unrun servicing census still settles the
+  level. Measured against the 4.5% levy the fee runs 9.19× it at ε=0 and 0.058×
+  at 0.99, so no single ratio was ever going to hold across the arc.
 - **`GUF_USE_SCALE_FACTOR` is still 100.0 and the ten ratios are untouched.**
   Phase 2 measured how far the fee sits from a servicing census and deliberately
   did not move it: a census settles a LEVEL and the defect is structural.

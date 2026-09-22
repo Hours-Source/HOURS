@@ -20,13 +20,13 @@ import math
 from typing import Any
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
     ECOLOGICAL_THRESHOLD,
 )
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 _DEGRADED_THRESHOLD:    float = 2 / 3   # first insolvency after this fraction of periods → DEGRADED, not CRISIS
 _CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fiscal trajectory is declared converged
@@ -41,7 +41,7 @@ def canonical_arc_trajectory(
     epsilon_end: float = 0.99,
     n_periods: int = 20,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
@@ -75,6 +75,7 @@ def canonical_arc_trajectory(
           "raw":                dict,          full run_simulation() result
         }
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     epsilon_delta = (epsilon_end - epsilon_start) / max(n_periods, 1)
     initial_state = make_economy_state(
         epsilon=epsilon_start,
@@ -163,7 +164,7 @@ def trust_depletion_stress(
     n_periods: int = 30,
     stressor_profile: dict | None = None,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
 ) -> dict:
     """
@@ -202,9 +203,10 @@ def trust_depletion_stress(
           "raw":                   dict,    (full run_simulation() result)
         }
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     profile = stressor_profile or {}
     initial_state = make_economy_state(
         epsilon=epsilon,
@@ -273,7 +275,7 @@ def automation_transition_trajectory(
     epsilon_delta: float = 0.05,
     n_periods: int = 15,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
 ) -> dict:
     """
@@ -305,6 +307,7 @@ def automation_transition_trajectory(
           "raw":                  dict,
         }
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     initial_state = make_economy_state(
         epsilon=epsilon_start,
         population=population,

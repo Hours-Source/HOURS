@@ -26,11 +26,12 @@ from typing import Any
 from hours_eoh.data import (
     M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX,
     TIER_ASSESSMENT_INTERVAL_YEARS,
-    TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
+    CAPITAL_STOCK_DEFAULT,
 )
 from hours_eoh.core.multipliers import multiplier_band_check
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ def m_below_band_drift(
     governance_lag: int = TIER_ASSESSMENT_INTERVAL_YEARS,
     correction_magnitude: float | None = None,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
@@ -278,9 +279,10 @@ def m_below_band_drift(
 
     Reference: Mission Statement §"Condition II — Multiplier Band"; Roadmap §2.3.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     return _run_drift_scenario(
         band_limit=M_BAND_LOW,
         breach_above=False,
@@ -311,7 +313,7 @@ def m_above_band_drift(
     governance_lag: int = TIER_ASSESSMENT_INTERVAL_YEARS,
     correction_magnitude: float | None = None,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
@@ -347,9 +349,10 @@ def m_above_band_drift(
     Reference: Mission Statement §"Condition II"; §"Anti-gaming safeguard 2 —
     artificial scarcity detection"; Roadmap §2.3.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     return _run_drift_scenario(
         band_limit=M_BAND_HIGH,
         breach_above=True,
@@ -377,7 +380,7 @@ def m_band_sweep(
     m_values: list[float] | None = None,
     n_periods: int = 10,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
@@ -415,9 +418,10 @@ def m_band_sweep(
 
     Reference: Mission Statement §"Condition II"; Roadmap §2.3 (inverse query).
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if m_values is None:
         m_values = [round(1.5 + 0.10 * i, 2) for i in range(11)]
 

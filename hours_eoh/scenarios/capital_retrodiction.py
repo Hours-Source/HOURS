@@ -41,6 +41,7 @@ Layer: scenarios/ — imports from core/, reference/ and research/, never the re
 from __future__ import annotations
 
 import csv
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +50,7 @@ from hours_eoh.reference.capital_inventory import (
     UNALLOCATED, UNALLOCATED_USD_B,
     capital_by_profile, scope_total, what_this_cannot_settle,
 )
+from hours_eoh.data import CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX
 from hours_eoh.research.thermal_capital import epsilon_current_from_inventory
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 
@@ -65,6 +67,15 @@ _REGISTRY = Path(__file__).resolve().parents[1] / "reference" / "data" / "multip
 #: inventory does not answer. Structures dominate every scope by value, so the
 #: structures age is the honest fallback and is stated rather than assumed.
 _FALLBACK_AGE_KEY: str = "private_structures"
+
+#: ε at or above which a reading counts as SATURATED — the §7 retrodiction
+#: falsifier's own threshold. 0.99 and not 1.0 because the arc's declared
+#: endpoint is 0.99: a reading that reaches it has run out of room, and whether
+#: it lands on 0.995 or exactly 1.0 is a detail of the capital curve rather than
+#: a difference in what it tells you. Defined once and read by BOTH
+#: `epsilon_from_inventory` (per call) and `retrodiction_report` (per grid), so
+#: the two accounts of "saturated" cannot drift apart.
+_SATURATION_EPSILON: float = EPSILON_ARC_MAX
 
 
 def conversion_band() -> dict:
@@ -129,9 +140,11 @@ def epsilon_from_inventory(
     scope: str = "government",
     doctrine: str = "current_cost",
     population: float = BEA_POPULATION,
+    *,
+    inventory: Mapping[str, float] | None = None,
 ) -> dict:
     """
-    ε derived from the BEA inventory at a SUPPLIED conversion rate.
+    ε derived from a capital inventory at a SUPPLIED conversion rate.
 
     Governing chain:
 
@@ -146,9 +159,22 @@ def epsilon_from_inventory(
         scope: one of `SCOPES` — the second judgement.
         doctrine: "current_cost" or "historical_cost" — the third.
         population: the frame the inventory is counted over.
+        inventory: YOUR OWN inventory, keyed by machine profile, in the same
+            currency the rate converts from. `None` (default) reads the shipped
+            BEA table, so the US path is unchanged. Supplying one is what lets a
+            non-US institution run this instrument.
+
+            IT ARRIVES UNDECLARED, AND THE RESULT SAYS SO. The shipped table is
+            36 rows each carrying a `basis`, plus 2 exclusions each carrying a
+            `reason`, and `TestTheJudgementsStayDeclared` checks them. A supplied
+            mapping has none of that — the mapping from your national accounts
+            onto the machine profiles is YOUR judgement, and the framework cannot
+            see it. `inventory_source` in the returned dict reports which table
+            produced the figure so the two can never be confused.
 
     Raises:
-        ValueError: on a non-positive rate, an unknown scope or doctrine.
+        ValueError: on a non-positive rate, an unknown scope or doctrine, an
+            inventory key that is not a machine profile, or a negative value.
     """
     if currency_per_teh <= 0.0:
         raise ValueError(
@@ -157,15 +183,39 @@ def epsilon_from_inventory(
             "convention, and supplying it is the institution's declaration of "
             "which valuation doctrine it is using."
         )
-    by_profile = capital_by_profile(scope, doctrine)   # validates scope/doctrine
+    # CALLED UNCONDITIONALLY: this is where scope and doctrine are validated, so
+    # skipping it when an inventory is supplied would drop the check for exactly
+    # the caller most likely to get them wrong — someone porting this instrument
+    # to another jurisdiction.
+    shipped = capital_by_profile(scope, doctrine)
+    if inventory is None:
+        by_profile, source = shipped, "shipped_bea"
+    else:
+        unknown = sorted(set(inventory) - set(CAPITAL_MACHINE_PROFILES))
+        if unknown:
+            raise ValueError(
+                f"inventory keys must be machine profiles, got {unknown}. "
+                f"Known profiles: {sorted(CAPITAL_MACHINE_PROFILES)}. Mapping your "
+                "national accounts onto these is the judgement this instrument "
+                "cannot make for you."
+            )
+        negative = sorted(k for k, v in inventory.items() if float(v) < 0.0)
+        if negative:
+            raise ValueError(f"inventory values must be >= 0, negative at {negative}")
+        by_profile, source = {k: float(v) for k, v in inventory.items()}, "supplied"
     age = MEASURED_AGES[_FALLBACK_AGE_KEY]
     desc = {
         name: {"teh_value": usd_b * 1e9 / currency_per_teh, "age": age, "condition": 0.85}
         for name, usd_b in by_profile.items() if usd_b > 0.0
     }
     total_teh = sum(d["teh_value"] for d in desc.values())
+    eps = epsilon_current_from_inventory(desc, population)
     return {
-        "year":             BEA_YEAR,
+        # BEA_YEAR belongs to the SHIPPED table. A supplied inventory has its own
+        # vintage that this module does not know, and reporting BEA's would date
+        # someone else's data with someone else's year.
+        "year":             BEA_YEAR if inventory is None else None,
+        "inventory_source": source,
         "scope":            scope,
         "doctrine":         doctrine,
         "currency_per_teh": currency_per_teh,
@@ -174,7 +224,13 @@ def epsilon_from_inventory(
         "capital_teh":      total_teh,
         "teh_per_capita":   total_teh / population,
         "age_years":        age,
-        "epsilon":          epsilon_current_from_inventory(desc, population),
+        "epsilon":          eps,
+        # REPORTED PER CALL, not only per grid. The shipped grid is guarded by
+        # `test_no_cell_of_the_declared_grid_saturates` AND by a can-fire test; a
+        # SUPPLIED inventory had neither, so a foreign caller could read a
+        # boundary artefact (ε pinned at the arc's endpoint because the rate is
+        # too low for their inventory) as a finding about their economy.
+        "saturated":        eps >= _SATURATION_EPSILON,
     }
 
 
@@ -270,7 +326,7 @@ def retrodiction_report(currency_per_teh: float | None = None) -> dict:
     eps = [row["epsilon"] for row in grid]
     interior = [row for row in grid
                 if row["scope"] == "government" and row["doctrine"] == "current_cost"]
-    saturated = [row for row in grid if row["epsilon"] >= 0.99]
+    saturated = [row for row in grid if row["epsilon"] >= _SATURATION_EPSILON]
 
     verdict = (
         f"across the declared grid the US reads ε = {min(eps):.3f}–{max(eps):.3f}; "

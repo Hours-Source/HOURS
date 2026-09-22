@@ -279,8 +279,15 @@ the strong sense is not what the base tracks today.
 the US in a **band across the middle of the arc**, with none of the declared grid
 saturating. A second instrument that shares none of that data — time diaries,
 with no currency anywhere in the chain — lands **below** the capital reading, and
-the two bands do not overlap, separated by a gap small against either band's
-width. The verdict is **ADJACENT**: weaker than agreement, and the accurate word.
+the two bands do not overlap at the cell the comparison reads by default —
+government scope, current-cost doctrine — separated by a gap small against
+either band's width. That verdict is **ADJACENT**: weaker than agreement, and
+the accurate word for that cell. **Across the whole declared grid the two
+OVERLAP**, with 8 of the 18 cells inside the labour band. The capital route
+returns a grid *because* its three judgements are undeclared, so the verdict is
+a function of which cell is read; reporting only the agreeing one would be
+calibrating to the answer, and reporting only the disagreeing one overstates
+what a second instrument has shown. Both are now reported together.
 Both routes divide by the same obligation, though, so an error in what is owed
 would pass both; what the cross-check confirms is the machine/human split.
 

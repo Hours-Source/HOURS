@@ -422,8 +422,9 @@ def formation_levy_rate(
         ε=0.20: gap = 0 → levy = 0  (SUNSET — the levy self-extinguishes)
 
     ε-behavior: ≈ 1% at the start of the arc, monotone to 0 by ε ≈ 0.2,
-    0 thereafter. Compare SUFF_LEVY_RATE = 1.25%: the bridge is smaller
-    than the existing sufficiency levy and temporary.
+    0 thereafter. Compare SUFF_LEVY_RATE (4.5% since 2026-09-15; 1.25% when
+    this was written): the bridge is smaller than the sufficiency levy and
+    temporary.
 
     Args:
         epsilon: Automation level [0.0, 0.99].

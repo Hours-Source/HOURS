@@ -23,8 +23,8 @@ guess layered on the first. `AGE_WEIGHT_CHILD` at 70 names both terms of its
 ratio as measured and the definitional bridge as chosen; `ABATEMENT_HALF_CAPITAL_TEH`
 at 5 says the order of magnitude is bounded and nothing else is.
 
-IT IS A RATCHET, NOT A BLANKET RULE. 138 constants carry `placeholder` or
-`bounded` and backfilling all of them at once would be inventing 126 more
+IT IS A RATCHET, NOT A BLANKET RULE. 147 constants carry `placeholder` or
+`bounded` and backfilling all of them at once would be inventing 131 more
 numbers — the exact failure the field exists to expose. So the count WITHOUT a
 confidence may not rise, and it falls as constants are revisited. The first pass
 annotated the nine highest-leverage, measured by perturbation rather than
@@ -69,7 +69,24 @@ SOFT_TAGS = frozenset({"placeholder", "bounded"})
 #: this pass over the remaining composites, so the same move is expected again.
 #: Each future raise states its own arithmetic here or it is not a raise, it is
 #: a leak.
-BASELINE_WITHOUT = 133
+#: LOWERED TO 131 ON 2026-09-16, and a fall states its arithmetic for the same
+#: reason a raise does — an unexplained move is a leak whichever way it runs.
+#:
+#: `DEFAULT_SEGMENTS` and `SKILL_DECAY_RATE` were retagged `placeholder` ->
+#: `baseline`: both are refuted values kept RUNNABLE as comparisons, and
+#: `placeholder` means "no measurement stands behind it", which was the opposite
+#: of true. The measurement happened, it replaced them, and they are the control
+#: it replaced. Neither carried a confidence figure, so both were in this count.
+#:
+#:     133 - 2 (retagged out of SOFT_TAGS entirely) = 131
+#:
+#: NO BACKLOG WAS CLEARED. Nothing was measured and nothing was annotated; two
+#: constants stopped being counted as debt because they were never debt. The
+#: same caution the 2026-09-09 raise states applies mirrored: a ratchet that let
+#: retagging shed debt silently would reward relabelling over measuring, so the
+#: tag carries its own gate (`compares:`, `expected:`, and the named test must
+#: exist) and the arithmetic is written here.
+BASELINE_WITHOUT = 131
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

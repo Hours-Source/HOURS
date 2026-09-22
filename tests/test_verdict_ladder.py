@@ -90,6 +90,62 @@ class TestTheCensusCannotDriftSilently:
         history: 342 = 31/89/222 at adoption (2026-09-11)
                  343 = 31/90/222 after REGISTER_CADENCE (2026-09-11)
                  346 = 31/93/222 after the three water constants (2026-09-11)
+                 345 = 31/93/221 after LEVY_SUFFICIENCY_WARN was RETIRED
+                       (2026-09-16)
+                 345 = 31/93/221 after SUFF_NEED_FRACTION was NAMED
+                       (2026-09-16) — the V1 need fraction the levy was sized
+                       against, which had existed only as a bare 0.05 in test
+                       lines and record prose. POSSIBLE rose because it is
+                       `normative`: a charter decision about who the guarantee
+                       reaches, which no dataset settles. Naming a number that
+                       was already governing output does not make the framework
+                       less certain; it makes the uncertainty countable.
+                 344 = 31/93/220 after ELDERLY_EOH_EPSILON_FACTOR was DELETED
+                       (2026-09-16) — retired 2026-09-04 with zero readers for
+                       twelve days, so it was neither debt nor a `baseline`
+                       (nothing live to compare against); the reasoning moved to
+                       record/personal.md, which a test now requires to exist
+                 346 = 31/94/221 after TRUST_BASE_TEH_PER_CAPITA was NAMED
+                       (2026-09-17) — the inheritance repriced to 8,760
+                       TEH/person. INSTANCE rose because the per-capita figure
+                       is what an institution supplies. TRUST_BASE_TEH was KEPT
+                       `instance` rather than retagged `derived`, which its
+                       value now is: `derived` moved it to CERTAIN (31 -> 32),
+                       because the ladder reads that tag without following
+                       through to what the value bottoms out on. Its
+                       COMPUTATION became derived; its STANDING did not.
+                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+                 348 = 31/96/221 after
+                       LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA was NAMED
+                       (2026-09-21) — the capital grid swept by the low-ε floor
+                       diagnostic. INSTANCE rose for the same reason the entry
+                       below gives: `convention` lands there. **It is a probe
+                       grid for a REPORTING-ONLY table and governs no shipped
+                       output**, which is why the ladder's shares moved while
+                       every ε, obligation and verdict in the suite stayed
+                       bit-identical. The constant exists because the canonical
+                       arc's zero capital at ε=0 floors the labour instrument
+                       for 9 of 65 MTUS samples at `broad`; naming the grid
+                       makes the floor examinable without editing the arc.
+                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+                       (2026-09-18) — the arc's EVALUATION bound, which had
+                       existed only as a bare 0.99 at ~56 operative sites.
+                       INSTANCE rose because `convention` lands there, the
+                       same tier REFERENCE_FRAME_POPULATION sits in: the
+                       framework got one more thing it asks you to DECLARE,
+                       and CERTAIN did not move. It is deliberately NOT the
+                       achievable ceiling, which is derived and moves —
+                       observable_epsilon_ceiling() reads 0.788-0.877 under
+                       per_component, and the two are gated apart.
+
+        **The 2026-09-16 move is the first DOWNWARD one, and it is the good
+        direction for a reason worth stating.** POSSIBLE fell because a
+        constant left `data.py` entirely: the levy-sufficiency threshold was
+        calibrated to the value it watched, so the pillar it drove could only
+        ever report GREEN. It was replaced by an identity — do inflows cover
+        the guarantee — which needs no constant at all. The framework got no
+        more measured; it got one less thing to have to measure, which is the
+        only kind of count reduction this ratchet should ever see.
 
         **Note what the three water constants did to the SHARES**: INSTANCE rose
         and POSSIBLE did not move, because declaring a component resolves it
@@ -98,10 +154,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 346
+        assert c["total"] == 348
         assert c["counts"]["CERTAIN"] == 31
-        assert c["counts"]["INSTANCE"] == 93
-        assert c["counts"]["POSSIBLE"] == 222
+        assert c["counts"]["INSTANCE"] == 96
+        assert c["counts"]["POSSIBLE"] == 221
 
     def test_possible_is_still_the_largest_tier(self):
         """

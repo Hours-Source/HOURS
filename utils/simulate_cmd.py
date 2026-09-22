@@ -14,7 +14,7 @@ import json
 import sys
 
 from hours_eoh.core.simulation import make_economy_state, run_simulation
-from hours_eoh.data import TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT
+from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 
 from utils.formatters import bold, fmt_float, fmt_eps, table as fmt_table
 
@@ -36,7 +36,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument("--epsilon-delta", type=float, default=0.01, metavar="RATE",
                    help="ε increment per period passed to simulate_period (default: 0.01)")
     p.add_argument("--population", type=float, default=1_000_000.0)
-    p.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH)
+    # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
+    # balance resolves against --population, so the inheritance travels with
+    # the frame. Supplying the flag states YOUR balance and it is used as given.
+    p.add_argument("--trust-balance", type=float, default=None)
     p.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT)
     p.add_argument("--workforce-decay", action="store_true", dest="workforce_decay",
                    help="Shrink workforce_fraction proportionally to (1-ε) each period")

@@ -165,6 +165,8 @@ hours_eoh/
     obligation_accounts.py  The three accounts — OBLIGATION / DELIVERY / STOCK — and anchor_sensitivity();
                        REPORTING ONLY; the partition closes to float equality against total_eoh()
     arc_stability.py   Can the system STAND STILL here: obligation met, delivery pays, stock stationary
+    stationarity.py    STAND STILL in labour hours AND TEH, under the doctrine that minted TEH is
+                       the wage: the Trust owes only the guarantee; REPORTING ONLY
     component_shares.py  The desk component shares measured against observed ATUS time use; a BOUND, REPORTING ONLY
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
@@ -174,7 +176,10 @@ hours_eoh/
                        `currency_per_teh` is REQUIRED; the band is not a default. REPORTING ONLY
     labour_epsilon.py  ε READ OFF TIME USE — the SECOND instrument, currency-free. ONE
                        judgement against the capital route's three; reports OVERLAP/ADJACENT/
-                       DIVERGENT and never asserts agreement. REPORTING ONLY
+                       DIVERGENT and never asserts agreement. The obligation it divides by
+                       is the CANONICAL arc's unless `obligation_state` supplies yours —
+                       and at ε=0 that arc holds no capital, so the ε floor bites.
+                       REPORTING ONLY
     verification_cost.py  WHAT THE REGISTER COSTS AGAINST WHAT IT VERIFIES — the audit falsifier,
                        answered: no crossover on the arc under either scaling basis. Frame
                        DECLARED (US census → per-capita → caller's frame); REPORTING ONLY
@@ -246,7 +251,7 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
 
 **Per-domain registration split**: personal EOH uses `personal_eoh_registration_share(ε)` (near-zero at ε=0 — off-ledger subsistence); non-personal domains use `total_registration_share(ε)`. These are different mechanisms; do not conflate them.
 
-**Ecological co-equal with stewardship**: `ecological_allocation()` and `stewardship_allocation()` are co-equal Trust obligations. Neither is residual.
+**Ecological co-equal with stewardship**: `ecological_allocation()` and `stewardship_allocation()` are co-equal requirements. Neither is residual. **Both are paid at the mint, not by the Trust** (minted TEH is the wage, 2026-09-15): `trust_management` returns them as `paid_by_mint` and its expenditure is the guarantee alone.
 
 **Zero interest (Condition III)**: balances grow only through labor income minus expenditure. EOH compounding is physics (entropy), not interest — it does not create TEH.
 
@@ -355,12 +360,40 @@ someone remembering it, which is what this section is for.
    it. `gated by:` `tests/test_parameter_wiring.py`
 
 6. **THE FRAME SEAM** *(corpus F-002, F-005, F-030)* — a quantity that must travel with the population/land
-   frame and does not. Seven instances, including `CAPITAL_STOCK_DEFAULT` and
+   frame and does not. Seven instances in the population/land frame — and an
+   EIGHTH in STATE, at the end of this entry — including `CAPITAL_STOCK_DEFAULT` and
    `TRUST_BASE_TEH`, both declared "at the 1M reference population" and consumed
-   by callers that moved the population without moving them. *The tell:* grep the
+   by callers that moved the population without moving them — **both are now
+   CLOSED (2026-09-16, 2026-09-17), each with its own gate.** *The tell:* grep the
    `units:` field for a stated frame, not the name. *Do:* state the frame; a
    frame-invariant share is the check that it is stated.
-   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain only)
+   **`CAPITAL_STOCK_DEFAULT`'s instance was CLOSED 2026-09-16** — 24 call sites
+   wired, and at the documented entry point per-capita output had run
+   913.65 / 339.64 / 282.23 TEH at populations 1e5 / 1e6 / 1e7 for identical
+   capital intensity. **`TRUST_BASE_TEH`'s was CLOSED 2026-09-17** — 26 sites,
+   of which four were invisible to a scan keyed on the parameter NAME (a second
+   and third name, a dataclass FIELD, a `.get()` default), plus ten CLI flags
+   that defaulted the Trust to the 1M constant beside a settable `--population`:
+   at the US frame that ran 335M people on 104.48 TEH/capita against 35,000.
+   `gated by:` `tests/test_ecological_scale_resolution.py` (ecological chain),
+   `tests/test_capital_scale_resolution.py` (capital chain) and
+   `tests/test_trust_scale_resolution.py` (the Trust) — the last keyed on the
+   QUANTITY rather than the parameter name, because name-keying hid four sites:
+   a second and third parameter name, a dataclass FIELD and a `.get()` default.
+   **THE EIGHTH INSTANCE IS IN STATE, NOT POPULATION (2026-09-21).**
+   `labour_epsilon` divided the caller's MEASURED hours by the CANONICAL arc's
+   obligation. The POPULATION half of that pin had been measured and found inert
+   — per-capita `total_eoh` is frame-invariant to the last bit — and a comment
+   said so; nobody asked the same question of STATE, for which it is not inert.
+   At ε=0 the arc holds zero capital, so infrastructure and ecological EOH are
+   both 0.00 and the obligation collapses to personal-only (99.4%); against a
+   labour-intensive economy's hours the fixed point then floors at ε=0 for
+   **9 of 65 MTUS samples at `broad`**, reporting 0.0000 for an overshoot of
+   0.0001 or 0.33 alike. *The tell:* a comment declaring one variable inert
+   where a SECOND variable was never tested — "inert" is a measurement about
+   what was measured. *Do:* when a pin is cleared for one dimension, name the
+   dimensions it was NOT cleared for. `gated by:`
+   `tests/test_labour_epsilon_state.py`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -393,7 +426,9 @@ someone remembering it, which is what this section is for.
    `in_band: True` unfalsifiable. Same class: `GUF_USE_*`, `TRUST_BASE_TEH`,
    `CAPITAL_MACHINE_PROFILES`, `ECOLOGICAL_SPIKE_INTENSITY`. *Do:* ask **both**
    questions of every threshold — can it fire, and can it NOT fire?
-   `LEVY_SUFFICIENCY_WARN` cannot fire on the shipped configuration;
+   `LEVY_SUFFICIENCY_WARN` could not fire on the shipped configuration and was
+   **retired 2026-09-16** — the dashboard pillar it drove now asks whether
+   inflows cover the guarantee, an identity with no threshold to calibrate;
    `settlement_report`'s breach was unconditionally true before a single trade.
 
 10. **THE REPORTED VALUE THAT ISN'T THE APPLIED VALUE** *(corpus F-008)* — latent until a default
@@ -461,7 +496,7 @@ corpus when you need to CHECK for a mode, not to recognise one.** Validate with
 Modes 4 and 5 had no finding when this mapping was made and now do (F-036,
 F-037) — written because the mapping made contact with the gap, not backfilled.
 Modes 1–3 and 6–13 each name findings that already existed. The corpus also
-holds 16 findings with no mode here, most of them `kind: method`, which is a
+holds 19 findings with no mode here, most of them `kind: method`, which is a
 different thing from a failure mode; that is correct scoping, not a gap.
 
 ---
@@ -507,9 +542,9 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,723 tests passing (1 skipped), mypy clean on 101 source files** (verified
-2026-09-18). Provenance **346/346**, shadow ratchet **33**, confidence ratchet
-**126** of 138, wiring ratchet **12**. Workstreams A–F merged to main, including
+**4,933 tests passing (1 skipped), mypy clean on 102 source files** (verified
+2026-09-22). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
+**131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
 **The status log was split by subject area on 2026-09-03/04** (`b2892ac`) — this
@@ -557,7 +592,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- **125 of 141** placeholder/bounded constants carry no confidence figure;
+- **131 of 147** placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and
@@ -596,19 +631,19 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 44 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 47 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 
 ## Test file index
 
-**107 test files. The name rule covers 73 of them:** `tests/test_<module>.py`
+**111 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 34 files the rule does not cover are all listed below, plus two that do
+The 37 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -623,11 +658,13 @@ are the ones worth knowing by name.
 | `test_care_keys.py` | The two care drivers split — dependant care tracks fertility, frailty care tracks morbidity — `self_weight + care_weight == eoh_weight` exactly, the shares bound by test to their ATUS source, and the retired elderly ε-drift read by nothing. |
 | `test_registration_containment.py` | Registration RELOCATES obligation and never creates it — registered ≤ human ≤ gross per domain across the arc, and `total_eoh` accepts no registration parameter, so the ledger cannot manufacture the demand that justifies the TEH it mints. |
 | `test_record_index.py` | The `record/` index globbed from disk, not hand-kept: every area file linked from `record/README.md`, no README row claiming an area is migrated while the file is a stub, and every generated entry index current. |
-| `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. |
+| `test_provenance.py` | `utils/provenance.py` + every `data.py` constant carries a tag block; closed vocabulary; `CHOSEN` has an epistemic pointer; units present; the CSV and the generated doc tables are current. No allowlist. Plus the `baseline` tag (2026-09-16): a refuted value kept runnable must name `superseded_by`, `compares` (the live counterpart) and `expected` (the relation, ending in the test that evaluates it) — **and that test must exist in the tree**, because a citation to a deleted test reads as evidence and checks nothing. |
 | `test_confidence.py` | The confidence ratchet — the count of placeholder/bounded constants *without* a confidence figure may not rise. |
 | `test_dataset_governance.py` | A dataset's stated method against the constants it governs, sha256-fingerprinted so a regenerated file breaks the build until the constants are re-checked. |
 | `test_parameter_wiring.py` | A parameter that is accepted, changes nothing at any configuration tried, and that no test passes by name. |
 | `test_ecological_scale_resolution.py` | Every caller entering the ecological scale chain with a population in scope states its frame. |
+| `test_capital_scale_resolution.py` | The same rule for the CAPITAL chain, wrappers included (`total_eoh`, `eoh_to_teh_pipeline`), plus the runtime half: per-capita output frame-invariant across the arc, a supplied stock never rescaled, and omitting population still reading the reference frame. **States its own gap:** crediting a supplied stock is static, so `capital_stock=None` passed beside a population would defeat it. |
+| `test_trust_scale_resolution.py` | The same rule for the TRUST chain, keyed on the QUANTITY not the parameter name: no parameter default, class field, `.get()` default or CLI flag may hold `TRUST_BASE_TEH` where a population is in scope. The two frameless sites are allowlisted, must DECLARE why, and the reason is re-checked rather than trusted. Verified by breaking it five ways. **States its own gap:** static and shallow — it cannot see a caller that multiplies the constant inline, nor one hard-coding 35_000_000_000.0. |
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
@@ -635,7 +672,7 @@ are the ones worth knowing by name.
 | `test_anchor_page_figures.py` | The published anchor comparison (`docs/theory/anchor_comparison.md`) and its figure emitter. Every figure still reachable, a renamed key RAISES rather than returning an empty collection, every STRUCTURAL statement on the page (verdict strings, designed zeros, unit elasticity, eight anchors, not-unique) read from the page and checked against the functions, the superseded ratio-transfer figures forbidden, and each shape word's range pinned. **States its own gap:** a shape claim can drift inside its range unnoticed. |
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
-| `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down, it does not yield). |
+| `test_stock_is_bounded.py` | `supply = endowment + Σcreated − Σdestroyed`, exactly, against three independent accounts; and Condition III as behaviour (the Trust draws down only what it OWES, and no term in its balance depends on the balance — the sharp form since 2026-09-15, when unspent dividend stopped leaving). |
 | `test_explorer_build.py` | The in-browser explorers (`utils/explorers/`). The builder must REFUSE — each refusal broken and required to fire — when `data.py` and the bounds file disagree, when the repo's own functions do not reproduce the registry, or when the page names a provenance key or tag the CSV lacks. The page's JavaScript math block is run under node against `core/multipliers.py` and `multiplier_sensitivity.reconstruct`, including under perturbed weights, so a page that re-anchors the frozen scale fails. The weight sliders set SHARES that always total 100%, stay within published ± the harness's `delta`, and keep the other three's proportions when one moves — checked over a 2,000-move walk. **States its own gaps:** the node half SKIPS without node, and the rendering and wording are not tested. |
 | `test_doctrine_invariance.py` | The census route ignores valuation fields and is aggregation-invariant; the valuation route transmits the doctrine undamped. |
 
@@ -655,6 +692,7 @@ are the ones worth knowing by name.
 | `test_parcel_extract.py` | `reference/parcels.py` — the county parcel extract |
 | `test_reference_multiplier.py` | `core/multipliers.py` geometric composite + `reference/onet_multipliers.py`, `scenarios/measured.py` |
 | `test_labour_epsilon.py` | `reference/obligation_work.py` + `scenarios/labour_epsilon.py` — the second, currency-free instrument on ε. Pins that the comparison can report DISAGREEMENT, that the labour route stays currency-free, and that `population` is paired data rather than a free frame knob |
+| `test_labour_epsilon_state.py` | The obligation's STATE frame and the ε floor. The fixed point divided measured hours by the CANONICAL arc's obligation, whose capital is 0 at ε=0 — so a labour-intensive economy's hours exceed it and ε floors at zero (9 of 65 MTUS samples at `broad`). Pins that `obligation_state` lets a caller supply their own state, that `epsilon_raw` keeps the overshoot the clamp hides, that the supplyable keys come from `total_eoh`'s signature rather than a copy, and — the point of the file — that every shipped US figure is bit-identical. **Also pins that `canonical_physical_state` still holds zero capital at ε=0**, so the diagnostic cannot quietly become the theory change it exists to examine |
 | `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |

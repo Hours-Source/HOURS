@@ -45,8 +45,9 @@ from typing import TypedDict
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 # Reference annual thermal obligation for a 1M-person collective at ε = 0.40,
 # from research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"] —
@@ -80,7 +81,7 @@ def thermal_load_arc(
     thermal_obligation: float = REFERENCE_THERMAL_FLOW_EOH,
     population: float = REFERENCE_POPULATION,
     arc: tuple[float, ...] = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99),
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock: float | None = None,
     ecosystem_health: float = 0.70,
 ) -> list[ThermalLoadRow]:
@@ -129,6 +130,7 @@ def thermal_load_arc(
         thermal_share_of_total     0.0011     (the ledger barely notices)
         personal_share_of_total    0.91
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     if thermal_obligation < 0.0:
         raise ValueError(
             f"thermal_obligation must be ≥ 0, got {thermal_obligation}"
@@ -141,7 +143,7 @@ def thermal_load_arc(
         # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε.
         # Resolved once per point so the four calls below cannot read different
         # capital for the same ε.
-        cap_at_eps = resolve_capital_stock(capital_stock, eps)
+        cap_at_eps = resolve_capital_stock(capital_stock, eps, population=population)
         # COMPUTED AT THE PRE-PARTITION POLICY, and the reason is the module's
         # question. `load_ratio` asks how much the thermal obligation moves the
         # ECOLOGICAL DOMAIN — which presupposes a domain to move. Phases 4e/4f
@@ -181,8 +183,10 @@ def thermal_load_arc(
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]
-        # Coverage: what the ecological obligation costs in TEH, against the levy
-        # take available to fund it. funding_coverage is the direct ratio.
+        # What the ecological obligation costs in TEH, against the levy take.
+        # This reads `teh_required` — the obligation — and always did; the
+        # comment used to name `funding_coverage`, a key it never used and which
+        # was removed on 2026-09-16 with the co-equality condition.
         eco_required = float(snap.get("ecological", {}).get("teh_required", 0.0))
         levy = float(snap.get("levies", {}).get("total_levied", 0.0))
         rows.append(ThermalLoadRow(

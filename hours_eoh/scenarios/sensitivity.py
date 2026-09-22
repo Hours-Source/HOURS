@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import Callable
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     SUFF_LEVY_RATE,
     DEP_RATE,
     DIV_RATE,
@@ -31,6 +30,7 @@ from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.eoh_generation import (  # noqa: F401
     epsilon_delta_sensitivity, resolve_capital_stock,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 def fiscal_parameter_sweep(
@@ -38,7 +38,7 @@ def fiscal_parameter_sweep(
     values: list[float],
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     labor_income: float = 2_200_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
@@ -55,8 +55,17 @@ def fiscal_parameter_sweep(
       "levy_rate"        — overall levy rate (applied to both levy buckets)
       "dep_rate"         — Trust depreciation rate
       "div_rate"         — Trust dividend fraction
-      "floor_fraction"   — fraction of population receiving guarantee
+      "floor_fraction"   — fraction of population receiving guarantee. Swept
+                           against `design="shipped"`, the only design that
+                           reads it; under V1 it moves nothing.
+      "need_fraction"    — V1: share of ON-LEDGER people the guarantee reaches
       "capital_age_ratio" — mean asset age ratio (affects stewardship cost)
+  "trust_per_capita" — PRIOR WORK brought per person, in TEH/person; applied
+                       as trust_balance = value x population. 0.0 is a
+                       subsistence founding. NOTE the guarantee is Trust-
+                       INDEPENDENT under V1, so `guarantee_cost` is flat across
+                       this sweep by construction and `surplus_deficit` is
+                       what moves, through the dividend.
 
     Args:
         parameter: Name of the parameter to sweep (see above).
@@ -80,10 +89,16 @@ def fiscal_parameter_sweep(
     Raises:
         ValueError: If parameter is not one of the supported names.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
-    SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction", "capital_age_ratio"}
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    # `need_fraction` added 2026-09-16 with the V1 adoption. `floor_fraction`
+    # survives but is swept against `design="shipped"`, because that is the only
+    # design that reads it: under V1 it moved nothing, and a swept parameter
+    # that changes no output is failure mode 5 wearing a sweep's clothes.
+    SUPPORTED = {"levy_rate", "dep_rate", "div_rate", "floor_fraction",
+                 "need_fraction", "capital_age_ratio", "trust_per_capita"}
     if parameter not in SUPPORTED:
         raise ValueError(f"parameter must be one of {SUPPORTED}, got '{parameter}'")
 
@@ -109,8 +124,18 @@ def fiscal_parameter_sweep(
             kwargs["div_rate"] = val
         elif parameter == "floor_fraction":
             kwargs["floor_fraction"] = val
+            kwargs["design"] = "shipped"
+        elif parameter == "need_fraction":
+            kwargs["need_fraction"] = val
         elif parameter == "capital_age_ratio":
             kwargs["capital_age_ratio"] = val
+        elif parameter == "trust_per_capita":
+            # PRIOR WORK BROUGHT, per person (2026-09-17). Swept per-capita and
+            # multiplied up, because the frame holds INTENSITY fixed, not the
+            # aggregate — sweeping a raw balance at a fixed population would
+            # confound the level with the frame. 0.0 is a subsistence founding
+            # and is a valid point, not an edge case.
+            kwargs["trust_balance"] = val * population
 
         snap = fiscal_snapshot(**kwargs)
         results.append({

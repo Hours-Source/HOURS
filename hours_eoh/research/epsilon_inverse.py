@@ -132,8 +132,14 @@ def capital_for_epsilon(
     at or above the saturation point are flagged `reachable=False` with the best
     achievable ε rather than silently returning a huge stock.
 
-    Worked example (reference mix, population 1e6): ε = 0.40 needs roughly
-    6,700 TEH per capita, i.e. a total stock near 6.7e9 TEH.
+    Worked example (reference mix, population 1e6): ε = 0.40 needs
+    3,876 TEH per capita — MEASURED 2026-09-18, and CALL IT rather than quoting
+    this line. That figure read "roughly 6,700" until today while the code gave
+    3,876, and the same quantity was separately published as 6,300 and 4,204 in
+    record/thermal.md: FOUR accounts of one number, drifting 1.73x between the
+    worked example and the function it documents. A worked example is the line a
+    reader trusts most, which is why this one carries its date and why the
+    honest form is `capital_for_epsilon(0.40)["scale_teh_per_capita"]`.
 
     Raises:
         ValueError: if target_epsilon is outside [0, 1).

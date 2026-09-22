@@ -1049,7 +1049,7 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 # Default workforce tier segments: (name, fraction, mean_multiplier)
 # Calibrated so weighted mean = 2.10 at ε=0.
 # 0.20×1.20 + 0.50×1.87 + 0.25×2.80 + 0.05×4.50 = 2.100
-# tag: placeholder | units: fractions of workforce and dimensionless multipliers
+# tag: baseline | units: fractions of workforce and dimensionless multipliers
 # note: CALIBRATED TO A TARGET — the segment means were set so the weighted
 #   mean lands on 2.10, the top of the constitutional band, at ε=0. Same class
 #   as the GUF_USE_* rates: a value reverse-engineered from a desired outcome.
@@ -1060,6 +1060,16 @@ TIER_ASSESSMENT_INTERVAL_YEARS: int = 5           # years before tier must be re
 #   immediately: it caught that measured.py's layer paragraph still asserted
 #   "DEFAULT_SEGMENTS remains the core default" after that stopped being true.
 # superseded_by: hours_eoh.reference.onet_multipliers.registry_segments
+# compares: hours_eoh.reference.onet_multipliers.registry_segments() — the
+#   measured O*NET 30.3/BLS workforce that replaced this synthetic one as the
+#   default. This value is kept so "what the synthetic set said" stays runnable
+#   against it rather than being quoted from memory.
+# expected: the SYNTHETIC weighted mean sits EXACTLY on M_BAND_HIGH (2.10)
+#   because it was built to, while the MEASURED mean sits strictly inside the
+#   band on its own evidence. That contrast is the whole content of the
+#   comparison — it is what "calibrated to the target it is checked against"
+#   looks like when you can see both sides. Evaluated by
+#   tests/test_multipliers.py::TestMeasuredWorkforceIsTheDefault::test_the_measured_mean_is_inside_the_band_on_its_own_evidence
 # baseline_in: hours_eoh/core/multipliers.py, hours_eoh/core/dashboard.py, hours_eoh/scenarios/measured.py
 # resolves_by: nothing further — the measured path replaced it 2026-08-16.
 #   `registry_segments()` (O*NET 30.3/BLS, 751 occupations, 94.2% of US
@@ -2573,7 +2583,7 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 # every pre-K-IV result in this repo was produced at, so reproducing an old
 # figure means passing it explicitly rather than guessing what it was.
 # It is NOT a renewal rate: see the credibility check under the split.
-# tag: placeholder | units: fraction of the knowledge stock renewed per year
+# tag: baseline | units: fraction of the knowledge stock renewed per year
 # form: DEPRECATED as of Block K-IV — retained, not deleted, per the
 #   additive-not-destructive rule. Nothing defaults to it; the default renewal
 #   rate is SKILL_TRANSMISSION_RATE. Kept because it is the value every
@@ -2586,6 +2596,15 @@ KNOWLEDGE_REFERENCE_POPULATION: float = 1_000_000.0  # persons; the population K
 #   K-III separates: transmission (cohort turnover) and CPD (staying current
 #   while working).
 # superseded_by: SKILL_TRANSMISSION_RATE + SKILL_CPD_RATE
+# compares: SKILL_TRANSMISSION_RATE — the adopted K-IV doctrine (cohort
+#   transmission alone, the only one of the three containing no CHOSEN
+#   component). Every pre-K-IV figure in this repo was produced at 0.10, so
+#   reproducing one means passing this explicitly.
+# expected: SKILL_TRANSMISSION_RATE is STRICTLY BELOW this value — the adopted
+#   doctrine renews the stock more slowly than the refuted placeholder did, and
+#   the direction is the point: a knowledge base derived from the slower rate is
+#   LARGER, which is why K-III's mixed derivation understated it. Evaluated by
+#   tests/test_knowledge_base.py::TestKIVAdoption::test_default_renewal_rate_is_the_lower_credible_doctrine
 # baseline_in: hours_eoh/core/eoh_generation.py, hours_eoh/scenarios/knowledge_base.py
 # baseline_labels: shipped, ratio_to_shipped, shipped_over_split
 # resolves_by: nothing. It is not awaiting a measurement; the measurement
@@ -2968,22 +2987,44 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 # ---------------------------------------------------------------------------
 # provenance-block: Fiscal architecture
 # tag: normative | units: fraction of labor income
-# decided_by: charter. RETAGGED 2026-08-09 from placeholder, after running the
-#   derivation its old pointer named. min_levy_for_solvency() returns
-#   cover_expenditures_rate = None at EVERY ε on the canonical configuration:
-#   the dividend alone runs a surplus (630M TEH against a 397M peak
-#   expenditure at ε=0), so the levy rate REQUIRED for solvency is zero
-#   throughout. This constant is therefore not a mis-calibrated solvency
-#   figure awaiting measurement — it is a redistributive commitment, and
-#   deriving it would set it to 0, which is a different policy rather than a
-#   better calibration.
-# note: at canonical ε=0.40 it raises ≈6.2M TEH/yr against a 307M TEH
-#   guarantee — it does not fund the guarantee and was never sized to; the
-#   Trust dividend does. That is the whole finding, and it is why the solvency
-#   derivation cannot set it. What a charter would weigh instead: the levy's
-#   incidence on labour income at low ε, where labour income is nearly all
-#   income.
-SUFF_LEVY_RATE:               float = 0.0125            # sufficiency levy rate on labor income
+# decided_by: author, 2026-09-15 — raised 1.25% → 4.5% with the wage doctrine
+#   (minted TEH is the wage; the Trust owes only the guarantee).
+# form: scenarios/stationarity.py swept levy × base: the smallest rate at which
+#   the Trust stands still on the TEH side from ε=0 to 0.99 is 4.48%, with the
+#   V1 guarantee at 5% need, base PERSONAL_EOH_BASE (1,000 h), the urban land
+#   fee and no inheritance. Rounded up to 4.5%.
+# note: SIZED TO A DESIGN THE REPORTING LAYER NOW RUNS, AND CORE STILL DOES NOT.
+#   Until 2026-09-16 this read "sized to a design the default does not run": V1
+#   was proposed and nothing defaulted to it. `scenarios/stationarity` now
+#   defaults to V1 at `SUFF_NEED_FRACTION`, so the rate and the design it was
+#   sized against finally agree there. **`core/` still books
+#   `sufficiency_guarantee`'s shipped aggregation**, which at ε=0 demands a levy
+#   of 812% of the mint — unfundable by construction, since nothing mints that
+#   was not registered — against V1's 8.07%. That gap is the open item, not this
+#   constant. Under the shipped guarantee 4.5% does not reach the end of the arc
+#   (record/fulfilment.md). The 2026-08-09 rationale — "the dividend alone runs
+#   a surplus, so the required rate is zero" — held only while the Trust was
+#   charged for minted hours and a large dividend was assumed; it no longer
+#   describes this constant. Incidence on labour income at low ε, where labour
+#   income is nearly all income, remains the charter's question.
+SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate on labor income
+# tag: normative | units: fraction of on-ledger people receiving the guarantee
+# decided_by: author, 2026-09-15 (V1 proposed) and 2026-09-16 (adopted as the
+#   reporting default, and named here). It is a charter decision about WHO the
+#   guarantee reaches — people between engagements, in retraining, or unable to
+#   work — not a measurable share, and no dataset settles it.
+# form: V1 sizes the Trust's liability as
+#   population × personal_registration_share(ε) × this fraction × the guarantee
+#   per person. The alternative charter option, V2 ("universal"), drops this
+#   term and pays every on-ledger person.
+# note: NAMED 2026-09-16, AND IT WAS LOAD-BEARING BEFORE IT HAD A NAME.
+#   `SUFF_LEVY_RATE`'s own `form:` field above cites "the V1 guarantee at 5%
+#   need" as the basis on which 4.5% was sized, and the figure existed only as a
+#   bare 0.05 in about ten test lines and in record prose. A number that sizes
+#   the levy and decides who the guarantee reaches is not a test fixture.
+#   Changing it moves the Trust's whole liability: at 10% need the required levy
+#   roughly doubles (record/fulfilment.md).
+SUFF_NEED_FRACTION:           float = 0.05              # V1: share of on-ledger people the guarantee reaches
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the
@@ -3291,20 +3332,105 @@ PERSONAL_AUTOMATION_FLOORS: dict[str, float] = {
 #   cap binds on top of that.
 # note: migrated from core/fiscal.py 2026-08-28 as a shadow constant.
 PROVIDER_CAP_EQUIVALENTS:     float = 2.50
+# tag: instance | units: TEH per person — the inheritance one person brings
+# supplied_by: your collective's actual Trust balance divided by its
+#   population, or, for a converting jurisdiction, the inventory it brings per
+#   head. Intake path: research/epsilon_inverse.capital_for_epsilon() makes an
+#   inventory-first reading possible. Nothing requires editing this constant —
+#   every fiscal function takes `trust_balance`, and an unsupplied one resolves
+#   against your population.
+# default: 8,760 TEH/person (author, 2026-09-17). WHAT IS BROUGHT IS PRIOR WORK,
+#   NOT AN ENTITLEMENT. People bring TEH, and assets that reduce EOH and carry
+#   EOH costs of their own, when a collective is FORMED or JOINED. 8,760 is what
+#   the CURRENT WORLD's prior work is assumed to amount to per head — an estimate
+#   of a real stock, NOT a hard number and NOT a per-head grant. A collective
+#   founded at subsistence brings 0.0, and a joiner may bring nothing; both are
+#   honoured as zero. `scenarios/stationarity` already defaults `trust_start`
+#   to 0.0, and CAPITAL_STOCK_DEFAULT says the same of capital ("Callers passing
+#   it at low ε are asserting capital the arc says is not there").
+#   NOTHING IS MINTED BY ARRIVING. Prior work already exists, so bringing it is a
+#   TRANSFER — which is why this doctrine leaves the one-mint-path gate,
+#   Condition III and trust_management's all-transfers property untouched. An
+#   earlier option under which joining MINTED 8,760 TEH was measured at 13.5% of
+#   the mint, cumulatively exceeding the whole founding stock within 200 periods,
+#   and was rejected: it would have created TEH for someone who had met no
+#   registered obligation, which is the hole-digger case the anchor argument
+#   exists to refuse (tests/test_one_mint_path.py).
+#   It replaces the 35,000 TEH/person implied by the former 35e9 aggregate,
+#   whose own sizing rationale was WITHDRAWN by the author 2026-09-16 and
+#   deliberately not re-fitted.
+#   The figure equals the hours in a calendar year (24 × 365); that equality is
+#   NOTED, not claimed as the derivation.
+# note: DO NOT POINT THIS AT THE CAPITAL RETRODICTION. `scenarios/
+#   capital_retrodiction` measures the gross fixed CAPITAL stock in TEH — which
+#   is the quantity CAPITAL_STOCK_DEFAULT holds and names in its own
+#   `supplied_by`, not this one. Its US grid spans 2,535–16,703 TEH/capita
+#   across scope, doctrine and conversion rate, so 8,760 landing mid-band is
+#   CONSISTENCY, not corroboration: a 6.6x range admits almost any mid-range
+#   figure. Attaching that instrument here would be binding a measurement to
+#   the wrong quantity (failure mode 8).
+# note: SETTLED 2026-09-18 (author) — THIS IS THE **TEH COMPONENT**, NOT TOTAL
+#   PRIOR WORK. `make_economy_state` builds
+#   `teh_endowment = trust_balance + capital_embodied_teh` = 8,760 + 2,400 =
+#   11,160 TEH/person, and that sum is CORRECT under this reading: the assets a
+#   collective brings are counted once, in the capital term.
+#   WHY NOT TOTAL, WHICH WAS THE ARGUABLE ALTERNATIVE. Total is the MEASURABLE
+#   reading — `capital_retrodiction` measures a capital stock in TEH — and it
+#   matches what a converting collective hands over, an economy rather than two
+#   separate things. Four objections beat it:
+#     1. THE TRUST WOULD BECOME A RESIDUAL. Total − capital = 8,760 − 2,400 =
+#        6,360, so the Trust stops being intake and becomes leftover arithmetic.
+#        Any error in the capital figure then moves the Trust by the same amount
+#        in the OPPOSITE direction — one measurement error, two constants,
+#        inversely coupled, and no way to tell which one a solvency result came
+#        from.
+#     2. IT IS UNFUNDABLE. Exit claims at 11,160/person are 127.4% of the liquid
+#        Trust (measured 2026-09-17). Embodied capital cannot pay an exit without
+#        dismantling the apparatus.
+#     3. ONE NUMBER CANNOT CARRY TWO DESTRUCTION RULES. D1 writes capital down;
+#        the Trust is drawn down only for what it OWES.
+#     4. IT COLLAPSES TWO ANSWERABLE QUESTIONS INTO ONE. This constant's
+#        `supplied_by` asks for a Trust balance per head; CAPITAL_STOCK_DEFAULT's
+#        asks for a gross fixed capital stock in TEH. An institution can answer
+#        those independently, and `epsilon_inverse.capital_for_epsilon` uses that
+#        independence to check an inventory against an ε.
+#   THE COST OF THIS CHOICE, STATED RATHER THAN GLOSSED: the TEH component has
+#   NO measurement path. Total had one; this does not, and no `resolves_by` is
+#   claimed for it. It is an `instance` figure an institution supplies, with
+#   8,760 shipped as a SCENARIO. Naming an instrument that measures a different
+#   quantity would be failure mode 8, which the note above already refuses.
+TRUST_BASE_TEH_PER_CAPITA:    float = 8_760.0
 # tag: instance | units: TEH (at the 1M reference population)
-# supplied_by: your collective Trust's actual balance, or a capital inventory
-#   in TEH for the jurisdiction being modelled. Intake path:
-#   research/epsilon_inverse.capital_for_epsilon() makes an inventory-first
-#   reading possible; scale by population against the 1M reference. Every
-#   fiscal function takes trust_balance as an argument, so nothing requires
-#   editing this constant — pass your own.
-# default: THE CRITICAL SOLVENCY KNOB, and it is sized backwards — chosen so
-#   the annual dividend (Trust × DEP_RATE × DIV_RATE = 630M TEH) covers the
-#   stewardship, ecological and guarantee obligations at mid-arc. Calibrated to
-#   a target, like GUF_USE_* and DEFAULT_SEGMENTS. It is the most-consumed
-#   constant in the repo (77 call sites outside data.py), so every canonical
-#   solvency result rests on it and none of them is evidence about YOUR fisc.
-TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at ε=0 (TEH); sized for EOH-reimbursement guarantee
+# supplied_by: nothing separately — supply TRUST_BASE_TEH_PER_CAPITA, which
+#   carries the judgement; this is its restatement at the package reference
+#   frame. Every fiscal function takes `trust_balance`, and an unsupplied one
+#   resolves against your population.
+# default: DEFINED equal to TRUST_BASE_TEH_PER_CAPITA × REFERENCE_FRAME_POPULATION
+#   = 8,760 × 1e6 = 8.76e9 (author, 2026-09-17), replacing the former 35e9
+#   whose sizing rationale was withdrawn 2026-09-16 and not re-fitted.
+# note: IT IS TAGGED `instance`, NOT `derived`, AND THE DIFFERENCE IS A COUNT.
+#   Tagging it `derived` — which its VALUE now is — moved it from the verdict
+#   ladder's INSTANCE tier to CERTAIN (31 → 32) at the moment of the reprice,
+#   because the ladder reads `derived` by its own tag and does not follow
+#   through to what the value bottoms out on (utils/provenance.py names this
+#   one-level gap). Its COMPUTATION became derived; its STANDING did not, and
+#   the tag records standing. Left as `derived` the framework would have read
+#   as more certain about the most-consumed solvency constant in the repo
+#   purely because a tag moved.
+# note: THE FRAME IS RESOLVED, NOT ASSUMED (2026-09-17). Consumers take
+#   `trust_balance: float | None = None` and resolve an unsupplied balance
+#   against THEIR OWN population via core.fiscal.resolve_trust_balance(), so
+#   the inheritance travels with the frame and per-capita Trust is what stays
+#   fixed. A SUPPLIED balance is the ACTUAL balance and is never rescaled; 0.0
+#   means "this collective has no inheritance" and is honoured as zero. Two
+#   sites keep an explicit default because they have NO population in scope and
+#   so nothing to resolve against — research/contestability.min_levy_for_pi and
+#   scenarios/shocks.demographic_shock — and both DECLARE that in their
+#   docstrings. Before the repair, ten CLI flags defaulted --trust-balance to
+#   this constant while --population sat beside them freely settable, so
+#   `--population 335000000` ran 335M people on a 1M-person Trust.
+#   Gated by tests/test_trust_scale_resolution.py.
+TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAME_POPULATION
 # tag: bounded | units: fraction of Trust per year
 # band: 0.045–0.05 per year. The upper end is FORMATION_DEPRECIATION_RATE,
 #   derived in this file from CAPITAL_MACHINE_PROFILES design lives (≈20 yr →
@@ -3320,6 +3446,20 @@ TRUST_BASE_TEH:               float = 35_000_000_000.0  # Trust fund balance at 
 #   CAPITAL_MACHINE_PROFILES design lives — so the repo holds two aggregate
 #   depreciation rates, 0.045 and 0.05, on the same physical quantity. They
 #   should be reconciled to one derivation.
+# note: THE RESOLVES_BY WAS RUN, 2026-09-17, AND THE STATED DERIVATION DOES NOT
+#   REPRODUCE. A depreciation rate aggregates as a mean of RATES, not as the
+#   reciprocal of a mean life: δ = Σ(wᵢ/lifeᵢ)/Σwᵢ weighted by TEH at the
+#   `standard` tier gives 0.0428 (implied life 23.35 yr) — not the ≈20 yr → 1/20
+#   that the band and resolves_by above both assert. The profiles therefore
+#   support a value BELOW this band, not at its upper end.
+#   AND THE METHOD DOMINATES THE DISPUTE: weighted mean of rates 0.0428,
+#   reciprocal of the weighted mean life 0.0286, unweighted mean of rates
+#   0.0602 — a 2.1× spread, against the 11% gap these two constants are asked to
+#   reconcile. Choosing the aggregation IS the decision, and it is not made here.
+#   NEITHER VALUE IS CHANGED. Both err high against 0.0428, which by the `errs`
+#   field above is the SAFE direction, and re-fitting a calibration constant to a
+#   freshly-run derivation is an author decision (§5). See
+#   record/provenance.md#depreciation-derivation-does-not-reproduce.
 DEP_RATE:                     float = 0.045             # annual trust depreciation rate
 # tag: normative | units: fraction of annual depreciation
 # form: the dividend/renewal split. That a split exists is structural — pay
@@ -3426,44 +3566,6 @@ BASKET_EOH_CONTENT:           float = PERSONAL_EOH_BASE  # personal EOH hours sa
 # ---------------------------------------------------------------------------
 # provenance-block: Human capital and population
 # tag: placeholder | units: fraction shift per ε unit
-# form: automation improves medicine, so lives lengthen and the elderly
-#   fraction grows. Direction is arguable; the magnitude is asserted, and it
-#   is secondary to the dominant ε effect in the fulfillment split.
-# note: RETIRED 2026-09-04 (author decision), and NOT for its size — the whole
-#   effect was at most −0.128% on personal EOH per capita. Three reasons:
-#   (1) IT ASSERTED AN ANSWER TO AN UNSETTLED QUESTION. Whether longer lives
-#   mean more frail years or the same frail window arriving later is unresolved
-#   and differs by country and condition. Its own form field conceded
-#   "direction is arguable; the magnitude is asserted".
-#   (2) ONE CONSTANT, TWO MECHANISMS, COMPOSED — failure mode 11.
-#   `trajectory.canonical_age_distribution` used it to SHIFT population from
-#   `child` to `elderly`; `population.py` used it TWICE as an INTENSITY
-#   multiplier on elderly EOH, on the different rationale that "deferred
-#   personal care becomes a registered EOH obligation at higher ε". A
-#   demographic claim and a registration claim sharing one scalar.
-#   (3) THE TWO PATHS DISAGREED. `total_eoh` never applied the intensity
-#   multiplier, so generation and `population_eoh_curve` reported different
-#   elderly EOH at the same ε — two accounts of one quantity. And the
-#   registration rationale is a containment violation in spirit: registration
-#   makes an obligation visible, it does not create one.
-#   Its stated direction was also not its arithmetic — "elderly EOH rises"
-#   while the shift LOWERED total personal EOH, moving people from a heavier
-#   weight (child 1.82) to a lighter one (elderly 1.48).
-# superseded_by: AGE_CARE_KEY_ELDERLY + AGE_CARE_SHARE_ELDERLY — the care
-#   obligation is now split by DRIVER, so a morbidity trajectory is supplied
-#   against the `frailty` key rather than asserted for both keys at once by one
-#   scalar.
-# confidence: 0 — nothing reads it. `tests/test_care_keys.py` pins that, which
-#   is what makes the retirement real rather than announced; the tag stays
-#   `placeholder` because the scheme has no `retired` value and the gate refuses
-#   one for a constant any layer still declares.
-# resolves_by: nothing settles THIS constant; it was a stand-in for a morbidity
-#   model and the replacement is a socket for one, not a better value for it.
-#   What would settle the QUESTION it stood in for: disability prevalence by age
-#   (Sullivan-method HLE tables) against a longitudinal series, supplied through
-#   the `frailty` care key.
-ELDERLY_EOH_EPSILON_FACTOR:   float = 0.05  # RETIRED — read nothing from this
-# tag: placeholder | units: fraction shift per ε unit
 # form: infant personal EOH declines with automation — formula feeding,
 #   monitoring and sanitation displace caregiver hours. This is the abatement
 #   claim of Block II applied to one age group, and note it runs OPPOSITE to
@@ -3562,6 +3664,35 @@ CANONICAL_KNOWLEDGE_COMPLEXITY_EXP:   float = 2.0   # per-unit complexity: facto
 CANONICAL_CAPITAL_AGE_DRIFT:          float = 0.20  # age_ratio increases across arc: 0.30 at ε=0 → 0.50 at ε=1
 CANONICAL_ECOSYSTEM_HEALTH_BASE:      float = 0.90  # ecosystem health at ε=0 on ideal trajectory
 CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of development pressure vs. stewardship)
+
+# tag: convention | units: dimensionless ε
+# form: the EVALUATION BOUND of the arc — where guards stop accepting, grids
+#   stop stepping and reports quote their top row. Conceptually the top is 1.0;
+#   evaluation stops at 0.99 because several ε-dependent terms are degenerate
+#   at exactly 1. It is a statement about where this package LOOKS, not about
+#   how far automation can go.
+# note: NOT THE ACHIEVABLE CEILING, WHICH IS DERIVED AND MOVES.
+#   `core.eoh_fulfillment.observable_epsilon_ceiling()` computes
+#   1 − personal_share · Σ share_c · floor_c — the highest observed machine
+#   share the declared care floors permit — reading 0.788 → 0.877 across the arc
+#   under `per_component`, against exactly 1.000 under `uniform`. ε does not
+#   reach 1 because CARE RESISTS AUTOMATION, and that ceiling is a function of
+#   the obligation MIX as well as of the floors, so a care-heavier civilisation
+#   has a lower one. The two are already gated apart:
+#   `tests/test_capability_vs_observable.py` asserts the derived ceiling is
+#   strictly below this convention. Conflating them would put a FIXED number
+#   where a MEASURED one belongs.
+# note: THIS NAMES ONE OF ~56 COPIES, AND THE REST ARE A RECORDED LEAD. The bare
+#   literal 0.99 appears at ~55 further operative sites across core/ and
+#   scenarios/ — 11 validation guards, 7 clamps, 7 grid constructions, 18
+#   default arcs and 4 bisection brackets. Migrating them touches guard
+#   semantics and grid arithmetic and is its own change with its own blast
+#   radius; it is NOT done here. This constant exists so a NEW site binds
+#   instead of copying.
+# decided_by: a reporting convention on where the arc is evaluated. No dataset
+#   settles where to stop looking; what IS measured is the achievable ceiling,
+#   and that is the function named above.
+EPSILON_ARC_MAX:                      float = 0.99  # the arc's evaluation bound, NOT the achievable ceiling
 
 # ---------------------------------------------------------------------------
 # Ground Use Fee (GUF) — land/guf.py constants
@@ -3686,21 +3817,25 @@ GUF_LVI_W_SERVICES:        float = 0.20
 GUF_LVI_W_NATURAL_AMENITY: float = 0.15
 
 # Use category reference rates at ε=0.40 (TEH/SLU/year) — midpoints of NLSA Eq. 9 ranges
-# Calibrated so aggregate GUF across a 1M-population land inventory (~400k residential
-# + 20k commercial parcels) is co-equal with levy revenue at mid-arc (ε≈0.40).
-# At ×100 vs. the original abstract unit values: residential GUF ≈ 9.3M TEH/yr,
-# commercial GUF ≈ 4.1M TEH/yr, total ≈ 13.4M TEH/yr vs. levy ≈ 6.2M TEH/yr (≈2.2×).
+# THE CO-EQUALITY TARGET IS WITHDRAWN (author, 2026-09-16). These were scaled
+# ×100 so aggregate GUF over a 1M-population inventory would land co-equal with
+# levy revenue at mid-arc; GUF is a PORTION of Trust inflow and was never owed
+# an equality with the levy. The ×100 is retained as a number — re-fitting it to
+# a new target would repeat the move that produced it (§5) — and what settles
+# the level is still the servicing census in `resolves_by`, unrun.
 # tag: placeholder | units: TEH per Standard Land Unit per year, at ε=0.40 | family: GUF_USE_*
 # form: NLSA Eq. 9 — midpoints of the manual's per-category ranges.
-# note: CALIBRATED TO A TARGET, and retagged on that basis (2026-08-09). These
-#   were scaled ×100 from the template's abstract unit values so that
-#   aggregate GUF over a 1M-population inventory (~400k residential + 20k
-#   commercial parcels) lands co-equal with levy revenue at mid-arc:
-#   residential ≈ 9.3M TEH/yr, commercial ≈ 4.1M, total ≈ 13.4M against levy ≈
-#   6.2M (≈2.2×). A value reverse-engineered from a desired outcome is CHOSEN
-#   under this scheme's own precedent — _ECOLOGICAL_SPIKE_INTENSITY was
-#   retagged for the same reason on 2026-08-05 — whatever the ratios between
-#   categories rest on.
+# note: CALIBRATED TO A TARGET THAT IS NOW WITHDRAWN (retagged 2026-08-09;
+#   target withdrawn by the author 2026-09-16). These were scaled ×100 from the
+#   template's abstract unit values so that aggregate GUF over a 1M-population
+#   inventory (~400k residential + 20k commercial parcels) landed co-equal with
+#   levy revenue at mid-arc: residential ≈ 9.3M TEH/yr, commercial ≈ 4.1M,
+#   total ≈ 13.4M against levy ≈ 6.2M (≈2.2×) at the 1.25% levy. The tag stays
+#   `placeholder` for the same reason it always did — a value reverse-engineered
+#   from a desired outcome is CHOSEN under this scheme's own precedent
+#   (_ECOLOGICAL_SPIKE_INTENSITY, 2026-08-05) — and withdrawing the target does
+#   not make it measured. It makes the ratios unjustified rather than justified
+#   by a goal the framework no longer holds.
 # resolves_by: a servicing census indexed by USE CATEGORY — collective
 #   labour-hours per year attributable to servicing each category (roads,
 #   utilities, inspection, dispute resolution). THIS FIELD USED TO PROMISE THAT
@@ -4050,7 +4185,9 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 # note: THE VALUE PHASE 2 EXISTS TO TEST. It was chosen so aggregate GUF over a
 #   1M-population inventory would land co-equal with levy revenue at mid-arc —
 #   a value reverse-engineered from a desired outcome, which is why GUF_USE_* is
-#   tagged `placeholder` rather than measured. `eoh scenario run
+#   tagged `placeholder` rather than measured. THAT TARGET IS WITHDRAWN (author,
+#   2026-09-16): GUF is a portion of Trust inflow, not the levy's equal. The
+#   scalar is unchanged, because withdrawing a target is not a licence to refit. `eoh scenario run
 #   servicing_census` measures the quantity the fee is DEFINED as and finds this
 #   overshoots by ~35× in aggregate, implying ~2.8 in its place. It is NOT
 #   changed on that finding: the census settles the LEVEL and cannot settle the
@@ -4279,16 +4416,19 @@ PP_INDEX_WARN:             float = 1.05                            # YELLOW thre
 #   point that makes the threshold 1.0 at ε=0.
 # resolves_by: n/a — it inherits PP_INDEX_WARN's standing by construction.
 PP_INDEX_WARN_SLOPE:       float = (PP_INDEX_WARN - 1.0) / 0.40  # per-ε slope: threshold = 1 + slope×ε
-# tag: normative | units: fraction of the sufficiency guarantee covered by levy
-# note: set at 2%, and the shipped SUFF_LEVY_RATE covers ≈2% of the guarantee
-#   at canonical defaults — so this indicator is calibrated to sit just at the
-#   value it watches. It will not warn about the configuration it was drawn
-#   around.
-# decided_by: a charter decision on the minimum share of the guarantee that
-#   current labour should fund, rather than the Trust dividend. That is a real
-#   solvency question and deserves a threshold argued independently of the
-#   default.
-LEVY_SUFFICIENCY_WARN:     float = 0.02   # YELLOW if levy covers < 2% of guarantee
+# LEVY_SUFFICIENCY_WARN WAS RETIRED HERE ON 2026-09-16. It warned when the levy
+# covered less than 2% of the guarantee, and the shipped SUFF_LEVY_RATE
+# delivered ≈2% at canonical defaults — a threshold set at the value it watched,
+# so GREEN was the only verdict the shipped configuration could produce. It is
+# this repo's named example of failure mode 9, cited as such in CLAUDE.md,
+# record/theory.md and two scenario docstrings; those citations stand and now
+# describe something retired rather than something shipping.
+#
+# It is not re-pointed, because a second threshold would be a second account of
+# a question already answered: dashboard.fiscal_health_check's third pillar now
+# asks whether inflows cover the guarantee or the Trust is drawing principal —
+# the identity trust_end >= trust_start, which has no free parameter and so
+# cannot be calibrated to its own configuration.
 # tag: normative | units: fraction of care-registration saturation | family: CARE_ADMISSION_*
 # decided_by: a charter decision on how much care must be on the ledger
 #   before admission counts as working. The quantity watched resolves with
@@ -4342,17 +4482,30 @@ CONTESTABILITY_CHI_CRIT: float = 1.00           # χ below → RED (invariant br
 # tag: placeholder | units: fraction of automation value held in common
 # form: φ(0) — even at subsistence some automation value is commonly held (the
 #   Trust baseline).
-# superseded_by: hours_eoh.research.recalibration — §8.9b makes φ(ε) emerge
-#   from the charter formation share under a stated policy (dilution / target /
-#   escalated) rather than from a floor plus a power law. Kept for the
-#   superseded arm.
+# note: THE `superseded_by` HERE WAS WRONG AND WAS WITHDRAWN 2026-09-16 (author
+#   sign-off). It named `hours_eoh.research.recalibration` as the replacement,
+#   on the reading that §8.9b makes φ(ε) emerge from the charter formation share
+#   rather than from a floor plus a power law. That module CONSUMES this value:
+#   `commonized_fraction()` reads it, and `recalibration.phi_actual(ε, "target")`
+#   returns exactly `commonized_fraction(ε)` — pinned by
+#   `tests/test_recalibration.py::test_target_policy_is_commonized_fraction`.
+#   A successor that calls the thing it supposedly replaced has not replaced it.
+#   The tag was hiding a LIVE parameter inside the retired set, where the gate
+#   exempts it from naming what would settle it.
+# resolves_by: measured commonization shares across real collectives at known ε
+#   — the same evidence §8.9b's charter-formation model needs, since that model
+#   reads this value as its target policy rather than deriving one.
 CONTESTABILITY_PHI_FLOOR: float = 0.10          # minimum commonized fraction at ε=0
 # tag: placeholder | units: dimensionless power
 # form: sub-linear growth of commonization early in the arc (ε^1.5 rather than
 #   ε), asserting that political-economy constraints make rapid commonization
 #   hard.
-# superseded_by: hours_eoh.research.recalibration — the charter-formation
-#   model, as above.
+# note: `superseded_by` withdrawn 2026-09-16 (author sign-off) for the same
+#   reason as CONTESTABILITY_PHI_FLOOR above — `commonized_fraction()` reads
+#   this exponent and the §8.9b model calls that function as its target policy.
+# resolves_by: measured commonization shares across real collectives at known ε,
+#   with the floor above — one measurement settles the pair, since they are the
+#   two parameters of a single curve.
 CONTESTABILITY_PHI_EXPONENT: float = 1.5        # power for φ(ε) = floor + (1−floor) × ε^n
 # tag: instance | units: fraction per year
 # form: g_priv, the private capital growth rate. The Piketty-inversion
@@ -4739,6 +4892,13 @@ RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
 # resolves_by: n/a — it inherits CAPITAL_MACHINE_PROFILES' standing, which is
 #   CHOSEN. See DEP_RATE (0.045) for the same physical quantity derived a
 #   second way; the two should be reconciled to one.
+# note: THE `form:` ABOVE DOES NOT REPRODUCE, RUN 2026-09-17. Weighting
+#   CAPITAL_MACHINE_PROFILES by TEH at the `standard` tier and aggregating as a
+#   RATE gives δ = 0.0428 (life 23.35 yr), against the 0.05 held here and the
+#   "≈20 yr" the form claims. A `derived` tag asserts the value IS its stated
+#   formula, so this is a provenance defect rather than a caveat. Recorded and
+#   not repaired: retagging moves the verdict-ladder census and re-fitting is an
+#   author decision. See record/provenance.md#depreciation-derivation-does-not-reproduce.
 FORMATION_DEPRECIATION_RATE: float = 0.05
                                          # aggregate annual depreciation of machine capital.
                                          # Derived from CAPITAL_MACHINE_PROFILES design lives
@@ -5440,3 +5600,25 @@ CAPITAL_THERMAL_PROFILES: dict[str, dict] = {
 #   still dissipates fossil heat, and κ̄ measures the electrons, not the
 #   paperwork.
 THERMAL_GRID_KAPPA_DEFAULT: float = 0.93  # CHOSEN/measured; resolves_by: physical grid mix, not procurement.
+
+# provenance-block: Obligation-state probe (low-ε floor diagnostic)
+# tag: convention | units: TEH per capita, at the reference frame
+# form: the capital levels swept by
+#   `scenarios.labour_epsilon.low_epsilon_obligation_sensitivity()`, which asks
+#   what the obligation would be if a jurisdiction's OWN capital replaced the
+#   canonical arc's. A PROBE GRID, not a measurement: no entry is anybody's
+#   measured capital stock, and nothing outside that REPORTING-ONLY table reads
+#   it.
+# note: the grid BRACKETS the US BEA reading of 8,301 TEH/capita used by the USA
+#   case study, so a reader can see where one real economy sits inside the
+#   sweep. The other endpoints are round numbers chosen to span it; moving them
+#   changes the RESOLUTION of a reported table and no shipped quantity.
+# note: this constant exists because the canonical arc sets
+#   `capital_stock_teh = 0` at ε = 0, which makes infrastructure and ecological
+#   EOH both 0.00 and collapses the obligation to personal-only (1,352.80 of
+#   1,360.74 per capita, 99.4%). Whether a subsistence economy truly owes no
+#   infrastructure obligation is a THEORY claim; this grid lets the claim be
+#   examined without altering it.
+LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA: tuple[float, ...] = (
+    0.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_301.0, 16_000.0,
+)

@@ -51,11 +51,19 @@ baked into it cannot be the counterfactual FOR the apparatus.
 HOW THIS RELATES TO `corridor`, stated so the two do not read as contradicting.
 Corridor asks which ε are SURVIVABLE; this asks where the system could STAND
 STILL, which additionally requires the delivery cost to be covered. Stability is
-therefore strictly stronger, and the bands show it at the same standard:
+therefore strictly stronger at the same standard. The levels are NOT written
+here: the sufficiency floor has moved six times (the last, 2026-09-15, when this
+module moved to the adopted per-component split), and a table in a docstring
+outlived the first five. Run `band_by_standard()` beside `eoh corridor band`;
+the levels are pinned in `tests/test_measured_capacity.py`.
 
-    standard      corridor floor    stationary band
-    survival           0.000        [0.000, 0.990]
-    sufficiency        0.424        [0.487, 0.990]
+THE HUMAN SHARE IS THE ADOPTED SPLIT (2026-09-15). Until then `stability_at`
+multiplied both accounts by a uniform `1 − ε`, while the adopted default keeps
+care and nutrition human through `personal_human_fraction`. The uniform reading
+understated human hours by 21 against 458 per capita at ε=0.99 (sufficiency) and
+put the sufficiency floor at 0.29; under the adopted split the personal part of
+the obligation carries `personal_human_fraction(ε)` and everything else keeps
+`1 − ε`, exactly as `eoh_fulfillment.human_eoh_per_domain` splits the domains.
 
 WHAT THIS DOES NOT DO. It takes no charter decision and moves no number. It does
 not assert that the stationary band is where the system SHOULD sit — a society
@@ -71,6 +79,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any
 
 from hours_eoh.core.autarky import overbuild_check
+from hours_eoh.core.eoh_fulfillment import personal_human_fraction
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
 from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
@@ -156,8 +165,10 @@ def stability_at(
     Governing tests, all per capita per year:
 
         supply     = labour_supply_per_capita(adult_capacity)
-        obligation = (1 - ε) · obligation_account / population
-        delivery   = (1 - ε) · delivery_account / population
+        obligation = [h_p(ε) · personal + (1 − ε) · knowledge_civilisational] / population
+        delivery   = (1 − ε) · delivery_account / population
+
+    with h_p(ε) = `personal_human_fraction(ε)`, the adopted per-component split.
 
         1. obligation_met    supply >= obligation
         2. delivery_pays     overbuild_check(...).obligation_test
@@ -192,7 +203,7 @@ def stability_at(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if not 0.0 <= epsilon <= 0.99:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if standard not in STANDARDS:
@@ -215,8 +226,14 @@ def stability_at(
         standard=standard,
     ))
 
+    # THE ADOPTED SPLIT: the personal part carries its own human share (care and
+    # nutrition keep automation floors); the rest keeps the uniform `1 − ε`.
+    # Same split as `human_eoh_per_domain`, so this and the pipeline agree.
     human = 1.0 - epsilon
-    obligation = human * acct["obligation"] / population
+    h_personal = personal_human_fraction(epsilon)
+    parts = acct["obligation_components"]
+    obligation = (h_personal * parts["personal"]
+                  + human * parts["knowledge_civilisational"]) / population
     delivery = human * acct["delivery"] / population
     surplus = supply - obligation - delivery
 
@@ -253,6 +270,7 @@ def stability_at(
         "standard":           standard,
         "personal_base":      base,
         "supply_per_capita":  supply,
+        "personal_human_fraction": h_personal,
         "obligation_per_capita": obligation,
         "delivery_per_capita":   delivery,
         "surplus_per_capita":    surplus,

@@ -236,7 +236,8 @@ from hours_eoh.land.collective import make_urban_collective
 
 result = guf_rate_calibration(
     parcel_inventory=make_urban_collective(500),
-    target_guf_levy_ratio=1.0,   # GUF co-equal with levy
+    target_guf_levy_ratio=1.0,   # solve for k at a ratio you choose; 1.0 is an
+                                 # example, not a design target (withdrawn 2026-09-16)
     population=500.0,            # match population to inventory scale
     epsilon=0.40,
 )

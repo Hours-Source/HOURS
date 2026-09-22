@@ -50,6 +50,7 @@ from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR
 from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 # Survival-critical EOH domains for ε_suff. Personal EOH is the biological
 # survival floor (the sufficiency guarantee's basis); callers may widen this.
@@ -240,7 +241,7 @@ def contestability_ceiling(
 
 def contestability_ceiling_bare_chi(
     population: float,
-    trust_balance: float,
+    trust_balance: float | None,
     regime: str = "increasing_returns",
     arc: tuple[float, ...] = _ARC,
 ) -> Ceiling:
@@ -274,6 +275,7 @@ def contestability_ceiling_bare_chi(
     Returns:
         Ceiling named "contestability_bare_chi".
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     ceiling: float | None = None
     for eps in arc:
         chi = contestability_margin(eps, population, trust_balance, regime=regime)["chi"]
@@ -296,7 +298,7 @@ class AxesComparison(TypedDict):
 
 def contestability_axes(
     population: float,
-    trust_balance: float,
+    trust_balance: float | None,
     regime: str = "increasing_returns",
     phi_policy: str = "dilution",
     arc: tuple[float, ...] = _ARC,
@@ -321,6 +323,7 @@ def contestability_axes(
         contestability binds at all — the case that must be reported, not
         averaged.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     adopted = contestability_ceiling(population, regime=regime,
                                      phi_policy=phi_policy, arc=arc)
     bare = contestability_ceiling_bare_chi(population, trust_balance,

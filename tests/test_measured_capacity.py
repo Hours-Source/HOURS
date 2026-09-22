@@ -287,10 +287,12 @@ class TestTheDefaultIsTheMeasuredMedian:
         is the third time that has paid.
         """
         from hours_eoh.scenarios.arc_stability import stationary_band
-        # 0.491 → 0.382 → 0.374 → 0.309 → 0.290 (2026-09-09, capital path).
-        # Fifth move, fourth time the level pin made one visible.
+        # 0.491 → 0.382 → 0.374 → 0.309 → 0.290 (2026-09-09, capital path)
+        # → 0.382 (2026-09-15, arc_stability moved from a uniform 1 − ε to the
+        # adopted per-component split; the ONE test in the suite that moved).
+        # Sixth move, fifth time the level pin made one visible.
         assert stationary_band(standard="sufficiency")["lower"] == pytest.approx(
-            0.290, abs=5e-4
+            0.382, abs=5e-4
         )
         assert stationary_band(standard="survival")["lower"] == pytest.approx(
             0.0, abs=5e-4

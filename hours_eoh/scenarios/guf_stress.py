@@ -19,7 +19,6 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
     DEP_RATE,
     DIV_RATE,
@@ -43,6 +42,7 @@ from hours_eoh.land.guf import (
 )
 from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 _DEFAULT_PARCEL: dict[str, Any] = {
     "area_slu":       3.5,
@@ -61,7 +61,7 @@ _GUF_POSITIONAL_KEYS = frozenset({"area_slu", "location_value", "use_category"})
 def guf_fiscal_integration(
     epsilon: float,
     parcel_configs: list[dict[str, Any]] | None = None,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     population: float = 1_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
@@ -109,9 +109,10 @@ def guf_fiscal_integration(
           "recommendation":            str,
         }
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     configs = [_DEFAULT_PARCEL] if parcel_configs is None else parcel_configs
 
     parcel_results = [
@@ -410,7 +411,7 @@ def automation_levy_guf_stress(
     epsilon_end: float = 0.80,
     n_periods: int = 20,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     levy_rates: dict | None = None,
@@ -473,6 +474,7 @@ def automation_levy_guf_stress(
         {period, epsilon, levy_revenue, guf_net_inflow, guf_levy_ratio,
          sufficiency_cost, trust_end, solvent}
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     inventory = parcel_inventory if parcel_inventory is not None else make_urban_collective(1_000)
     rates      = levy_rates or {"sufficiency": SUFF_LEVY_RATE}
     eps_delta  = (epsilon_end - epsilon_start) / max(n_periods, 1)
@@ -494,7 +496,7 @@ def automation_levy_guf_stress(
         # follow the apparatus the arc says exists at that ε, not the one it had
         # when the run started.
         stew_cost    = stewardship_allocation(
-            resolve_capital_stock(capital_stock_teh, eps),
+            resolve_capital_stock(capital_stock_teh, eps, population=population),
             capital_age_ratio, eps, bal
         )["teh_allocated"]
         guar_cost    = sufficiency_guarantee(

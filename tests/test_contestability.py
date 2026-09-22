@@ -156,18 +156,41 @@ class TestContestabilityMargin:
             "epsilon", "guarantee_per_person", "trust_dividend_per_capita",
         }
 
-    def test_replicable_passes_at_all_key_epsilons(self):
-        for eps in KEY_EPSILONS:
+    def test_replicable_passes_above_epsilon_zero(self):
+        """
+        RETIRED AS A LIVE INVARIANT 2026-09-17 (author decision): bare χ is
+        SUPERSEDED by §8.9, so this pins the superseded axis' measured shape
+        rather than asserting χ ≥ 1 is required. Above ε=0 replicable still
+        clears; ε=0 is covered by the breach test below.
+        """
+        for eps in [e for e in KEY_EPSILONS if e > 0.0]:
             result = contestability_margin(eps, _POP, _TRUST, regime="replicable")
             assert result["passes"], (
-                f"replicable regime must satisfy χ ≥ 1 at ε={eps}, "
+                f"replicable regime still clears χ ≥ 1 above ε=0; at ε={eps} "
                 f"got χ={result['chi']:.3f}"
             )
 
-    def test_increasing_returns_passes_at_epsilon_zero(self):
-        result = contestability_margin(0.0, _POP, _TRUST, regime="increasing_returns")
-        assert result["passes"], (
-            f"χ must be ≥ 1 at ε=0 in increasing_returns, got χ={result['chi']:.3f}"
+    def test_bare_chi_breaches_at_epsilon_zero_and_the_adopted_axis_governs(self):
+        """
+        THE DISAGREEMENT, PINNED — the test_corridor precedent.
+
+        The 2026-09-17 reprice to 8,760 TEH/person cut the Trust dividend per
+        capita 630.00 -> 157.68 and took χ(0) from 1.1682 "WARN" to 0.9058
+        "CRIT" in BOTH regimes. That is a real degradation of the SUPERSEDED
+        axis. The adopted §8.9 invariant takes no trust balance at all and is
+        unmoved, which is why this is recorded rather than repaired.
+        """
+        from hours_eoh.research.recalibration import exit_financing
+        for regime in ("increasing_returns", "replicable"):
+            r = contestability_margin(0.0, _POP, _TRUST, regime=regime)
+            assert not r["passes"], (
+                f"bare χ breaches at ε=0 since the reprice; {regime} got "
+                f"χ={r['chi']:.4f}"
+            )
+            assert r["status"] == "CRIT"
+        assert exit_financing(0.0)["exit_financeable"] is True, (
+            "the ADOPTED invariant must still be financeable at ε=0 — if it is "
+            "not, the reprice broke exit for real and not merely on a retired axis"
         )
 
     def test_increasing_returns_breaches_at_epsilon_99(self):
@@ -340,12 +363,21 @@ class TestChiArc:
         for row in rows:
             assert set(row.keys()) == expected
 
-    def test_replicable_arc_all_pass(self):
+    def test_replicable_arc_passes_above_epsilon_zero(self):
+        """
+        RETIRED AS A LIVE INVARIANT 2026-09-17: bare χ is SUPERSEDED by §8.9.
+        Pins the superseded axis' shape — ε=0 breaches since the reprice
+        (χ=0.906), every later point clears.
+        """
         rows = chi_arc(n_points=10, regime="replicable")
-        for row in rows:
+        assert rows[0]["chi_population_avg"] < CONTESTABILITY_CHI_CRIT, (
+            "ε=0 is the point the reprice moved below 1; if it clears again the "
+            "inheritance changed and this pin should be re-measured"
+        )
+        for row in rows[1:]:
             assert row["chi_population_avg"] >= CONTESTABILITY_CHI_CRIT, (
-                f"replicable regime must keep χ ≥ 1 at ε={row['epsilon']:.3f}, "
-                f"got χ={row['chi_population_avg']:.3f}"
+                f"replicable regime still clears χ ≥ 1 above ε=0; at "
+                f"ε={row['epsilon']:.3f} got χ={row['chi_population_avg']:.3f}"
             )
 
     def test_increasing_returns_breaches_at_high_epsilon(self):
@@ -797,9 +829,37 @@ class TestCommonsSeedRequired:
         assert result["entry_capacity"] == pytest.approx(1.0)
         assert result["passes"] is True
 
-    def test_seed_is_small_vs_trust_base(self):
-        """The early-arc gap closes for well under 0.1% of the Trust."""
-        assert commons_seed_required() < 0.001 * TRUST_BASE_TEH
+    def test_the_seed_scales_with_what_it_is_made_of_and_nothing_else(self):
+        """
+        RE-POINTED 2026-09-17. This asserted the seed was "well under 0.1% of
+        the Trust" — a threshold against a quantity the seed has no relation
+        to. seed = min_viable_population · K_entry(0) / underwrite_fraction:
+        cohort size, founding cost, underwrite fraction, full stop. The reprice
+        moved TRUST_BASE_TEH 3.995x and the share went 0.051% -> 0.205%,
+        breaking a check that was never measuring the seed.
+
+        Asserting "the Trust does not move it" would be enforced by the
+        implementation — the function never reads TRUST_BASE_TEH, so that check
+        could not fail (failure mode 2). What is pinned instead is the SHAPE the
+        docstring claims, plus the structural absence.
+        """
+        import ast
+        import inspect
+        base = commons_seed_required()
+        assert commons_seed_required(min_viable_population=2
+                                     * CONTESTABILITY_MIN_VIABLE_POPULATION
+                                     ) == pytest.approx(2.0 * base)
+        assert commons_seed_required(underwrite_fraction=CONTESTABILITY_UNDERWRITE_FRACTION
+                                     / 2.0) == pytest.approx(2.0 * base)
+        assert commons_seed_required(k0=2.0 * CONTESTABILITY_K0_TEH) == pytest.approx(
+            2.0 * base)
+        src = inspect.getsource(commons_seed_required)
+        body = ast.parse(src.lstrip()).body[0]
+        names = {n.id for n in ast.walk(body) if isinstance(n, ast.Name)}
+        assert not {x for x in names if "TRUST" in x}, (
+            f"the seed now references a Trust constant: {names}. If that is "
+            "deliberate the independence above is no longer the property to pin."
+        )
 
     def test_validation(self):
         with pytest.raises(ValueError):
@@ -925,3 +985,79 @@ class TestMachineOutputLevyBase:
         rows = levy_schedule_for_chi(n_points=10, levy_base="machine_output")
         for r in rows:
             assert r["chi_check"] >= 1.0 - 1e-9
+
+class TestPriorWorkEntersThroughSavings:
+    """
+    THE EXIT RULE, DECIDED 2026-09-17 (author).
+
+    The choice was between exit paying the PORTABLE ENDOWMENT (S + vested D)
+    and exit paying a SHARE OF PRIOR WORK. The portable endowment stays, and
+    what a member brought lives in `savings` — a term that already existed,
+    is already additive to P, and is already excluded from the guarantee.
+
+    WHY, MEASURED. A per-capita share of prior work claims the Trust to
+    EXACTLY 100% (it IS population x per-capita, by construction), leaving no
+    buffer; including assets it claims 127.4%, which is unfundable from a
+    liquid balance because embodied capital cannot pay an exit without
+    dismantling the apparatus. Sustainable turnover under the share rule is
+    exactly the dividend rate, DEP_RATE x DIV_RATE = 1.8%/yr; under the
+    portable endowment it is ~9.7%.
+
+    WHAT IT DOES NOT FIX, pinned below so it stays visible: the VESTED term is
+    one year's dividend, 157.7 TEH, against the 8,760 a joiner may carry in.
+
+    READ THAT COMPARISON CAREFULLY — it is a FLOW against a STOCK, and the
+    first version of this docstring (2026-09-17) called it "membership is worth
+    1.8% of arriving with assets", which is the category error this repo keeps
+    catching. 8,760 / 157.68 = 55.6 years: a member who receives the dividend
+    and SAVES it reaches parity with the joiner's stake, and saved dividends
+    enter `savings` like anything else. So the asymmetry is about TIMING, not a
+    permanent two-tier exit right.
+
+    NOR IS IT A CALIBRATION QUESTION, which the same first version also claimed.
+    Measured: the vested dividend is trust_pc x DEP_RATE x DIV_RATE, so even at
+    FORMATION_DEPRECIATION_RATE (0.05) and a 100% payout it maxes at 438 TEH/yr
+    against the 1,876 a native needs to clear chi at eps=0.40 and 3,732 at 0.90.
+    The required DIV_RATE at eps=0.40 is 4.76 — 476% of depreciation. No payout
+    policy closes it above eps=0. What the comparison actually measures is the
+    RC4 flow/stock mismatch that §8.9 retired, which is why the ADOPTED
+    invariant counts YEARS-to-finance rather than a one-year ratio.
+    """
+
+    def _pind(self, **kw):
+        from hours_eoh.research.contestability import portable_endowment_individual
+        return portable_endowment_individual(**kw)
+
+    def test_prior_work_reaches_the_exit_claim_through_savings(self):
+        from hours_eoh.data import TRUST_BASE_TEH_PER_CAPITA as PC
+        bare = self._pind(epsilon=0.40, tenure_years=0.0, savings=0.0)
+        brought = self._pind(epsilon=0.40, tenure_years=0.0, savings=PC)
+        assert brought["p_individual"] - bare["p_individual"] == pytest.approx(PC), (
+            "prior work must reach P additively and unchanged — if it is scaled "
+            "or capped on the way in, it is no longer 'what you brought'"
+        )
+
+    def test_the_floor_is_unconditional_and_the_asset_term_is_not(self):
+        """S never vests and never depends on what was brought; savings do."""
+        a = self._pind(epsilon=0.40, tenure_years=0.0, savings=0.0)
+        b = self._pind(epsilon=0.40, tenure_years=99.0, savings=5000.0)
+        assert a["guarantee_per_person"] == pytest.approx(b["guarantee_per_person"])
+
+    def test_tenure_is_worth_far_less_than_arriving_with_assets(self):
+        """
+        THE ASYMMETRY, PINNED AS A FACT RATHER THAN A WORRY.
+
+        A native with full tenure and nothing brought against a joiner on day
+        one carrying the shipped per-capita prior work. If this ratio ever
+        approaches 1 the dividend calibration has changed and the two-tier
+        concern has gone with it — which is a result worth failing a test over.
+        """
+        from hours_eoh.data import TRUST_BASE_TEH_PER_CAPITA as PC
+        native = self._pind(epsilon=0.40, tenure_years=99.0, savings=0.0)
+        joiner = self._pind(epsilon=0.40, tenure_years=0.0, savings=PC)
+        tenure_worth = native["trust_dividend_vested"]
+        assert tenure_worth < 0.05 * PC, (
+            f"tenure now buys {tenure_worth:,.1f} against {PC:,.0f} brought in; "
+            "if that has closed, re-read the exit-rule decision"
+        )
+        assert joiner["p_individual"] > native["p_individual"]

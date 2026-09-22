@@ -133,9 +133,20 @@ class TestTheFoundingEndowmentIsNotBackedByFulfilment:
 
 class TestTheEndowmentTurnsOverInTheLongRun:
     """
-    WHY THE POSITION IS STILL DEFENSIBLE. The founding stock is not permanent:
-    destruction outpaces creation early, so cumulative fulfilment eventually
-    exceeds everything standing.
+    WHY THE POSITION IS STILL DEFENSIBLE — RESTATED 2026-09-17 (author decision).
+
+    The founding stock is PRIOR WORK: TEH, and assets that reduce EOH and carry
+    EOH costs of their own, brought by the people who form or join a collective.
+    A collective founded at subsistence brings NOTHING, and a joiner may bring
+    nothing; the level is an instance input, not a constant of the framework.
+
+    This class used to assert the mechanism "destruction outpaces creation
+    early, so the founding stock is RETIRED". That was never a property of the
+    system — it was a property of starting above what the flows support.
+    Measured across three levels of prior work at 20/40/60/80/120/200 periods:
+    at 35,000 TEH/person destruction does outpace creation; at 8,760 it never
+    does at any horizon; at 0 there is nothing to retire. The overtaking is what
+    survives all three, so the overtaking is what is pinned.
     """
 
     def test_cumulative_minting_eventually_exceeds_the_standing_stock(self):
@@ -153,12 +164,40 @@ class TestTheEndowmentTurnsOverInTheLongRun:
             "false, not merely false at founding"
         )
 
-    def test_destruction_outpaces_creation_early(self):
-        """The mechanism: the endowment is retired, not merely diluted."""
-        _, res = _run(20)
-        created = sum(r["teh_created"] for r in res["period_results"])
-        destroyed = sum(r["teh_destroyed"] for r in res["period_results"])
-        assert destroyed > created
+    @pytest.mark.parametrize("prior_work,label", [
+        (0.0, "subsistence founding — nothing brought"),
+        (None, "the shipped estimate of current-world prior work"),
+        (3.5e10, "four times it — the pre-2026-09-17 figure"),
+    ])
+    def test_the_overtaking_does_not_depend_on_how_much_was_brought(
+        self, prior_work, label
+    ):
+        """
+        REPLACES test_destruction_outpaces_creation_early (2026-09-17).
+
+        The anchor claim is that nothing ultimately stands which registered
+        fulfilment did not create. That must hold at EVERY level of prior work,
+        or it is a claim about one calibration rather than about the system.
+        The retired test asserted the retirement MECHANISM, which holds only
+        when enough was brought to start above what the flows support.
+        """
+        state = make_economy_state(trust_balance=prior_work)
+        res = run_simulation(make_economy_state(trust_balance=prior_work),
+                             n_periods=PERIODS)
+        created = 0.0
+        crossed = False
+        for row in res["period_results"]:
+            created += row["teh_created"]
+            if created >= row["teh_total_supply"]:
+                crossed = True
+                break
+        assert crossed, (
+            f"registered fulfilment never overtook the standing stock within "
+            f"{PERIODS} periods for {label} (endowment "
+            f"{state['teh_endowment']:,.0f}) — the anchor's bound would then be "
+            f"permanently false at this level of prior work, not merely false "
+            f"at founding"
+        )
 
     def test_destruction_is_real_rather_than_nominal(self):
         _, res = _run(20)
@@ -187,16 +226,39 @@ class TestTheOrphanedSupplyFunctionContradictsTheShippedModel:
             f"either a bug or a decision to model an endowment-free economy."
         )
 
-    def test_it_raises_on_the_shipped_trajectory(self):
+    def test_its_identity_differs_from_the_shipped_one_by_the_endowment(self):
         """
-        Not a hypothetical: run the canonical simulation and hand it its own
-        cumulative flows. It refuses them.
+        RE-POINTED 2026-09-17. This asserted that `teh_supply` RAISES on the
+        shipped cumulative flows — which it did only while the inheritance was
+        large enough to drive cumulative destruction above creation. At 8,760
+        TEH/person it no longer raises at ANY horizon (checked at 20/40/60/80/
+        120/200 periods), and the old assertion would have read as "the two
+        accounts merged" when they had not: the endowment is still 11.16e9.
+
+        The difference itself is the claim, so the difference is what is
+        asserted. `teh_supply` computes `created - destroyed`; the shipped
+        model computes `endowment + created - destroyed`. They differ by
+        exactly the endowment, at any inheritance, which is the fact that
+        makes the two accounts two.
         """
-        _, res = _run(40)
+        state, res = _run(40)
         created = sum(r["teh_created"] for r in res["period_results"])
         destroyed = sum(r["teh_destroyed"] for r in res["period_results"])
-        with pytest.raises(ValueError, match="Ledger violation"):
-            teh_supply(created, destroyed)
+        endowment = state["teh_endowment"]
+        assert endowment > 0.0, (
+            "the shipped model has no founding endowment — if that is now true, "
+            "teh_supply is the correct account and this whole class retires"
+        )
+        unendowed = teh_supply(created, destroyed) if created >= destroyed else None
+        shipped = res["period_results"][-1]["teh_total_supply"]
+        assert unendowed is not None, (
+            "teh_supply refused the shipped flows; the old form of this test "
+            "covers that case and the difference below is unmeasurable"
+        )
+        assert shipped - unendowed == pytest.approx(endowment, rel=1e-9), (
+            "the shipped supply must exceed the unendowed identity by exactly "
+            "the founding endowment; if it does not, a third account exists"
+        )
 
     def test_it_is_correct_for_the_economy_it_describes(self):
         """
@@ -214,12 +276,27 @@ class TestNothingGrowsWithoutLabour:
     """
 
     def test_the_trust_has_no_interest_term(self):
+        """
+        THE SHARP FORM (2026-09-15). This asserted `trust_end < trust_start`
+        with nothing owed, which held only because the dividend left the
+        balance unconditionally. Unspent capacity is now retained, so a quiet
+        period is FLAT — and flat is not a yield. What Condition III actually
+        forbids is the balance itself moving the balance: for identical flows
+        the movement must be the same at any size, so no term can depend on
+        the holding.
+        """
         from hours_eoh.core.fiscal import trust_management
+        def delta(balance):
+            r = trust_management(trust_balance=balance, levy_revenue=1.0e6,
+                                 stewardship_cost=0.0, guarantee_cost=4.0e5)
+            return r["trust_end"] - r["trust_start"]
+        assert delta(1.0e9) == pytest.approx(delta(1.0e11), rel=1e-12)
+        assert delta(1.0e9) == pytest.approx(1.0e6 - 4.0e5, rel=1e-12)
         quiet = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
                                  stewardship_cost=0.0, guarantee_cost=0.0)
-        assert quiet["trust_end"] < quiet["trust_start"], (
-            "with no inflows a balance must fall; if it rose, something is "
-            "paying a return on a holding"
+        assert quiet["trust_end"] == pytest.approx(quiet["trust_start"], rel=1e-12), (
+            "a quiet period must not GROW the balance; if it rose, something "
+            "is paying a return on a holding"
         )
 
     def test_a_larger_holding_earns_no_premium_rate(self):

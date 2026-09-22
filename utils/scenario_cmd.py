@@ -82,6 +82,7 @@ from hours_eoh.data import REGISTER_CADENCE
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 _SCENARIOS: dict[str, str] = {
     # -- original --
@@ -120,6 +121,7 @@ _SCENARIOS: dict[str, str] = {
     "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
+    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
@@ -235,8 +237,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
 
     # Autarky / overbuild
     run_p.add_argument("--standard", choices=["survival", "sufficiency"],
-                       default="sufficiency",
-                       help="personal-EOH standard for arc_stability. "
+                       default=None,
+                       help="personal-EOH standard. arc_stability defaults to "
+                            "sufficiency; stationarity defaults to the shipped "
+                            "1,000 h base. "
                             "'collapsed' is refused: an abated value cannot "
                             "be the autarky reference")
     run_p.add_argument("--capital-stock", type=float, default=1.9e9,
@@ -874,10 +878,32 @@ def _dispatch(args: argparse.Namespace) -> object:
         cs["verdict"] = rep["verdict"]
         return cs
 
+    if name == "stationarity":
+        from hours_eoh.scenarios.stationarity import stationarity_report
+        rep = stationarity_report(
+            epsilon, standard=getattr(args, "standard", None)
+        )
+        sr: dict = {}
+        for r in rep["arc"]:
+            e = r["epsilon"]
+            sr[f"eps {e:.2f} | labour h/cap needed"] = r["labour"]["human_hours_per_capita"]
+            sr[f"eps {e:.2f} | labour supply"] = r["labour"]["supply_per_capita"]
+            sr[f"eps {e:.2f} | labour stationary"] = r["labour"]["stationary"]
+            sr[f"eps {e:.2f} | TEH inflow"] = r["teh"]["inflow"]
+            sr[f"eps {e:.2f} | guarantee owed"] = r["teh"]["guarantee_owed"]
+            sr[f"eps {e:.2f} | TEH stationary"] = r["teh"]["stationary"]
+            sr[f"eps {e:.2f} | paid by the mint"] = r["teh"]["paid_by_mint"]
+        for side in ("labour", "teh", "both"):
+            b = rep["bands"][side]
+            sr[f"band | {side}"] = (f"[{b['lower']:.2f}, {b['upper']:.2f}]"
+                                    if b["any_stationary"] else "none")
+        sr["verdict"] = rep["verdict"]
+        return sr
+
     if name == "arc_stability":
         from hours_eoh.scenarios.arc_stability import stability_report
         rep = stability_report(
-            epsilon, standard=getattr(args, "standard", "sufficiency")
+            epsilon, standard=getattr(args, "standard", None) or "sufficiency"
         )
         st: dict = {}
         for r in rep["arc"]:
@@ -949,7 +975,7 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "collective":
         from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.data import CAPITAL_STOCK_DEFAULT, TRUST_BASE_TEH
+        from hours_eoh.data import CAPITAL_STOCK_DEFAULT
         from hours_eoh.land.collective import make_urban_collective
         from hours_eoh.scenarios.collective import collective_snapshot
 
@@ -962,7 +988,7 @@ def _dispatch(args: argparse.Namespace) -> object:
         state = make_economy_state(
             population=pop,
             capital_stock_teh=CAPITAL_STOCK_DEFAULT * pop / 1_000_000.0,
-            trust_balance=TRUST_BASE_TEH * pop / 1_000_000.0,
+            trust_balance=resolve_trust_balance(None, pop),
             epsilon=args.epsilon,
         )
         rep = collective_snapshot(state, parcels=make_urban_collective())

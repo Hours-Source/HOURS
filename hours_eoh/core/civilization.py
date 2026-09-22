@@ -55,7 +55,6 @@ from hours_eoh.data import (
     COND_DECAY_SLOPE,
     COND_DECAY_FLOOR,
     ENV_MONITORING_SATURATION_TEH_PER_CAPITA,
-    TRUST_BASE_TEH,
 )
 
 
@@ -266,7 +265,8 @@ def civilization_epsilon(civ: dict) -> dict:
                 echoes the INPUT and there is no single applied value to echo.
             age_distribution (dict):     age_group → fraction. Default: None (canonical).
             monitoring_capability (float): Overrides auto-derived value. Default: None.
-            trust_balance (float):       Trust fund starting balance. Default: TRUST_BASE_TEH.
+            trust_balance (float):       Trust fund starting balance. Default:
+                                         resolved against population.
             mean_multiplier (float):     TEH creation multiplier. Default: 2.10.
             capital (dict):              Capital stock. Keys = CAPITAL_MACHINE_PROFILES
                                          type names; values = tier str or spec dict.
@@ -302,7 +302,7 @@ def civilization_epsilon(civ: dict) -> dict:
     """
     from hours_eoh.core.eoh_generation import total_eoh, domain_labor_requirements
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-    from hours_eoh.core.fiscal import fiscal_snapshot
+    from hours_eoh.core.fiscal import fiscal_snapshot, resolve_trust_balance
     from hours_eoh.core.trajectory import compute_epsilon
 
     warnings: list[str] = []
@@ -320,7 +320,12 @@ def civilization_epsilon(civ: dict) -> dict:
     knowledge_complexity = None if _kc is None else float(_kc)
     age_distribution     = civ.get("age_distribution")
     mean_multiplier      = float(civ.get("mean_multiplier",      2.10))
-    trust_balance        = float(civ.get("trust_balance",        TRUST_BASE_TEH))
+    # (e) 2026-09-17: the inheritance travels with the frame — an unsupplied
+    # balance resolves against THIS civilisation's population, not the 1M
+    # reference. A supplied balance is the ACTUAL balance, never rescaled.
+    _tb = civ.get("trust_balance")
+    trust_balance        = resolve_trust_balance(
+        None if _tb is None else float(_tb), population)
 
     capital_desc = civ.get("capital", {})
     mach = machine_eoh_from_capital(capital_desc, population)

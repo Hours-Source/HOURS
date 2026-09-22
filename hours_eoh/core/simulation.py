@@ -31,13 +31,14 @@ from typing import Any
 from hours_eoh.data import (
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
-    TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
+    CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
     LABOR_INCOME_MIN_TEH, WORKFORCE_FRACTION_MIN,
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
     MEAN_MULTIPLIER_REFERENCE, M_FLOOR,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ def make_economy_state(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
     workforce_fraction: float = 0.60,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     labor_income_teh: float = 5_000_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
@@ -77,7 +78,10 @@ def make_economy_state(
         epsilon: Current automation level [0.0, 0.99].
         population: Total population (all ages).
         workforce_fraction: Fraction of population in active workforce [0, 1].
-        trust_balance: Trust fund balance at start of this period (TEH).
+        trust_balance: Trust fund balance at start of this period (TEH). None
+            (the default) resolves the 1M-reference inheritance to THIS
+            population — see `fiscal.resolve_trust_balance`. A supplied balance
+            is the collective's actual Trust and is never rescaled.
         labor_income_teh: Recorded labor income from the last completed period (TEH).
                           Written for observability; simulate_period() derives income
                           from the EOH pipeline (teh_created), not from this field.
@@ -128,14 +132,20 @@ def make_economy_state(
     # a supplied size is no longer rescaled by the pipeline.
     _knowledge    = _cps(epsilon)["knowledge_base_size"] if knowledge_complexity is None else knowledge_complexity
     _cap_embodied = _capital if capital_embodied_teh is None else capital_embodied_teh
-    _endowment    = (trust_balance + _cap_embodied) if teh_endowment is None else teh_endowment
+    # THE FRAME (2026-09-17). An unspecified balance is the 1M-reference
+    # inheritance scaled to THIS population; a supplied one is the collective's
+    # actual Trust and is never rescaled. Resolved BEFORE the endowment, which
+    # derives from it — otherwise the endowment would keep the reference frame
+    # while the balance moved, and the two would disagree inside one state.
+    _trust        = resolve_trust_balance(trust_balance, population)
+    _endowment    = (_trust + _cap_embodied) if teh_endowment is None else teh_endowment
     _monitoring   = _cps(epsilon)["monitoring_capability"] if monitoring_capability is None else monitoring_capability
     return {
         "epsilon":                       epsilon,
         "population":                    population,
         "workforce_fraction":            workforce_fraction,
         "workforce_size":                population * workforce_fraction,
-        "trust_balance":                 trust_balance,
+        "trust_balance":                 _trust,
         "labor_income_teh":              labor_income_teh,
         "capital_stock_teh":             _capital,
         "capital_age_ratio":             capital_age_ratio,
@@ -430,8 +440,29 @@ def simulate_period(
         # already carries machine fulfilment. Subtracting capital-fulfilled
         # hours as well was two terms for one mechanism.
     }
+    # D5 IS COMPUTED BEFORE THE FISCAL PERIOD CLOSES (2026-09-16), so that every
+    # path TEH returns to the Trust by arrives through `trust_management` and
+    # the balance identity lives in ONE place. It was added to `new_trust_bal`
+    # after the fact, alongside GUF, which put the identity in three.
+    # Numerically unchanged: both terms are start-of-period quantities.
+    from hours_eoh.core.capital import estate_dissolution as _estate_diss
+    current_total_supply = teh_endowment + teh_created_cum - teh_destr_cum
+    current_circ_approx  = max(0.0, current_total_supply - state["trust_balance"] - cap_embodied)
+    if use_estate_dissolution:
+        d5 = _estate_diss(
+            current_circ_approx, population, eps,
+            inheritance_fraction=estate_inheritance_fraction,
+            estate_levy_fraction=estate_levy_fraction,
+            personal_reserve_years=estate_reserve_years,
+        )
+    else:
+        d5 = {"teh_destroyed": 0.0, "teh_levied_to_trust": 0.0,
+              "teh_inherited": 0.0, "mechanism": "D5_disabled"}
+
     fiscal = fiscal_snapshot(
         state=fiscal_state,
+        guf_revenue=(guf_net_inflow or 0.0),
+        estate_levy_aggregate=d5["teh_levied_to_trust"],
         levy_rates=levy_rates,
         mean_multiplier=mean_multiplier,
         dep_rate=dep_rate,
@@ -442,13 +473,9 @@ def simulate_period(
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         care_stipend_aggregate=care_stipend_aggregate,
     )
+    # Every inflow is inside this figure now — levy, GUF and the estate levy —
+    # so nothing is added to the balance after the fiscal period closes.
     new_trust_bal = fiscal["trust"]["trust_end"]
-
-    # GUF revenue injection: circulatory TEH from ground-use fees added directly
-    # to Trust balance after the fiscal period closes. Mirrors guf_trust_inflow()
-    # wiring into trust_management() for callers that pre-compute GUF externally.
-    if guf_net_inflow is not None:
-        new_trust_bal = new_trust_bal + guf_net_inflow
 
     # ---- 7. TEH destruction — D1 capital accounting + D2/D3 consumption
     #         + D4 CPI delivery + D5 estate dissolution + D6 ceiling (opt-in)
@@ -505,21 +532,9 @@ def simulate_period(
               "basket_price": _basket_price(eps), "mechanism": "D4_disabled"}
 
     # D5: Estate dissolution — TEH written down on death above personal reserve.
-    #     Also levies a fraction to Trust (circulatory).
-    #     Uses start-of-period circulating TEH as the estate proxy.
-    current_total_supply = teh_endowment + teh_created_cum - teh_destr_cum
-    current_circ_approx  = max(0.0, current_total_supply - state["trust_balance"] - cap_embodied)
-    if use_estate_dissolution:
-        d5 = _estate_diss(
-            current_circ_approx, population, eps,
-            inheritance_fraction=estate_inheritance_fraction,
-            estate_levy_fraction=estate_levy_fraction,
-            personal_reserve_years=estate_reserve_years,
-        )
-        new_trust_bal = new_trust_bal + d5["teh_levied_to_trust"]
-    else:
-        d5 = {"teh_destroyed": 0.0, "teh_levied_to_trust": 0.0,
-              "teh_inherited": 0.0, "mechanism": "D5_disabled"}
+    #     Computed ABOVE, before the fiscal period closes, so its Trust levy
+    #     reaches the balance through `trust_management` with the other two
+    #     return paths. `current_circ_approx` is defined there and used below.
 
     # D6: Accumulation ceiling (disabled by default) — excess above ceiling
     #     committed to capital formation (moves to capital_embodied, not destroyed yet).

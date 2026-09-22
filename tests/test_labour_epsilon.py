@@ -86,10 +86,22 @@ class TestTheFrameIsCarriedNotAssumed:
 
     def test_the_obligation_is_computed_at_the_reference_frame(self):
         """
-        THE BUG THIS TEST EXISTS FOR. `CAPITAL_STOCK_DEFAULT` is stated at the 1M
-        reference population and does not scale, so computing the obligation at
-        the US population gives 335M people the capital of 1M and the fixed point
-        collapses to zero. Pinned by the ANSWER, not by reading the source.
+        THE BUG THIS TEST EXISTS FOR — and its stated CAUSE is retracted.
+
+        It read: "`CAPITAL_STOCK_DEFAULT` is stated at the 1M reference
+        population and does not scale, so computing the obligation at the US
+        population gives 335M people the capital of 1M and the fixed point
+        collapses to zero." That was true when written; the 2026-09-16 capital
+        frame repair falsified it — `resolve_capital_stock` now scales the stock
+        with the population it is given. MEASURED 2026-09-18: per-capita
+        `total_eoh` is frame-invariant to the last bit, ratio 1.0000000000
+        between the 1M and 335M frames.
+
+        THE ASSERTION IS UNCHANGED AND STILL EARNS ITS PLACE, because it is
+        pinned by the ANSWER rather than by the mechanism: ε collapsing to zero
+        is the symptom of ANY frame error here, whatever causes it. Only the
+        explanation moved, and the same retraction was made in the source on
+        2026-09-18.
         """
         assert LE.labour_epsilon("core")["epsilon"] > 0.05, (
             "ε collapsed — the obligation is being computed at the wrong frame"
@@ -209,3 +221,170 @@ class TestLabourEpsilonChangesNothing:
                 if name in p.read_text(encoding="utf-8", errors="ignore")
             ]
             assert not offenders, f"{offenders} import {name}"
+
+class TestTheLabourArmTakesItsDataToo:
+    """
+    STEP 2 OF MAKING A CASE STUDY REPRODUCIBLE BY SOMEONE ELSE (2026-09-18).
+
+    Step 1 let the CAPITAL instrument take an inventory. On its own that is
+    worse than useless for a foreign user: it lets them compare their capital
+    against AMERICA's time use and receive a confident ADJACENT verdict about no
+    economy. This class pins the half that closes it, and the gate that makes
+    the mixed case inexpressible rather than merely discouraged.
+
+    ALL THREE SCALARS OR NONE. A partial supply would divide one jurisdiction's
+    unpaid hours by another's adult count. Refused, because a blend returns a
+    number and no error.
+    """
+
+    def _shipped_inputs(self):
+        m = LE.measured_hours()
+        return dict(population_15_plus_supplied=m["population_15_plus"],
+                    unpaid_per_15plus=m["unpaid_per_15plus"],
+                    paid_per_15plus=m["paid_per_15plus"])
+
+    def test_supplying_the_shipped_values_reproduces_the_shipped_reading(self):
+        """The sentinel resolves to exactly what it replaced."""
+        a = LE.measured_hours()
+        b = LE.measured_hours(**self._shipped_inputs())
+        for k in ("unpaid_per_capita", "paid_per_capita", "share_15_plus"):
+            assert a[k] == pytest.approx(b[k], rel=1e-12)
+
+    def test_a_partial_supply_is_refused_and_names_what_is_missing(self):
+        with pytest.raises(ValueError, match="all three"):
+            LE.measured_hours(unpaid_per_15plus=100.0)
+
+    def test_the_adults_guard_fires_on_a_SUPPLIED_count(self):
+        """
+        THE PIN MOST AT RISK. `population` is paired data, guarded by comparing
+        it against the survey's 15+ count. A sentinel that took the supplied
+        count and skipped the guard would defeat the check for exactly the
+        caller most likely to trip it — someone porting the instrument.
+        """
+        with pytest.raises(ValueError, match="more adults than people"):
+            LE.measured_hours(population=200e6, population_15_plus_supplied=270e6,
+                              unpaid_per_15plus=100.0, paid_per_15plus=100.0)
+
+    def test_the_survey_year_does_not_date_someone_elses_hours(self):
+        assert LE.measured_hours()["year"] is not None
+        assert LE.measured_hours(**self._shipped_inputs())["year"] is None
+
+    def test_the_sources_are_reported_on_a_single_reading(self):
+        r = LE.labour_epsilon("core")
+        assert r["hours_source"] == "shipped_atus"
+        assert r["employment_source"] == "shipped_soc"
+        r2 = LE.labour_epsilon("core", **self._shipped_inputs(),
+                               employment=OW.employment_by_major_group())
+        assert r2["hours_source"] == "supplied"
+        assert r2["employment_source"] == "supplied"
+
+    def test_both_arms_or_neither(self):
+        """
+        THE HALF-PORTED COMPARISON, MADE INEXPRESSIBLE. Supplying one arm and
+        letting the other fall back to the shipped US table yields a verdict
+        about no economy, so it raises instead.
+        """
+        from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
+        inv = capital_by_profile("government", "current_cost")
+        with pytest.raises(ValueError, match="BOTH arms or neither"):
+            LE.instrument_comparison(inventory=inv)
+        with pytest.raises(ValueError, match="BOTH arms or neither"):
+            LE.instrument_comparison(**self._shipped_inputs())
+
+    def test_supplying_both_arms_reproduces_the_shipped_verdict(self):
+        """NOT VACUOUS: handed back the shipped values, the ported path agrees."""
+        from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
+        inv = capital_by_profile("government", "current_cost")
+        a = LE.instrument_comparison()
+        b = LE.instrument_comparison(inventory=inv, **self._shipped_inputs())
+        assert a["verdict"] == b["verdict"]
+        assert a["gap"] == pytest.approx(b["gap"], rel=1e-12)
+        assert a["sources"] == {"capital": "shipped_bea", "labour": "shipped_atus"}
+        assert b["sources"] == {"capital": "supplied", "labour": "supplied"}
+
+    def test_the_reconciling_rate_still_converges_when_ported(self):
+        """The bisection assumes ε falls as the rate rises; that holds supplied."""
+        from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
+        inv = capital_by_profile("government", "current_cost")
+        a = LE.reconciling_rate("core")["reconciling_rate"]
+        b = LE.reconciling_rate("core", inventory=inv, **self._shipped_inputs())["reconciling_rate"]
+        assert a == pytest.approx(b, rel=1e-9)
+
+class TestTheVerdictIsAChoiceAndSaysSo:
+    """
+    THE PUBLISHED ADJACENT WAS ONE CELL OF A GRID (2026-09-18).
+
+    `instrument_comparison` hard-coded `scope="government"` and inherited
+    `doctrine="current_cost"`, so it read ONE corner of the capital grid and
+    reported the result as a property of the instruments. The capital route
+    returns 18 cells precisely BECAUSE its three judgements are undeclared.
+
+    Measured at the US frame: the corner gives ADJACENT at gap 0.046, while 8 of
+    the 18 declared cells fall inside the labour band and the full grid
+    (0.200-0.757) OVERLAPS it. The corner stays the headline — government /
+    current_cost is the most defensible single reading, and switching the
+    headline to the framing that AGREES would be calibrating to the answer, the
+    failure `reconciling_rate` names in its own docstring. What changes is that
+    the grid verdict is reported beside it and the choice is explicit.
+    """
+
+    def test_the_corner_is_still_the_headline(self):
+        c = LE.instrument_comparison()
+        assert c["verdict"] == "ADJACENT"
+        assert c["capital"]["scope"] == "government"
+        assert c["capital"]["doctrine"] == "current_cost"
+
+    def test_the_grid_verdict_is_reported_beside_it(self):
+        g = LE.instrument_comparison()["grid"]
+        assert g["available"] is True
+        assert g["verdict"] == "OVERLAP"
+        assert g["cells_total"] == 18
+        assert 0 < g["cells_inside_labour"] < g["cells_total"], (
+            "if NO cell or EVERY cell sits inside the labour band, the grid "
+            "verdict has stopped discriminating and this pin should be re-read"
+        )
+
+    def test_one_declared_judgement_flips_the_verdict(self):
+        """
+        THE POINT, AS A TEST RATHER THAN A SENTENCE. Doctrine alone moves it:
+        every government/historical_cost cell sits inside the labour band, every
+        current_cost one sits above it. A comparison whose answer turns on an
+        undeclared default was reporting a choice as a finding.
+        """
+        cur = LE.instrument_comparison(doctrine="current_cost")
+        hist = LE.instrument_comparison(doctrine="historical_cost")
+        assert cur["verdict"] == "ADJACENT"
+        assert hist["verdict"] == "OVERLAP", (
+            f"historical cost read {hist['capital']['low']:.4f}-"
+            f"{hist['capital']['high']:.4f} against labour "
+            f"{hist['labour']['low']:.4f}-{hist['labour']['high']:.4f}"
+        )
+
+    def test_scope_moves_it_too_and_is_not_hard_coded(self):
+        """A hard-coded scope would make every scope return the same numbers."""
+        got = {sc: LE.instrument_comparison(scope=sc)["capital"]["low"]
+               for sc in ("productive", "government", "residential")}
+        assert len(set(round(v, 9) for v in got.values())) == 3, got
+
+    def test_a_supplied_inventory_has_no_grid_and_says_so(self):
+        """The grid is a property of the SHIPPED table, not of anyone's data."""
+        from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
+        m = LE.measured_hours()
+        c = LE.instrument_comparison(
+            inventory=capital_by_profile("government", "current_cost"),
+            population_15_plus_supplied=m["population_15_plus"],
+            unpaid_per_15plus=m["unpaid_per_15plus"],
+            paid_per_15plus=m["paid_per_15plus"])
+        assert c["grid"]["available"] is False
+        assert "no declared scope/doctrine grid" in c["grid"]["note"]
+
+    def test_the_reader_facing_verdict_names_both(self):
+        """
+        The institution-facing string is where this matters: it is the starting
+        conversation, and it must not present a choice as a property.
+        """
+        v = LE.labour_epsilon_report()["verdict"]
+        assert "government/current_cost" in v
+        assert "ADJACENT" in v
+        assert "OVERLAP across the declared grid" in v
+        assert "depends on the scope and doctrine chosen" in v

@@ -22,7 +22,6 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
-    TRUST_BASE_TEH,
     ECOLOGICAL_THRESHOLD,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
@@ -39,6 +38,7 @@ from hours_eoh.indust_no_eco_params import (
     INDUST_ECOSYSTEM_HEALTH,
     INDUST_DEFERRED_ECOLOGICAL,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +88,7 @@ def indust_overshoot_baseline(
 
     labor_income = max(pipeline["teh_created"], 1.0)
     fiscal = fiscal_snapshot(
-        trust_balance=TRUST_BASE_TEH * (population / _POP_REFERENCE),
+        trust_balance=resolve_trust_balance(None, population),
         labor_income=labor_income,
         capital_stock_teh=p["capital_stock_teh"],
         capital_age_ratio=p["capital_age_ratio"],
@@ -187,7 +187,7 @@ def indust_recovery_trajectory(
         }
     """
     p = make_indust_no_eco_params(population=population, epsilon=epsilon)
-    scaled_trust = TRUST_BASE_TEH * (population / _POP_REFERENCE)
+    scaled_trust = resolve_trust_balance(None, population)
 
     initial_state = make_economy_state(
         epsilon=epsilon,

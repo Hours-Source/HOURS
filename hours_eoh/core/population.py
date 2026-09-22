@@ -180,8 +180,11 @@ def aging(
     # Personal EOH is determined by age-group weight
     eoh_weight = AGE_GROUPS[new_group]["eoh_weight"]
     new_personal_eoh = personal_eoh_base * eoh_weight
-    # RETIRED 2026-09-04. This multiplied elderly EOH by
-    # (1 + ELDERLY_EOH_EPSILON_FACTOR·ε) on the rationale that "deferred
+    # RETIRED 2026-09-04, and the constant behind it DELETED 2026-09-16 (author
+    # decision) once nothing had read it for twelve days; the reasoning now
+    # lives in `record/personal.md` rather than in a tag block on a value no
+    # code reaches. This multiplied elderly EOH by
+    # (1 + an ε-scaled elderly factor) on the rationale that "deferred
     # personal care becomes a registered EOH obligation at higher ε" — which is
     # a REGISTRATION claim implemented as an OBLIGATION multiplier. Registration
     # makes an obligation visible; it does not create one

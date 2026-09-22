@@ -79,7 +79,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from hours_eoh.data import (
-    TRUST_BASE_TEH,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_N_MAX,
     COASEAN_BOUNDARY_EXPONENT,
@@ -100,6 +99,7 @@ from hours_eoh.research.contestability import (
     tau_gradient_check,
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +209,7 @@ def run_collective_period(
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     pipeline = eoh_to_teh_pipeline(
         epsilon,
         population=population,
@@ -234,7 +234,7 @@ def make_federation(
     epsilon: float,
     n: int | None = None,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
@@ -275,9 +275,10 @@ def make_federation(
     Returns:
         List of Collective objects, one per collective.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if n is None:
         n = coasean_collective_count(epsilon)
 
@@ -340,7 +341,7 @@ def make_federation(
 def n1_regression_anchor(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     ecosystem_health: float = 0.70,
@@ -377,9 +378,10 @@ def n1_regression_anchor(
           "ref_solvent"        — reference solvent bool
           "fed_solvent"        — federation solvent bool
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     ref_pipeline, ref_fiscal = run_collective_period(
         epsilon,
         population=population,
@@ -985,7 +987,7 @@ def _consolidation_escheat(
 def simulate_federation(
     epsilon_trajectory: list[float],
     population: float = 1_000_000.0,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     heterogeneity: float = 0.10,
@@ -1090,7 +1092,8 @@ def simulate_federation(
     The Baumol threat made credible: the commons can capitalize new
     collectives' trusts (capital stays commonized — §8.7c is respected).
     Seed the commons via commons_start ≥ commons_seed_required() (≈1.8e7 TEH
-    at defaults, ~0.05% of TRUST_BASE_TEH) to close the ε≈0 window before
+    at defaults, 0.205% of TRUST_BASE_TEH since the 2026-09-17 reprice to
+    8,760 TEH/person, where it was 0.051%) to close the ε≈0 window before
     escheat inflows begin.
 
     With commons_dividend=False every χ value and balance is float-exact
@@ -1183,6 +1186,7 @@ def simulate_federation(
                                            entry_capacity ≥ 1 (proposed §8.8
                                            combined invariant)
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     rng = _random.Random(seed)
     records: list[dict[str, Any]] = []
     prev_rates: dict[tuple[int, int], float] = {}
@@ -1199,7 +1203,7 @@ def simulate_federation(
     # its whole span with no apparatus, heterogeneity would produce no
     # inter-collective inflation, and the seed would stop mattering. That is a
     # property of multiplicative growth from zero, not a result about federations.
-    capital_t = resolve_capital_stock(capital_stock_teh, None)
+    capital_t = resolve_capital_stock(capital_stock_teh, None, population=population)
     commons_t = commons_start if commons else 0.0
     prev_tau: float | None = None
     prev_eps: float | None = None

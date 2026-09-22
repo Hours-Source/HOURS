@@ -13,7 +13,7 @@ from hours_eoh.core.dashboard import system_dashboard
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.simulation import make_economy_state, simulate_period
 from hours_eoh.data import (
-    TRUST_BASE_TEH, CAPITAL_STOCK_DEFAULT,
+    CAPITAL_STOCK_DEFAULT,
     ESSENTIAL_DOMAINS,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CONTESTABILITY_CHI_CRIT,
@@ -24,13 +24,17 @@ from hours_eoh.research.recalibration import exit_financing
 
 from utils.formatters import bold, green, red, status_color, fmt_float, fmt_eps
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
     p = sub.add_parser("dashboard", help="System health snapshot at a given ε")
     p.add_argument("--epsilon", type=float, default=0.40, metavar="ε")
     p.add_argument("--population", type=float, default=1_000_000.0)
-    p.add_argument("--trust-balance", type=float, default=TRUST_BASE_TEH)
+    # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
+    # balance resolves against --population, so the inheritance travels with
+    # the frame. Supplying the flag states YOUR balance and it is used as given.
+    p.add_argument("--trust-balance", type=float, default=None)
     # DEFAULT None since 2026-09-09 (capital-path decision): an unsupplied
     # stock resolves along the canonical arc at --epsilon, so the dashboard
     # reads the arc rather than a fixed 2e9 at every ε. Supplying the flag
@@ -61,7 +65,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
 DECLARED_CERTIFIED_FRACTION = 0.18
 
 
-def _build_kwargs(eps: float, population: float, trust_balance: float,
+def _build_kwargs(eps: float, population: float, trust_balance: float | None,
                   capital_stock: float, ecosystem_health: float,
                   thermal_obligation: float = 0.0,
                   certified_fraction: float = DECLARED_CERTIFIED_FRACTION) -> dict:
@@ -76,6 +80,7 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
     and Trust from ONE simulated period on the same frame — the only engine in
     the package that tracks both. Only certified competency is declared.
     """
+    trust_balance = resolve_trust_balance(trust_balance, population)
     p = EohParams()
     workforce_fraction = float(p["workforce_fraction"])
     capital_age_ratio = float(p["capital_age_ratio"])
@@ -109,13 +114,16 @@ def _build_kwargs(eps: float, population: float, trust_balance: float,
         teh_created=float(after["teh_created_cumulative"]),
         teh_destroyed=float(after["teh_destroyed_cumulative"]),
         teh_observed=float(period["teh_total_supply"]) - float(after["teh_endowment"]),
-        # The Trust balance's own identity: the dividend LEAVES the balance to
-        # fund spending, and levy and GUF inflows enter it
-        # (`fiscal.trust_management`). Stewardship and guarantee are paid from
-        # the dividend, not from the balance.
+        # The Trust balance's own identity (2026-09-15): what the Trust OWES
+        # leaves the balance, and levy and GUF inflows enter it
+        # (`fiscal.trust_management`). Stewardship, ecological and care labour
+        # are paid at the mint and never appear here; unspent dividend is
+        # retained, so the dividend is capacity and not an outflow. Read
+        # `total_expenditure` rather than the guarantee directly, so this stays
+        # bound to whatever core charges the Trust.
         balance_start=float(trust["trust_start"]),
         earnings=float(trust["levy_inflow"]) + float(trust["guf_inflow"]),
-        expenditures=float(trust["dividend"]),
+        expenditures=float(trust["total_expenditure"]),
         balance_end=float(trust["trust_end"]),
         certified_by_domain=certified_by_domain,
         workforce_size=workforce,
@@ -274,7 +282,19 @@ def run(args: argparse.Namespace) -> None:
     print(f"  abatement a(K) = {_o['abatement']:.4f}   "
           f"break-even ε = {_be(_capital, args.population):.4f}")
 
-    for flag_key, flag_label in [("red_flags", "Red flags"), ("yellow_flags", "Warnings")]:
+    # `suppressed_flags` is printed HERE and not only in --format json (2026-09-17).
+    # core.system_dashboard declared the masking on 2026-09-16 — "MASKING MUST BE
+    # DECLARED, NEVER INFERRED" — but the table path, which is the default and what
+    # a person actually reads, printed only the two flag lists. So at ε=0 the reader
+    # saw `Personal registration: RED` above an EMPTY red-flag list and an
+    # overall_status that did not reflect it, with nothing saying the exclusion was
+    # deliberate: the declaration existed in the library and was invisible at the
+    # documented entry point. Same shape as the ten --trust-balance defaults.
+    for flag_key, flag_label in [
+        ("red_flags", "Red flags"),
+        ("yellow_flags", "Warnings"),
+        ("suppressed_flags", "Suppressed — declared, and NOT counted in overall status"),
+    ]:
         flags = snap.get(flag_key, [])
         if flags:
             print()

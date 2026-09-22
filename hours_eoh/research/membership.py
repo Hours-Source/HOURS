@@ -50,6 +50,7 @@ from hours_eoh.research.contestability import (
     entry_underwriting,
     portable_endowment_federated,
 )
+from hours_eoh.core.fiscal import resolve_trust_balance
 
 
 class MembershipTerms(TypedDict, total=False):
@@ -75,7 +76,7 @@ class MembershipTerms(TypedDict, total=False):
 def contestability_audit(
     terms: MembershipTerms,
     epsilon: float,
-    collective_trust: float = TRUST_BASE_TEH,
+    collective_trust: float | None = None,
     collective_population: float = 1_000_000.0,
     commons_balance: float = 0.0,
     federation_population: float | None = None,
@@ -170,6 +171,7 @@ def contestability_audit(
         exit_financeable, commons_floor_coverage, epsilon, regime,
         terms (echo).
     """
+    collective_trust = resolve_trust_balance(collective_trust, collective_population)
     vesting_years = terms.get("vesting_years", CONTESTABILITY_VESTING_YEARS)
     admission_cost = terms.get("admission_cost_teh", 0.0)
     exit_notice = terms.get("exit_notice_years", 0.0)
