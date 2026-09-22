@@ -404,7 +404,7 @@ someone remembering it, which is what this section is for.
    That gap let a `STILL OPEN` line sit stale for a day while the file asserted
    the adoption two entries up.
 
-8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029, F-042)*
+8. **THE WRONG INSTRUMENT — a `resolves_by` is a LEAD, not a finding.** *(corpus F-001, F-017, F-029, F-042, F-048)*
    `SKILL_WORKING_LIFE_YEARS` pointed at BLS Employee Tenure: median years with
    the *current employer* (3.9) against working life (37.5) — wrong by 2.6× and
    wrong in mechanism. Reading pointers in full dissolved about half the
@@ -631,7 +631,7 @@ checked — which made it read as though it had been too.
 
 For every "because X", evaluate X and check its DIRECTION. This is mode 13 in
 the section above, and it is recorded as F-027 in the agent corpus at
-**`~/.claude/corpus/`** — 47 findings, 4 roles, portable and outside every repo,
+**`~/.claude/corpus/`** — 48 findings, 4 roles, portable and outside every repo,
 citing this one through `anchor:` + `repo: HOURS`. Validate with
 `python3 ~/.claude/corpus/check.py`. (`notes/agents/` is now a signpost only.)
 

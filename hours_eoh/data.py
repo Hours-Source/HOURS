@@ -1556,9 +1556,13 @@ PERSONAL_ABATABILITY_CARE: float = 0.25
 #   `scenarios/component_shares` reads care at 25.7% of observed personal time
 #   against the desk 62.1%, which is a bound (marketised care leaves unpaid
 #   time use) and not a replacement.
-# resolves_by: per-component pointers are on each line below. a_max = Σ share
-#   × abatability = 0.4483 is DERIVED from this table, so it is not a free
-#   parameter; the table is where the judgement lives.
+# resolves_by: per-component pointers are on each line below — INSIDE the dict
+#   literal, where the provenance scanner does not read them, so this field is
+#   the only pointer any gate sees and it delegates to text nothing checks.
+#   Recorded rather than repaired by copying the pointers up here, which would
+#   be two accounts of one quantity. a_max = Σ share × abatability = 0.4483 is
+#   DERIVED from this table, so it is not a free parameter; the table is where
+#   the judgement lives.
 
 PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     # share:       fraction of the personal obligation (from the desk estimate)
@@ -1573,9 +1577,21 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     "health":    {"share": 208.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_HEALTH},
     #   resolves_by: GBD disease burden attributable to WASH, converted to care
     #   hours avoided. Partly abatable — prevention scales, treatment less so.
+    #   NOT the harmonised time-use panel: it carries no health counterpart at
+    #   all, pinned as a negative finding by
+    #   tests/test_mtus_time_use.py::TestThereIsNoHealthCategory so the search
+    #   is not repeated.
     "care":      {"share": 936.0 / 1508.0, "abatability": PERSONAL_ABATABILITY_CARE},
-    #   resolves_by: childcare/eldercare time-use across development levels.
-    #   LEAST abatable and the largest share — this is what bounds a_max.
+    #   resolves_by: a survey coding PAID AND UNPAID care together at the
+    #   declared frame, or MTUS national micro-data below the harmonised
+    #   aggregates. NOT "childcare/eldercare time-use across development
+    #   levels", which stood here until 2026-09-22 and is REFUTED on its own
+    #   terms: the harmonised panel admits NO care code set (childcare alone
+    #   runs 0.827 of ATUS care, the residual being adult and elder care), and
+    #   `automation_floors.cross_country()` has already measured that this
+    #   panel's cross-section is not a capital gradient — the exact ranking the
+    #   retired pointer asked for. LEAST abatable and the largest share — this
+    #   is what bounds a_max.
 }
 
 # tag: placeholder | units: TEH of PERSONAL-SERVING capital per capita
