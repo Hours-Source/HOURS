@@ -4,8 +4,6 @@
 policies, formation feedback, membership terms, the federation and the
 exchange-accounting layer.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state

@@ -4,8 +4,6 @@
 ratchet, the confidence figures, the placeholder and chain audits, constant
 revaluations and re-anchors, the dataset-governance gate.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
@@ -18,9 +16,9 @@ recalled. Regenerate with `eoh provenance check`.
   28 (8.0%), instance 23 (6.6%), derived 22 (6.3%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).
   Breakdown [drifted; not gated](#per-tag-census-drift).
-- **Quote the debt as the placeholder figure, not "83% CHOSEN".** The 68
-  normative constants are decisions needing argument, not data — they are
-  forbidden a `resolves_by` and that is the point.
+- **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
+  constants are decisions needing argument, not data — they are forbidden a
+  `resolves_by` and that is the point.
 - **The shadow ratchet stands at 33** *(gated)* — named constants outside
   `data.py`, in the operative layers, invisible to the provenance gate. **Never
   quote the 100%-tagged figure without the wider denominator**; the two gaps
@@ -75,8 +73,8 @@ recalled. Regenerate with `eoh provenance check`.
   side of each assignment is a dependency statement" claim holds for **12 of
   300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
   so deriving those 12 takes the check from one edge to twelve.
-- **The scan is `data.py`-only.** *(caveat)* "342/342 tagged" means 342 constants *in
-  `data.py`*; the 33 shadow constants are invisible to every count published.
+- **The scan is `data.py`-only.** *(caveat)* The 33 shadow constants are
+  invisible to every count published.
 
 ## Cross-area entries
 
@@ -88,9 +86,6 @@ Filed here on primary subject; each also bears on another area.
 | [codebase-sweep-repeating-failures](#codebase-sweep-repeating-failures) | [ecological](ecological.md#history), [verification](verification.md) | Bound 14 literal defaults, found the fourth frame bypass — the first inside `core/` — and named the three orphaned constants |
 | [two-constants-revalued](#two-constants-revalued) | [guf § Live state](guf.md#live-state) | One of the two is `GUF_ECO_KAPPA_CARBON`, reconciled against `CDR_LABOR_HOURS_PER_TONNE` |
 | [chain-audit-three-closures](#chain-audit-three-closures) | [fulfilment](fulfilment.md) | Re-anchored `KNOWLEDGE_EOH_BASE` a third time and found the fourth shadow constant carrying a duplicated wrong pointer |
-
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`.
 
 ---
 

@@ -5,8 +5,6 @@ emptied it: Phases 3–4f, the area/frame keying, restoration cost derived from
 field operations, the land-stewardship census, and the domain-balance defect that
 started the whole line of work.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
@@ -76,9 +74,7 @@ GUF's own magnitude is still fitted rather than derived.
   remains between the thermal and land layers it is now that constant's to
   answer — the ecological anchor can no longer absorb it.
 
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`. The rest can go stale; treat it as of the
-migration date and check the code.
+Lines without *(gated)* can go stale; check the code.
 
 ---
 

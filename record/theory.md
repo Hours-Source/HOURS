@@ -8,8 +8,6 @@ published.
 not a measurement or a test. The §3 guardrail governs: theory changes go behind a
 labelled PR for AWol to approve, and are never silently rewritten in docstrings.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state — what is settled

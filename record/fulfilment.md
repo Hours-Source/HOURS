@@ -4,8 +4,6 @@
 vs observable ε, the single mint path, the three obligation accounts, arc
 stability, and the state container that feeds them.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
@@ -78,9 +76,6 @@ Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
 | [injection-pressure-assembly-point](#injection-pressure-assembly-point) | [guf](guf.md#live-state) | `guf_revenue` is declared unpromotable — moving it into `core/` would assert that land tenure is physics |
 | [anchor-move-measured-phase-1](#anchor-move-measured-phase-1) | [provenance](provenance.md#history) | Measured the −16.4% anchor move before Phase 2 was committed to, rather than after |
 | [guarantee-priced-in-hours](#guarantee-priced-in-hours) | [personal](personal.md#live-state), [theory](theory.md#open), [thermal](thermal.md#open) | The author's `personal_eoh` / `effective_personal_eoh` split; the commons dividend's same defect |
-
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`.
 
 ---
 

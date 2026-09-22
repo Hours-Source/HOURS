@@ -4,8 +4,6 @@
 (Blocks I–III, P-I), the ATUS and MTUS ingests, the care and nutrition automation
 floors, measured capacity, the work-year reference.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state

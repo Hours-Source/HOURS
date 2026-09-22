@@ -4,8 +4,6 @@
 ratios and the ×100, the per-parcel term, the servicing and parcel censuses, the
 conservation credit, NLSA boundary conditions.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
@@ -73,9 +71,7 @@ Filed here on primary subject; each also bears on another area.
 | [e-term-awake](#e-term-awake) | [ecological](ecological.md#open) | E prices ecosystem services; the service volumes V_s it needs are an open ecological item |
 | [guf-revenue-wired-into-fisc](#guf-revenue-wired-into-fisc) | [ecological](ecological.md#live-state) | The plumbing for the obligation Phases 4e/4f relocated out of the ecological domain |
 
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`. The rest can go stale; treat it as of the
-migration date and check the code.
+Lines without *(gated)* can go stale; check the code.
 
 ---
 

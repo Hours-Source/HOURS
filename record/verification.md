@@ -9,13 +9,11 @@ failure modes, loaded every session, because they do not belong to an area — t
 frame seam was found in six subsystems, the stranded parameter in four. This file
 is their **evidence**: the sessions in which each was found, with the numbers.
 
-Migrated from `CLAUDE.md` 2026-09-03; entries verbatim.
-
 ---
 
 ## Live state
 
-- **Twelve gates ship**, indexed in `CLAUDE.md` § Test file index under *"Gates —
+- **The gates ship**, indexed in `CLAUDE.md` § Test file index under *"Gates —
   they check the repo, not a module"*. The `record/` split added
   `tests/test_record_index.py` (34 tests) and widened the corpus in
   `tests/test_claims_register.py` to span `record/*.md`.
@@ -91,9 +89,6 @@ Filed here on primary subject; each also bears on another area.
 
 See also [provenance.md § Cross-area entries](provenance.md#cross-area-entries)
 for the two gates filed there.
-
-*(gated)* marks a line checked against the code by
-`tests/test_claims_register.py`.
 
 ---
 

@@ -4,8 +4,6 @@
 the solvency gate, responsibility allocation, η from ERA5, capital dual-output —
 and the measurement-spine merge that founded the layer.
 
-Migrated from `CLAUDE.md` § Current status on 2026-09-03. Entries are verbatim.
-
 ---
 
 ## Live state
