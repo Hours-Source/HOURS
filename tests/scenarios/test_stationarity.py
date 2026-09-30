@@ -417,3 +417,75 @@ class TestBandsAndDrawdown:
         rep = stationarity_report(0.40)
         assert rep["reporting_only"] is True
         assert "minted TEH is the wage" in rep["verdict"]
+
+
+class TestRegisteredWorkAccess:
+    """Author, 2026-09-30: watch whether someone can walk away to registered
+    work, and whether it covers its members; minimum market wage is a charter
+    choice and the model proceeds with none."""
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_personal_served_partitions_the_personal_obligation(self, eps):
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        ps = registered_work_access(eps)["personal_served"]
+        assert ps["machine"] + ps["human_registered"] + ps["human_off_ledger"] == \
+            pytest.approx(ps["gross"], rel=1e-12)
+        assert min(ps["machine"], ps["human_registered"], ps["human_off_ledger"]) >= 0.0
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_need_is_the_registered_personal_hours_at_the_floor(self, eps):
+        """The 1:1 base: members' TEH need is registered human personal hours
+        × M_FLOOR, bound to D3 by `d3_consumption`."""
+        from hours_eoh.data import M_FLOOR
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        r = registered_work_access(eps)
+        assert r["coverage"]["teh_need_per_capita"] == pytest.approx(
+            r["personal_served"]["human_registered"] * M_FLOOR, rel=1e-9)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_cover_never_falls_below_m_over_the_floor(self, eps):
+        """Structural, and pinned as structural: cover ≥ m / M_FLOOR."""
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        c = registered_work_access(eps)["coverage"]
+        assert c["cover"] >= c["cover_structural_minimum"] * (1.0 - 1e-12)
+
+    def test_a_lower_multiplier_lowers_the_structural_minimum(self):
+        """The minimum is read from the mint's multiplier, not restated."""
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        lo = registered_work_access(0.40, mean_multiplier=1.5)["coverage"]
+        assert lo["cover_structural_minimum"] == pytest.approx(1.5, rel=1e-12)
+        assert lo["cover"] >= 1.5
+
+    def test_walkaway_can_fire_and_does_not_on_the_shipped_arc(self):
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        for eps in self.KEY:
+            assert registered_work_access(eps)["access"]["walkaway_fits_time"]
+        assert not registered_work_access(0.0, adult_capacity_h_yr=1600.0)["access"]["walkaway_fits_time"]
+
+    def test_need_turns_down_at_the_top_of_the_arc(self):
+        """The author's 'less TEH with more automation' — true only PAST the
+        turn, which sits between reporting points."""
+        from hours_eoh.data import ARC_REPORTING_POINTS
+        from hours_eoh.scenarios.stationarity import registered_work_arc
+        r = registered_work_arc()
+        assert 0.40 < r["need_peaks_at_epsilon"] < 0.99
+        assert r["need_peaks_at_epsilon"] not in ARC_REPORTING_POINTS
+        assert r["need_at_top"] < r["need_at_peak"]
+        rows = r["rows"]
+        assert rows[0]["coverage"]["teh_need_per_capita"] < r["need_at_peak"]
+
+    def test_reach_matches_the_feasibility_function(self):
+        """One quantity in two modules — bound by test (mode 4)."""
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        for eps in self.KEY:
+            assert registered_work_access(eps)["access"]["reach"] == pytest.approx(
+                mint_floor_reach(eps)["reach"], rel=1e-12)
+
+    def test_it_says_what_it_cannot_see(self):
+        from hours_eoh.scenarios.stationarity import registered_work_access
+        r = registered_work_access(0.40)
+        assert r["min_market_wage"] is None and "charter" in r["min_market_wage_basis"]
+        assert "who it admits" in r["averages_only"]

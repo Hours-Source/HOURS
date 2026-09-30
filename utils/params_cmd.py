@@ -20,7 +20,7 @@ from typing import Any
 from hours_eoh.params import EohParams
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import SUFF_LEVY_RATE
+from hours_eoh.data import DEP_RATE, DIV_RATE, SUFF_LEVY_RATE
 
 from utils.formatters import bold, fmt_float, green, red, dim
 
@@ -101,7 +101,9 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
         ecosystem_health=float(data.get("ecosystem_health", 0.70)),
     )
     teh_created  = float(pipeline.get("teh_created", 0.0))
-    labor_income = float(pipeline.get("registered_eoh", 0.0)) * 2200.0
+    # The mint is the labour income (2026-09-30): this was `registered_eoh ×
+    # 2200.0`, ~1,100× the mint, the same bare literal as `arc_cmd`'s.
+    labor_income = teh_created
     levy_rates = {"sufficiency": float(data.get("suff_levy_rate", SUFF_LEVY_RATE))}
     snap = fiscal_snapshot(
         epsilon=eps,
@@ -110,8 +112,11 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
         capital_stock_teh=float(data["capital_stock_teh"]),
         capital_age_ratio=float(data["capital_age_ratio"]),
         levy_rates=levy_rates,
-        dep_rate=float(data.get("dep_rate", 0.02)),
-        div_rate=float(data.get("div_rate", 0.05)),
+        # Fallbacks bound to the constants (2026-09-30): they were 0.02 and 0.05
+        # against DEP_RATE 0.045 and DIV_RATE 0.40 — unreached while EohParams
+        # carries both keys, wrong the day a params file does not.
+        dep_rate=float(data.get("dep_rate", DEP_RATE)),
+        div_rate=float(data.get("div_rate", DIV_RATE)),
     )
     return {
         "epsilon":        eps,

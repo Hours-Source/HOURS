@@ -94,7 +94,14 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
         floor_pp_result = floor_purchasing_power(MEANINGFUL_ACTIVITY_TEH_BASE, eps_floor)
         floor_pp = float(floor_pp_result.get("pp_index", 0.0))
 
-        labor_income = pipeline.get("registered_eoh", 0.0) * 2200.0
+        # THE MINT IS THE LABOUR INCOME (2026-09-30). This was
+        # `registered_eoh × 2200.0` from the initial commit — a bare literal,
+        # ~1,100× the mint (`registered_eoh × mean_multiplier`, m ≈ 2), so the
+        # Trust's surplus read ~100× high and the `solvent` column could not
+        # show insolvency for any Trust: with `--trust-balance 0` ε=0.99 is
+        # insolvent on the real mint and was reported solvent. Every other
+        # path passes `teh_created` (`build_collective`, `run_collective_period`).
+        labor_income = pipeline.get("teh_created", 0.0)
         snap = fiscal_snapshot(
             epsilon=eps,
             population=population,

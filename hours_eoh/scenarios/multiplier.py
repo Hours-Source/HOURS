@@ -491,6 +491,13 @@ def m_band_sweep(
 # Band correction that respects the floor (2026-09-30)
 # ---------------------------------------------------------------------------
 
+#: THE ADOPTED CONDITION II CORRECTION (author decision, 2026-09-30): an
+#: above-band composition is brought back OFF THE TOP — the highest tiers are
+#: capped — never by scaling every tier, which on the measured map pays the
+#: floor occupation below an hour. "proportional" stays computable in
+#: `band_correction` as the rejected comparison.
+ADOPTED_BAND_CORRECTION: str = "off_the_top"
+
 def band_correction(
     segments: list[dict],
     band_high: float = M_BAND_HIGH,
@@ -591,5 +598,24 @@ def band_correction(
             "floor_respected": min(after) >= floor,
             "mean_after": mean_after,
         },
+        "adopted": ADOPTED_BAND_CORRECTION,
         "reporting_only": True,
     }
+
+
+def corrected_segments(
+    segments: list[dict],
+    band_high: float = M_BAND_HIGH,
+    floor: float = M_FLOOR,
+) -> list[dict]:
+    """
+    The composition after the ADOPTED correction: every tier above the cap is
+    lowered to it, every tier below is untouched. An in-band composition is
+    returned unchanged (as copies). Inputs are never mutated.
+
+    Guarantees, pinned by test: the corrected mean equals `band_high` for an
+    above-band input; no tier moves up; no tier goes below `floor`; the lowest
+    tier is untouched.
+    """
+    cap = band_correction(segments, band_high=band_high, floor=floor)["off_the_top"]["cap"]
+    return [{**seg, "mean_mu": min(seg["mean_mu"], cap)} for seg in segments]

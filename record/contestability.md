@@ -62,11 +62,9 @@ exchange-accounting layer.
   one multiplier, every settlement rate 1.0; regime 2 is Condition II divergence
   only (`multiplier_schedule` is the lever). No measured cross-collective
   multiplier differences exist in the repo.
-- **The Condition II correction rule** *(person)* — on the measured map a
-  proportional correction cuts the floor occupation below an hour; off the top
-  does not. Unsynchronised recalibration IS regime-2 movement. *Settles by:* the
-  author.
-  [fulfilment.md § band correction](fulfilment.md#mint-floor-reach-and-band-correction).
+- **~~The Condition II correction rule~~ — SETTLED 2026-09-30** *(pointer)*:
+  off the top. Unsynchronised recalibration is still regime-2 movement. See
+  [fulfilment.md § registered-work-access](fulfilment.md#registered-work-access).
 - **Underwriting governance** *(person)* — who decides, and on what terms.
 - **Supply-curve calibration** *(gap)* for `research/formation.py`'s linear private
   supply between `FORMATION_HURDLE_RATE_MIN` and `FORMATION_FULL_SUPPLY_RATE`.

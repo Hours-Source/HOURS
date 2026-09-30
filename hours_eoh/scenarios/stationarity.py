@@ -95,7 +95,10 @@ from hours_eoh.data import (
 from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
 from hours_eoh.reference.parcels import national_parcel_count
 from hours_eoh.scenarios.arc_stability import STANDARDS, band_from_flags, stability_at
-from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+from hours_eoh.scenarios.feasibility import (
+    capacity_weighted_adult_share,
+    labor_supply_per_capita,
+)
 
 __all__ = [
     "GUARANTEE_DESIGNS",
@@ -107,6 +110,8 @@ __all__ = [
     "drawdown",
     "reserve_plan",
     "stationarity_report",
+    "registered_work_access",
+    "registered_work_arc",
 ]
 
 #: `shipped` is the adopted default. `v1` (need fraction among the on-ledger
@@ -630,5 +635,146 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             "land_fee_priced":  here["teh"]["guf"] > 0.0,
             "personal_base":    here["personal_base"],
         },
+        "reporting_only": True,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Access to registered work, beside the personal EOH it serves (2026-09-30)
+# ---------------------------------------------------------------------------
+#
+# Author, 2026-09-30: the minimum market wage is a CHARTER choice, and the model
+# proceeds with NONE. The register holds the 1:1 base on the mint. The register
+# is mostly personal EOH, which reduces what members need; with higher
+# automation they may need less TEH. The question to WATCH is whether someone
+# can walk away to registered work instead, and whether that registered work
+# covers its members.
+
+
+def registered_work_access(
+    epsilon: float,
+    population: float = 1_000_000.0,
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+    **pipeline_kwargs: Any,
+) -> dict:
+    """
+    Can a member walk away to registered work, and does it cover the members?
+
+    Three blocks, per capita unless named per adult, all from ONE pipeline call:
+
+    PERSONAL EOH SERVED — the obligation the register mostly consists of, split
+    by who serves it:
+        machine            served by capital; costs no TEH at the floor
+        human_registered   on the ledger; paid by the mint, and what members
+                           spend TEH on (D3 prices each hour at M_FLOOR)
+        human_off_ledger   self-provision; paid in members' own time, not TEH
+
+    ACCESS — the walk-away question:
+        registered_hours_per_adult     registered work available per
+                                       labour-supplying adult, if spread evenly
+        reach                          registered hours over total labour supply
+                                       — equally, the fraction of an adult's
+                                       working year the register could fill
+                                       (the two are one ratio by algebra, so
+                                       only one is reported)
+        time_left_per_adult            capacity minus the adult's share of
+                                       off-ledger self-provision: the time free
+                                       to take registered work at all
+        walkaway_fits_time             registered hours per adult ≤ time left.
+                                       This reduces to human hours per adult ≤
+                                       capacity — the labour side of
+                                       `stationarity_at` in walk-away form. It
+                                       does not fire on the shipped arc; it
+                                       fires when capacity is short.
+
+    COVERAGE — does registered work cover its members:
+        teh_need_per_capita            D3: registered human personal hours ×
+                                       M_FLOOR — the TEH members need
+        mint_per_capita                what registered work pays
+        cover                          mint / need
+        cover_structural_minimum       mean multiplier / M_FLOOR
+
+    COVER CANNOT FALL BELOW m / M_FLOOR, BY CONSTRUCTION — and that is the 1:1
+    base, not a finding. Every registered personal hour is both a need of
+    M_FLOOR and a mint of m; non-personal registered work only adds mint. So
+    "does registered work cover its members" is answered YES structurally, IN
+    AGGREGATE. What is NOT structural, and what this reports so it can be
+    watched: ACCESS. The figures are averages over an even spread of the
+    register; the model has no variable for who the register admits
+    (record/theory.md#capture-aggregate-bounded), so an average that covers
+    says nothing about a member the register does not reach.
+
+    ε-behaviour: need is near zero at subsistence (the register admits little),
+    rises with registration, and turns down at the top of the arc as machines
+    take personal EOH — the "less TEH with more automation" the author
+    expected, which holds only past the turn. Read the turn off
+    `registered_work_arc`, not off this docstring.
+    """
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+    p = eoh_to_teh_pipeline(epsilon, population=population, **pipeline_kwargs)
+    personal = float(p["eoh_by_domain"]["personal"])
+    human_personal = float(human_eoh_per_domain(p["eoh_by_domain"], epsilon)["personal"])
+    reg_personal = float(p["registered_eoh_by_domain"]["personal"])
+    need = d3_consumption(personal, float(p["registration_by_domain"]["personal"]), human_personal)
+    mint = float(p["teh_created"])
+    m = float(p["mean_multiplier"])
+
+    adults = population * capacity_weighted_adult_share()
+    reg_per_adult = float(p["registered_eoh"]) / adults
+    off_ledger = max(0.0, human_personal - reg_personal)
+    time_left = max(0.0, adult_capacity_h_yr - off_ledger / adults)
+    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr)
+
+    return {
+        "epsilon": epsilon,
+        "personal_served": {
+            "gross": personal / population,
+            "machine": (personal - human_personal) / population,
+            "human_registered": reg_personal / population,
+            "human_off_ledger": off_ledger / population,
+        },
+        "access": {
+            "registered_hours_per_capita": float(p["registered_eoh"]) / population,
+            "registered_hours_per_adult": reg_per_adult,
+            "reach": (float(p["registered_eoh"]) / population) / supply,
+            "time_left_per_adult": time_left,
+            "walkaway_fits_time": reg_per_adult <= time_left,
+        },
+        "coverage": {
+            "teh_need_per_capita": need / population,
+            "mint_per_capita": mint / population,
+            "cover": (mint / need) if need > 0.0 else None,
+            "cover_structural_minimum": m / M_FLOOR,
+        },
+        "min_market_wage": None,
+        "min_market_wage_basis": "charter choice; the model proceeds with none (author, 2026-09-30)",
+        "averages_only": (
+            "every figure assumes the register is spread evenly; who it admits "
+            "is not represented"
+        ),
+        "reporting_only": True,
+    }
+
+
+def registered_work_arc(
+    points: tuple[float, ...] = ARC_REPORTING_POINTS,
+    **kw: Any,
+) -> dict:
+    """
+    `registered_work_access` along the arc, plus where TEH need per member
+    turns down — the point past which more automation means less TEH needed.
+    The turn is searched on a fine grid, not read off the reporting points
+    (mode 3).
+    """
+    rows = [registered_work_access(e, **kw) for e in points]
+    grid = [ARC_REPORTING_POINTS[-1] * i / 100 for i in range(101)]
+    need = [registered_work_access(e, **kw)["coverage"]["teh_need_per_capita"] for e in grid]
+    peak = grid[need.index(max(need))]
+    return {
+        "rows": rows,
+        "need_peaks_at_epsilon": peak,
+        "need_at_peak": max(need),
+        "need_at_top": need[-1],
         "reporting_only": True,
     }

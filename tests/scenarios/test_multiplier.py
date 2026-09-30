@@ -309,3 +309,56 @@ class TestBandCorrectionRespectsTheFloor:
         from hours_eoh.scenarios.multiplier import band_correction
         with pytest.raises(ValueError):
             band_correction(self._snap("reference"), band_high=1.0, floor=1.0)
+
+
+class TestTheAdoptedCorrection:
+    """Author decision 2026-09-30: an above-band composition is corrected OFF
+    THE TOP. These pin the guarantees `corrected_segments` states."""
+
+    @staticmethod
+    def _snap(name):
+        from hours_eoh.reference.workforce import WORKFORCE_SNAPSHOTS
+        return WORKFORCE_SNAPSHOTS[name]
+
+    def test_the_adopted_rule_is_named(self):
+        from hours_eoh.scenarios.multiplier import ADOPTED_BAND_CORRECTION, band_correction
+        assert ADOPTED_BAND_CORRECTION == "off_the_top"
+        assert band_correction(self._snap("reference"))["adopted"] == "off_the_top"
+
+    @pytest.mark.parametrize("name", ["above_band", "high_epsilon"])
+    def test_corrected_composition_lands_on_the_ceiling_above_the_floor(self, name):
+        from hours_eoh.core.multipliers import population_weighted_mean_multiplier
+        from hours_eoh.data import M_BAND_HIGH, M_FLOOR
+        from hours_eoh.scenarios.multiplier import corrected_segments
+        before = self._snap(name)
+        after = corrected_segments(before)
+        assert population_weighted_mean_multiplier(after) == pytest.approx(M_BAND_HIGH, rel=1e-12)
+        assert all(a["mean_mu"] <= b["mean_mu"] for a, b in zip(after, before)), "nothing moves up"
+        assert min(a["mean_mu"] for a in after) >= M_FLOOR
+        low = min(range(len(before)), key=lambda i: before[i]["mean_mu"])
+        assert after[low]["mean_mu"] == before[low]["mean_mu"]
+
+    def test_in_band_is_unchanged_and_inputs_are_not_mutated(self):
+        import copy
+        from hours_eoh.scenarios.multiplier import corrected_segments
+        before = self._snap("reference")
+        snapshot = copy.deepcopy(before)
+        assert corrected_segments(before) == before
+        corrected_segments(self._snap("above_band"))
+        assert before == snapshot
+
+    def test_the_measured_registry_above_band_is_correctable_off_the_top(self):
+        """The case proportional correction cannot handle: the measured map's
+        floor occupation stays at M_FLOOR when the registry is pushed above
+        band by inflating its upper half."""
+        from hours_eoh.core.multipliers import (
+            population_weighted_mean_multiplier, registry_segments)
+        from hours_eoh.data import M_BAND_HIGH, M_FLOOR
+        from hours_eoh.scenarios.multiplier import band_correction, corrected_segments
+        segs = [{**s, "mean_mu": s["mean_mu"] * (1.2 if s["mean_mu"] > 2.0 else 1.0)}
+                for s in registry_segments()]
+        assert population_weighted_mean_multiplier(segs) > M_BAND_HIGH
+        assert not band_correction(segs)["proportional"]["floor_respected"]
+        after = corrected_segments(segs)
+        assert population_weighted_mean_multiplier(after) == pytest.approx(M_BAND_HIGH, rel=1e-12)
+        assert min(s["mean_mu"] for s in after) == M_FLOOR

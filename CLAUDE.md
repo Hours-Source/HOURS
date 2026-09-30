@@ -130,8 +130,9 @@ hours_eoh/
     long_run.py        canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory
     indust_overshoot.py indust_overshoot_baseline, indust_recovery_trajectory
     guf_stress.py      guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress
-    multiplier.py      m_below_band_drift, m_above_band_drift, m_band_sweep, band_correction —
-                       proportional vs off-the-top, and which keeps every tier at M_FLOOR
+    multiplier.py      m_below_band_drift, m_above_band_drift, m_band_sweep, band_correction,
+                       corrected_segments — Condition II corrected OFF THE TOP (adopted
+                       2026-09-30), so no tier is cut below M_FLOOR
     measured.py        measured_segments, measured_mean_multiplier, run_measured_simulation (O*NET/BLS registry)
     multiplier_sensitivity.py  reconstruct, sweep_factor_weights, monte_carlo_factor_weights, sensitivity_report
     infrastructure_floor.py    census_from_condition_counts, doctrine_floor_invariance (B+D currency-free floor)
@@ -168,7 +169,9 @@ hours_eoh/
                        REPORTING ONLY; the partition closes to float equality against total_eoh()
     arc_stability.py   Can the system STAND STILL here: obligation met, delivery pays, stock stationary
     stationarity.py    STAND STILL in labour hours AND TEH, under the doctrine that minted TEH is
-                       the wage: the Trust owes only the guarantee; REPORTING ONLY
+                       the wage: the Trust owes only the guarantee; registered_work_access —
+                       can a member walk away to registered work, and does it cover the
+                       members (cover structural, access watched); REPORTING ONLY
     component_shares.py  The desk component shares measured against observed ATUS time use; a BOUND, REPORTING ONLY
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
@@ -562,7 +565,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,105 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,131 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -657,13 +660,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**113 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
+**114 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 37 files the rule does not cover are all listed below, plus two that do
+The 38 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -716,5 +719,6 @@ are the ones worth knowing by name.
 | `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
+| `test_cli_mint_income.py` | The `arc` and `params` CLI commands pass the MINT as labour income. Both passed `registered_eoh × 2200.0` from the initial commit (~1,100× the mint), so `arc`'s solvency column could not fire; pins that it can |
 | `test_corridor.py` | `research/corridor.py` — including `contestability_ceiling_bare_chi`, kept as the superseded form |
 | `test_personal_floor.py` | The currency-free personal floor across `core/`, `reference/` and `scenarios/` |
