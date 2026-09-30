@@ -2898,7 +2898,29 @@ CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction 
 #   through WORKFORCE_FRACTION_MIN and COMPETENCY_THRESHOLD, both placeholders,
 #   so deriving it would import unmeasured inputs into a guard that does not need
 #   them. Left as a declared convention rather than dressed as a derivation.
-LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # hard floor on period labor income (100M TEH)
+#
+#   DEPRECATED 2026-09-30 (author): NO OPERATIVE CONSUMER. `simulate_period`
+#   was its only one and applied it as `max(this, income)` — which made a
+#   guard into an income FLOOR that bound on the shipped arc (below ε≈0.17 at
+#   1M: 3.7× the mint at ε=0; 36.6× at 1e5, being unscaled) while nothing on
+#   that path divided by the income. The floor is removed; the simulated income
+#   is the mint. Kept so the name resolves for any external caller — a new site
+#   should not bind to it; guard a division where the division is.
+LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # DEPRECATED — no consumer since 2026-09-30
+# tag: normative | units: fraction of the Trust balance per period
+# form: the boundary between a DEGRADED and a CRISIS shock outcome. A shock
+#   that leaves the Trust insolvent is DEGRADED while its per-period deficit is
+#   at most this fraction of the balance — equivalently, while the Trust could
+#   carry it for at least 1 / fraction periods (ten, at 0.10) — and CRISIS
+#   beyond. With no Trust there is no runway, so every deficit is CRISIS.
+# note: ONE CONCEPT, THREE UNNAMED COPIES, TWO VALUES until 2026-09-30:
+#   `demographic_shock` used 0.05, `labor_income_shock` and `compound_shock`
+#   0.10, so the same deficit could read DEGRADED in one shock and CRISIS in
+#   another. Unified at the value two of three used; `shocks._classify` is the
+#   one reader.
+# decided_by: a charter decision on how much runway counts as "degraded"
+#   rather than "in crisis" — a reporting boundary, not a measurement.
+SHOCK_DEGRADED_TRUST_FRACTION:     float = 0.10  # deficit ≤ this × Trust → DEGRADED (≥10 periods of runway)
 # tag: placeholder | units: fraction of population in the workforce
 # form: the minimum workforce retained at any automation level. Structural in
 #   direction — full automation still needs someone, which Condition IV

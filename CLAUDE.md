@@ -417,6 +417,17 @@ someone remembering it, which is what this section is for.
    populations of identical intensity. *The tell:* a gate that credits
    "supplied" is blind to WHERE the supplied value came from. `gated by:`
    `tests/test_capital_scale_resolution.py::TestCanonicalStateCapitalCarriesTheFrame`.
+   **A literal sweep the same day found three more capital sites** — the 1M
+   `CAPITAL_STOCK_DEFAULT` (or a retyped `2.0e9`) beside a population in
+   `recalibration`, `formation`, `anchor_determinacy` — **and the same
+   reference figure as a LABOUR INCOME**: a fixed 2.2e9 aggregate beside a
+   population in `shocks` and `sensitivity` (the frame seam), where the `arc`
+   and `params` CLI's `× 2200` per registered hour was a wrong RATE, not an
+   unscaled aggregate (`record/fulfilment.md#proxy-income-retired`). *The
+   tell, again:* grep for the reference constant's NAME and its VALUE beside a
+   `population`. `gated by:`
+   `TestTheReferenceConstantIsScaledBesideAPopulation` (capital only — the
+   income proxy is retired as a default, not gated).
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -565,8 +576,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,131 tests passing (1 skipped), mypy clean on 103 source files** (verified
-2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
+**5,157 tests passing (1 skipped), mypy clean on 103 source files** (verified
+2026-09-30). Provenance **349/349**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -691,7 +702,7 @@ are the ones worth knowing by name.
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
-| `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the 31/89/222 tier census cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
+| `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the tier census (31/96/222 of 349 on 2026-09-30) cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
 | `test_anchor_page_figures.py` | The published anchor comparison (`docs/theory/anchor_comparison.md`) and its figure emitter. Every figure still reachable, a renamed key RAISES rather than returning an empty collection, every STRUCTURAL statement on the page (verdict strings, designed zeros, unit elasticity, eight anchors, not-unique) read from the page and checked against the functions, the superseded ratio-transfer figures forbidden, and each shape word's range pinned. **States its own gap:** a shape claim can drift inside its range unnoticed. |
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |

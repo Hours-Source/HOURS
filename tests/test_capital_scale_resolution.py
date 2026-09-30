@@ -409,3 +409,126 @@ class TestCanonicalStateCapitalCarriesTheFrame:
         assert other["infrastructure"] / pop == pytest.approx(ref["infrastructure"] / 1.0e6, rel=1e-9)
         assert _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, pop) == pytest.approx(
             _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, 1.0e6), rel=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# The reference constant, read beside a population (2026-09-30)
+# ---------------------------------------------------------------------------
+
+#: Functions that ARE the frame rule: they scale the constant through a local
+#: `scale` the scan cannot connect to `population`. Each is pinned at runtime
+#: by `test_capital_scales_and_intensives_do_not` / the resolver tests above.
+_CONSTANT_ALLOWED = {
+    ("hours_eoh/core/eoh_generation.py", "resolve_capital_stock"),
+    ("hours_eoh/core/trajectory.py", "canonical_physical_state"),
+}
+
+
+def _unscaled_capital_constant_reads() -> list[tuple[str, int, str]]:
+    """
+    `CAPITAL_STOCK_DEFAULT` read in a function with a population in scope,
+    OUTSIDE any expression that also names that population. The constant is
+    declared at the 1M reference frame; beside a population it must be scaled.
+
+    **STATES ITS OWN GAP:** "an expression that names the population" is
+    presence, not correctness — `CAPITAL_STOCK_DEFAULT + population * 0` passes.
+    It catches the realistic shape (the constant used as though it were the
+    caller's stock), not arithmetic that names the frame and gets it wrong.
+    """
+    out: list[tuple[str, int, str]] = []
+    for root in (PKG, _REPO / "utils"):
+        for f in sorted(root.rglob("*.py")):
+            rel = str(f.relative_to(_REPO))
+            if rel == "hours_eoh/data.py":
+                continue
+            tree = ast.parse(f.read_text())
+            for fn in ast.walk(tree):
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if (rel, fn.name) in _CONSTANT_ALLOWED:
+                    continue
+                params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                stores = {n.id for n in ast.walk(fn)
+                          if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                pops = (params | stores) & _POPULATION_PARAMS
+                if not pops:
+                    continue
+                scaled: set[int] = set()
+                for node in ast.walk(fn):
+                    if isinstance(node, ast.BinOp):
+                        names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+                        if names & pops:
+                            scaled |= {id(n) for n in ast.walk(node)
+                                       if isinstance(n, ast.Name) and n.id == "CAPITAL_STOCK_DEFAULT"}
+                for node in ast.walk(fn):
+                    if (isinstance(node, ast.Name) and node.id == "CAPITAL_STOCK_DEFAULT"
+                            and isinstance(node.ctx, ast.Load) and id(node) not in scaled):
+                        out.append((rel, node.lineno, fn.name))
+    return out
+
+
+class TestTheReferenceConstantIsScaledBesideAPopulation:
+    """
+    Found 2026-09-30 by a literal sweep after the ×2200 CLI defect:
+    `recalibration.capital_stock_epsilon` added the 1M constant to ν·Y, which
+    scales with population (K₀ per person 20,000 / 2,000 / 200 TEH at
+    1e5 / 1e6 / 1e7, live via `contestability recal --population`);
+    `formation_feedback_simulation` compared against it; and
+    `anchor_determinacy.hours_shock_response` retyped it as `2.0e9` beside a
+    population its docstring calls THE FRAME.
+    """
+
+    def test_no_unscaled_reads(self):
+        hits = _unscaled_capital_constant_reads()
+        assert not hits, f"CAPITAL_STOCK_DEFAULT read unscaled beside a population: {hits}"
+
+    def test_the_scan_sees_a_scaled_read_and_exempts_it(self):
+        """indust_overshoot scales the constant by population — the scan must
+        see that read and pass it, or it is vacuous."""
+        src = (PKG / "scenarios" / "indust_overshoot.py").read_text()
+        assert "CAPITAL_STOCK_DEFAULT * (population / _POP_REFERENCE)" in src
+
+    @pytest.mark.parametrize("pop", [1.0e5, 1.0e7])
+    def test_recalibrated_stock_is_frame_invariant_per_capita(self, pop):
+        from hours_eoh.research.recalibration import capital_stock_epsilon
+        for eps in (0.0, 0.40, 0.99):
+            assert capital_stock_epsilon(eps, pop) / pop == pytest.approx(
+                capital_stock_epsilon(eps, 1.0e6) / 1.0e6, rel=1e-9)
+
+    @pytest.mark.parametrize("pop", [1.0e5, 1.0e7])
+    def test_shock_response_is_frame_invariant(self, pop):
+        from hours_eoh.research.anchor_determinacy import hours_shock_response
+        ref = hours_shock_response()["shocks"]
+        other = hours_shock_response(population=pop)["shocks"]
+        for k in ref:
+            for q in ("obligation_change", "minting_change"):
+                assert other[k][q] == pytest.approx(ref[k][q], rel=1e-9, abs=1e-12), (k, q)
+
+    def test_no_retyped_literal_stock_beside_a_population(self):
+        """The constant's other disguise: `capital_stock=2.0e9 * ...` — a stock
+        of 1e6 or more written as a number where a population is in scope."""
+        hits = []
+        for root in (PKG, _REPO / "utils"):
+            for f in sorted(root.rglob("*.py")):
+                tree = ast.parse(f.read_text())
+                for fn in ast.walk(tree):
+                    if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                    stores = {n.id for n in ast.walk(fn)
+                              if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                    if not ((params | stores) & _POPULATION_PARAMS):
+                        continue
+                    for c in ast.walk(fn):
+                        if not isinstance(c, ast.Call):
+                            continue
+                        for k in c.keywords:
+                            if k.arg in ("capital_stock", "capital_stock_teh") and any(
+                                isinstance(n, ast.Constant)
+                                and isinstance(n.value, (int, float))
+                                and not isinstance(n.value, bool)
+                                and abs(n.value) >= 1e6
+                                for n in ast.walk(k.value)
+                            ):
+                                hits.append((str(f.relative_to(_REPO)), c.lineno, fn.name))
+        assert not hits, f"literal capital stock beside a population: {hits}"

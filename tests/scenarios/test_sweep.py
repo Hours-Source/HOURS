@@ -106,3 +106,21 @@ class TestTheFloorReadsObservedEpsilon:
             assert row["basket_price"] == basket_price(row["epsilon_observable"])
             if row["epsilon"] > 0.0:
                 assert row["epsilon_observable"] < row["epsilon"]
+
+
+class TestTheSweepPaysFromTheMint:
+    """2026-09-30: the arc coherence check judged solvency on
+    `tot_eoh × (1 − ε)` — obligation hours read as TEH, ~50× the mint at ε=0.
+    On the mint its solvency column can fire, and agrees with stationarity."""
+
+    def test_zero_prior_work_fails_at_the_top_and_nowhere_below_the_edge(self):
+        from hours_eoh.scenarios.stationarity import stationary_bands
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        edge = stationary_bands(step=0.01)["teh"]["upper"]
+        rows = epsilon_sweep(trust_balance=0.0)["sweep"]
+        assert not rows[-1]["fiscal_solvent"]
+        assert all(r["fiscal_solvent"] for r in rows if r["epsilon"] <= edge)
+
+    def test_default_prior_work_holds_everywhere(self):
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        assert all(r["fiscal_solvent"] for r in epsilon_sweep()["sweep"])

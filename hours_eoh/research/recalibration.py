@@ -89,10 +89,10 @@ from __future__ import annotations
 
 import math
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
     ANNUAL_DEATH_RATE,
-    CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_UNDERWRITE_FRACTION,
     FORMATION_DEPRECIATION_RATE,
@@ -136,7 +136,8 @@ def capital_stock_epsilon(
         K(ε) = K₀ + ν · Y(ε)
         Y(ε) = machine_output_teh(ε) = ε · total_eoh(ε)    [TEH/yr]
 
-    Where K₀ = CAPITAL_STOCK_DEFAULT is the ε=0-era stock (human-era tools
+    Where K₀ = CAPITAL_STOCK_DEFAULT at the 1M reference frame, scaled to
+    `population` holding intensity fixed, is the ε=0-era stock (human-era tools
     and infrastructure, producing no machine-fulfilled EOH) and ν =
     RECAL_CAPITAL_OUTPUT_RATIO converts annual machine output into the
     capital stock required to produce it (Piketty's β ≈ 4–6; ν = 4).
@@ -168,8 +169,13 @@ def capital_stock_epsilon(
         raise ValueError(
             f"capital_output_ratio must be > 0, got {capital_output_ratio}"
         )
+    # K₀ TRAVELS WITH THE FRAME (2026-09-30). `CAPITAL_STOCK_DEFAULT` is declared
+    # at the 1M reference population, and it was added unscaled to ν·Y, which
+    # DOES scale with population — so K₀ per person ran 20,000 / 2,000 / 200 TEH
+    # at 1e5 / 1e6 / 1e7, reachable from `contestability recal --population`.
+    # Identical at 1M, so no shipped figure moves.
     return (
-        CAPITAL_STOCK_DEFAULT
+        resolve_capital_stock(None, None, population=population)
         + capital_output_ratio * machine_output_teh(epsilon, population)
     )
 
@@ -417,11 +423,18 @@ def formation_levy_rate(
     share at cost, funded from the labor-era economy — how every real
     sovereign fund was actually seeded (fiscal surpluses, payroll levies).
 
-    Worked example (defaults):
-        ε=0.05: gap ≈ 2.4e7 TEH/yr, labor ≈ 2.2e9 → levy ≈ 1.1%
-        ε=0.20: gap = 0 → levy = 0  (SUNSET — the levy self-extinguishes)
+    THE BASE IS HOURS, NOT TEH — REPORTED 2026-09-30, NOT CHANGED. `labor` is
+    human-fulfilled OBLIGATION HOURS, read as TEH/yr. Under the wage doctrine
+    (minted TEH is the wage, 2026-09-15) the TEH that labour is paid is the
+    MINT, which at the bottom of the arc is a few percent of those hours. So
+    `levy_rate` is the gap as a share of hours, and `levy_rate_on_mint` — the
+    same gap as a share of what the ledger pays — is reported beside it, far
+    larger at subsistence. Which base the §8.9b bridge is quoted on is the
+    author's (record/contestability.md § Open). Call the function for levels;
+    the worked figures that stood here (2.2e9 labour, sunset at 0.20) had
+    drifted — the sunset now sits near ε≈0.245.
 
-    ε-behavior: ≈ 1% at the start of the arc, monotone to 0 by ε ≈ 0.2,
+    ε-behavior: largest near the start of the arc, falling to 0 at the sunset,
     0 thereafter. Compare SUFF_LEVY_RATE (4.5% since 2026-09-15; 1.25% when
     this was written): the bridge is smaller than the sufficiency levy and
     temporary.
@@ -434,7 +447,7 @@ def formation_levy_rate(
 
     Returns:
         dict with keys: levy_rate, funding_gap, labor_output, sunset
-        (gap == 0), epsilon.
+        (gap == 0), epsilon; and REPORTED ONLY: mint, levy_rate_on_mint.
     """
     inc = commons_income_statement(
         epsilon, population, capital_output_ratio, epsilon_rate_per_year,
@@ -444,12 +457,15 @@ def formation_levy_rate(
     labor = (1.0 - epsilon) * total_eoh(
         epsilon=epsilon, population=population
     )["total"]
+    mint = float(eoh_to_teh_pipeline(epsilon, population=population)["teh_created"])
     return {
         "levy_rate": gap / labor,
         "funding_gap": gap,
         "labor_output": labor,
         "sunset": gap == 0.0,
         "epsilon": epsilon,
+        "mint": mint,
+        "levy_rate_on_mint": gap / mint,
     }
 
 

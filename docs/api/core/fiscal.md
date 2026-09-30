@@ -20,7 +20,7 @@ Ecological and stewardship requirements are co-equal — neither is residual. Si
 
 ### `stewardship_allocation(capital_stock_teh, capital_age_ratio, epsilon, available_teh, …)` → `dict`
 
-TEH directed toward fulfilling infrastructure entropy obligations from the capital stock. Grows with the capital stock, making it the dominant revenue-independent fiscal flow at high ε.
+The TEH the infrastructure obligation of the capital stock calls for. It grows with the capital stock; since 2026-09-15 it is paid at the mint (as registered stewardship labour), so `trust_management` reports it as `paid_by_mint` and it is not a Trust expenditure.
 
 ### `ecological_allocation(ecosystem_health, epsilon, available_teh, …)` → `dict`
 
@@ -83,11 +83,15 @@ Total care stipend obligation from population demographics.
 |----------|-------------|
 | `steward_eoh_obligation(structure_value_teh, land_area_units, epsilon, …)` | Private EOH a land steward bears for the structures they use |
 | `collective_land_registration(epsilon, …)` | Fraction of housing/land EOH registered to the collective ledger |
-| `stewardship_dividend_needed(stewardship_teh_required, dep_rate, trust_balance)` | Minimum `div_rate` for the Trust dividend to cover stewardship cost |
+| `stewardship_dividend_needed(stewardship_teh_required, dep_rate, trust_balance)` | **Deprecated 2026-09-30.** Minimum `div_rate` for the Trust dividend to cover stewardship — a question the wage doctrine retired, since the Trust no longer pays stewardship |
 | `accumulation_ceiling_commitment(teh_in_circulation, population, …)` | D6 — TEH above the accumulation ceiling, routed into capital formation |
 
 ---
 
 ## Key Design Invariant
 
-The fiscal system must remain solvent across the whole arc, including both ends: at ε = 0, where almost none of the obligation is registered and creation is at its lowest, and at ε = 0.99, where human labor is a small share of the obligation and creation has fallen back from its late-arc peak while staying far above its ε = 0 level. Revenue streams that depend on production output are supplementary. The Stewardship Allocation — which scales with the capital stock — is the foundational revenue source that persists even at full automation.
+The fiscal system must remain solvent across the whole arc, including both ends: at ε = 0, where almost none of the obligation is registered and creation is at its lowest, and at ε = 0.99, where human labour is a small share of the obligation and creation has fallen back from its late-arc peak while staying far above its ε = 0 level.
+
+Under the wage doctrine (2026-09-15) the Trust owes one thing, the sufficiency guarantee. Registered labour — stewardship, ecological and care work included — is paid when it mints, not by the Trust. What flows in is the levy (a share of the mint) and the Ground Use Fee; what a collective brought with it is its opening balance. Solvency is therefore `levy + GUF` against the guarantee, with the balance as the buffer.
+
+Where that holds is computed, not asserted. `scenarios.stationarity.stationary_bands()` reports the range of ε over which a collective founded with **no** prior work stands still in TEH; it covers nearly the whole arc and stops short of the top, where the mint falls and the guarantee does not. With the default prior work the balance carries that last stretch. Call the function for the edge rather than quoting it — it moves with the levy rate and the guarantee design.

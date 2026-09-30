@@ -39,7 +39,7 @@ def fiscal_parameter_sweep(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
     trust_balance: float | None = None,
-    labor_income: float = 2_200_000_000.0,
+    labor_income: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
@@ -73,7 +73,10 @@ def fiscal_parameter_sweep(
         epsilon: Automation level [0.0, 0.99]. Default: 0.40.
         population: Population.
         trust_balance: Trust fund balance.
-        labor_income: Annual labor income (TEH/year).
+        labor_income: Annual labour income (TEH/year). None (default) → the
+            MINT at this ε and population (wage doctrine). It defaulted to
+            2.2e9 — ~4.4× the mint at ε=0.40 and unscaled by population —
+            until 2026-09-30.
         capital_stock_teh: Capital stock in TEH.
         capital_age_ratio: Mean asset age as fraction of design life.
         ecosystem_health: Ecological health [0,1].
@@ -93,6 +96,11 @@ def fiscal_parameter_sweep(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    if labor_income is None:
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        labor_income = float(eoh_to_teh_pipeline(
+            epsilon, population=population, capital_stock=capital_stock_teh,
+        )["teh_created"])
     # `need_fraction` added 2026-09-16 with the V1 adoption. `floor_fraction`
     # survives but is swept against `design="shipped"`, because that is the only
     # design that reads it: under V1 it moved nothing, and a swept parameter

@@ -32,7 +32,7 @@ from hours_eoh.core.registration import (
     total_registration_share,
 )
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
-from hours_eoh.core.eoh_fulfillment import observable_epsilon
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline, observable_epsilon
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -140,10 +140,19 @@ def epsilon_sweep(
         care = care_registration_share(eps)
         reg  = total_registration_share(eps)
 
-        labor_income_proxy = tot_eoh * (1.0 - eps)
+        # THE MINT IS THE LABOUR INCOME (2026-09-30). This passed
+        # `tot_eoh × (1 − ε)` — human obligation HOURS read as TEH, ~50× the
+        # mint at ε=0 and ~2.7× at 0.40 — so the arc coherence check judged
+        # solvency on an income the ledger never pays. Same state as the
+        # domains above, one pipeline call.
+        mint = float(eoh_to_teh_pipeline(
+            eps, population=population, capital_stock=cap_at_eps,
+            capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
+            knowledge_complexity=kbs_at_eps,
+        )["teh_created"])
         fiscal = fiscal_snapshot(
             trust_balance=trust_balance,
-            labor_income=max(labor_income_proxy, 1.0),
+            labor_income=mint,
             capital_stock_teh=cap_at_eps,
             capital_age_ratio=capital_age_ratio,
             population=population,

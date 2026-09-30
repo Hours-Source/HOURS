@@ -1654,6 +1654,12 @@ def stewardship_dividend_needed(
     trust_balance: float,
 ) -> dict:
     """
+    DEPRECATED 2026-09-30 — no production caller. Under the wage doctrine
+    (2026-09-15) stewardship is paid at the mint and the Trust owes only the
+    guarantee, so "what dividend covers stewardship" is no longer a question the
+    Trust faces. Kept callable (the guardrail: deprecate, don't delete) and its
+    tests still run; do not build on it.
+
     Minimum div_rate needed for the Trust dividend to cover stewardship cost.
 
     The Trust dividend = trust_balance × dep_rate × div_rate. If the current

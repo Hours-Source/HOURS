@@ -30,6 +30,7 @@ from hours_eoh.data import (
     SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     CAPITAL_STOCK_DEFAULT,
+    SHOCK_DEGRADED_TRUST_FRACTION,
 )
 from hours_eoh.core.eoh_generation import (
     personal_eoh,
@@ -50,9 +51,45 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.workforce import automation_failure_scenario, minimum_hours_allocation
 from hours_eoh.core.fiscal import resolve_trust_balance
 
+# THE LEGACY LABOUR-INCOME PROXY — superseded as the DEFAULT 2026-09-30.
+# `2.2e9 × (1 − 0.8ε)`, floored at 3e8, was the levy base in three shocks. It is
+# ~81× the mint at ε=0 and ~4.4× at ε=0.40, ignores the population frame, and
+# contradicts the wage doctrine (minted TEH IS the wage, 2026-09-15) that
+# `labor_income_shock` in this same file already followed. The default is now
+# the pipeline's mint (`_mint_income`); a caller who passes an income explicitly
+# still gets the proxy formula, so pre-2026-09-30 figures reproduce.
 _LABOR_INCOME_BASE:       float = 2_200_000_000.0
 _LABOR_INCOME_MIN:        float = 300_000_000.0
 _LABOR_INCOME_AUTO_SLOPE: float = 0.80
+
+
+def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> str:
+    """
+    STABLE / DEGRADED / CRISIS from the Trust's position after a shock — the
+    one reader of `SHOCK_DEGRADED_TRUST_FRACTION` (2026-09-30; three copies with
+    two values before). DEGRADED: insolvent, but the deficit is at most that
+    fraction of the balance, so the Trust carries it for ≥ 1/fraction periods.
+    """
+    if solvent:
+        return "STABLE"
+    if -surplus_deficit <= trust_balance * SHOCK_DEGRADED_TRUST_FRACTION:
+        return "DEGRADED"
+    return "CRISIS"
+
+
+def _mint_income(
+    epsilon: float,
+    population: float,
+    capital_stock_teh: float,
+    capital_age_ratio: float,
+) -> float:
+    """Labour income under the wage doctrine: the period's mint, one frame."""
+    return float(eoh_to_teh_pipeline(
+        epsilon,
+        population=population,
+        capital_stock=capital_stock_teh,
+        capital_age_ratio=capital_age_ratio,
+    )["teh_created"])
 
 _SEVERITY:     dict[str, int] = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
 _INV_SEVERITY: dict[int, str] = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
@@ -207,7 +244,7 @@ def demographic_shock(
     shock_type: str,
     magnitude: float,
     trust_balance: float = TRUST_BASE_TEH,
-    labor_income_base: float = _LABOR_INCOME_BASE,
+    labor_income_base: float | None = None,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
@@ -233,7 +270,10 @@ def demographic_shock(
             magnitude — so the default cannot resolve against a frame and is
             stated at the 1M reference population. A caller at another scale
             MUST pass a balance explicitly.
-        labor_income_base: Labor income at ε=0.
+        labor_income_base: None (default) → labour income is the MINT at this
+            ε for the base population (wage doctrine). Supplied → the legacy
+            proxy `max(3e8, base × (1 − 0.8ε))`, kept so pre-2026-09-30
+            figures reproduce.
         meaningful_activity_teh: Sufficiency floor TEH.
         suff_levy_rate: Levy rate.
         dep_rate: Trust depreciation rate.
@@ -265,10 +305,16 @@ def demographic_shock(
     )
     base_eoh = base_eoh_data["total"]
 
-    labor_income = max(
-        _LABOR_INCOME_MIN,
-        labor_income_base * (1.0 - epsilon * _LABOR_INCOME_AUTO_SLOPE),
-    )
+    if labor_income_base is None:
+        # The base population carries the default age FRACTIONS; `base_dist`
+        # holds head COUNTS, which the pipeline would read as fractions.
+        labor_income = _mint_income(epsilon, BASE_POPULATION, capital_stock_teh,
+                                    capital_age_ratio)
+    else:
+        labor_income = max(
+            _LABOR_INCOME_MIN,
+            labor_income_base * (1.0 - epsilon * _LABOR_INCOME_AUTO_SLOPE),
+        )
     levies = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
     stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
                                     epsilon, trust_balance)
@@ -314,12 +360,7 @@ def demographic_shock(
 
     eoh_delta = new_eoh - base_eoh
 
-    if trust_after["solvent"]:
-        outcome = "STABLE"
-    elif trust_after["surplus_deficit"] > -trust_balance * 0.05:
-        outcome = "DEGRADED"
-    else:
-        outcome = "CRISIS"
+    outcome = _classify(trust_after["solvent"], trust_after["surplus_deficit"], trust_balance)
 
     rec = (
         f"{shock_type.title()} shock of {magnitude:.0%} at ε={epsilon:.2f}: "
@@ -368,7 +409,7 @@ def ecological_eoh_spike(
     deferred_ecological_eoh: float = 0.0,
     base_rate: float = ECOLOGICAL_BASE_RATE,
     trust_balance: float | None = None,
-    labor_income: float = _LABOR_INCOME_BASE,
+    labor_income: float | None = None,
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
@@ -390,7 +431,9 @@ def ecological_eoh_spike(
         deferred_ecological_eoh: Pre-existing deferred ecological EOH.
         base_rate: Ecological EOH base rate.
         trust_balance: Trust fund balance.
-        labor_income: Annual labor income.
+        labor_income: Annual labour income. None (default) → the MINT at this ε
+            and population (wage doctrine, 2026-09-30); it was the 2.2e9
+            proxy, unscaled by population.
         suff_levy_rate: Levy rate.
         dep_rate: Trust depreciation rate.
         div_rate: Trust dividend fraction.
@@ -406,6 +449,8 @@ def ecological_eoh_spike(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    if labor_income is None:
+        labor_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio)
     eoh_before = ecological_eoh(ecosystem_health_before, epsilon,
                                 base_rate=base_rate,
                                 deferred=deferred_ecological_eoh)
@@ -468,7 +513,8 @@ def ecological_eoh_spike(
         "eoh_spike":             eoh_spike,
         "spike_ratio":           spike_ratio,
         "threshold_crossed":     crossed_thresh,
-        "trust_surplus_deficit": trust["surplus_deficit"],
+"labor_income":         labor_income,   # reported (2026-09-30): the levy base used
+                "trust_surplus_deficit": trust["surplus_deficit"],
         "trust_absorbs":         trust_absorbs,
         "absorbed":              trust_absorbs,
         "outcome":               outcome,
@@ -569,12 +615,7 @@ def labor_income_shock(
     surplus_after  = snap_after["trust"]["surplus_deficit"]
     delta          = surplus_after - surplus_before
 
-    if snap_after["solvent"]:
-        outcome = "STABLE"
-    elif abs(surplus_after) < trust_balance * 0.10:
-        outcome = "DEGRADED"
-    else:
-        outcome = "CRISIS"
+    outcome = _classify(snap_after["solvent"], surplus_after, trust_balance)
 
     rec = (
         f"Labor income shock at ε={epsilon:.2f}: income reduced to "
@@ -669,10 +710,12 @@ def compound_shock(
     individual_outcomes: dict = {}
     combined_eoh_delta: float = 0.0
 
-    labor_income = max(
-        _LABOR_INCOME_MIN,
-        _LABOR_INCOME_BASE * (1.0 - epsilon * _LABOR_INCOME_AUTO_SLOPE),
-    )
+    # The MINT (2026-09-30). This was the 2.2e9 proxy at this ε, and it was then
+    # passed to `demographic_shock` as `labor_income_base` — an ε=0 base — which
+    # applied the (1 − 0.8ε) slope a SECOND time (failure mode 11): at ε=0.9 the
+    # demographic leg ran on ~172M against a mint of ~745M. The demographic leg
+    # now resolves its own mint at its own (1M, frameless) population.
+    labor_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio)
 
     # --- Ecological shock -----------------------------------------------
     if ecology_collapse:
@@ -700,7 +743,6 @@ def compound_shock(
             shock_type=demographic_shock_spec["shock_type"],
             magnitude=demographic_shock_spec["magnitude"],
             trust_balance=trust_balance,
-            labor_income_base=labor_income,
             meaningful_activity_teh=meaningful_activity_teh,
             suff_levy_rate=suff_levy_rate,
             dep_rate=dep_rate,
@@ -742,14 +784,10 @@ def compound_shock(
         (_SEVERITY.get(v, 0) for v in individual_outcomes.values()),
         default=0,
     )
-    if trust_absorbs:
-        combined_severity = worst_individual
-    else:
-        combined_deficit = abs(trust["surplus_deficit"])
-        if combined_deficit < trust_balance * 0.10:
-            combined_severity = max(worst_individual, _SEVERITY["DEGRADED"])
-        else:
-            combined_severity = max(worst_individual, _SEVERITY["CRISIS"])
+    combined_severity = max(
+        worst_individual,
+        _SEVERITY[_classify(trust_absorbs, trust["surplus_deficit"], trust_balance)],
+    )
 
     combined_outcome = _INV_SEVERITY[combined_severity]
 

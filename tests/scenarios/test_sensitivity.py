@@ -107,18 +107,33 @@ class TestFiscalParameterSweep:
             "Under V1 it is sized from the register and must not."
         )
 
-    @pytest.mark.parametrize("epsilon", [0.0, 0.40, 0.90, 0.99])
+    @pytest.mark.parametrize("epsilon", [0.0, 0.40, 0.90])
     def test_a_collective_that_brings_nothing_is_solvent(self, epsilon):
         """
         "The founding stock is an artifact of a collective that could not remain
-        stable without one" (author, 2026-09-17) — measured. At zero prior work
-        the levy covers the guarantee unaided at every point on the arc, which is
-        what makes a subsistence founding a real starting state and not an edge
-        case the model tolerates.
+        stable without one" (author, 2026-09-17) — measured ON THE MINT.
+
+        CORRECTED 2026-09-30. This was parametrised to 0.99 and passed there
+        because the sweep's labour income defaulted to a 2.2e9 proxy, ~4.4× the
+        mint at 0.40. On the mint (the wage doctrine) a collective that brings
+        nothing is solvent across nearly the whole arc and NOT at the top, where
+        the mint falls and the guarantee does not — see the next test.
         """
         result = fiscal_parameter_sweep("trust_per_capita", [0.0], epsilon=epsilon)
         assert result["results"][0]["solvent"] is True
         assert result["solvent_range"] == (0.0, 0.0)
+
+    def test_it_stops_being_solvent_where_stationarity_says(self):
+        """Bound to `stationary_bands`, not restated: the two modules disagreed
+        at 0.99 until both read the mint. At zero prior work solvency and TEH
+        stationarity are one condition, so the edge must match."""
+        from hours_eoh.scenarios.stationarity import stationary_bands
+        upper = stationary_bands(step=0.01)["teh"]["upper"]
+        assert 0.90 < upper < 0.99
+        inside = fiscal_parameter_sweep("trust_per_capita", [0.0], epsilon=upper)
+        above = fiscal_parameter_sweep("trust_per_capita", [0.0], epsilon=0.99)
+        assert inside["results"][0]["solvent"] is True
+        assert above["results"][0]["solvent"] is False
 
     def test_invalid_parameter_raises(self):
         with pytest.raises(ValueError):

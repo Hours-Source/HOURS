@@ -847,3 +847,31 @@ class TestFoundingLabourArm:
         assert channels.index("self") > max(
             i for i, c in enumerate(channels) if c == "underwritten"
         ) - len(channels)
+
+
+class TestFormationLevyBase:
+    """2026-09-30: `formation_levy_rate` divides the gap by obligation HOURS
+    read as TEH. The same gap against the MINT is reported beside it, and the
+    applied `levy_rate` is unchanged — which base the bridge is quoted on is
+    the author's."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.05, 0.10, 0.20])
+    def test_the_mint_rate_is_the_gap_over_the_mint(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.research.recalibration import formation_levy_rate
+        r = formation_levy_rate(eps)
+        assert r["mint"] == eoh_to_teh_pipeline(eps)["teh_created"]
+        assert r["levy_rate_on_mint"] == pytest.approx(r["funding_gap"] / r["mint"], rel=1e-15)
+        assert r["levy_rate"] == pytest.approx(r["funding_gap"] / r["labor_output"], rel=1e-15)
+
+    def test_on_the_mint_the_bridge_is_large_at_subsistence(self):
+        """Direction, not level: the hours base makes the bridge look an order
+        of magnitude or more smaller than it is against what the ledger pays."""
+        from hours_eoh.research.recalibration import formation_levy_rate
+        r = formation_levy_rate(0.0)
+        assert r["levy_rate_on_mint"] > 10.0 * r["levy_rate"]
+
+    def test_the_sunset_is_later_than_the_old_docstring_said(self):
+        from hours_eoh.research.recalibration import formation_levy_rate
+        assert formation_levy_rate(0.20)["sunset"] is False
+        assert formation_levy_rate(0.30)["sunset"] is True

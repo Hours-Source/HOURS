@@ -83,6 +83,7 @@ from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 from hours_eoh.core.fiscal import resolve_trust_balance
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 _SCENARIOS: dict[str, str] = {
     # -- original --
@@ -975,7 +976,6 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "collective":
         from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.data import CAPITAL_STOCK_DEFAULT
         from hours_eoh.land.collective import make_urban_collective
         from hours_eoh.scenarios.collective import collective_snapshot
 
@@ -987,7 +987,7 @@ def _dispatch(args: argparse.Namespace) -> object:
         pop = float(args.population) if args.population != 1_000_000.0 else 30_000.0
         state = make_economy_state(
             population=pop,
-            capital_stock_teh=CAPITAL_STOCK_DEFAULT * pop / 1_000_000.0,
+            capital_stock_teh=resolve_capital_stock(None, None, population=pop),
             trust_balance=resolve_trust_balance(None, pop),
             epsilon=args.epsilon,
         )

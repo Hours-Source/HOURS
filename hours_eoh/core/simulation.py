@@ -32,7 +32,7 @@ from hours_eoh.data import (
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
     CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
-    LABOR_INCOME_MIN_TEH, WORKFORCE_FRACTION_MIN,
+    WORKFORCE_FRACTION_MIN,
     CAPITAL_FAILURE_RATE, CAPITAL_WRITEDOWN_MONITORING_SLOPE,
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
@@ -424,7 +424,13 @@ def simulate_period(
     # above its ε=0 level. Derived from the pipeline, not a geometric decay formula.
     # labor_income_scale overrides for scenario testing (e.g., income-shock stress tests).
     labor_income = labor_income_scale if labor_income_scale is not None else teh_this_period
-    labor_income = max(LABOR_INCOME_MIN_TEH, labor_income)
+    # NO FLOOR (2026-09-30, author). This applied `max(LABOR_INCOME_MIN_TEH,
+    # ·)`, a divide-by-zero guard by its own tag, which nothing on this path
+    # divides by — the income feeds the levy, a multiplication, and the one
+    # division downstream (`fiscal.levy_schedule`) carries its own guard. It
+    # bound below ε≈0.17 at the 1M frame (3.7× the mint at ε=0) and, being
+    # unscaled, 36.6× at 1e5: the simulation levied the Trust on TEH the
+    # ledger never paid. The income is the mint.
 
     # ---- 6. Fiscal pipeline ------------------------------------------------
     # THE EVOLVED STATE, PASSED AS A STATE. This unpacked into nineteen loose

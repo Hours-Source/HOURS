@@ -46,6 +46,7 @@ import inspect
 from dataclasses import dataclass
 
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import ecological_allocation
 from hours_eoh.core.prices import basket_price
 
@@ -230,7 +231,10 @@ def hours_shock_response(
             health: float = 0.70) -> dict:
         return eoh_to_teh_pipeline(
             epsilon=capability, population=population,
-            capital_stock=2.0e9 * capital_mult, capital_age_ratio=0.50,
+            # The frame's capital (2026-09-30): was a retyped 2.0e9 — the 1M
+            # constant — beside a `population` the docstring calls THE FRAME.
+            capital_stock=resolve_capital_stock(None, None, population=population) * capital_mult,
+            capital_age_ratio=0.50,
             ecosystem_health=health, monitoring_capability=0.70,
             available_labor_eoh=labour * labour_mult,
         )

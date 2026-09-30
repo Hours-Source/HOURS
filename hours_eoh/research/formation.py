@@ -52,10 +52,9 @@ Mission Statement: §"Contestability — the invariant the arc must preserve."
 
 from __future__ import annotations
 
-from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
     ANNUAL_DEATH_RATE,
-    CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_PHI_FLOOR,
     CONTESTABILITY_UNDERWRITE_FRACTION,
@@ -298,7 +297,9 @@ def formation_feedback_simulation(
             f"charter_share_override must be in [0, 1], got {charter_share_override}"
         )
 
-    k0 = CAPITAL_STOCK_DEFAULT
+    # K₀ in THIS frame (2026-09-30), matching `capital_stock_epsilon`, which
+    # this loop compares it against. Was the 1M constant beside a population.
+    k0 = resolve_capital_stock(None, None, population=population)
     eps = 0.0
     k = k0
     t_k = CONTESTABILITY_PHI_FLOOR * k0  # the §8.9 initial endowment

@@ -137,6 +137,13 @@ class TestTheCensusCannotDriftSilently:
                        achievable ceiling, which is derived and moves —
                        observable_epsilon_ceiling() reads 0.788-0.877 under
                        per_component, and the two are gated apart.
+                 349 = 31/96/222 after SHOCK_DEGRADED_TRUST_FRACTION was
+                       NAMED (2026-09-30) — the DEGRADED/CRISIS boundary that
+                       had lived as three unnamed copies with two values
+                       (0.05 in one shock, 0.10 in two). POSSIBLE rose because
+                       it is `normative`, as SUFF_NEED_FRACTION's did: naming a
+                       number already governing output makes the uncertainty
+                       countable, not larger.
 
         **The 2026-09-16 move is the first DOWNWARD one, and it is the good
         direction for a reason worth stating.** POSSIBLE fell because a
@@ -154,10 +161,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 348
+        assert c["total"] == 349
         assert c["counts"]["CERTAIN"] == 31
         assert c["counts"]["INSTANCE"] == 96
-        assert c["counts"]["POSSIBLE"] == 221
+        assert c["counts"]["POSSIBLE"] == 222
 
     def test_possible_is_still_the_largest_tier(self):
         """

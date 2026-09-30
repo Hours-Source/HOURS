@@ -282,15 +282,19 @@ class TestLaborIncomeAutomationSlope:
     caller only through other terms is a term no test can hold.
     """
 
-    def _income(self, eps, base=None):
-        kw = {} if base is None else {"labor_income_base": base}
+    # SINCE 2026-09-30 THIS IS THE LEGACY PATH. The default income is the mint
+    # (wage doctrine); the proxy runs only when a base is passed, so these pin
+    # it there. "Automation must reduce labour income" is true of the PROXY and
+    # false of the mint, which rises until ε≈0.77 — see
+    # TestShocksPayFromTheMint below.
+    def _income(self, eps, base=_LABOR_INCOME_BASE):
         return demographic_shock(epsilon=eps, shock_type="growth",
-                                 magnitude=0.1, **kw)["labor_income"]
+                                 magnitude=0.1, labor_income_base=base)["labor_income"]
 
     def test_labor_income_falls_with_automation(self):
         vals = [self._income(e) for e in (0.0, 0.25, 0.5, 0.75, 0.99)]
         assert vals == sorted(vals, reverse=True), vals
-        assert vals[-1] < vals[0], "automation must reduce labour income"
+        assert vals[-1] < vals[0], "the proxy's slope must reduce labour income"
 
     def test_the_decline_is_the_declared_fraction_of_base(self):
         """Binds the constant to the behaviour rather than restating 0.80."""
@@ -315,3 +319,100 @@ class TestLaborIncomeAutomationSlope:
         """A slope ≥ 1 would zero labour income at ε=1 before the floor could
         act; a negative slope would mean automation RAISES labour income."""
         assert 0.0 < _LABOR_INCOME_AUTO_SLOPE < 1.0
+
+
+
+class TestShocksPayFromTheMint:
+    """
+    2026-09-30: three shocks levied the Trust from the 2.2e9 proxy — ~81× the
+    mint at ε=0, unscaled by population — and `compound_shock` applied the
+    proxy's automation slope twice (mode 11). The default is now the mint.
+    """
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_demographic_income_is_the_mint(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = demographic_shock(epsilon=eps, shock_type="aging", magnitude=0.2)
+        mint = eoh_to_teh_pipeline(
+            eps, population=1_000_000.0,
+            capital_stock=resolve_capital_stock(None, eps), capital_age_ratio=0.30,
+        )["teh_created"]
+        assert r["labor_income"] == pytest.approx(mint, rel=1e-12)
+
+    def test_the_mint_rises_before_it_falls(self):
+        """The proxy fell monotonically; the mint does not."""
+        inc = [demographic_shock(epsilon=e, shock_type="growth", magnitude=0.1)["labor_income"]
+               for e in (0.0, 0.40, 0.70, 0.99)]
+        assert inc[0] < inc[1] < inc[2] and inc[3] < inc[2]
+
+    def test_ecological_spike_income_travels_with_the_frame(self):
+        """The proxy was 2.2e9 at every population. The mint scales."""
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        for pop in (1.0e5, 1.0e7):
+            got = _mint_income(0.40, pop, resolve_capital_stock(None, 0.40, population=pop), 0.30)
+            ref = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), 0.30)
+            assert got / pop == pytest.approx(ref / 1.0e6, rel=1e-9)
+
+    def test_the_spike_reports_the_mint_and_honours_an_explicit_income(self):
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = ecological_eoh_spike(0.40, 0.7, 0.3)
+        assert r["labor_income"] == pytest.approx(
+            _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), 0.30),
+            rel=1e-12)
+        assert ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e10)["labor_income"] == 1.0e10
+        low = ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e6)["trust_surplus_deficit"]
+        high = ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e10)["trust_surplus_deficit"]
+        assert high > low, "the income must reach the Trust"
+
+    def test_compound_no_longer_applies_the_slope_twice(self, monkeypatch):
+        """The demographic leg must resolve its OWN income: compound_shock used
+        to hand it an already-sloped income as an ε=0 base (mode 11)."""
+        import hours_eoh.scenarios.shocks as sh
+        seen = {}
+        real = sh.demographic_shock
+
+        def spy(**kw):
+            seen.update(kw)
+            return real(**kw)
+
+        monkeypatch.setattr(sh, "demographic_shock", spy)
+        sh.compound_shock(0.90, demographic_shock_spec={"shock_type": "aging", "magnitude": 0.2})
+        assert "labor_income_base" not in seen
+
+
+class TestOneDegradedThreshold:
+    """2026-09-30: DEGRADED was 5% of the Trust in `demographic_shock` and 10%
+    in two others, unnamed. One constant, one reader."""
+
+    def test_the_boundary_is_the_constant(self):
+        from hours_eoh.data import SHOCK_DEGRADED_TRUST_FRACTION as F
+        from hours_eoh.scenarios.shocks import _classify
+        assert _classify(True, -1e9, 0.0) == "STABLE"
+        assert _classify(False, -F * 1000.0, 1000.0) == "DEGRADED"
+        assert _classify(False, -F * 1000.0 * 1.001, 1000.0) == "CRISIS"
+        assert _classify(False, -1.0, 0.0) == "CRISIS", "no Trust, no runway"
+
+    def test_no_shock_carries_its_own_copy(self):
+        import inspect
+        import hours_eoh.scenarios.shocks as sh
+        src = inspect.getsource(sh)
+        assert "trust_balance * 0.05" not in src and "trust_balance * 0.10" not in src
+
+    def test_demographic_shock_reads_the_shared_boundary(self):
+        """A deficit between 5% and 10% of the Trust: CRISIS under the old 5%,
+        DEGRADED now. Searched, and FAILS rather than skips if the probe finds
+        nothing — a skipped check is not a check."""
+        import numpy as np
+        from hours_eoh.data import SHOCK_DEGRADED_TRUST_FRACTION as F
+        for tb in np.geomspace(1.0e5, 1.0e10, 60):
+            r = demographic_shock(0.99, "growth", 0.2, trust_balance=float(tb))
+            deficit = -r["surplus_deficit_after"]
+            if not r["trust_solvent_after"] and 0.05 * tb < deficit <= F * tb:
+                assert r["outcome"] == "DEGRADED"
+                return
+        raise AssertionError("no probe landed between 5% and 10% of the Trust")
