@@ -321,11 +321,36 @@ class TestFederationBook:
         assert book.all_balance()
 
     def test_a_unit_rate_conserves_across_the_federation(self):
+        """
+        Conservation of HOLDINGS, not of `money_supply()`. The earlier form
+        summed money_supply, which no transfer posting touches, so it passed at
+        every rate — and passed while the sender leg returned the sent amount
+        to the sender's own circulation, creating holdings on every transfer
+        (corrected 2026-09-30).
+        """
         book, cs = self._book()
-        before = sum(book.ledger(c.collective_id).money_supply() for c in cs)
+        before = sum(book.ledger(c.collective_id).holdings() for c in cs)
         book.transfer(0, 1, amount=1000.0, rate=1.0)
-        after = sum(book.ledger(c.collective_id).money_supply() for c in cs)
+        after = sum(book.ledger(c.collective_id).holdings() for c in cs)
         assert after == pytest.approx(before, rel=1e-12)
+
+    def test_the_sender_parts_with_what_it_sends(self):
+        """The defect itself: the sent amount must leave the sender's residents."""
+        book, _ = self._book()
+        before = book.ledger(0).holdings()
+        book.transfer(0, 1, amount=1000.0, rate=1.5)
+        assert book.ledger(0).holdings() == pytest.approx(before - 1000.0, rel=1e-12)
+        assert book.ledger(0).balance(Ledger.EXTERNAL) == pytest.approx(1000.0)
+
+    def test_off_unit_rates_move_holdings_by_exactly_the_revaluation(self):
+        """And the conservation test can FAIL: at rate != 1 the federation
+        total moves, by amount * (rate - 1) and nothing else."""
+        book, cs = self._book()
+        before = sum(book.ledger(c.collective_id).holdings() for c in cs)
+        out = book.transfer(0, 1, amount=1000.0, rate=1.5)
+        after = sum(book.ledger(c.collective_id).holdings() for c in cs)
+        assert after - before == pytest.approx(out["fx"], rel=1e-9)
+        assert out["fx"] == pytest.approx(500.0)
 
     @pytest.mark.parametrize(
         "kw,msg",

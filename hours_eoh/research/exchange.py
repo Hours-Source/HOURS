@@ -435,6 +435,10 @@ class Ledger:
     CIRCULATION = "circulation"
     RESERVE     = "reserve"
     FX          = "fx_revaluation"
+    #: Contra-account for value that LEFT this collective's unit in settlement.
+    #: Added 2026-09-30: before it, the sender leg posted reserve → its OWN
+    #: circulation, so what was sent abroad stayed spendable at home as well.
+    EXTERNAL    = "external_settlement"
 
     def __init__(self, collective_id: int) -> None:
         self.collective_id = collective_id
@@ -523,6 +527,17 @@ class Ledger:
         posted = sum(e.amount for e in self.entries)
         return abs(sum(self.trial_balance().values())) <= tolerance * max(1.0, posted)
 
+    def holdings(self) -> float:
+        """
+        TEH held by this collective's residents: circulation + reserve.
+
+        The quantity a transfer must MOVE. `money_supply()` is issuance net of
+        destruction, which no transfer touches, so it cannot see whether a
+        transfer conserved anything — a conservation test written against it
+        passes at every rate. This one moves with every settlement leg.
+        """
+        return self.balance(self.CIRCULATION) + self.balance(self.RESERVE)
+
     def money_supply(self) -> float:
         """
         TEH outstanding = minted − destroyed = −balance(issuance) − balance(destruction).
@@ -607,12 +622,27 @@ class FederationBook:
 
         Governing equations:
 
-            sender leg  : reserve(sender)   −= amount
-            receiver leg: reserve(receiver) += amount · rate
-            fx booked   : amount · (rate − 1)      [receiver's fx_revaluation]
+            sender leg  : reserve(sender)   −= amount          [→ external_settlement]
+            receiver leg: reserve(receiver) += amount · rate   [← fx_revaluation]
+            revaluation : amount · (rate − 1)                  [returned as `fx`]
 
-        Both ledgers still balance to zero afterwards; the asymmetry lives in a
-        named account rather than in a discrepancy.
+        Both ledgers still balance to zero afterwards. Resident holdings
+        (`Ledger.holdings`) fall by `amount` in the sender's unit and rise by
+        `amount · rate` in the receiver's, so at rate = 1 federation holdings
+        are conserved exactly and at rate ≠ 1 they differ by the revaluation.
+
+        WHAT THE `fx_revaluation` ACCOUNT HOLDS: the receiver's whole inflow,
+        −amount·rate — its contra-account for value arriving from another
+        unit. The revaluation proper, amount·(rate − 1), is the returned `fx`
+        and is not separately posted. The account keeps its name because
+        `settlement_report` and its tests read it; the docstring previously
+        said it held the revaluation, which it never did.
+
+        CORRECTED 2026-09-30. The sender leg posted reserve → the sender's own
+        CIRCULATION, so the amount sent abroad remained spendable at home: every
+        transfer CREATED holdings, at any rate, and the federation-conservation
+        test could not see it because it measured `money_supply()`, which no
+        transfer posting touches.
 
         Args:
             sender/receiver: collective ids; must differ and both be open.
@@ -633,7 +663,7 @@ class FederationBook:
         sl, rl = self.ledger(sender), self.ledger(receiver)
         note = memo or f"transfer {sender}->{receiver} @ {rate:.6f}"
 
-        sl.post(sl.CIRCULATION, sl.RESERVE, amount, note)
+        sl.post(sl.EXTERNAL, sl.RESERVE, amount, note)
         received = amount * rate
         rl.post(rl.RESERVE, rl.FX, received, note)
 

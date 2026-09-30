@@ -16,9 +16,10 @@ import math
 
 import pytest
 
-from hours_eoh.data import ARC_REPORTING_POINTS
+from hours_eoh.data import ARC_REPORTING_POINTS, M_BAND_HIGH, M_BAND_LOW
 from hours_eoh.research.exchange import build_collective, parity_rate
 from hours_eoh.research.settlement_base import (
+    BAND_RATE_BOUNDS,
     BASES,
     BY_CONSTRUCTION,
     SEARCH_POINTS,
@@ -26,7 +27,14 @@ from hours_eoh.research.settlement_base import (
     acquisition,
     arc_pairing,
     base_report,
+    book_exercise,
     capture_response,
+    composition_pairing,
+    floor_epsilon_seam,
+    focus_report,
+    purchasing_gain,
+    registered_settlement,
+    settled_rate_matrix,
     frame_check,
     multiplier_response,
     settlement_rate,
@@ -99,7 +107,7 @@ class TestCapture:
     @pytest.mark.parametrize("eps", ARC_REPORTING_POINTS)
     def test_neutral_bases_are_neutral(self, eps: float) -> None:
         v = capture_response(epsilon=eps)["verdict"]
-        for b in ("registered", "floor", "obligation_parity"):
+        for b in ("registered", "floor", "floor_observed", "obligation_parity"):
             assert v[b] == "neutral", f"{b} at ε={eps}"
 
     def test_the_identity_passes_are_declared(self) -> None:
@@ -253,3 +261,144 @@ class TestTheReport:
         assert r["reporting_only"] is True
         limits = " ".join(r["what_this_does_not_establish"]).lower()
         assert "goods layer" in limits and "threshold" in limits
+
+
+# ---------------------------------------------------------------------------
+# Registered and floor — the two carried forward (2026-09-30)
+# ---------------------------------------------------------------------------
+
+def _at_m(cid: int, m: float, eps: float = 0.40):
+    return build_collective(_reference_frame(cid), eps, mean_multiplier=m)
+
+
+class TestRegisteredBound:
+    """The bound is the band's own edges, and it holds only if the band does."""
+
+    def test_the_bound_is_derived_from_the_band(self) -> None:
+        assert BAND_RATE_BOUNDS == (M_BAND_LOW / M_BAND_HIGH, M_BAND_HIGH / M_BAND_LOW)
+
+    def test_an_in_band_pair_settles_inside_the_bound(self) -> None:
+        r = registered_settlement(_at_m(1, M_BAND_LOW), _at_m(0, M_BAND_HIGH))
+        assert r["both_in_band"]
+        assert r["within_band_bounds"]
+        assert r["rate"] == pytest.approx(M_BAND_HIGH / M_BAND_LOW, rel=1e-12)
+
+    def test_an_out_of_band_pair_is_flagged_and_outside(self) -> None:
+        """Mode 9, the other question: the check must be able to fire."""
+        r = registered_settlement(_at_m(1, 1.5), _at_m(0, 2.4))
+        assert not r["both_in_band"]
+        assert r["status_a"] == "BELOW_BAND" and r["status_b"] == "ABOVE_BAND"
+        assert not r["within_band_bounds"]
+
+    def test_a_rate_inside_the_bound_does_not_certify_the_band(self) -> None:
+        """Both multipliers above band by the same factor settle at par. The
+        breach is on m, so the check must read m, not the rate."""
+        r = registered_settlement(_at_m(1, 2.4), _at_m(0, 2.4))
+        assert r["within_band_bounds"]
+        assert not r["both_in_band"]
+
+    def test_at_the_shipped_multiplier_it_is_mutual_recognition(self) -> None:
+        """Every rate 1.0 — the regime register_federation already priced."""
+        cs = [build_collective(_reference_frame(i), e) for i, e in enumerate(KEY)]
+        assert all(r == pytest.approx(1.0, rel=1e-12)
+                   for r in settled_rate_matrix(cs, "registered").values())
+
+
+class TestComposition:
+
+    def test_in_band_pairs_stay_inside_and_some_breaches_leave(self) -> None:
+        c = composition_pairing()
+        assert c["in_band_pairs_within_bounds"]
+        assert c["breach_pairs"] > 0
+        assert 0 < c["breach_pairs_outside_bounds"] <= c["breach_pairs"]
+
+    def test_the_natural_high_epsilon_composition_breaches_the_band(self) -> None:
+        """The sharpest thing the pairing found: nobody gamed this one."""
+        m = composition_pairing()["multipliers"]["high_epsilon"]
+        assert m > M_BAND_HIGH
+
+    def test_it_says_the_compositions_are_illustrative(self) -> None:
+        assert "illustrative" in composition_pairing()["provenance"]
+        assert "not measured" in composition_pairing()["provenance"]
+
+
+class TestFloorSeam:
+    """Which ε the floor is a function of: supplied or observed."""
+
+    def test_observed_sits_below_supplied_away_from_zero(self) -> None:
+        rows = floor_epsilon_seam()["rows"]
+        assert rows[0]["epsilon_observed"] == rows[0]["epsilon_supplied"] == 0.0
+        for r in rows[1:]:
+            assert r["epsilon_observed"] < r["epsilon_supplied"]
+            assert r["floor_observed"] > r["floor_supplied"]
+
+    def test_the_observed_leg_narrows_the_high_epsilon_advantage(self) -> None:
+        """Direction, not level: on the observed ε the high-ε unit is weaker,
+        because care resists automation and the floor stays higher."""
+        f = floor_epsilon_seam()
+        for r in f["rows"][1:]:
+            assert 1.0 < r["rate_vs_subsistence_observed"] < r["rate_vs_subsistence_supplied"]
+        assert f["max_rate_observed"] < f["max_rate_supplied"]
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_floor_observed_ignores_the_supplied_epsilon(self, eps: float) -> None:
+        c = build_collective(_reference_frame(0), eps)
+        from hours_eoh.core.prices import floor_price
+        assert 1.0 / floor_price(float(c.pipeline["epsilon_observable"])) == \
+            BASES["floor_observed"][0](c)
+
+
+class TestPurchasingGain:
+
+    def test_it_is_the_ratio_not_the_product(self) -> None:
+        a, b = _at_m(1, 1.9, 0.90), _at_m(0, 2.05, 0.0)
+        g = purchasing_gain(a, b)
+        assert g["gain"] == pytest.approx(g["floor_rate"] / g["registered_rate"], rel=1e-12)
+        assert g["registered_rate"] != 1.0
+
+    def test_in_band_gain_is_bounded_by_band_times_floor(self, fixed: dict) -> None:
+        a, b = _at_m(1, M_BAND_LOW, 0.99), _at_m(0, M_BAND_HIGH, 0.0)
+        bound = fixed["bases"]["floor"]["max_rate"] * BAND_RATE_BOUNDS[1]
+        assert 1.0 < purchasing_gain(a, b)["gain"] <= bound * (1.0 + 1e-12)
+
+    def test_unknown_floor_base_raises(self) -> None:
+        c = build_collective(_reference_frame(0), 0.40)
+        with pytest.raises(ValueError):
+            purchasing_gain(c, c, floor_base="parity")
+
+
+class TestBook:
+    """The capture scenario through the double-entry book."""
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_neutral_bases_conserve_federation_holdings(self, eps: float) -> None:
+        b = book_exercise(epsilon=eps)["bases"]
+        for base in ("registered", "floor", "floor_observed"):
+            row = b[base]
+            assert row["books_balance"]
+            assert row["received"] == pytest.approx(row["sent"], rel=1e-12)
+            assert row["federation_holdings_change"] == pytest.approx(0.0, abs=1e-6), base
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_parity_grows_holdings_by_exactly_the_revaluation(self, eps: float) -> None:
+        row = book_exercise(epsilon=eps)["bases"]["parity"]
+        assert row["books_balance"]
+        assert row["federation_holdings_change"] > 0.0
+        assert row["federation_holdings_change"] == pytest.approx(
+            row["sent"] * (row["rate"] - 1.0), rel=1e-9)
+
+    def test_at_subsistence_parity_breaches_a_receiver_the_neutral_bases_do_not(self) -> None:
+        b = book_exercise(epsilon=0.0)["bases"]
+        assert b["parity"]["receiver_breached"]
+        assert not any(b[x]["receiver_breached"] for x in ("registered", "floor", "floor_observed"))
+        assert not any(v["sender_breached"] for v in b.values())
+
+
+class TestFocusReport:
+
+    def test_it_hands_over_the_three_decisions(self) -> None:
+        r = focus_report()
+        text = " ".join(r["author_decides"]).lower()
+        assert "supplied or the observed" in text
+        assert "mutual recognition" in text
+        assert r["reporting_only"] is True

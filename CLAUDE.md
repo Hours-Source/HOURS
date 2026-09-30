@@ -194,10 +194,13 @@ hours_eoh/
     coasean.py         N-collective federation (§§6–7)
     corridor.py        survival_floor_epsilon, contestability_ceiling, thermal_ceiling, corridor
     epsilon_inverse.py capital_for_epsilon — sweep the economy, not the score
-    exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger, parity_rate, the named FX seam
+    exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger (holdings move on
+                       transfer since 2026-09-30), parity_rate, the named FX seam
     settlement_base.py WHICH QUANTITY BACKS A TEH AT THE BOUNDARY — six candidate bases for §5's
                        "settle on the BASE", side by side; none chosen. Per-TEH bases discipline
                        capture and do not bound the arc; the bounded one is blind to issuance.
+                       Focus narrowed to registered (hour-for-hour, band-bounded, Condition II
+                       checked) and floor (supplied vs observed ε), both run through the book.
                        REPORTING ONLY; parity_rate unchanged pending the author
     anchor_determinacy.py  Eight anchors CLASSIFIED from their own definitions — no rival is modelled; REPORTING ONLY
     thermal*.py        thermal, thermal_path_c, thermal_lambda, thermal_overage, thermal_drawdown,
@@ -546,7 +549,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,016 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,049 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
