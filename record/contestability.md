@@ -55,13 +55,18 @@ exchange-accounting layer.
   today (it is reported only), so nothing violates §5. *Settles by:* the author
   choosing a standing claim in the book, suspension, or the factor as a signal
   only — and the answer may retire `COASEAN_DEPRECIATION_SLOPE`.
-- **Which ε the floor reading uses** *(person)* — supplied or observed;
-  `settlement_terms` reports both. *Settles by:* the author; switching changes
-  what `floor_price` is a function of repo-wide.
+- **~~Which ε the floor reading uses~~ — SETTLED 2026-09-30** *(pointer)*:
+  observed. See
+  [fulfilment.md § floor-reads-observed-epsilon](fulfilment.md#floor-reads-observed-epsilon).
 - **On the shipped constructor the federation is at mutual recognition** *(caveat)* —
   one multiplier, every settlement rate 1.0; regime 2 is Condition II divergence
   only (`multiplier_schedule` is the lever). No measured cross-collective
   multiplier differences exist in the repo.
+- **The Condition II correction rule** *(person)* — on the measured map a
+  proportional correction cuts the floor occupation below an hour; off the top
+  does not. Unsynchronised recalibration IS regime-2 movement. *Settles by:* the
+  author.
+  [fulfilment.md § band correction](fulfilment.md#mint-floor-reach-and-band-correction).
 - **Underwriting governance** *(person)* — who decides, and on what terms.
 - **Supply-curve calibration** *(gap)* for `research/formation.py`'s linear private
   supply between `FORMATION_HURDLE_RATE_MIN` and `FORMATION_FULL_SUPPLY_RATE`.

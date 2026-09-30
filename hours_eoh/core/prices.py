@@ -29,6 +29,18 @@ basket_price() as floor_price() is pending author sign-off (Workstream C PR).
 Mission Statement: §"Principle 5 — The floor rises with automation; it never
 falls"; §"TEH-denominated prices fall as automation handles more EOH, so the
 same nominal TEH buys more"; §"teh_price" in Phase 3.2 requirements.
+
+WHICH ε (author decision, 2026-09-30). Every function here takes ε as a number.
+The number callers pass is the OBSERVED machine share of obligation
+(`eoh_fulfillment.observable_epsilon`, the pipeline's `epsilon_observable`) —
+"ε as the theory defines it" — not the capability index a caller supplies.
+Under `per_component` the two differ by care's automation floor, which is the
+labour the floor price exists to keep paying for. Callers holding a pipeline or
+an obligation pass the observed value: `core/simulation.py`,
+`scenarios/long_run.py`, `scenarios/sweep.py`, `research/exchange.settlement_terms`,
+`utils/arc_cmd.py`. Callers holding only a bare ε (`capital.personal_reserve`,
+`dashboard`'s fiscal panel, the arc checks in this module) still pass it as
+given; see record/fulfilment.md#floor-reads-observed-epsilon.
 """
 
 from __future__ import annotations

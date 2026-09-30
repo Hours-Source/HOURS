@@ -39,6 +39,7 @@ from hours_eoh.data import (
     MEAN_MULTIPLIER_REFERENCE, M_FLOOR,
 )
 from hours_eoh.core.fiscal import resolve_trust_balance
+from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +127,18 @@ def make_economy_state(
     # and for the same reason (2026-09-09). It is the ACTUAL stock this state
     # holds, not an ε=0 baseline: simulate_period grows it and hands it to the
     # pipeline, which no longer rescales a supplied stock.
-    _capital      = _cps(epsilon)["capital_stock_teh"] if capital_stock_teh is None else capital_stock_teh
+    #
+    # THE FRAME (2026-09-30). This read `_cps(epsilon)["capital_stock_teh"]` —
+    # the canonical arc at the 1M REFERENCE frame — whatever `population` was,
+    # so a 3M economy started with a third of the capital intensity of a 1M one
+    # while its Trust, resolved two lines below, scaled correctly. Found when
+    # the floor moved to the OBSERVED ε, which reads the obligation mix: two
+    # populations with identical intensity reported different ε. The capital
+    # gate could not see it because it keys on the resolvers and this site
+    # called the canonical state directly. `resolve_capital_stock` is the same
+    # value at the reference frame (pinned in tests/test_trajectory.py) and
+    # scales by population elsewhere; a supplied stock is still never rescaled.
+    _capital      = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     # knowledge_complexity resolves from ε for the same reason (2026-09-09): it
     # is the ACTUAL corpus size this state holds, `simulate_period` grows it, and
     # a supplied size is no longer rescaled by the pipeline.
@@ -489,6 +501,14 @@ def simulate_period(
     writedown_teh    = new_cap_stock * CAPITAL_FAILURE_RATE * (1.0 - CAPITAL_WRITEDOWN_MONITORING_SLOPE * eps)
     new_cap_embodied = max(0.0, cap_embodied + investment_teh - writedown_teh)
 
+    # THE FLOOR IS READ AT THE OBSERVED ε (author decision, 2026-09-30). The
+    # sufficiency-basket floor price falls with automation; the automation it
+    # falls with is the machine share the ledger MEASURES (`epsilon_observable`,
+    # "ε as the theory defines it"), not the capability index `eps` a caller
+    # supplies. Under `per_component` the two differ by care's floor, which is
+    # exactly the labour the floor price exists to keep paying for.
+    eps_floor = float(pipeline["epsilon_observable"])
+
     # Terminal consumption — D2 (income-driven) or D3 (biology-anchored).
     if use_d3:
         from hours_eoh.core.registration import personal_eoh_registration_share as _pers_reg
@@ -513,7 +533,7 @@ def simulate_period(
     else:
         d3_personal_human_fraction = None
         period_income          = fiscal["levies"]["worker_net"] + fiscal["trust"]["dividend"]
-        pp_ratio               = _basket_price(0.0) / max(_basket_price(eps), 1e-6)
+        pp_ratio               = _basket_price(0.0) / max(_basket_price(eps_floor), 1e-6)
         consumption_rate_eff   = base_consumption_rate / max(1.0, pp_ratio)
         consumption            = period_income * consumption_rate_eff
         personal_eoh_on_ledger = None
@@ -526,10 +546,10 @@ def simulate_period(
     #     Until 2026-09-15 this multiplied it by population as well, destroying
     #     population× the delivered services — ~6e5× the period's mint at 1M.
     if use_cpi_destruction:
-        d4 = _cpi_dest(cap_pers_fulfil, eps, basket_eoh_content)
+        d4 = _cpi_dest(cap_pers_fulfil, eps_floor, basket_eoh_content)
     else:
         d4 = {"teh_destroyed": 0.0, "baskets_delivered": 0.0,
-              "basket_price": _basket_price(eps), "mechanism": "D4_disabled"}
+              "basket_price": _basket_price(eps_floor), "mechanism": "D4_disabled"}
 
     # D5: Estate dissolution — TEH written down on death above personal reserve.
     #     Computed ABOVE, before the fiscal period closes, so its Trust levy
@@ -592,6 +612,7 @@ def simulate_period(
         "period":            state["period"],
         "epsilon":           eps,
         "derived_epsilon":   derived_epsilon,   # ε as physical progress score (currently = eps)
+        "epsilon_observable": eps_floor,        # the measured machine share; the floor is read here
         # EOH
         "total_eoh":         pipeline["total_eoh"],
         "human_eoh":         pipeline["human_eoh"],

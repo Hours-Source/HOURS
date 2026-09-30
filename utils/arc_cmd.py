@@ -62,7 +62,7 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
     results = []
     for i in range(n_points):
         eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
-        state = canonical_physical_state(eps)
+        state = canonical_physical_state(eps, population=population)
         eoh = total_eoh(
             capital_stock=state["capital_stock_teh"],
             capital_age_ratio=state["capital_age_ratio"],
@@ -88,8 +88,10 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
         pipeline = eoh_to_teh_pipeline(eps, population=population,
                                        thermal_obligation=thermal_obligation)
         reg = total_registration_share(eps)
-        price = floor_price(eps)
-        floor_pp_result = floor_purchasing_power(MEANINGFUL_ACTIVITY_TEH_BASE, eps)
+        # The floor is read at the OBSERVED ε (author decision, 2026-09-30).
+        eps_floor = float(pipeline["epsilon_observable"])
+        price = floor_price(eps_floor)
+        floor_pp_result = floor_purchasing_power(MEANINGFUL_ACTIVITY_TEH_BASE, eps_floor)
         floor_pp = float(floor_pp_result.get("pp_index", 0.0))
 
         labor_income = pipeline.get("registered_eoh", 0.0) * 2200.0

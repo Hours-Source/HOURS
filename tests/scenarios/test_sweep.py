@@ -94,3 +94,15 @@ class TestTheDiscontinuityDetectorCanFire:
         rows = epsilon_sweep(jump_threshold=0.05)["discontinuities"]
         for row in rows:
             assert row["rel_jump"] > 0.05, "flagged below its own threshold"
+
+
+class TestTheFloorReadsObservedEpsilon:
+    """Author decision 2026-09-30: the floor price is read at the OBSERVED ε."""
+
+    def test_every_point_prices_the_floor_at_its_observed_epsilon(self):
+        from hours_eoh.core.prices import basket_price
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        for row in epsilon_sweep()["sweep"]:
+            assert row["basket_price"] == basket_price(row["epsilon_observable"])
+            if row["epsilon"] > 0.0:
+                assert row["epsilon_observable"] < row["epsilon"]

@@ -460,14 +460,14 @@ def settlement_terms(a: _HasPipeline, b: _HasPipeline) -> dict[str, Any]:
       - Condition II status of each side and whether the bound holds. A breach
         is reported, never clamped — clamping would hide the state Condition II
         exists to surface, and would itself be a discovered rate.
-      - the FLOOR reading, at BOTH ε: `floor_rate_*` = floor(ε_b)/floor(ε_a),
-        the TEH_b that buy what one TEH_a buys at the floor; and
-        `purchasing_gain_*` = floor_rate / rate, baskets on the far side per
-        basket the same hours buy at home. Both ε are reported because which
-        one the floor is a function of — the capability a collective STATES or
-        the machine share it MEASURES — is not decided (record/contestability.md
-        #settled-through-the-book). The ratio, not the product: the product has
-        units (TEH_b/TEH_a)².
+      - the FLOOR reading: `floor_rate` = floor(ε_b)/floor(ε_a), the TEH_b
+        that buy what one TEH_a buys at the floor; and `purchasing_gain` =
+        floor_rate / rate, baskets on the far side per basket the same hours
+        buy at home. Read at the OBSERVED ε — the machine share the ledger
+        measures (author decision, 2026-09-30). The same figures at the
+        SUPPLIED capability are kept under `*_supplied` as a comparison, and
+        `*_observed` names the primary explicitly. The ratio, not the product:
+        the product has units (TEH_b/TEH_a)².
     """
     r = registered_rate(a, b)
     m_a = float(a.pipeline["mean_multiplier"])
@@ -489,6 +489,9 @@ def settlement_terms(a: _HasPipeline, b: _HasPipeline) -> dict[str, Any]:
         "both_in_band": bool(ca["in_band"] and cb["in_band"]),
         "within_band_bounds": lo <= r <= hi,
         "band_bounds": SETTLEMENT_BAND_BOUNDS,
+        "floor_rate": f_obs,
+        "purchasing_gain": f_obs / r,
+        "floor_epsilon": "observed",
         "floor_rate_supplied": f_sup,
         "floor_rate_observed": f_obs,
         "purchasing_gain_supplied": f_sup / r,

@@ -675,7 +675,7 @@ def _total_eoh_per_capita(
     from hours_eoh.core.eoh_generation import total_eoh
     from hours_eoh.core.trajectory import canonical_physical_state
 
-    state = canonical_physical_state(epsilon)
+    state = canonical_physical_state(epsilon, population=population)
     return total_eoh(
         population=population,
         capital_stock=state["capital_stock_teh"],
@@ -695,7 +695,7 @@ def _domain_eoh(epsilon: float, knowledge_base: float, population: float) -> dic
     from hours_eoh.core.eoh_generation import total_eoh
     from hours_eoh.core.trajectory import canonical_physical_state
 
-    state = canonical_physical_state(epsilon)
+    state = canonical_physical_state(epsilon, population=population)
     return total_eoh(
         population=population,
         capital_stock=state["capital_stock_teh"],

@@ -11,6 +11,9 @@ corrects it:
                        reclassification drift without anti-gaming enforcement)
   m_band_sweep         Static M sensitivity sweep — lowest M for solvency,
                        highest M before instability
+  band_correction      How an ABOVE-band composition can be brought back
+                       without cutting any tier below M_FLOOR — the floor that
+                       makes "an hour mints at least what an hour costs" true
 
 These build on the `mean_multiplier_schedule` parameter added to
 run_simulation(), which lets M vary per period without changing the
@@ -24,11 +27,14 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
-    M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX,
+    M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX, M_FLOOR,
     TIER_ASSESSMENT_INTERVAL_YEARS,
     CAPITAL_STOCK_DEFAULT,
 )
-from hours_eoh.core.multipliers import multiplier_band_check
+from hours_eoh.core.multipliers import (
+    multiplier_band_check,
+    population_weighted_mean_multiplier,
+)
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
@@ -478,4 +484,112 @@ def m_band_sweep(
             "m_floor_for_solvency": m_floor,
             "m_ceiling_stable":     m_ceiling,
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Band correction that respects the floor (2026-09-30)
+# ---------------------------------------------------------------------------
+
+def band_correction(
+    segments: list[dict],
+    band_high: float = M_BAND_HIGH,
+    floor: float = M_FLOOR,
+) -> dict[str, Any]:
+    """
+    Two ways to bring an ABOVE-band composition back to the ceiling, and
+    whether each keeps every tier at or above the floor.
+
+    Two constitutional constraints meet here, and neither is new:
+
+        every tier  μ_i ≥ M_FLOOR     — one hour of the least demanding
+                                        registered labour mints one TEH, and D3
+                                        prices an hour of one's own obligation
+                                        at M_FLOOR, so a tier below it would be
+                                        paid less than an hour costs
+        the mean    M   ≤ M_BAND_HIGH — Condition II
+
+    PROPORTIONAL: every μ_i × (band_high / M). Respects the floor only while
+
+        M ≤ band_high × min(μ) / floor         (`proportional_limit`)
+
+    Past that, scaling everyone down cuts the lowest tier below the floor.
+
+    OFF THE TOP: cap every tier at C, μ_i' = min(μ_i, C), with C chosen so the
+    mean lands on band_high. Solved exactly — the mean is piecewise linear in C.
+    Leaves every tier below C untouched, so it respects the floor whenever the
+    band ceiling is above the floor, which the charter's band is.
+
+    WHY THIS EXISTS: `m_above_band_drift` and `m_below_band_drift` move the
+    AGGREGATE M with no tier distribution, so they cannot see which tiers a
+    correction lands on. This is the tier-level half, reported, not applied.
+
+    ε-behaviour: none directly — it reads a composition. The compositions that
+    breach move with ε (`reference/workforce.py`'s illustrative `high_epsilon`
+    is above band with no gaming), so the check matters most at the top of the
+    arc, where the base tier is small and the mean drifts up.
+
+    Args:
+        segments: [{"name", "fraction", "mean_mu"}], as
+            `population_weighted_mean_multiplier` takes.
+        band_high: The Condition II ceiling. Default M_BAND_HIGH.
+        floor: The per-tier floor. Default M_FLOOR.
+
+    Returns:
+        dict: `m_before`, `above_band`, `proportional` (factor, min tier after,
+        floor_respected), `proportional_limit`, `off_the_top` (cap, tiers
+        capped, min tier after, floor_respected, mean_after), `reporting_only`.
+        For an in-band composition both corrections are the identity.
+    """
+    if floor >= band_high:
+        raise ValueError(f"floor {floor!r} must be below the band ceiling {band_high!r}")
+    m = population_weighted_mean_multiplier(segments)
+    total_f = sum(seg["fraction"] for seg in segments)
+    min_mu = min(seg["mean_mu"] for seg in segments)
+    above = m > band_high
+
+    factor = band_high / m if above else 1.0
+    prop_min = min_mu * factor
+
+    # Off the top: exact cap C with Σ f_i min(μ_i, C) / Σ f_i = band_high.
+    if above:
+        tiers = sorted(segments, key=lambda seg: seg["mean_mu"], reverse=True)
+        cap = tiers[0]["mean_mu"]
+        capped_f = 0.0
+        rest = sum(seg["fraction"] * seg["mean_mu"] for seg in tiers)
+        target = band_high * total_f
+        for i, seg in enumerate(tiers):
+            capped_f += seg["fraction"]
+            rest -= seg["fraction"] * seg["mean_mu"]
+            nxt = tiers[i + 1]["mean_mu"] if i + 1 < len(tiers) else 0.0
+            # With tiers[0..i] capped at C: mean·Σf = capped_f·C + rest.
+            c = (target - rest) / capped_f
+            if c >= nxt:
+                cap = c
+                break
+        after = [min(seg["mean_mu"], cap) for seg in segments]
+        capped = [seg["name"] for seg in segments if seg["mean_mu"] > cap]
+    else:
+        cap = max(seg["mean_mu"] for seg in segments)
+        after = [seg["mean_mu"] for seg in segments]
+        capped = []
+    mean_after = sum(seg["fraction"] * a for seg, a in zip(segments, after)) / total_f
+
+    return {
+        "m_before": m,
+        "above_band": above,
+        "proportional": {
+            "factor": factor,
+            "min_tier_after": prop_min,
+            "floor_respected": prop_min >= floor,
+        },
+        "proportional_limit": band_high * min_mu / floor,
+        "off_the_top": {
+            "cap": cap,
+            "tiers_capped": capped,
+            "min_tier_after": min(after),
+            "floor_respected": min(after) >= floor,
+            "mean_after": mean_after,
+        },
+        "reporting_only": True,
     }

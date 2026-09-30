@@ -726,3 +726,38 @@ class TestVerificationIsReachableFromTheEntryPoint:
                     f"at ε={row['epsilon']} basis={basis} the arithmetic bound "
                     "and the wired path disagree"
                 )
+
+
+class TestMintFloorReach:
+    """How much of the labour supply the mint can pay (2026-09-30). The floor
+    protects a market wage only as an outside option, and only this far."""
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_coherent_across_the_arc(self, eps):
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        r = mint_floor_reach(eps)
+        assert 0.0 < r["reach"] < 1.0
+        assert r["reach"] * r["supply_per_capita"] == pytest.approx(
+            r["registered_hours_per_capita"], rel=1e-12)
+        assert r["market_hours_per_capita"] == pytest.approx(
+            max(0.0, r["supply_per_capita"] - r["human_obligation_hours_per_capita"]), rel=1e-12)
+
+    def test_shape_small_at_subsistence_peaks_mid_arc_falls_at_the_top(self):
+        """The peak sits BETWEEN reporting points (mode 3) — searched on its
+        own grid, not read off the four."""
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        grid = [i * 0.99 / 99 for i in range(100)]
+        reach = [mint_floor_reach(e)["reach"] for e in grid]
+        peak_at = grid[reach.index(max(reach))]
+        assert 0.40 < peak_at < 0.90
+        assert reach[0] < 0.05, "the register admits almost nothing at subsistence"
+        assert reach[-1] < max(reach)
+        assert max(reach) < 0.5, "even at its peak the mint cannot pay most hours"
+
+    def test_frame_invariant(self):
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        ref = mint_floor_reach(0.40)["reach"]
+        for pop in (1.0e5, 3.35e8):
+            assert mint_floor_reach(0.40, population=pop)["reach"] == pytest.approx(ref, rel=1e-9)

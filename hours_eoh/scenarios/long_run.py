@@ -93,7 +93,9 @@ def canonical_arc_trajectory(
 
     summary_table = []
     for i, result in enumerate(raw["period_results"]):
-        bp = basket_price(result["epsilon"])
+        # The floor is read at the OBSERVED ε (2026-09-30), which the period
+        # result carries; the capability index is reported beside it.
+        bp = basket_price(result["epsilon_observable"])
         summary_table.append({
             "period":           result["period"],
             "epsilon":          result["epsilon"],
@@ -327,8 +329,9 @@ def automation_transition_trajectory(
 
     for result in raw["period_results"]:
         eps = result["epsilon"]
+        eps_floor = result["epsilon_observable"]   # the floor's ε (2026-09-30)
         floor_teh = result["fiscal"]["guarantee"]["total_cost_teh"]
-        pp = floor_purchasing_power(floor_teh, eps, floor_teh)
+        pp = floor_purchasing_power(floor_teh, eps_floor, floor_teh)
         surplus = result["fiscal"]["trust"]["surplus_deficit"]
 
         trajectory.append({
@@ -339,7 +342,7 @@ def automation_transition_trajectory(
             "labor_income":        result["labor_income"],
             "trust_surplus_deficit": surplus,
             "solvent":             result["solvent"],
-            "basket_price":        basket_price(eps),
+            "basket_price":        basket_price(eps_floor),
         })
 
         if (prev_surplus is not None and abs(prev_surplus) > 1e-6

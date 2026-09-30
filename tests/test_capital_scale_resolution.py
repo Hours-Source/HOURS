@@ -40,6 +40,13 @@ population defeats it, and only a runtime probe would see that. The gap is
 narrow because the value of naming the argument is that the caller has decided
 the stock is theirs to supply — but it is a gap, not a guarantee.
 
+A SECOND FACE OF THE SAME GAP, and it was live (2026-09-30): a supplied stock
+that was itself read at the reference frame — `capital_stock=state[
+"capital_stock_teh"]` where `state = canonical_physical_state(ε)` — is credited
+here as the caller naming their stock. Five callers did exactly that beside a
+caller-supplied population. `TestCanonicalStateCapitalCarriesTheFrame` below
+closes that face for one assignment step; deeper indirection is still unseen.
+
 THE WRAPPER LESSON, inherited rather than re-learned: the ecological gate was
 keyed to the names at the BOTTOM of its chain and did not see callers entering
 one wrapper up, so `fiscal_snapshot` reached the US anchor while the gate looked
@@ -278,3 +285,127 @@ class TestTheFrameHoldsAtRuntime:
         assert stewardship_pc[1] == pytest.approx(stewardship_pc[2], rel=1e-12)
         # And the two domains now agree about what frame they are in.
         assert guarantee_pc[0] == pytest.approx(guarantee_pc[2], rel=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# The canonical state's capital (2026-09-30)
+# ---------------------------------------------------------------------------
+
+_REPO = PKG.parent
+_CPS_NAMES = {"canonical_physical_state", "_cps"}
+
+
+def _cps_capital_reads_without_frame() -> list[tuple[str, int, str]]:
+    """
+    Calls to `canonical_physical_state` in a function with a population in
+    scope, WITHOUT `population=`, whose `capital_stock_teh` is then read —
+    directly off the call, or off a name the call was assigned to.
+
+    Reading only intensive keys (age mix, monitoring, knowledge) is frame-free
+    and not flagged. Scans `hours_eoh/` AND `utils/`, because `arc_cmd` exposes
+    `--population` on the CLI.
+    """
+    out: list[tuple[str, int, str]] = []
+    for root in (PKG, _REPO / "utils"):
+        for f in sorted(root.rglob("*.py")):
+            tree = ast.parse(f.read_text())
+            for fn in ast.walk(tree):
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
+                stores = {n.id for n in ast.walk(fn)
+                          if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
+                if not ((params | stores) & _POPULATION_PARAMS):
+                    continue
+                unframed: set[str] = set()
+                direct: list[int] = []
+                for node in ast.walk(fn):
+                    call = None
+                    if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                        call = node.value
+                        target_names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+                    else:
+                        target_names = []
+                    if call is not None:
+                        name = getattr(call.func, "id", None) or getattr(call.func, "attr", None)
+                        if name in _CPS_NAMES and "population" not in {k.arg for k in call.keywords}:
+                            unframed.update(target_names)
+                    if (isinstance(node, ast.Subscript)
+                            and isinstance(node.slice, ast.Constant)
+                            and node.slice.value == "capital_stock_teh"):
+                        v = node.value
+                        if isinstance(v, ast.Name) and v.id in unframed:
+                            direct.append(node.lineno)
+                        if isinstance(v, ast.Call):
+                            n = getattr(v.func, "id", None) or getattr(v.func, "attr", None)
+                            if n in _CPS_NAMES and "population" not in {k.arg for k in v.keywords}:
+                                direct.append(node.lineno)
+                for ln in direct:
+                    out.append((str(f.relative_to(_REPO)), ln, fn.name))
+    return out
+
+
+class TestCanonicalStateCapitalCarriesTheFrame:
+    """
+    `canonical_physical_state` states capital at the 1M reference frame. Four
+    callers with a caller-supplied population took that stock into `total_eoh`,
+    and `make_economy_state` took it as the state's actual stock — found
+    2026-09-30 when the floor moved to the OBSERVED ε and two populations with
+    identical intensity reported different ε. The gate above credits any
+    supplied `capital_stock` as a statement of frame, so it could not see a
+    stock that was itself the reference frame's.
+
+    **STATES ITS OWN GAP:** static and name-based. It follows one assignment
+    (`state = canonical_physical_state(...)`; `state["capital_stock_teh"]`),
+    not a stock passed through a second variable, a dict merge, or a helper.
+    """
+
+    def test_no_unframed_canonical_capital_where_a_population_is_in_scope(self):
+        hits = _cps_capital_reads_without_frame()
+        assert not hits, (
+            "canonical-state capital read at the reference frame beside a "
+            f"population: {hits}. Pass population= to canonical_physical_state."
+        )
+
+    def test_the_scan_is_not_vacuous(self):
+        """It must see the calls it exempts, or a rename empties it."""
+        src = (PKG / "scenarios" / "ecological_floor.py").read_text()
+        assert "canonical_physical_state(epsilon, population=population)" in src
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_capital_scales_and_intensives_do_not(self, eps):
+        from hours_eoh.core.trajectory import canonical_physical_state as cps
+        ref, big = cps(eps), cps(eps, population=3.0e6)
+        assert big["capital_stock_teh"] == pytest.approx(3.0 * ref["capital_stock_teh"], rel=1e-15)
+        assert cps(eps, population=1.0e6) == ref
+        for k in ref:
+            if k != "capital_stock_teh":
+                assert big[k] == ref[k], k
+        assert ref["capital_stock_teh"] == resolve_capital_stock(None, eps)
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_make_economy_state_holds_intensity_across_frames(self, eps):
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        per_cap, eps_obs = [], []
+        for pop in (1.0e6, 3.0e6):
+            st = make_economy_state(epsilon=eps, population=pop)
+            per_cap.append(st["capital_stock_teh"] / pop)
+            eps_obs.append(simulate_period(st)[1]["epsilon_observable"])
+        assert per_cap[0] == pytest.approx(per_cap[1], rel=1e-12)
+        assert eps_obs[0] == pytest.approx(eps_obs[1], rel=1e-12)
+
+    def test_a_supplied_stock_is_still_never_rescaled(self):
+        from hours_eoh.core.simulation import make_economy_state
+        st = make_economy_state(epsilon=0.40, population=3.0e6, capital_stock_teh=1.0e9)
+        assert st["capital_stock_teh"] == 1.0e9
+
+    @pytest.mark.parametrize("pop", [1.0e5, 3.35e8])
+    def test_repaired_scenarios_are_frame_invariant_per_capita(self, pop):
+        from hours_eoh.scenarios.ecological_floor import _eoh_at
+        from hours_eoh.scenarios.knowledge_base import _total_eoh_per_capita
+        from hours_eoh.data import KNOWLEDGE_EOH_BASE
+        ref = _eoh_at(0.40, 1.0e6)
+        other = _eoh_at(0.40, pop)
+        assert other["infrastructure"] / pop == pytest.approx(ref["infrastructure"] / 1.0e6, rel=1e-9)
+        assert _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, pop) == pytest.approx(
+            _total_eoh_per_capita(0.40, KNOWLEDGE_EOH_BASE, 1.0e6), rel=1e-9)

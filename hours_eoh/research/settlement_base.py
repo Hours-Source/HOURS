@@ -242,7 +242,8 @@ def _reference_frame(collective_id: int, population: float = REFERENCE_FRAME_POP
     """The 1M reference frame with the ε=0.40 canonical capital intensity."""
     if capital_per_capita is None:
         capital_per_capita = (
-            canonical_physical_state(0.40)["capital_stock_teh"] / REFERENCE_FRAME_POPULATION
+            canonical_physical_state(0.40, population=REFERENCE_FRAME_POPULATION)["capital_stock_teh"]
+            / REFERENCE_FRAME_POPULATION
         )
     return CollectiveFrame(
         collective_id=collective_id,
@@ -655,7 +656,9 @@ def composition_pairing(
 
 def floor_epsilon_seam(points: tuple[float, ...] = ARC_REPORTING_POINTS) -> dict[str, Any]:
     """
-    WHICH ε THE FLOOR IS A FUNCTION OF — a seam, reported and not resolved.
+    WHICH ε THE FLOOR IS A FUNCTION OF — DECIDED 2026-09-30 (author): the
+    OBSERVED ε. This function is the comparison that decision was made on and
+    stays as the record of what the two readings give.
 
     `floor_price(ε)` is called with the SUPPLIED capability index at every call
     site in `core/` and `scenarios/`. The physical machine share is the
@@ -663,8 +666,8 @@ def floor_epsilon_seam(points: tuple[float, ...] = ARC_REPORTING_POINTS) -> dict
     strictly below the capability away from zero, because care resists
     automation (record/fulfilment.md). A settlement leg on the supplied ε settles
     against a number the collective STATES; on the observed ε, against one it
-    MEASURES. Switching would change what the floor price is a function of
-    repo-wide — a theory choice, left to the author.
+    MEASURES. The switch was made repo-wide wherever a caller holds the
+    obligation (record/fulfilment.md#floor-reads-observed-epsilon).
 
     Reports, at each point on the fixed reference frame: both ε, both floors,
     and the settlement rate against the ε=0 collective under each.
@@ -686,19 +689,22 @@ def floor_epsilon_seam(points: tuple[float, ...] = ARC_REPORTING_POINTS) -> dict
         "rows": rows,
         "max_rate_supplied": max(r["rate_vs_subsistence_supplied"] for r in rows),
         "max_rate_observed": max(r["rate_vs_subsistence_observed"] for r in rows),
-        "author_decides": (
-            "whether the floor price is a function of the capability a collective "
-            "states or the machine share it measures"
+        "decided": (
+            "2026-09-30: the floor price is read at the machine share a "
+            "collective MEASURES, not the capability it states"
         ),
         "reporting_only": True,
     }
 
 
-def purchasing_gain(a: Collective, b: Collective, floor_base: str = "floor") -> dict[str, float]:
+def purchasing_gain(a: Collective, b: Collective, floor_base: str = "floor_observed") -> dict[str, float]:
     """
     What an hour settled hour-for-hour buys on the far side, in baskets.
 
         gain = r_floor(a, b) / r_registered(a, b)
+
+    The floor is read at the OBSERVED ε by default (author, 2026-09-30);
+    `floor_base="floor"` gives the supplied-ε comparison.
 
     Settle on `registered` (hours for hours), then spend at b's floor: `gain`
     baskets in b per basket the same hours bought at home. Above 1.0 the hour
@@ -798,8 +804,8 @@ def focus_report() -> dict[str, Any]:
         "book": {e: book_exercise(epsilon=e) for e in ARC_REPORTING_POINTS},
         "author_decides": [
             "DECIDED 2026-09-30: registered settles; floor is the purchasing-power "
-            "reading beside it (`purchasing_gain`). Still open:",
-            "for floor: the SUPPLIED or the OBSERVED ε (`floor_epsilon_seam`).",
+            "reading beside it (`purchasing_gain`), read at the OBSERVED ε "
+            "(decided the same day). Still open:",
             "what disciplines a deficit beyond reserve under base settlement — "
             "`settlement_check`'s depreciation would be a non-base rate (§5).",
             "for registered: whether mutual recognition at a common multiplier is "

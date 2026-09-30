@@ -422,7 +422,7 @@ def anchor_sensitivity(
     floors = dict(PERSONAL_AUTOMATION_FLOORS)
 
     def _domains(eps: float, base: float) -> dict:
-        st = canonical_physical_state(eps)
+        st = canonical_physical_state(eps, population=pop)
         return total_eoh(
             population=pop,
             capital_stock=st["capital_stock_teh"],

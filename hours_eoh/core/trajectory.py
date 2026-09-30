@@ -45,6 +45,7 @@ from hours_eoh.data import (
     CANONICAL_CAPITAL_AGE_DRIFT,
     CANONICAL_ECOSYSTEM_HEALTH_BASE,
     CANONICAL_ECOSYSTEM_HEALTH_DRIFT,
+    REFERENCE_FRAME_POPULATION,
 )
 
 
@@ -102,7 +103,7 @@ def canonical_age_distribution(epsilon: float) -> dict[str, float]:
 # Canonical physical state
 # ---------------------------------------------------------------------------
 
-def canonical_physical_state(epsilon: float) -> dict:
+def canonical_physical_state(epsilon: float, population: float | None = None) -> dict:
     """
     Physical state of a civilization on the ideal trajectory at automation level ε.
 
@@ -165,8 +166,21 @@ def canonical_physical_state(epsilon: float) -> dict:
     The constants defining this arc are in data.py under the CANONICAL_* prefix.
     To recalibrate the arc, change those constants — not this function.
 
+    THE FRAME (2026-09-30). `capital_stock_teh` is the one EXTENSIVE quantity
+    here, and it is stated at the 1M reference frame. `population` scales it,
+    holding capital INTENSITY fixed — the same rule as `resolve_capital_stock`,
+    which returns the identical value. Omitted, the reference frame is kept, so
+    every existing caller reads what it read before. Every other key is
+    intensive and does not move. Four callers with a caller-supplied population
+    took the reference-frame stock into `total_eoh` — at the US frame
+    `ecological_floor` reported infrastructure EOH at 0.25 per person against
+    82.8 — and the capital gate could not see them because it credits any
+    supplied `capital_stock` as a statement of frame. Gated since by
+    `tests/test_capital_scale_resolution.py::TestCanonicalStateCapitalCarriesTheFrame`.
+
     Args:
         epsilon: Automation level [0.0, 0.99].
+        population: The frame. None → the 1M reference frame.
 
     Returns:
         dict: {
@@ -184,8 +198,9 @@ def canonical_physical_state(epsilon: float) -> dict:
     physical reality at both extremes.
     """
     eps = max(0.0, min(1.0, epsilon))
+    scale = 1.0 if population is None else population / REFERENCE_FRAME_POPULATION
     return {
-        "capital_stock_teh":     CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE) * eps,
+        "capital_stock_teh":     CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE) * eps * scale,
         "capital_age_ratio":     0.30 + CANONICAL_CAPITAL_AGE_DRIFT * eps,
         "ecosystem_health":      max(0.01, CANONICAL_ECOSYSTEM_HEALTH_BASE + CANONICAL_ECOSYSTEM_HEALTH_DRIFT * eps),
         "monitoring_capability": CANONICAL_MONITORING_CAPABILITY_BASE + CANONICAL_MONITORING_CAPABILITY_SLOPE * eps,

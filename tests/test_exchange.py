@@ -602,6 +602,9 @@ class TestAdoptedSettlement:
         t = settlement_terms(a, b)
         assert t["applied"] == "rate" and t["rate"] == 1.0
         assert t["floor_rate_supplied"] > t["floor_rate_observed"] > 1.0
+        assert t["floor_epsilon"] == "observed"
+        assert t["floor_rate"] == t["floor_rate_observed"]
+        assert t["purchasing_gain"] == pytest.approx(t["floor_rate"] / t["rate"], rel=1e-15)
         assert t["purchasing_gain_supplied"] == pytest.approx(
             t["floor_rate_supplied"] / t["rate"], rel=1e-15)
 

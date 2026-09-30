@@ -642,7 +642,8 @@ class TestSimulatePeriodDestructionMechanisms:
                                        capital_personal_eoh_fulfilled=aggregate)
             _, result = simulate_period(state, use_cpi_destruction=True)
             destroyed.append(result["d4_cpi"]["teh_destroyed"])
-        expected = cpi_goods_destruction(aggregate, eps)["teh_destroyed"]
+        # The floor is read at the OBSERVED ε since 2026-09-30.
+        expected = cpi_goods_destruction(aggregate, result["epsilon_observable"])["teh_destroyed"]
         assert destroyed[0] == pytest.approx(expected, rel=1e-12)
         assert destroyed[1] == pytest.approx(expected, rel=1e-12)
 
@@ -1263,3 +1264,34 @@ class TestRunSimulationReportsTheMultiplierItApplies:
         m = r["summary"]["mean_multiplier_trajectory"]
         assert m[0] == pytest.approx(1.9)
         assert m[1:] == [pytest.approx(MEAN_MULTIPLIER_REFERENCE)] * 2
+
+
+class TestTheFloorReadsObservedEpsilon:
+    """Author decision 2026-09-30: every floor-price read in a period uses the
+    OBSERVED ε the pipeline measures, not the capability index."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_period_reports_it_and_prices_at_it(self, eps):
+        from hours_eoh.core.prices import basket_price
+        state = make_economy_state(epsilon=eps)
+        _, r = simulate_period(state)
+        assert r["d4_cpi"]["basket_price"] == basket_price(r["epsilon_observable"])
+        if eps > 0.0:
+            assert r["epsilon_observable"] < r["epsilon"]
+        else:
+            assert r["epsilon_observable"] == 0.0
+
+    def test_d2_consumption_discounts_by_the_observed_floor(self):
+        """The D2 path's purchasing-power ratio: a higher floor (observed ε
+        below capability) means a smaller discount, so MORE consumption than
+        the capability read would give. Direction pinned, not level."""
+        import inspect
+        from hours_eoh.core.prices import basket_price
+        base_rate = inspect.signature(simulate_period).parameters["base_consumption_rate"].default
+        state = make_economy_state(epsilon=0.90)
+        _, r = simulate_period(state, use_d3=False)
+        pp_obs = basket_price(0.0) / basket_price(r["epsilon_observable"])
+        pp_cap = basket_price(0.0) / basket_price(r["epsilon"])
+        assert pp_obs < pp_cap
+        assert r["consumption_rate_effective"] == pytest.approx(
+            base_rate / max(1.0, pp_obs), rel=1e-12)

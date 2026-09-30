@@ -400,7 +400,7 @@ class TestFocusReport:
     def test_it_hands_over_the_three_decisions(self) -> None:
         r = focus_report()
         text = " ".join(r["author_decides"]).lower()
-        assert "supplied or the observed" in text
+        assert "observed" in text and "decided 2026-09-30" in text
         assert "mutual recognition" in text
         assert "decided 2026-09-30" in text
         assert "deficit beyond reserve" in text

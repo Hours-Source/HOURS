@@ -74,7 +74,7 @@ def _eoh_at(epsilon: float, population: float) -> dict:
     are one keyword apart — the pair that produced the Block K-IV under-reporting
     bug for the whole life of the `arc` command.
     """
-    state = canonical_physical_state(epsilon)
+    state = canonical_physical_state(epsilon, population=population)
         # ANCHOR-CHARACTERISING REPORT: computed at the PRE-PARTITION policy.
         # Phases 4e/4f (adopted 2026-08-28/29) relocated both recurring
         # ecological terms to GUF, so under the shipped default this domain is

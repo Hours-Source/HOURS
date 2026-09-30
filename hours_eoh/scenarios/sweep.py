@@ -32,6 +32,7 @@ from hours_eoh.core.registration import (
     total_registration_share,
 )
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
+from hours_eoh.core.eoh_fulfillment import observable_epsilon
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -127,8 +128,15 @@ def epsilon_sweep(
                                   population=population)
         tot_eoh   = pers_eoh + infra_eoh + eco_eoh + know_eoh
 
-        bp  = basket_price(eps, floor_teh)
-        pp  = floor_purchasing_power(floor_teh, eps, floor_teh)
+        # THE FLOOR IS READ AT THE OBSERVED ε (author decision, 2026-09-30): the
+        # machine share of THIS point's obligation, not the capability index.
+        eps_floor = observable_epsilon(
+            {"personal": pers_eoh, "infrastructure": infra_eoh,
+             "ecological": eco_eoh, "knowledge": know_eoh},
+            eps,
+        )
+        bp  = basket_price(eps_floor, floor_teh)
+        pp  = floor_purchasing_power(floor_teh, eps_floor, floor_teh)
         care = care_registration_share(eps)
         reg  = total_registration_share(eps)
 
@@ -145,6 +153,7 @@ def epsilon_sweep(
 
         metrics = {
             "epsilon":               eps,
+            "epsilon_observable":    eps_floor,
             "personal_eoh":          pers_eoh,
             "infrastructure_eoh":    infra_eoh,
             "ecological_eoh":        eco_eoh,

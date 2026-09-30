@@ -145,9 +145,9 @@ def labor_supply_per_capita(
             measured spread across frames is 1.55x.
         adult_share: Fraction of the population able to supply it. None (default)
             derives it from the per-age `capacity_weight` in AGE_GROUPS via
-            `capacity_weighted_adult_share()` — 0.60 on the shipped weights,
-            and a LOWER bound, because child and elderly weights are zero by
-            admission rather than by measurement.
+            `capacity_weighted_adult_share()`. Call it for the value: this
+            docstring quoted 0.60 and "elderly weight zero" for 26 days after
+            the 2026-09-04 band alignment moved both (record/personal.md).
 
     Returns:
         L in h/person·yr.
@@ -155,8 +155,9 @@ def labor_supply_per_capita(
     Raises:
         ValueError: on non-positive capacity or a share outside (0, 1].
 
-    Worked example: the shipped default 2,335.75 h/yr × 0.60 = 1,401.5
-    h/person·yr. At the retired H_REF default of 2,080 it was 1,248.0.
+    Worked example: `labor_supply_per_capita()` on the shipped defaults. The
+    1,401.5 h/person·yr quoted here until 2026-09-30 was the pre-alignment
+    figure; the function has returned ~1,524 since 2026-09-04.
     """
     share = capacity_weighted_adult_share() if adult_share is None else adult_share
     if adult_capacity_h_yr <= 0.0:
@@ -808,4 +809,55 @@ def implied_human_hours(
         "human_per_adult_day": per_adult_yr / 365.0,
         "personal_base": personal_base,
         "machine_eoh_per_capita": machine_eoh_per_capita,
+    }
+
+
+def mint_floor_reach(
+    epsilon: float,
+    population: float = 1_000_000.0,
+    adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+    **pipeline_kwargs: object,
+) -> dict:
+    """
+    How much of the labour supply the MINT can pay — the reach of the floor.
+
+    Governing ratio (hours per person per year, both sides):
+
+        reach = registered_eoh / population  ÷  labor_supply_per_capita
+
+    Registered obligation is the only work that mints; every registered hour
+    mints at μ ≥ M_FLOOR, so it is never paid below what an hour of one's own
+    obligation costs at the floor. Every OTHER hour a person can supply is paid,
+    if at all, by the market out of TEH already minted. So the floor protects a
+    market wage only as an OUTSIDE OPTION, and only for the share of supply the
+    register can absorb. `reach` is that share; `1 − reach` is the supply for
+    which "never below cost" would have to be a rule rather than a mechanism.
+
+    Also reported: human obligation hours (registered or not — the off-ledger
+    part is self-provision, not market work) and `market_hours_per_capita`,
+    supply minus human obligation, the hours free for the market.
+
+    ε-behaviour: reach is small at subsistence (the register admits little of
+    the personal obligation), peaks mid-arc as registration rises, and falls at
+    the top as automation takes the obligation the register would have
+    admitted. Read it off the call, not off this docstring.
+
+    Frame: per-capita throughout; `population` is passed to the pipeline so
+    every extensive quantity resolves in one frame.
+    """
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+
+    p = eoh_to_teh_pipeline(epsilon, population=population, **pipeline_kwargs)  # type: ignore[arg-type]
+    supply = labor_supply_per_capita(adult_capacity_h_yr)
+    registered = float(p["registered_eoh"]) / population
+    human = float(p["human_eoh"]) / population
+    return {
+        "epsilon": epsilon,
+        "supply_per_capita": supply,
+        "registered_hours_per_capita": registered,
+        "human_obligation_hours_per_capita": human,
+        "market_hours_per_capita": max(0.0, supply - human),
+        "reach": registered / supply,
+        "mint_per_capita": float(p["teh_created"]) / population,
+        "reporting_only": True,
     }

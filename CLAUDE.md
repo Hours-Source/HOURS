@@ -72,7 +72,7 @@ hours_eoh/
   params.py            EohParams — mutable parameter container with change tracking
 
   core/                Pure physics + mechanics — stable, no applied scenarios
-    trajectory.py      Canonical arc + ε derivation
+    trajectory.py      Canonical arc + ε derivation (capital scales with `population=`)
     eoh_generation.py  Four EOH domain functions + total_eoh()
     registration.py    Sigmoid admission curves per domain
     eoh_fulfillment.py EOH → TEH pipeline
@@ -130,7 +130,8 @@ hours_eoh/
     long_run.py        canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory
     indust_overshoot.py indust_overshoot_baseline, indust_recovery_trajectory
     guf_stress.py      guf_fiscal_integration, guf_writedown_scenario, guf_revenue_sweep, automation_levy_guf_stress
-    multiplier.py      m_below_band_drift, m_above_band_drift, m_band_sweep
+    multiplier.py      m_below_band_drift, m_above_band_drift, m_band_sweep, band_correction —
+                       proportional vs off-the-top, and which keeps every tier at M_FLOOR
     measured.py        measured_segments, measured_mean_multiplier, run_measured_simulation (O*NET/BLS registry)
     multiplier_sensitivity.py  reconstruct, sweep_factor_weights, monte_carlo_factor_weights, sensitivity_report
     infrastructure_floor.py    census_from_condition_counts, doctrine_floor_invariance (B+D currency-free floor)
@@ -143,7 +144,8 @@ hours_eoh/
     frailty.py         frailty_care_load, morbidity_direction — the frailty care INTAKE;
                        no default, because a shipped care number is a rationing rule
     thermal_load.py    thermal_load_arc, thermal_load_verdict — the planetary obligation carried in the ledger
-    feasibility.py     labor_supply_per_capita, feasibility_check, over_determination_report, feasible_epsilon
+    feasibility.py     labor_supply_per_capita, feasibility_check, over_determination_report, feasible_epsilon,
+                       mint_floor_reach — the share of labour supply the mint can pay
     personal_floor.py  obligation_floor, identity_report, floor_vs_constants — normative floor vs measured hours
     food_conservation.py conservation_test, uncounted_headroom — did automation eliminate food labour, or relocate it?
     land_tenure.py     allocate_by_tenure, tenure_allocation — UNOWNED LAND IS FEDERATION;
@@ -402,6 +404,16 @@ someone remembering it, which is what this section is for.
    what was measured. *Do:* when a pin is cleared for one dimension, name the
    dimensions it was NOT cleared for. `gated by:`
    `tests/test_labour_epsilon_state.py`.
+   **THE NINTH (2026-09-30): A SUPPLIED VALUE THAT WAS ITSELF THE REFERENCE
+   FRAME'S.** `canonical_physical_state` states capital at 1M; five callers
+   with a caller-supplied population passed that stock on as `capital_stock=`
+   — and the capital gate credits any supplied stock as a statement of frame,
+   so it could not see one. Latent in every shipped figure (each caller passed
+   1M) except `arc_cmd --population`. Found when the floor moved to the
+   OBSERVED ε, which reads the obligation mix and so disagreed between two
+   populations of identical intensity. *The tell:* a gate that credits
+   "supplied" is blind to WHERE the supplied value came from. `gated by:`
+   `tests/test_capital_scale_resolution.py::TestCanonicalStateCapitalCarriesTheFrame`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -550,7 +562,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,072 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,105 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
