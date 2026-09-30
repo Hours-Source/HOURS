@@ -14,6 +14,7 @@ import argparse
 import json
 
 from utils.formatters import table, fmt_float, fmt_eps, green, yellow, red
+from hours_eoh.research.coasean import RATE_BASES
 
 
 def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
@@ -74,6 +75,11 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
     sim.add_argument("--commons-start", type=float, default=0.0, dest="commons_start",
                      help="Initial commons balance in TEH (seed; see "
                           "commons_seed_required() — ~1.8e7 at defaults)")
+    sim.add_argument("--rate-basis", choices=list(RATE_BASES), default="registered",
+                     dest="rate_basis",
+                     help="exchange-rate basis the inflation metrics read: "
+                          "'registered' is the adopted settlement (2026-09-30); "
+                          "'parity' reproduces pre-adoption output")
     sim.set_defaults(func=run_simulate)
 
     p.set_defaults(func=lambda args: p.print_help())
@@ -179,6 +185,7 @@ def run_simulate(args: argparse.Namespace) -> None:
         regime=args.regime,
         commons_dividend=args.commons_dividend,
         commons_start=args.commons_start,
+        rate_basis=args.rate_basis,
     )
 
     if args.fmt == "json":

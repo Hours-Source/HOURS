@@ -17,9 +17,12 @@ real-output term. `research/register_federation` measured the consequence: a
 captured register APPRECIATES 1.2724× at ε=0.40. So the rule constrains work that
 already exists, and the open question is not WHETHER to settle on the base but
 **WHICH QUANTITY THE BASE IS**. The rule names the property — obligation-anchored,
-population-bounded — and not the equation. Choosing the equation is a theory
-commitment (§3 author sign-off), so this module does not choose. It evaluates
-the candidates side by side and reports what each does.
+population-bounded — and not the equation. Choosing the equation was a theory
+commitment (§3 author sign-off), so this module did not choose: it evaluates the
+candidates side by side and reports what each does. **DECIDED 2026-09-30
+(author): REGISTERED settles (`exchange.registered_rate`), the FLOOR is reported
+beside it as purchasing power.** This module is the comparison behind that
+decision and stays reporting-only.
 
 THE CANDIDATES — what one TEH of collective c is taken to be worth
 ------------------------------------------------------------------
@@ -70,9 +73,10 @@ capture-aggregate-bounded). Canonical-arc collectives take capital, age and
 health from `canonical_physical_state`; knowledge and monitoring state are left
 at the pipeline's own defaults.
 
-STATUS: experimental, reporting only. Nothing imports this. `parity_rate` is NOT
-changed here — `tests/test_register_federation.py` is the retire-signal for the
-capture finding and must fire only when the author has chosen a base.
+STATUS: experimental, reporting only. Nothing imports this. The base has been
+chosen (2026-09-30); `parity_rate` is kept unchanged as the superseded form, so
+`tests/test_register_federation.py`'s capture tests remain true statements about
+`parity_rate` and are no longer statements about how the federation settles.
 
 Layer note: imports from `core/`, `data.py` and `research/exchange.py` only.
 """
@@ -525,13 +529,14 @@ def base_report() -> dict[str, Any]:
             "set above the shipped one. A base measured against the published registration "
             "schedule at the collective's own ε would separate the two, but it "
             "settles against a policy curve rather than physics; not built.",
-            "WHICH QUANTITY BACKS A TEH AT THE BOUNDARY. The §5 rule names the "
-            "property — obligation-anchored, population-bounded — not the equation.",
-            "WHETHER MACHINE-FULFILLED OBLIGATION BACKS A TEH: 'obligation' says "
-            "yes, 'human' says no, and they put a high-capital collective on "
-            "opposite sides of par at high ε.",
-            "WHETHER A BASE BLIND TO THE COLLECTIVE ('floor') IS ACCEPTABLE: it "
-            "cannot be captured because it cannot see the collective at all.",
+            "DECIDED 2026-09-30: registered settles, floor is read beside it. The "
+            "items below were the open questions at the comparison and are kept "
+            "as what the decision set aside.",
+            "SET ASIDE — WHETHER MACHINE-FULFILLED OBLIGATION BACKS A TEH: "
+            "'obligation' says yes, 'human' says no, and they put a high-capital "
+            "collective on opposite sides of par at high ε. Neither settles.",
+            "SET ASIDE — WHETHER A BASE BLIND TO THE COLLECTIVE ('floor') IS "
+            "ACCEPTABLE AS SETTLEMENT: it is read beside settlement, not applied.",
         ],
         "what_this_does_not_establish": [
             "that any base clears a real trade — there is no goods layer, so what "
@@ -550,11 +555,10 @@ def base_report() -> dict[str, Any]:
 # REGISTERED AND FLOOR — the two carried forward (author, 2026-09-30)
 # ---------------------------------------------------------------------------
 #
-# Read as FOCUS, not adoption: `parity_rate` is unchanged and
-# `test_register_federation` still asserts parity rewards capture. What follows
-# asks of the two carried-forward bases what the table above could not: where
-# each one's bound COMES from, whether it holds, and what each does when money
-# actually moves through the double-entry book.
+# ADOPTED the same day: registered settles (`exchange.registered_rate`), the
+# floor is read beside it (`exchange.settlement_terms`). What follows asks of the
+# two what the table above could not: where each one's bound COMES from,
+# whether it holds, and what each does when money moves through the book.
 
 #: The cross-rate range `registered` is confined to IF both collectives honour
 #: Condition II. Derived, not chosen: it is the band's own edges, divided.
@@ -793,10 +797,11 @@ def focus_report() -> dict[str, Any]:
         "floor_seam": floor_epsilon_seam(),
         "book": {e: book_exercise(epsilon=e) for e in ARC_REPORTING_POINTS},
         "author_decides": [
-            "registered or floor as THE settlement price — or registered as the "
-            "settlement and floor as the purchasing-power reading beside it "
-            "(`purchasing_gain`).",
+            "DECIDED 2026-09-30: registered settles; floor is the purchasing-power "
+            "reading beside it (`purchasing_gain`). Still open:",
             "for floor: the SUPPLIED or the OBSERVED ε (`floor_epsilon_seam`).",
+            "what disciplines a deficit beyond reserve under base settlement — "
+            "`settlement_check`'s depreciation would be a non-base rate (§5).",
             "for registered: whether mutual recognition at a common multiplier is "
             "acceptable, since that is what it reduces to unless multipliers "
             "differ — and whether a band breach suspends settlement or only "

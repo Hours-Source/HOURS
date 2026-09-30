@@ -17,8 +17,12 @@ Structure mirrors what the module claims:
 
 import pytest
 
-from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import LAND_HECTARES_PER_CAPITA, M_BAND_HIGH, M_BAND_LOW
 from hours_eoh.research.exchange import (
+    SETTLEMENT_BAND_BOUNDS,
+    registered_rate,
+    settlement_matrix,
+    settlement_terms,
     CollectiveFrame,
     Entry,
     FederationBook,
@@ -533,3 +537,89 @@ class TestParityIsScaleFree:
             4.0 * book.ledger(0).money_supply(), rel=1e-9
         )
         assert parity_rate(cs[0], cs[1]) == pytest.approx(1.0, rel=1e-9)
+
+
+# ---------------------------------------------------------------------------
+
+class TestAdoptedSettlement:
+    """
+    ADOPTED 2026-09-30 (author): registered settles, the floor is reported
+    beside it as purchasing power. These pin the adopted properties and bind
+    the one formula across the three places that compute it (mode 4).
+    """
+
+    KEY = (0.0, 0.40, 0.90, 0.99)
+
+    @staticmethod
+    def _at(cid, m=None, eps=0.40, cap=None):
+        kw = {} if m is None else {"mean_multiplier": m}
+        return build_collective(_frame(cid, cap=cap), eps, **kw)
+
+    @pytest.mark.parametrize("eps", KEY)
+    def test_a_common_multiplier_settles_at_par_across_the_arc(self, eps):
+        """Mutual recognition until multipliers differ — whatever capital does."""
+        a, b = self._at(0, eps=eps, cap=1e9), self._at(1, eps=0.40, cap=4e9)
+        assert registered_rate(a, b) == 1.0
+
+    def test_the_rate_is_the_multiplier_ratio_and_reciprocal(self):
+        a, b = self._at(0, m=1.85), self._at(1, m=2.05)
+        assert registered_rate(a, b) == pytest.approx(2.05 / 1.85, rel=1e-15)
+        assert registered_rate(a, b) * registered_rate(b, a) == pytest.approx(1.0, rel=1e-15)
+
+    def test_register_capture_is_neutral_and_parity_rewards_it(self):
+        from hours_eoh.core.registration import personal_eoh_registration_share as prs
+        honest = self._at(0)
+        cap = build_collective(_frame(1), 0.40,
+                               personal_registration_share=prs(0.40) + 0.05)
+        assert registered_rate(cap, honest) == 1.0
+        assert parity_rate(cap, honest) > 1.0
+
+    def test_rate_capture_depreciates(self):
+        high, ref = self._at(0, m=2.2), self._at(1, m=2.0)
+        assert registered_rate(high, ref) < 1.0
+
+    def test_frame_does_not_reach_the_rate(self):
+        big = build_collective(_frame(0, pop=1e7), 0.40, mean_multiplier=1.9)
+        small = build_collective(_frame(1, pop=1e5), 0.40, mean_multiplier=1.9)
+        assert registered_rate(big, small) == 1.0
+
+    def test_terms_report_a_band_breach_and_never_clamp(self):
+        t = settlement_terms(self._at(0, m=1.5), self._at(1, m=2.4))
+        assert not t["both_in_band"]
+        assert (t["status_a"], t["status_b"]) == ("BELOW_BAND", "ABOVE_BAND")
+        assert not t["within_band_bounds"]
+        assert t["rate"] == pytest.approx(2.4 / 1.5, rel=1e-15)
+
+    def test_terms_in_band_sit_inside_the_derived_bounds(self):
+        t = settlement_terms(self._at(0, m=M_BAND_LOW), self._at(1, m=M_BAND_HIGH))
+        assert t["both_in_band"] and t["within_band_bounds"]
+        assert SETTLEMENT_BAND_BOUNDS == (M_BAND_LOW / M_BAND_HIGH, M_BAND_HIGH / M_BAND_LOW)
+
+    def test_the_floor_is_reported_not_applied(self):
+        """Two collectives at different ε, common multiplier: the floor reading
+        moves, the applied rate does not."""
+        a, b = self._at(0, eps=0.99), self._at(1, eps=0.0)
+        t = settlement_terms(a, b)
+        assert t["applied"] == "rate" and t["rate"] == 1.0
+        assert t["floor_rate_supplied"] > t["floor_rate_observed"] > 1.0
+        assert t["purchasing_gain_supplied"] == pytest.approx(
+            t["floor_rate_supplied"] / t["rate"], rel=1e-15)
+
+    def test_matrix_has_no_premium_argument(self):
+        import inspect
+        assert list(inspect.signature(settlement_matrix).parameters) == ["collectives"]
+
+    def test_one_formula_in_three_places(self):
+        """exchange.registered_rate, coasean.exchange_rates and
+        settlement_base's 'registered' candidate must agree (mode 4 — bound by
+        test because settlement_base cannot be imported by exchange)."""
+        from hours_eoh.research.coasean import exchange_rates, make_federation
+        from hours_eoh.research.settlement_base import settlement_rate
+        a, b = self._at(0, m=1.85), self._at(1, m=2.05)
+        assert settlement_rate(a, b, "registered") == pytest.approx(
+            registered_rate(a, b), rel=1e-12)
+        fed = make_federation(0.40, n=2, multiplier_schedule=[1.85, 2.05])
+        assert exchange_rates(fed)[(0, 1)] == registered_rate(fed[0], fed[1])
+        t = settlement_terms(a, b)
+        assert t["floor_rate_supplied"] == pytest.approx(
+            settlement_rate(a, b, "floor"), rel=1e-12)

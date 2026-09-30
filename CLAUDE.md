@@ -36,7 +36,7 @@ commission they came from is in `notes/README.md`.
 - Do not move experimental code into `core/` until it has a stable API and full tests.
 - Do not invent function signatures from a description; confirm the real ones in the code first.
 - Do not change calibration constants to make a chart look better; if a result is ugly, report it.
-- **Do not settle at a DISCOVERED rate at the federation level. Settle on the BASE.** *(author decision, 2026-09-12.)* Cross-collective exchange must clear against the obligation-anchored floor, never against an unbounded discovered price. The failure it prevents: **"a base EOH here is your entire collective there" is wrong** — if a discovered rate is allowed to set the cross-rate, a collective whose unit has appreciated can acquire another collective's whole productive base for a marginal quantity of its own, and nothing in the accounting objects. The floor is bounded by the obligation and the obligation is bounded by population, so settling on the base keeps the cross-rate inside a ratio of two physically-bounded quantities. Discovery may exist ABOVE the floor within a collective; it may not cross a collective boundary as a settlement price. This constrains work that is not yet built — `research/exchange.py` currently prices parity as mint-per-capita over mint-per-capita with **no real-output term**, which is exactly the unbounded form this forbids, and it is why the federation currently REWARDS capture (`record/contestability.md`). Any scale-up of the exchange layer inherits this rule.
+- **Do not settle at a DISCOVERED rate at the federation level. Settle on the BASE.** *(author decision, 2026-09-12.)* Cross-collective exchange must clear against the obligation-anchored floor, never against an unbounded discovered price. The failure it prevents: **"a base EOH here is your entire collective there" is wrong** — if a discovered rate is allowed to set the cross-rate, a collective whose unit has appreciated can acquire another collective's whole productive base for a marginal quantity of its own, and nothing in the accounting objects. The floor is bounded by the obligation and the obligation is bounded by population, so settling on the base keeps the cross-rate inside a ratio of two physically-bounded quantities. Discovery may exist ABOVE the floor within a collective; it may not cross a collective boundary as a settlement price. This constrains work that is not yet built — `research/exchange.py` ~~currently prices parity as mint-per-capita over mint-per-capita with **no real-output term**, which is exactly the unbounded form this forbids, and it is why the federation currently REWARDS capture~~ **— CLOSED 2026-09-30 (author decision): the federation SETTLES on `registered_rate` (m_b/m_a, hour for hour), with the floor reported beside it as purchasing power, never applied. `parity_rate` is kept as the superseded form** (`record/contestability.md#base-adopted`). Any scale-up of the exchange layer inherits this rule.
 
 ## Commands
 
@@ -195,13 +195,14 @@ hours_eoh/
     corridor.py        survival_floor_epsilon, contestability_ceiling, thermal_ceiling, corridor
     epsilon_inverse.py capital_for_epsilon — sweep the economy, not the score
     exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger (holdings move on
-                       transfer since 2026-09-30), parity_rate, the named FX seam
+                       transfer since 2026-09-30), registered_rate — THE SETTLEMENT (adopted
+                       2026-09-30) — settlement_terms (floor reported beside it, both ε),
+                       parity_rate (superseded), the named FX seam
     settlement_base.py WHICH QUANTITY BACKS A TEH AT THE BOUNDARY — six candidate bases for §5's
                        "settle on the BASE", side by side; none chosen. Per-TEH bases discipline
                        capture and do not bound the arc; the bounded one is blind to issuance.
-                       Focus narrowed to registered (hour-for-hour, band-bounded, Condition II
-                       checked) and floor (supplied vs observed ε), both run through the book.
-                       REPORTING ONLY; parity_rate unchanged pending the author
+                       The comparison behind the 2026-09-30 adoption (registered settles, floor
+                       read beside it). REPORTING ONLY
     anchor_determinacy.py  Eight anchors CLASSIFIED from their own definitions — no rival is modelled; REPORTING ONLY
     thermal*.py        thermal, thermal_path_c, thermal_lambda, thermal_overage, thermal_drawdown,
                        thermal_solvency, thermal_capital — the planetary radiative layer
@@ -549,7 +550,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,049 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,072 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

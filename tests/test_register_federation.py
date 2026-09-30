@@ -8,6 +8,10 @@ These pin a finding that runs AGAINST the architecture's own advertised
 behaviour, so they are written so that the advertised behaviour would fail them:
 if parity ever starts disciplining capture, `test_parity_rewards_capture` breaks
 and the finding is retired rather than quietly outliving its truth.
+
+2026-09-30: the finding retired by a different route — the federation stopped
+settling at parity (registered settles). These tests now pin `parity_rate`, the
+superseded form, and `TestTheAdoptedSettlementIsNeutral` pins the adopted one.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from hours_eoh.research.register_federation import (
     parity_response,
     recognition_regimes,
     settlement_offset,
+    settlement_response,
 )
 
 ARC = [0.0, 0.40, 0.90]
@@ -127,3 +132,17 @@ class TestTheTwoRegimes:
         assert "mistake" in limits or "visible" in limits, (
             "it must not read as an argument against federation"
         )
+
+
+class TestTheAdoptedSettlementIsNeutral:
+    """2026-09-30: the federation settles on `registered`. Capture is neither
+    rewarded nor disciplined there — it stops being paid a premium."""
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_capture_is_neutral_on_the_settlement_basis(self, eps: float) -> None:
+        r = settlement_response(epsilon=eps)
+        assert r["settlement_captured_over_honest"] == 1.0
+        assert not r["capture_was_rewarded"] and not r["capture_was_disciplined"]
+
+    def test_parity_still_rewards_it_which_is_why_it_is_not_the_settlement(self) -> None:
+        assert parity_response()["capture_was_rewarded"] is True

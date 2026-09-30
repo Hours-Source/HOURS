@@ -118,8 +118,10 @@ class TestExchangeRates:
             assert r == pytest.approx(1.0), f"Symmetric rate ({i},{j}) = {r}, expected 1.0"
 
     def test_heterogeneous_rates_deviate_from_unity(self):
+        """PARITY basis, explicitly: this pins the health lever's residue on
+        the pre-adoption rate. The settlement basis cannot see health at all."""
         fed = _two_collective_fed(0.40)
-        rates = exchange_rates(fed)
+        rates = exchange_rates(fed, basis="parity")
         assert len(rates) == 2  # (0,1) and (1,0)
         # Higher-eco collective (index 0) should have higher productivity
         r_01 = rates[(0, 1)]
@@ -206,10 +208,29 @@ class TestThreeRegimeInflation:
                                 capital_schedule=[_CAP_A, _CAP_B])
         fed_b = make_federation(0.50, n=2, population=1_000_000.0,
                                 capital_schedule=[2.0e9, 3.0e9])
-        r0 = exchange_rates(fed_a)
-        r1 = exchange_rates(fed_b)
+        r0 = exchange_rates(fed_a, basis="parity")
+        r1 = exchange_rates(fed_b, basis="parity")
         result = three_regime_inflation(r0, r1, 0.50)
         assert result["inter_inflation"] > 0.0
+
+    def test_capital_drift_is_not_a_settlement_movement(self):
+        """ADOPTED BASIS (2026-09-30): the same capital drift moves NO
+        settlement rate — capital is not what a TEH certifies."""
+        fed_a = make_federation(0.40, n=2, population=1_000_000.0,
+                                capital_schedule=[_CAP_A, _CAP_B])
+        fed_b = make_federation(0.50, n=2, population=1_000_000.0,
+                                capital_schedule=[2.0e9, 3.0e9])
+        result = three_regime_inflation(exchange_rates(fed_a), exchange_rates(fed_b), 0.50)
+        assert result["inter_inflation"] == 0.0
+
+    def test_multiplier_drift_is_a_settlement_movement(self):
+        """What regime 2 now consists of: divergence of the multipliers the
+        collectives mint at — Condition II drift, and nothing else."""
+        fed_a = make_federation(0.40, n=2, multiplier_schedule=[1.95, 2.00])
+        fed_b = make_federation(0.50, n=2, multiplier_schedule=[1.85, 2.05])
+        result = three_regime_inflation(exchange_rates(fed_a), exchange_rates(fed_b), 0.50)
+        assert result["inter_inflation"] == pytest.approx(
+            abs((2.05 / 1.85) - (2.00 / 1.95)) / (2.00 / 1.95), rel=1e-12)
 
     def test_system_inflation_less_than_inter(self):
         fed_a = _two_collective_fed(0.40)
@@ -227,16 +248,16 @@ class TestThreeRegimeInflation:
         cap_b = [2.0e9, 3.0e9]
         rates_before_low = exchange_rates(
             make_federation(0.20, n=2, population=1_000_000.0,
-                            capital_schedule=cap_a))
+                            capital_schedule=cap_a), basis="parity")
         rates_after_low  = exchange_rates(
             make_federation(0.30, n=2, population=1_000_000.0,
-                            capital_schedule=cap_b))
+                            capital_schedule=cap_b), basis="parity")
         rates_before_high = exchange_rates(
             make_federation(0.80, n=2, population=1_000_000.0,
-                            capital_schedule=cap_a))
+                            capital_schedule=cap_a), basis="parity")
         rates_after_high  = exchange_rates(
             make_federation(0.85, n=2, population=1_000_000.0,
-                            capital_schedule=cap_b))
+                            capital_schedule=cap_b), basis="parity")
 
         low  = three_regime_inflation(rates_before_low,  rates_after_low,  0.30)
         high = three_regime_inflation(rates_before_high, rates_after_high, 0.85)
@@ -305,7 +326,8 @@ class TestSimulateFederation:
             assert rec["inter_inflation"] == pytest.approx(0.0, abs=1e-9)
 
     def test_heterogeneous_federation_inter_inflation_possible(self):
-        records = simulate_federation(self._standard_trajectory(), heterogeneity=0.15)
+        records = simulate_federation(self._standard_trajectory(), heterogeneity=0.15,
+                                      rate_basis="parity")
         # At least one transition should show non-zero inter-collective inflation
         # (when N > 1 and eco schedules differ between periods)
         mid_records = [r for r in records if r["n_collectives"] > 1 and r["period"] > 0]
@@ -325,10 +347,18 @@ class TestSimulateFederation:
         for a, b in zip(r1, r2):
             assert a["inter_inflation"] == pytest.approx(b["inter_inflation"])
 
+    def test_capital_heterogeneity_moves_no_settlement_rate(self):
+        """Under the adopted basis the simulation's capital draw is invisible to
+        settlement: inter_inflation is exactly 0 at every period and every seed."""
+        for seed in (1, 2):
+            records = simulate_federation(self._standard_trajectory(),
+                                          heterogeneity=0.15, seed=seed)
+            assert all(r["inter_inflation"] == 0.0 for r in records)
+
     def test_different_seeds_different_results(self):
         traj = self._standard_trajectory()
-        r1 = simulate_federation(traj, heterogeneity=0.15, seed=1)
-        r2 = simulate_federation(traj, heterogeneity=0.15, seed=2)
+        r1 = simulate_federation(traj, heterogeneity=0.15, seed=1, rate_basis="parity")
+        r2 = simulate_federation(traj, heterogeneity=0.15, seed=2, rate_basis="parity")
         # With non-trivial heterogeneity, different seeds should give different inflation
         inflations_1 = [r["inter_inflation"] for r in r1]
         inflations_2 = [r["inter_inflation"] for r in r2]

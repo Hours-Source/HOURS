@@ -256,6 +256,7 @@ class TestTheReport:
     def test_it_names_what_the_author_decides_and_does_not_decide_for_them(self) -> None:
         r = base_report()
         text = " ".join(r["author_decides"]).lower()
+        assert "decided 2026-09-30" in text
         assert "machine-fulfilled" in text
         assert "blind to issuance" in text
         assert r["reporting_only"] is True
@@ -401,4 +402,6 @@ class TestFocusReport:
         text = " ".join(r["author_decides"]).lower()
         assert "supplied or the observed" in text
         assert "mutual recognition" in text
+        assert "decided 2026-09-30" in text
+        assert "deficit beyond reserve" in text
         assert r["reporting_only"] is True

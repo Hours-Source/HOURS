@@ -32,7 +32,9 @@ silently rescales a domain, and this repo has found that defect six times, most
 recently on the documented institutional intake path (`fiscal_snapshot`,
 2026-08-20, 92.8× inside the implementation guide's own worked example). An
 exchange rate is a RATIO of two collectives' per-capita output, so an undeclared
-frame on either side lands directly in the rate with nothing to flag it.
+frame on either side lands directly in the rate with nothing to flag it. (True of
+the superseded PARITY rate; the adopted settlement rate, `registered_rate`, reads
+no extensive quantity. The frame still governs every other figure here.)
 `CollectiveFrame` therefore has no default land area — the frame must be stated.
 
 STATUS: experimental, per `research/__init__.py`. The API is not stable.
@@ -44,15 +46,19 @@ Layer note: imports from `core/` and `data.py` only. Nothing in `core/`,
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any, Iterable, Protocol
 
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
     COASEAN_IMBALANCE_CEILING,
     COASEAN_RESERVE_FRACTION,
     LAND_HECTARES_PER_CAPITA,
+    M_BAND_HIGH,
+    M_BAND_LOW,
     TRUST_BASE_TEH,
 )
+from hours_eoh.core.conditions import condition_ii_check
+from hours_eoh.core.prices import floor_price
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.eoh_generation import resolve_capital_stock
@@ -67,6 +73,10 @@ __all__ = [
     "build_collective",
     "parity_rate",
     "rate_matrix",
+    "registered_rate",
+    "settlement_terms",
+    "settlement_matrix",
+    "SETTLEMENT_BAND_BOUNDS",
     "n1_accounting_anchor",
 ]
 
@@ -309,6 +319,14 @@ def build_collective(
 
 def parity_rate(a: Collective, b: Collective, premium: float = 0.0) -> float:
     """
+    SUPERSEDED AS THE SETTLEMENT RATE (author decision, 2026-09-30): the
+    federation settles on `registered_rate`. Kept, unchanged, as the
+    productivity reading and the regression anchor for every pre-adoption
+    figure — and because it is the form whose defect is on record: it has no
+    real-output term, so a captured register APPRECIATES under it
+    (`research/register_federation.py`, record/contestability.md
+    #register-federation). Do not settle at it.
+
     The FLOOR exchange rate between two collectives, with discovery above it.
 
     Governing equation:
@@ -346,7 +364,9 @@ def rate_matrix(
     premiums: dict[tuple[int, int], float] | None = None,
 ) -> dict[tuple[int, int], float]:
     """
-    All pairwise floor rates, keyed (id_i, id_j) for i ≠ j.
+    All pairwise PARITY rates, keyed (id_i, id_j) for i ≠ j. Superseded as the
+    settlement basis on 2026-09-30 — see `settlement_matrix`; kept as the
+    productivity reading, with its premium seam, for pre-adoption figures.
 
     Reciprocity holds exactly at zero premium — r(i,j) · r(j,i) == 1 to float
     precision — and is BROKEN by asymmetric premiums, which is correct: a premium
@@ -362,6 +382,131 @@ def rate_matrix(
         (a.collective_id, b.collective_id): parity_rate(
             a, b, prem.get((a.collective_id, b.collective_id), 0.0)
         )
+        for a in cs
+        for b in cs
+        if a.collective_id != b.collective_id
+    }
+
+
+# ---------------------------------------------------------------------------
+# Settlement — ADOPTED 2026-09-30: registered settles, floor is read beside it
+# ---------------------------------------------------------------------------
+#
+# CLAUDE.md §5: settle on the BASE, never on a discovered rate. The author chose
+# the base on 2026-09-30 from the six candidates `research/settlement_base.py`
+# compares: REGISTERED settles (a TEH certifies 1/m hours of registered
+# obligation served, and settles for the TEH that certify the same hours), and
+# the FLOOR is reported beside it as purchasing power — never applied.
+
+
+class _HasPipeline(Protocol):
+    """Anything carrying a core pipeline result and its ε — both Collective types."""
+
+    epsilon: float
+    pipeline: dict
+
+    @property
+    def collective_id(self) -> int: ...
+
+
+#: The cross-rate `registered_rate` is confined to WHEN both collectives honour
+#: Condition II. Derived from the band's edges, not chosen. In-band ⇒ inside is
+#: algebra; the check that can fire is the per-side band status.
+SETTLEMENT_BAND_BOUNDS: tuple[float, float] = (
+    M_BAND_LOW / M_BAND_HIGH,
+    M_BAND_HIGH / M_BAND_LOW,
+)
+
+
+def registered_rate(a: _HasPipeline, b: _HasPipeline) -> float:
+    """
+    THE SETTLEMENT RATE — hour for hour.
+
+    Governing equation:
+
+        r(a, b) = m_b / m_a        [TEH_b per TEH_a]
+
+    where m is the mean multiplier the collective's pipeline MINTED at (the
+    applied value: `teh_created = registered_eoh × mean_multiplier`, one
+    variable). One TEH of a certifies 1/m_a hours of registered obligation
+    served; it settles for the TEH_b that certify the same hours.
+
+    Properties (pinned in tests/test_exchange.py):
+      - capture-NEUTRAL: admitting more of the obligation mints more TEH, each
+        certifying the same hours, so the rate does not move. Parity rewarded it.
+      - RATE capture depreciates: a collective minting at a higher multiplier
+        settles each TEH for fewer of its neighbour's, by exactly the ratio.
+      - bounded by `SETTLEMENT_BAND_BOUNDS` only while both honour Condition II,
+        which nothing upstream enforces — see `settlement_terms`.
+      - no premium. §5: discovery may not cross a boundary as a settlement price.
+      - frame-invariant: reads no extensive quantity.
+
+    ε-behaviour: m does not depend on ε in the pipeline, so at a common
+    multiplier the rate is exactly 1.0 across the whole arc [0, 0.99] — the
+    federation is at MUTUAL RECOGNITION until multipliers differ. That is the
+    adopted state, not a degeneracy to engineer away.
+    """
+    return float(b.pipeline["mean_multiplier"]) / float(a.pipeline["mean_multiplier"])
+
+
+def settlement_terms(a: _HasPipeline, b: _HasPipeline) -> dict[str, Any]:
+    """
+    Everything a settlement between a and b carries: the rate, the condition
+    that bounds it, and the purchasing-power reading beside it.
+
+    APPLIED: `rate` (= `registered_rate`). Nothing else here moves money.
+
+    REPORTED BESIDE IT:
+      - Condition II status of each side and whether the bound holds. A breach
+        is reported, never clamped — clamping would hide the state Condition II
+        exists to surface, and would itself be a discovered rate.
+      - the FLOOR reading, at BOTH ε: `floor_rate_*` = floor(ε_b)/floor(ε_a),
+        the TEH_b that buy what one TEH_a buys at the floor; and
+        `purchasing_gain_*` = floor_rate / rate, baskets on the far side per
+        basket the same hours buy at home. Both ε are reported because which
+        one the floor is a function of — the capability a collective STATES or
+        the machine share it MEASURES — is not decided (record/contestability.md
+        #settled-through-the-book). The ratio, not the product: the product has
+        units (TEH_b/TEH_a)².
+    """
+    r = registered_rate(a, b)
+    m_a = float(a.pipeline["mean_multiplier"])
+    m_b = float(b.pipeline["mean_multiplier"])
+    ca, cb = condition_ii_check(m_a), condition_ii_check(m_b)
+    lo, hi = SETTLEMENT_BAND_BOUNDS
+    eps_obs_a = float(a.pipeline["epsilon_observable"])
+    eps_obs_b = float(b.pipeline["epsilon_observable"])
+    # TEH_b needed to buy at b's floor what one TEH_a buys at a's.
+    f_sup = floor_price(b.epsilon) / floor_price(a.epsilon)
+    f_obs = floor_price(eps_obs_b) / floor_price(eps_obs_a)
+    return {
+        "rate": r,
+        "applied": "rate",
+        "m_a": m_a,
+        "m_b": m_b,
+        "status_a": ca["status"],
+        "status_b": cb["status"],
+        "both_in_band": bool(ca["in_band"] and cb["in_band"]),
+        "within_band_bounds": lo <= r <= hi,
+        "band_bounds": SETTLEMENT_BAND_BOUNDS,
+        "floor_rate_supplied": f_sup,
+        "floor_rate_observed": f_obs,
+        "purchasing_gain_supplied": f_sup / r,
+        "purchasing_gain_observed": f_obs / r,
+    }
+
+
+def settlement_matrix(collectives: Iterable[_HasPipeline]) -> dict[tuple[int, int], float]:
+    """
+    All pairwise SETTLEMENT rates, keyed (id_i, id_j) for i ≠ j.
+
+    The adopted counterpart of `rate_matrix`, with no premium argument: §5
+    forbids a discovered deviation from crossing a boundary as a settlement
+    price. Reciprocal exactly, and 1.0 everywhere at a common multiplier.
+    """
+    cs = list(collectives)
+    return {
+        (a.collective_id, b.collective_id): registered_rate(a, b)
         for a in cs
         for b in cs
         if a.collective_id != b.collective_id
@@ -647,7 +792,8 @@ class FederationBook:
         Args:
             sender/receiver: collective ids; must differ and both be open.
             amount: TEH in the SENDER's unit. Must be > 0.
-            rate: receiver-TEH per sender-TEH, from `parity_rate`. Must be > 0.
+            rate: receiver-TEH per sender-TEH — `registered_rate` for a
+                settlement (adopted 2026-09-30). Must be > 0.
 
         Returns:
             dict with `sent`, `received`, `fx` — the three quantities a

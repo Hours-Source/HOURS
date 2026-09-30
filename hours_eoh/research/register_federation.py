@@ -1,6 +1,13 @@
 """
 DOES CAPTURE IN ONE COLLECTIVE BECOME ISSUANCE IN ALL? — reporting only.
 
+STATUS (2026-09-30): the finding below is about PARITY, which is no longer the
+settlement. The author adopted REGISTERED settlement (`exchange.registered_rate`,
+hour for hour), under which register capture is NEUTRAL — see
+`settlement_response`. Parity is kept as the documented defect and still
+rewards capture; the tests pinning that are about `parity_rate`, which remains
+reachable, and are not a claim about how the federation settles.
+
 Item 8 of the register-governance outline, and the one part of that front the
 existing code can actually answer rather than merely argue. `scenarios/register_capture.py`
 prices a capture inside one ledger; this asks what the federation does about it.
@@ -48,7 +55,12 @@ from typing import Any
 
 from hours_eoh.core.registration import personal_eoh_registration_share
 from hours_eoh.research.coasean import settlement_check
-from hours_eoh.research.exchange import CollectiveFrame, build_collective, parity_rate
+from hours_eoh.research.exchange import (
+    CollectiveFrame,
+    build_collective,
+    parity_rate,
+    registered_rate,
+)
 
 #: The reference pairing used throughout, so both collectives differ in exactly
 #: one thing — the registration decision. Population, land and capital travel
@@ -101,6 +113,36 @@ def parity_response(
             "parity is teh_created/population; capture raises teh_created and "
             "leaves the obligation alone, so it reads as productivity"
         ),
+        "reporting_only": True,
+    }
+
+
+def settlement_response(
+    share_delta: float = 0.05,
+    epsilon: float = 0.40,
+) -> dict[str, Any]:
+    """
+    The same capture as `parity_response`, on the ADOPTED settlement basis.
+
+    Neutral: the capturing register mints more TEH, each certifying the same
+    hours served at the same multiplier, so r = m_honest/m_captured = 1.0. Not a
+    DISCIPLINE — nothing penalises the capture; the federation simply no longer
+    pays it a premium. What capture still does, it does inside the capturing
+    collective (who is admitted — record/theory.md#capture-aggregate-bounded).
+    """
+    honest = build_collective(_frame(0), epsilon)
+    captured = build_collective(
+        _frame(1),
+        epsilon,
+        personal_registration_share=personal_eoh_registration_share(epsilon) + share_delta,
+    )
+    rate = registered_rate(captured, honest)
+    return {
+        "epsilon": epsilon,
+        "share_delta": share_delta,
+        "settlement_captured_over_honest": rate,
+        "capture_was_rewarded": rate > 1.0,
+        "capture_was_disciplined": rate < 1.0,
         "reporting_only": True,
     }
 
@@ -172,6 +214,11 @@ def recognition_regimes(
     the same as discipline, and the discipline lives in the settlement path.
 
     Neither regime is recommended here. What is reported is what each does.
+
+    NOTE (2026-09-30): the ADOPTED settlement — registered, hour for hour —
+    is mutual recognition at a common multiplier and separate units only where
+    multipliers differ. So on the adopted basis register capture is invisible
+    to the exchange layer AND unrewarded by it; `settlement_response`.
     """
     p = parity_response(share_delta, epsilon)
     return {
