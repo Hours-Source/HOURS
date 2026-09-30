@@ -195,6 +195,10 @@ hours_eoh/
     corridor.py        survival_floor_epsilon, contestability_ceiling, thermal_ceiling, corridor
     epsilon_inverse.py capital_for_epsilon — sweep the economy, not the score
     exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger, parity_rate, the named FX seam
+    settlement_base.py WHICH QUANTITY BACKS A TEH AT THE BOUNDARY — six candidate bases for §5's
+                       "settle on the BASE", side by side; none chosen. Per-TEH bases discipline
+                       capture and do not bound the arc; the bounded one is blind to issuance.
+                       REPORTING ONLY; parity_rate unchanged pending the author
     anchor_determinacy.py  Eight anchors CLASSIFIED from their own definitions — no rival is modelled; REPORTING ONLY
     thermal*.py        thermal, thermal_path_c, thermal_lambda, thermal_overage, thermal_drawdown,
                        thermal_solvency, thermal_capital — the planetary radiative layer
@@ -542,8 +546,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**4,937 tests passing (1 skipped), mypy clean on 102 source files** (verified
-2026-09-22). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
+**5,016 tests passing (1 skipped), mypy clean on 103 source files** (verified
+2026-09-30). Provenance **348/348**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -637,7 +641,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**111 test files. The name rule covers 74 of them:** `tests/test_<module>.py`
+**113 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
