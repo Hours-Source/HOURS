@@ -152,6 +152,8 @@ hours_eoh/
     food_conservation.py conservation_test, uncounted_headroom — did automation eliminate food labour, or relocate it?
     land_tenure.py     allocate_by_tenure, tenure_allocation — UNOWNED LAND IS FEDERATION;
                        nothing uncollected, undeclared tenure REPORTED not folded away
+    essential_bridge.py personal_column — the essential-domain bridge's personal column DERIVED from
+                       the obligation's components; frozen as data.ESSENTIAL_BRIDGE_PERSONAL
     restoration_cost.py restoration_band, legacy_stock, implied_kappa, pristine_gap_obligation — the derived reset cost,
                        and the 12–69× biological-vs-engineered κ ratio; REPORTING ONLY
     guf_magnitude.py   recurring_target_by_class, target_vs_realised, scaling_basis_shares,
@@ -593,8 +595,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,269 tests passing (1 skipped), mypy clean on 103 source files** (verified
-2026-09-30). Provenance **349/349**, shadow ratchet **33**, confidence ratchet
+**5,300 tests passing (1 skipped), mypy clean on 104 source files** (verified
+2026-10-01). Provenance **350/350**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -703,7 +705,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**115 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
+**116 test files. The name rule covers 77 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

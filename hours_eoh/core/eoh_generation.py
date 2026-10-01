@@ -31,7 +31,7 @@ from hours_eoh.data import (
     INFRA_MAINT_RATE,
     INFRA_AGE_FACTOR_MAX,
     ECOLOGICAL_THRESHOLD,
-    AGE_GROUPS, ESSENTIAL_DOMAINS,
+    AGE_GROUPS, ESSENTIAL_DOMAINS, ESSENTIAL_BRIDGE_PERSONAL,
     PERSONAL_EOH_BASE, PERSONAL_EOH_SURVIVAL, PERSONAL_EOH_SUFFICIENCY,
     CAPITAL_STOCK_DEFAULT, ECOLOGICAL_BASE_RATE, ECOLOGICAL_INTENSITY_BASE,
     ECOLOGICAL_THRESHOLD, LAND_HECTARES_PER_CAPITA, US_MAINLAND_HECTARES,
@@ -2037,13 +2037,18 @@ def domain_labor_requirements(
 # EOH to essential workforce domains
 # ---------------------------------------------------------------------------
 
-# Default weight matrix: rows = essential workforce domains, cols = EOH domains.
-# Each column sums to 1.0 — every unit of aggregate EOH is attributed to
-# exactly one essential domain. Agriculture leads on ecological EOH (farming
-# is the primary ecosystem steward); healthcare on personal EOH (biological
-# care); construction/energy/water/manufacturing/logistics divide infrastructure;
-# knowledge EOH is distributed across all seven domains.
-_EOH_TO_ESSENTIAL_WEIGHTS: dict[str, dict[str, float]] = {
+# The essential-domain bridge: rows = essential workforce domains (plus
+# `unattributed`), cols = EOH domains. Each column sums to 1 INCLUDING the
+# unattributed row — the share of a domain no essential domain is certified for.
+#
+# THE PERSONAL COLUMN IS DERIVED (2026-10-01): `data.ESSENTIAL_BRIDGE_PERSONAL`,
+# computed by `scenarios.essential_bridge.personal_column` from the personal
+# obligation's own components and pinned against it. It replaced healthcare
+# 0.80 / logistics 0.20, written before the obligation was decomposed; the
+# superseded table is `_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY`, reachable as
+# `weights=`. The infrastructure, ecological and knowledge columns are still
+# the original judgement — untagged, and declared as such in record/provenance.md.
+_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY: dict[str, dict[str, float]] = {
     #                        personal  infrastructure  ecological  knowledge
     "agriculture":    {"personal": 0.00, "infrastructure": 0.05, "ecological": 0.50, "knowledge": 0.10},
     "construction":   {"personal": 0.00, "infrastructure": 0.25, "ecological": 0.00, "knowledge": 0.10},
@@ -2053,10 +2058,35 @@ _EOH_TO_ESSENTIAL_WEIGHTS: dict[str, dict[str, float]] = {
     "manufacturing":  {"personal": 0.00, "infrastructure": 0.20, "ecological": 0.05, "knowledge": 0.15},
     "logistics":      {"personal": 0.20, "infrastructure": 0.10, "ecological": 0.05, "knowledge": 0.15},
 }
-assert set(_EOH_TO_ESSENTIAL_WEIGHTS) == set(ESSENTIAL_DOMAINS), (
-    "Weight matrix keys must match ESSENTIAL_DOMAINS — update _EOH_TO_ESSENTIAL_WEIGHTS "
-    f"to cover: {set(ESSENTIAL_DOMAINS) - set(_EOH_TO_ESSENTIAL_WEIGHTS)}"
+assert set(_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY) == set(ESSENTIAL_DOMAINS), (
+    "Weight matrix keys must match ESSENTIAL_DOMAINS — update the bridge "
+    f"to cover: {set(ESSENTIAL_DOMAINS) - set(_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY)}"
 )
+
+#: The row for the share no essential domain is certified to carry.
+UNATTRIBUTED_ESSENTIAL: str = "unattributed"
+
+def essential_weights() -> dict[str, dict[str, float]]:
+    """
+    The essential-domain bridge in force: the legacy table with its personal
+    column replaced by the derived `ESSENTIAL_BRIDGE_PERSONAL`, plus the
+    `unattributed` row. Built in a FUNCTION rather than at import so the
+    verdict ladder's static walk reaches the data.py constant it rests on — a
+    module-level table hid it, and `condition_iv_coverage` read as resting on
+    no bridge input at all.
+    """
+    return {
+        **{d: {**row, "personal": ESSENTIAL_BRIDGE_PERSONAL[d]}
+           for d, row in _EOH_TO_ESSENTIAL_WEIGHTS_LEGACY.items()},
+        UNATTRIBUTED_ESSENTIAL: {
+            "personal": ESSENTIAL_BRIDGE_PERSONAL[UNATTRIBUTED_ESSENTIAL],
+            "infrastructure": 0.0, "ecological": 0.0, "knowledge": 0.0,
+        },
+    }
+
+
+#: Kept as a name for callers that read the table directly.
+_EOH_TO_ESSENTIAL_WEIGHTS: dict[str, dict[str, float]] = essential_weights()
 
 
 def eoh_to_essential_domains(
@@ -2074,8 +2104,9 @@ def eoh_to_essential_domains(
     simulation data.
 
     Each EOH domain is distributed proportionally across the seven essential
-    domains using a weight matrix. The default weights are calibrated so each
-    EOH domain column sums to 1.0 (every unit is fully attributed). Callers
+    domains using a weight matrix. Each EOH column sums to 1.0 INCLUDING the
+    `unattributed` row; the old claim that every unit is attributed to a
+    certified domain held by construction, not by measurement. Callers
     can override with a custom weight matrix for sector-specific models.
 
     Args:
@@ -2084,16 +2115,20 @@ def eoh_to_essential_domains(
                        eoh_to_teh_pipeline()["eoh_by_domain"].
         weights: Optional weight matrix overriding _EOH_TO_ESSENTIAL_WEIGHTS.
                  Format: {essential_domain: {eoh_domain: fraction}}.
-                 Default None → use _EOH_TO_ESSENTIAL_WEIGHTS.
+                 Default None → use _EOH_TO_ESSENTIAL_WEIGHTS (personal column
+                 derived 2026-10-01; `_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY` is the
+                 superseded table).
 
     Returns:
-        dict: {essential_domain: eoh_hours} for the seven essential domains.
+        dict: {essential_domain: eoh_hours} for the seven essential domains,
+              plus "unattributed" — the hours no essential domain is certified
+              to carry — when the bridge has that row (the default does).
               Values are in the same units as the input eoh_by_domain values.
 
     Reference: Mission Statement §"Condition IV — Distributed Competency" —
     certified capacity must cover EOH demand domain by domain, not just in aggregate.
     """
-    w = weights if weights is not None else _EOH_TO_ESSENTIAL_WEIGHTS
+    w = weights if weights is not None else essential_weights()
     return {
         ess_domain: sum(
             eoh_by_domain.get(eoh_dom, 0.0) * frac

@@ -137,6 +137,18 @@ class TestTheCensusCannotDriftSilently:
                        achievable ceiling, which is derived and moves —
                        observable_epsilon_ceiling() reads 0.788-0.877 under
                        per_component, and the two are gated apart.
+                 350 = 32/96/222 after ESSENTIAL_BRIDGE_PERSONAL was
+                       DERIVED (2026-10-01) — the personal column of the
+                       essential-domain bridge, computed from the obligation's
+                       components and frozen because core/ cannot import the
+                       scenarios that measure its splits. CERTAIN rose because
+                       the census ranks a constant by its own tag; it rests on
+                       PERSONAL_EOH_COMPONENTS (placeholder), stated in its
+                       `form:` as the scheme requires — the same shape as
+                       CAPITAL_PERSONAL_SERVING_SHARE. It replaced one column
+                       of an untagged table outside data.py; the shadow count
+                       did NOT move, because that table still supplies the
+                       other three columns.
                  349 = 31/96/222 after SHOCK_DEGRADED_TRUST_FRACTION was
                        NAMED (2026-09-30) — the DEGRADED/CRISIS boundary that
                        had lived as three unnamed copies with two values
@@ -161,8 +173,8 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 349
-        assert c["counts"]["CERTAIN"] == 31
+        assert c["total"] == 350
+        assert c["counts"]["CERTAIN"] == 32
         assert c["counts"]["INSTANCE"] == 96
         assert c["counts"]["POSSIBLE"] == 222
 

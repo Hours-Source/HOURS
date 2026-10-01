@@ -700,3 +700,93 @@ class TestOneStateOneCascade:
     def test_base_rate_is_retired(self):
         with pytest.warns(DeprecationWarning, match="base_rate"):
             ecological_eoh_spike(0.40, 0.70, 0.30, base_rate=1.0)
+
+
+class TestCompetencyInTheShocks:
+    """2026-10-01: Condition IV in hours (`condition_iv_coverage`) is read in
+    every shock, for a collective certified at the Condition IV minimum of its
+    OWN working-age headcount; a shock is charged only with shortfalls it
+    CREATES. Until this date competency was declared untested."""
+
+    def test_every_shock_tests_competency(self):
+        for r in (automation_failure_shock(0.40), demographic_shock(0.40, "aging", 0.1),
+                  ecological_eoh_spike(0.40, 0.7, 0.3),
+                  compound_shock(0.40, automation_fraction_lost=0.5)):
+            assert r["competency_tested"] is True
+            assert set(r["competency_coverage_after"]) == {
+                "agriculture", "construction", "energy", "water",
+                "healthcare", "manufacturing", "logistics"}
+
+    def test_a_shortfall_already_there_is_not_blamed_on_the_shock(self):
+        # Inside the band where healthcare is short at the Condition IV minimum
+        # before any shock, in both tiers. (Until the bridge's personal column
+        # was derived, 2026-10-01, this case also "created" a logistics
+        # shortfall — the old 0.20 logistics weight, gone with it.)
+        r = automation_failure_shock(0.78)
+        assert r["competency_short_before"] == ["healthcare"]
+        assert r["competency_personal_short_before"] == ["healthcare"]
+        assert r["competency_short_created"] == []
+        assert r["competency_personal_short_created"] == []
+
+    def test_aging_late_in_the_arc_shrinks_the_certified_pool(self):
+        # Labour absorbs it; competency does not. TWO mechanisms, both
+        # measured: aging raises healthcare demand and shrinks the certified
+        # pool (a share of the smaller working-age headcount). Under the
+        # DERIVED bridge (2026-10-01) demand alone leaves healthcare covered —
+        # the shortfall is the pool's; under the old 0.80 weight demand alone
+        # had already broken it. Capacity is linear in headcount, so the
+        # coverage is the held-headcount coverage × the working-age ratio.
+        from hours_eoh.scenarios import shocks as sh
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = demographic_shock(0.99, "aging", 0.2)
+        assert r["labour_outcome"] == "STABLE"
+        assert r["competency_short_created"] == ["healthcare"]
+        # The shortfall is in the PERSONAL tier — the agents' own needs without
+        # competent hands — so CRISIS, not DEGRADED (author, 2026-10-01).
+        assert r["competency_personal_short_created"] == ["healthcare"]
+        assert r["outcome"] == "CRISIS"
+        s0 = sh._base_state(0.99, 1.0e6, 0.70, None)
+        s1 = sh._demographic_change(s0, "aging", 0.2)
+        after = sh._run(s1, 0.99, resolve_capital_stock(None, 0.99, population=1.0e6), 0.30, None)
+        held = condition_iv_coverage(sh._threshold_reserve(s0), after)["per_domain"]["healthcare"]
+        assert held["coverage_ratio"] >= 1.0
+        ratio = s1["age_fractions"]["working_age"] / s0["age_fractions"]["working_age"]
+        assert r["competency_coverage_after"]["healthcare"] == pytest.approx(
+            held["coverage_ratio"] * ratio, rel=1e-12)
+
+    def test_mid_arc_failure_creates_no_shortfall(self):
+        assert automation_failure_shock(0.40)["competency_short_created"] == []
+
+    def test_competency_travels_with_the_frame(self):
+        rows = [automation_failure_shock(0.90, population=p) for p in (1e5, 1e6, 1e7)]
+        ratios = [r["competency_coverage_after"]["logistics"] for r in rows]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
+        assert len({tuple(r["competency_short_created"]) for r in rows}) == 1
+
+
+class TestTheSurvivalTier:
+    """2026-10-01, author: "the people (agent needs) should be what needs to be
+    covered, the rest can build back over time as the arc climbs again". A
+    shortfall the shock creates in the PERSONAL tier is CRISIS; elsewhere,
+    DEGRADED."""
+
+    def test_a_personal_tier_shortfall_is_crisis(self):
+        r = automation_failure_shock(0.99)
+        assert r["labour_outcome"] == "DEGRADED"
+        assert r["competency_personal_short_created"] == ["healthcare"]
+        assert r["outcome"] == "CRISIS"
+
+    def test_the_tier_edge_is_read_not_smoothed(self):
+        # At ε=0.60 the registered tier is already short and the personal tier
+        # is not; the failure tips the personal tier.
+        r = automation_failure_shock(0.60)
+        assert r["competency_short_before"] == ["healthcare"]
+        assert r["competency_personal_short_before"] == []
+        assert r["competency_personal_short_created"] == ["healthcare"]
+        assert r["outcome"] == "CRISIS"
+
+    def test_unattributed_hours_are_reported_not_counted_short(self):
+        r = automation_failure_shock(0.40)
+        assert r["competency_unattributed_eoh"] > 0.0
+        assert "unattributed" not in r["competency_coverage_after"]

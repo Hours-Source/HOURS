@@ -71,7 +71,7 @@ print(eoh["total"])
 |----------|---------|-------------|
 | `ecological_eoh_breakdown(ecosystem_health, …)` | `dict` | The terms that sum to `ecological_eoh()` — baseline, spike, visible deferred and thermal |
 | `domain_labor_requirements(eoh_by_domain, epsilon, …)` | `dict` | Headcount needed per domain: the human-labor share divided by annual hours per worker |
-| `eoh_to_essential_domains(eoh_by_domain, …)` | `dict` | The four EOH domains distributed across the seven essential workforce domains, for Condition IV |
+| `eoh_to_essential_domains(eoh_by_domain, …)` | `dict` | The four EOH domains distributed across the seven essential workforce domains, plus `unattributed` — the hours no essential domain is certified for — for Condition IV. The bridge in force is `essential_weights()`: its personal column is DERIVED from the obligation's components (`data.ESSENTIAL_BRIDGE_PERSONAL`, `scenarios/essential_bridge`); `_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY` is the superseded table |
 | `epsilon_delta_sensitivity(base_epsilon, delta_epsilon, …)` | `dict` | Sensitivity of EOH totals to Δε at a given point |
 
 ---

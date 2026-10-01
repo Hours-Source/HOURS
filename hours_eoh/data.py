@@ -702,6 +702,7 @@ ESSENTIAL_DOMAINS: list[str] = [
 #   would settle it.
 COMPETENCY_THRESHOLD: float = 0.155  # 15.5% of workforce, per Mission Statement
 
+
 # Minimum annual labor obligation supporting Condition IV
 # tag: placeholder | units: hours per year
 # form: 5 h/wk × 52 wk. Below some floor a practitioner stops maintaining
@@ -1592,6 +1593,47 @@ PERSONAL_EOH_COMPONENTS: dict[str, dict] = {
     #   panel's cross-section is not a capital gradient — the exact ranking the
     #   retired pointer asked for. LEAST abatable and the largest share — this
     #   is what bounds a_max.
+}
+
+# tag: derived | units: dimensionless share of the personal obligation, per essential domain
+# form: w(d, personal) = Σ_c share_c × split_c(d) over PERSONAL_EOH_COMPONENTS —
+#   health and care → healthcare; nutrition → agriculture : manufacturing by
+#   the floor's unassisted production : processing terms (LSMS; the FR1966
+#   anchor NUTRITION_AUTOMATION_FLOOR adopts); shelter → construction : energy
+#   : unattributed by the measured ATUS shelter destinations (structure,
+#   thermal, upkeep). Computed by `scenarios.essential_bridge.personal_column`
+#   and FROZEN here because core/ cannot import scenarios/;
+#   `tests/scenarios/test_essential_bridge.py` pins it against the live call.
+#   Written as component share × the measured split, not as bare totals, so
+#   the dependency on PERSONAL_EOH_COMPONENTS stays visible to the verdict
+#   ladder — frozen totals read as dependency-free and ranked CERTAIN.
+# note: REPLACES the personal column of the essential-domain bridge (2026-10-01,
+#   author: "fix the domain mapping, as that seems to be an oversight"). It was
+#   healthcare 0.80 / logistics 0.20, written before the obligation was
+#   decomposed. Healthcare barely moves (0.759) — care is 62% of the obligation
+#   and has no essential domain of its own — and logistics goes to 0: food
+#   SERVICE is excluded from the obligation (author, 2026-09-03), and the
+#   floor's terms carry no distribution stage.
+# note: `unattributed` is the share no essential domain is certified for —
+#   shelter upkeep, where the measured frame also hides WATER (piped water puts
+#   hauling inside upkeep). Water is HELD at 0, not weighted (author: no new
+#   placeholders). The old column summed to 1 over the seven by construction.
+# note: inherits its inputs' standing — the component shares are the desk
+#   estimate (PERSONAL_EOH_COMPONENTS, confidence 25) and the shelter
+#   destinations are a high-capital frame. Derived is not measured.
+ESSENTIAL_BRIDGE_PERSONAL: dict[str, float] = {
+    # splits frozen 2026-10-01 from `essential_bridge.personal_column()["inputs"]`:
+    # nutrition: unassisted production 330.92 h (LSMS) : processing 472.65 h (FR1966)
+    # shelter:   ATUS destinations structure : thermal : upkeep
+    "agriculture":   PERSONAL_EOH_COMPONENTS["nutrition"]["share"] * 0.41181596618128197,
+    "construction":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.09086663279071067,
+    "energy":        PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.010731960781923996,
+    "water":         0.0,
+    "healthcare":    (PERSONAL_EOH_COMPONENTS["health"]["share"]
+                      + PERSONAL_EOH_COMPONENTS["care"]["share"]),
+    "manufacturing": PERSONAL_EOH_COMPONENTS["nutrition"]["share"] * 0.5881840338187181,
+    "logistics":     0.0,
+    "unattributed":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.8984014064273654,
 }
 
 # tag: placeholder | units: TEH of PERSONAL-SERVING capital per capita

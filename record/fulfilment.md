@@ -51,7 +51,7 @@ stability, and the state container that feeds them.
 ## Open
 
 - **~~Shocks charge EOH to the Trust~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#one-state-one-cascade)
-- **Condition IV untested in shocks** *(gap)* — the map exists; `domain_eoh_coverage` sizes a worker as H_MIN × m̄ × (1−ε). *Settles by:* an hours capacity. [entry](verification.md#one-state-one-cascade)
+- **~~Condition IV: registered or human?~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#bridge-derived)
 - **A destroyed capital stock books no obligation to rebuild it.** *(gap)* Ecology
   has a restoration socket; capital has none, so a disaster cuts minting 8.77%.
   *Settles by:* a socket and a wiring decision. [entry](#capital-reconstruction-gap).

@@ -11,7 +11,7 @@ revaluations and re-anchors, the dataset-governance gate.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **349 constants in `data.py`, all tagged** — `provenance 349/349` *(gated)*.
+- **350 constants in `data.py`, all tagged** — `provenance 350/350` *(gated)*.
   placeholder 128 (36.8%), normative 72 (20.7%), convention 45 (12.9%), measured
   28 (8.0%), instance 23 (6.6%), derived 22 (6.3%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).
@@ -41,6 +41,7 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
+- **Three bridge columns are untagged** *(gap)* — personal is derived; infrastructure, ecological, knowledge are not. *Settles by:* employment by industry. [verification.md](verification.md#bridge-derived)
 - **30 dict/tuple constants carry ONE tag over several fields; two checked**
   *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
   the others. **9 of the 30 declare MIXED UNITS in their own `units:` field and

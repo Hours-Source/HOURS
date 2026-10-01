@@ -238,6 +238,10 @@ class TestDomainEohCoverage:
         assert result["all_covered"] is False
         assert "healthcare" in result["domains_at_risk"]
 
+    # DEPRECATED BEHAVIOUR, KEPT (2026-10-01): this pins what the retired check
+    # did — a certified worker's capacity shrinking with ε, which is the defect
+    # `condition_iv_coverage` removes (see TestConditionIvCoverage). The
+    # deprecated function is unchanged so earlier figures reproduce.
     def test_high_epsilon_reduces_capacity(self):
         reserve    = self._reserve(certified_per_domain=100, workforce=1000)
         demands    = {"water": 50_000.0}
@@ -383,3 +387,90 @@ class TestConditionIIIBalanceGrowthCheck:
         new = prev + levy_in - stew_out
         result = condition_iii_balance_growth_check(prev, new, levy_in, stew_out)
         assert result["passes"] is True
+
+
+# ===========================================================================
+# condition_iv_coverage — Condition IV in hours (2026-10-01)
+# ===========================================================================
+
+class TestConditionIvCoverage:
+    """Capacity is certified × measured adult hours, independent of ε; demand
+    is the registered (default) or human hours, through the essential-domain
+    bridge. Replaces `domain_eoh_coverage`, which multiplied hours by the TEH
+    multiplier and by (1 − ε) and so failed everywhere, worse with ε."""
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @staticmethod
+    def _threshold_reserve(population=1.0e6):
+        from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD
+        wf = population * AGE_GROUPS["working_age"]["fraction"]
+        return competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+
+    @staticmethod
+    def _pipe(eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        return eoh_to_teh_pipeline(eps)
+
+    def test_capacity_does_not_depend_on_epsilon(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        caps = {e: condition_iv_coverage(self._threshold_reserve(), self._pipe(e))[
+            "per_domain"]["healthcare"]["capacity_eoh"] for e in self.ARC}
+        assert len(set(caps.values())) == 1
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_demand_is_the_pipelines_through_the_bridge(self, eps):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        p = self._pipe(eps)
+        for reading, key in (("registered", "registered_eoh_by_domain"), ("human", "human_eoh_by_domain")):
+            r = condition_iv_coverage(self._threshold_reserve(), p, demand=reading)
+            ref = eoh_to_essential_domains({k: p[key][k] for k in
+                                            ("personal", "infrastructure", "ecological", "knowledge")})
+            for d in ESSENTIAL_DOMAINS:
+                assert r["per_domain"][d]["demand_eoh"] == pytest.approx(ref[d], rel=1e-12)
+
+    def test_it_can_pass_and_it_can_fail_at_threshold_certification(self):
+        # Mode 9 both ways: covered at ε=0.40, short (healthcare) inside the
+        # upper-arc band — found on a fine grid; the 4 reporting points see one.
+        from hours_eoh.core.conditions import condition_iv_coverage
+        assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40))["all_covered"]
+        r = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78))
+        assert r["domains_short"] == ["healthcare"]
+
+    def test_the_two_readings_disagree(self):
+        # The open author question, pinned so a change to either shows.
+        from hours_eoh.core.conditions import condition_iv_coverage
+        reg = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40), demand="registered")
+        hum = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40), demand="human")
+        assert reg["all_covered"] and not hum["all_covered"]
+
+    def test_coverage_travels_with_the_frame(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        ratios = [condition_iv_coverage(self._threshold_reserve(p), eoh_to_teh_pipeline(0.78, population=p))[
+            "per_domain"]["healthcare"]["coverage_ratio"] for p in (1e5, 1e6, 1e7)]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
+
+    def test_the_verdict_rests_on_the_bridge_weight(self):
+        # The untagged weight carries the verdict: healthcare's share of
+        # personal EOH decides whether Condition IV holds at ε=0.78.
+        import copy
+        from hours_eoh.core.conditions import condition_iv_coverage
+        from hours_eoh.core.eoh_generation import _EOH_TO_ESSENTIAL_WEIGHTS
+        w = copy.deepcopy(_EOH_TO_ESSENTIAL_WEIGHTS)
+        w["healthcare"]["personal"], w["logistics"]["personal"] = 0.5, 0.5
+        assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78), weights=w)["all_covered"]
+
+    def test_bad_inputs_refused(self):
+        from hours_eoh.core.conditions import condition_iv_coverage
+        with pytest.raises(ValueError):
+            condition_iv_coverage(self._threshold_reserve(), self._pipe(0.4), demand="gross")
+        with pytest.raises(ValueError):
+            condition_iv_coverage(self._threshold_reserve(), self._pipe(0.4),
+                                  hours_per_certified_worker=0.0)
+
+    def test_the_old_check_warns_and_is_unchanged(self):
+        reserve = self._threshold_reserve()
+        with pytest.warns(DeprecationWarning, match="condition_iv_coverage"):
+            r = domain_eoh_coverage(reserve, {"healthcare": 1000.0}, epsilon=0.40)
+        assert r["status"] == "OK"

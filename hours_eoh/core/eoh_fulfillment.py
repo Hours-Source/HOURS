@@ -848,6 +848,7 @@ def eoh_to_teh_pipeline(
           "registration_share":       float,  (effective composite: registered/human)
           "registration_by_domain":   dict,   (personal: float, non_personal: float)
           "registered_eoh":           float,  (total)
+          "human_eoh_by_domain":      dict,   (four domains: human DEMAND, before any labour cap)
           "registered_eoh_by_domain": dict,   (personal: float, non_personal: float)
           "mean_multiplier":          float,
           "teh_created":              float,
@@ -940,6 +941,11 @@ def eoh_to_teh_pipeline(
     # went unserved. What machines take does not depend on whether the people
     # exist to do the rest.
     epsilon_observed   = hd["epsilon_observable"]
+    # Human DEMAND per domain, captured before the labour cap replaces it with
+    # hours served (2026-10-01): what people are asked to carry, which is the
+    # quantity a competency check sets against certified capacity.
+    human_demand_by_domain = {d: float(hd[d]) for d in
+                              ("personal", "infrastructure", "ecological", "knowledge")}
 
     # Labor constraint (opt-in). Without it the pipeline assumes every hour of
     # human-carried EOH gets worked — a demand figure reported as fulfillment.
@@ -1048,6 +1054,7 @@ def eoh_to_teh_pipeline(
             "non_personal":   non_pers_share,   # backward compat
         },
         "registered_eoh":     reg_total,
+        "human_eoh_by_domain": human_demand_by_domain,
         "registered_eoh_by_domain": {
             "personal":       reg_personal,
             "infrastructure": reg_infra,

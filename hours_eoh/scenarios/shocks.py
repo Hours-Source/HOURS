@@ -48,8 +48,10 @@ from typing import Any, TypedDict
 from hours_eoh.data import (
     AGE_GROUPS,
     ECOLOGICAL_THRESHOLD,
+    COMPETENCY_THRESHOLD,
     DEP_RATE,
     DIV_RATE,
+    ESSENTIAL_DOMAINS,
     LAND_HECTARES_PER_CAPITA,
     SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE,
@@ -59,7 +61,9 @@ from hours_eoh.core.eoh_generation import (
     resolve_capital_stock,
     resolve_knowledge_base_size,
 )
+from hours_eoh.core.conditions import condition_iv_coverage
 from hours_eoh.core.fiscal import fiscal_snapshot, resolve_trust_balance
+from hours_eoh.core.workforce import competency_reserve
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.prices import basket_price
 from hours_eoh.core.trajectory import canonical_physical_state
@@ -336,6 +340,59 @@ def _cascade(before: dict, after: dict) -> dict:
     }
 
 
+def _threshold_reserve(state: _State) -> dict:
+    """Certification at EXACTLY the Condition IV minimum — `COMPETENCY_THRESHOLD`
+    of the state's working-age headcount: the conservative case."""
+    workforce = state["population"] * state["age_fractions"]["working_age"]
+    return competency_reserve(
+        {d: workforce * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, workforce)
+
+
+def _competency(s0: _State, before: dict, s1: _State, after: dict) -> dict:
+    """
+    Condition IV in hours (`conditions.condition_iv_coverage`) before and after
+    the shock, each state certified at the minimum of its OWN headcount — so an
+    aging shock shrinks the certified pool as it shrinks supply. Two tiers
+    (author, 2026-10-01: "the people (agent needs) should be what needs to be
+    covered, the rest can build back over time as the arc climbs again"):
+
+        PERSONAL tier — registered personal hours: a shortfall the shock
+                        CREATES here is CRISIS, the survival floor without
+                        competent hands;
+        REGISTERED    — all registered hours: a created shortfall elsewhere is
+                        DEGRADED, rebuildable.
+
+    A shock is charged only with the shortfalls it CREATES: a domain already
+    short before it (healthcare, over a band of the upper arc at the Condition
+    IV minimum) is reported, not blamed on it.
+    """
+    def created(reading: str) -> tuple[list[str], list[str], dict]:
+        c0 = condition_iv_coverage(_threshold_reserve(s0), before, reading)
+        c1 = condition_iv_coverage(_threshold_reserve(s1), after, reading)
+        return (c0["domains_short"],
+                [d for d in c1["domains_short"] if d not in c0["domains_short"]], c1)
+
+    short_before, made, c1 = created("registered")
+    personal_before, personal_made, _ = created("personal")
+    if personal_made:
+        outcome = "CRISIS"
+    elif made:
+        outcome = "DEGRADED"
+    else:
+        outcome = "STABLE"
+    return {
+        "competency_tested":                True,
+        "competency_short_before":          short_before,
+        "competency_short_after":           c1["domains_short"],
+        "competency_short_created":         made,
+        "competency_personal_short_before": personal_before,
+        "competency_personal_short_created": personal_made,
+        "competency_coverage_after":        {d: v["coverage_ratio"] for d, v in c1["per_domain"].items()},
+        "competency_unattributed_eoh":      c1["unattributed_eoh"],
+        "competency_outcome":               outcome,
+    }
+
+
 def _fiscal(
     state: _State,
     epsilon: float,
@@ -396,14 +453,13 @@ def automation_failure_shock(
     rest is deferred survival-first. See the module docstring for the cascade
     and the outcome rule.
 
-    WHAT IT DOES NOT MODEL, declared: COMPETENCY. Condition IV exists because
-    untrained hours cannot run a water plant, and its threshold is per
-    ESSENTIAL domain. The bridge exists (`eoh_generation.eoh_to_essential_domains`,
-    untagged weights) and so does the check (`conditions.domain_eoh_coverage`),
-    but that check sizes a certified worker as H_MIN × the TEH multiplier ×
-    (1 − ε), which is not an hours capacity — so it is not wired here, and hours
-    coverage is an UPPER bound (`competency_tested: False`). Nor the repair
-    the failed machines leave, nor more than one period (`scenarios/recovery`).
+    COMPETENCY (Condition IV) IS TESTED (2026-10-01): untrained hours cannot
+    run a water plant, so the work taken up is also set against the people
+    certified to do it, per essential domain (`conditions.condition_iv_coverage`
+    at the Condition IV minimum, through the untagged essential-domain bridge).
+    A shortfall the failure creates makes it DEGRADED. Not modelled: the
+    repair the failed machines leave, or more than one period
+    (`scenarios/recovery`).
 
     Args:
         epsilon: Machine capability before the failure [0.0, 0.99].
@@ -441,7 +497,8 @@ def automation_failure_shock(
     c = _cascade(before, after)
     f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio)
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh, capital_age_ratio)
-    outcome = _worse(c["labour_outcome"],
+    comp = _competency(s0, before, s1, after)
+    outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
 
     # The lowest capability on the arc from which this failure can no longer
@@ -469,8 +526,9 @@ def automation_failure_shock(
         + (f", {c['deferred_personal_eoh']:,.0f} of it PERSONAL — the survival "
            "floor is unmet" if c["deferred_personal_eoh"] > 0.0 else ", none of it personal")
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'} at the new mint. "
-        f"Outcome: {outcome}. Competency (Condition IV) not tested: hours "
-        "coverage is an upper bound."
+        + (f"Certified capacity falls short in {comp['competency_short_created']}. "
+           if comp["competency_short_created"] else "")
+        + f"Outcome: {outcome}."
     )
     return {
         "scenario":                "automation_failure_shock",
@@ -496,7 +554,7 @@ def automation_failure_shock(
         "trust_surplus_before":    f0["surplus_deficit"],
         "trust_surplus_after":     f1["surplus_deficit"],
         "trust_solvent_after":     f1["solvent"],
-        "competency_tested":       False,
+        **comp,
         "labour_outcome":          c["labour_outcome"],
         "outcome":                 outcome,
         "failure_boundary":        failure_boundary,
@@ -566,7 +624,8 @@ def demographic_shock(
                  capital_age_ratio, labor_income=proxy, **kw)
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh,
                  capital_age_ratio, labor_income=proxy, **kw)
-    outcome = _worse(c["labour_outcome"],
+    comp = _competency(s0, before, s1, after)
+    outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
     eoh_delta = float(after["total_eoh"]) - float(before["total_eoh"])
     rec = (
@@ -601,6 +660,7 @@ def demographic_shock(
         "trust_solvent_before":  f0["solvent"],
         "trust_solvent_after":   f1["solvent"],
         "surplus_deficit_after": f1["surplus_deficit"],
+        **comp,
         "labour_outcome":        c["labour_outcome"],
         "outcome":               outcome,
         "recommendation":        rec,
@@ -693,7 +753,8 @@ def ecological_eoh_spike(
     eoh_after = float(after["eoh_by_domain"]["ecological"])
     spike = max(0.0, eoh_after - eoh_before)
     crossed = ecosystem_health_before > ECOLOGICAL_THRESHOLD >= ecosystem_health_after
-    outcome = _worse(c["labour_outcome"],
+    comp = _competency(s0, before, s1, after)
+    outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
     rec = (
         f"Health {ecosystem_health_before:.2f} → {ecosystem_health_after:.2f} "
@@ -729,6 +790,7 @@ def ecological_eoh_spike(
         "trust_surplus_deficit": f1["surplus_deficit"],
         "trust_absorbs":         f1["solvent"],
         "absorbed":              f1["solvent"],
+        **comp,
         "labour_outcome":        c["labour_outcome"],
         "outcome":               outcome,
         "recommendation":        rec,
@@ -928,7 +990,8 @@ def compound_shock(
     c = _cascade(before, after)
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh, capital_age_ratio,
                  None, meaningful_activity_teh, suff_levy_rate, dep_rate, div_rate)
-    combined = _worse(c["labour_outcome"],
+    comp = _competency(s0, before, s1, after)
+    combined = _worse(c["labour_outcome"], comp["competency_outcome"],
                       _classify(f1["solvent"], f1["surplus_deficit"], trust_balance),
                       *individual.values())
     rec = (
@@ -949,6 +1012,7 @@ def compound_shock(
         "combined_deferred_personal_eoh": c["deferred_personal_eoh"],
         "automation_deferred_eoh":        automation_deferred,
         "trust_absorbs_combined":         f1["solvent"],
+        **comp,
         "combined_outcome":               combined,
         "recommendation":                 rec,
     }
