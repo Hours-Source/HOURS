@@ -18,10 +18,7 @@ from hours_eoh.core.eoh_generation import (
     resolve_capital_stock,
     resolve_knowledge_base_size,
 )
-from hours_eoh.core.registration import (
-    care_registration_share,
-    total_registration_share,
-)
+from hours_eoh.core.registration import register_shares
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
@@ -112,8 +109,9 @@ def epsilon_sweep(
         eps_floor = float(pipe["epsilon_observable"])
         bp  = basket_price(eps_floor, floor_teh)
         pp  = floor_purchasing_power(floor_teh, eps_floor, floor_teh)
-        care = care_registration_share(eps)
-        reg  = total_registration_share(eps)
+        register = register_shares(eps)   # the canonical arc: register tracks ε
+        care = register["care"]
+        reg  = register["labour"]
 
         # THE MINT IS THE LABOUR INCOME (2026-09-30) — the same call's.
         mint = float(pipe["teh_created"])

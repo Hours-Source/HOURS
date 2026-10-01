@@ -40,6 +40,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.core.fiscal import resolve_trust_balance
 from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.core.registration import register_shares
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +68,7 @@ def make_economy_state(
     monitoring_capability: float | None = None,
     deferred_infrastructure_eoh: float = 0.0,
     infra_deferred_years: float = 0.0,
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Construct a well-formed economy state dict for simulate_period().
@@ -118,6 +120,11 @@ def make_economy_state(
         infra_deferred_years: Years the infrastructure EOH backlog has been
             accumulating. Drives the threshold-spike shape in eoh_compounding().
             Default: 0.0.
+        registration_epsilon: The REGISTER's maturity, as its own state
+            (2026-10-01, author: "registration is separate from machine
+            capability"). None (default) → the register tracks `epsilon`, the
+            canonical arc, bit-identical. Set it to hold the register while
+            capability moves; `simulate_period` carries it forward unchanged.
 
     Returns:
         State dict with all the above keys plus derived "workforce_size".
@@ -174,6 +181,7 @@ def make_economy_state(
         "monitoring_capability":         _monitoring,
         "deferred_infrastructure_eoh":   deferred_infrastructure_eoh,
         "infra_deferred_years":          infra_deferred_years,
+        "registration_epsilon":          registration_epsilon,
     }
 
 
@@ -294,6 +302,10 @@ def simulate_period(
 
     # ---- 1. Extract current state ------------------------------------------
     eps              = min(0.99, state["epsilon"] + epsilon_delta)
+    # The REGISTER, as state (2026-10-01). None → it tracks `eps`; a set value
+    # is held while the capability moves. `.get` so a state built before the
+    # key existed still runs, as a register that tracks.
+    reg_eps          = state.get("registration_epsilon")
     population       = state["population"]
     workforce_frac   = state["workforce_fraction"]
     trust_bal        = state["trust_balance"]
@@ -398,6 +410,7 @@ def simulate_period(
         monitoring_capability=new_monitoring_cap,
         knowledge_complexity_per_unit=knowledge_complexity_per_unit,
         mean_multiplier=mean_multiplier,
+        registration_epsilon=reg_eps,
     )
 
     # Condition III-B: credit compounding fulfillment against the deferred backlog.
@@ -407,8 +420,7 @@ def simulate_period(
     # equivalent to interest on an idle balance (violating the spirit of Condition III).
     new_deferred_infra = deferred_infra
     if infra_compounding_eoh > 0.0 and new_deferred_infra > 0.0:
-        from hours_eoh.core.registration import total_registration_share as _infra_reg
-        _infra_reg_share = _infra_reg(eps)
+        _infra_reg_share = register_shares(eps, reg_eps)["infrastructure"]
         human_compounding_fulfilled = infra_compounding_eoh * (1.0 - eps) * _infra_reg_share
         new_deferred_infra = max(0.0, new_deferred_infra - human_compounding_fulfilled)
 
@@ -453,6 +465,7 @@ def simulate_period(
         "ecosystem_health":               new_eco_health,
         "deferred_ecological":            new_deferred,
         "capital_eoh_eliminated":         cap_eoh_elim,
+        "registration_epsilon":           reg_eps,
         # `capital_personal_eoh_fulfilled` is NOT passed (2026-09-15): the
         # guarantee is sized on effective personal EOH, whose human share
         # already carries machine fulfilment. Subtracting capital-fulfilled
@@ -517,9 +530,8 @@ def simulate_period(
 
     # Terminal consumption — D2 (income-driven) or D3 (biology-anchored).
     if use_d3:
-        from hours_eoh.core.registration import personal_eoh_registration_share as _pers_reg
         personal_eoh_total     = pipeline["eoh_by_domain"].get("personal", 0.0)
-        pers_reg_share         = _pers_reg(eps)
+        pers_reg_share         = register_shares(eps, reg_eps)["personal"]
         personal_eoh_on_ledger = personal_eoh_total * pers_reg_share
         baskets_consumed       = personal_eoh_on_ledger / max(basket_eoh_content, 1.0)
         # PRICED ON EFFECTIVE PERSONAL EOH (2026-09-15; author decisions A and
@@ -606,6 +618,7 @@ def simulate_period(
         monitoring_capability=new_monitoring_cap,
         deferred_infrastructure_eoh=new_deferred_infra,
         infra_deferred_years=new_infra_def_years,
+        registration_epsilon=reg_eps,   # the register is state: carried, not re-read
     )
 
     # derived_epsilon: architecture hook for when machine capacity is modeled endogenously.

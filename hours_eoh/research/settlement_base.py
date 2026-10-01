@@ -98,7 +98,7 @@ from hours_eoh.data import (
 from hours_eoh.core.conditions import condition_ii_check
 from hours_eoh.core.multipliers import population_weighted_mean_multiplier
 from hours_eoh.core.prices import floor_price
-from hours_eoh.core.registration import personal_eoh_registration_share
+from hours_eoh.core.registration import register_shares
 from hours_eoh.core.trajectory import canonical_physical_state
 from hours_eoh.reference.workforce import WORKFORCE_SNAPSHOTS
 from hours_eoh.research.exchange import (
@@ -273,7 +273,7 @@ def capture_response(share_delta: float = 0.05, epsilon: float = 0.40) -> dict[s
     captured = build_collective(
         _reference_frame(1),
         epsilon,
-        personal_registration_share=personal_eoh_registration_share(epsilon) + share_delta,
+        personal_registration_share=register_shares(epsilon)["personal"] + share_delta,
     )
     rates = {b: settlement_rate(captured, honest, b) for b in BASES}
     return {
@@ -771,7 +771,7 @@ def book_exercise(
     captured = build_collective(
         _reference_frame(1),
         epsilon,
-        personal_registration_share=personal_eoh_registration_share(epsilon) + share_delta,
+        personal_registration_share=register_shares(epsilon)["personal"] + share_delta,
     )
     amount = COASEAN_IMBALANCE_CEILING * min(honest.reserve, captured.reserve) * _INSIDE_CEILING
     out: dict[str, Any] = {}

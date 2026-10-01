@@ -1900,7 +1900,10 @@ class TestFiscalSnapshotAcceptsAState:
             # ε is bounded, so it gets a perturbation inside its own range;
             # everything else scales. A perturbation that raises ValueError is
             # not evidence the key is inert.
-            st[key] = 0.55 if key == "epsilon" else st[key] * 1.5 + 1.0
+            # The register (2026-10-01) is bounded like ε and defaults to None
+            # (tracks ε), so it too gets an in-range value apart from ε.
+            st[key] = (0.55 if key in ("epsilon", "registration_epsilon")
+                       else st[key] * 1.5 + 1.0)
             if fiscal_snapshot(state=st) != base:
                 moved.append(key)
         assert set(moved) == set(_STATE_TO_PARAM), (

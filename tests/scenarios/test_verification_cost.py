@@ -641,9 +641,24 @@ class TestTheCorridorReportsWhichBoundActuallyBinds:
         )
         assert r["binding_bound"] == "clearing_bound"
 
-    def test_the_ratio_bound_does_take_over_at_the_top(self):
-        """Both directions. A bound that never binds is not a bound."""
-        r = VC.verification_feasibility_corridor(1.0, epsilon=0.99)
+    def test_the_ratio_bound_binds_only_where_labour_is_abundant(self):
+        """Both directions. A bound that never binds is not a bound.
+
+        Under the retired `uniform` split the ratio bound took over at ε=0.99,
+        because human demand collapsed toward zero and left clearing headroom
+        unbounded. Under `per_component` (2026-10-01) care's automation floor
+        keeps demand up, so at the shipped (median measured) capacity CLEARING
+        binds across the whole arc — and the ratio bound binds only in the
+        labour-richest measured frames (4 of 50, from ε ≈ 0.85). Still a live
+        bound; no longer the shipped one at the top."""
+        from hours_eoh.scenarios.feasibility import measured_capacity_frames
+        for eps in (0.40, 0.70, 0.90, 0.99):
+            assert VC.verification_feasibility_corridor(
+                1.0, epsilon=eps)["binding_bound"] == "clearing_bound"
+        richest = max(f["capacity_h_yr"]
+                      for f in measured_capacity_frames()["frames"].values())
+        r = VC.verification_feasibility_corridor(
+            1.0, epsilon=0.99, adult_capacity_h_yr=richest)
         assert r["binding_bound"] == "ratio_bound"
 
     @pytest.mark.parametrize("epsilon", ARC + (0.99,))

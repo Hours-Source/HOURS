@@ -21,7 +21,7 @@ from hours_eoh.data import (
     MEAN_MULTIPLIER_REFERENCE,
 )
 from hours_eoh.core.eoh_dynamics import eoh_compounding
-from hours_eoh.core.registration import care_registration_share
+from hours_eoh.core.registration import register_shares
 
 _IRREVERSIBILITY_MULTIPLE: float = 5.0  # deferred/annual ratio → rebuilding required
 
@@ -203,8 +203,10 @@ def care_registration_delay(
     """
     delayed_eps = max(0.0, epsilon - delay_epsilon)
 
-    expected_care = care_registration_share(epsilon)
-    actual_care   = care_registration_share(delayed_eps)
+    # The delay IS a register held behind the capability (2026-10-01): the
+    # register read at its own, lagging ε against the one that tracks.
+    expected_care = register_shares(epsilon)["care"]
+    actual_care   = register_shares(epsilon, registration_epsilon=delayed_eps)["care"]
 
     lag_fraction = 1.0 - (actual_care / max(expected_care, 1e-10))
 
@@ -212,8 +214,12 @@ def care_registration_delay(
     teh_per_worker_actual   = mean_multiplier * actual_care
     teh_deficit             = teh_per_worker_expected - teh_per_worker_actual
 
-    care_slope_at_eps = (care_registration_share(epsilon + 0.01)
-                         - care_registration_share(epsilon - 0.01)) / 0.02
+    # Central difference, clamped to the arc (2026-10-01): at ε=0 this read the
+    # register at ε = −0.01, outside every curve's domain — tolerated by the
+    # care curve alone, and exposed when the read moved to `register_shares`.
+    _lo, _hi = max(0.0, epsilon - 0.01), min(1.0, epsilon + 0.01)
+    care_slope_at_eps = (register_shares(_hi)["care"]
+                         - register_shares(_lo)["care"]) / (_hi - _lo)
     pipeline_degradation = lag_fraction * care_slope_at_eps * delay_epsilon
 
     if lag_fraction < 0.10:

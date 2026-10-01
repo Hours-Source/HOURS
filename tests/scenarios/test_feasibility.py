@@ -15,7 +15,7 @@ import math
 
 import pytest
 
-from hours_eoh.data import AGE_GROUPS, H_REF, PERSONAL_EOH_BASE
+from hours_eoh.data import AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE
 from hours_eoh.scenarios.feasibility import (
     SUBSISTENCE_ADULT_SHARE_BAND,
     SUBSISTENCE_CAPACITY_BAND,
@@ -375,8 +375,15 @@ def test_closed_form_understates_the_crossover():
     # arc reaches feasibility earlier.
     # 0.35553 → 0.32816 on 2026-09-09: less non-personal demand at ε=0 means
     # the arc reaches feasibility sooner.
-    assert actual == pytest.approx(0.32816, abs=0.005)
+    # 0.32816 → 0.44034 on 2026-10-01: demand split `per_component` (the
+    # adopted response) instead of (1 − ε). Care and nutrition keep automation
+    # floors, so human demand falls more slowly and feasibility arrives later.
+    # The naive form reads ε=0 only, where the two responses agree, so it did
+    # not move — and the gap it understates by widened, 0.063 → 0.175.
+    assert actual == pytest.approx(0.44034, abs=0.005)
     assert actual - naive > 0.05
+    legacy = feasible_epsilon(2000.0, 0.5, automation_response="uniform")
+    assert legacy == pytest.approx(0.32816, abs=0.005)
 
 
 def test_feasible_epsilon_returns_zero_when_already_feasible():
@@ -761,3 +768,46 @@ class TestMintFloorReach:
         ref = mint_floor_reach(0.40)["reach"]
         for pop in (1.0e5, 3.35e8):
             assert mint_floor_reach(0.40, population=pop)["reach"] == pytest.approx(ref, rel=1e-9)
+
+
+class TestDemandIsThePipelinesSplit:
+    """2026-10-01: demand was (1 − ε)·[w·B + R] — the `uniform` response,
+    retired as the default at Phase 2 — understating human demand 1.13× /
+    2.20× / 13.15× at ε = 0.40 / 0.90 / 0.99."""
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_demand_is_the_pipelines_human_eoh(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        for resp in ("per_component", "uniform"):
+            f = feasibility_check(epsilon=eps, automation_response=resp)
+            p = eoh_to_teh_pipeline(eps, automation_response=resp)
+            assert f["total_demand_per_capita"] == pytest.approx(
+                p["human_eoh"] / 1.0e6, rel=1e-9), resp
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_inversion_is_exact_at_the_ceiling(self, eps):
+        # The ceiling assumes h_p does not depend on B; evaluating the check
+        # AT the ceiling must land on demand == supply.
+        f = feasibility_check(epsilon=eps)
+        at = feasibility_check(epsilon=eps, personal_base=f["implied_base_ceiling"])
+        assert at["demand_supply_ratio"] == pytest.approx(1.0, rel=1e-9)
+
+    def test_the_responses_agree_where_nothing_is_automated(self):
+        a = feasibility_check(epsilon=0.0)
+        b = feasibility_check(epsilon=0.0, automation_response="uniform")
+        assert a["total_demand_per_capita"] == pytest.approx(
+            b["total_demand_per_capita"], rel=1e-12)
+
+    def test_the_ceiling_stays_finite_at_the_top(self):
+        # Care keeps a human floor, so some base is infeasible at every ε.
+        pc = feasibility_check(epsilon=0.99)["implied_base_ceiling"]
+        un = feasibility_check(epsilon=0.99, automation_response="uniform")["implied_base_ceiling"]
+        assert pc < un / 10.0
+
+    @pytest.mark.parametrize("cap", [600.0, 900.0, MEASURED_CAPACITY_H_YR])
+    def test_the_bisection_premise_holds(self, cap):
+        r = [feasibility_check(adult_capacity_h_yr=cap, epsilon=i / 100)["demand_supply_ratio"]
+             for i in range(100)]
+        assert all(b <= a + 1e-12 for a, b in zip(r, r[1:]))

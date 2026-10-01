@@ -14,7 +14,7 @@ import sys
 from hours_eoh.core.trajectory import canonical_physical_state
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-from hours_eoh.core.registration import total_registration_share
+from hours_eoh.core.registration import register_shares
 from hours_eoh.core.prices import basket_price, floor_price, floor_purchasing_power
 from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
 from hours_eoh.core.fiscal import fiscal_snapshot
@@ -87,7 +87,7 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
         )
         pipeline = eoh_to_teh_pipeline(eps, population=population,
                                        thermal_obligation=thermal_obligation)
-        reg = total_registration_share(eps)
+        reg = register_shares(eps)["labour"]
         # The floor is read at the OBSERVED ε (author decision, 2026-09-30).
         eps_floor = float(pipeline["epsilon_observable"])
         price = floor_price(eps_floor)

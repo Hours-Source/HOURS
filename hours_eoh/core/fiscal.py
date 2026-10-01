@@ -39,7 +39,10 @@ from hours_eoh.core.eoh_generation import (
     infrastructure_eoh, ecological_eoh, resolve_capital_stock,
 )
 from hours_eoh.core.eoh_fulfillment import human_eoh_share, personal_human_fraction
-from hours_eoh.core.registration import personal_eoh_registration_share
+from hours_eoh.core.registration import (
+    collective_land_registration,  # re-export: the curve moved 2026-10-01
+    register_shares,
+)
 
 #: The guarantee designs, owned HERE because core books the liability. Moved
 #: from `scenarios/stationarity` on 2026-09-16, which now imports it back —
@@ -525,9 +528,16 @@ def sufficiency_guarantee(
     automation_response: str = "per_component",
     design: str = "v1",
     need_fraction: float = SUFF_NEED_FRACTION,
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Compute the cost of the sufficiency guarantee at a given automation level.
+
+    `registration_epsilon` (2026-10-01, author: "registration is separate from
+    machine capability — one is what the collective carries, the other how
+    much human labour carries it"): the ε at which the REGISTER is read, for
+    `v1`'s on-ledger share. None → `epsilon`, bit-identical. Everything else
+    here — the human-carried share, the activity bonus — reads the capability.
 
     The guarantee has two components per recipient:
     1. EOH reimbursement: `effective_personal_eoh(ε)` at `M_FLOOR`, 1 TEH per
@@ -664,7 +674,7 @@ def sufficiency_guarantee(
         # activity bonus scales with ε² and `personal_human_fraction(ε)` carries
         # a third ε-response. Under v1 the decay term is gone from recipients —
         # registration is the ε-response, and there is only one of it.
-        on_ledger = personal_eoh_registration_share(epsilon)
+        on_ledger = register_shares(epsilon, registration_epsilon)["personal"]
         effective_fraction = on_ledger * (need_fraction if design == "v1" else 1.0)
 
     recipients = population * effective_fraction
@@ -975,6 +985,7 @@ _STATE_TO_PARAM: dict[str, str] = {
     "ecosystem_health":               "ecosystem_health",
     "deferred_ecological":            "deferred_ecological",
     "capital_eoh_eliminated":         "capital_eoh_eliminated",
+    "registration_epsilon":           "registration_epsilon",
     # `capital_personal_eoh_fulfilled` UNMAPPED 2026-09-15. The guarantee no
     # longer applies it (effective_personal_eoh carries machine fulfilment), so
     # a mapping would be a key accepted and ignored — which
@@ -1016,6 +1027,7 @@ def fiscal_snapshot(
     standing_response: str = "guf",
     guf_revenue: float = 0.0,
     state: dict | None = None,
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Compute full fiscal balance for one period from first principles.
@@ -1069,6 +1081,8 @@ def fiscal_snapshot(
         eco_eoh_override: Pre-computed ecological EOH from total_eoh()["ecological"].
             Pass this whenever the caller has already run total_eoh() — otherwise
             ecological_eoh() is recomputed internally. Same pattern as infra_eoh_override.
+        registration_epsilon: The ε the guarantee's register is read at.
+            None → `epsilon`. Separate from the capability (author, 2026-10-01).
 
     Solvency identity (Trust is solvent when):
 
@@ -1129,6 +1143,7 @@ def fiscal_snapshot(
             "capital_eoh_eliminated": capital_eoh_eliminated or None,
             "capital_personal_eoh_fulfilled_per_person":
                 capital_personal_eoh_fulfilled_per_person or None,
+            "registration_epsilon": registration_epsilon,
         }
         _clash = sorted(
             param for key, param in _STATE_TO_PARAM.items()
@@ -1152,6 +1167,7 @@ def fiscal_snapshot(
         deferred_ecological = _resolved.get("deferred_ecological", deferred_ecological)
         capital_eoh_eliminated = _resolved.get(
             "capital_eoh_eliminated", capital_eoh_eliminated)
+        registration_epsilon = _resolved.get("registration_epsilon", registration_epsilon)
 
     # THE ONE RESOLVABLE QUANTITY (2026-09-17). An unspecified Trust balance is
     # derivable from a stated frame — the inheritance is per capita — so `None`
@@ -1262,6 +1278,10 @@ def fiscal_snapshot(
         # it. A parameter accepted and inert is failure mode 5.
         design=design,
         need_fraction=need_fraction,
+        # The register the guarantee reads (2026-10-01); None → `epsilon`.
+        # Supply the pre-shock ε when machines fail and the register stands,
+        # as `eoh_to_teh_pipeline(registration_epsilon=)` does.
+        registration_epsilon=registration_epsilon,
     )
     # new-15: care stipend is care-labour compensation — co-equal with
     # stewardship and ecological as a requirement, distinct from the
@@ -1597,7 +1617,7 @@ def steward_eoh_obligation(
     be registered to the collective ledger."
     """
     if collective_registration_share is None:
-        collective_registration_share = collective_land_registration(epsilon)
+        collective_registration_share = register_shares(epsilon)["land"]
 
     total_eoh   = structure_value_teh * structure_maint_rate
     coll_eoh    = total_eoh * collective_registration_share
@@ -1615,42 +1635,8 @@ def steward_eoh_obligation(
     }
 
 
-def collective_land_registration(
-    epsilon: float,
-    inflection: float = 0.85,
-    rate: float = 22.0,
-    saturation: float = 0.90,
-) -> float:
-    """
-    Fraction of housing/land EOH registered to the collective ledger.
-
-    The transition of land/housing EOH from private to collective begins very
-    late in the automation arc. Below the inflection point, nearly all housing
-    EOH remains a private stewardship obligation. As the collective approaches
-    full EOH coverage, it absorbs remaining private obligations, zeroing out
-    stewards' private maintenance burden and bringing all entropy resistance
-    under the ledger.
-
-    This is a late-stage sigmoid, distinct from the care admission curve:
-    - Care registration: inflection at ε=0.45 (mid-automation)
-    - Land registration: inflection at ε=0.85 (near post-scarcity)
-
-    Args:
-        epsilon: Automation level [0.0, 0.99].
-        inflection: ε at which transition is fastest. Default: 0.85.
-        rate: Steepness of sigmoid. Default: 22.0 (sharp transition).
-        saturation: Maximum collective share. Default: 0.90.
-
-    Returns:
-        Collective land registration share ∈ [0.0, saturation].
-        Monotonically increasing.
-
-    Reference: Mission Statement §"In the final stages of automation ... housing
-    and land-based EOH may be registered to the collective ledger, zeroing out
-    all remaining private EOH obligations."
-    """
-    sigmoid = 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
-    return saturation * sigmoid
+# `collective_land_registration` MOVED to `core/registration.py` (2026-10-01)
+# so every reading of the register is in one module; re-exported above.
 
 
 # ---------------------------------------------------------------------------

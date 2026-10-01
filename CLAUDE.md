@@ -74,7 +74,8 @@ hours_eoh/
   core/                Pure physics + mechanics — stable, no applied scenarios
     trajectory.py      Canonical arc + ε derivation (capital scales with `population=`)
     eoh_generation.py  Four EOH domain functions + total_eoh()
-    registration.py    Sigmoid admission curves per domain
+    registration.py    Sigmoid admission curves per domain, and `register_shares` — THE one
+                       reading of the register, at its own maturity (`registration_epsilon`)
     eoh_fulfillment.py EOH → TEH pipeline
     multipliers.py     Condition II: multiplier band and tier logic
     fiscal.py          Levies, allocation, guarantee, trust
@@ -592,7 +593,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,232 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,269 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **349/349**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -702,13 +703,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**114 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
+**115 test files. The name rule covers 76 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 38 files the rule does not cover are all listed below, plus two that do
+The 39 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -731,6 +732,7 @@ are the ones worth knowing by name.
 | `test_capital_scale_resolution.py` | The same rule for the CAPITAL chain, wrappers included (`total_eoh`, `eoh_to_teh_pipeline`), plus the runtime half: per-capita output frame-invariant across the arc, a supplied stock never rescaled, and omitting population still reading the reference frame. **States its own gap:** crediting a supplied stock is static, so `capital_stock=None` passed beside a population would defeat it. |
 | `test_trust_scale_resolution.py` | The same rule for the TRUST chain, keyed on the QUANTITY not the parameter name: no parameter default, class field, `.get()` default or CLI flag may hold `TRUST_BASE_TEH` where a population is in scope. The two frameless sites are allowlisted, must DECLARE why, and the reason is re-checked rather than trusted. Verified by breaking it five ways. **States its own gap:** static and shallow — it cannot see a caller that multiplies the constant inline, nor one hard-coding 35_000_000_000.0. |
 | `test_one_mint_path.py` | Exactly one mint call site across `core/`, `land/` and `scenarios/` — by AST, not grep. |
+| `test_one_register.py` | The register is read in ONE place: no registration curve imported outside `core/registration.py` (AST — aliases and multi-line imports included), and the register is state the simulation carries. **States its own gap:** a curve's formula copied inline would pass. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
 | `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the tier census (31/96/222 of 349 on 2026-09-30) cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |

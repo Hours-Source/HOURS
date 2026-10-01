@@ -53,7 +53,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from hours_eoh.core.registration import personal_eoh_registration_share
+from hours_eoh.core.registration import register_shares
 from hours_eoh.research.coasean import settlement_check
 from hours_eoh.research.exchange import (
     CollectiveFrame,
@@ -95,7 +95,7 @@ def parity_response(
     captured = build_collective(
         _frame(1),
         epsilon,
-        personal_registration_share=personal_eoh_registration_share(epsilon) + share_delta,
+        personal_registration_share=register_shares(epsilon)["personal"] + share_delta,
     )
     h, c = honest.pipeline, captured.pipeline
     rate = parity_rate(captured, honest)
@@ -134,7 +134,7 @@ def settlement_response(
     captured = build_collective(
         _frame(1),
         epsilon,
-        personal_registration_share=personal_eoh_registration_share(epsilon) + share_delta,
+        personal_registration_share=register_shares(epsilon)["personal"] + share_delta,
     )
     rate = registered_rate(captured, honest)
     return {

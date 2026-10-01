@@ -62,11 +62,7 @@ from hours_eoh.core.conditions import (
     condition_iv_check,
 )
 from hours_eoh.core.multipliers import population_weighted_mean_multiplier
-from hours_eoh.core.registration import (
-    care_registration_share,
-    total_registration_share,
-    personal_eoh_registration_share,
-)
+from hours_eoh.core.registration import register_shares
 from hours_eoh.core.eoh_dynamics import eoh_compounding
 from hours_eoh.core.fiscal import (
     levy_collection,
@@ -94,9 +90,17 @@ def eoh_health_indicators(
     asset_type: str = "generic_infra",
     time_deferred: float = 0.0,
     registration_share: float | None = None,
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Phase 5.2: EOH health indicators for the current automation level.
+
+    `registration_epsilon` (2026-10-01): the register's own maturity. None →
+    it tracks `epsilon`, and the care and registration indicators then read
+    the curves against themselves — they could only go RED for "an
+    externally-modelled lag" that nothing could supply. Supplying a register
+    that trails the capability is that lag. The expectation thresholds (ε <
+    0.10, ε < 0.45) stay on the capability.
 
     Measures four aspects of EOH system health:
     1. Deferred maintenance ratio: accumulated deferred EOH / total EOH.
@@ -162,8 +166,9 @@ def eoh_health_indicators(
         compounding_status = "RED"
 
     # 3. Registration coverage
+    register = register_shares(epsilon, registration_epsilon)
     if registration_share is None:
-        registration_share = total_registration_share(epsilon)
+        registration_share = register["labour"]
     if epsilon < 0.10:
         # Subsistence bootstrapping: below the production sigmoid inflection (ε=0.10),
         # low registration is expected and healthy — the formal economy is intentionally tiny.
@@ -176,7 +181,7 @@ def eoh_health_indicators(
         reg_status = "RED"
 
     # 4. Care admission position (sigmoid: where on the curve?)
-    care_share = care_registration_share(epsilon)
+    care_share = register["care"]
     # Before the inflection point (ε=0.45), low care share is expected and healthy.
     # After the inflection, care share should be rising toward saturation.
     # RED/YELLOW only fire at high ε if care share is dramatically below the
@@ -198,7 +203,7 @@ def eoh_health_indicators(
     # At ε=0, personal EOH is entirely private (off-ledger). Rising share means
     # more of the population's biological obligations are collectively recognized
     # and funded — a key signal of the personal-to-collective ledger transition.
-    pers_reg_share = personal_eoh_registration_share(epsilon)
+    pers_reg_share = register["personal"]
     # Status mirrors non-personal registration thresholds
     if pers_reg_share >= REGISTRATION_WARN:
         pers_reg_status = "GREEN"
@@ -246,6 +251,7 @@ def fiscal_health_check(
     capital_eoh_eliminated: float = 0.0,
     ecological_area_hectares: float | None = None,
     ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Phase 5.3: Fiscal health check — trust solvency, purchasing power, levy sufficiency.
@@ -332,7 +338,8 @@ def fiscal_health_check(
                                     deferred=deferred_ecological,
                                     eco_eoh_override=eco_eoh_override,
                                     area_hectares=_eco_area)
-    guar    = sufficiency_guarantee(population, epsilon)
+    guar    = sufficiency_guarantee(population, epsilon,
+                                    registration_epsilon=registration_epsilon)
     trust   = trust_management(trust_balance, levies["total_levied"],
                                 # REQUIRED, not allocated — the mint pays this
                                 # labour, so no Trust balance caps it. See
@@ -460,6 +467,8 @@ def system_dashboard(
     # that happened to pass it. `simulation.py` and `civilization.py` did; the
     # dashboard CLI did not, and reported an ecological cost ~812x inflated.
     eco_eoh_override: float | None = None,
+    # The register's own maturity (2026-10-01); None → tracks `epsilon`.
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     Full system health dashboard — all four conditions plus health indicators.
@@ -563,6 +572,7 @@ def system_dashboard(
     eoh_h = eoh_health_indicators(
         total_eoh, fulfilled_eoh, epsilon,
         deferred_eoh, asset_type, time_deferred, registration_share,
+        registration_epsilon=registration_epsilon,
     )
 
     # Fiscal health
@@ -570,6 +580,7 @@ def system_dashboard(
         trust_balance, labor_income, capital_stock_teh, capital_age_ratio,
         population, floor_teh, epsilon, suff_levy_rate, dep_rate, div_rate,
         eco_eoh_override=eco_eoh_override,
+        registration_epsilon=registration_epsilon,
     )
 
     # Overall assessment

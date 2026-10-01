@@ -10,6 +10,20 @@ These two modules form the fulfillment pipeline: registration curves gate which 
 
 Registration curves are sigmoid functions of ε. Each domain uses a distinct curve.
 
+### `register_shares(epsilon, registration_epsilon=None)` → `dict` — the one reading point
+
+The register is **separate from machine capability**: one is what the collective carries, the other how much human labour carries it. Every registration share in the package is read through this function, at the register's own maturity `registration_epsilon` — `None` means the register tracks the capability (the canonical arc). Returns a share for each of `REGISTER_KEYS`: `personal`, `labour`, `infrastructure`, `ecological`, `knowledge`, `care`, `land`. `eoh_to_teh_pipeline`, `fiscal_snapshot` / `sufficiency_guarantee`, `make_economy_state` / `simulate_period` and the dashboard indicators all take `registration_epsilon`; `tests/test_one_register.py` refuses a curve imported anywhere else in the package.
+
+```python
+from hours_eoh.core.registration import register_shares
+
+tracking = register_shares(0.90)                            # the register follows ε
+held = register_shares(0.0, registration_epsilon=0.90)      # machines failed, register stands
+assert held["personal"] == tracking["personal"]
+```
+
+The individual curves below remain public for study.
+
 ### `personal_eoh_registration_share(epsilon, …)` → `float`
 
 Share of personal EOH admitted to the collective ledger. Near-zero at ε = 0 (off-ledger subsistence), rising through the mid-automation range to most — not all — of personal EOH at ε = 0.99. It is a *demand* boundary (what the collective is formally accountable for), not a labor registration share.

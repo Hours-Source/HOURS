@@ -12,15 +12,26 @@ computable from constants the repo already ships.
         c   adult annual labor capacity (h/yr·adult)
         a   adult share of population (dimensionless)
 
-    demand per capita       D(ε) = (1 − ε) · [ w · B  +  R ]
+    demand per capita       D(ε) = h_p(ε) · w · B  +  R_h(ε)
         B   PERSONAL_EOH_BASE, h/yr per working-age-EQUIVALENT
-        w   Σ(fraction × eoh_weight) over AGE_GROUPS = 1.3528 — the age weighting
+        w   Σ(fraction × eoh_weight) over AGE_GROUPS — the age weighting
             that converts B from per-equivalent to per-capita
-        R   infrastructure + ecological + knowledge EOH per capita
-        ε   machine-fulfilled share; (1 − ε) is what humans must carry
+        h_p the HUMAN share of personal EOH at capability ε, read from
+            `core.eoh_fulfillment.human_eoh_per_domain` under the adopted
+            `per_component` response: care and nutrition keep automation
+            floors, so h_p ≥ 1 − ε. Under `uniform`, h_p = 1 − ε exactly.
+        R_h human hours in infrastructure + ecological + knowledge per capita,
+            from the same split ((1 − ε) of the gross under both responses)
 
     feasibility             D(ε) ≤ L
-    the implied ceiling     B ≤ (L/(1−ε) − R) / w
+    the implied ceiling     B ≤ (L − R_h) / (w · h_p)
+
+Until 2026-10-01 this module wrote D(ε) = (1 − ε)·[w·B + R] — the `uniform`
+response, retired as the default at Phase 2. At ε = 0 the two agree exactly
+(nothing is automated), so the over-determination finding below, which is
+read at ε = 0, is untouched; above it `uniform` understated human demand
+1.13× / 2.20× / 13.15× at ε = 0.40 / 0.90 / 0.99. Pass
+`automation_response="uniform"` to reproduce an earlier figure.
 
 The last line is the test. It does not ask whether 1,500 h/yr "feels right"; it
 asks what value of B is COMPATIBLE with the labor supply the same model assumes.
@@ -68,6 +79,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import total_eoh
+from hours_eoh.core.eoh_fulfillment import human_eoh_per_domain
 from hours_eoh.data import (
     AGE_GROUPS, H_REF, MEASURED_CAPACITY_H_YR, PERSONAL_EOH_BASE,
     PHYSICAL_CAPACITY_CEILING_H_YR, REFERENCE_FRAME_POPULATION,
@@ -106,10 +118,15 @@ def age_weight_mean(age_groups: dict[str, dict] | None = None) -> float:
     return sum(g["fraction"] * g["eoh_weight"] for g in groups.values())
 
 
-def capacity_weighted_adult_share() -> float:
+def capacity_weighted_adult_share(age_fractions: dict[str, float] | None = None) -> float:
     """
     a = Σ_g fraction_g · capacity_weight_g — the supply-side mirror of the
     obligation's age weighting.
+
+    `age_fractions` (2026-10-01): the population's age mix, as
+    `age_distribution` takes it. None → the `AGE_GROUPS` fractions. Supplying
+    it is how a demographic shock moves SUPPLY with demand — an aging shock
+    that moved only demand is what the last paragraph below records.
 
     WHY THIS IS DERIVED AND NOT READ OFF ONE GROUP. `AGE_GROUPS` weights how
     much obligation each age group GENERATES (infant 3.0, elderly 1.48). Until
@@ -118,15 +135,22 @@ def capacity_weighted_adult_share() -> float:
     true of the arithmetic, stated nowhere. It also stood as a literal in THREE
     functions here, so the assertion was made three times and bound nowhere.
 
-    Deriving it changes no number — the shipped capacity weights give 0.60
-    exactly — and changes one behaviour: a shift in the age distribution now
-    moves supply and demand TOGETHER. `demographic_shock` moved only demand.
+    It changes one behaviour: a shift in the age distribution moves supply and
+    demand TOGETHER. `demographic_shock` moved only demand until 2026-10-01.
+    No level is restated: this line said the weights "give 0.60 exactly",
+    which stopped being true when the elderly gained a capacity weight at the
+    2026-09-04 alignment. Call the function.
 
     The weights are `placeholder`, `errs: LOW`: child and elderly are zero to
     preserve the shipped arithmetic, not because zero was measured, so this
     share is a LOWER bound on what a population can supply.
     """
-    return sum(g["fraction"] * g["capacity_weight"] for g in AGE_GROUPS.values())
+    if age_fractions is None:
+        return sum(g["fraction"] * g["capacity_weight"] for g in AGE_GROUPS.values())
+    unknown = set(age_fractions) - set(AGE_GROUPS)
+    if unknown:
+        raise ValueError(f"unknown age groups: {sorted(unknown)}")
+    return sum(f * AGE_GROUPS[g]["capacity_weight"] for g, f in age_fractions.items())
 
 
 def labor_supply_per_capita(
@@ -203,11 +227,12 @@ def demographic_margin(
     How far the population is from the point where it cannot maintain itself.
 
     WHY A MARGIN AND NOT A FLOOR. The survival floor is a STEP in one ratio,
-    not a curve. Personal obligation per capita is near-flat in ε (1,352.8 at
-    ε=0 against 1,351.1 at ε=0.9), so ε_suff is 0 while supply covers demand
-    and rises only once it does not. Reporting "ε_suff = 0.000, nothing binds"
-    is true and says nothing about how close the step is: on the shipped
-    demography the answer is **2.13 percentage points of adult share**.
+    not a curve. The GROSS personal obligation per capita does not depend on ε
+    (it is what the population must maintain unaided), so ε_suff is 0 while
+    supply covers demand and rises only once it does not. Reporting "ε_suff =
+    0.000, nothing binds" is true and says nothing about how close the step
+    is; `margin_pp` does. Call the function for the level — the 2.13 pp this
+    line quoted predated the 2026-09-04 capacity alignment (mode 7).
 
     The critical share is a·crit = P/c — the adult share at which capacity
     exactly meets the personal obligation. Below it the population cannot
@@ -222,7 +247,9 @@ def demographic_margin(
 
     units: shares dimensionless; margin in PERCENTAGE POINTS of adult share;
     per-capita quantities in h/person·yr. ε-behaviour: defined across
-    [0, 0.99]; the margin widens with ε as the machine share takes obligation.
+    [0, 0.99] and CONSTANT in ε by construction — it reads the gross
+    obligation, not the human-carried share (this line said it widened with ε;
+    pinned flat 2026-10-01).
     """
     from hours_eoh.core.eoh_generation import total_eoh
 
@@ -314,6 +341,7 @@ def feasibility_check(
     population: float = 1_000_000.0,
     personal_base: float = PERSONAL_EOH_BASE,
     verification_h_per_capita: float = 0.0,
+    automation_response: str = "per_component",
 ) -> FeasibilityCheck:
     """
     Test D(ε) ≤ L and invert it onto PERSONAL_EOH_BASE.
@@ -343,9 +371,11 @@ def feasibility_check(
     the only thing this module insists on.
 
     units: all per-capita quantities in h/person·yr; ratios dimensionless.
-    ε-behavior: human-carried demand scales with (1 − ε) while supply does not,
-    so the ratio falls monotonically across the arc and the test is hardest at
-    ε = 0. At ε → 1 any base is feasible, which is why ε = 0 is the diagnostic.
+    ε-behavior: human-carried demand falls with ε while supply does not, so
+    the test is hardest at ε = 0. It falls more slowly than (1 − ε): care and
+    nutrition keep automation floors, so personal demand never goes to zero
+    and some base is infeasible at EVERY ε — the ceiling stays finite at
+    ε → 1, where under `uniform` it diverged.
 
     Args:
         adult_capacity_h_yr: Adult annual labor capacity (> 0).
@@ -353,6 +383,9 @@ def feasibility_check(
         epsilon: Automation level ∈ [0, 1).
         population: Population used to take the per-capita EOH inventory.
         personal_base: The base under test. Defaults to the shipped constant.
+        verification_h_per_capita: The register's own labour per head.
+        automation_response: "per_component" (default, the adopted response)
+            or "uniform" (pre-2026-10-01 figures). Forwarded to the core split.
 
     Returns:
         FeasibilityCheck.
@@ -376,10 +409,16 @@ def feasibility_check(
 
     inv = total_eoh(epsilon=epsilon, population=population,
                     personal_base=personal_base)
-    human = 1.0 - epsilon
-    personal_pc = inv["personal"] / population * human
-    residual_pc = ((inv["infrastructure"] + inv["ecological"] + inv["knowledge"])
-                   / population * human)
+    # THE SHARED SPLIT (2026-10-01): human demand per domain is the core's,
+    # under the adopted automation response — not a (1 − ε) restated here.
+    split = human_eoh_per_domain(inv, epsilon, automation_response=automation_response)
+    personal_pc = split["personal"] / population
+    residual_pc = (split["infrastructure"] + split["ecological"]
+                   + split["knowledge"]) / population
+    # h_p: the human share of personal EOH. It does not depend on B (the
+    # component floors are shares), which is what makes the inversion exact —
+    # pinned by evaluating the check AT the ceiling.
+    h_p = split["personal"] / inv["personal"] if inv["personal"] > 0.0 else 1.0 - epsilon
     # VERIFICATION IS DEMAND, NOT A SEPARATE ACCOUNT. An hour a registrant
     # spends documenting that a fulfilment happened is an hour not spent
     # fulfilling, so it competes for the same labour supply. Default 0.0 is the
@@ -396,12 +435,11 @@ def feasibility_check(
         )
     demand_pc = personal_pc + residual_pc + verification_h_per_capita
 
-    # B ≤ (L/(1−ε) − R) / w, floored at 0 — a negative ceiling means the
-    # non-personal domains alone already exhaust the labor supply.
-    ceiling = max(
-        0.0,
-        (supply / human - residual_pc / human - verification_h_per_capita / human) / w,
-    )
+    # B ≤ (L − R_h − V) / (w · h_p), floored at 0 — a negative ceiling means
+    # the non-personal domains alone already exhaust the labor supply. Under
+    # `uniform` h_p = 1 − ε and this is the former (L/(1−ε) − R − V/(1−ε)) / w.
+    ceiling = (max(0.0, (supply - residual_pc - verification_h_per_capita) / (w * h_p))
+               if h_p > 0.0 else float("inf"))
 
     return FeasibilityCheck(
         epsilon=epsilon,
@@ -599,6 +637,7 @@ def feasible_epsilon(
     personal_base: float = PERSONAL_EOH_BASE,
     population: float = 1_000_000.0,
     tol: float = 1e-6,
+    automation_response: str = "per_component",
 ) -> float:
     """
     The lowest ε at which the demand becomes carryable — the feasibility floor.
@@ -609,12 +648,16 @@ def feasible_epsilon(
         ε_feas ≈ 1 − L / D(0)              [WRONG — understates it]
 
     assumes the EOH inventory is fixed and automation merely takes share of it.
-    It is not fixed. Infrastructure EOH RISES with ε (75 → 224 h/person·yr from
-    ε = 0 to 0.99) because automation is capital, and capital has to be
-    maintained; knowledge EOH rises too. So automation both relieves demand and
-    creates it, and the true crossover sits above the linear estimate. On shipped
-    constants the closed form gives 0.563 and the actual crossover is ≈ 0.58 —
-    small here only because the domains that grow are the small ones.
+    It is not fixed. Infrastructure EOH RISES with ε because automation is
+    capital, and capital has to be maintained; knowledge EOH rises too; and
+    under the adopted `per_component` response care and nutrition keep human
+    floors, so personal demand falls more slowly than (1 − ε). Automation both
+    relieves demand and creates it, and the true crossover sits above the
+    linear estimate. No level is restated here: on shipped constants ε = 0
+    already clears and this returns 0.0; pass a lower capacity to see a floor
+    (`tests/scenarios/test_feasibility.py` pins one, against the closed form).
+    Bisection is valid because the demand/supply ratio falls monotonically in
+    ε under both responses — pinned on a 100-point grid.
 
     Cross-check: `research/corridor.survival_floor_epsilon` reports the same
     shortfall scoped to the personal domain alone, and lands just below this. A
@@ -630,13 +673,16 @@ def feasible_epsilon(
         personal_base: The base under test.
         population: Population for the per-capita inventory.
         tol: Bisection tolerance on ε.
+        automation_response: Forwarded to `feasibility_check`; "uniform"
+            reproduces pre-2026-10-01 floors.
 
     Returns:
         The feasibility floor ε_feas.
     """
     def ok(eps: float) -> bool:
         return feasibility_check(adult_capacity_h_yr, adult_share, eps,
-                                 population, personal_base)["feasible"]
+                                 population, personal_base,
+                                 automation_response=automation_response)["feasible"]
 
     if ok(0.0):
         return 0.0

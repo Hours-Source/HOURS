@@ -26,17 +26,19 @@ print(report["status"], all(row["fiscal_solvent"] for row in report["sweep"]))
 
 ## shocks.py — Shock Events
 
+Every shock is a change to ONE state — machine capability, population and age mix, ecosystem health and the restoration a collapse leaves — read through the shared pipeline before and after, capped at the labour supply the population can give (`feasibility.labor_supply_per_capita`, moving with the age mix). Added human demand is taken up within that supply; the rest is **deferred**, survival-first, so `deferred_personal_eoh > 0` means the survival floor itself is unmet. **Nothing is charged to the Trust**: a balance cannot supply an hour of labour, and work that is done registers and mints. The Trust's real obligation, the guarantee, is read from `fiscal_snapshot()` at the after-state with the register held at the pre-shock ε (`registration_epsilon`). The outcome is the worse of the labour reading (STABLE: all taken up; DEGRADED: some deferred; CRISIS: personal deferred) and the Trust's position.
+
 ### `automation_failure_shock(epsilon, …)` → `dict`
 
-Machines lose `fraction_lost` (default 1) of their capability at `epsilon`; the register, an institution, stands. Two `eoh_to_teh_pipeline` calls at one physical state, capped at the measured labour supply L (`feasibility.labor_supply_per_capita` × `population`): the OBSERVED machine load that is lost (`machine_eoh_lost`) is taken up by people up to L (`taken_up_eoh`) and the rest is deferred survival-first (`deferred_eoh`, `deferred_personal_eoh`). STABLE: all taken up; DEGRADED: some deferred, survival floor served; CRISIS: personal obligation deferred. The surge labour is registered and mints; nothing is charged to the Trust, whose position at the new mint is reported. **Competency (Condition IV) is not tested** — it is per essential domain and no mapping onto the EOH domains exists — so the coverage is an upper bound. `workforce_size`, `mean_entropy_reduction_capacity` and `reserve_fraction` are deprecated and ignored.
+Machines lose `fraction_lost` (default 1) of their capability; the OBSERVED machine load lost (`machine_eoh_lost`) falls to people. Reports `taken_up_eoh`, `deferred_eoh`, `deferred_personal_eoh`, the mint and floor price before and after, the Trust surplus, and `failure_boundary`. **Competency (Condition IV) is not tested** — the essential-domain bridge exists (`eoh_to_essential_domains`) but the coverage check it feeds (`domain_eoh_coverage`) does not size a worker in hours — so the coverage is an upper bound. `workforce_size`, `mean_entropy_reduction_capacity` and `reserve_fraction` are deprecated and ignored.
 
 ### `demographic_shock(epsilon, shock_type, magnitude, …)` → `dict`
 
-A sudden change to a `population` (default 1M): `shock_type` is `"growth"` or `"decline"` (population × (1 ± `magnitude`)) or `"aging"` (a share `magnitude` of the WHOLE population moves from working age to elderly). Labour income is the period's mint unless `labor_income_base` is supplied. Reports the obligation before and after, the guarantee before and after, and an outcome classified by the shared `SHOCK_DEGRADED_TRUST_FRACTION` boundary.
+`"growth"` / `"decline"` (population × (1 ± `magnitude`)) or `"aging"` (a share `magnitude` of the WHOLE population moves from working age to elderly; refused beyond the working-age share). Labour supply follows the new age mix, so aging lowers supply as it raises demand. Reports supply, obligation and guarantee before and after, and the cascade. Labour income is the mint unless `labor_income_base` is supplied (the legacy proxy).
 
 ### `ecological_eoh_spike(epsilon, ecosystem_health_before, ecosystem_health_after, …)` → `dict`
 
-Sudden increase in ecological EOH (e.g., ecosystem threshold event). Tests Trust ecological allocation and the GUF's preventive mechanisms.
+A collapse leaves a **restoration stock**: the health lost over the frame's land (`population × LAND_HECTARES_PER_CAPITA`), priced by `restoration_cost.pristine_gap_obligation` and amortised over `restoration_years`, entering the pipeline as `restoration_obligation`. Both band corners are reported (`restoration_eoh_low` / `_high`; `restoration_corner` sets which is cascaded). The land holder's added GUF flow is reported in hours (`guf_flow_added_eoh`) and not cascaded. `threshold_crossed` is reported and no longer sets the outcome alone. Not modelled: biological recovery time. `base_rate` is deprecated.
 
 ### `labor_income_shock(epsilon, income_fraction, trust_balance, population, …)` → `dict`
 
@@ -44,7 +46,7 @@ Compresses labor income to `income_fraction × baseline`, where the baseline is 
 
 ### `compound_shock(epsilon, ecology_collapse, demographic_shock_spec, automation_fraction_lost, …)` → `dict`
 
-Runs `ecological_eoh_spike`, `demographic_shock`, and `automation_failure_shock` independently at the same population, then charges the ecological and demographic legs' added EOH against the Trust position from `fiscal_snapshot()` (in hours as TEH one-for-one, the shocks' own convention, pending the author). The automation leg is NOT charged — its unserved load is reported as `automation_deferred_eoh` and its severity enters through its outcome. `combined_outcome` is always ≥ worst individual outcome in severity. Returns `{individual_outcomes, combined_eoh_delta, automation_deferred_eoh, trust_absorbs_combined, combined_outcome}`.
+Applies every enabled change to ONE state and reads one cascade — the shocks share one labour pool. Each component is also run alone (`individual_outcomes`); `combined_outcome` is never better than the worst of them. Returns `{individual_outcomes, combined_eoh_delta (added human demand, h/yr), combined_deferred_eoh, combined_deferred_personal_eoh, automation_deferred_eoh, trust_absorbs_combined, combined_outcome}`.
 
 ---
 

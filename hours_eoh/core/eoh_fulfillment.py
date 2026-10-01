@@ -888,10 +888,7 @@ def eoh_to_teh_pipeline(
     physical obligation to currency creation must be transparent and auditable.
     """
     from hours_eoh.core.eoh_generation import total_eoh as _total_eoh
-    from hours_eoh.core.registration import (
-        total_registration_share,
-        personal_eoh_registration_share as _personal_reg_share,
-    )
+    from hours_eoh.core.registration import register_shares
 
     # Resolve the two names for the capability index back into one local, so the
     # body below is unchanged and there is exactly one place the precedence lives.
@@ -966,12 +963,9 @@ def eoh_to_teh_pipeline(
     # - Knowledge: separate verification-difficulty sigmoid — knowledge outputs
     #   lack physical indicators; inflection at ε=0.70, saturation at 0.80.
     # When registration_share is provided, it overrides ALL domains uniformly.
-    from hours_eoh.core.registration import knowledge_eoh_registration_share as _know_reg_share
     from hours_eoh.core.eoh_generation import _resolve_monitoring_capability as _resolve_mon
-    if registration_epsilon is not None and not 0.0 <= registration_epsilon <= 1.0:
-        raise ValueError(
-            f"registration_epsilon must be in [0.0, 1.0], got {registration_epsilon}")
-    reg_eps = epsilon if registration_epsilon is None else registration_epsilon
+    # THE ONE READING OF THE REGISTER (2026-10-01): `register_shares`.
+    reg = register_shares(epsilon, registration_epsilon)
     if registration_share is not None:
         pers_share   = registration_share
         infra_share  = registration_share
@@ -980,9 +974,10 @@ def eoh_to_teh_pipeline(
     else:
         pers_share  = (personal_registration_share
                        if personal_registration_share is not None
-                       else _personal_reg_share(reg_eps))
-        infra_share = eco_share = total_registration_share(reg_eps)
-        know_share  = _know_reg_share(reg_eps)
+                       else reg["personal"])
+        infra_share = reg["infrastructure"]
+        eco_share   = reg["ecological"]
+        know_share  = reg["knowledge"]
 
     human_infra    = hd["infrastructure"]
     human_eco      = hd["ecological"]

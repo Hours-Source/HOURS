@@ -481,3 +481,111 @@ def validate_registration_trajectory(
         "total_range":      [min(all_total), max(all_total)] if all_total else [0.0, 0.0],
         "n_checked":        len(epsilon_sequence),
     }
+
+
+def collective_land_registration(
+    epsilon: float,
+    inflection: float = 0.85,
+    rate: float = 22.0,
+    saturation: float = 0.90,
+) -> float:
+    """
+    Fraction of housing/land EOH registered to the collective ledger.
+
+    The transition of land/housing EOH from private to collective begins very
+    late in the automation arc. Below the inflection point, nearly all housing
+    EOH remains a private stewardship obligation. As the collective approaches
+    full EOH coverage, it absorbs remaining private obligations, zeroing out
+    stewards' private maintenance burden and bringing all entropy resistance
+    under the ledger.
+
+    This is a late-stage sigmoid, distinct from the care admission curve:
+    - Care registration: inflection at ε=0.45 (mid-automation)
+    - Land registration: inflection at ε=0.85 (near post-scarcity)
+
+    Args:
+        epsilon: Automation level [0.0, 0.99].
+        inflection: ε at which transition is fastest. Default: 0.85.
+        rate: Steepness of sigmoid. Default: 22.0 (sharp transition).
+        saturation: Maximum collective share. Default: 0.90.
+
+    Returns:
+        Collective land registration share ∈ [0.0, saturation].
+        Monotonically increasing.
+
+    Reference: Mission Statement §"In the final stages of automation ... housing
+    and land-based EOH may be registered to the collective ledger, zeroing out
+    all remaining private EOH obligations."
+    """
+    sigmoid = 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
+    return saturation * sigmoid
+
+
+# ---------------------------------------------------------------------------
+# THE REGISTER — one reading point (2026-10-01)
+# ---------------------------------------------------------------------------
+#
+# Author, 2026-10-01: "registration is separate from machine capability — one
+# is what the collective carries, the other how much human labour carries it."
+# Every curve above is the register's maturity read at an ε; until this date
+# 21 calls in 9 modules across core/, scenarios/, research/ and utils/ read them
+# with the CAPABILITY ε, so nothing could hold the register while machines
+# changed. Every reading now comes through `register_shares`, which takes the
+# register's own ε (`registration_epsilon`, None → the capability, so every
+# default path is bit-identical). `tests/test_one_register.py` refuses an
+# import of the curves anywhere else.
+
+#: The keys `register_shares` returns, and which curve each reads.
+REGISTER_KEYS: tuple[str, ...] = (
+    "personal",        # personal_eoh_registration_share — demand registration
+    "labour",          # total_registration_share — the labour composite
+    "infrastructure",  # = labour (physical outputs, directly inspectable)
+    "ecological",      # = labour
+    "knowledge",       # knowledge_eoh_registration_share — verification-limited
+    "care",            # care_registration_share — the care admission curve
+    "land",            # collective_land_registration — late, private → collective
+)
+
+
+def resolve_registration_epsilon(
+    epsilon: float, registration_epsilon: float | None = None,
+) -> float:
+    """The ε the register is read at: its own if supplied, else the capability."""
+    if registration_epsilon is None:
+        return epsilon
+    if not 0.0 <= registration_epsilon <= 1.0:
+        raise ValueError(
+            f"registration_epsilon must be in [0.0, 1.0], got {registration_epsilon}")
+    return registration_epsilon
+
+
+def register_shares(
+    epsilon: float, registration_epsilon: float | None = None,
+) -> dict[str, float]:
+    """
+    Every registration share, read at the register's own maturity.
+
+    Args:
+        epsilon: The machine capability. Used only when `registration_epsilon`
+            is None, in which case the register tracks it (the canonical arc).
+        registration_epsilon: The register's maturity, held apart from the
+            capability — e.g. the pre-shock ε when machines fail, or a lagging
+            register (`scenarios/maintenance.care_registration_delay`).
+
+    Returns:
+        {key: share ∈ [0, 1]} for every key in `REGISTER_KEYS`.
+
+    ε-behaviour: each share is its own sigmoid, defined on [0, 1]; see the
+    individual curves above.
+    """
+    r = resolve_registration_epsilon(epsilon, registration_epsilon)
+    labour = total_registration_share(r)
+    return {
+        "personal":       personal_eoh_registration_share(r),
+        "labour":         labour,
+        "infrastructure": labour,
+        "ecological":     labour,
+        "knowledge":      knowledge_eoh_registration_share(r),
+        "care":           care_registration_share(r),
+        "land":           collective_land_registration(r),
+    }
