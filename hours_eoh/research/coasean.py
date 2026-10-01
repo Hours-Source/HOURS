@@ -82,7 +82,6 @@ Phase 4 (this file adds) — reconciliation §8.7 two-tier Trust
 from __future__ import annotations
 
 import random as _random
-from dataclasses import dataclass, field
 from typing import Any
 
 from hours_eoh.data import (
@@ -98,6 +97,7 @@ from hours_eoh.data import (
     DEP_RATE,
     DIV_RATE,
     MEAN_MULTIPLIER_REFERENCE,
+    LAND_HECTARES_PER_CAPITA,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
@@ -108,7 +108,8 @@ from hours_eoh.research.contestability import (
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
-from hours_eoh.research.exchange import registered_rate
+from hours_eoh.research.exchange import Collective as _ExchangeCollective
+from hours_eoh.research.exchange import CollectiveFrame, build_collective, registered_rate
 
 #: Rate bases `exchange_rates` accepts. "registered" is the ADOPTED settlement
 #: (author, 2026-09-30); "parity" reproduces every pre-adoption figure exactly.
@@ -119,46 +120,20 @@ RATE_BASES: tuple[str, ...] = ("registered", "parity")
 # Collective dataclass
 # ---------------------------------------------------------------------------
 
-@dataclass
-class Collective:
-    """
-    A single Coasean planning island.
+# THE FEDERATION IS BUILT FROM FRAMES (2026-09-30, author: "proceed with the
+# frame builder"). This module carried its own `Collective` dataclass and built
+# it through `run_collective_period`, while `research/exchange.py` built another
+# from a declared `CollectiveFrame` — two classes, two constructors, bridged by a
+# Protocol so one settlement rate could serve both. There is now one:
+# `exchange.Collective`, built by `exchange.build_collective` from a frame, with
+# the fields this module's callers read (`population`, `trust_balance`,
+# `capital_stock`, `ecosystem_health`, `reserve`) exposed from the frame. The
+# name is re-exported so `coasean.Collective` still resolves. Verified
+# bit-identical against the old path — every field and the full pipeline and
+# fiscal dicts — at ε ∈ {0, 0.40, 0.90, 0.99}, with and without schedules,
+# through merge, split and both simulations.
+Collective = _ExchangeCollective
 
-    Stores the outputs of one period's EOH→TEH pipeline and fiscal snapshot
-    for a slice of the population with its own Trust sub-balance, capital
-    sub-stock, and ecosystem health.
-
-    Fields
-    ------
-    collective_id    : int   — index within the federation (0-based)
-    epsilon          : float — shared automation level (same for all collectives)
-    population       : float — this collective's population slice
-    trust_balance    : float — this collective's Trust sub-balance (TEH)
-    capital_stock    : float — this collective's capital stock (TEH)
-    ecosystem_health : float — this collective's ecosystem health [0, 1]
-    pipeline         : dict  — output of eoh_to_teh_pipeline() for this slice
-    fiscal           : dict  — output of fiscal_snapshot() for this slice
-    reserve          : float — inter-collective reserve held (COASEAN_RESERVE_FRACTION
-                               of teh_created, earmarked for inter-collective exchange)
-
-    Note: at N=1, pipeline and fiscal exactly reproduce the single-ledger
-    reference calls — this is the regression anchor (n1_regression_anchor()).
-    """
-
-    collective_id:    int
-    epsilon:          float
-    population:       float
-    trust_balance:    float
-    capital_stock:    float
-    ecosystem_health: float = 0.70
-    pipeline:         dict = field(default_factory=dict)
-    fiscal:           dict = field(default_factory=dict)
-    reserve:          float = 0.0
-
-
-# ---------------------------------------------------------------------------
-# Phase 1: collective count, single-period run, federation factory, anchor
-# ---------------------------------------------------------------------------
 
 def coasean_collective_count(epsilon: float) -> int:
     """
@@ -261,6 +236,7 @@ def make_federation(
     ecosystem_health_schedule: list[float] | None = None,
     capital_schedule: list[float] | None = None,
     multiplier_schedule: list[float] | None = None,
+    hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
 ) -> list[Collective]:
     """
     Create a federation of N Coasean collectives at automation level ε.
@@ -300,6 +276,11 @@ def make_federation(
                                    exactly 1.0 (mutual recognition). Not clipped
                                    to the Condition II band: a breach is reported
                                    by `exchange.settlement_terms`, never hidden.
+        hectares_per_capita:       Land per person for each collective's frame,
+                                   stated through `CollectiveFrame.per_capita_land`
+                                   — the visible call for a caller who knows only a
+                                   ratio. The default is the pipeline's own, so the
+                                   frame build is bit-identical to the old path.
 
     Returns:
         List of Collective objects, one per collective.
@@ -348,27 +329,17 @@ def make_federation(
         # GUF-side effect and is no longer a way to make collectives differ.
         cap = capital_per if capital_schedule is None else capital_schedule[i]
 
-        pipeline, fiscal = run_collective_period(
-            epsilon=epsilon,
+        frame = CollectiveFrame.per_capita_land(
+            collective_id=i,
             population=pop_per,
-            trust_balance=trust_per,
+            hectares_per_capita=hectares_per_capita,
             capital_stock_teh=cap,
+            trust_balance=trust_per,
             capital_age_ratio=capital_age_ratio,
             ecosystem_health=eco,
-            mean_multiplier=None if multiplier_schedule is None else multiplier_schedule[i],
         )
-        reserve = pipeline["teh_created"] * COASEAN_RESERVE_FRACTION
-        collectives.append(Collective(
-            collective_id=i,
-            epsilon=epsilon,
-            population=pop_per,
-            trust_balance=trust_per,
-            capital_stock=cap,
-            ecosystem_health=eco,
-            pipeline=pipeline,
-            fiscal=fiscal,
-            reserve=reserve,
-        ))
+        mult_kw = {} if multiplier_schedule is None else {"mean_multiplier": multiplier_schedule[i]}
+        collectives.append(build_collective(frame, epsilon, **mult_kw))
     return collectives
 
 
@@ -893,22 +864,19 @@ def merge_collectives(
         + absorbed.ecosystem_health * absorbed.population
     ) / merged_pop
 
-    pipeline, fiscal = run_collective_period(
-        epsilon=absorber.epsilon,
-        population=merged_pop,
-        trust_balance=merged_trust,
-        capital_stock_teh=merged_capital,
-        ecosystem_health=merged_eco,
-    )
-    merged = Collective(
-        collective_id=absorber.collective_id,
-        epsilon=absorber.epsilon,
-        population=merged_pop,
-        trust_balance=merged_trust,
-        capital_stock=merged_capital,
-        ecosystem_health=merged_eco,
-        pipeline=pipeline,
-        fiscal=fiscal,
+    # The merged frame. Land adds (it is not a unit of account, so no rate);
+    # capital age and multiplier fall back to the defaults, as they always
+    # did here — a merge does not carry them (recorded as a lead, 2026-09-30).
+    merged = build_collective(
+        CollectiveFrame(
+            collective_id=absorber.collective_id,
+            population=merged_pop,
+            land_hectares=absorber.frame.land_hectares + absorbed.frame.land_hectares,
+            capital_stock_teh=merged_capital,
+            trust_balance=merged_trust,
+            ecosystem_health=merged_eco,
+        ),
+        absorber.epsilon,
         reserve=merged_reserve,
     )
 
@@ -993,22 +961,16 @@ def split_collective(
         pop_i = parent.population * frac
         trust_i = allocated * frac
         capital_i = parent.capital_stock * frac
-        pipeline, fiscal = run_collective_period(
-            epsilon=parent.epsilon,
-            population=pop_i,
-            trust_balance=trust_i,
-            capital_stock_teh=capital_i,
-            ecosystem_health=parent.ecosystem_health,
-        )
-        successors.append(Collective(
-            collective_id=ids[i],
-            epsilon=parent.epsilon,
-            population=pop_i,
-            trust_balance=trust_i,
-            capital_stock=capital_i,
-            ecosystem_health=parent.ecosystem_health,
-            pipeline=pipeline,
-            fiscal=fiscal,
+        successors.append(build_collective(
+            CollectiveFrame(
+                collective_id=ids[i],
+                population=pop_i,
+                land_hectares=parent.frame.land_hectares * frac,
+                capital_stock_teh=capital_i,
+                trust_balance=trust_i,
+                ecosystem_health=parent.ecosystem_health,
+            ),
+            parent.epsilon,
             reserve=parent.reserve * frac,
         ))
 

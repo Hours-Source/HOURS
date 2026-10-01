@@ -422,6 +422,14 @@ def personal_eoh(
         else:
             age_distribution = {k: v["fraction"] for k, v in AGE_GROUPS.items()}
 
+    # A fraction cannot exceed 1. Three call sites in two scenarios passed head COUNTS here
+    # (fraction × population) and got personal EOH ~1e6× high at the 1M frame
+    # with nothing to object (2026-09-30); refusing the shape stops the fourth.
+    if any(v > 1.0 for v in age_distribution.values()):
+        raise ValueError(
+            "age_distribution takes FRACTIONS of the population, not head "
+            f"counts; got {age_distribution!r}"
+        )
     weighted_pop = 0.0
     for group, fraction in age_distribution.items():
         weight = AGE_GROUPS[group]["eoh_weight"] if group in AGE_GROUPS else 1.0

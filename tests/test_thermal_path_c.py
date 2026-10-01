@@ -341,3 +341,14 @@ def test_band_rejects_malformed_range():
     for bad in [(0.0, 0.5), (0.6, 0.2), (0.2, 1.0)]:
         with pytest.raises(ValueError):
             global_ceiling(3.0, eps_current_band=bad)
+
+
+def test_f3_defaults_to_the_adopted_threshold():
+    """2026-09-30 (author): the default was a bare 3.0 K while P0 read
+    THERMAL_DT_LO. Bound by name, and the adopted level differs from 3.0 K."""
+    import inspect
+    from hours_eoh.data import THERMAL_DT_LO
+    assert inspect.signature(decarbonization_headroom).parameters["delta_t_lo"].default == THERMAL_DT_LO
+    at_default = decarbonization_headroom()
+    assert at_default["delta_t_lo"] == THERMAL_DT_LO
+    assert at_default["gain_w"] < decarbonization_headroom(3.0)["gain_w"]

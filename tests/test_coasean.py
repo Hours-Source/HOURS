@@ -189,3 +189,43 @@ class TestN1RegressionAnchor:
     def test_federation_n_is_1(self):
         result = n1_regression_anchor()
         assert result["federation_n"] == 1
+
+
+class TestOneFederationBuilder:
+    """2026-09-30 (author: "proceed with the frame builder"): the federation is
+    built from `CollectiveFrame`s through `exchange.build_collective`; there is
+    one `Collective` class. Verified bit-identical against the old path."""
+
+    def test_one_class(self):
+        from hours_eoh.research import coasean, exchange
+        assert coasean.Collective is exchange.Collective
+        assert all(isinstance(c, exchange.Collective) for c in make_federation(0.40, n=3))
+
+    def test_each_collective_carries_a_frame(self):
+        from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+        for c in make_federation(0.40, n=3):
+            assert c.frame.population == c.population
+            assert c.frame.land_hectares == pytest.approx(c.population * LAND_HECTARES_PER_CAPITA, rel=1e-15)
+
+    def test_a_subsistence_federation_builds(self):
+        """Zero capital at ε=0 — a frame since 2026-09-30, refused before."""
+        fed = make_federation(0.0)
+        assert fed and all(c.capital_stock == 0.0 for c in fed)
+
+    def test_a_merge_carries_the_reserve_not_a_fresh_earmark(self):
+        from hours_eoh.data import COASEAN_RESERVE_FRACTION
+        from hours_eoh.research.coasean import merge_collectives
+        fed = make_federation(0.40, n=3, capital_schedule=[1e9, 2e9, 4e9])
+        m = merge_collectives(fed[0], fed[1], rate=1.3)["merged"]
+        assert m.reserve == pytest.approx(fed[0].reserve + fed[1].reserve * 1.3, rel=1e-15)
+        assert m.reserve != pytest.approx(m.teh_created * COASEAN_RESERVE_FRACTION, rel=1e-6)
+
+    def test_the_anchor_compares_two_independent_paths(self):
+        """make_federation no longer calls run_collective_period, so the N=1
+        anchor now checks the frame build against the raw two-call reference."""
+        import inspect
+        from hours_eoh.research import coasean
+        assert "run_collective_period" not in inspect.getsource(coasean.make_federation)
+        for eps in (0.0, 0.40, 0.99):
+            a = coasean.n1_regression_anchor(eps)
+            assert a["teh_created_delta"] == 0.0

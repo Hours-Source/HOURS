@@ -1226,7 +1226,16 @@ def fiscal_snapshot(
     # Resolution is the same as `total_eoh`'s and deliberately so — two entry
     # points into one obligation must not resolve it two ways.
     eco_area = ecological_area_hectares
-    if eco_eoh_override is None and eco_area is None:
+    # RESOLVED WITH OR WITHOUT AN OVERRIDE (2026-09-30). This resolved the area
+    # only when no override was passed. The override replaces the domain TOTAL,
+    # but `ecological_allocation` still computes the RELOCATED (GUF) obligation
+    # from the area — and with none it fell back to the whole-US anchor, so every
+    # caller passing an override (`simulate_period`, `exchange.build_collective`)
+    # reported a relocated obligation fixed in absolute terms: per person 17.1 /
+    # 0.856 / 0.043 TEH at 5e4 / 1e6 / 2e7 against a frame-invariant 0.0018.
+    # Found when the federation moved onto `build_collective` and the reporting
+    # section of its fiscal dict no longer matched the old path.
+    if eco_area is None:
         eco_area = population * ecological_hectares_per_capita
     eco       = ecological_allocation(
         ecosystem_health=ecosystem_health,

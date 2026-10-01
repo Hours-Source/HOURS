@@ -58,13 +58,21 @@ class TestCollectiveFrame:
         with pytest.raises(TypeError):
             CollectiveFrame(collective_id=0, population=1e6, capital_stock_teh=2e9)
 
-    @pytest.mark.parametrize("bad", ["population", "land_hectares", "capital_stock_teh"])
-    def test_the_three_extensive_quantities_must_be_positive(self, bad):
+    @pytest.mark.parametrize("bad", ["population", "land_hectares"])
+    def test_population_and_land_must_be_positive(self, bad):
         kw = dict(collective_id=0, population=1e6, land_hectares=1.65e6,
                   capital_stock_teh=2e9)
         kw[bad] = 0.0
         with pytest.raises(ValueError, match=bad):
             CollectiveFrame(**kw)
+
+    def test_zero_capital_is_a_jurisdiction_and_negative_is_not(self):
+        """2026-09-30: the canonical arc holds no capital at ε=0 (Block III), so
+        a subsistence collective is a frame. Negative capital is still refused."""
+        kw = dict(collective_id=0, population=1e6, land_hectares=1.65e6)
+        assert CollectiveFrame(capital_stock_teh=0.0, **kw).capital_stock_teh == 0.0
+        with pytest.raises(ValueError, match="capital_stock_teh"):
+            CollectiveFrame(capital_stock_teh=-1.0, **kw)
 
     @pytest.mark.parametrize("bad", ["capital_age_ratio", "ecosystem_health"])
     def test_the_intensive_ratios_are_bounded(self, bad):

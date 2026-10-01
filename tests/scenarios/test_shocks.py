@@ -416,3 +416,36 @@ class TestOneDegradedThreshold:
                 assert r["outcome"] == "DEGRADED"
                 return
         raise AssertionError("no probe landed between 5% and 10% of the Trust")
+
+
+class TestAgeDistributionIsFractions:
+    """2026-09-30: `demographic_shock` and `epsilon_sweep` passed head COUNTS as
+    `age_distribution`, which takes fractions — personal EOH population² ×
+    weight, ~1e6× at 1M. Through `eoh_delta`, `compound_shock` added ~9.6e13
+    phantom hours to the guarantee and reported CRISIS for any demographic
+    shock at every ε. Nothing pinned it; these do."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_shock_obligation_is_total_eoh(self, eps):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
+        r = demographic_shock(eps, "growth", 0.2)
+        ref = total_eoh(eps, population=1.0e6,
+                        capital_stock=resolve_capital_stock(None, eps),
+                        capital_age_ratio=0.30)["total"]
+        assert r["eoh_before"] == pytest.approx(ref, rel=1e-12)
+
+    def test_growth_scales_the_personal_obligation_by_the_growth(self):
+        r = demographic_shock(0.0, "growth", 0.2)
+        assert r["eoh_after"] / r["eoh_before"] == pytest.approx(1.2, rel=1e-9)
+
+    def test_compound_matches_its_only_component(self):
+        from hours_eoh.scenarios.shocks import compound_shock
+        for eps in (0.0, 0.40, 0.90):
+            spec = {"shock_type": "aging", "magnitude": 0.2}
+            alone = demographic_shock(eps, **spec)["outcome"]
+            assert compound_shock(eps, demographic_shock_spec=spec)["combined_outcome"] == alone
+
+    def test_personal_eoh_refuses_head_counts(self):
+        from hours_eoh.core.eoh_generation import personal_eoh
+        with pytest.raises(ValueError, match="FRACTIONS"):
+            personal_eoh(1.0e6, {"working_age": 6.0e5, "elderly": 4.0e5})

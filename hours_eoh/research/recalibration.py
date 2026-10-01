@@ -469,6 +469,75 @@ def formation_levy_rate(
     }
 
 
+def bridge_advance(
+    population: float = 1_000_000.0,
+    capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
+    epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
+    step: float = 0.005,
+) -> dict:
+    """
+    The §8.9b bridge as a ZERO-INTEREST ADVANCE to the commons, repaid from its
+    own later surplus — the alternative to levying labour. REPORTING ONLY.
+
+    Under the purchase model (`phi_policy="target"`) the commons' acquisition
+    outruns its income early in the arc. `formation_levy_rate` prices closing
+    that gap with a levy on labour, which on the MINT is a large share of wages
+    at subsistence. But the gap is a TIMING problem: it is finite, it closes at
+    the sunset, and the same commons earns a surplus afterwards. So:
+
+        advance   = Σ max(0, reinvest − income) · Δt     over the gap window
+        repay     = the years after the sunset until Σ max(0, income − reinvest)·Δt
+                    reaches the advance
+        Δt        = step / epsilon_rate_per_year          (years per grid step)
+
+    Zero interest (Condition III), so the advance is repaid at face value. The
+    lender is whoever holds a stock at founding — the Trust's prior work, or a
+    federation commons; a collective founded with nothing needs one of those.
+    `share_of_default_prior_work` reports the advance against the shipped
+    inheritance at this population.
+
+    The arc speed is a SCENARIO choice, and the advance RISES with it: the
+    purchase rate is d(φ·K)/dε × dε/dt, so a faster arc buys faster against an
+    income that has not yet grown, and the sunset moves later. (The first draft
+    of this docstring said the opposite; the call corrected it.) Frame: every
+    flow scales with population, so the share of prior work is frame-invariant.
+    """
+    from hours_eoh.core.fiscal import resolve_trust_balance
+
+    if epsilon_rate_per_year <= 0.0:
+        raise ValueError("epsilon_rate_per_year must be > 0 for an advance to have a duration")
+    dt = step / epsilon_rate_per_year
+    advance = 0.0
+    sunset = None
+    repaid_after_years = None
+    surplus = 0.0
+    e = 0.0
+    while e <= _EPS_MAX:
+        c = commons_income_statement(
+            e, population, capital_output_ratio, epsilon_rate_per_year, phi_policy="target",
+        )
+        gap = c["reinvestment"] - c["income"]
+        if sunset is None and gap > 0.0:
+            advance += gap * dt
+        elif sunset is None:
+            sunset = e
+        if sunset is not None:
+            surplus += max(0.0, -gap) * dt
+            if repaid_after_years is None and surplus >= advance:
+                repaid_after_years = (e - sunset) / epsilon_rate_per_year
+        e = round(e + step, 10)
+    prior = resolve_trust_balance(None, population)
+    return {
+        "advance": advance,
+        "sunset_epsilon": sunset,
+        "gap_window_years": None if sunset is None else sunset / epsilon_rate_per_year,
+        "repaid_years_after_sunset": repaid_after_years,
+        "surplus_after_sunset": surplus,
+        "share_of_default_prior_work": advance / prior,
+        "reporting_only": True,
+    }
+
+
 def commons_income_statement(
     epsilon: float,
     population: float = 1_000_000.0,

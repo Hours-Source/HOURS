@@ -14,8 +14,10 @@ not a constraint today. The load-bearing P0 finding is instead:
 
     F3 — decarbonization headroom. Greenhouse forcing and waste heat draw on ONE
     unified budget (E6), so cutting forcing frees thermal budget for dissipation.
-    Measured, this is ~1,374 TW ≈ 78× current world dissipation on the total-ERF
-    basis (~1,267 TW ≈ 72× on the removable anthropogenic forcing — see
+    Measured at ΔT_lo = 3.0 K (the handoff's evaluation point) this was ~1,374 TW
+    ≈ 78× current world dissipation on the total-ERF basis (~1,267 TW ≈ 72× on
+    the removable anthropogenic forcing); at the ADOPTED `THERMAL_DT_LO` it is
+    lower — call `thermal_path_c.decarbonization_headroom()` for the level (see
     research/thermal_path_c.decarbonization_headroom for why the basis is an open
     question). This is where the measured signal is, and it is computable from
     constants alone — so it is the primary P0 deliverable
@@ -185,8 +187,8 @@ def decarbonization_headroom(
     where allocated(F) = (1 − r) · max(0, λ·ΔT_lo − F) · A_earth. This makes
     ecological restoration (cutting F) and technological liberation (raising the
     automation ceiling) THE SAME PROJECT rather than rivals. Measured (Path C,
-    net-ERF post-C5, ΔT_lo = 3.0 K): gain ≈ 1,374 TW ≈ 78× current world
-    dissipation. The gain is (1 − r)·min(F, λ·ΔT_lo)·A_earth — LINEAR in the
+    net-ERF post-C5) at ΔT_lo = 3.0 K the gain was ≈ 1,374 TW ≈ 78× current
+    world dissipation; at the adopted `THERMAL_DT_LO` call the function. The gain is (1 − r)·min(F, λ·ΔT_lo)·A_earth — LINEAR in the
     forcing assumed removable, which is why that basis is a live question (F3
     caveat in research/thermal_path_c.decarbonization_headroom), and saturating
     at F once ΔT_lo clears the budget-opening threshold.

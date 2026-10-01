@@ -253,3 +253,61 @@ class TestTheFourKnownInstancesAreCovered:
         assert not _unframed_scale_calls(fn), (
             f"{module}:{function} has regressed to an unframed ecological call"
         )
+
+
+class TestTheRelocatedObligationTravelsWithTheFrame:
+    """2026-09-30: `fiscal_snapshot` resolved the ecological area from the
+    population only when NO override was passed. With one, the relocated (GUF)
+    obligation fell back to the whole-US anchor — fixed in absolute terms, so
+    per person it ran inverse to population. `simulate_period` and
+    `exchange.build_collective` both pass an override."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_per_capita_relocated_obligation_is_frame_invariant_with_an_override(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        per_cap = []
+        for pop in (5.0e4, 1.0e6, 2.0e7):
+            p = eoh_to_teh_pipeline(eps, population=pop)
+            snap = fiscal_snapshot(
+                trust_balance=None, labor_income=p["teh_created"],
+                capital_stock_teh=2400.0 * pop, capital_age_ratio=0.5,
+                population=pop, epsilon=eps, ecosystem_health=0.7,
+                eco_eoh_override=p["eoh_by_domain"]["ecological"],
+            )
+            per_cap.append(snap["ecological"]["relocated_teh_required"] / pop)
+        assert per_cap[0] == pytest.approx(per_cap[1], rel=1e-9)
+        assert per_cap[2] == pytest.approx(per_cap[1], rel=1e-9)
+
+    def test_and_it_equals_the_no_override_reading(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        p = eoh_to_teh_pipeline(0.40, population=5.0e4)
+        kw = dict(trust_balance=None, labor_income=p["teh_created"],
+                  capital_stock_teh=1.2e8, capital_age_ratio=0.5,
+                  population=5.0e4, epsilon=0.40, ecosystem_health=0.7)
+        a = fiscal_snapshot(**kw)["ecological"]["relocated_teh_required"]
+        b = fiscal_snapshot(**kw, eco_eoh_override=p["eoh_by_domain"]["ecological"])[
+            "ecological"]["relocated_teh_required"]
+        assert b == pytest.approx(a, rel=1e-12)
+
+    @pytest.mark.parametrize("pop", [1.0e5, 3.0e6])
+    def test_the_simulation_reads_the_frame_not_the_anchor(self, pop):
+        """The path the defect actually ran on: `simulate_period` passes an
+        override and never an area."""
+        from hours_eoh.core.simulation import make_economy_state, simulate_period
+        def per_cap(p):
+            _, r = simulate_period(make_economy_state(epsilon=0.40, population=p))
+            return r["fiscal"]["ecological"]["relocated_teh_required"] / p
+        assert per_cap(pop) == pytest.approx(per_cap(1.0e6), rel=1e-9)
+
+    def test_no_frame_resolution_waits_on_the_override(self):
+        """The shape, statically: resolving the area only when no override was
+        passed. `fiscal_snapshot` and `system_dashboard` both carried it; the
+        dashboard's copy has no reported output to pin at runtime, so the shape
+        is what is checked. States its gap: a differently-named guard passes."""
+        import pathlib
+        pkg = pathlib.Path(__file__).resolve().parent.parent / "hours_eoh"
+        hits = [str(f) for f in pkg.rglob("*.py")
+                if "eco_eoh_override is None and" in f.read_text()]
+        assert not hits, hits

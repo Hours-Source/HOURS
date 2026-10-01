@@ -11,7 +11,12 @@ destroyed it, with the books balancing at every step. Those are different
 questions and they need different invariants. Economics asks whether a rate is
 right; accounting asks whether the entries add up whatever the rate is.
 
-WHY IT DOES NOT BUILD ON `make_federation`. The coasean factory exposes exactly
+THE FEDERATION NOW BUILDS ON THIS (2026-09-30). `coasean.make_federation`,
+`merge_collectives` and `split_collective` construct `CollectiveFrame`s and call
+`build_collective`; `coasean.Collective` is this module's `Collective`. What
+follows is why this module was written frame-first in the first place.
+
+WHY IT DID NOT BUILD ON `make_federation`. The coasean factory exposed exactly
 one heterogeneity lever — `ecosystem_health_schedule` — and the ecological domain
 is ~0.00017% of total EOH, so every exchange rate it can produce is pinned at
 parity to five decimal places:
@@ -46,7 +51,7 @@ Layer note: imports from `core/` and `data.py` only. Nothing in `core/`,
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Protocol
+from typing import Any, Iterable
 
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
@@ -138,12 +143,20 @@ class CollectiveFrame:
     label:             str = ""
 
     def __post_init__(self) -> None:
-        for name in ("population", "land_hectares", "capital_stock_teh"):
+        for name in ("population", "land_hectares"):
             if getattr(self, name) <= 0.0:
                 raise ValueError(
                     f"{name} must be > 0 — a frame with no {name} is not a "
                     f"jurisdiction, got {getattr(self, name)!r}"
                 )
+        # ZERO CAPITAL IS A JURISDICTION (2026-09-30). This refused it, but the
+        # canonical arc holds no capital at ε=0 (Block III, 2026-08-06):
+        # subsistence has no apparatus, and `make_federation(0.0)` builds
+        # exactly that state. Negative capital is still refused.
+        if self.capital_stock_teh < 0.0:
+            raise ValueError(
+                f"capital_stock_teh must be >= 0, got {self.capital_stock_teh!r}"
+            )
         # (e) 2026-09-17: the inheritance travels with the frame. An unsupplied
         # balance resolves against THIS frame's population, never the 1M
         # reference — the pairing this class exists to refuse. A supplied
@@ -211,10 +224,41 @@ class Collective:
     epsilon:  float
     pipeline: dict = field(default_factory=dict)
     fiscal:   dict = field(default_factory=dict)
+    #: A reserve CARRIED through a boundary event (merge / split), in this
+    #: collective's unit. None → the earmark on this period's mint. Boundary
+    #: events carry reserves arithmetically (§8.7c) rather than re-earmarking
+    #: the merged mint, so the value they set is the one `reserve` reports and
+    #: `FederationBook` books — one quantity, reported where it is applied.
+    reserve_carried: float | None = None
 
     @property
     def collective_id(self) -> int:
         return self.frame.collective_id
+
+    # The frame's quantities, read through the collective. Since 2026-09-30
+    # `research/coasean.py` builds its federation from frames through
+    # `build_collective`, and these are the names its callers read.
+    @property
+    def population(self) -> float:
+        return self.frame.population
+
+    @property
+    def trust_balance(self) -> float:
+        # Resolved in `CollectiveFrame.__post_init__`, so never None here.
+        assert self.frame.trust_balance is not None
+        return self.frame.trust_balance
+
+    @property
+    def capital_stock(self) -> float:
+        return self.frame.capital_stock_teh
+
+    @property
+    def ecosystem_health(self) -> float:
+        return self.frame.ecosystem_health
+
+    @property
+    def capital_age_ratio(self) -> float:
+        return self.frame.capital_age_ratio
 
     @property
     def teh_created(self) -> float:
@@ -235,17 +279,21 @@ class Collective:
     @property
     def reserve(self) -> float:
         """
-        TEH earmarked for inter-collective settlement (COASEAN_RESERVE_FRACTION).
+        TEH earmarked for inter-collective settlement (COASEAN_RESERVE_FRACTION),
+        or the reserve a boundary event carried in (`reserve_carried`).
 
         Held out of circulation, so it is a claim against this collective's own
         issuance rather than new money.
         """
+        if self.reserve_carried is not None:
+            return self.reserve_carried
         return self.teh_created * COASEAN_RESERVE_FRACTION
 
 
 def build_collective(
     frame: CollectiveFrame,
     epsilon: float,
+    reserve: float | None = None,
     **pipeline_kwargs: Any,
 ) -> Collective:
     """
@@ -271,6 +319,8 @@ def build_collective(
     Args:
         frame: The declared jurisdiction.
         epsilon: Automation level ∈ [0, 0.99].
+        reserve: A reserve carried in by a boundary event (merge / split), in
+            this collective's unit. None → the earmark on this period's mint.
         **pipeline_kwargs: Forwarded to `eoh_to_teh_pipeline`. Anything that
             would restate a frame quantity is refused rather than silently
             preferred — see Raises.
@@ -309,8 +359,10 @@ def build_collective(
         epsilon=epsilon,
         ecosystem_health=frame.ecosystem_health,
         eco_eoh_override=pipe["eoh_by_domain"]["ecological"],
+        ecological_area_hectares=frame.land_hectares,
     )
-    return Collective(frame=frame, epsilon=epsilon, pipeline=pipe, fiscal=fisc)
+    return Collective(frame=frame, epsilon=epsilon, pipeline=pipe, fiscal=fisc,
+                      reserve_carried=reserve)
 
 
 # ---------------------------------------------------------------------------
@@ -399,16 +451,6 @@ def rate_matrix(
 # the FLOOR is reported beside it as purchasing power — never applied.
 
 
-class _HasPipeline(Protocol):
-    """Anything carrying a core pipeline result and its ε — both Collective types."""
-
-    epsilon: float
-    pipeline: dict
-
-    @property
-    def collective_id(self) -> int: ...
-
-
 #: The cross-rate `registered_rate` is confined to WHEN both collectives honour
 #: Condition II. Derived from the band's edges, not chosen. In-band ⇒ inside is
 #: algebra; the check that can fire is the per-side band status.
@@ -418,7 +460,7 @@ SETTLEMENT_BAND_BOUNDS: tuple[float, float] = (
 )
 
 
-def registered_rate(a: _HasPipeline, b: _HasPipeline) -> float:
+def registered_rate(a: Collective, b: Collective) -> float:
     """
     THE SETTLEMENT RATE — hour for hour.
 
@@ -449,7 +491,7 @@ def registered_rate(a: _HasPipeline, b: _HasPipeline) -> float:
     return float(b.pipeline["mean_multiplier"]) / float(a.pipeline["mean_multiplier"])
 
 
-def settlement_terms(a: _HasPipeline, b: _HasPipeline) -> dict[str, Any]:
+def settlement_terms(a: Collective, b: Collective) -> dict[str, Any]:
     """
     Everything a settlement between a and b carries: the rate, the condition
     that bounds it, and the purchasing-power reading beside it.
@@ -499,7 +541,7 @@ def settlement_terms(a: _HasPipeline, b: _HasPipeline) -> dict[str, Any]:
     }
 
 
-def settlement_matrix(collectives: Iterable[_HasPipeline]) -> dict[tuple[int, int], float]:
+def settlement_matrix(collectives: Iterable[Collective]) -> dict[tuple[int, int], float]:
     """
     All pairwise SETTLEMENT rates, keyed (id_i, id_j) for i ≠ j.
 

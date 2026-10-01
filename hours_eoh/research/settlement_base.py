@@ -370,7 +370,11 @@ def arc_pairing(
 
     `pairing="arc"` builds each collective on the canonical arc (capital, age
     and health from `canonical_physical_state`). The arc holds no capital at
-    ε=0, and a frame with no capital is refused, so those points are EXCLUDED
+    ε=0, and `_arc_collective` EXCLUDES that point. The original reason — a
+    frame with no capital was refused — stopped being true on 2026-09-30, when
+    zero capital became a valid frame; the exclusion is kept because the arc
+    extrema recorded in `record/contestability.md` were measured without it,
+    and the FIXED pairing below already covers ε=0. So those points are EXCLUDED
     and listed — the subsistence end is then covered only by `"fixed"`.
 
     `pairing="fixed"` holds the frame at the ε=0.40 reference intensity and

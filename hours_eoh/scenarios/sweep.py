@@ -79,8 +79,11 @@ def epsilon_sweep(
         }
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
+    # FRACTIONS, as `personal_eoh` takes. This multiplied by `population`,
+    # so personal EOH came out population² × weight — ~1e6× at the 1M frame,
+    # in the arc coherence check's dominant domain — until 2026-09-30.
     age_distribution = {
-        group: AGE_GROUPS[group]["fraction"] * population
+        group: AGE_GROUPS[group]["fraction"]
         for group in AGE_GROUPS
     }
 

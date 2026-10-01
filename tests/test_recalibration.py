@@ -875,3 +875,41 @@ class TestFormationLevyBase:
         from hours_eoh.research.recalibration import formation_levy_rate
         assert formation_levy_rate(0.20)["sunset"] is False
         assert formation_levy_rate(0.30)["sunset"] is True
+
+
+class TestBridgeAdvance:
+    """The §8.9b gap as a zero-interest advance repaid from the commons' own
+    later surplus (2026-09-30) — the alternative to levying labour."""
+
+    def test_it_is_repaid_in_finite_time_from_the_commons_own_surplus(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        r = bridge_advance()
+        assert r["advance"] > 0.0
+        assert r["repaid_years_after_sunset"] is not None
+        assert r["surplus_after_sunset"] > 10.0 * r["advance"]
+
+    def test_the_sunset_is_the_levy_function_s(self):
+        from hours_eoh.research.recalibration import bridge_advance, formation_levy_rate
+        e = bridge_advance()["sunset_epsilon"]
+        assert formation_levy_rate(e)["sunset"] is True
+        assert formation_levy_rate(round(e - 0.005, 3))["sunset"] is False
+
+    def test_the_advance_is_the_levy_function_s_gap_integrated(self):
+        """One gap, two readings — bound by test (mode 4)."""
+        from hours_eoh.data import RECAL_EPSILON_RATE_PER_YEAR as R
+        from hours_eoh.research.recalibration import bridge_advance, formation_levy_rate
+        r = bridge_advance()
+        step = 0.005
+        total = sum(formation_levy_rate(i * step)["funding_gap"] * step / R
+                    for i in range(int(round(r["sunset_epsilon"] / step))))
+        assert r["advance"] == pytest.approx(total, rel=1e-9)
+
+    def test_a_faster_arc_needs_a_larger_advance(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        slow, fast = (bridge_advance(epsilon_rate_per_year=v)["advance"] for v in (0.01, 0.04))
+        assert fast > slow
+
+    def test_the_prior_work_share_is_frame_invariant(self):
+        from hours_eoh.research.recalibration import bridge_advance
+        ref = bridge_advance()["share_of_default_prior_work"]
+        assert bridge_advance(population=1.0e5)["share_of_default_prior_work"] == pytest.approx(ref, rel=1e-9)

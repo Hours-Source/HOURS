@@ -322,7 +322,10 @@ def fiscal_health_check(
     # rest on the same jurisdiction. See fiscal_snapshot() for the defect this
     # closes — the two entry points resolve the obligation identically.
     _eco_area = ecological_area_hectares
-    if eco_eoh_override is None and _eco_area is None:
+    # Resolved with or without an override — the twin of the fiscal_snapshot
+    # defect fixed 2026-09-30 (the relocated obligation fell back to the US
+    # anchor whenever an override was passed).
+    if _eco_area is None:
         _eco_area = population * ecological_hectares_per_capita
     eco     = ecological_allocation(ecosystem_health, epsilon,
                                     available_teh=trust_balance,

@@ -124,3 +124,24 @@ class TestTheSweepPaysFromTheMint:
     def test_default_prior_work_holds_everywhere(self):
         from hours_eoh.scenarios.sweep import epsilon_sweep
         assert all(r["fiscal_solvent"] for r in epsilon_sweep()["sweep"])
+
+
+class TestTheSweepsDomainsAreThePipelines:
+    """2026-09-30: the sweep sums its own four domains; its personal EOH was
+    population² × weight (head counts passed as fractions). Bound to the
+    pipeline's domains so a bypass cannot drift again."""
+
+    def test_every_domain_matches_the_pipeline(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, resolve_knowledge_base_size
+        from hours_eoh.scenarios.sweep import epsilon_sweep
+        for row in epsilon_sweep()["sweep"][::25]:
+            e = row["epsilon"]
+            p = eoh_to_teh_pipeline(
+                e, capital_stock=resolve_capital_stock(None, e, population=1.0e6),
+                capital_age_ratio=0.30, ecosystem_health=0.70,
+                knowledge_complexity=resolve_knowledge_base_size(None, e),
+            )["eoh_by_domain"]
+            for key, dom in (("personal_eoh", "personal"), ("infrastructure_eoh", "infrastructure"),
+                             ("ecological_eoh", "ecological"), ("knowledge_eoh", "knowledge")):
+                assert row[key] == pytest.approx(p[dom], rel=1e-9, abs=1e-6), (e, key)

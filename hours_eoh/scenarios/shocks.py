@@ -63,6 +63,12 @@ _LABOR_INCOME_MIN:        float = 300_000_000.0
 _LABOR_INCOME_AUTO_SLOPE: float = 0.80
 
 
+def _fractions(counts: dict[str, float]) -> dict[str, float]:
+    """Head counts by age group → the fractions `age_distribution` takes."""
+    total = sum(counts.values())
+    return {g: c / total for g, c in counts.items()}
+
+
 def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> str:
     """
     STABLE / DEGRADED / CRISIS from the Trust's position after a shock — the
@@ -259,7 +265,9 @@ def demographic_shock(
       "growth":  Sudden population increase (magnitude = fractional growth, e.g. 0.20 = +20%)
       "decline": Sudden population decrease (magnitude = fractional loss)
       "aging":   Shift in age distribution toward elderly (magnitude = fraction of
-                 working-age that shifts to elderly)
+                 the WHOLE population that moves from working age to elderly —
+                 which is what the code has always done; this line said
+                 "fraction of working-age" until 2026-09-30)
 
     Args:
         epsilon: Automation level at time of shock.
@@ -296,10 +304,14 @@ def demographic_shock(
     BASE_POPULATION = 1_000_000.0
     base_dist = {g: AGE_GROUPS[g]["fraction"] * BASE_POPULATION for g in AGE_GROUPS}
 
+    # `base_dist` / `new_dist` are head COUNTS (the shock arithmetic needs
+    # them); `age_distribution` takes FRACTIONS. Passing the counts squared the
+    # population in personal EOH — obligation ~1e6× high, and through
+    # `eoh_delta` into `compound_shock`'s guarantee cost — until 2026-09-30.
     base_eoh_data = compute_total_eoh(
         epsilon,
         population=BASE_POPULATION,
-        age_distribution=base_dist,
+        age_distribution=_fractions(base_dist),
         capital_stock=capital_stock_teh,
         capital_age_ratio=capital_age_ratio,
     )
@@ -343,7 +355,7 @@ def demographic_shock(
     new_eoh_data = compute_total_eoh(
         epsilon,
         population=new_population,
-        age_distribution=new_dist,
+        age_distribution=_fractions(new_dist),
         capital_stock=capital_stock_teh,
         capital_age_ratio=capital_age_ratio,
     )

@@ -193,10 +193,13 @@ hours_eoh/
     investment.py      rank_investment_candidates, optimal_investment
     writedown.py       Redirect: eco-collapse-1 resolved via land/guf.py §9 functions
     contestability.py  P, k_entry, chi, phi, tau — §8; bare-χ SUPERSEDED by §8.9
-    recalibration.py   exit_financing (the ADOPTED invariant), phi_actual, capital_account_stock
+    recalibration.py   exit_financing (the ADOPTED invariant), phi_actual, capital_account_stock,
+                       bridge_advance — the §8.9b gap financed by a zero-interest advance
     formation.py       formation_feedback_simulation — the K(ε) circularity closed
     membership.py      MembershipTerms, contestability_audit
-    coasean.py         N-collective federation (§§6–7)
+    coasean.py         N-collective federation (§§6–7), BUILT FROM FRAMES since 2026-09-30:
+                       make_federation / merge / split construct CollectiveFrames and call
+                       exchange.build_collective; Collective is exchange.Collective
     corridor.py        survival_floor_epsilon, contestability_ceiling, thermal_ceiling, corridor
     epsilon_inverse.py capital_for_epsilon — sweep the economy, not the score
     exchange.py        Exchange accounting: CollectiveFrame, double-entry Ledger (holdings move on
@@ -428,6 +431,13 @@ someone remembering it, which is what this section is for.
    `population`. `gated by:`
    `TestTheReferenceConstantIsScaledBesideAPopulation` (capital only — the
    income proxy is retired as a default, not gated).
+   **And one in CORE the same day, with a third tell:** `fiscal_snapshot`
+   resolved the ecological area from the population only `if eco_eoh_override
+   is None` — a frame resolution CONDITIONAL on an unrelated argument, so every
+   caller passing the override got the relocated obligation at the whole-US
+   anchor. Found by bit-diffing the federation's move onto the frame builder.
+   *The tell:* grep for a frame resolution guarded by another argument's
+   absence. `gated by:` `TestTheRelocatedObligationTravelsWithTheFrame`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -576,7 +586,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,157 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,184 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **349/349**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -653,6 +663,21 @@ this whole structure forbids.**
 - The compensating-mechanism audit and dynamic stability / oscillation are both
   unbuilt; nothing tests for limit cycles.
   → [`record/verification.md § Open`](record/verification.md#open)
+
+### Method — run the functions first (author, 2026-09-30)
+
+**Every figure reported about the system comes from calling the repo's own
+function, in the same step.** Not recalled from a previous session, not restated
+from a docstring or a `record/` entry, not rebuilt by hand. A desk or hand
+estimate is welcome as a labelled COMPARISON beside the function's output, never
+in its place. When prose would quote a level, point at the call instead; when two
+modules disagree, the shared path (`eoh_to_teh_pipeline`, `total_eoh`,
+`fiscal_snapshot`, `stationary_bands`) is the reference. The session that
+prompted this found a labour-income proxy standing in for the mint in five
+scenarios, head counts passed as fractions, and an author-quoted solvency claim
+that was the proxy's — each one a figure produced outside the functions, each one
+right the moment the function was called. This is mode 13's reader half, made the
+default rather than the check.
 
 ### Method — the finding this repo keeps re-learning
 

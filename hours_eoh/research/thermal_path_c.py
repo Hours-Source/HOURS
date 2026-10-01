@@ -21,10 +21,12 @@ Three findings this reproduces (see the Path C first pass):
       Φ > ε_current·budget, and by Eq. C1 that multiple IS ε_max, so at ΔT_lo =
       3.0 K the ceiling binds at 2.2× present dissipation, not the ~10–50×
       claimed before the forcing correction. Range 2.2× (3.0 K) to 13.4× (4.0 K).
-  F3  carbon has consumed essentially the whole thermal budget: decarbonization
-      is worth ~1,374 TW ≈ 78× current dissipation on the total-ERF basis, or
-      ~1,267 TW ≈ 72× on the anthropogenic (removable-forcing) basis. THE
-      load-bearing thermal claim — the measured signal is here, not in F1.
+  F3  carbon has consumed essentially the whole thermal budget: at ΔT_lo = 3.0 K
+      decarbonization was worth ~1,374 TW ≈ 78× current dissipation on the
+      total-ERF basis, or ~1,267 TW ≈ 72× on the anthropogenic basis. At the
+      ADOPTED `THERMAL_DT_LO` (2026-09-30: the default) the allocation available
+      now is zero and the gain is lower — call `decarbonization_headroom()`.
+      THE load-bearing thermal claim — the measured signal is here, not in F1.
   F11 dense collectives are in Contact NOW (at ΔT_lo = 3.0 K post-C5: Singapore
       U ≈ 84, S. Korea 5.2, Netherlands 3.9, and Germany/UK newly over 1). The
       constraint binds LOCALLY while the global aggregate sits at U = 0.18 — so
@@ -59,6 +61,7 @@ from hours_eoh.data import (
     A_EARTH_M2,
     SECONDS_PER_YEAR,
     A_LAND_CLAIMED_M2,
+    THERMAL_DT_LO,
     THERMAL_LAMBDA_FEEDBACK,
     THERMAL_COMMONS_RESERVE,
     THERMAL_F_NET_ERF,
@@ -396,7 +399,7 @@ def all_collectives_utilization(
 # ---------------------------------------------------------------------------
 
 def decarbonization_headroom(
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
     lam: float = THERMAL_LAMBDA_FEEDBACK,
     r: float = THERMAL_COMMONS_RESERVE,
@@ -414,12 +417,19 @@ def decarbonization_headroom(
     the removable forcing; below it the gain is capped by the entire temperature
     allowance and still rises with ΔT_lo (at 2.5 K it is 1,224 TW, not 1,374).
 
-    Post-C5 the gain is 1,374 TW ≈ 78× current world dissipation on the default
-    `net_erf` basis — the strongest measured thermal signal, and why the P0
+    THE DEFAULT THRESHOLD IS `THERMAL_DT_LO` (author, 2026-09-30). It was a bare
+    3.0 K while P0's reads the constant (2.0 K), so this function's headline was
+    evaluated at a threshold the framework no longer uses. At the adopted value
+    current forcing already consumes the whole allowance (`allocated_now_w` is
+    zero) and the gain is smaller. The FIGURES BELOW are at 3.0 K, kept as the
+    handoff's evaluation point; call the function for the adopted level.
+
+    Post-C5 at 3.0 K the gain was 1,374 TW ≈ 78× current world dissipation on
+    the `net_erf` basis — the strongest measured thermal signal, and why the P0
     headline was reordered to this from the (non-binding) floor bound.
 
     BASIS CAVEAT — open, author's call. The gain is linear in the forcing
-    removed, so the basis is the whole answer:
+    removed, so the basis is the whole answer (figures at 3.0 K):
 
         net_erf  F = 3.366 → 1,374 TW (78×). Consistent with the BUDGET (C4),
                  but credits decarbonization with removing solar and volcanic

@@ -32,7 +32,7 @@ Sudden machine EOH dropout: automation that was handling `dropout_fraction` of E
 
 ### `demographic_shock(epsilon, shock_type, magnitude, …)` → `dict`
 
-Shifts the population age distribution toward older ages by `aging_factor`. Tests fiscal solvency under increased care EOH and reduced working-age capacity.
+A sudden population change at the 1M reference frame: `shock_type` is `"growth"` or `"decline"` (population × (1 ± `magnitude`)) or `"aging"` (a share `magnitude` of the WHOLE population moves from working age to elderly). Labour income is the period's mint unless `labor_income_base` is supplied. Reports the obligation before and after, the guarantee before and after, and an outcome classified by the shared `SHOCK_DEGRADED_TRUST_FRACTION` boundary.
 
 ### `ecological_eoh_spike(epsilon, ecosystem_health_before, ecosystem_health_after, …)` → `dict`
 
