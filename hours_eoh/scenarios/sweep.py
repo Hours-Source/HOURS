@@ -13,17 +13,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from hours_eoh.data import (
-    AGE_GROUPS,
-    ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA, SKILL_TRANSMISSION_RATE,
-    MEANINGFUL_ACTIVITY_TEH_BASE,
-    CAPITAL_STOCK_DEFAULT,
-)
+from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
 from hours_eoh.core.eoh_generation import (
-    personal_eoh,
-    infrastructure_eoh,
-    ecological_eoh,
-    knowledge_eoh,
     resolve_capital_stock,
     resolve_knowledge_base_size,
 )
@@ -32,7 +23,7 @@ from hours_eoh.core.registration import (
     total_registration_share,
 )
 from hours_eoh.core.prices import basket_price, floor_purchasing_power
-from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline, observable_epsilon
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -79,13 +70,6 @@ def epsilon_sweep(
         }
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
-    # FRACTIONS, as `personal_eoh` takes. This multiplied by `population`,
-    # so personal EOH came out population² × weight — ~1e6× at the 1M frame,
-    # in the arc coherence check's dominant domain — until 2026-09-30.
-    age_distribution = {
-        group: AGE_GROUPS[group]["fraction"]
-        for group in AGE_GROUPS
-    }
 
     results         = []
     prev: dict[str, Any] = {}
@@ -98,61 +82,41 @@ def epsilon_sweep(
         eps = i * 0.99 / n_points
 
         # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε,
-        # so the sweep still sweeps capital. Resolved once per point and used by
-        # both the infrastructure term and the fiscal snapshot, so the two cannot
-        # read different capital for the same ε.
+        # so the sweep still sweeps capital (and knowledge). Resolved once per
+        # point and used by both the pipeline and the fiscal snapshot, so the
+        # two cannot read different capital for the same ε.
         cap_at_eps = resolve_capital_stock(capital_stock_teh, eps, population=population)
         kbs_at_eps = resolve_knowledge_base_size(knowledge_base_size, eps)
 
-        pers_eoh  = personal_eoh(population, age_distribution, eps)
-        infra_eoh = infrastructure_eoh(cap_at_eps, capital_age_ratio, eps)
-        # PHASE 4b (2026-08-17): resolve the ecological area FROM THE POPULATION,
-        # as total_eoh now does. This module sums its own four domains rather
-        # than calling total_eoh, so it was a SECOND live instance of the frame
-        # mismatch and the fix there did not reach it: personal scaled with
-        # `population` while ecological carried ECOLOGICAL_BASE_RATE, the whole
-        # contiguous US. Exactly the shape of the SKILL_TRANSMISSION_RATE defect
-        # documented immediately below — a module that bypasses the shared path
-        # is the last place a superseded default survives.
-        eco_eoh   = ecological_eoh(
-            ecosystem_health, eps,
-            area_hectares=population * LAND_HECTARES_PER_CAPITA,
+        # ONE PIPELINE CALL (2026-09-30): the domains, the observed ε and the
+        # mint all come from the shared path. This module summed its own four
+        # domains beside that call, and THREE defects survived in the
+        # hand-summed copy because the shared path's tests could not see it —
+        # ecological at the whole-US area (Phase 4b), knowledge at the
+        # pre-K-IV decay rate (4.00×), and head counts passed as age fractions
+        # (personal EOH population² × weight, 2026-09-30).
+        pipe = eoh_to_teh_pipeline(
+            eps, population=population, capital_stock=cap_at_eps,
+            capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
+            knowledge_complexity=kbs_at_eps,
         )
-        # SKILL_TRANSMISSION_RATE, not the deprecated SKILL_DECAY_RATE this
-        # module used until 2026-08-09. params.py moved its `skill_decay_rate`
-        # default to the transmission rate at Block K-IV; sweep.py bypasses
-        # params and so was left as the last live caller of the pre-K-IV value,
-        # scoring knowledge EOH 4.00× high (knowledge_eoh is linear in the
-        # rate) against every other path in the repo.
-        # As with capital: an unspecified corpus resolves along the arc at EACH
-        # ε, so the sweep still sweeps knowledge. Left as a hard 10.0 it would
-        # have gone flat in kbs and only cpu(ε) would still move.
-        know_eoh  = knowledge_eoh(kbs_at_eps, SKILL_TRANSMISSION_RATE, eps,
-                                  population=population)
-        tot_eoh   = pers_eoh + infra_eoh + eco_eoh + know_eoh
+        domains   = pipe["eoh_by_domain"]
+        pers_eoh  = float(domains["personal"])
+        infra_eoh = float(domains["infrastructure"])
+        eco_eoh   = float(domains["ecological"])
+        know_eoh  = float(domains["knowledge"])
+        tot_eoh   = float(pipe["total_eoh"])
 
         # THE FLOOR IS READ AT THE OBSERVED ε (author decision, 2026-09-30): the
         # machine share of THIS point's obligation, not the capability index.
-        eps_floor = observable_epsilon(
-            {"personal": pers_eoh, "infrastructure": infra_eoh,
-             "ecological": eco_eoh, "knowledge": know_eoh},
-            eps,
-        )
+        eps_floor = float(pipe["epsilon_observable"])
         bp  = basket_price(eps_floor, floor_teh)
         pp  = floor_purchasing_power(floor_teh, eps_floor, floor_teh)
         care = care_registration_share(eps)
         reg  = total_registration_share(eps)
 
-        # THE MINT IS THE LABOUR INCOME (2026-09-30). This passed
-        # `tot_eoh × (1 − ε)` — human obligation HOURS read as TEH, ~50× the
-        # mint at ε=0 and ~2.7× at 0.40 — so the arc coherence check judged
-        # solvency on an income the ledger never pays. Same state as the
-        # domains above, one pipeline call.
-        mint = float(eoh_to_teh_pipeline(
-            eps, population=population, capital_stock=cap_at_eps,
-            capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
-            knowledge_complexity=kbs_at_eps,
-        )["teh_created"])
+        # THE MINT IS THE LABOUR INCOME (2026-09-30) — the same call's.
+        mint = float(pipe["teh_created"])
         fiscal = fiscal_snapshot(
             trust_balance=trust_balance,
             labor_income=mint,

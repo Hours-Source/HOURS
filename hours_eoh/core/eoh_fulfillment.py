@@ -768,6 +768,11 @@ def eoh_to_teh_pipeline(
     # supplying both with different values raises. See the CAPABILITY vs OBSERVED
     # block at the top of this module.
     machine_capability: float | None = None,
+    # THE REGISTER'S MATURITY under its own name (2026-09-30). Every
+    # registration share was read off `epsilon` — the machine capability — so
+    # a modelled machine failure also erased the register, which is an
+    # institution, not a machine. None → `epsilon`, bit-identical.
+    registration_epsilon: float | None = None,
 ) -> dict:
     """
     End-to-end EOH → human share → registered → TEH creation in one call.
@@ -825,6 +830,12 @@ def eoh_to_teh_pipeline(
             "survival_first" (default) | "pro_rata". See
             labor_constrained_fulfillment(). Ignored when available_labor_eoh
             is None.
+        registration_epsilon: The ε at which the register's per-domain
+            registration shares are read. None (default) → the capability ε,
+            as always. Supply the PRE-shock ε to model machines stopping while
+            the register stands (`scenarios/shocks.automation_failure_shock`).
+            Overridden, like the shares it reads, by `registration_share` /
+            `personal_registration_share`.
 
     Returns:
         dict: {
@@ -957,6 +968,10 @@ def eoh_to_teh_pipeline(
     # When registration_share is provided, it overrides ALL domains uniformly.
     from hours_eoh.core.registration import knowledge_eoh_registration_share as _know_reg_share
     from hours_eoh.core.eoh_generation import _resolve_monitoring_capability as _resolve_mon
+    if registration_epsilon is not None and not 0.0 <= registration_epsilon <= 1.0:
+        raise ValueError(
+            f"registration_epsilon must be in [0.0, 1.0], got {registration_epsilon}")
+    reg_eps = epsilon if registration_epsilon is None else registration_epsilon
     if registration_share is not None:
         pers_share   = registration_share
         infra_share  = registration_share
@@ -965,9 +980,9 @@ def eoh_to_teh_pipeline(
     else:
         pers_share  = (personal_registration_share
                        if personal_registration_share is not None
-                       else _personal_reg_share(epsilon))
-        infra_share = eco_share = total_registration_share(epsilon)
-        know_share  = _know_reg_share(epsilon)
+                       else _personal_reg_share(reg_eps))
+        infra_share = eco_share = total_registration_share(reg_eps)
+        know_share  = _know_reg_share(reg_eps)
 
     human_infra    = hd["infrastructure"]
     human_eco      = hd["ecological"]

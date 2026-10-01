@@ -22,7 +22,8 @@ VALID_OUTCOMES = {"STABLE", "DEGRADED", "CRISIS"}
 class TestAutomationFailureShock:
     def test_returns_expected_keys(self):
         result = automation_failure_shock(epsilon=0.40)
-        for key in ("scenario", "epsilon", "total_eoh", "automation_eoh",
+        for key in ("scenario", "epsilon", "total_eoh", "machine_eoh_lost",
+                    "taken_up_eoh", "deferred_eoh", "deferred_personal_eoh",
                     "covered", "outcome", "recommendation"):
             assert key in result
 
@@ -38,11 +39,16 @@ class TestAutomationFailureShock:
         result = automation_failure_shock(epsilon=0.10)
         assert result["outcome"] == "STABLE"
 
-    def test_automation_eoh_equals_epsilon_times_total(self):
-        result = automation_failure_shock(epsilon=0.40)
-        assert result["automation_eoh"] == pytest.approx(
-            result["total_eoh"] * 0.40, rel=1e-4
-        )
+    def test_the_lost_load_is_the_observed_machine_share(self):
+        # Retired 2026-09-30: this pinned `automation_eoh == total × ε`, the
+        # capability index, which counts the labour care's automation floor
+        # keeps human as if machines carried it.
+        from hours_eoh.core.eoh_fulfillment import observable_epsilon
+        for eps in (0.40, 0.90, 0.99):
+            r = automation_failure_shock(epsilon=eps)
+            assert r["machine_eoh_lost"] == pytest.approx(
+                r["total_eoh"] - r["human_eoh_before"], rel=1e-12)
+            assert r["machine_eoh_lost"] < r["total_eoh"] * eps
 
     def test_recommendation_is_string(self):
         result = automation_failure_shock(0.50)
@@ -449,3 +455,177 @@ class TestAgeDistributionIsFractions:
         from hours_eoh.core.eoh_generation import personal_eoh
         with pytest.raises(ValueError, match="FRACTIONS"):
             personal_eoh(1.0e6, {"working_age": 6.0e5, "elderly": 4.0e5})
+
+
+class TestShocksRunOnTheSharedPath:
+    """2026-09-30, record/verification.md#parallel-paths (a): the shocks
+    assembled their own EOH and fiscal layer. Each pin here fails if the
+    defect the hand path carried returns."""
+
+    POPS = (1.0e5, 1.0e6, 1.0e7)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_automation_verdict_is_frame_invariant(self, eps):
+        # A fixed 600,000-person workforce beside a settable population: the
+        # same economy read coverage 4.118 / 0.412 / 0.041 at ε=0.40.
+        rows = [automation_failure_shock(eps, population=p) for p in self.POPS]
+        ratios = [r["coverage_ratio"] for r in rows]
+        assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9), ratios
+        assert len({r["outcome"] for r in rows}) == 1
+        assert len({r["failure_boundary"] for r in rows}) == 1
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_automation_obligation_is_the_pipelines(self, eps):
+        # A fixed knowledge base of 10.0 put knowledge EOH 10× the pipeline's
+        # at ε=0; every other path resolves the corpus along the arc.
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import (
+            resolve_capital_stock, resolve_knowledge_base_size)
+        r = automation_failure_shock(eps)
+        ref = eoh_to_teh_pipeline(
+            eps, capital_stock=resolve_capital_stock(None, eps, population=1.0e6),
+            capital_age_ratio=0.30, ecosystem_health=0.70,
+            knowledge_complexity=resolve_knowledge_base_size(None, eps))
+        assert r["total_eoh"] == pytest.approx(ref["total_eoh"], rel=1e-12)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_labor_income_baseline_is_the_unfloored_mint(self, eps):
+        from hours_eoh.scenarios.shocks import _mint_income
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        for pop in self.POPS:
+            cap = resolve_capital_stock(None, eps, population=pop)
+            r = labor_income_shock(eps, 0.5, population=pop)
+            assert r["baseline_income"] == pytest.approx(
+                _mint_income(eps, pop, cap, 0.30), rel=1e-12)
+
+    def test_total_income_collapse_reaches_zero(self):
+        # The docstring's "0.0 = total income collapse" was floored at 3e8.
+        assert labor_income_shock(0.40, 0.0)["shocked_income"] == 0.0
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_added_obligation_charge_is_exact(self, eps):
+        # The shocks charge their added obligation against fiscal_snapshot's
+        # surplus. Exact only because the Trust's revenue does not depend on
+        # what it owes — checked against trust_management with the obligation
+        # added to the guarantee, which is what the hand path did.
+        from hours_eoh.core.fiscal import trust_management
+        from hours_eoh.scenarios.shocks import _trust_position
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.core.fiscal import resolve_trust_balance
+        from hours_eoh.data import SUFF_LEVY_RATE, DEP_RATE, DIV_RATE, MEANINGFUL_ACTIVITY_TEH_BASE
+        cap, trust, income, extra = (resolve_capital_stock(None, eps, population=1e6),
+                                     resolve_trust_balance(None, 1e6), 3.0e8, 7.5e8)
+        pos = _trust_position(eps, 1e6, trust, income, cap, 0.30,
+                              MEANINGFUL_ACTIVITY_TEH_BASE, SUFF_LEVY_RATE,
+                              DEP_RATE, DIV_RATE, extra_obligation=extra)
+        snap = pos["snapshot"]
+        hand = trust_management(trust, snap["levies"]["total_levied"], 0.0,
+                                pos["guarantee"] + extra, DEP_RATE, DIV_RATE, eps)
+        assert pos["surplus_deficit"] == pytest.approx(hand["surplus_deficit"], rel=1e-12)
+        assert pos["solvent"] == hand["solvent"]
+
+    @pytest.mark.parametrize("shock", ["growth", "decline", "aging"])
+    def test_demographic_shock_travels_with_the_frame(self, shock):
+        rows = [demographic_shock(0.40, shock, 0.2, population=p) for p in self.POPS]
+        per_capita = [r["eoh_delta"] / r["population_before"] for r in rows]
+        assert per_capita == pytest.approx([per_capita[1]] * 3, rel=1e-9)
+        assert len({r["outcome"] for r in rows}) == 1
+
+    def test_compound_runs_its_demographic_leg_at_its_own_population(self):
+        # The leg was frameless at 1M while handed a Trust resolved at the
+        # compound's population: at 100k an aging compound read DEGRADED while
+        # its only component read STABLE.
+        spec = {"shock_type": "aging", "magnitude": 0.1}
+        for eps in (0.0, 0.40, 0.90, 0.99):
+            alone = demographic_shock(eps, **spec, population=1.0e5)["outcome"]
+            both = compound_shock(eps, demographic_shock_spec=spec, population=1.0e5)
+            assert both["combined_outcome"] == alone
+
+    def test_aging_moves_people_and_creates_none(self):
+        # magnitude beyond the working-age share used to ADD elderly without
+        # removing workers, growing the population. Refused, not clamped: a
+        # clamp would satisfy the population check by construction (mode 2).
+        r = demographic_shock(0.40, "aging", 0.5)
+        assert r["population_after"] == r["population_before"]
+        assert r["eoh_after"] != r["eoh_before"]
+        with pytest.raises(ValueError, match="OUT of working age"):
+            demographic_shock(0.40, "aging", 0.9)
+
+
+class TestAutomationFailureCascade:
+    """2026-09-30: an automation failure is the shared pipeline's own cascade —
+    the OBSERVED machine load falls to people, is taken up within the measured
+    labour supply L, and the rest is DEFERRED survival-first. Nothing is
+    charged to the Trust: a balance cannot supply an hour of labour."""
+
+    ARC = (0.0, 0.40, 0.90, 0.99)
+
+    @pytest.mark.parametrize("eps", ARC)
+    def test_every_lost_hour_is_taken_up_or_deferred(self, eps):
+        r = automation_failure_shock(eps)
+        assert r["taken_up_eoh"] + r["deferred_eoh"] == pytest.approx(
+            r["machine_eoh_lost"], rel=1e-9, abs=1e-3)
+        assert r["taken_up_eoh"] >= -1e-3 and r["deferred_eoh"] >= -1e-3
+
+    def test_nothing_is_lost_where_machines_carried_nothing(self):
+        r = automation_failure_shock(0.0)
+        assert r["machine_eoh_lost"] == 0.0
+        assert r["mint_after"] == r["mint_before"]
+        assert r["outcome"] == "STABLE"
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_register_stands_so_the_surge_mints(self, eps):
+        # With the register read off the failed capability, the surge was
+        # pushed off-ledger: at ε=0.40 the mint FELL 3.311e8 → 5.21e7 while
+        # people worked 4.9e8 more hours.
+        r = automation_failure_shock(eps)
+        assert r["taken_up_eoh"] > 0.0
+        assert r["mint_after"] > r["mint_before"]
+
+    def test_the_register_parameter_moves_the_pipeline(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        held = eoh_to_teh_pipeline(machine_capability=0.0, registration_epsilon=0.90)
+        same = eoh_to_teh_pipeline(machine_capability=0.0)
+        ref = eoh_to_teh_pipeline(0.90)
+        for d in ("personal", "infrastructure", "ecological", "knowledge"):
+            # `non_personal` is an hours-weighted aggregate, not a share.
+            assert held["registration_by_domain"][d] == ref["registration_by_domain"][d]
+        assert held["teh_created"] > same["teh_created"]
+        assert eoh_to_teh_pipeline(0.40, registration_epsilon=None)["teh_created"] == \
+            eoh_to_teh_pipeline(0.40)["teh_created"]
+
+    def test_all_three_verdicts_are_reachable(self):
+        # Mode 9: CRISIS (the survival floor deferred) never fires at the
+        # measured supply, so it is constructed: below the personal demand
+        # per head the floor itself goes unserved.
+        assert automation_failure_shock(0.40)["outcome"] == "STABLE"
+        assert automation_failure_shock(0.90)["outcome"] == "DEGRADED"
+        crisis = automation_failure_shock(0.90, labor_supply_per_capita=800.0)
+        assert crisis["deferred_personal_eoh"] > 0.0
+        assert crisis["outcome"] == "CRISIS"
+
+    def test_no_labour_no_collective(self):
+        r = automation_failure_shock(0.40, labor_supply_per_capita=0.0)
+        assert r["outcome"] == "CRISIS"
+        assert r["mint_after"] == 0.0
+
+    def test_a_larger_failure_never_covers_more(self):
+        cov = [automation_failure_shock(0.90, fraction_lost=f)["coverage_ratio"]
+               for f in (0.25, 0.50, 0.75, 1.0)]
+        assert all(a >= b - 1e-12 for a, b in zip(cov, cov[1:]))
+        assert cov[0] == 1.0 and cov[-1] < 1.0
+
+    def test_the_retired_literals_warn_and_change_nothing(self):
+        base = automation_failure_shock(0.90)
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            old = automation_failure_shock(0.90, workforce_size=600_000.0,
+                                           mean_entropy_reduction_capacity=1200.0,
+                                           reserve_fraction=0.155)
+        assert old["coverage_ratio"] == base["coverage_ratio"]
+
+    def test_compound_does_not_charge_the_failure_to_the_trust(self):
+        r = compound_shock(0.90, automation_fraction_lost=1.0)
+        alone = automation_failure_shock(0.90)
+        assert r["combined_eoh_delta"] == 0.0
+        assert r["automation_deferred_eoh"] == pytest.approx(alone["deferred_eoh"], rel=1e-12)
+        assert r["individual_outcomes"]["automation_failure_shock"] == alone["outcome"]

@@ -438,6 +438,12 @@ someone remembering it, which is what this section is for.
    anchor. Found by bit-diffing the federation's move onto the frame builder.
    *The tell:* grep for a frame resolution guarded by another argument's
    absence. `gated by:` `TestTheRelocatedObligationTravelsWithTheFrame`.
+   **And a HEAD COUNT, 2026-09-30:** `automation_failure_shock`'s
+   `workforce_size=600_000` — the 1M frame's working-age count beside a
+   settable population — read coverage 4.118 / 0.412 / 0.041 at 1e5 / 1e6 /
+   1e7 for one economy. *The tell:* an absolute count defaulted beside a
+   `population`; the trust gate keys on `TRUST_BASE_TEH` and cannot see one.
+   `gated by:` `TestShocksRunOnTheSharedPath::test_automation_verdict_is_frame_invariant`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -586,7 +592,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,184 tests passing (1 skipped), mypy clean on 103 source files** (verified
+**5,232 tests passing (1 skipped), mypy clean on 103 source files** (verified
 2026-09-30). Provenance **349/349**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

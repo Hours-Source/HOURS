@@ -28,11 +28,11 @@ print(report["status"], all(row["fiscal_solvent"] for row in report["sweep"]))
 
 ### `automation_failure_shock(epsilon, …)` → `dict`
 
-Sudden machine EOH dropout: automation that was handling `dropout_fraction` of EOH stops. Tests whether the competency reserve (Condition IV) can absorb the sudden labor demand.
+Machines lose `fraction_lost` (default 1) of their capability at `epsilon`; the register, an institution, stands. Two `eoh_to_teh_pipeline` calls at one physical state, capped at the measured labour supply L (`feasibility.labor_supply_per_capita` × `population`): the OBSERVED machine load that is lost (`machine_eoh_lost`) is taken up by people up to L (`taken_up_eoh`) and the rest is deferred survival-first (`deferred_eoh`, `deferred_personal_eoh`). STABLE: all taken up; DEGRADED: some deferred, survival floor served; CRISIS: personal obligation deferred. The surge labour is registered and mints; nothing is charged to the Trust, whose position at the new mint is reported. **Competency (Condition IV) is not tested** — it is per essential domain and no mapping onto the EOH domains exists — so the coverage is an upper bound. `workforce_size`, `mean_entropy_reduction_capacity` and `reserve_fraction` are deprecated and ignored.
 
 ### `demographic_shock(epsilon, shock_type, magnitude, …)` → `dict`
 
-A sudden population change at the 1M reference frame: `shock_type` is `"growth"` or `"decline"` (population × (1 ± `magnitude`)) or `"aging"` (a share `magnitude` of the WHOLE population moves from working age to elderly). Labour income is the period's mint unless `labor_income_base` is supplied. Reports the obligation before and after, the guarantee before and after, and an outcome classified by the shared `SHOCK_DEGRADED_TRUST_FRACTION` boundary.
+A sudden change to a `population` (default 1M): `shock_type` is `"growth"` or `"decline"` (population × (1 ± `magnitude`)) or `"aging"` (a share `magnitude` of the WHOLE population moves from working age to elderly). Labour income is the period's mint unless `labor_income_base` is supplied. Reports the obligation before and after, the guarantee before and after, and an outcome classified by the shared `SHOCK_DEGRADED_TRUST_FRACTION` boundary.
 
 ### `ecological_eoh_spike(epsilon, ecosystem_health_before, ecosystem_health_after, …)` → `dict`
 
@@ -40,11 +40,11 @@ Sudden increase in ecological EOH (e.g., ecosystem threshold event). Tests Trust
 
 ### `labor_income_shock(epsilon, income_fraction, trust_balance, population, …)` → `dict`
 
-Compresses labor income to `income_fraction × baseline`. Runs `fiscal_snapshot()` at both levels and returns `{baseline_income, shocked_income, trust_solvent_before, trust_solvent_after, surplus_deficit_delta, outcome}`. Outcome: `STABLE` / `DEGRADED` / `CRISIS`.
+Compresses labor income to `income_fraction × baseline`, where the baseline is the period's mint, unfloored (`income_fraction=0` is a true collapse). Runs `fiscal_snapshot()` at both levels and returns `{baseline_income, shocked_income, trust_solvent_before, trust_solvent_after, surplus_deficit_delta, outcome}`. Outcome: `STABLE` / `DEGRADED` / `CRISIS`.
 
 ### `compound_shock(epsilon, ecology_collapse, demographic_shock_spec, automation_fraction_lost, …)` → `dict`
 
-Runs `ecological_eoh_spike`, `demographic_shock`, and `automation_failure_shock` independently, then aggregates combined EOH obligation. `combined_outcome` is always ≥ worst individual outcome in severity. Returns `{individual_outcomes, combined_eoh_delta, trust_absorbs_combined, combined_outcome}`.
+Runs `ecological_eoh_spike`, `demographic_shock`, and `automation_failure_shock` independently at the same population, then charges the ecological and demographic legs' added EOH against the Trust position from `fiscal_snapshot()` (in hours as TEH one-for-one, the shocks' own convention, pending the author). The automation leg is NOT charged — its unserved load is reported as `automation_deferred_eoh` and its severity enters through its outcome. `combined_outcome` is always ≥ worst individual outcome in severity. Returns `{individual_outcomes, combined_eoh_delta, automation_deferred_eoh, trust_absorbs_combined, combined_outcome}`.
 
 ---
 

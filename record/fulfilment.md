@@ -50,6 +50,8 @@ stability, and the state container that feeds them.
 
 ## Open
 
+- **Shocks charge EOH as TEH to the Trust** *(person)* [verification.md](verification.md#automation-failure-cascade)
+- **Condition IV untestable in shocks** *(gap)* *Settles by:* an essential→EOH domain map. [verification.md](verification.md#automation-failure-cascade)
 - **A destroyed capital stock books no obligation to rebuild it.** *(gap)* Ecology
   has a restoration socket; capital has none, so a disaster cuts minting 8.77%.
   *Settles by:* a socket and a wiring decision. [entry](#capital-reconstruction-gap).
@@ -63,9 +65,6 @@ stability, and the state container that feeds them.
   See [theory.md § Open](theory.md#open).
 - **Exit rule DECIDED; two binds are not** *(gap)* — `exit_financing` cannot see prior work, and nothing deducts an exit. [Entry](#exit-rule-decided)
 - **The ε floor bites at low automation** *(gap)* [Entry](#obligation-state-seam)
-- **~~`LABOR_INCOME_MIN_TEH` floors the simulated income~~, ~~one DEGRADED
-  threshold~~, ~~`fiscal.md`'s stewardship sentence~~ — CLOSED 2026-09-30**
-  *(pointer)* [fulfilment.md § entry](#floor-guard-and-shock-threshold)
 
 ## Cross-area entries
 

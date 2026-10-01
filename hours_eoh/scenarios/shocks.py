@@ -19,54 +19,32 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     AGE_GROUPS,
-    PERSONAL_EOH_BASE,
-    ESSENTIAL_DOMAINS,
-    H_MIN,
     ECOLOGICAL_BASE_RATE,
     ECOLOGICAL_THRESHOLD,
-    TRUST_BASE_TEH,
     DEP_RATE,
     DIV_RATE,
     SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE,
-    CAPITAL_STOCK_DEFAULT,
     SHOCK_DEGRADED_TRUST_FRACTION,
 )
 from hours_eoh.core.eoh_generation import (
-    personal_eoh,
-    infrastructure_eoh,
     ecological_eoh,
-    knowledge_eoh,
-    total_eoh as compute_total_eoh,
     resolve_capital_stock,
+    resolve_knowledge_base_size,
 )
-from hours_eoh.core.fiscal import (
-    levy_collection,
-    stewardship_allocation,
-    sufficiency_guarantee,
-    trust_management,
-    fiscal_snapshot,
-)
+from hours_eoh.core.fiscal import fiscal_snapshot, resolve_trust_balance
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-from hours_eoh.core.workforce import automation_failure_scenario, minimum_hours_allocation
-from hours_eoh.core.fiscal import resolve_trust_balance
 
 # THE LEGACY LABOUR-INCOME PROXY — superseded as the DEFAULT 2026-09-30.
 # `2.2e9 × (1 − 0.8ε)`, floored at 3e8, was the levy base in three shocks. It is
 # ~81× the mint at ε=0 and ~4.4× at ε=0.40, ignores the population frame, and
-# contradicts the wage doctrine (minted TEH IS the wage, 2026-09-15) that
-# `labor_income_shock` in this same file already followed. The default is now
-# the pipeline's mint (`_mint_income`); a caller who passes an income explicitly
-# still gets the proxy formula, so pre-2026-09-30 figures reproduce.
+# contradicts the wage doctrine (minted TEH IS the wage, 2026-09-15). The
+# default is now the pipeline's mint (`_mint_income`); a caller who passes
+# `labor_income_base` to `demographic_shock` still gets the proxy formula, so
+# pre-2026-09-30 figures reproduce. That is the ONLY reader of these three.
 _LABOR_INCOME_BASE:       float = 2_200_000_000.0
 _LABOR_INCOME_MIN:        float = 300_000_000.0
 _LABOR_INCOME_AUTO_SLOPE: float = 0.80
-
-
-def _fractions(counts: dict[str, float]) -> dict[str, float]:
-    """Head counts by age group → the fractions `age_distribution` takes."""
-    total = sum(counts.values())
-    return {g: c / total for g, c in counts.items()}
 
 
 def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> str:
@@ -83,6 +61,27 @@ def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> st
     return "CRISIS"
 
 
+def _pipeline(
+    epsilon: float,
+    population: float,
+    capital_stock_teh: float,
+    capital_age_ratio: float,
+    ecosystem_health: float = 0.70,
+    knowledge_base_size: float | None = None,
+    age_distribution: dict[str, float] | None = None,
+) -> dict:
+    """The shared EOH → TEH path at one state — every shock's EOH and mint."""
+    return eoh_to_teh_pipeline(
+        epsilon,
+        population=population,
+        age_distribution=age_distribution,
+        capital_stock=capital_stock_teh,
+        capital_age_ratio=capital_age_ratio,
+        ecosystem_health=ecosystem_health,
+        knowledge_complexity=resolve_knowledge_base_size(knowledge_base_size, epsilon),
+    )
+
+
 def _mint_income(
     epsilon: float,
     population: float,
@@ -90,12 +89,58 @@ def _mint_income(
     capital_age_ratio: float,
 ) -> float:
     """Labour income under the wage doctrine: the period's mint, one frame."""
-    return float(eoh_to_teh_pipeline(
-        epsilon,
-        population=population,
-        capital_stock=capital_stock_teh,
+    return float(_pipeline(epsilon, population, capital_stock_teh,
+                           capital_age_ratio)["teh_created"])
+
+
+def _trust_position(
+    epsilon: float,
+    population: float,
+    trust_balance: float,
+    labor_income: float,
+    capital_stock_teh: float,
+    capital_age_ratio: float,
+    meaningful_activity_teh: float,
+    suff_levy_rate: float,
+    dep_rate: float,
+    div_rate: float,
+    extra_obligation: float = 0.0,
+) -> dict:
+    """
+    The Trust's position from `fiscal_snapshot` — the shared fiscal path — with
+    a shock's added obligation charged against it.
+
+    Until 2026-09-30 three shocks rebuilt levy → stewardship → guarantee → trust
+    by hand (record/verification.md#parallel-paths (a)); every defect found in
+    them on 2026-09-30 sat in that hand-assembled part. The charge is exact,
+    not an approximation: the Trust's revenue (levy + GUF + estate + dividend)
+    does not depend on what it owes, so adding X to the guarantee lowers
+    `surplus_deficit` by exactly X — bound by test.
+
+    NOTE, NOT RESOLVED HERE: the shocks pass their added obligation in EOH
+    HOURS and it is charged as TEH one-for-one. That conversion is the shocks'
+    pre-existing convention, not a property of `fiscal_snapshot`, which is why
+    it stays out of the core signature.
+    """
+    snap = fiscal_snapshot(
+        trust_balance=trust_balance,
+        labor_income=labor_income,
+        capital_stock_teh=capital_stock_teh,
         capital_age_ratio=capital_age_ratio,
-    )["teh_created"])
+        population=population,
+        epsilon=epsilon,
+        meaningful_activity_teh=meaningful_activity_teh,
+        levy_rates={"sufficiency": suff_levy_rate},
+        dep_rate=dep_rate,
+        div_rate=div_rate,
+    )
+    surplus = snap["trust"]["surplus_deficit"] - extra_obligation
+    return {
+        "solvent":         surplus >= 0.0,
+        "surplus_deficit": surplus,
+        "guarantee":       snap["guarantee"]["total_cost_teh"],
+        "snapshot":        snap,
+    }
 
 _SEVERITY:     dict[str, int] = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
 _INV_SEVERITY: dict[int, str] = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
@@ -105,139 +150,236 @@ _INV_SEVERITY: dict[int, str] = {0: "STABLE", 1: "DEGRADED", 2: "CRISIS"}
 # Automation Failure Shock
 # ---------------------------------------------------------------------------
 
+def _failure_pair(
+    epsilon: float,
+    fraction_lost: float,
+    population: float,
+    capital_stock_teh: float,
+    capital_age_ratio: float,
+    ecosystem_health: float,
+    knowledge_base_size: float | None,
+    available_labor_eoh: float,
+) -> tuple[dict, dict]:
+    """
+    The pipeline before and after machines lose `fraction_lost` of their
+    capability, at ONE physical state and ONE register.
+
+    The capability falls to ε·(1 − fraction_lost); everything else — the
+    obligation's physical state and the register's maturity
+    (`registration_epsilon`) — stays at ε. Both runs are capped at the same
+    labour supply, so whatever humans cannot take up is DEFERRED by the
+    pipeline's own survival-first rationing, not re-derived here.
+    """
+    from hours_eoh.core.trajectory import canonical_physical_state
+    state = canonical_physical_state(epsilon)
+    # The frame (population, capital) is passed by keyword at each call so the
+    # capital-frame gate can see it; the rest of the shared state is common.
+    common = dict(
+        age_distribution=state["age_distribution"],
+        capital_age_ratio=capital_age_ratio,
+        ecosystem_health=ecosystem_health,
+        knowledge_complexity=resolve_knowledge_base_size(knowledge_base_size, epsilon),
+        monitoring_capability=state["monitoring_capability"],
+        knowledge_complexity_per_unit=state["knowledge_complexity_per_unit"],
+        available_labor_eoh=available_labor_eoh,
+        registration_epsilon=epsilon,
+    )
+    before = eoh_to_teh_pipeline(
+        machine_capability=epsilon, population=population,
+        capital_stock=capital_stock_teh, **common)
+    after = eoh_to_teh_pipeline(
+        machine_capability=epsilon * (1.0 - fraction_lost), population=population,
+        capital_stock=capital_stock_teh, **common)
+    return before, after
+
+
 def automation_failure_shock(
     epsilon: float,
     population: float = 1_000_000.0,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
     ecosystem_health: float = 0.70,
-    knowledge_base_size: float = 10.0,
-    workforce_size: float = 600_000.0,
-    mean_entropy_reduction_capacity: float = 1200.0,
-    reserve_fraction: float = 0.155,
+    knowledge_base_size: float | None = None,
+    workforce_size: float | None = None,
+    mean_entropy_reduction_capacity: float | None = None,
+    reserve_fraction: float | None = None,
+    fraction_lost: float = 1.0,
+    labor_supply_per_capita: float | None = None,
+    trust_balance: float | None = None,
 ) -> dict:
     """
-    Simulate sudden loss of automation at a given ε level.
+    Sudden loss of machine capability: what falls to people, what they can
+    take up, and what is deferred (rebuilt 2026-09-30).
 
-    At epsilon ε, automation was handling ε×total_eoh of demand. If automation
-    fails suddenly, the workforce (calibrated for the ε economy) must cover this.
+    THE CASCADE, every step the shared pipeline's own:
+
+        lost      = observed machine load before − after
+                    (total − human EOH: what machines ACTUALLY carried; the
+                    labour care's automation floor keeps human was never theirs
+                    to drop)
+        demand    → humans, capped at the labour supply L
+                    (`feasibility.labor_supply_per_capita` × population — the
+                    one settled account of L)
+        shortfall → DEFERRED, survival-first: personal obligation is served
+                    before any other domain, so `deferred_personal > 0` means
+                    the survival floor itself is unmet. With no labour at all
+                    nothing is served and there is no collective.
+
+    The register stands through the failure (`registration_epsilon`), so the
+    surge labour is registered and MINTS — the wage doctrine (2026-09-15),
+    bounded by the hours actually served. Nothing is charged to the Trust:
+    a Trust balance cannot supply an hour of labour, so a labour shortfall is
+    reported as deferral, never priced as a TEH cost. The Trust's position
+    after the shock is reported from `fiscal_snapshot` at the new mint.
+
+    WHAT IT DOES NOT MODEL, declared: COMPETENCY. Condition IV exists because
+    untrained hours cannot run a water plant, and its threshold is per
+    ESSENTIAL domain — which has no mapping onto the four EOH domains, so the
+    shock cannot test it. Hours coverage is an UPPER bound on what a collective
+    can absorb. Nor the repair obligation the failed machines leave, nor more
+    than one period (deferral compounds; see `scenarios/recovery`).
 
     Args:
-        epsilon: Automation level at failure [0.0, 0.99].
+        epsilon: Machine capability before the failure [0.0, 0.99].
         population: Total population.
-        capital_stock_teh: Capital stock value.
+        capital_stock_teh: None → the canonical arc's stock at this ε and
+            population; a supplied stock is the ACTUAL stock and held fixed.
         capital_age_ratio: Mean asset age ratio.
         ecosystem_health: Ecological health [0,1].
-        knowledge_base_size: Knowledge base size.
-        workforce_size: Working-age population.
-        mean_entropy_reduction_capacity: EOH/yr per working-age worker.
-        reserve_fraction: Fraction of workforce in the competency reserve.
+        knowledge_base_size: None → resolved along the arc.
+        workforce_size, mean_entropy_reduction_capacity, reserve_fraction:
+            DEPRECATED 2026-09-30, ignored with a warning. The old reading
+            covered the machine load with a reserve of 15.5% × 600,000 workers
+            × 1,200 h plus everyone at H_MIN — three literals, one copying a
+            per-domain constant as a whole-workforce share — and ignored the
+            hours the population can actually supply.
+        fraction_lost: Share of machine capability lost (0, 1]. Default 1.
+        labor_supply_per_capita: L in h/person·yr. None → the measured default.
+        trust_balance: None → resolved at `population`.
 
     Returns:
-        dict: {
-          "scenario":             str,
-          "epsilon":              float,
-          "total_eoh":            float,
-          "automation_eoh":       float,
-          "human_baseline_eoh":   float,
-          "reserve_capacity_eoh": float,
-          "h_min_labor_eoh":      float,
-          "coverage_ratio":       float,
-          "covered":              bool,
-          "severity":             str,
-          "outcome":              str,
-          "failure_boundary":     float | None,
-          "recommendation":       str,
-        }
+        dict with "outcome" ∈ {"STABLE", "DEGRADED", "CRISIS"}: STABLE when the
+        lost load is fully taken up, DEGRADED when some is deferred but the
+        survival floor is served, CRISIS when personal obligation is deferred.
     """
+    import warnings
+    from hours_eoh.scenarios.feasibility import (
+        labor_supply_per_capita as _measured_supply)
+    from hours_eoh.core.prices import basket_price
+
+    for name, value in (("workforce_size", workforce_size),
+                        ("mean_entropy_reduction_capacity", mean_entropy_reduction_capacity),
+                        ("reserve_fraction", reserve_fraction)):
+        if value is not None:
+            warnings.warn(
+                f"automation_failure_shock({name}=) is deprecated (2026-09-30) and "
+                "ignored: the take-up is bounded by the measured labour supply "
+                "(labor_supply_per_capita), not a reserve fraction.",
+                DeprecationWarning, stacklevel=2,
+            )
+    if not 0.0 < fraction_lost <= 1.0:
+        raise ValueError(f"fraction_lost must be in (0, 1], got {fraction_lost}")
+
+    supplied_capital = capital_stock_teh
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    from hours_eoh.core.trajectory import canonical_physical_state as _cps
-    _state = _cps(epsilon)
+    capital_stock_teh = resolve_capital_stock(supplied_capital, epsilon, population=population)
+    trust_balance = resolve_trust_balance(trust_balance, population)
+    L_pc = _measured_supply() if labor_supply_per_capita is None else labor_supply_per_capita
+    L = L_pc * population
 
-    pers_eoh  = personal_eoh(population, age_distribution=_state["age_distribution"])
-    infra_eoh = infrastructure_eoh(
-        capital_stock=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-    )
-    eco_eoh   = ecological_eoh(
-        ecosystem_health,
-        monitoring_capability=_state["monitoring_capability"],
-        base_rate=ECOLOGICAL_BASE_RATE,
-    )
-    know_eoh  = knowledge_eoh(
-        knowledge_base_size,
-        complexity_per_unit=_state["knowledge_complexity_per_unit"],
-        population=population,
-    )
-    tot_eoh = pers_eoh + infra_eoh + eco_eoh + know_eoh
+    before, after = _failure_pair(epsilon, fraction_lost, population, capital_stock_teh,
+                                  capital_age_ratio, ecosystem_health,
+                                  knowledge_base_size, L)
+    total = float(before["total_eoh"])
 
-    automation_eoh = tot_eoh * epsilon
-    human_baseline = tot_eoh * (1.0 - epsilon)
+    # Under a labour cap `human_eoh` is the hours SERVED; what humans could not
+    # take up is in `deferred_total`. The machine load is what is left of the
+    # obligation after both — `total − human_eoh` alone books the deferred
+    # hours as if machines still carried them.
+    def _machine(p: dict) -> float:
+        return total - float(p["human_eoh"]) - float(p["deferred_total"])
+    machine_before = _machine(before)
+    machine_after = _machine(after)
+    lost = machine_before - machine_after
+    newly_deferred = float(after["deferred_total"]) - float(before["deferred_total"])
+    taken_up = lost - newly_deferred
+    coverage = taken_up / lost if lost > 0.0 else 1.0
+    deferred_personal = float(after["deferred_personal"])
 
-    reserve_eoh = workforce_size * reserve_fraction * mean_entropy_reduction_capacity
-    h_min_alloc = minimum_hours_allocation(
-        h_min=H_MIN, workforce_size=workforce_size, epsilon=epsilon
-    )
-    h_min_eoh = h_min_alloc["total_labor_eoh"]
+    if deferred_personal > 0.0:
+        outcome = "CRISIS"
+    elif newly_deferred > 0.0:
+        outcome = "DEGRADED"
+    else:
+        outcome = "STABLE"
 
-    result = automation_failure_scenario(
-        epsilon=epsilon,
-        critical_eoh=automation_eoh,
-        reserve_capacity_eoh=reserve_eoh,
-        h_min_labor_eoh=h_min_eoh,
-        workforce_size=workforce_size,
-    )
+    # The FISCAL reading, at the failure's mint and the pre-failure ε (the
+    # register the guarantee reads is the one the pipeline held).
+    def _pos(p: dict) -> dict:
+        return _trust_position(epsilon, population, trust_balance,
+                               float(p["teh_created"]), capital_stock_teh,
+                               capital_age_ratio, MEANINGFUL_ACTIVITY_TEH_BASE,
+                               SUFF_LEVY_RATE, DEP_RATE, DIV_RATE)
+    fiscal_before, fiscal_after = _pos(before), _pos(after)
+    floor_before = basket_price(float(before["epsilon_observable"]), MEANINGFUL_ACTIVITY_TEH_BASE)
+    floor_after = basket_price(float(after["epsilon_observable"]), MEANINGFUL_ACTIVITY_TEH_BASE)
 
+    # The FAILURE BOUNDARY: the lowest capability on the arc from which this
+    # failure can no longer be fully taken up, at this population and supply.
     failure_boundary = None
-    if not result["covered"]:
+    if newly_deferred > 0.0:
         failure_boundary = epsilon
     else:
         for i in range(1, 20):
             test_eps = min(0.99, epsilon + i * 0.05)
-            _test_state = _cps(test_eps)
-            test_automation = compute_total_eoh(
-                population=population,
-                age_distribution=_test_state["age_distribution"],
-                capital_stock=capital_stock_teh * (1.0 + (test_eps - epsilon)),
-                capital_age_ratio=capital_age_ratio,
-                ecosystem_health=ecosystem_health,
-                monitoring_capability=_test_state["monitoring_capability"],
-            )["total"] * test_eps
-            test_result = automation_failure_scenario(
-                epsilon=test_eps,
-                critical_eoh=test_automation,
-                reserve_capacity_eoh=reserve_eoh,
-                h_min_labor_eoh=h_min_eoh,
-            )
-            if not test_result["covered"]:
+            b, a = _failure_pair(
+                test_eps, fraction_lost, population,
+                resolve_capital_stock(supplied_capital, test_eps, population=population),
+                capital_age_ratio, ecosystem_health, knowledge_base_size, L)
+            if float(a["deferred_total"]) > float(b["deferred_total"]):
                 failure_boundary = test_eps
                 break
+            if test_eps >= 0.99:
+                break
 
-    severity = result["severity"]
-    if severity == "NONE":
-        outcome = "STABLE"
-    elif severity in ("MODERATE", "SEVERE"):
-        outcome = "DEGRADED"
-    else:
-        outcome = "CRISIS"
+    rec = (
+        f"Automation failure at ε={epsilon:.2f} (capability lost {fraction_lost:.0%}): "
+        f"{lost:,.0f} EOH/yr the machines carried falls to people; "
+        f"{taken_up:,.0f} taken up within the labour supply ({coverage:.1%}), "
+        f"{newly_deferred:,.0f} deferred"
+        + (f", {deferred_personal:,.0f} of it PERSONAL — the survival floor is unmet"
+           if deferred_personal > 0.0 else ", none of it personal")
+        + f". Outcome: {outcome}. Competency (Condition IV) not tested: hours "
+        "coverage is an upper bound."
+    )
 
     return {
-        "scenario":             "automation_failure_shock",
-        "epsilon":              epsilon,
-        "total_eoh":            tot_eoh,
-        "automation_eoh":       automation_eoh,
-        "human_baseline_eoh":   human_baseline,
-        "reserve_capacity_eoh": reserve_eoh,
-        "h_min_labor_eoh":      h_min_eoh,
-        "coverage_ratio":       result["coverage_ratio"],
-        "gap_eoh":              result["gap_eoh"],
-        "covered":              result["covered"],
-        "severity":             severity,
-        "outcome":              outcome,
-        "failure_boundary":     failure_boundary,
-        "recommendation":       result["recommendation"],
+        "scenario":                "automation_failure_shock",
+        "epsilon":                 epsilon,
+        "fraction_lost":           fraction_lost,
+        "total_eoh":               total,
+        "machine_eoh_before":      machine_before,
+        "machine_eoh_lost":        lost,
+        "labor_supply_eoh":        L,
+        "human_eoh_before":        float(before["human_eoh"]),
+        "human_eoh_after":         float(after["human_eoh"]),
+        "taken_up_eoh":            taken_up,
+        "deferred_eoh":            newly_deferred,
+        "deferred_personal_eoh":   deferred_personal,
+        "coverage_ratio":          coverage,
+        "covered":                 newly_deferred <= 0.0,
+        "mint_before":             float(before["teh_created"]),
+        "mint_after":              float(after["teh_created"]),
+        "floor_price_before":      floor_before,
+        "floor_price_after":       floor_after,
+        "trust_surplus_before":    fiscal_before["surplus_deficit"],
+        "trust_surplus_after":     fiscal_after["surplus_deficit"],
+        "trust_solvent_after":     fiscal_after["solvent"],
+        "competency_tested":       False,
+        "outcome":                 outcome,
+        "failure_boundary":        failure_boundary,
+        "recommendation":          rec,
     }
 
 
@@ -249,7 +391,7 @@ def demographic_shock(
     epsilon: float,
     shock_type: str,
     magnitude: float,
-    trust_balance: float = TRUST_BASE_TEH,
+    trust_balance: float | None = None,
     labor_income_base: float | None = None,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
@@ -257,6 +399,7 @@ def demographic_shock(
     div_rate: float = DIV_RATE,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.30,
+    population: float = 1_000_000.0,
 ) -> dict:
     """
     Simulate a sudden demographic change and assess fiscal/EOH impact.
@@ -265,22 +408,17 @@ def demographic_shock(
       "growth":  Sudden population increase (magnitude = fractional growth, e.g. 0.20 = +20%)
       "decline": Sudden population decrease (magnitude = fractional loss)
       "aging":   Shift in age distribution toward elderly (magnitude = fraction of
-                 the WHOLE population that moves from working age to elderly —
-                 which is what the code has always done; this line said
-                 "fraction of working-age" until 2026-09-30)
+                 the WHOLE population that moves from working age to elderly)
 
     Args:
         epsilon: Automation level at time of shock.
         shock_type: One of "growth", "decline", "aging".
         magnitude: Fractional magnitude of the shock [0.0, 1.0].
-        trust_balance: Trust fund balance at time of shock. FRAME: this
-            function takes NO population — the shock arrives as a fractional
-            magnitude — so the default cannot resolve against a frame and is
-            stated at the 1M reference population. A caller at another scale
-            MUST pass a balance explicitly.
+        trust_balance: Trust balance at time of shock. None → resolved at
+            `population`, like every other shock.
         labor_income_base: None (default) → labour income is the MINT at this
-            ε for the base population (wage doctrine). Supplied → the legacy
-            proxy `max(3e8, base × (1 − 0.8ε))`, kept so pre-2026-09-30
+            ε for the pre-shock population (wage doctrine). Supplied → the
+            legacy proxy `max(3e8, base × (1 − 0.8ε))`, kept so pre-2026-09-30
             figures reproduce.
         meaningful_activity_teh: Sufficiency floor TEH.
         suff_levy_rate: Levy rate.
@@ -288,97 +426,81 @@ def demographic_shock(
         div_rate: Trust dividend fraction.
         capital_stock_teh: Capital stock.
         capital_age_ratio: Capital age ratio.
+        population: Pre-shock population (2026-09-30). The shock was fixed at
+            1M with a 1M-frame Trust default, and `compound_shock` handed it a
+            Trust resolved at ITS population — a frame seam.
 
     Returns:
         dict with "outcome" ∈ {"STABLE", "DEGRADED", "CRISIS"} and "recommendation".
     """
-    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
-    # stock is the ACTUAL stock and is never rescaled.
-    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon)
     VALID = ("growth", "decline", "aging")
     if shock_type not in VALID:
         raise ValueError(f"shock_type must be one of {VALID}, got '{shock_type}'")
     if not 0.0 <= magnitude <= 1.0:
         raise ValueError(f"magnitude must be in [0, 1], got {magnitude}")
+    trust_balance = resolve_trust_balance(trust_balance, population)
+    # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
+    # stock is the ACTUAL stock and is never rescaled.
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
 
-    BASE_POPULATION = 1_000_000.0
-    base_dist = {g: AGE_GROUPS[g]["fraction"] * BASE_POPULATION for g in AGE_GROUPS}
+    # FRACTIONS, as `age_distribution` takes — head counts here squared the
+    # population in personal EOH until 2026-09-30.
+    base_fractions = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+    if shock_type == "growth":
+        new_population = population * (1.0 + magnitude)
+        new_fractions  = dict(base_fractions)
+    elif shock_type == "decline":
+        new_population = population * (1.0 - magnitude)
+        new_fractions  = dict(base_fractions)
+    else:  # aging: `magnitude` of the WHOLE population moves working age → elderly
+        # REFUSED beyond the working-age share (2026-09-30): it added elderly
+        # without removing workers, growing the population. A share of the
+        # population cannot move out of a group smaller than it — no threshold
+        # to choose, so no clamp to hide.
+        if magnitude > base_fractions["working_age"]:
+            raise ValueError(
+                f"an aging shock moves people OUT of working age, which is "
+                f"{base_fractions['working_age']:.0%} of the population; "
+                f"magnitude {magnitude} exceeds it"
+            )
+        new_population = population
+        new_fractions  = dict(base_fractions)
+        new_fractions["working_age"] -= magnitude
+        new_fractions["elderly"]     += magnitude
 
-    # `base_dist` / `new_dist` are head COUNTS (the shock arithmetic needs
-    # them); `age_distribution` takes FRACTIONS. Passing the counts squared the
-    # population in personal EOH — obligation ~1e6× high, and through
-    # `eoh_delta` into `compound_shock`'s guarantee cost — until 2026-09-30.
-    base_eoh_data = compute_total_eoh(
-        epsilon,
-        population=BASE_POPULATION,
-        age_distribution=_fractions(base_dist),
-        capital_stock=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-    )
-    base_eoh = base_eoh_data["total"]
+    base_eoh = float(_pipeline(epsilon, population, capital_stock_teh, capital_age_ratio,
+                               age_distribution=base_fractions)["total_eoh"])
+    new_eoh  = float(_pipeline(epsilon, new_population, capital_stock_teh, capital_age_ratio,
+                               age_distribution=new_fractions)["total_eoh"])
 
     if labor_income_base is None:
-        # The base population carries the default age FRACTIONS; `base_dist`
-        # holds head COUNTS, which the pipeline would read as fractions.
-        labor_income = _mint_income(epsilon, BASE_POPULATION, capital_stock_teh,
+        labor_income = _mint_income(epsilon, population, capital_stock_teh,
                                     capital_age_ratio)
     else:
         labor_income = max(
             _LABOR_INCOME_MIN,
             labor_income_base * (1.0 - epsilon * _LABOR_INCOME_AUTO_SLOPE),
         )
-    levies = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
-    stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
-                                    epsilon, trust_balance)
-    guar_before = sufficiency_guarantee(
-        BASE_POPULATION, epsilon, meaningful_activity_teh=meaningful_activity_teh
-    )
-    trust_before = trust_management(
-        trust_balance, levies["total_levied"],
-        stew["teh_allocated"], guar_before["total_cost_teh"],
-        dep_rate, div_rate, epsilon,
-    )
 
-    if shock_type == "growth":
-        new_population = BASE_POPULATION * (1.0 + magnitude)
-        new_dist = {g: AGE_GROUPS[g]["fraction"] * new_population for g in AGE_GROUPS}
-    elif shock_type == "decline":
-        new_population = BASE_POPULATION * (1.0 - magnitude)
-        new_dist = {g: AGE_GROUPS[g]["fraction"] * new_population for g in AGE_GROUPS}
-    else:  # aging
-        shift = BASE_POPULATION * magnitude
-        new_dist = dict(base_dist)
-        new_dist["working_age"] = max(0.0, base_dist["working_age"] - shift)
-        new_dist["elderly"]    = base_dist["elderly"] + shift
-        new_population = sum(new_dist.values())
-
-    new_eoh_data = compute_total_eoh(
-        epsilon,
-        population=new_population,
-        age_distribution=_fractions(new_dist),
-        capital_stock=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-    )
-    new_eoh = new_eoh_data["total"]
-
-    guar_after  = sufficiency_guarantee(
-        new_population, epsilon, meaningful_activity_teh=meaningful_activity_teh
-    )
-    trust_after = trust_management(
-        trust_balance, levies["total_levied"],
-        stew["teh_allocated"], guar_after["total_cost_teh"],
-        dep_rate, div_rate, epsilon,
-    )
+    # The shock is sudden: income, capital and the Trust are the pre-shock
+    # ones; only the population the guarantee is owed to moves.
+    def _position(pop: float) -> dict:
+        return _trust_position(epsilon, pop, trust_balance, labor_income,
+                               capital_stock_teh, capital_age_ratio,
+                               meaningful_activity_teh, suff_levy_rate,
+                               dep_rate, div_rate)
+    before = _position(population)
+    after  = _position(new_population)
 
     eoh_delta = new_eoh - base_eoh
 
-    outcome = _classify(trust_after["solvent"], trust_after["surplus_deficit"], trust_balance)
+    outcome = _classify(after["solvent"], after["surplus_deficit"], trust_balance)
 
     rec = (
         f"{shock_type.title()} shock of {magnitude:.0%} at ε={epsilon:.2f}: "
-        f"population {BASE_POPULATION:.0f} → {new_population:.0f}. "
+        f"population {population:.0f} → {new_population:.0f}. "
         f"EOH demand {'+' if eoh_delta >= 0 else ''}{eoh_delta:,.0f} h/yr. "
-        f"Trust {'solvent' if trust_after['solvent'] else 'INSOLVENT'}. "
+        f"Trust {'solvent' if after['solvent'] else 'INSOLVENT'}. "
         f"Outcome: {outcome}."
     )
 
@@ -387,24 +509,18 @@ def demographic_shock(
         "shock_type":           shock_type,
         "magnitude":            magnitude,
         "epsilon":              epsilon,
-        # REPORTED 2026-08-28. `labor_income` is computed here from
-        # `_LABOR_INCOME_AUTO_SLOPE` and was then discarded — the same
-        # computed-and-not-reported pattern fixed in scenarios/maintenance.py
-        # the same day. Its absence is why the slope could not be pinned from
-        # outside: ε drives the guarantee, the EOH total and the income
-        # together, so the income's own response is not recoverable from any
-        # downstream figure. Reporting it makes the term observable.
+        # REPORTED 2026-08-28 so the income's own response is observable.
         "labor_income":         labor_income,
-        "population_before":    BASE_POPULATION,
+        "population_before":    population,
         "population_after":     new_population,
         "eoh_before":           base_eoh,
         "eoh_after":            new_eoh,
         "eoh_delta":            eoh_delta,
-        "guarantee_before":     guar_before["total_cost_teh"],
-        "guarantee_after":      guar_after["total_cost_teh"],
-        "trust_solvent_before": trust_before["solvent"],
-        "trust_solvent_after":  trust_after["solvent"],
-        "surplus_deficit_after": trust_after["surplus_deficit"],
+        "guarantee_before":     before["guarantee"],
+        "guarantee_after":      after["guarantee"],
+        "trust_solvent_before": before["solvent"],
+        "trust_solvent_after":  after["solvent"],
+        "surplus_deficit_after": after["surplus_deficit"],
         "outcome":              outcome,
         "recommendation":       rec,
     }
@@ -475,19 +591,10 @@ def ecological_eoh_spike(
     crossed_thresh = (ecosystem_health_before > ECOLOGICAL_THRESHOLD
                       >= ecosystem_health_after)
 
-    levies = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
-    stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
-                                    epsilon, trust_balance)
-    guar   = sufficiency_guarantee(
-        population, epsilon, meaningful_activity_teh=meaningful_activity_teh
-    )
-    trust  = trust_management(
-        trust_balance, levies["total_levied"],
-        stew["teh_allocated"],
-        guar["total_cost_teh"] + eoh_spike,
-        dep_rate, div_rate, epsilon,
-    )
-
+    trust = _trust_position(epsilon, population, trust_balance, labor_income,
+                            capital_stock_teh, capital_age_ratio,
+                            meaningful_activity_teh, suff_levy_rate,
+                            dep_rate, div_rate, extra_obligation=eoh_spike)
     trust_absorbs = trust["solvent"]
 
     if not crossed_thresh:
@@ -525,8 +632,8 @@ def ecological_eoh_spike(
         "eoh_spike":             eoh_spike,
         "spike_ratio":           spike_ratio,
         "threshold_crossed":     crossed_thresh,
-"labor_income":         labor_income,   # reported (2026-09-30): the levy base used
-                "trust_surplus_deficit": trust["surplus_deficit"],
+        "labor_income":          labor_income,   # the levy base used (2026-09-30)
+        "trust_surplus_deficit": trust["surplus_deficit"],
         "trust_absorbs":         trust_absorbs,
         "absorbed":              trust_absorbs,
         "outcome":               outcome,
@@ -594,37 +701,25 @@ def labor_income_shock(
     if not 0.0 <= income_fraction <= 1.0:
         raise ValueError(f"income_fraction must be in [0, 1], got {income_fraction}")
 
-    pipeline = eoh_to_teh_pipeline(epsilon=epsilon, population=population)
-    baseline_income = max(pipeline["teh_created"], _LABOR_INCOME_MIN)
-    shocked_income  = max(baseline_income * income_fraction, _LABOR_INCOME_MIN)
+    # THE MINT, UNFLOORED (2026-09-30). Both incomes were floored at the legacy
+    # proxy's 3e8 — frameless, so at 100k people the "baseline" was 110× the
+    # mint at ε=0, and `income_fraction=0.0` ("total income collapse") never
+    # reached zero income. The floor was retired on 2026-09-30
+    # (record/fulfilment.md#floor-guard-and-shock-threshold); this copy
+    # survived it. The mint is now read at the SAME capital the snapshot sizes.
+    baseline_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio)
+    shocked_income  = baseline_income * income_fraction
 
-    snap_before = fiscal_snapshot(
-        trust_balance=trust_balance,
-        labor_income=baseline_income,
-        capital_stock_teh=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-        population=population,
-        epsilon=epsilon,
-        meaningful_activity_teh=meaningful_activity_teh,
-        levy_rates={"sufficiency": suff_levy_rate},
-        dep_rate=dep_rate,
-        div_rate=div_rate,
-    )
-    snap_after = fiscal_snapshot(
-        trust_balance=trust_balance,
-        labor_income=shocked_income,
-        capital_stock_teh=capital_stock_teh,
-        capital_age_ratio=capital_age_ratio,
-        population=population,
-        epsilon=epsilon,
-        meaningful_activity_teh=meaningful_activity_teh,
-        levy_rates={"sufficiency": suff_levy_rate},
-        dep_rate=dep_rate,
-        div_rate=div_rate,
-    )
+    def _position(income: float) -> dict:
+        return _trust_position(epsilon, population, trust_balance, income,
+                               capital_stock_teh, capital_age_ratio,
+                               meaningful_activity_teh, suff_levy_rate,
+                               dep_rate, div_rate)
+    snap_before = _position(baseline_income)
+    snap_after  = _position(shocked_income)
 
-    surplus_before = snap_before["trust"]["surplus_deficit"]
-    surplus_after  = snap_after["trust"]["surplus_deficit"]
+    surplus_before = snap_before["surplus_deficit"]
+    surplus_after  = snap_after["surplus_deficit"]
     delta          = surplus_after - surplus_before
 
     outcome = _classify(snap_after["solvent"], surplus_after, trust_balance)
@@ -724,9 +819,9 @@ def compound_shock(
 
     # The MINT (2026-09-30). This was the 2.2e9 proxy at this ε, and it was then
     # passed to `demographic_shock` as `labor_income_base` — an ε=0 base — which
-    # applied the (1 − 0.8ε) slope a SECOND time (failure mode 11): at ε=0.9 the
-    # demographic leg ran on ~172M against a mint of ~745M. The demographic leg
-    # now resolves its own mint at its own (1M, frameless) population.
+    # applied the (1 − 0.8ε) slope a SECOND time (failure mode 11). Every leg
+    # now runs at THIS population (the demographic leg was frameless at 1M
+    # until 2026-09-30) and resolves the same mint.
     labor_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio)
 
     # --- Ecological shock -----------------------------------------------
@@ -761,34 +856,35 @@ def compound_shock(
             div_rate=div_rate,
             capital_stock_teh=capital_stock_teh,
             capital_age_ratio=capital_age_ratio,
+            population=population,
         )
         individual_outcomes["demographic_shock"] = dem_result["outcome"]
         combined_eoh_delta += max(0.0, dem_result["eoh_delta"])
 
     # --- Automation failure shock ----------------------------------------
+    automation_deferred: float = 0.0
     if automation_fraction_lost > 0.0:
         auto_result = automation_failure_shock(
             epsilon=epsilon,
             population=population,
             capital_stock_teh=capital_stock_teh,
             capital_age_ratio=capital_age_ratio,
+            fraction_lost=automation_fraction_lost,
+            trust_balance=trust_balance,
         )
         individual_outcomes["automation_failure_shock"] = auto_result["outcome"]
-        # automation_eoh scaled by fraction_lost
-        combined_eoh_delta += auto_result["automation_eoh"] * automation_fraction_lost
+        # NOT charged to the Trust (2026-09-30). This added the machine load
+        # × fraction lost to the guarantee — EOH hours as TEH — so the Trust
+        # "paid" for labour nobody was available to do. What the failure leaves
+        # is DEFERRED obligation, reported; its severity enters through the
+        # leg's outcome. The other two legs keep the charge pending the author.
+        automation_deferred = auto_result["deferred_eoh"]
 
     # --- Combined fiscal check -------------------------------------------
-    levies = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
-    stew   = stewardship_allocation(capital_stock_teh, capital_age_ratio,
-                                    epsilon, trust_balance)
-    guar   = sufficiency_guarantee(population, epsilon,
-                                   meaningful_activity_teh=meaningful_activity_teh)
-    trust  = trust_management(
-        trust_balance, levies["total_levied"],
-        stew["teh_allocated"],
-        guar["total_cost_teh"] + combined_eoh_delta,
-        dep_rate, div_rate, epsilon,
-    )
+    trust = _trust_position(epsilon, population, trust_balance, labor_income,
+                            capital_stock_teh, capital_age_ratio,
+                            meaningful_activity_teh, suff_levy_rate,
+                            dep_rate, div_rate, extra_obligation=combined_eoh_delta)
     trust_absorbs = trust["solvent"]
 
     # Combined outcome >= worst individual outcome
@@ -820,6 +916,7 @@ def compound_shock(
         "epsilon":                epsilon,
         "individual_outcomes":    individual_outcomes,
         "combined_eoh_delta":     combined_eoh_delta,
+        "automation_deferred_eoh": automation_deferred,
         "trust_absorbs_combined": trust_absorbs,
         "combined_outcome":       combined_outcome,
         "recommendation":         rec,

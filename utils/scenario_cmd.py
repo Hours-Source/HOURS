@@ -407,14 +407,16 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "demographic_shock":
         from hours_eoh.scenarios.shocks import demographic_shock
-        # `population` is not a parameter of demographic_shock — the shock is
-        # expressed as a magnitude against the shipped fiscal baseline, not
-        # against a supplied headcount. Passing it raised TypeError on every
-        # invocation (2026-08-17 audit).
+        # `population` IS a parameter since 2026-09-30: the shock is a
+        # fractional magnitude applied to the pre-shock population, and the
+        # Trust resolves at that population. (Until 2026-08-17 the CLI passed
+        # it to a function that did not take it, raising TypeError; it was
+        # then dropped and the shock ran frameless at 1M.)
         return demographic_shock(
             epsilon=epsilon,
             shock_type=args.shock_type or "decline",
             magnitude=args.shock_magnitude,
+            population=population,
         )
 
     if name == "ecological_spike":

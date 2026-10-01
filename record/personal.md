@@ -36,6 +36,7 @@ constant before quoting it.
 
 ## Open
 
+- **Feasibility demand is uniform** *(gap)* *Settles by:* per_component. [entry](verification.md#automation-failure-cascade)
 - **Sphere treats temperature and SHELTER CAPACITY as ONE factor; the basket sums
   them as two** *(gap)* — the cited source contradicts the form it is cited into.
   The adjustment is ZERO at the shipped SSA frame, so the number is right and the

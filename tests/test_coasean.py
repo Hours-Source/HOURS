@@ -229,3 +229,71 @@ class TestOneFederationBuilder:
         for eps in (0.0, 0.40, 0.99):
             a = coasean.n1_regression_anchor(eps)
             assert a["teh_created_delta"] == 0.0
+
+
+class TestBoundaryEventsCarryAgeAndMultiplier:
+    """2026-09-30: merge and split reset each collective's capital age and
+    multiplier to the defaults (lead from record/contestability.md
+    #one-federation-builder). Carried now, with weights derived from §8.7(d):
+    the boundary event conserves the obligation and the mint. Capitals are
+    UNEQUAL here on purpose — at equal capital, ages 0.2 / 0.8 average to the
+    0.5 default and the old reset conserved infrastructure EOH by accident."""
+
+    @staticmethod
+    def _pair(eps):
+        from hours_eoh.research.exchange import CollectiveFrame, build_collective
+
+        def mk(i, pop, cap, age, m):
+            return build_collective(CollectiveFrame.per_capita_land(
+                collective_id=i, population=pop, capital_stock_teh=cap,
+                capital_age_ratio=age, trust_balance=1.0e9), eps, mean_multiplier=m)
+        k = 0.0 if eps == 0.0 else 1.0
+        return mk(0, 4.0e5, 3.0e8 * k, 0.2, 1.6), mk(1, 6.0e5, 1.5e9 * k, 0.8, 2.6)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_merge_conserves_the_mint_and_the_obligation(self, eps):
+        from hours_eoh.research.coasean import merge_collectives
+        a, b = self._pair(eps)
+        m = merge_collectives(a, b)["merged"]
+        mint = lambda c: c.pipeline["teh_created"]
+        infra = lambda c: c.pipeline["eoh_by_domain"]["infrastructure"]
+        assert mint(m) == pytest.approx(mint(a) + mint(b), rel=1e-9)
+        assert infra(m) == pytest.approx(infra(a) + infra(b), rel=1e-9, abs=1e-6)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_split_inherits_and_conserves(self, eps):
+        from hours_eoh.research.coasean import split_collective
+        _, parent = self._pair(eps)
+        succ = split_collective(parent, [0.3, 0.7])["successors"]
+        for s in succ:
+            assert s.capital_age_ratio == parent.capital_age_ratio
+            assert s.pipeline["mean_multiplier"] == parent.pipeline["mean_multiplier"]
+        assert sum(s.pipeline["teh_created"] for s in succ) == pytest.approx(
+            parent.pipeline["teh_created"], rel=1e-9)
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_fiscal_snapshot_reads_the_collectives_multiplier(self, eps):
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        a, _ = self._pair(eps)
+        f = a.frame
+        ref = fiscal_snapshot(
+            trust_balance=f.trust_balance, labor_income=a.pipeline["teh_created"],
+            capital_stock_teh=f.capital_stock_teh, capital_age_ratio=f.capital_age_ratio,
+            population=f.population, epsilon=eps, ecosystem_health=f.ecosystem_health,
+            eco_eoh_override=a.pipeline["eoh_by_domain"]["ecological"],
+            ecological_area_hectares=f.land_hectares, mean_multiplier=1.6)
+        assert a.fiscal["stewardship"]["teh_required"] == pytest.approx(
+            ref["stewardship"]["teh_required"], rel=1e-12)
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_reference_path_agrees_off_the_reference_multiplier(self, eps):
+        # The N=1 anchor ran at the default multiplier only, where the two
+        # paths agreed whether or not either forwarded it to the snapshot.
+        from hours_eoh.research.coasean import make_federation, run_collective_period
+        c = make_federation(epsilon=eps, n=1, multiplier_schedule=[1.6])[0]
+        _, fisc = run_collective_period(
+            eps, population=c.population, trust_balance=c.trust_balance,
+            capital_stock_teh=c.capital_stock, capital_age_ratio=c.capital_age_ratio,
+            ecosystem_health=c.ecosystem_health, mean_multiplier=1.6)
+        assert fisc["stewardship"]["teh_required"] == pytest.approx(
+            c.fiscal["stewardship"]["teh_required"], rel=1e-12)

@@ -221,6 +221,10 @@ def run_collective_period(
         population=population,
         epsilon=epsilon,
         ecosystem_health=ecosystem_health,
+        # The multiplier the pipeline minted at — the same seam closed in
+        # `exchange.build_collective` on 2026-09-30, so the reference path and
+        # the builder agree at any multiplier, not only the reference one.
+        mean_multiplier=pipeline["mean_multiplier"],
     )
     return pipeline, fiscal
 
@@ -797,6 +801,23 @@ def three_regime_inflation(
 # Phase 4: boundary events + federation commons (reconciliation §8.7)
 # ---------------------------------------------------------------------------
 
+def _carried_mean(
+    a: float, b: float, w_a: float, w_b: float,
+    fallback: tuple[float, float],
+) -> float:
+    """
+    The weighted mean a boundary event carries forward. Equal values pass
+    through unchanged (so a merge of like collectives is bit-identical); zero
+    total weight — a merge of two collectives with no capital, or no register,
+    where the quantity governs nothing — falls back to `fallback`'s weights.
+    """
+    if a == b:
+        return a
+    if w_a + w_b <= 0.0:
+        w_a, w_b = fallback
+    return (w_a * a + w_b * b) / (w_a + w_b)
+
+
 def merge_collectives(
     absorber: Collective,
     absorbed: Collective,
@@ -822,10 +843,21 @@ def merge_collectives(
     tier to the federation commons (the caller banks it — simulate_federation
     adds it to commons_t; standalone callers must route it themselves).
 
-    The merged collective's pipeline/fiscal are recomputed via
-    run_collective_period() at the merged parameters (capital_age_ratio at
-    the module default 0.50 — Collective does not carry it), so the returned
-    Collective is valid for further federation use.
+    The merged collective is rebuilt from its frame (`build_collective`), so
+    it is valid for further federation use. Capital age and multiplier are
+    CARRIED (2026-09-30; both fell back to the defaults before), each weighted
+    so the boundary event conserves what it governs — §8.7(d) applied to the
+    obligation and the mint, not only to the Trust:
+
+        age_merged = (K_a·age_a + K_b·r·age_b) / (K_a + K_b·r)
+            infrastructure EOH is affine in age at fixed K, so the CAPITAL-
+            weighted age reproduces Σ infrastructure EOH exactly;
+        m_merged   = (H_a·m_a + H_b·m_b) / (H_a + H_b),  H = registered EOH
+            the mint is Σ H·m, so the REGISTERED-HOURS-weighted multiplier
+            reproduces Σ teh_created whenever the merged register is the sum
+            of the two (equal per-capita state).
+    Equal inputs are carried unchanged, so a merge of like collectives is
+    bit-identical to the pre-2026-09-30 result.
 
     Worked example (T_a = T_b = 2.9B, r = 1, f = 0.30):
         escheat = 0.875B ;  T_merged = 2.917B + 2.042B = 4.958B
@@ -864,9 +896,18 @@ def merge_collectives(
         + absorbed.ecosystem_health * absorbed.population
     ) / merged_pop
 
-    # The merged frame. Land adds (it is not a unit of account, so no rate);
-    # capital age and multiplier fall back to the defaults, as they always
-    # did here — a merge does not carry them (recorded as a lead, 2026-09-30).
+    # The merged frame. Land adds (it is not a unit of account, so no rate).
+    # Age and multiplier carry with the conserving weights in the docstring.
+    merged_age = _carried_mean(
+        absorber.capital_age_ratio, absorbed.capital_age_ratio,
+        absorber.capital_stock, absorbed.capital_stock * rate,
+        fallback=(absorber.population, absorbed.population),
+    )
+    merged_mult = _carried_mean(
+        absorber.pipeline["mean_multiplier"], absorbed.pipeline["mean_multiplier"],
+        absorber.pipeline["registered_eoh"], absorbed.pipeline["registered_eoh"],
+        fallback=(absorber.population, absorbed.population),
+    )
     merged = build_collective(
         CollectiveFrame(
             collective_id=absorber.collective_id,
@@ -874,10 +915,12 @@ def merge_collectives(
             land_hectares=absorber.frame.land_hectares + absorbed.frame.land_hectares,
             capital_stock_teh=merged_capital,
             trust_balance=merged_trust,
+            capital_age_ratio=merged_age,
             ecosystem_health=merged_eco,
         ),
         absorber.epsilon,
         reserve=merged_reserve,
+        mean_multiplier=merged_mult,
     )
 
     teh_before = absorber.trust_balance + trust_b_converted
@@ -968,10 +1011,15 @@ def split_collective(
                 land_hectares=parent.frame.land_hectares * frac,
                 capital_stock_teh=capital_i,
                 trust_balance=trust_i,
+                # Inherited (2026-09-30; reset to the defaults before): a split
+                # divides the stock and the workforce, it does not age the one
+                # or retrain the other.
+                capital_age_ratio=parent.capital_age_ratio,
                 ecosystem_health=parent.ecosystem_health,
             ),
             parent.epsilon,
             reserve=parent.reserve * frac,
+            mean_multiplier=parent.pipeline["mean_multiplier"],
         ))
 
     teh_after = sum(s.trust_balance for s in successors) + escheat

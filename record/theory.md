@@ -57,6 +57,7 @@ labelled PR for AWol to approve, and are never silently rewritten in docstrings.
 
 ## Open
 
+- **The register's maturity reads the capability ε** *(person)* [verification.md](verification.md#automation-failure-cascade)
 - **`notes/value-anchor.md` §2 is not signed off for publication.** *(person)*
   Whether it ships as drafted, and whether the corrected CENSUS-vs-VALUATION
   framing is accepted — it replaces "no price in the chain", true of both routes

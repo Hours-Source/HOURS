@@ -360,6 +360,11 @@ def build_collective(
         ecosystem_health=frame.ecosystem_health,
         eco_eoh_override=pipe["eoh_by_domain"]["ecological"],
         ecological_area_hectares=frame.land_hectares,
+        # The multiplier this collective MINTS at (2026-09-30). A multiplier
+        # passed through `pipeline_kwargs` reached the pipeline and stopped
+        # here, so the snapshot sized stewardship at the reference rate — one
+        # collective reporting two multipliers (mode 10).
+        mean_multiplier=pipe["mean_multiplier"],
     )
     return Collective(frame=frame, epsilon=epsilon, pipeline=pipe, fiscal=fisc,
                       reserve_carried=reserve)
