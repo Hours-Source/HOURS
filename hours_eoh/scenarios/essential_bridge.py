@@ -1,7 +1,7 @@
 """
 scenarios/essential_bridge — WHO CAN CARRY THE PERSONAL OBLIGATION, derived.
 
-The bridge from the four EOH domains to the seven essential workforce domains
+The bridge from the four EOH domains to the essential workforce domains
 (`core/eoh_generation._EOH_TO_ESSENTIAL_WEIGHTS`) is what Condition IV in hours
 (`conditions.condition_iv_coverage`) sets certified capacity against. Its
 personal column — healthcare 0.80, logistics 0.20 — was written before the
@@ -19,11 +19,10 @@ framework").
     each split onto essential domains by its own measured composition:
 
     health    → healthcare                                     (the component IS it)
-    care      → healthcare        `reference/obligation_work` classifies SOC 31,
-                                  the paid counterpart of care, as health+care.
-                                  The seven domains have NO care domain: family
-                                  care is labelled healthcare here, and that
-                                  label is declared, not settled.
+    care      → care              its own essential domain since 2026-10-01
+                                  (author). Until then the seven domains had no
+                                  care domain and care was set against
+                                  healthcare.
     nutrition → agriculture : manufacturing, by the floor's own terms —
                 unassisted PRODUCTION (LSMS, `food_conservation`) against
                 unassisted PROCESSING (the anchor `NUTRITION_AUTOMATION_FLOOR`
@@ -54,7 +53,7 @@ from __future__ import annotations
 
 from hours_eoh.data import ESSENTIAL_DOMAINS, PERSONAL_EOH_COMPONENTS
 
-#: The column's keys: the seven essential domains and the share no domain carries.
+#: The column's keys: the essential domains and the share no domain carries.
 UNATTRIBUTED: str = "unattributed"
 
 
@@ -90,7 +89,8 @@ def personal_column() -> dict:
 
     col = {d: 0.0 for d in ESSENTIAL_DOMAINS}
     col[UNATTRIBUTED] = 0.0
-    col["healthcare"] += share["health"] + share["care"]
+    col["healthcare"] += share["health"]
+    col["care"] += share["care"]
     col["agriculture"] += share["nutrition"] * production / (production + processing)
     col["manufacturing"] += share["nutrition"] * processing / (production + processing)
     col["construction"] += share["shelter"] * structure / in_shelter
@@ -108,7 +108,6 @@ def personal_column() -> dict:
                                            "upkeep": upkeep},
         },
         "declared": (
-            "care is carried by healthcare: the seven domains have no care domain",
             "food service is excluded from the obligation (author, 2026-09-03)",
             "water is not separable in the measured shelter frame; held, not weighted",
             "shelter destinations are ATUS, a high-capital frame",

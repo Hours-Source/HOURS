@@ -215,7 +215,8 @@ class TestDomainEohCoverage:
 
     def _reserve(self, certified_per_domain=200, workforce=1000):
         certified = {d: certified_per_domain for d in [
-            "healthcare", "water", "energy", "agriculture", "logistics", "manufacturing", "construction"
+            "healthcare", "water", "energy", "agriculture", "logistics", "manufacturing", "construction",
+            "care",
         ]}
         return competency_reserve(certified, workforce)
 
@@ -430,12 +431,13 @@ class TestConditionIvCoverage:
                 assert r["per_domain"][d]["demand_eoh"] == pytest.approx(ref[d], rel=1e-12)
 
     def test_it_can_pass_and_it_can_fail_at_threshold_certification(self):
-        # Mode 9 both ways: covered at ε=0.40, short (healthcare) inside the
-        # upper-arc band — found on a fine grid; the 4 reporting points see one.
+        # Mode 9 both ways: covered at ε=0.40, short (CARE, since it became a
+        # domain 2026-10-01) inside a narrow upper-arc band — found on a fine
+        # grid; none of the 4 reporting points sits in it.
         from hours_eoh.core.conditions import condition_iv_coverage
         assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.40))["all_covered"]
         r = condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78))
-        assert r["domains_short"] == ["healthcare"]
+        assert r["domains_short"] == ["care"]
 
     def test_the_two_readings_disagree(self):
         # The open author question, pinned so a change to either shows.
@@ -452,13 +454,15 @@ class TestConditionIvCoverage:
         assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
 
     def test_the_verdict_rests_on_the_bridge_weight(self):
-        # The untagged weight carries the verdict: healthcare's share of
-        # personal EOH decides whether Condition IV holds at ε=0.78.
+        # The verdict rests on the care weight (the desk care share, confidence
+        # 25): moving 0.02 of personal EOH from care to healthcare clears it.
         import copy
         from hours_eoh.core.conditions import condition_iv_coverage
-        from hours_eoh.core.eoh_generation import _EOH_TO_ESSENTIAL_WEIGHTS
-        w = copy.deepcopy(_EOH_TO_ESSENTIAL_WEIGHTS)
-        w["healthcare"]["personal"], w["logistics"]["personal"] = 0.5, 0.5
+        from hours_eoh.core.eoh_generation import essential_weights
+        w = copy.deepcopy(essential_weights())
+        assert not condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78), weights=w)["all_covered"]
+        w["care"]["personal"] -= 0.02
+        w["healthcare"]["personal"] += 0.02
         assert condition_iv_coverage(self._threshold_reserve(), self._pipe(0.78), weights=w)["all_covered"]
 
     def test_bad_inputs_refused(self):

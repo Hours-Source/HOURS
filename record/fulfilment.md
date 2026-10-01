@@ -50,6 +50,7 @@ stability, and the state container that feeds them.
 
 ## Open
 
+- **The dashboard PP pillar cannot fire** *(gap)* [verification.md](verification.md#fiscal-health-shared)
 - **~~Shocks charge EOH to the Trust~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#one-state-one-cascade)
 - **~~Condition IV: registered or human?~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#bridge-derived)
 - **A destroyed capital stock books no obligation to rebuild it.** *(gap)* Ecology

@@ -36,7 +36,7 @@ constant before quoting it.
 
 ## Open
 
-- **No essential domain for care** *(person)* [verification.md](verification.md#bridge-derived)
+- **Is the 15.5% threshold enough for care?** *(person)* [verification.md](verification.md#care-domain)
 - **Sphere treats temperature and SHELTER CAPACITY as ONE factor; the basket sums
   them as two** *(gap)* — the cited source contradicts the form it is cited into.
   The adjustment is ZERO at the shipped SSA frame, so the number is right and the

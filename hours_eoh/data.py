@@ -679,20 +679,26 @@ ENV_MONITORING_SATURATION_TEH_PER_CAPITA: float = 500.0
 # ---------------------------------------------------------------------------
 # Essential domains for Condition IV (Distributed Competency)
 # Mission Statement: §"Condition IV" — agriculture, construction, energy,
-# water, healthcare, manufacturing, and logistics.
+# water, healthcare, manufacturing, and logistics; and CARE (author, 2026-10-01).
 # ---------------------------------------------------------------------------
 # provenance-block: Labor and Condition IV
 # tag: normative | units: list of domain names
 # form: physics-adjacent — a civilization does have a set of functions whose
-#   failure is not survivable, so the CATEGORY is structural. Which seven, and
-#   the fact that there are seven, is not.
-# decided_by: a criticality analysis for the jurisdiction being modelled —
-#   national critical-infrastructure sector designations are the nearest
-#   external analogue, and they do not agree with each other on the list
-#   either.
+#   failure is not survivable, so the CATEGORY is structural. Which domains,
+#   and how many, is not.
+# note: CARE ADDED 2026-10-01 (author: "add care as an eighth essential
+#   domain"). Care is 62% of the personal obligation and the least abatable
+#   component; with no domain of its own it was set against healthcare, and
+#   at the Condition IV minimum that left the agents' own needs without
+#   competent hands over most of the upper arc. Its paid counterparts are SOC
+#   31 (healthcare support) and 39 (personal care) in `reference/obligation_work`.
+# decided_by: the author (2026-10-01, care) on the Mission Statement's seven —
+#   a criticality analysis for the jurisdiction being modelled. National
+#   critical-infrastructure sector designations are the nearest external
+#   analogue, and they do not agree with each other on the list either.
 ESSENTIAL_DOMAINS: list[str] = [
     "agriculture", "construction", "energy", "water",
-    "healthcare", "manufacturing", "logistics",
+    "healthcare", "manufacturing", "logistics", "care",
 ]
 # tag: placeholder | units: fraction of workforce certified per essential domain
 # resolves_by: an observed relationship between practitioner density and
@@ -1629,10 +1635,10 @@ ESSENTIAL_BRIDGE_PERSONAL: dict[str, float] = {
     "construction":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.09086663279071067,
     "energy":        PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.010731960781923996,
     "water":         0.0,
-    "healthcare":    (PERSONAL_EOH_COMPONENTS["health"]["share"]
-                      + PERSONAL_EOH_COMPONENTS["care"]["share"]),
+    "healthcare":    PERSONAL_EOH_COMPONENTS["health"]["share"],
     "manufacturing": PERSONAL_EOH_COMPONENTS["nutrition"]["share"] * 0.5881840338187181,
     "logistics":     0.0,
+    "care":          PERSONAL_EOH_COMPONENTS["care"]["share"],
     "unattributed":  PERSONAL_EOH_COMPONENTS["shelter"]["share"] * 0.8984014064273654,
 }
 
@@ -4755,7 +4761,8 @@ COASEAN_INDIVISIBLE_RESERVE_FRACTION: float = 0.30
 #   entry threat vacuous at high ε, because the "alternative" would have to be
 #   the whole economy.
 # resolves_by: NOT the derivation this line used to claim. COMPETENCY_THRESHOLD
-#   × len(ESSENTIAL_DOMAINS) = 0.155 × 7 = 1.085 is a fraction GREATER THAN
+#   × len(ESSENTIAL_DOMAINS) = 0.155 × 8 = 1.24 (0.155 × 7 = 1.085 before care
+#   was added, 2026-10-01) is a fraction GREATER THAN
 #   ONE, so it yields no headcount at all without a further assumption the
 #   repo does not make — namely how many domains one worker may be certified
 #   in at once. Condition IV is a per-domain fraction of the workforce, not a

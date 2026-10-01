@@ -2057,6 +2057,9 @@ _EOH_TO_ESSENTIAL_WEIGHTS_LEGACY: dict[str, dict[str, float]] = {
     "healthcare":     {"personal": 0.80, "infrastructure": 0.05, "ecological": 0.00, "knowledge": 0.30},
     "manufacturing":  {"personal": 0.00, "infrastructure": 0.20, "ecological": 0.05, "knowledge": 0.15},
     "logistics":      {"personal": 0.20, "infrastructure": 0.10, "ecological": 0.05, "knowledge": 0.15},
+    # CARE (2026-10-01) did not exist when this table was written; zero keeps
+    # the superseded reading what it was.
+    "care":           {"personal": 0.00, "infrastructure": 0.00, "ecological": 0.00, "knowledge": 0.00},
 }
 assert set(_EOH_TO_ESSENTIAL_WEIGHTS_LEGACY) == set(ESSENTIAL_DOMAINS), (
     "Weight matrix keys must match ESSENTIAL_DOMAINS — update the bridge "
@@ -2094,16 +2097,16 @@ def eoh_to_essential_domains(
     weights: dict[str, dict[str, float]] | None = None,
 ) -> dict:
     """
-    Distribute aggregate EOH across the seven essential workforce domains.
+    Distribute aggregate EOH across the essential workforce domains.
 
     The four EOH domains (personal, infrastructure, ecological, knowledge) are
-    physical-obligation categories. The seven essential workforce domains
+    physical-obligation categories. The essential workforce domains
     (agriculture, construction, energy, water, healthcare, manufacturing,
-    logistics) are certification categories for Condition IV. This function
-    bridges them so that domain_eoh_coverage() can be called from aggregate
+    logistics, care) are certification categories for Condition IV. This function
+    bridges them so that condition_iv_coverage() can be called from aggregate
     simulation data.
 
-    Each EOH domain is distributed proportionally across the seven essential
+    Each EOH domain is distributed proportionally across the essential
     domains using a weight matrix. Each EOH column sums to 1.0 INCLUDING the
     `unattributed` row; the old claim that every unit is attributed to a
     certified domain held by construction, not by measurement. Callers
@@ -2120,7 +2123,7 @@ def eoh_to_essential_domains(
                  superseded table).
 
     Returns:
-        dict: {essential_domain: eoh_hours} for the seven essential domains,
+        dict: {essential_domain: eoh_hours} for every essential domain,
               plus "unattributed" — the hours no essential domain is certified
               to carry — when the bridge has that row (the default does).
               Values are in the same units as the input eoh_by_domain values.

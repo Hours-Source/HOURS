@@ -151,6 +151,9 @@ def _build_kwargs(eps: float, population: float, trust_balance: float | None,
         # the `skill_decay_rate` literal: a caller that reaches around the
         # shared path is where a superseded default survives.
         eco_eoh_override=float(pipeline["eoh_by_domain"]["ecological"]),
+        # The same pipeline, so Condition IV's hours and the floor's observed ε
+        # are read at this command's state, thermal obligation included.
+        pipeline=pipeline,
     )
 
 

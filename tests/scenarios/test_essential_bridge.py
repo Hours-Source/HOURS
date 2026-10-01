@@ -34,10 +34,12 @@ def test_the_column_sums_to_one_including_the_unattributed(derived):
     assert derived["column"][UNATTRIBUTED] > 0.0
 
 
-def test_health_and_care_are_carried_by_healthcare(derived):
-    # Declared: the seven essential domains have no care domain.
+def test_health_and_care_have_their_own_domains(derived):
+    # Care is an essential domain since 2026-10-01 (author); until then it was
+    # set against healthcare.
     share = {c: v["share"] for c, v in PERSONAL_EOH_COMPONENTS.items()}
-    assert derived["column"]["healthcare"] == pytest.approx(share["health"] + share["care"], rel=1e-12)
+    assert derived["column"]["healthcare"] == pytest.approx(share["health"], rel=1e-12)
+    assert derived["column"]["care"] == pytest.approx(share["care"], rel=1e-12)
 
 
 def test_nutrition_splits_by_the_floors_own_terms(derived):
@@ -114,10 +116,10 @@ def test_the_personal_reading_is_the_registered_personal_hours(eps):
     assert r["per_domain"]["water"]["demand_eoh"] == 0.0   # water's personal weight is held at 0
 
 
-def test_the_healthcare_shortfall_survives_the_derivation():
-    # The finding the author needs: deriving the weight did not remove the
-    # healthcare gap — care is most of the obligation and has no domain of its
-    # own. Short at ε=0.78 at the Condition IV minimum in both readings.
+def test_with_a_care_domain_only_care_falls_short():
+    # Care as its own domain (2026-10-01): healthcare is covered across the
+    # arc; care, certified at the Condition IV minimum, falls just short in a
+    # narrow band around ε=0.78 — in both readings.
     from hours_eoh.core.conditions import condition_iv_coverage
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
     from hours_eoh.core.workforce import competency_reserve
@@ -126,4 +128,6 @@ def test_the_healthcare_shortfall_survives_the_derivation():
     res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
     p = eoh_to_teh_pipeline(0.78)
     for reading in ("registered", "personal"):
-        assert condition_iv_coverage(res, p, reading)["domains_short"] == ["healthcare"]
+        r = condition_iv_coverage(res, p, reading)
+        assert r["domains_short"] == ["care"]
+        assert 0.95 < r["per_domain"]["care"]["coverage_ratio"] < 1.0

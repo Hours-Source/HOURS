@@ -863,3 +863,121 @@ class TestTheDeclaredSuppressionReachesTheReader:
         out = self._cli(capsys, "dashboard", "--epsilon", "0", "--format", "json")
         snap = _json.loads(out)
         assert any("personal_registration" in s for s in snap["suppressed_flags"])
+
+
+class TestFiscalHealthOnTheSharedPath:
+    """2026-10-01: `fiscal_health_check` rebuilt the fiscal layer by hand beside
+    `fiscal_snapshot` (bit-identical on 96 cases when routed); and its floor
+    pillar read the capability ε, where the floor is read at the OBSERVED ε
+    (author decision, 2026-09-30)."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_trust_reading_is_the_snapshots(self, eps):
+        from hours_eoh.core.dashboard import fiscal_health_check
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        cap = resolve_capital_stock(None, eps, population=1e6)
+        f = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps, capital_eoh_eliminated=1e6)
+        s = fiscal_snapshot(trust_balance=35e9, labor_income=3e8, capital_stock_teh=cap,
+                            capital_age_ratio=0.3, population=1e6, epsilon=eps,
+                            capital_eoh_eliminated=1e6)
+        assert f["trust_surplus_deficit"] == s["trust"]["surplus_deficit"]
+        assert f["guarantee_cost"] == s["guarantee"]["total_cost_teh"]
+        assert f["ecological_cost"] == s["ecological"]["teh_required"]
+
+    @pytest.mark.parametrize("eps", [0.40, 0.90, 0.99])
+    def test_the_floor_pillar_reads_the_observed_epsilon(self, eps):
+        from hours_eoh.core.dashboard import fiscal_health_check
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.core.prices import floor_purchasing_power
+        from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
+        cap = resolve_capital_stock(None, eps, population=1e6)
+        f = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps)
+        obs = eoh_to_teh_pipeline(eps, population=1e6, capital_stock=cap,
+                                  capital_age_ratio=0.3)["epsilon_observable"]
+        assert f["epsilon_observable"] == pytest.approx(obs, rel=1e-12)
+        assert obs < eps
+        assert f["pp_index"] == pytest.approx(floor_purchasing_power(
+            1000.0, obs, MEANINGFUL_ACTIVITY_TEH_BASE)["pp_index"], rel=1e-12)
+        # The capability reading stays reachable, and overstates the gain.
+        cap_reading = fiscal_health_check(35e9, 3e8, cap, 0.3, 1e6, 1000.0, eps,
+                                          epsilon_observable=eps)
+        assert cap_reading["pp_index"] > f["pp_index"]
+
+
+class TestConditionIvInHoursOnTheDashboard:
+    """
+    The dashboard read Condition IV as a certified FRACTION only, so a reserve
+    above COMPETENCY_THRESHOLD read GREEN wherever the hours it must carry
+    exceeded what those people can give (2026-10-01). It now also reads
+    `condition_iv_coverage` in two tiers, the shocks' two: personal short → RED
+    and Condition IV fails; registered short beyond it → YELLOW.
+    """
+
+    @staticmethod
+    def _cli(eps, **kw):
+        from utils.dashboard_cmd import _build_kwargs, resolve_capital_stock
+        return _build_kwargs(eps, 1.0e6, None, resolve_capital_stock(None, eps),
+                             0.70, 0.0, **kw)
+
+    def test_the_hours_are_reported_in_both_tiers(self):
+        r = system_dashboard(**self._cli(0.40))
+        assert set(r["condition_iv_hours"]) == {"personal", "registered"}
+        assert r["condition_iv_hours"]["personal"]["demand_reading"] == "personal"
+        assert r["condition_iv_hours"]["registered"]["all_covered"] is True
+        assert r["conditions_all_pass"] is True
+
+    def test_a_reserve_above_the_fraction_can_still_fail_the_survival_tier(self):
+        # The point of the change: at ε=0.78 the declared 0.18 passes the
+        # fraction check, and care cannot carry the agents' care hours.
+        r = system_dashboard(**self._cli(0.78))
+        assert r["condition_iv"]["passes"] is True
+        assert r["condition_iv_hours"]["personal"]["domains_short"] == ["care"]
+        assert r["conditions_all_pass"] is False
+        assert any("personal tier" in f and "care" in f for f in r["red_flags"])
+        assert r["overall_status"] == "RED"
+
+    def test_more_certified_care_clears_it(self):
+        # Can it NOT fire: the same state with care certified above its need.
+        kw = self._cli(0.78)
+        kw["certified_by_domain"] = dict(kw["certified_by_domain"],
+                                         care=kw["workforce_size"] * 0.25)
+        r = system_dashboard(**kw)
+        assert r["condition_iv_hours"]["registered"]["all_covered"] is True
+        assert not any("Condition IV" in f for f in r["red_flags"] + r["yellow_flags"])
+
+    def test_a_registered_only_shortfall_is_yellow(self):
+        # Inflate the registered infrastructure hours in a supplied pipeline:
+        # the personal tier is untouched, so the shortfall is collective only.
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        kw = self._cli(0.40)
+        p = eoh_to_teh_pipeline(0.40, population=1.0e6,
+                                capital_stock=kw["capital_stock_teh"],
+                                capital_age_ratio=kw["capital_age_ratio"])
+        reg = dict(p["registered_eoh_by_domain"])
+        reg["infrastructure"] *= 50.0
+        r = system_dashboard(**kw | {"pipeline": dict(p, registered_eoh_by_domain=reg)})
+        assert r["condition_iv_hours"]["personal"]["all_covered"] is True
+        assert r["condition_iv_hours"]["registered"]["domains_short"]
+        assert r["conditions_all_pass"] is True
+        assert any("registered tier" in f for f in r["yellow_flags"])
+        assert not any("Condition IV" in f for f in r["red_flags"])
+
+    def test_the_supplied_pipeline_is_the_one_read(self):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        kw = self._cli(0.90)
+        p = eoh_to_teh_pipeline(0.90, population=1.0e6,
+                                capital_stock=kw["capital_stock_teh"],
+                                capital_age_ratio=kw["capital_age_ratio"])
+        r = system_dashboard(**kw | {"pipeline": dict(p, epsilon_observable=0.5)})
+        assert r["fiscal_health"]["epsilon_observable"] == 0.5
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_without_a_pipeline_the_fiscal_pillar_is_unchanged(self, eps):
+        kw = _normal_dashboard_kwargs(eps)
+        r = system_dashboard(**kw)
+        direct = fiscal_health_check(
+            kw["trust_balance"], kw["labor_income"], kw["capital_stock_teh"],
+            kw["capital_age_ratio"], kw["population"], kw["floor_teh"], eps)
+        assert r["fiscal_health"] == direct

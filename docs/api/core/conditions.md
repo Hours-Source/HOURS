@@ -86,5 +86,15 @@ is declared rather than tracked — the certified share of the workforce, which
 nothing in the package measures (`--certified-fraction`) — and the command prints
 it as declared. For a real collective, pass your own ledger figures.
 
+**Condition IV is read twice.** `condition_iv` is the certified *fraction* per
+domain against the threshold. `condition_iv_hours` asks whether those people can
+carry the *hours* (`condition_iv_coverage`), in two tiers: a shortfall against
+the agents' own registered needs (`personal`) is RED and fails the condition; a
+shortfall only against everything the collective registers (`registered`) is
+YELLOW. A reserve can pass the fraction and fail the hours: at the CLI's
+declared 0.18 it does over a band of the upper arc, in care. Pass `pipeline=`
+(an `eoh_to_teh_pipeline` result) to read both at your own state; without it the
+dashboard computes one from the fiscal arguments.
+
 !!! important "The dashboard is the constitution's test bench"
     Green means every check it runs passes on the accounts it was given — not that the system works. A yellow or red reading is reported, never tuned away. See [Design Principle 8](../../theory/design_principles.md#8-the-code-is-the-constitutions-test-bench).

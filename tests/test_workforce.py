@@ -105,7 +105,8 @@ class TestCompetencyReserve:
     def test_zero_certified_all_domains_at_risk(self):
         """Zero certified workers → all domains at risk."""
         reserve = competency_reserve({}, WORKFORCE_SIZE)
-        assert reserve["n_domains_at_risk"] == 7
+        from hours_eoh.data import ESSENTIAL_DOMAINS
+        assert reserve["n_domains_at_risk"] == len(ESSENTIAL_DOMAINS)   # 8 since care, 2026-10-01
         assert reserve["overall_meets_threshold"] is False
 
     def test_zero_workforce_raises(self):

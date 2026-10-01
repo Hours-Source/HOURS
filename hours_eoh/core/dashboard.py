@@ -60,17 +60,13 @@ from hours_eoh.core.conditions import (
     condition_ii_check,
     balance_check,
     condition_iv_check,
+    condition_iv_coverage,
 )
 from hours_eoh.core.multipliers import population_weighted_mean_multiplier
 from hours_eoh.core.registration import register_shares
 from hours_eoh.core.eoh_dynamics import eoh_compounding
-from hours_eoh.core.fiscal import (
-    levy_collection,
-    stewardship_allocation,
-    ecological_allocation,
-    sufficiency_guarantee,
-    trust_management,
-)
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.prices import floor_purchasing_power
 from hours_eoh.core.workforce import competency_reserve, competency_check
 
@@ -252,6 +248,7 @@ def fiscal_health_check(
     ecological_area_hectares: float | None = None,
     ecological_hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,
     registration_epsilon: float | None = None,
+    epsilon_observable: float | None = None,
 ) -> dict:
     """
     Phase 5.3: Fiscal health check — trust solvency, purchasing power, levy sufficiency.
@@ -288,6 +285,8 @@ def fiscal_health_check(
             recomputing. Mirrors the infra_eoh_override pattern in fiscal_snapshot().
         capital_eoh_eliminated: EOH eliminated by capital stock, passed to
             stewardship_allocation() to match the pipeline's accounting.
+        epsilon_observable: The OBSERVED machine share the floor pillar reads
+            (author, 2026-09-30). None → the pipeline's at this state.
 
     Returns:
         dict: {
@@ -304,50 +303,49 @@ def fiscal_health_check(
           "ecological_cost":     float,
           "ecological_status":   str,   ("GREEN"/"YELLOW"/"RED")
           "epsilon":             float,
+          "epsilon_observable":  float, (the ε the floor pillar reads)
         }
 
     Reference: Mission Statement §"Principle 2 — never depend on production for
     survival"; §"Principle 5 — The floor rises with automation; it never falls"
     """
-    levies  = levy_collection(labor_income, {"sufficiency": suff_levy_rate})
-    # new-13: translate capital_eoh_eliminated to infra_eoh_override, matching the
-    # fiscal_snapshot() accounting pattern so stewardship sizing is in sync with
-    # what total_eoh() has already eliminated.
-    _infra_override = None
-    if capital_eoh_eliminated > 0.0:
-        from hours_eoh.core.eoh_generation import infrastructure_eoh as _infra_eoh
-        _raw_infra = _infra_eoh(capital_stock_teh, capital_age_ratio, epsilon)
-        _reduction  = max(0.0, 1.0 - capital_eoh_eliminated / max(_raw_infra, 1.0))
-        _infra_override = _raw_infra * _reduction
-    stew    = stewardship_allocation(capital_stock_teh, capital_age_ratio,
-                                     epsilon, available_teh=trust_balance,
-                                     infra_eoh_override=_infra_override)
-    # new-3: ecological allocation is co-equal with stewardship — both draw
-    # from the full Trust balance independently (neither is residual).
-    # Frame: this function scales with `population`, so its ecological term must
-    # rest on the same jurisdiction. See fiscal_snapshot() for the defect this
-    # closes — the two entry points resolve the obligation identically.
-    _eco_area = ecological_area_hectares
-    # Resolved with or without an override — the twin of the fiscal_snapshot
-    # defect fixed 2026-09-30 (the relocated obligation fell back to the US
-    # anchor whenever an override was passed).
-    if _eco_area is None:
-        _eco_area = population * ecological_hectares_per_capita
-    eco     = ecological_allocation(ecosystem_health, epsilon,
-                                    available_teh=trust_balance,
-                                    deferred=deferred_ecological,
-                                    eco_eoh_override=eco_eoh_override,
-                                    area_hectares=_eco_area)
-    guar    = sufficiency_guarantee(population, epsilon,
-                                    registration_epsilon=registration_epsilon)
-    trust   = trust_management(trust_balance, levies["total_levied"],
-                                # REQUIRED, not allocated — the mint pays this
-                                # labour, so no Trust balance caps it. See
-                                # fiscal_snapshot() for the defect this closes.
-                                stew["teh_required"] + eco["teh_required"],
-                                guar["total_cost_teh"],
-                                dep_rate, div_rate, epsilon)
-    pp      = floor_purchasing_power(floor_teh, epsilon, baseline_basket_cost)
+    # THE SHARED FISCAL PATH (2026-10-01). This rebuilt levy → stewardship →
+    # ecological → guarantee → trust by hand beside `fiscal_snapshot`, and
+    # carried two of that function's own fixes as copies (the capital-
+    # elimination override, the frame-conditional ecological area) — the
+    # parallel-path shape every 2026-09-30 defect lived in. One call now;
+    # bit-identical on 96 cases across ε, frame, income, elimination and override.
+    snap    = fiscal_snapshot(
+        trust_balance=trust_balance,
+        labor_income=labor_income,
+        capital_stock_teh=capital_stock_teh,
+        capital_age_ratio=capital_age_ratio,
+        population=population,
+        epsilon=epsilon,
+        levy_rates={"sufficiency": suff_levy_rate},
+        dep_rate=dep_rate,
+        div_rate=div_rate,
+        ecosystem_health=ecosystem_health,
+        deferred_ecological=deferred_ecological,
+        eco_eoh_override=eco_eoh_override,
+        capital_eoh_eliminated=capital_eoh_eliminated,
+        ecological_area_hectares=ecological_area_hectares,
+        ecological_hectares_per_capita=ecological_hectares_per_capita,
+        registration_epsilon=registration_epsilon,
+    )
+    levies, eco, guar, trust = (snap["levies"], snap["ecological"],
+                                snap["guarantee"], snap["trust"])
+    # THE FLOOR IS READ AT THE OBSERVED ε (author decision, 2026-09-30) — the
+    # machine share the ledger measures, not the capability index. The sweep
+    # and the simulation adopted it that day; this pillar still read `epsilon`
+    # until 2026-10-01. None → the pipeline's observed ε at this state.
+    if epsilon_observable is None:
+        epsilon_observable = float(eoh_to_teh_pipeline(
+            epsilon, population=population, capital_stock=capital_stock_teh,
+            capital_age_ratio=capital_age_ratio, ecosystem_health=ecosystem_health,
+            registration_epsilon=registration_epsilon,
+        )["epsilon_observable"])
+    pp      = floor_purchasing_power(floor_teh, epsilon_observable, baseline_basket_cost)
 
     # Trust status
     trust_status = "GREEN" if trust["solvent"] else "RED"
@@ -356,7 +354,7 @@ def fiscal_health_check(
     # YELLOW if pp_index lags the continuous expected gain: threshold = 1 + slope×ε.
     # At ε=0.40 this equals PP_INDEX_WARN (1.05); removes the ε=0.40 blind spot.
     pp_index = pp["pp_index"]
-    pp_warn_threshold = 1.0 + PP_INDEX_WARN_SLOPE * epsilon
+    pp_warn_threshold = 1.0 + PP_INDEX_WARN_SLOPE * epsilon_observable
     if pp_index < 1.0 - 1e-9:
         pp_status = "RED"     # Principle 5 violation — never allowed
     elif pp_index < pp_warn_threshold:
@@ -415,6 +413,7 @@ def fiscal_health_check(
         "ecological_cost":         eco_cost,
         "ecological_status":       eco_status,
         "epsilon":                 epsilon,
+        "epsilon_observable":      epsilon_observable,
     }
 
 
@@ -469,6 +468,9 @@ def system_dashboard(
     eco_eoh_override: float | None = None,
     # The register's own maturity (2026-10-01); None → tracks `epsilon`.
     registration_epsilon: float | None = None,
+    # The caller's `eoh_to_teh_pipeline` result at this state. None → computed
+    # here from the fiscal arguments, the call `fiscal_health_check` makes.
+    pipeline: dict | None = None,
 ) -> dict:
     """
     Full system health dashboard — all four conditions plus health indicators.
@@ -532,6 +534,19 @@ def system_dashboard(
         exit_financeable: The adopted §8.9 invariant, from the caller's
             research/recalibration.exit_financing(). Governs the contestability
             status when supplied. None = not supplied.
+        registration_epsilon: The register's own maturity; None tracks ε.
+        pipeline: The caller's `eoh_to_teh_pipeline` result at this state. It
+            supplies the hours Condition IV is read against and the observed ε
+            the floor pillar reads. None → computed from the fiscal arguments.
+
+    CONDITION IV IS READ TWICE (2026-10-01). `condition_iv` is the certified
+    FRACTION per domain against COMPETENCY_THRESHOLD — the mission statement's
+    rule, unchanged. `condition_iv_hours` asks whether those people can carry
+    the HOURS (`conditions.condition_iv_coverage`), in two tiers, the same two
+    the shocks use (author, 2026-10-01: "the people (agent needs) should be what
+    needs to be covered, the rest can build back over time"):
+      - personal tier short → RED, and Condition IV does not pass;
+      - registered tier short (beyond the personal tier) → YELLOW.
 
     Returns:
         dict: {
@@ -539,6 +554,8 @@ def system_dashboard(
           "condition_ii":  dict,   (from condition_ii_check)
           "condition_iii": dict,   (from balance_check)
           "condition_iv":  dict,   (from competency_check)
+          "condition_iv_hours": {"personal": dict, "registered": dict},
+                                   (from condition_iv_coverage)
           "eoh_health":    dict,   (from eoh_health_indicators)
           "fiscal_health": dict,   (from fiscal_health_check)
           "contestability_chi":   float | None,  (echo of chi input)
@@ -564,9 +581,24 @@ def system_dashboard(
     c2 = condition_ii_check(mean_mu, M_BAND_LOW, M_BAND_HIGH)
     c3 = balance_check(balance_start, earnings, expenditures, balance_end)
 
-    # Condition IV via competency_check
+    # Condition IV via competency_check — the certified FRACTION
     reserve = competency_reserve(certified_by_domain, workforce_size)
     c4      = competency_check(reserve)
+
+    # Condition IV in HOURS (2026-10-01). Until then the dashboard checked only
+    # the fraction, so a reserve at the threshold read GREEN wherever the hours
+    # it must carry exceeded what those people can give.
+    if pipeline is None:
+        pipeline = eoh_to_teh_pipeline(
+            epsilon, population=population, capital_stock=capital_stock_teh,
+            capital_age_ratio=capital_age_ratio,
+            registration_epsilon=registration_epsilon,
+        )
+    c4_hours = {tier: condition_iv_coverage(reserve, pipeline, demand=tier)
+                for tier in ("personal", "registered")}
+    survival_short = c4_hours["personal"]["domains_short"]
+    collective_short = [d for d in c4_hours["registered"]["domains_short"]
+                        if d not in survival_short]
 
     # EOH health indicators
     eoh_h = eoh_health_indicators(
@@ -581,11 +613,13 @@ def system_dashboard(
         population, floor_teh, epsilon, suff_levy_rate, dep_rate, div_rate,
         eco_eoh_override=eco_eoh_override,
         registration_epsilon=registration_epsilon,
+        epsilon_observable=float(pipeline["epsilon_observable"]),
     )
 
     # Overall assessment
     conditions_pass = (
         c1["passes"] and c2["in_band"] and c3["passes"] and c4["passes"]
+        and not survival_short
     )
 
     red_flags: list[str] = []
@@ -599,6 +633,14 @@ def system_dashboard(
         red_flags.append(f"Condition III (Zero Interest): {c3['status']}")
     if not c4["passes"]:
         red_flags.append(f"Condition IV (Competency Reserve): {c4['status']}")
+    if survival_short:
+        red_flags.append(
+            f"Condition IV (hours, personal tier): certified capacity short in "
+            f"{', '.join(survival_short)}")
+    if collective_short:
+        yellow_flags.append(
+            f"Condition IV (hours, registered tier): certified capacity short in "
+            f"{', '.join(collective_short)}")
 
     for indicator, key in (
         ("eoh_deferred", "deferred_ratio_status"),
@@ -710,6 +752,7 @@ def system_dashboard(
         "condition_ii":         c2,
         "condition_iii":        c3,
         "condition_iv":         c4,
+        "condition_iv_hours":   c4_hours,
         "eoh_health":           eoh_h,
         "fiscal_health":        fis_h,
         "contestability_chi":   chi,

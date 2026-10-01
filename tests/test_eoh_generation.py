@@ -601,11 +601,12 @@ class TestEohToEssentialDomains:
         result = eoh_to_essential_domains({"personal": 1000.0})  # others missing
         assert all(v >= 0.0 for v in result.values())
 
-    def test_healthcare_largest_from_personal(self):
-        """With only personal EOH, healthcare must receive the largest share."""
+    def test_care_largest_from_personal(self):
+        """With only personal EOH, CARE receives the largest share (its own
+        essential domain since 2026-10-01; healthcare carried it before)."""
         result = eoh_to_essential_domains({"personal": 1_000_000.0,
                                            "infrastructure": 0.0, "ecological": 0.0, "knowledge": 0.0})
-        assert result["healthcare"] == max(result.values())
+        assert result["care"] == max(result.values())
 
     def test_agriculture_largest_from_ecological(self):
         """With only ecological EOH, agriculture must receive the largest share."""

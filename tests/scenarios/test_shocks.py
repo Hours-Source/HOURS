@@ -596,7 +596,9 @@ class TestAutomationFailureCascade:
         # measured supply, so it is constructed: below the personal demand
         # per head the floor itself goes unserved.
         assert automation_failure_shock(0.40)["outcome"] == "STABLE"
-        assert automation_failure_shock(0.90)["outcome"] == "DEGRADED"
+        # DEGRADED: labour defers, and the care shortfall already there at ε=0.78
+        # is not blamed on the shock (care is a domain since 2026-10-01).
+        assert automation_failure_shock(0.78)["outcome"] == "DEGRADED"
         crisis = automation_failure_shock(0.90, labor_supply_per_capita=800.0)
         assert crisis["deferred_personal_eoh"] > 0.0
         assert crisis["outcome"] == "CRISIS"
@@ -713,9 +715,8 @@ class TestCompetencyInTheShocks:
                   ecological_eoh_spike(0.40, 0.7, 0.3),
                   compound_shock(0.40, automation_fraction_lost=0.5)):
             assert r["competency_tested"] is True
-            assert set(r["competency_coverage_after"]) == {
-                "agriculture", "construction", "energy", "water",
-                "healthcare", "manufacturing", "logistics"}
+            from hours_eoh.data import ESSENTIAL_DOMAINS
+            assert set(r["competency_coverage_after"]) == set(ESSENTIAL_DOMAINS)
 
     def test_a_shortfall_already_there_is_not_blamed_on_the_shock(self):
         # Inside the band where healthcare is short at the Condition IV minimum
@@ -723,8 +724,8 @@ class TestCompetencyInTheShocks:
         # was derived, 2026-10-01, this case also "created" a logistics
         # shortfall — the old 0.20 logistics weight, gone with it.)
         r = automation_failure_shock(0.78)
-        assert r["competency_short_before"] == ["healthcare"]
-        assert r["competency_personal_short_before"] == ["healthcare"]
+        assert r["competency_short_before"] == ["care"]
+        assert r["competency_personal_short_before"] == ["care"]
         assert r["competency_short_created"] == []
         assert r["competency_personal_short_created"] == []
 
@@ -741,18 +742,18 @@ class TestCompetencyInTheShocks:
         from hours_eoh.core.eoh_generation import resolve_capital_stock
         r = demographic_shock(0.99, "aging", 0.2)
         assert r["labour_outcome"] == "STABLE"
-        assert r["competency_short_created"] == ["healthcare"]
+        assert r["competency_short_created"] == ["care"]
         # The shortfall is in the PERSONAL tier — the agents' own needs without
         # competent hands — so CRISIS, not DEGRADED (author, 2026-10-01).
-        assert r["competency_personal_short_created"] == ["healthcare"]
+        assert r["competency_personal_short_created"] == ["care"]
         assert r["outcome"] == "CRISIS"
         s0 = sh._base_state(0.99, 1.0e6, 0.70, None)
         s1 = sh._demographic_change(s0, "aging", 0.2)
         after = sh._run(s1, 0.99, resolve_capital_stock(None, 0.99, population=1.0e6), 0.30, None)
-        held = condition_iv_coverage(sh._threshold_reserve(s0), after)["per_domain"]["healthcare"]
+        held = condition_iv_coverage(sh._threshold_reserve(s0), after)["per_domain"]["care"]
         assert held["coverage_ratio"] >= 1.0
         ratio = s1["age_fractions"]["working_age"] / s0["age_fractions"]["working_age"]
-        assert r["competency_coverage_after"]["healthcare"] == pytest.approx(
+        assert r["competency_coverage_after"]["care"] == pytest.approx(
             held["coverage_ratio"] * ratio, rel=1e-12)
 
     def test_mid_arc_failure_creates_no_shortfall(self):
@@ -760,7 +761,7 @@ class TestCompetencyInTheShocks:
 
     def test_competency_travels_with_the_frame(self):
         rows = [automation_failure_shock(0.90, population=p) for p in (1e5, 1e6, 1e7)]
-        ratios = [r["competency_coverage_after"]["logistics"] for r in rows]
+        ratios = [r["competency_coverage_after"]["care"] for r in rows]
         assert ratios == pytest.approx([ratios[1]] * 3, rel=1e-9)
         assert len({tuple(r["competency_short_created"]) for r in rows}) == 1
 
@@ -774,16 +775,16 @@ class TestTheSurvivalTier:
     def test_a_personal_tier_shortfall_is_crisis(self):
         r = automation_failure_shock(0.99)
         assert r["labour_outcome"] == "DEGRADED"
-        assert r["competency_personal_short_created"] == ["healthcare"]
+        assert r["competency_personal_short_created"] == ["care"]
         assert r["outcome"] == "CRISIS"
 
-    def test_the_tier_edge_is_read_not_smoothed(self):
-        # At ε=0.60 the registered tier is already short and the personal tier
-        # is not; the failure tips the personal tier.
-        r = automation_failure_shock(0.60)
-        assert r["competency_short_before"] == ["healthcare"]
-        assert r["competency_personal_short_before"] == []
-        assert r["competency_personal_short_created"] == ["healthcare"]
+    def test_care_at_the_minimum_has_no_slack_for_lost_automation(self):
+        # Machines carry part of care late in the arc. A care pool certified at
+        # exactly the Condition IV minimum cannot take even a quarter of it
+        # back: labour absorbs the loss (STABLE), competency does not (CRISIS).
+        r = automation_failure_shock(0.90, fraction_lost=0.25)
+        assert r["labour_outcome"] == "STABLE"
+        assert r["competency_personal_short_created"] == ["care"]
         assert r["outcome"] == "CRISIS"
 
     def test_unattributed_hours_are_reported_not_counted_short(self):

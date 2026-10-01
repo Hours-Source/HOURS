@@ -1,11 +1,11 @@
 """
 Distributed Competency (Condition IV) and Workforce Dynamics
 
-Models the competency reserve across seven essential domains, the minimum
+Models the competency reserve across the essential domains, the minimum
 labor obligation that sustains it, and the automation failure scenario.
 
 Condition IV (Distributed Competency) requires that at least 15.5% of
-the workforce remain certified in each of seven essential domains regardless
+the workforce remain certified in each essential domain regardless
 of automation level. This is not a market outcome — it is a structural
 requirement. As automation rises, maintaining the reserve requires explicit
 policy (the minimum hours obligation and competency rotation).
@@ -42,11 +42,12 @@ def competency_reserve(
     domain_requirements: dict[str, float] | None = None,
 ) -> dict:
     """
-    Compute the competency reserve across the seven essential domains.
+    Compute the competency reserve across the essential domains (eight since
+    care was added, 2026-10-01 — `ESSENTIAL_DOMAINS`).
 
     The reserve tracks certified workers per domain relative to the total
     workforce. A domain is "at risk" when its certified fraction falls below
-    the required threshold. Condition IV requires ALL seven domains to meet
+    the required threshold. Condition IV requires ALL the domains to meet
     the threshold simultaneously.
 
     Args:
@@ -74,7 +75,7 @@ def competency_reserve(
                     is in certified_by_domain.
 
     Reference: Mission Statement §"Condition IV — Distributed Competency:
-    ≥15.5% of the workforce must remain certified in each of seven essential
+    ≥15.5% of the workforce must remain certified in each essential
     domains at every ε level."
     """
     if workforce_size <= 0:
@@ -177,7 +178,7 @@ def competency_check(
 
     if overall_ok:
         recommendation = (
-            "Competency reserve meets Condition IV across all seven essential domains."
+            "Competency reserve meets Condition IV across all essential domains."
         )
     elif critical_gaps:
         recommendation = (

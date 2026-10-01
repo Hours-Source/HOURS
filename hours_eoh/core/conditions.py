@@ -478,16 +478,15 @@ def condition_iv_coverage(
        (agent needs) should be what needs to be covered, the rest can build back
        over time"), the same priority `labor_constrained_fulfillment` serves
        first. `demand="human"` reads all human-carried hours.
-       The two disagree on the shipped arc, for healthcare: under "human" it
-       is short across the whole arc; under "registered" over a contiguous
-       band of the upper arc, deepest well inside it — the four reporting
-       points see only one point of that band (mode 3), so call the function
-       on a fine grid. Which reading Condition IV means is open for the author.
+       Any shortfall sits in a band of the upper arc, which the four
+       reporting points can miss (mode 3) — call the function on a fine grid.
+       `dashboard.system_dashboard` and the shocks read both "personal"
+       (a shortfall fails Condition IV) and "registered" (a warning).
     3. THE BRIDGE. Its personal column is DERIVED from the obligation's
        components (`data.ESSENTIAL_BRIDGE_PERSONAL`, 2026-10-01); the other
-       three columns are the original judgement. Healthcare binds because care
-       is most of the personal obligation and has no essential domain of its
-       own. Hours no domain is certified for are reported as
+       three columns are the original judgement. Care has its own essential
+       domain since 2026-10-01 and is most of the personal obligation, so it is
+       the domain that binds. Hours no domain is certified for are reported as
        `unattributed_eoh`, never counted as a shortfall. Pass `weights=` to
        test another bridge.
 
