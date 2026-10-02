@@ -50,9 +50,9 @@ stability, and the state container that feeds them.
 
 ## Open
 
-- **The dashboard PP pillar cannot fire** *(gap)* [verification.md](verification.md#fiscal-health-shared)
+- **Dashboard PP and ecological pillars cannot fire** *(gap)* [verification.md](verification.md#one-headcount)
 - **~~Shocks charge EOH to the Trust~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#one-state-one-cascade)
-- **~~Condition IV: registered or human?~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#bridge-derived)
+- **~~Condition IV reading~~ — SETTLED 2026-10-01** *(pointer)* [verification.md](verification.md#bridge-derived)
 - **A destroyed capital stock books no obligation to rebuild it.** *(gap)* Ecology
   has a restoration socket; capital has none, so a disaster cuts minting 8.77%.
   *Settles by:* a socket and a wiring decision. [entry](#capital-reconstruction-gap).

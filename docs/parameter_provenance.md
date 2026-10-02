@@ -749,7 +749,8 @@ h/person·yr**, and the lower w *loosens* the ceiling, since it appears in the
 denominator of B ≤ (L−R)/w.
 
 **Self-consistency arm — no external data required.** Using only `H_REF` = 2,000
-and `workforce_fraction` = 0.5 (the same 1e9-for-1M figure the corridor tests
+and `workforce_fraction` = 0.5 (`EohParams`' default until 2026-10-01, now the
+working-age share; the same 1e9-for-1M figure the corridor tests
 pass as `available_labor_eoh`):
 
 | | |

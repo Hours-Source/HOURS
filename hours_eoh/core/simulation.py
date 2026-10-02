@@ -29,6 +29,7 @@ import math
 from typing import Any
 
 from hours_eoh.data import (
+    AGE_GROUPS,
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
     CAPITAL_STOCK_DEFAULT, BASKET_EOH_CONTENT,
@@ -50,7 +51,7 @@ from hours_eoh.core.registration import register_shares
 def make_economy_state(
     epsilon: float = 0.40,
     population: float = 1_000_000.0,
-    workforce_fraction: float = 0.60,
+    workforce_fraction: float = AGE_GROUPS["working_age"]["fraction"],
     trust_balance: float | None = None,
     labor_income_teh: float = 5_000_000_000.0,
     capital_stock_teh: float | None = None,
@@ -81,6 +82,7 @@ def make_economy_state(
         epsilon: Current automation level [0.0, 0.99].
         population: Total population (all ages).
         workforce_fraction: Fraction of population in active workforce [0, 1].
+            Default: the working-age share (`AGE_GROUPS`), bound, not copied.
         trust_balance: Trust fund balance at start of this period (TEH). None
             (the default) resolves the 1M-reference inheritance to THIS
             population — see `fiscal.resolve_trust_balance`. A supplied balance

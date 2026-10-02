@@ -131,3 +131,37 @@ def test_with_a_care_domain_only_care_falls_short():
         r = condition_iv_coverage(res, p, reading)
         assert r["domains_short"] == ["care"]
         assert 0.95 < r["per_domain"]["care"]["coverage_ratio"] < 1.0
+
+
+def test_the_untagged_columns_cannot_move_a_verdict_outside_care():
+    """The infrastructure, ecological and knowledge columns are the original
+    judgement (record/provenance.md § Open). BOUNDED, 2026-10-01: put ALL
+    three columns' registered hours on ONE domain — the most concentrated
+    bridge there is — and at threshold certification every domain but care is
+    still covered across the arc (fine grid; the minima sit near ε≈0.75, which
+    no reporting point sees). Care takes none of them; any share it took could
+    only deepen its shortfall."""
+    from hours_eoh.core.conditions import condition_iv_coverage
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.eoh_generation import essential_weights
+    from hours_eoh.core.workforce import competency_reserve
+    from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD
+    cols = ("infrastructure", "ecological", "knowledge")
+    assert all(essential_weights()["care"][c] == 0.0 for c in cols)
+    wf = 1.0e6 * AGE_GROUPS["working_age"]["fraction"]
+    res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+    worst = 1e9
+    for i in range(100):
+        p = eoh_to_teh_pipeline(min(i / 100, 0.99))
+        for d in ESSENTIAL_DOMAINS:
+            if d == "care":
+                continue
+            w = essential_weights()
+            for row in w.values():
+                for c in cols:
+                    row[c] = 0.0
+            for c in cols:
+                w[d][c] = 1.0
+            worst = min(worst, condition_iv_coverage(res, p, weights=w)[
+                "per_domain"][d]["coverage_ratio"])
+    assert 1.0 < worst < 2.0   # healthcare, 1.69 — a bound, with its margin visible

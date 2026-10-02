@@ -50,6 +50,7 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
+    AGE_GROUPS,
     CAPITAL_MACHINE_PROFILES,
     CANONICAL_MONITORING_CAPABILITY_BASE,
     COND_DECAY_SLOPE,
@@ -252,7 +253,8 @@ def civilization_epsilon(civ: dict) -> dict:
         civ: Civilization description dict. All keys are optional with defaults.
 
             population (float):          Total population. Default: 1_000_000.
-            workforce_fraction (float):  Active workforce ∈ [0, 1]. Default: 0.60.
+            workforce_fraction (float):  Active workforce ∈ [0, 1]. Default: the
+                                         working-age share (`AGE_GROUPS`).
             ecosystem_health (float):    Ecosystem state ∈ [0, 1]. Default: 0.70.
             deferred_ecological (float): Accumulated deferred eco EOH. Default: 0.
             knowledge_complexity (float | None): ACTUAL corpus size relative to
@@ -310,7 +312,8 @@ def civilization_epsilon(civ: dict) -> dict:
     population           = float(civ.get("population",           1_000_000.0))
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
-    workforce_fraction   = float(civ.get("workforce_fraction",   0.60))
+    workforce_fraction   = float(civ.get("workforce_fraction",
+                                         AGE_GROUPS["working_age"]["fraction"]))
     ecosystem_health     = float(civ.get("ecosystem_health",     0.70))
     deferred_ecological  = float(civ.get("deferred_ecological",  0.0))
     # None when absent, so the arc fills it at this ε (2026-09-09) — a hard

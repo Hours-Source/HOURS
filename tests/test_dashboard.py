@@ -928,10 +928,10 @@ class TestConditionIvInHoursOnTheDashboard:
         assert r["condition_iv_hours"]["registered"]["all_covered"] is True
         assert r["conditions_all_pass"] is True
 
-    def test_a_reserve_above_the_fraction_can_still_fail_the_survival_tier(self):
-        # The point of the change: at ε=0.78 the declared 0.18 passes the
-        # fraction check, and care cannot carry the agents' care hours.
-        r = system_dashboard(**self._cli(0.78))
+    def test_a_reserve_at_the_threshold_can_still_fail_the_survival_tier(self):
+        # The point of the change: at ε=0.78 a reserve at COMPETENCY_THRESHOLD
+        # passes the fraction check, and care cannot carry the agents' care hours.
+        r = system_dashboard(**self._cli(0.78, certified_fraction=COMPETENCY_THRESHOLD))
         assert r["condition_iv"]["passes"] is True
         assert r["condition_iv_hours"]["personal"]["domains_short"] == ["care"]
         assert r["conditions_all_pass"] is False
@@ -940,7 +940,7 @@ class TestConditionIvInHoursOnTheDashboard:
 
     def test_more_certified_care_clears_it(self):
         # Can it NOT fire: the same state with care certified above its need.
-        kw = self._cli(0.78)
+        kw = self._cli(0.78, certified_fraction=COMPETENCY_THRESHOLD)
         kw["certified_by_domain"] = dict(kw["certified_by_domain"],
                                          care=kw["workforce_size"] * 0.25)
         r = system_dashboard(**kw)
@@ -981,3 +981,58 @@ class TestConditionIvInHoursOnTheDashboard:
             kw["trust_balance"], kw["labor_income"], kw["capital_stock_teh"],
             kw["capital_age_ratio"], kw["population"], kw["floor_teh"], eps)
         assert r["fiscal_health"] == direct
+
+
+class TestOneHeadcountForTheWorkforce:
+    """The workforce is the WORKING-AGE share (author, 2026-10-01). EohParams
+    carried 0.50 while the simulation, civilization and the shocks read 0.60,
+    so the dashboard's certified pool was a sixth smaller than the shocks' for
+    the same fraction, and its care shortfall at the threshold ran ε 0.62–0.94
+    where the shocks found 0.74–0.81."""
+
+    def test_every_default_is_the_working_age_share(self):
+        from hours_eoh.core.civilization import civilization_epsilon
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.data import AGE_GROUPS
+        wa = AGE_GROUPS["working_age"]["fraction"]
+        assert EohParams()["workforce_fraction"] == wa
+        assert make_economy_state()["workforce_fraction"] == wa
+        assert civilization_epsilon({})["physical_state"]["workforce_fraction"] == wa
+
+    def test_the_dashboard_and_the_shocks_agree_at_the_threshold(self):
+        # At COMPETENCY_THRESHOLD both read care short over the same band.
+        band = [e / 100 for e in range(100)
+                if system_dashboard(**TestConditionIvInHoursOnTheDashboard._cli(
+                    e / 100, certified_fraction=COMPETENCY_THRESHOLD))[
+                        "condition_iv_hours"]["personal"]["domains_short"]]
+        assert band and min(band) >= 0.70 and max(band) <= 0.85
+
+
+class TestTheEcologicalPillarCannotFire:
+    """`ecological_status` compares the LEDGER's ecological wage bill with 0.30 /
+    0.60 of the Trust balance. Under the adopted `guf` response the health
+    obligation is relocated to the Ground Use Fee, so the ledger figure is zero
+    by design and the pillar reads GREEN everywhere — even against an empty
+    Trust (2026-10-01, mode 9). Pinned as a fact so a change of response, which
+    would make it live, is seen; what it should test is open for the author."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    @pytest.mark.parametrize("health", [0.10, 0.70])
+    def test_the_ledger_figure_is_zero_and_the_relocated_one_is_not(self, eps, health):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        cap = resolve_capital_stock(None, eps)
+        p = eoh_to_teh_pipeline(eps, population=1.0e6, capital_stock=cap,
+                                ecosystem_health=health)
+        kw = dict(trust_balance=0.0, labor_income=p["teh_created"],
+                  capital_stock_teh=cap, capital_age_ratio=0.5, population=1.0e6,
+                  epsilon=eps, ecosystem_health=health,
+                  eco_eoh_override=p["eoh_by_domain"]["ecological"])
+        eco = fiscal_snapshot(**kw)["ecological"]
+        assert eco["teh_required"] == 0.0
+        assert eco["relocated_teh_required"] > 0.0
+        r = fiscal_health_check(0.0, p["teh_created"], cap, 0.5, 1.0e6, 1000.0, eps,
+                                ecosystem_health=health,
+                                eco_eoh_override=p["eoh_by_domain"]["ecological"])
+        assert r["ecological_status"] == "GREEN"

@@ -18,6 +18,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from hours_eoh.data import (
+    AGE_GROUPS,
     PERSONAL_EOH_BASE, INFRA_MAINT_RATE, INFRA_AGE_FACTOR_MAX,
     ECOLOGICAL_BASE_RATE, ECOLOGICAL_THRESHOLD,
     KNOWLEDGE_EOH_BASE, KNOWLEDGE_EPS_EXPONENT, SKILL_TRANSMISSION_RATE,
@@ -36,7 +37,10 @@ from hours_eoh.data import (
 EOH_DEFAULTS: dict[str, Any] = {
     # --- Population & Workforce ---
     "population":           1_000_000,
-    "workforce_fraction":   0.50,          # fraction of pop that is employed
+    # The WORKING-AGE share (author, 2026-10-01): one headcount for the
+    # workforce, the one the shocks, simulation and Condition IV read. Was 0.50,
+    # a second figure that sized the dashboard's certified pool a sixth smaller.
+    "workforce_fraction":   AGE_GROUPS["working_age"]["fraction"],
     "h_ref":                H_REF,         # reference work-year hours
     "h_min":                H_MIN,         # minimum annual obligation (Condition IV)
 

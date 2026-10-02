@@ -46,7 +46,8 @@ raising supply. Any feasibility test run against the 1,500 figure understates
 the gap by 1.3528×.
 
 WHAT THE TEST FINDS (see `over_determination_report`). Using nothing but the
-repo's own constants — H_REF = 2,080 h/yr and workforce_fraction = 0.5, giving
+repo's own constants — H_REF = 2,080 h/yr and workforce_fraction = 0.5 (EohParams'
+default until 2026-10-01; the working-age share 0.60 since), giving
 L = 1,000 h/person·yr — demand at ε = 0 exceeds supply by **2.29×**. Under
 subsistence-population parameters (adult share 0.55–0.60, ethnographic adult
 labor budgets below the modern 2,080-hour reference) the ratio runs 1.5–3.5×.

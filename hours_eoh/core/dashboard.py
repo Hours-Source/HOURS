@@ -393,8 +393,12 @@ def fiscal_health_check(
     # the Trust. REQUIRED, not allocated: the capped figure is bounded by
     # `trust_balance` by construction, so comparing it to a fraction of that
     # balance was half a tautology (failure mode 2). The comparison itself is
-    # stale under the wage doctrine — the mint pays this — and is listed in
-    # `record/fulfilment.md` as the next stale pillar after the levy warn.
+    # stale under the wage doctrine — the mint pays this — AND IT CANNOT FIRE
+    # (2026-10-01): under the adopted `guf` response the health obligation is
+    # relocated to the Ground Use Fee, so `teh_required` is zero by design and
+    # this reads GREEN even against an empty Trust. Kept, not re-pointed — what
+    # it should test is open (`record/fulfilment.md § Open`), and pinned in
+    # `tests/test_dashboard.py::TestTheEcologicalPillarCannotFire`.
     eco_cost = eco["teh_required"]
     eco_status = "GREEN" if eco_cost <= trust_balance * 0.30 else (
                  "YELLOW" if eco_cost <= trust_balance * 0.60 else "RED")

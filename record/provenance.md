@@ -41,7 +41,7 @@ recalled. Regenerate with `eoh provenance check`.
 
 ## Open
 
-- **Three bridge columns are untagged** *(gap)* — personal is derived; infrastructure, ecological, knowledge are not. *Settles by:* employment by industry. [verification.md](verification.md#bridge-derived)
+- **Three bridge columns are untagged** *(caveat)* — and BOUNDED: all three on one domain leaves every domain but care covered (≥1.69×). [verification.md](verification.md#one-headcount)
 - **30 dict/tuple constants carry ONE tag over several fields; two checked**
   *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
   the others. **9 of the 30 declare MIXED UNITS in their own `units:` field and
