@@ -222,6 +222,9 @@ hours_eoh/
                        read by the register; exit to the collective settles (debt destroyed
                        via D1, improvement minted, lesser-of); exchange carries; register
                        write-downs re-base; the reserved floor; the low-ε flat fee
+    dynamic_stability.py  DOES ANY LOOP OSCILLATE: oscillation() reads a trajectory; run on
+                       the period engine (no cycle) and the formation loop (a period-2 cobweb
+                       under dividend priority from year ≈206, bounded and decaying)
 
 utils/                 Presentation layer — CLI and research helpers (see README)
   verdict_ladder.py    The verdict ladder computed — transitive data.py dependencies per
@@ -599,7 +602,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,354 tests passing (1 skipped), mypy clean on 105 source files** (verified
+**5,371 tests passing (1 skipped), mypy clean on 106 source files** (verified
 2026-10-01). Provenance **352/352**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -673,8 +676,9 @@ this whole structure forbids.**
 - `teh_supply` is pinned, not decided — a test fails if it acquires a caller,
   which is the safe holding state.
   → [`record/verification.md § Live state`](record/verification.md#live-state)
-- The compensating-mechanism audit and dynamic stability / oscillation are both
-  unbuilt; nothing tests for limit cycles.
+- The compensating-mechanism audit is unbuilt. Dynamic stability is MEASURED
+  (`research/dynamic_stability.py`, 2026-10-01): one limit cycle, the formation
+  loop's dividend-priority cobweb — bounded and decaying.
   → [`record/verification.md § Open`](record/verification.md#open)
 
 ### Method — run the functions first (author, 2026-09-30)
@@ -709,7 +713,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**117 test files. The name rule covers 78 of them:** `tests/test_<module>.py`
+**118 test files. The name rule covers 79 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

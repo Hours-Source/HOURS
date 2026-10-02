@@ -56,9 +56,8 @@ stability, and the state container that feeds them.
 - **A destroyed capital stock books no obligation to rebuild it.** *(gap)* Ecology
   has a restoration socket; capital has none, so a disaster cuts minting 8.77%.
   *Settles by:* a socket and a wiring decision. [entry](#capital-reconstruction-gap).
-- **Dynamic stability is unbuilt.** *(pointer)* `arc_stability` answers stationarity, NOT
-  whether the capital→income loop oscillates. See
-  [verification.md § Open](verification.md#open).
+- **Dynamic stability is measured, one cycle found** *(pointer)* — see
+  [verification.md](verification.md#limit-cycles-measured).
 - **Type-specific abatement** *(pointer)* — capital by component. See
   [personal.md § Open](personal.md#open).
 - **The discovery layer above the floor is a 120-line stub.** *(pointer)* Every claim about
