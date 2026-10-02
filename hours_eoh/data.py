@@ -4195,6 +4195,12 @@ GUF_ECOSYSTEM_SERVICES: dict[str, dict[str, object]] = {
 #   session, after WORLD_POPULATION and REFERENCE_FRAME_POPULATION.
 # decided_by: the unit definition itself; changing it changes what SLU MEANS.
 SLU_HECTARES: float = 0.01  # ha per SLU (1 SLU = 100 m²)
+# tag: convention | units: square metres per hectare
+# form: the SI definition of the hectare (1 ha = 100 m × 100 m).
+# decided_by: the unit definition itself. Named so the reserved land floor
+#   (`research/parcel_condition.land_reserve_hectares`) can turn the basket's
+#   per-person floor area into ground without an anonymous literal.
+M2_PER_HECTARE: float = 10_000.0
 
 # tag: instance | units: dict of service name -> volume per hectare per year
 # supplied_by: an ecological survey of YOUR OWN land. The two services here are
@@ -4426,6 +4432,16 @@ GUF_SUBSIDY_FLOOR_RATE:      float = 0.25  # subsidized leaseholders pay 25% of 
 #   (the US 30% burden threshold is the better-known variant). Adopting a
 #   published threshold explicitly would move this to `convention`.
 GUF_AFFORDABILITY_THRESHOLD: float = 0.25  # GUF ≤ 25% of income = accessible primary housing
+# tag: normative | units: multiple of BASKET_SHELTER_M2_PER_PERSON, as ground area
+# form: reserve_ha = population × BASKET_SHELTER_M2_PER_PERSON × this / M2_PER_HECTARE
+#   — the collective land held back from private lease so the register can
+#   cover every member's shelter: a collective advances the arc only if the
+#   register covers the EOH. Sized to the WHOLE population (anyone may fall back
+#   on the collective), measured as GROUND, not floor area.
+# decided_by: the author, 2026-10-01 ("default to the already per person shelter
+#   amount * 4 (rough account of misc space needed)"). INSTANCED: a collective
+#   states its own; this is the default.
+COLLECTIVE_LAND_RESERVE_FACTOR: float = 4.0
 
 # Agricultural soil-health credit rate (NLSA Eq. 26); symbol c_soil in equations
 # tag: placeholder | units: TEH per Standard Land Unit per unit Soil Health Index gain

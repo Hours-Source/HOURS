@@ -137,6 +137,12 @@ class TestTheCensusCannotDriftSilently:
                        achievable ceiling, which is derived and moves —
                        observable_epsilon_ceiling() reads 0.788-0.877 under
                        per_component, and the two are gated apart.
+                 352 = 32/97/223 after COLLECTIVE_LAND_RESERVE_FACTOR
+                       (normative, the author's ×4, 2026-10-01) and
+                       M2_PER_HECTARE (convention, the SI unit) were NAMED
+                       for the reserved land floor in research/parcel_condition
+                       — one new judgement, one unit identity; neither is a
+                       placeholder.
                  350 = 32/96/222 after ESSENTIAL_BRIDGE_PERSONAL was
                        DERIVED (2026-10-01) — the personal column of the
                        essential-domain bridge, computed from the obligation's
@@ -173,10 +179,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 350
+        assert c["total"] == 352
         assert c["counts"]["CERTAIN"] == 32
-        assert c["counts"]["INSTANCE"] == 96
-        assert c["counts"]["POSSIBLE"] == 222
+        assert c["counts"]["INSTANCE"] == 97
+        assert c["counts"]["POSSIBLE"] == 223
 
     def test_possible_is_still_the_largest_tier(self):
         """

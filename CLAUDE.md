@@ -218,6 +218,10 @@ hours_eoh/
     thermal*.py        thermal, thermal_path_c, thermal_lambda, thermal_overage, thermal_drawdown,
                        thermal_solvency, thermal_capital — the planetary radiative layer
     desire.py          Discovery-above-the-floor stub (sign-off-gated)
+    parcel_condition.py  WHO PAYS FOR WHAT A HOLDER DOES TO LAND: the condition index at 1,
+                       read by the register; exit to the collective settles (debt destroyed
+                       via D1, improvement minted, lesser-of); exchange carries; register
+                       write-downs re-base; the reserved floor; the low-ε flat fee
 
 utils/                 Presentation layer — CLI and research helpers (see README)
   verdict_ladder.py    The verdict ladder computed — transitive data.py dependencies per
@@ -595,8 +599,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,327 tests passing (1 skipped), mypy clean on 104 source files** (verified
-2026-10-01). Provenance **350/350**, shadow ratchet **33**, confidence ratchet
+**5,354 tests passing (1 skipped), mypy clean on 105 source files** (verified
+2026-10-01). Provenance **352/352**, shadow ratchet **33**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -705,7 +709,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**116 test files. The name rule covers 77 of them:** `tests/test_<module>.py`
+**117 test files. The name rule covers 78 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
