@@ -146,6 +146,8 @@ hours_eoh/
     frailty.py         frailty_care_load, morbidity_direction — the frailty care INTAKE;
                        no default, because a shipped care number is a rationing rule
     thermal_load.py    thermal_load_arc, thermal_load_verdict — the planetary obligation carried in the ledger
+    compensation.py    compensation_map, minimal_sufficient_sets — WHICH MECHANISMS COVER FOR EACH
+                       OTHER, AND WHERE (review §15): knockouts on the shared path; REPORTING ONLY
     feasibility.py     labor_supply_per_capita, feasibility_check, over_determination_report, feasible_epsilon,
                        mint_floor_reach — the share of labour supply the mint can pay
     personal_floor.py  obligation_floor, identity_report, floor_vs_constants — normative floor vs measured hours
@@ -676,7 +678,9 @@ this whole structure forbids.**
 - `teh_supply` is pinned, not decided — a test fails if it acquires a caller,
   which is the safe holding state.
   → [`record/verification.md § Live state`](record/verification.md#live-state)
-- The compensating-mechanism audit is unbuilt. Dynamic stability is MEASURED
+- The compensating-mechanism audit is BUILT for the two TEH inflows
+  (`scenarios/compensation.py`): the levy and GUF cover for each other only to
+  ε≈0.55; the levy alone carries 0.56–0.97. Dynamic stability is MEASURED
   (`research/dynamic_stability.py`, 2026-10-01): one limit cycle, the formation
   loop's dividend-priority cobweb — bounded and decaying.
   → [`record/verification.md § Open`](record/verification.md#open)
@@ -713,7 +717,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**118 test files. The name rule covers 79 of them:** `tests/test_<module>.py`
+**119 test files. The name rule covers 80 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

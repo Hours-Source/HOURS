@@ -922,6 +922,15 @@ def _kappa_ratio_is_12_to_69() -> bool:
             and round(r["shipped_over_implied_low"]) == 69)
 
 
+def _compensation_audits_only_the_inflows() -> bool:
+    """The audit is built for the TEH inflows alone (2026-10-02). It goes stale
+    when a second mechanism family — the labour side, the Trust — is added and
+    nobody narrows the open item."""
+    import hours_eoh.scenarios.compensation as C
+    families = [n for n in vars(C) if n.endswith("_mechanisms") and callable(getattr(C, n))]
+    return families == ["inflow_mechanisms"]
+
+
 def _desire_is_still_a_stub() -> bool:
     import ast as _ast
     src = (REPO_ROOT / "hours_eoh" / "research" / "desire.py").read_text(encoding="utf-8")
@@ -965,9 +974,8 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       _form_edges_not_derived),
     OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
-    OpenItemPredicate("The compensating-mechanism audit", "gap", None,
-                      why_none="an audit is a document plus findings; nothing in the "
-                               "tree changes shape when it is performed"),
+    OpenItemPredicate("Compensation audited for the inflows", "gap",
+                      _compensation_audits_only_the_inflows),
     OpenItemPredicate("`teh_supply` is pinned, not decided", "held",
                       _teh_supply_has_no_caller),
     OpenItemPredicate("Anchor comparison Phases 1–3 are HELD DELIBERATELY", "held",
@@ -1017,9 +1025,11 @@ class TestTheOpenItemPredicates:
         itself an item with a predicate: `_predicate_coverage_is_incomplete`
         fails once every typed item is covered, so this admission cannot
         outlive the condition it describes.
-      * TWO ITEMS CARRY `why_none` RATHER THAN A PREDICATE, and both reasons
-        are real: an audit changes no shape in the tree, and a hold on a VALUE
-        being unassessable is not contradicted by the module that says so.
+      * SOME ITEMS CARRY `why_none` RATHER THAN A PREDICATE, each with its
+        reason — e.g. a hold on a VALUE being unassessable is not contradicted
+        by the module that says so. (The compensating-mechanism audit carried
+        one until 2026-10-02, when the audit became a module and got a
+        predicate.)
         `why_none` is required precisely so `None` cannot be the silent
         default.
       * A PREDICATE PROVES THE OBSERVABLE, NOT THE ITEM. `_anchor_comparison_
