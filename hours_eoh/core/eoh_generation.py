@@ -28,6 +28,7 @@ from typing import TypedDict
 
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
+    H_REF,
     ECOSYSTEM_HEALTH_DEFAULT,
     INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT,
     INFRA_AGE_FACTOR_MAX,
@@ -1968,7 +1969,8 @@ def total_eoh(
 def domain_labor_requirements(
     eoh_by_domain: dict,
     epsilon: float,
-    hours_per_worker: float = 2000.0,
+    hours_per_worker: float = H_REF,
+    human_eoh_by_domain: dict | None = None,
 ) -> dict:
     """
     Workers required in each EOH domain given current automation level.
@@ -1979,21 +1981,33 @@ def domain_labor_requirements(
     healthcare workers, infrastructure stewards, ecological monitors, etc.
     are needed to fulfill the human portion of each domain's EOH?
 
-    The human fraction = (1 − ε) applies uniformly — automation handles
-    (ε × domain_eoh) and the remaining (1−ε) requires human workers.
+    HUMAN HOURS: pass `human_eoh_by_domain` — the pipeline's
+    `eoh_to_teh_pipeline(...)["human_eoh_by_domain"]`, which carries the
+    per-domain automation response and its floors (care stays human). Without
+    it the human share falls back to a uniform (1 − ε) on every domain, which
+    ignores the floors and reads LOW, increasingly so up the arc (pinned by
+    `tests/test_eoh_generation.py::TestDomainLaborRequirements::
+    test_the_fallback_reads_low_where_floors_bind`; call both for the level).
+    Kept as the fallback for callers holding only a domain breakdown
+    (2026-10-03).
 
     Args:
         eoh_by_domain: Dict with keys "personal", "infrastructure",
                        "ecological", "knowledge" — typically from
                        total_eoh()[domain] or eoh_to_teh_pipeline()["eoh_by_domain"].
         epsilon: Automation level [0.0, 0.99]. Applied to all domains.
-        hours_per_worker: Annual productive hours per worker. Default 2000
-                          (H_REF from data.py — one full working year).
+        hours_per_worker: Annual productive hours per worker. Default
+                          H_REF (2,080 — one full working year). Was a bare
+                          2000 described as H_REF until 2026-10-03.
+        human_eoh_by_domain: Human EOH per domain, as the pipeline computes
+                          it. Must carry every key of `eoh_by_domain`. None →
+                          the uniform (1 − ε) fallback.
 
     Returns:
         dict: {
           "epsilon":        float,
-          "human_fraction": float,      (= 1 − ε)
+          "human_fraction": float,      (the APPLIED share: Σhuman / Σtotal when
+                                         human_eoh_by_domain is given, else 1 − ε)
           "hours_per_worker": float,
           "domains": {
             <domain>: {
@@ -2010,12 +2024,17 @@ def domain_labor_requirements(
     obligation, not the other way around — scarcity of workers in any domain
     is a structural risk, not a labor-market outcome."
     """
-    human_fraction = max(0.0, 1.0 - epsilon)
+    uniform = max(0.0, 1.0 - epsilon)
     h = max(hours_per_worker, 1.0)
+    if human_eoh_by_domain is not None:
+        missing = set(eoh_by_domain) - set(human_eoh_by_domain)
+        if missing:
+            raise ValueError(f"human_eoh_by_domain lacks {sorted(missing)}")
 
     domains: dict = {}
     for name, total in eoh_by_domain.items():
-        human = total * human_fraction
+        human = (total * uniform if human_eoh_by_domain is None
+                 else float(human_eoh_by_domain[name]))
         domains[name] = {
             "total_eoh":      total,
             "human_eoh":      human,
@@ -2023,6 +2042,11 @@ def domain_labor_requirements(
         }
 
     total_workers = sum(d["workers_needed"] for d in domains.values())
+    gross = sum(eoh_by_domain.values())
+    # Report the share APPLIED, not the one the fallback would have used (mode 10).
+    human_fraction = (uniform if human_eoh_by_domain is None
+                      else (sum(d["human_eoh"] for d in domains.values()) / gross
+                            if gross > 0.0 else 0.0))
 
     return {
         "epsilon":              epsilon,
@@ -2217,7 +2241,9 @@ def epsilon_delta_sensitivity(
             knowledge_complexity=knowledge_complexity,
             mean_multiplier=mean_multiplier,
         )
-        req = domain_labor_requirements(pipe["eoh_by_domain"], eps)
+        req = domain_labor_requirements(
+            pipe["eoh_by_domain"], eps,
+            human_eoh_by_domain=pipe["human_eoh_by_domain"])
         return {
             "total_eoh":        pipe["total_eoh"],
             "human_eoh":        pipe["human_eoh"],

@@ -5,6 +5,7 @@ Covers: fiscal_parameter_sweep, eoh_arc_sensitivity, epsilon_delta_sensitivity r
 """
 
 import pytest
+from hours_eoh.data import EPSILON_ARC_MAX
 from hours_eoh.scenarios.sensitivity import (
     fiscal_parameter_sweep,
     eoh_arc_sensitivity,
@@ -187,3 +188,30 @@ class TestEpsilonDeltaSensitivityReexport:
     def test_returns_key_metrics(self):
         result = epsilon_delta_sensitivity(0.40, 0.10)
         assert "delta_epsilon" in result
+
+
+class TestEveryArcRowIsAFullStep:
+    """The last row stepped 0.99 → 0.99 (clamped, Δε = 0) and read "0.0%" on
+    the steepest window of the arc (2026-10-03)."""
+
+    @pytest.mark.parametrize("delta", [0.05, 0.10, -0.05])
+    def test_no_row_is_clamped(self, delta):
+        rows = eoh_arc_sensitivity(n_points=6, delta_epsilon=delta)
+        for r in rows:
+            assert r["delta_epsilon"] == pytest.approx(delta)
+
+    def test_the_last_step_lands_on_the_end(self):
+        rows = eoh_arc_sensitivity(n_points=6, delta_epsilon=0.05)
+        assert rows[0]["base_epsilon"] == pytest.approx(0.0)
+        assert rows[-1]["new_epsilon"] == pytest.approx(EPSILON_ARC_MAX)
+        assert rows[-1]["base_epsilon"] == pytest.approx(EPSILON_ARC_MAX - 0.05)
+
+    def test_a_retreat_starts_from_the_start_plus_its_step(self):
+        rows = eoh_arc_sensitivity(n_points=6, delta_epsilon=-0.05)
+        assert rows[0]["new_epsilon"] == pytest.approx(0.0)
+        assert rows[0]["base_epsilon"] == pytest.approx(0.05)
+        assert rows[-1]["base_epsilon"] == pytest.approx(EPSILON_ARC_MAX)
+
+    def test_a_step_wider_than_the_range_raises(self):
+        with pytest.raises(ValueError):
+            eoh_arc_sensitivity(epsilon_start=0.5, epsilon_end=0.55, delta_epsilon=0.10)

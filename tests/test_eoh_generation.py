@@ -464,6 +464,45 @@ class TestDomainLaborRequirements:
         high = domain_labor_requirements({"personal": 1e9}, epsilon=0.80)
         assert high["total_workers_needed"] < low["total_workers_needed"]
 
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_pipeline_route_reads_the_pipeline_human_hours(self, eps):
+        """2026-10-03: the uniform (1 − ε) ignored the automation floors and
+        read 13× low at 0.99. Supplied, the pipeline's own figure is used."""
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.data import H_REF
+        p = eoh_to_teh_pipeline(eps)
+        r = domain_labor_requirements(p["eoh_by_domain"], eps,
+                                      human_eoh_by_domain=p["human_eoh_by_domain"])
+        assert r["total_workers_needed"] == pytest.approx(p["human_eoh"] / H_REF, rel=1e-12)
+        assert r["human_fraction"] == pytest.approx(p["human_eoh"] / p["total_eoh"], rel=1e-9)
+
+    def test_the_fallback_reads_low_where_floors_bind(self):
+        """Why the pipeline route exists: the fallback disagrees at the top."""
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        p = eoh_to_teh_pipeline(0.99)
+        flat = domain_labor_requirements(p["eoh_by_domain"], 0.99)
+        assert flat["total_workers_needed"] * 5 < domain_labor_requirements(
+            p["eoh_by_domain"], 0.99,
+            human_eoh_by_domain=p["human_eoh_by_domain"])["total_workers_needed"]
+
+    def test_the_work_year_is_h_ref(self):
+        from hours_eoh.data import H_REF
+        r = domain_labor_requirements({"personal": 1e9}, epsilon=0.40)
+        assert r["hours_per_worker"] == H_REF
+        assert r["total_workers_needed"] == pytest.approx(1e9 * 0.60 / H_REF)
+
+    def test_a_missing_domain_raises(self):
+        with pytest.raises(ValueError):
+            domain_labor_requirements({"personal": 1e9, "knowledge": 1e8}, 0.40,
+                                      human_eoh_by_domain={"personal": 5e8})
+
+    def test_the_sensitivity_headcount_tracks_human_hours(self):
+        """`epsilon_delta_sensitivity` passes the pipeline's hours, so headcount
+        and human EOH move by the same share (they read −82.5% vs −23.8%)."""
+        r = epsilon_delta_sensitivity(0.94, 0.05)["metrics"]
+        assert r["workers_needed"]["pct_change"] == pytest.approx(
+            r["human_eoh"]["pct_change"], rel=1e-9)
+
     def test_workers_zero_at_eps_one(self):
         """At ε=1.0 (full automation), zero human workers needed."""
         result = domain_labor_requirements({"personal": 1e9}, epsilon=1.0)

@@ -185,6 +185,12 @@ def eoh_arc_sensitivity(
     Useful for identifying which ε windows produce the largest changes in
     EOH demand, labor income, and registration per unit of automation advance.
 
+    Every row is a full Δε step INSIDE [epsilon_start, epsilon_end]: the base
+    points span [start, end − Δε] for an advance (and [start − Δε, end] for a
+    retreat), so the last step lands on the end. Until 2026-10-03 the bases
+    spanned [start, end] and the last row stepped 0.99 → 0.99 — a clamped,
+    empty step reported as "0.0%" on the steepest window of the arc.
+
     Args:
         epsilon_start: Starting ε value.
         epsilon_end: Ending ε value.
@@ -193,11 +199,20 @@ def eoh_arc_sensitivity(
 
     Returns:
         List of epsilon_delta_sensitivity() result dicts, one per ε point.
+
+    Raises:
+        ValueError: if |Δε| exceeds the range, so no full step fits.
     """
     from hours_eoh.core.eoh_generation import epsilon_delta_sensitivity
 
-    step = (epsilon_end - epsilon_start) / max(n_points - 1, 1)
+    lo = epsilon_start - min(delta_epsilon, 0.0)
+    hi = epsilon_end - max(delta_epsilon, 0.0)
+    if hi < lo:
+        raise ValueError(
+            f"|delta_epsilon| = {abs(delta_epsilon)} does not fit in "
+            f"[{epsilon_start}, {epsilon_end}]")
+    step = (hi - lo) / max(n_points - 1, 1)
     return [
-        epsilon_delta_sensitivity(epsilon_start + i * step, delta_epsilon)
+        epsilon_delta_sensitivity(lo + i * step, delta_epsilon)
         for i in range(n_points)
     ]
