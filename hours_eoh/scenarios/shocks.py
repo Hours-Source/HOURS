@@ -205,13 +205,31 @@ def _base_fractions() -> dict[str, float]:
     return {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
 
 
+def _checked_fractions(fractions: dict[str, float]) -> dict[str, float]:
+    if set(fractions) != set(AGE_GROUPS):
+        raise ValueError(f"age_fractions must name exactly {sorted(AGE_GROUPS)}, "
+                         f"got {sorted(fractions)}")
+    if any(v < 0.0 for v in fractions.values()) or not math.isclose(
+            sum(fractions.values()), 1.0, rel_tol=1e-6):
+        raise ValueError(f"age_fractions must be non-negative and sum to 1, "
+                         f"got {sum(fractions.values())}")
+    return dict(fractions)
+
+
 def _base_state(
     epsilon: float,
     population: float,
     ecosystem_health: float,
     labor_supply_per_capita: float | None,
+    age_fractions: dict[str, float] | None = None,
 ) -> _State:
-    fractions = _base_fractions()
+    """The pre-shock state. `age_fractions` (2026-10-03) is the population's own
+    age mix — e.g. a census grouped to AGE_GROUP_RANGES; None → the shipped
+    AGE_GROUPS fractions. It seeds BOTH the obligation (age-weighted) and, when
+    `labor_supply_per_capita` is None, the supply through the capacity-weighted
+    adult share. Refused, never patched: unknown groups, or shares that do not
+    sum to 1."""
+    fractions = _base_fractions() if age_fractions is None else _checked_fractions(age_fractions)
     supply = (_measured_supply(adult_share=capacity_weighted_adult_share(fractions))
               if labor_supply_per_capita is None else labor_supply_per_capita)
     return _State(capability=epsilon, population=population, age_fractions=fractions,
@@ -464,6 +482,7 @@ def automation_failure_shock(
     reserve_fraction: float | None = None,
     fraction_lost: float = 1.0,
     labor_supply_per_capita: float | None = None,
+    age_fractions: dict[str, float] | None = None,
     trust_balance: float | None = None,
 ) -> dict:
     """
@@ -509,7 +528,8 @@ def automation_failure_shock(
     trust_balance = resolve_trust_balance(trust_balance, population)
 
     def pair(eps: float, capital: float) -> tuple[_State, _State, dict, dict]:
-        s0 = _base_state(eps, population, ecosystem_health, labor_supply_per_capita)
+        s0 = _base_state(eps, population, ecosystem_health, labor_supply_per_capita,
+                         age_fractions)
         s1 = _State(**{**s0, "capability": eps * (1.0 - fraction_lost)})
         return (s0, s1,
                 _run(s0, eps, capital, capital_age_ratio, knowledge_base_size),
@@ -603,6 +623,7 @@ def demographic_shock(
     capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
     population: float = REFERENCE_FRAME_POPULATION,
     labor_supply_per_capita: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     A sudden change to the population: "growth" / "decline" (population ×
@@ -633,7 +654,8 @@ def demographic_shock(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    s0 = _base_state(epsilon, population, 0.70, labor_supply_per_capita)
+    s0 = _base_state(epsilon, population, ECOSYSTEM_HEALTH_DEFAULT, labor_supply_per_capita,
+                     age_fractions)
     s1 = _demographic_change(s0, shock_type, magnitude)
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)
     after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None)
@@ -651,9 +673,20 @@ def demographic_shock(
     outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
     eoh_delta = float(after["total_eoh"]) - float(before["total_eoh"])
+    # SAY WHAT THE MAGNITUDE MEANT (2026-10-03). For `aging` it is a share of
+    # the WHOLE population moved out of working age — percentage POINTS — and
+    # "Aging shock of 20%" read as a relative 20% when the elderly share more
+    # than doubled. growth/decline are relative changes in headcount.
+    if shock_type == "aging":
+        what = (f"Aging shock moving {magnitude:.1%} of the population (points) from "
+                f"working age to elderly — elderly {s0['age_fractions']['elderly']:.1%} → "
+                f"{s1['age_fractions']['elderly']:.1%}, working age "
+                f"{s0['age_fractions']['working_age']:.1%} → {s1['age_fractions']['working_age']:.1%}")
+    else:
+        what = (f"{shock_type.title()} shock of {magnitude:.0%} of headcount: population "
+                f"{population:,.0f} → {s1['population']:,.0f}")
     rec = (
-        f"{shock_type.title()} shock of {magnitude:.0%} at ε={epsilon:.2f}: "
-        f"population {population:.0f} → {s1['population']:.0f}. "
+        f"{what}, at ε={epsilon:.2f}. "
         f"EOH demand {'+' if eoh_delta >= 0 else ''}{eoh_delta:,.0f} h/yr; "
         f"labour supply {s0['labor_supply_per_capita'] * population:,.0f} → "
         f"{s1['labor_supply_per_capita'] * s1['population']:,.0f} h/yr; "
@@ -671,6 +704,10 @@ def demographic_shock(
         "labor_income_after":    proxy if proxy is not None else float(after["teh_created"]),
         "population_before":     population,
         "population_after":      s1["population"],
+        # The pyramid APPLIED, before and after (2026-10-03): an institution
+        # running a shock on its own age mix must see that mix was used.
+        "age_fractions_before":  dict(s0["age_fractions"]),
+        "age_fractions_after":   dict(s1["age_fractions"]),
         "labor_supply_before":   s0["labor_supply_per_capita"] * population,
         "labor_supply_after":    s1["labor_supply_per_capita"] * s1["population"],
         "eoh_before":            float(before["total_eoh"]),
@@ -713,6 +750,7 @@ def ecological_eoh_spike(
     restoration_years: float = DEFAULT_AMORTIZATION_YEARS,
     restoration_corner: str = "high",
     labor_supply_per_capita: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     An ecosystem collapse: what it leaves to be done, and who can do it.
@@ -759,7 +797,8 @@ def ecological_eoh_spike(
     restoration = {corner: _restoration(population, ecosystem_health_before,
                                         ecosystem_health_after, restoration_years, corner)
                    for corner in ("low", "high")}
-    s0 = _base_state(epsilon, population, ecosystem_health_before, labor_supply_per_capita)
+    s0 = _base_state(epsilon, population, ecosystem_health_before, labor_supply_per_capita,
+                     age_fractions)
     s1 = _State(**{**s0, "ecosystem_health": ecosystem_health_after,
                    "restoration_eoh": restoration[restoration_corner]})
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None,
@@ -949,6 +988,7 @@ def compound_shock(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     labor_supply_per_capita: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     Several shocks at once — applied to ONE state and run through ONE cascade.
@@ -966,9 +1006,10 @@ def compound_shock(
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     common: dict[str, Any] = dict(trust_balance=trust_balance, population=population,
-                  capital_stock_teh=capital_stock_teh, capital_age_ratio=capital_age_ratio)
-    health0 = ecosystem_health_before if ecology_collapse else 0.70
-    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita)
+                  capital_stock_teh=capital_stock_teh, capital_age_ratio=capital_age_ratio,
+                  age_fractions=age_fractions)
+    health0 = ecosystem_health_before if ecology_collapse else ECOSYSTEM_HEALTH_DEFAULT
+    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita, age_fractions)
     s1 = _State(**s0)
     individual: dict[str, str] = {}
     automation_deferred = 0.0

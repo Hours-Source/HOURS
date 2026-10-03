@@ -133,3 +133,5 @@ def test_an_empty_compound_shock_says_so_on_stderr(capsys):
                                     "--automation-fraction-lost", "0.5"])
     args.func(args)
     assert "no component enabled" not in capsys.readouterr().err
+
+

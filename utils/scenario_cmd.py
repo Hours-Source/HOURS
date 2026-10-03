@@ -67,7 +67,9 @@ from __future__ import annotations
 import argparse
 import json
 import csv
+import math
 import sys
+import textwrap
 
 from hours_eoh.data import H_REF, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 from hours_eoh.reference.land_stewardship import (
@@ -82,21 +84,36 @@ from hours_eoh.data import REGISTER_CADENCE
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
+from utils.frame_inputs import (
+    EPSILON_REFERENCE, add_frame_arguments, frame_flags_given, labelled_inputs,
+    print_inputs, resolve_epsilon, resolve_inputs,
+)
+
+#: Scenarios that run on a resolved frame — population, age mix, labour
+#: supply, capital and Trust, each labelled — and report their outcome at both
+#: ends of the frame's ε range. `labor_income_shock` is not one: it does not
+#: build the shocks' shared state, so an age mix or labour supply would reach
+#: nothing (mode 5); frame flags are refused there rather than ignored.
+FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
+               "compound_shock", "overbuild")
+_OUTCOME_KEY = {"automation_failure": "outcome", "demographic_shock": "outcome",
+                "ecological_spike": "outcome", "compound_shock": "combined_outcome",
+                "overbuild": "verdict"}
 from hours_eoh.core.fiscal import resolve_trust_balance
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 
 _SCENARIOS: dict[str, str] = {
     # -- original --
     "sweep":               "epsilon_sweep() — arc coherence from ε=0 to ε=0.99",
-    "automation_failure":  "automation_failure_shock() — sudden machine EOH dropout",
-    "demographic_shock":   "demographic_shock() — population age-structure shift  [--shock-type, --shock-magnitude]",
-    "ecological_spike":    "ecological_eoh_spike() — threshold ecosystem EOH surge  [--ecosystem-health-before/after]",
+    "automation_failure":  "automation_failure_shock() — sudden machine EOH dropout  [--frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
+    "demographic_shock":   "demographic_shock() — population age-structure shift  [--shock-type, --shock-magnitude, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
+    "ecological_spike":    "ecological_eoh_spike() — threshold ecosystem EOH surge  [--ecosystem-health-before/after, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     "maintenance_crisis":  "deferred_maintenance_crisis() — compounding deferred backlog",
     "care_delay":          "care_registration_delay() — lag in care EOH admission",
     "recovery":            "maintenance_recovery_schedule() — backlog paydown arc",
     # -- new shocks --
     "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction]",
-    "compound_shock":      "compound_shock() — simultaneous multi-axis shock  [--ecology-collapse, --shock-type, --automation-fraction-lost]",
+    "compound_shock":      "compound_shock() — simultaneous multi-axis shock  [--ecology-collapse, --shock-type, --automation-fraction-lost, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- multi-period trajectories --
     "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods]",
     "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion  [--epsilon, --periods]",
@@ -134,7 +151,7 @@ _SCENARIOS: dict[str, str] = {
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
-    "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon]",
+    "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     # -- the register: its own cost, and its capture exposure --
@@ -166,10 +183,14 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        default="table", dest="fmt")
 
     # Universal params
-    run_p.add_argument("--epsilon", type=float, default=0.40, metavar="ε",
-                       help="Automation level (default: 0.40)")
-    run_p.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION,
-                       help="Population (default: 1 000 000)")
+    run_p.add_argument("--epsilon", type=float, default=None, metavar="ε",
+                       help="Automation level. Default: the frame's measured "
+                            "reading (frame-aware scenarios), else 0.40, labelled")
+    run_p.add_argument("--population", type=float, default=None,
+                       help="Population (default: the frame's, else 1 000 000)")
+    # FRAME INPUTS (2026-10-03): shared with `corridor band`. Read by the
+    # frame-aware scenarios (FRAME_AWARE); any other scenario refuses them.
+    add_frame_arguments(run_p)
     run_p.add_argument("--hectares-per-capita", type=float,
                        default=LAND_HECTARES_PER_CAPITA, metavar="HA",
                        help=(f"Stewarded land per person, ha (ecological_floor; "
@@ -202,7 +223,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        help="Demographic shock type (default: decline)")
     run_p.add_argument("--shock-magnitude", type=float, default=0.10,
                        dest="shock_magnitude",
-                       help="Demographic shock magnitude (default: 0.10)")
+                       help="Demographic shock magnitude in [0, 1] (default: 0.10). "
+                            "growth/decline: a RELATIVE change in headcount. aging: a "
+                            "share of the WHOLE population moved from working age to "
+                            "elderly — percentage POINTS (0.04 adds 4 points to the "
+                            "elderly share)")
     run_p.add_argument("--ecology-collapse", action="store_true",
                        dest="ecology_collapse",
                        help="Enable ecological shock component (compound_shock)")
@@ -244,17 +269,17 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             "1,000 h base. "
                             "'collapsed' is refused: an abated value cannot "
                             "be the autarky reference")
-    run_p.add_argument("--capital-stock", type=float, default=1.9e9,
+    # Was a fixed 1.9e9 ("1,900 TEH/capita at 1M") beside --population — the
+    # frame seam `corridor band` had (2026-10-03). Unset, capital resolves
+    # through the frame: supplied, BEA (--bea-usd-per-teh), or the arc.
+    run_p.add_argument("--capital-stock", type=float, default=None,
                        dest="capital_stock", metavar="TEH",
-                       help="Apparatus capital stock in TEH (overbuild; default: 1.9e9 "
-                            "= 1,900 TEH/capita at 1M population)")
+                       help="Apparatus capital stock in TEH (frame-aware scenarios; "
+                            "default: the canonical arc at ε and population)")
 
     # Feasibility ceiling
-    run_p.add_argument("--adult-capacity", type=float, default=None,
-                       dest="adult_capacity", metavar="H",
-                       help=f"Adult annual labor capacity, h/yr (feasibility; "
-                            f"default: sweep the subsistence band, or {H_REF} for a "
-                            f"single case)")
+    # --adult-capacity is the shared frame flag (utils/frame_inputs.py); the
+    # feasibility scenario reads it too.
     run_p.add_argument("--adult-share", type=float, default=None,
                        dest="adult_share", metavar="F",
                        help="Adult share of population (feasibility; default: the "
@@ -346,6 +371,20 @@ def _run(args: argparse.Namespace) -> None:
         print(json.dumps(result, indent=2, default=str))
         return
 
+    if isinstance(result, dict) and "inputs" in result:
+        eps = result["epsilon_reading"]
+        acr = result.get("outcomes_across_epsilon")
+        # On stderr for csv, so the rows stay parseable; json carries the
+        # inputs in the document itself (2026-10-03).
+        if args.fmt != "json":
+            out = sys.stderr if args.fmt == "csv" else sys.stdout
+            print_inputs(result["inputs"], eps,
+                         ends=None if acr is None else "  ".join(f"ε {e}: {o}" for e, o in acr.items()),
+                         frame=result.get("frame"), file=out)
+            print(file=out)
+        result = {k: v for k, v in result.items()
+                  if k not in ("inputs", "epsilon_reading", "outcomes_across_epsilon")}
+
     # Trajectory scenarios: show the inner list as the primary table
     display = result
     if isinstance(result, dict):
@@ -374,10 +413,37 @@ def _run(args: argparse.Namespace) -> None:
             for k, v in display.items():
                 writer.writerow([k, v])
             return
-        print(fmt_table(["key", "value"], [[str(k), str(v)] for k, v in display.items()]))
+        # READABLE VALUES (2026-10-03): large floats as grouped integers, small
+        # ones to 4 significant figures, dicts of shares rounded — the raw
+        # repr (511881778323.14014) was unreadable — and the recommendation
+        # wrapped under the table instead of stretching it. csv/json unchanged.
+        long_text = {k: v for k, v in display.items()
+                     if isinstance(v, str) and len(v) > 100}
+        print(fmt_table(["key", "value"], [[str(k), _readable(v)] for k, v in display.items()
+                                           if k not in long_text]))
+        for k, v in long_text.items():
+            print()
+            print(bold(k))
+            print(textwrap.fill(v, width=100, initial_indent="  ", subsequent_indent="  "))
         return
 
     print(display)
+
+
+def _readable(v: object) -> str:
+    """A table cell: grouped integers for large floats, 4 sig. figs for small."""
+    if isinstance(v, bool) or v is None:
+        return str(v)
+    if isinstance(v, float):
+        if math.isinf(v) or math.isnan(v):
+            return str(v)
+        return f"{v:,.0f}" if abs(v) >= 1e4 else f"{v:.4g}"
+    if isinstance(v, dict) and v and all(isinstance(x, float) for x in v.values()):
+        return "{" + ", ".join(f"{k}: {_readable(x)}" for k, x in v.items()) + "}"
+    if isinstance(v, dict) and v and all(isinstance(x, tuple) for x in v.values()):
+        return "{" + ", ".join(f"{k}: " + " → ".join(_readable(y) for y in x)
+                               for k, x in v.items()) + "}"
+    return str(v)
 
 
 def _print_scalar_summary(result: dict) -> None:
@@ -390,42 +456,118 @@ def _print_scalar_summary(result: dict) -> None:
         print()
 
 
+def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, dict]:
+    """Run one frame-aware scenario at `epsilon` on the resolved frame:
+    (result, values, labels). A derived capital or Trust is passed as None so
+    the function resolves it at THIS ε, as it does for any caller."""
+    v, lab = resolve_inputs(args, epsilon)
+    pop = v["population"]
+    common = dict(
+        population=pop, age_fractions=v["age_fractions"],
+        labor_supply_per_capita=v["labor_supply_per_capita"],
+        capital_stock_teh=None if v["capital_derived"] else v["capital_teh"],
+        trust_balance=None if v["trust_derived"] else v["trust_balance"],
+    )
+    name = args.name
+    if name == "automation_failure":
+        from hours_eoh.scenarios.shocks import automation_failure_shock
+        kw = ({"fraction_lost": args.automation_fraction_lost}
+              if args.automation_fraction_lost else {})
+        return automation_failure_shock(epsilon=epsilon, **kw, **common), v, lab
+    if name == "demographic_shock":
+        from hours_eoh.scenarios.shocks import demographic_shock
+        return demographic_shock(epsilon=epsilon, shock_type=args.shock_type or "decline",
+                                 magnitude=args.shock_magnitude, **common), v, lab
+    if name == "ecological_spike":
+        # Population was not passed until 2026-10-03: the spike ran at 1M
+        # whatever --population said (mode 6).
+        from hours_eoh.scenarios.shocks import ecological_eoh_spike
+        return ecological_eoh_spike(
+            epsilon=epsilon, ecosystem_health_before=args.ecosystem_health_before,
+            ecosystem_health_after=args.ecosystem_health_after, **common), v, lab
+    if name == "compound_shock":
+        from hours_eoh.scenarios.shocks import compound_shock
+        dem_spec = ({"shock_type": args.shock_type, "magnitude": args.shock_magnitude}
+                    if args.shock_type is not None else None)
+        return compound_shock(
+            epsilon=epsilon, ecology_collapse=args.ecology_collapse,
+            ecosystem_health_before=args.ecosystem_health_before,
+            ecosystem_health_after=args.ecosystem_health_after,
+            demographic_shock_spec=dem_spec,
+            automation_fraction_lost=args.automation_fraction_lost, **common), v, lab
+    if name == "overbuild":
+        from hours_eoh.core.autarky import break_even_epsilon, overbuild_check, payback
+        k = v["capital_teh"]
+        c = overbuild_check(k, pop, epsilon=epsilon)
+        pb = payback(k, pop, epsilon=epsilon)
+        out: dict = {kk: vv for kk, vv in c.items()}
+        out["break_even_epsilon"] = break_even_epsilon(k, pop)
+        out["payback_years"] = pb["payback_years"]
+        out["payback_verdict"] = pb["verdict"]
+        # a sweep so the interior optimum is visible, not just the point verdict
+        rows = []
+        for kpc in (0.0, 250.0, 1_000.0, 4_145.0, 20_000.0, 100_000.0):
+            cc = overbuild_check(kpc * pop, pop, epsilon=epsilon)
+            rows.append({
+                "K_per_capita": kpc,
+                "abatement": round(cc["abatement"], 4),
+                "obligation_pc": round(cc["obligation_with_apparatus"] / pop, 1),
+                "overhead_pc": round(cc["overhead"] / pop, 1),
+                "total_pc": round(cc["total"] / pop, 1),
+                "net_vs_autarky_pc": round(cc["net_vs_autarky"] / pop, 1),
+                "verdict": cc["verdict"],
+            })
+        out["summary_table"] = rows
+        return out, v, lab
+    raise ValueError(f"{name} is not frame-aware")
+
+
+def _frame_run(args: argparse.Namespace) -> dict:
+    """
+    A frame-aware scenario on a resolved frame (2026-10-03). Every input is
+    labelled (`inputs`), ε carries its range (`epsilon_reading`), and when ε is
+    a range the scenario is ALSO run at both ends and the outcomes reported
+    (`outcomes_across_epsilon`) — the difference, where there is one, is the
+    finding, so it is printed rather than summarised as same/differs.
+    """
+    if args.name == "compound_shock" and not (
+            args.ecology_collapse or args.shock_type is not None or args.automation_fraction_lost):
+        # On stderr, so --format json/csv stay parseable (2026-10-03).
+        print("compound_shock: no component enabled — pass --ecology-collapse, "
+              "--shock-type (with --shock-magnitude) or --automation-fraction-lost",
+              file=sys.stderr)
+    eps = resolve_epsilon(args)
+    result, v, lab = _frame_call(args, eps["value"])
+    key = _OUTCOME_KEY[args.name]
+    if eps["high"] > eps["low"]:
+        result["outcomes_across_epsilon"] = {
+            f"{e:.3f}": _frame_call(args, e)[0][key] for e in (eps["low"], eps["value"], eps["high"])}
+    result["epsilon_reading"] = eps
+    result["inputs"] = labelled_inputs(v, lab, eps)
+    result["frame"] = v["frame"]
+    return result
+
+
 def _dispatch(args: argparse.Namespace) -> object:
-    name       = args.name
-    epsilon    = args.epsilon
-    population = args.population
+    name = args.name
+    if name in FRAME_AWARE:
+        return _frame_run(args)
+    given = [f for f in frame_flags_given(args)
+             if not (name == "feasibility" and f == "--adult-capacity")]
+    if given:
+        raise SystemExit(f"{name} does not read frame inputs ({', '.join(given)}); the "
+                         f"frame-aware scenarios are {', '.join(FRAME_AWARE)}")
+    epsilon    = args.epsilon if args.epsilon is not None else EPSILON_REFERENCE
+    population = args.population if args.population is not None else REFERENCE_FRAME_POPULATION
+    # Some branches read args.epsilon / args.population directly: give them the
+    # resolved values, never the unset None.
+    args = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": population})
 
     # -- original scenarios ---------------------------------------------------
 
     if name == "sweep":
         from hours_eoh.scenarios.sweep import epsilon_sweep
         return epsilon_sweep()
-
-    if name == "automation_failure":
-        from hours_eoh.scenarios.shocks import automation_failure_shock
-        return automation_failure_shock(epsilon=epsilon, population=population)
-
-    if name == "demographic_shock":
-        from hours_eoh.scenarios.shocks import demographic_shock
-        # `population` IS a parameter since 2026-09-30: the shock is a
-        # fractional magnitude applied to the pre-shock population, and the
-        # Trust resolves at that population. (Until 2026-08-17 the CLI passed
-        # it to a function that did not take it, raising TypeError; it was
-        # then dropped and the shock ran frameless at 1M.)
-        return demographic_shock(
-            epsilon=epsilon,
-            shock_type=args.shock_type or "decline",
-            magnitude=args.shock_magnitude,
-            population=population,
-        )
-
-    if name == "ecological_spike":
-        from hours_eoh.scenarios.shocks import ecological_eoh_spike
-        return ecological_eoh_spike(
-            epsilon=epsilon,
-            ecosystem_health_before=args.ecosystem_health_before,
-            ecosystem_health_after=args.ecosystem_health_after,
-        )
 
     if name == "maintenance_crisis":
         from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
@@ -470,27 +612,6 @@ def _dispatch(args: argparse.Namespace) -> object:
         return labor_income_shock(
             epsilon=epsilon,
             income_fraction=args.income_fraction,
-            population=population,
-        )
-
-    if name == "compound_shock":
-        from hours_eoh.scenarios.shocks import compound_shock
-        dem_spec = (
-            {"shock_type": args.shock_type, "magnitude": args.shock_magnitude}
-            if args.shock_type is not None else None
-        )
-        if not (args.ecology_collapse or dem_spec or args.automation_fraction_lost):
-            # On stderr, so --format json/csv stay parseable (2026-10-03).
-            print("compound_shock: no component enabled — pass --ecology-collapse, "
-                  "--shock-type (with --shock-magnitude) or --automation-fraction-lost",
-                  file=sys.stderr)
-        return compound_shock(
-            epsilon=epsilon,
-            ecology_collapse=args.ecology_collapse,
-            ecosystem_health_before=args.ecosystem_health_before,
-            ecosystem_health_after=args.ecosystem_health_after,
-            demographic_shock_spec=dem_spec,
-            automation_fraction_lost=args.automation_fraction_lost,
             population=population,
         )
 
@@ -1310,33 +1431,6 @@ def _dispatch(args: argparse.Namespace) -> object:
         return fc_out
 
     # -- thermal obligation ---------------------------------------------------
-
-    if name == "overbuild":
-        from hours_eoh.core.autarky import (
-            autarky_reference, break_even_epsilon, overbuild_check, payback,
-        )
-        k = args.capital_stock
-        c = overbuild_check(k, population, epsilon=epsilon)
-        pb = payback(k, population, epsilon=epsilon)
-        out: dict = {kk: v for kk, v in c.items()}
-        out["break_even_epsilon"] = break_even_epsilon(k, population)
-        out["payback_years"] = pb["payback_years"]
-        out["payback_verdict"] = pb["verdict"]
-        # a sweep so the interior optimum is visible, not just the point verdict
-        rows = []
-        for kpc in (0.0, 250.0, 1_000.0, 4_145.0, 20_000.0, 100_000.0):
-            cc = overbuild_check(kpc * population, population, epsilon=epsilon)
-            rows.append({
-                "K_per_capita": kpc,
-                "abatement": round(cc["abatement"], 4),
-                "obligation_pc": round(cc["obligation_with_apparatus"] / population, 1),
-                "overhead_pc": round(cc["overhead"] / population, 1),
-                "total_pc": round(cc["total"] / population, 1),
-                "net_vs_autarky_pc": round(cc["net_vs_autarky"] / population, 1),
-                "verdict": cc["verdict"],
-            })
-        out["summary_table"] = rows
-        return out
 
     if name == "feasibility":
         from hours_eoh.scenarios.feasibility import (

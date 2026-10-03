@@ -237,6 +237,10 @@ utils/                 Presentation layer — CLI and research helpers (see READ
                        shapes; its structural statements are gated against this dict
   provenance.py        data.py tag-block scanner + audit-CSV / doc-table generators
   provenance_cmd.py    `eoh provenance check | csv | table | doc`
+  frame_inputs.py      THE FRAME A COMMAND RUNS ON, EVERY INPUT LABELLED supplied / measured /
+                       derived / default (with lineage, so a value leaning on a default says
+                       so). --frame us reads the repo's US data; --frame-file is an
+                       institution's own. Shared by `corridor band`, `scenario run`, `frame show`
   explorers/           In-browser explorers published with the docs at tools/<name>/ — a
                        template + a builder that embeds the shipped data and data.py
                        constants, and REFUSES unless the repo's own functions reproduce
@@ -608,7 +612,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,480 tests passing (1 skipped), mypy clean on 107 source files** (verified
+**5,536 tests passing (1 skipped), mypy clean on 107 source files** (verified
 2026-10-03). Provenance **355/355**, shadow ratchet **30**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -721,13 +725,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**119 test files. The name rule covers 80 of them:** `tests/test_<module>.py`
+**120 test files. The name rule covers 80 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 39 files the rule does not cover are all listed below, plus two that do
+The 40 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -781,6 +785,7 @@ are the ones worth knowing by name.
 | `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
+| `test_frame_inputs.py` | `utils/frame_inputs.py` — the labelled frame inputs. Pins the US frame against the repo's own US data, the lineage rule (a value leaning on a default is never plain "derived"), refusal of bad frame files, ε never imputed, and the ROUND TRIP: `frame show --frame us --format json` reproduces `--frame us` in every frame-aware scenario, and an edited file does not. Found by breaking it: dropping the age mix passed the round trip, so the applied pyramid is pinned directly |
 | `test_cli_mint_income.py` | The `arc` and `params` CLI commands pass the MINT as labour income. Both passed `registered_eoh × 2200.0` from the initial commit (~1,100× the mint), so `arc`'s solvency column could not fire; pins that it can |
 | `test_corridor.py` | `research/corridor.py` — including `contestability_ceiling_bare_chi`, kept as the superseded form |
 | `test_personal_floor.py` | The currency-free personal floor across `core/`, `reference/` and `scenarios/` |

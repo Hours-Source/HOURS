@@ -94,6 +94,53 @@ See [Running Scenarios](scenarios_howto.md) for Python API usage.
 
 ---
 
+## frame — running on your own frame
+
+The shocks (`automation_failure`, `demographic_shock`, `ecological_spike`,
+`compound_shock`), `overbuild` and `corridor band` run on a **frame**: a
+population, its age mix, its adult labour capacity, its capital, its land,
+its Trust and its ε. Every input is printed with where it came from:
+
+| Kind | Meaning |
+|---|---|
+| `supplied` | you gave it — a flag, or your frame file |
+| `measured` | read from a dataset the repo ships for a built-in frame (`--frame us`: Census ages, MTUS capacity, both ε instruments, Path C) |
+| `derived` | computed from other inputs, all of them supplied or measured |
+| `derived (partly from defaults)` | computed, but leaning on a framework default (e.g. a per-head intensity) |
+| `derived (from defaults)` / `default` | the framework's reference value — it says nothing about your frame |
+
+Read a result only as far as its inputs go: an outcome built on `default` rows
+is a statement about the reference collective, not about yours.
+
+```bash
+# What a frame resolves to, every input labelled
+python3 utils/eoh_cli.py frame show --frame us
+
+# Start your own frame from the US one, then replace what you have measured
+python3 utils/eoh_cli.py frame show --frame us --format json > my_frame.json
+
+# Run a shock and the corridor on it
+python3 utils/eoh_cli.py scenario run demographic_shock --frame-file my_frame.json --shock-type aging --shock-magnitude 0.2
+python3 utils/eoh_cli.py corridor band --frame-file my_frame.json
+```
+
+**The frame file** is JSON with any of: `name`, `population`, `age_fractions`
+(every `AGE_GROUPS` group, summing to 1), `epsilon` (a number, or
+`{"low": a, "high": b}`), `capital_teh`, `land_hectares`,
+`adult_capacity_h_yr`, `utilization`, `trust_balance`. Anything else is
+refused, never patched. What you leave out is derived or defaulted — and
+labelled so. **ε is never imputed:** without a reading it runs at the
+reference value, labelled `default`.
+
+**When ε is a range** (a frame-file range, or the US instruments), the
+scenario also runs at both ends and prints each outcome. Where they differ,
+the difference is the result; when the instruments DISAGREE, the midpoint is
+labelled as not a reading. Precedence: a flag, then `--frame-file`, then
+`--frame`, then the default. A scenario that reads no frame refuses frame
+flags rather than ignoring them.
+
+---
+
 ## simulate
 
 Multi-period simulation with period-by-period state table.

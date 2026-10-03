@@ -48,16 +48,10 @@ from hours_eoh.research.corridor import (
 )
 
 from utils.formatters import bold, dim, green, red, table, fmt_eps, fmt_float
+from utils.frame_inputs import (
+    add_frame_arguments, labelled_inputs, print_inputs, resolve_epsilon, resolve_inputs,
+)
 
-#: The reference ε the rest of the CLI defaults to, used only when no measured
-#: reading exists for the frame — and then printed as a default.
-_EPSILON_REFERENCE = 0.40
-
-#: `--frame` names → the declared jurisdiction (data.JURISDICTION_FRAMES) and
-#: the Path C collective whose measured utilization belongs to it.
-_FRAMES: dict[str, dict[str, str]] = {
-    "us": {"jurisdiction": "us_mainland", "path_c": "United States"},
-}
 
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]
@@ -75,27 +69,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     band.add_argument("--population", type=float, default=None,
                       help="Population (default: the --frame's, else "
                            "REFERENCE_FRAME_POPULATION)")
-    # REAL-DATA INPUTS (2026-10-03). The band could only read the shipped
-    # demography, a canonical capital stock and the P0 thermal bound; the repo
-    # already held the US readings for all three. --frame us fills them.
-    band.add_argument("--frame", choices=sorted(_FRAMES), default=None,
-                      help="A declared jurisdiction: sets population, land and "
-                           "ages from it, and the Path C utilization if it has "
-                           "one. 'us' = contiguous-48 US, Census ages, Path C "
-                           "'United States'. Explicit flags override it")
-    band.add_argument("--ages", choices=["shipped", "census"], default=None,
-                      help="Age mix for the obligation, the labour supply and the "
-                           "margin: 'shipped' = AGE_GROUP_FRACTIONS, 'census' = "
-                           "US Census single-year ages (latest year) grouped to "
-                           "AGE_GROUP_RANGES (default: census with --frame us, "
-                           "else shipped)")
-    band.add_argument("--bea-usd-per-teh", type=float, default=None,
-                      dest="bea_usd_per_teh", metavar="RATE",
-                      help="Read capital from the BEA US inventory "
-                           "(capital_retrodiction.epsilon_from_inventory) at this "
-                           "currency-per-TEH rate. US frame only — the inventory "
-                           "is the whole US. No default: the rate is a judgement "
-                           "(conversion_band() bounds it)")
+    # REAL-DATA INPUTS (2026-10-03): --frame, --frame-file, --ages,
+    # --adult-capacity and --bea-usd-per-teh, shared with `scenario run`
+    # (utils/frame_inputs.py) so one frame resolves one way everywhere.
+    add_frame_arguments(band)
     band.add_argument("--delta-t-lo", type=float, default=THERMAL_DT_LO,
                       dest="delta_t_lo", metavar="K",
                       help="Habitability threshold for BOTH thermal ceilings — "
@@ -169,111 +146,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     axes.set_defaults(func=_axes)
 
 
-def _resolve_inputs(args: argparse.Namespace) -> dict:
-    """Population, land, ages, capital and utilization, with where each came from."""
-    frame = _FRAMES[args.frame] if args.frame else None
-    jur = JURISDICTION_FRAMES[frame["jurisdiction"]] if frame else None
-    population = (args.population if args.population is not None
-                  else jur["population"] if jur else REFERENCE_FRAME_POPULATION)
-
-    ages_choice = args.ages or ("census" if frame else "shipped")
-    if ages_choice == "census":
-        from hours_eoh.reference.care_demand import population_shares
-        ages: dict[str, float] | None = population_shares(AGE_GROUP_RANGES)
-    else:
-        ages = None
-
-    if args.bea_usd_per_teh is not None:
-        if args.frame != "us" or population != jur["population"]:  # type: ignore[index]
-            raise SystemExit("--bea-usd-per-teh reads the whole-US inventory; it "
-                             "needs --frame us at the US population")
-        if args.capital_stock is not None:
-            raise SystemExit("--bea-usd-per-teh and --capital-stock both set capital")
-        from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
-        capital = float(epsilon_from_inventory(args.bea_usd_per_teh)["capital_teh"])
-        capital_src = f"BEA US inventory at {args.bea_usd_per_teh} $/TEH"
-    else:
-        capital = resolve_capital_stock(args.capital_stock, args.epsilon,
-                                        population=population)
-        capital_src = "supplied" if args.capital_stock is not None else "canonical arc"
-
-    share = population / WORLD_POPULATION
-    if args.land_m2 is not None:
-        land_m2, land_src = args.land_m2, "supplied"
-    elif jur:
-        land_m2, land_src = jur["land_hectares"] * M2_PER_HECTARE, frame["jurisdiction"]  # type: ignore[index]
-    else:
-        land_m2, land_src = A_LAND_CLAIMED_M2 * share, "population share of A_LAND_CLAIMED_M2"
-    phi_other = (THERMAL_ANTHROPOGENIC_DISSIPATION_W * share
-                 if args.phi_other is None else args.phi_other)
-
-    utilization, u_src = args.utilization, "supplied"
-    if utilization is None and frame and frame.get("path_c"):
-        from hours_eoh.research.thermal_path_c import all_collectives_utilization
-        rows = {c["name"]: c for c in all_collectives_utilization(delta_t_lo=args.delta_t_lo)}
-        utilization, u_src = float(rows[frame["path_c"]]["utilization"]), f"Path C '{frame['path_c']}'"
-    from hours_eoh.research.thermal_path_c import determinacy_zone
-    return {
-        "delta_t_lo": args.delta_t_lo,
-        "thermal_zone": determinacy_zone(args.delta_t_lo)["zone"],
-        "frame": args.frame, "population": population,
-        "ages": ages_choice, "age_fractions": ages,
-        "capital_teh": capital, "capital_source": capital_src,
-        "land_m2": land_m2, "land_source": land_src, "phi_other_w": phi_other,
-        "utilization": utilization, "utilization_source": u_src if utilization is not None else None,
-    }
-
-
-def _resolve_epsilon(args: argparse.Namespace) -> dict:
-    """
-    The ε the inventory is taken at, and where it came from (2026-10-03).
-
-    Supplied → used as given. Unsupplied on a frame with measured readings →
-    the repo's two instruments (`labour_epsilon.instrument_comparison`: time
-    use and the BEA capital route, at --bea-usd-per-teh if given, else across
-    `conversion_band()`), reported as the midpoint of their joint span ± half
-    its width, with their own agreement verdict. Otherwise the 0.40 reference,
-    LABELLED a default — `--frame us` used to run at it silently.
-    """
-    if args.epsilon is not None:
-        return {"value": args.epsilon, "margin": 0.0, "low": args.epsilon,
-                "high": args.epsilon, "source": "supplied"}
-    if args.frame == "us":
-        from hours_eoh.scenarios.labour_epsilon import instrument_comparison
-        rates = (args.bea_usd_per_teh,) if args.bea_usd_per_teh is not None else None
-        c = instrument_comparison(capital_rates=rates)
-        lo = min(c["labour"]["low"], c["capital"]["low"])
-        hi = max(c["labour"]["high"], c["capital"]["high"])
-        # DIVERGENT: neither instrument's interval meets the other's, so the
-        # span is their DISAGREEMENT, not a measurement error around a value,
-        # and the midpoint is a reading neither instrument gives (2026-10-03).
-        divergent = c["verdict"] == "DIVERGENT"
-        return {"value": 0.5 * (lo + hi), "margin": 0.5 * (hi - lo), "low": lo, "high": hi,
-                "margin_kind": "disagreement" if divergent else "span",
-                "source": (f"US instruments — labour {_span(c['labour'])}, "
-                           f"capital {_span(c['capital'])} ({c['verdict']}); "
-                           + ("instruments disagree — span shown, midpoint is not a reading"
-                              if divergent else "midpoint ± half-span")),
-                "instruments": {"labour": [c["labour"]["low"], c["labour"]["high"]],
-                                "capital": [c["capital"]["low"], c["capital"]["high"]],
-                                "verdict": c["verdict"]}}
-    return {"value": _EPSILON_REFERENCE, "margin": None, "low": _EPSILON_REFERENCE,
-            "high": _EPSILON_REFERENCE,
-            "source": "default — no measured reading for this frame"}
-
-
-def _span(r: dict) -> str:
-    return (f"{r['low']:.3f}" if r["low"] == r["high"]
-            else f"{r['low']:.3f}–{r['high']:.3f}")
-
-
 def _verdict(rep: dict) -> tuple:
     return (rep["feasible"], rep["binding_floor"], rep["binding_ceiling"],
             round(rep["epsilon_suff"], 3))
 
 
 def _band(args: argparse.Namespace) -> None:
-    eps = _resolve_epsilon(args)
+    eps = resolve_epsilon(args)
     args = argparse.Namespace(**{**vars(args), "epsilon": eps["value"]})
     rep = _compute(args)
     if eps["high"] > eps["low"]:
@@ -292,7 +171,7 @@ def _band(args: argparse.Namespace) -> None:
 
 
 def _compute(args: argparse.Namespace) -> dict:
-    inp = _resolve_inputs(args)
+    inp, labels = resolve_inputs(args, args.epsilon)
     pop, ages = inp["population"], inp["age_fractions"]
     if args.standard == "survival":
         eoh = survival_inventory(population=pop, epsilon=args.epsilon,
@@ -307,11 +186,8 @@ def _compute(args: argparse.Namespace) -> dict:
     # 71% of the framed value, implying an adult share of 42.8% that no country
     # has. Two accounts of one quantity (corpus F-008). Bound here rather than in
     # `research/corridor.py`, which must not import `scenarios/` — utils may.
-    from hours_eoh.scenarios.feasibility import (
-        capacity_weighted_adult_share, demographic_margin, labor_supply_per_capita)
-    available_labor = (
-        labor_supply_per_capita(adult_share=capacity_weighted_adult_share(ages)) * pop
-        if args.available_labor is None else args.available_labor)
+    available_labor = (inp["labor_supply_per_capita"] * pop
+                       if args.available_labor is None else args.available_labor)
     floors = [
         survival_floor(eoh, available_labor),
         overbuild_floor(inp["capital_teh"], pop),
@@ -362,8 +238,8 @@ def _compute(args: argparse.Namespace) -> dict:
             "to_exposure": THERMAL_U_FLOOR / u if u > 0 else None,
             "to_contact": 1.0 / u if u > 0 else None}
     rep["headroom"] = headroom  # type: ignore[typeddict-unknown-key]
-    rep["inputs"] = {k: v for k, v in inp.items() if k != "age_fractions"}  # type: ignore[typeddict-unknown-key]
-    rep["inputs"]["age_fractions"] = ages  # type: ignore[typeddict-item]
+    rep["inputs"] = dict(inp)  # type: ignore[typeddict-unknown-key]
+    rep["input_labels"] = labels  # type: ignore[typeddict-unknown-key]
     return rep  # type: ignore[return-value]
 
 
@@ -382,27 +258,14 @@ def _show(args: argparse.Namespace, rep: dict) -> None:
                   "(--bare-chi); the adopted §8.9 axis is the default"))
     print()
 
-    print(bold("Inputs"))
     er = rep["epsilon_reading"]
-    if er["margin"]:
-        holds = er.get("verdict_holds_across_range")
-        if er.get("margin_kind") == "disagreement":
-            print(f"  ε: span [{er['low']:.3f}, {er['high']:.3f}] — inventory taken at "
-                  f"{er['value']:.3f}, NOT a reading  ({er['source']})")
-        else:
-            print(f"  ε: {er['value']:.3f} ± {er['margin']:.3f}  [{er['low']:.3f}, {er['high']:.3f}]"
-                  f"  ({er['source']})")
-        print(f"     verdict at both ends of the range: "
-              + (green("same") if holds else red("DIFFERS — read the band at each end")))
-    else:
-        print(f"  ε: {er['value']:.3f}  ({er['source']})")
-    print(f"  frame: {inp['frame'] or '—'}   population: {pop:,.0f}   ages: {inp['ages']}")
-    print(f"  capital: {fmt_float(inp['capital_teh'])} TEH "
-          f"({inp['capital_teh'] / pop:,.0f}/person; {inp['capital_source']})")
-    print(f"  land: {inp['land_m2']:.3e} m² ({inp['land_source']})")
+    holds = er.get("verdict_holds_across_range")
+    print_inputs(labelled_inputs(inp, rep["input_labels"], er), er,
+                 ends=None if holds is None else (
+                     green("same verdict") if holds else red("verdict DIFFERS — read the band at each end")),
+                 frame=inp["frame"])
     if inp["utilization"] is not None:
-        print(f"  thermal utilization U: {inp['utilization']:.3f} ({inp['utilization_source']}) "
-              f"at ΔT_lo {inp['delta_t_lo']:.2f} K — zone: {inp['thermal_zone']}")
+        print(f"  {'thermal zone':24s} {inp['thermal_zone']} at ΔT_lo {inp['delta_t_lo']:.2f} K")
     print()
 
     print(bold("Band"))
@@ -424,7 +287,8 @@ def _show(args: argparse.Namespace, rep: dict) -> None:
     # and rises only once it does not. The distance to that step is the quantity
     # a reader needs; `demographic_margin` returns it (the 2.13 pp once quoted
     # here predated the 2026-09-04 capacity alignment, mode 7).
-    marg = demographic_margin(epsilon=args.epsilon, population=pop, age_fractions=ages)
+    marg = demographic_margin(epsilon=args.epsilon, population=pop, age_fractions=ages,
+                              adult_capacity_h_yr=inp["adult_capacity_h_yr"])
     print(bold("Demographic margin"))
     print(f"  adult share (capacity-weighted): {marg['adult_share']:.4f}")
     print(f"  critical share  P/c            : {marg['critical_adult_share']:.4f}")

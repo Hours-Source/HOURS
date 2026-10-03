@@ -40,6 +40,7 @@ import utils.contestability_cmd as contestability_cmd
 import utils.coasean_cmd as coasean_cmd
 import utils.thermal_cmd as thermal_cmd
 import utils.corridor_cmd as corridor_cmd
+import utils.frame_cmd as frame_cmd
 import utils.provenance_cmd as provenance_cmd
 
 
@@ -67,6 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     coasean_cmd.build_parser(sub)
     thermal_cmd.build_parser(sub)
     corridor_cmd.build_parser(sub)
+    frame_cmd.build_parser(sub)
     provenance_cmd.build_parser(sub)
 
     return parser

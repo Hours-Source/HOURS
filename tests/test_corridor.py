@@ -547,13 +547,15 @@ class TestTheEpsilonReading:
 
     def test_a_supplied_epsilon_is_used_as_given(self):
         e = self._band("--frame", "us", "--epsilon", "0.33")["epsilon_reading"]
-        assert e["value"] == 0.33 and e["margin"] == 0.0 and e["source"] == "supplied"
+        assert e["value"] == 0.33 and e["margin"] == 0.0
+        assert e["kind"] == "supplied" and e["source"] == "--epsilon"
 
     def test_without_a_reading_the_default_is_labelled(self):
-        from utils.corridor_cmd import _EPSILON_REFERENCE
+        from utils.frame_inputs import EPSILON_REFERENCE
         e = self._band()["epsilon_reading"]
-        assert e["value"] == _EPSILON_REFERENCE and e["margin"] is None
-        assert e["source"].startswith("default")
+        assert e["value"] == EPSILON_REFERENCE and e["margin"] is None
+        assert e["kind"] == "default"
+        assert e["source"].startswith("EPSILON_REFERENCE")
 
     def test_the_inventory_is_taken_at_the_reading(self):
         from hours_eoh.core.eoh_generation import resolve_capital_stock

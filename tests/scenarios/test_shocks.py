@@ -842,3 +842,55 @@ class TestADeepenedShortfallIsCharged:
                   compound_shock(0.78, automation_fraction_lost=0.5)):
             assert "competency_note" in r
             assert r["competency_note"] in r["recommendation"]
+
+
+class TestShocksTakeTheFramesAgeMix:
+    """2026-10-03: every shock seeded its state from the shipped AGE_GROUPS, so
+    a US (or any institution's) run used the 1M default demography."""
+
+    @staticmethod
+    def _us() -> dict[str, float]:
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        return population_shares(AGE_GROUP_RANGES)
+
+    def test_the_mix_moves_supply_and_obligation(self):
+        base = demographic_shock(0.40, "aging", 0.2)
+        us = demographic_shock(0.40, "aging", 0.2, age_fractions=self._us())
+        assert us["labor_supply_before"] != pytest.approx(base["labor_supply_before"], rel=1e-4)
+        assert us["eoh_before"] != pytest.approx(base["eoh_before"], rel=1e-4)
+
+    def test_the_applied_pyramid_is_reported(self):
+        from hours_eoh.data import AGE_GROUPS
+        us = self._us()
+        r = demographic_shock(0.40, "aging", 0.2, age_fractions=us)
+        assert r["age_fractions_before"] == pytest.approx(us)
+        assert r["age_fractions_after"]["elderly"] > us["elderly"]
+        assert demographic_shock(0.40, "aging", 0.2)["age_fractions_before"] == pytest.approx(
+            {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS})
+
+    def test_the_default_is_bit_identical_to_the_shipped_mix(self):
+        from hours_eoh.data import AGE_GROUPS
+        shipped = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        for f in (lambda **k: automation_failure_shock(0.78, **k),
+                  lambda **k: demographic_shock(0.78, "aging", 0.2, **k),
+                  lambda **k: compound_shock(0.78, automation_fraction_lost=0.5, **k)):
+            assert f() == f(age_fractions=shipped)
+
+    def test_compound_components_read_the_same_mix(self):
+        us = self._us()
+        alone = demographic_shock(0.60, "aging", 0.3, age_fractions=us)["outcome"]
+        both = compound_shock(0.60, demographic_shock_spec={"shock_type": "aging", "magnitude": 0.3},
+                              age_fractions=us)
+        assert both["individual_outcomes"]["demographic_shock"] == alone
+
+    @pytest.mark.parametrize("bad", [
+        {"infant": 0.5, "child": 0.5},                                   # missing groups
+        {"infant": 0.1, "child": 0.1, "working_age": 0.1, "elderly": 0.1},  # sum ≠ 1
+        {"infant": -0.1, "child": 0.3, "working_age": 0.6, "elderly": 0.2},
+    ])
+    def test_a_bad_mix_is_refused(self, bad):
+        with pytest.raises(ValueError):
+            automation_failure_shock(0.40, age_fractions=bad)
+
+
