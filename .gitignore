@@ -34,6 +34,8 @@ results/
 *.json
 # ...except committed package reference data (the multiplier registry needs it)
 !hours_eoh/reference/data/*.json
+# ...and the acknowledged census the provenance gate compares against (utils/census.py)
+!tests/census_snapshot.json
 
 # OS
 .DS_Store

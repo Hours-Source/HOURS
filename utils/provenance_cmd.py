@@ -65,6 +65,17 @@ def build_parser(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> 
     )
     doc.set_defaults(func=_doc)
 
+    cen = sub2.add_parser(
+        "census",
+        help="The counted figures (provenance, tiers, shadow, confidence) from "
+             "one source; --write acknowledges them and regenerates the prose",
+    )
+    cen.add_argument(
+        "--write", action="store_true",
+        help="Write tests/census_snapshot.json and every <!-- census:… --> block",
+    )
+    cen.set_defaults(func=_census)
+
     shadow = sub2.add_parser(
         "shadow",
         help="Domain constants OUTSIDE data.py — what the coverage figure omits",
@@ -382,3 +393,22 @@ def _doc(args: argparse.Namespace) -> None:
         print(red(f"{pv.PROVENANCE_DOC.name}: tables are STALE. "
                   "Run 'eoh provenance doc --write'."))
         sys.exit(1)
+
+
+def _census(args: argparse.Namespace) -> None:
+    """Report what disagrees with the acknowledged census, or acknowledge it."""
+    from utils import census
+    if args.write:
+        s = census.write()
+        print(f"census written: provenance {s['provenance_tagged']}/{s['provenance_total']}, "
+              f"tiers {s['tiers']}, shadow {s['shadow_unbound']}, confidence "
+              f"{s['confidence_without']} of {s['confidence_soft']}")
+        return
+    bad = census.stale()
+    if not bad:
+        print("census current: live figures match the acknowledged snapshot and every block")
+        return
+    print("census STALE — run `eoh provenance census --write` if the change is intended:")
+    for line in bad:
+        print(f"  {line}")
+    raise SystemExit(1)

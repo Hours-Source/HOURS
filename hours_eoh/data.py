@@ -3149,7 +3149,9 @@ RETIREMENT_REGISTER_AGE: int = 68
 # tag: instance | units: years
 # supplied_by: the collective's own membership record — how long its retirees
 #   were members before the register event.
-# default: 10 — the author's working figure (2026-10-03). Read through
+# default: 10 — the author's working figure (2026-10-03), confirmed the same
+#   day as TENURE (years of membership vesting the claim), not a stock of
+#   obligation owed. Read through
 #   `core.fiscal.vested_fraction`, the framework's ONE tenure curve (linear,
 #   full at CONTESTABILITY_VESTING_YEARS), so any tenure at or past the vesting
 #   period is fully vested and 0 is none: under the shipped 5-year vesting this

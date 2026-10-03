@@ -357,6 +357,12 @@ class Scan:
 # --- parsing ----------------------------------------------------------------
 
 
+
+#: The tags that carry measurement debt — the set the confidence ratchet
+#: (tests/test_confidence.py) and the census (utils/census.py) both count.
+#: Lives here so neither keeps a copy (moved from the test, 2026-10-03).
+SOFT_TAGS = frozenset({"placeholder", "bounded"})
+
 def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
     """Read the comment run at ``start`` as a tag block.
 

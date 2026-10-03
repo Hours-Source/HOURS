@@ -2215,3 +2215,39 @@ def test_the_arc_bound_is_read_not_retyped():
                 if pat.search(code) and (rel, line.strip()) not in allowed:
                     bad.append(f"{rel}:{i} {line.strip()[:80]}")
     assert not bad, "read data.EPSILON_ARC_MAX:\n  " + "\n  ".join(bad)
+
+
+class TestTheCensusHasOneSource:
+    """The counted figures — provenance, verdict tiers, shadow constants,
+    confidence debt, the tag breakdown — are computed by `utils/census.py`,
+    acknowledged in `tests/census_snapshot.json`, and quoted only in GENERATED
+    `<!-- census:… -->` blocks (2026-10-03). They were pinned by hand in ~6
+    places across 4 files; the tag breakdown had drifted, ungated."""
+
+    def test_the_census_is_acknowledged(self):
+        from utils import census
+        bad = census.stale()
+        assert not bad, ("the census moved — if intended, run "
+                         "`eoh provenance census --write` and say why in the commit:\n  "
+                         + "\n  ".join(bad))
+
+    def test_every_figure_has_its_generated_block(self):
+        from utils import census
+        names = {d.name: {n for n, _ in census.blocks(d.read_text(encoding="utf-8"))}
+                 for d in census.DOCS}
+        assert names["CLAUDE.md"] >= {"state", "confidence"}
+        assert names["provenance.md"] >= {"provenance", "tags", "confidence"}
+
+    def test_a_moved_figure_fails_until_written(self):
+        """The gate can fire (mode 12): a census one constant off is caught."""
+        from utils import census
+        s = census.snapshot()
+        assert census.stale({**s, "shadow_unbound": s["shadow_unbound"] + 1})
+        assert census.stale({**s, "tiers": {**s["tiers"], "POSSIBLE": s["tiers"]["POSSIBLE"] + 1}})
+
+    def test_regeneration_cannot_move_a_ratchet(self):
+        """--write rewrites prose and the snapshot only. The ratchet BOUNDS
+        (BASELINE_WITHOUT, the shadow bound) stay deliberate edits."""
+        from utils import census
+        assert all(d.suffix == ".md" for d in census.DOCS)
+        assert census.SNAPSHOT.suffix == ".json"

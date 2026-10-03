@@ -111,14 +111,19 @@ def _domain_is_empty_by_default() -> bool:
 
 
 def _provenance_is_complete() -> bool:
+    """Every constant tagged, at the census's acknowledged total. The figure is
+    no longer written here: the prose quoting it is generated from the census
+    (utils/census.py, 2026-10-03), so a literal here was a seventh copy."""
+    from utils import census
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 357 and total == 357
+    return tagged == total == census.snapshot()["provenance_total"]
 
 
-def _shadow_count_is_30() -> bool:
+def _shadow_count_is_acknowledged() -> bool:
+    from utils import census
     from utils import provenance as pv
-    return len([s for s in pv.shadow_constants() if not s.bound]) == 30
+    return len([s for s in pv.shadow_constants() if not s.bound]) == census.snapshot()["shadow_unbound"]
 
 
 def _guf_is_a_separate_revenue_line() -> bool:
@@ -263,7 +268,7 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 357/357",
+        anchor="<!-- census:provenance -->",
         check=_provenance_is_complete,
         why=(
             "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01) -> 353 (ECOSYSTEM_HEALTH_DEFAULT, 2026-10-02) -> 354 (CANONICAL_CAPITAL_AGE_BASE) -> 355 (SUFF_GUARANTEE_FLOOR_FRACTION) -> 357 (the retirement register's age and tenure, 2026-10-03). "
@@ -273,11 +278,12 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="shadow ratchet **30**",
-        check=_shadow_count_is_30,
-        why="the ratchet's bound. Quoted beside the 100% figure it qualifies. "
-            "Re-anchored 2026-10-02 from 'shadow ratchet at 33', a line in dated "
-            "history that must never be updated, to the live figure.",
+        anchor="<!-- census:state -->",
+        check=_shadow_count_is_acknowledged,
+        why="the ratchet's count, quoted beside the 100% figure it qualifies. "
+            "Re-anchored 2026-10-02 from 'shadow ratchet at 33' (dated history) "
+            "and 2026-10-03 to the generated census block, so the number is "
+            "written once.",
     ),
     Claim(
         anchor="GUF IS ITS OWN REVENUE LINE AND IS DELIBERATELY NOT FOLDED INTO THE LEVY",
@@ -891,7 +897,7 @@ def _shadow_bound_still_8() -> bool:
     return m is not None and int(m.group(1)) == 8
 
 
-def _confidence_ratchet_is_131_of_147() -> bool:
+def _confidence_debt_is_acknowledged() -> bool:
     """Imports nothing of its own: the gate's OWN filter, not a copy of it —
     re-implementing it dropped `if not s.bound` once already (corpus F-038).
 
@@ -907,7 +913,10 @@ def _confidence_ratchet_is_131_of_147() -> bool:
     soft = [r for r in pv.scan(pv.DATA_PY.read_text(encoding="utf-8")).records
             if r.tag in SOFT_TAGS]
     without = [r for r in soft if not getattr(r, "confidence", None)]
-    return (len(without), len(soft), BASELINE_WITHOUT) == (131, 147, 131)
+    from utils import census
+    s = census.snapshot()
+    return (len(without), len(soft)) == (s["confidence_without"], s["confidence_soft"]) \
+        and BASELINE_WITHOUT == len(without) > 0
 
 
 def _scan_is_data_py_only() -> bool:
@@ -1067,8 +1076,8 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "
                                "declares the limit, so its presence proves nothing"),
-    OpenItemPredicate("131 of 147 placeholder/bounded constants carry no confidence",
-                      "caveat", _confidence_ratchet_is_131_of_147),
+    OpenItemPredicate("placeholder/bounded constants carry no confidence figure.**",
+                      "caveat", _confidence_debt_is_acknowledged),
     OpenItemPredicate("The scan is `data.py`-only", "caveat", _scan_is_data_py_only),
     OpenItemPredicate("The `GUF_ECO_KAPPA_*` constants are engineered-route figures",
                       "caveat", _kappa_ratio_is_12_to_69),

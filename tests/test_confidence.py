@@ -42,7 +42,7 @@ from utils import provenance as pv
 #: Tags for which a confidence figure is meaningful. `measured`, `derived`,
 #: `physics` and `convention` are not on the list: their epistemic state is the
 #: tag itself, and `normative` is a decision that no measurement settles.
-SOFT_TAGS = frozenset({"placeholder", "bounded"})
+from utils.provenance import SOFT_TAGS  # noqa: E402 — one definition, shared with utils/census.py
 
 #: Constants without a confidence figure. May not RISE. Lowering it means
 #: revisiting a constant and stating what is measured in it, which is real work

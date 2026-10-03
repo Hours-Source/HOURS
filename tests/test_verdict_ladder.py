@@ -196,11 +196,19 @@ class TestTheCensusCannotDriftSilently:
         working as designed — the framework got no more certain, it got more
         explicit about what it is asking you to supply.
         """
+        # FROM 2026-10-03 THE ACKNOWLEDGED SHARES LIVE IN ONE PLACE —
+        # tests/census_snapshot.json, written by `eoh provenance census --write`
+        # (utils/census.py). The log above is kept as history; a new move is
+        # acknowledged by regenerating, and its WHY goes in the commit message.
+        from utils import census
         c = VL.tier_census()
-        assert c["total"] == 357
-        assert c["counts"]["CERTAIN"] == 32
-        assert c["counts"]["INSTANCE"] == 100
-        assert c["counts"]["POSSIBLE"] == 225
+        s = census.snapshot()
+        assert c["total"] == s["tier_total"]
+        assert dict(c["counts"]) == s["tiers"], (
+            f"the census moved: {dict(c['counts'])} against the acknowledged "
+            f"{s['tiers']}. If intended, run `eoh provenance census --write` and "
+            "say why in the commit."
+        )
 
     def test_possible_is_still_the_largest_tier(self):
         """
