@@ -42,6 +42,7 @@ infrastructure EOH"; §"Demographic shock"; §"Ecological EOH spike"
 
 from __future__ import annotations
 
+import math
 import warnings
 from typing import Any, TypedDict
 
@@ -366,24 +367,38 @@ def _competency(s0: _State, before: dict, s1: _State, after: dict) -> dict:
         REGISTERED    — all registered hours: a created shortfall elsewhere is
                         DEGRADED, rebuildable.
 
-    A shock is charged only with the shortfalls it CREATES: a domain already
-    short before it (healthcare, over a band of the upper arc at the Condition
-    IV minimum) is reported, not blamed on it.
+    A shock is charged with the shortfalls it CREATES and with those it
+    DEEPENS (author, 2026-10-03, option 1). Until then only created ones
+    counted, so a domain marginally short before the shock masked whatever the
+    shock did to it: a 50% automation loss read CRISIS at ε 0.70 and 0.85 and
+    STABLE at 0.75–0.80, where care sat at 0.99 coverage before the shock and
+    fell to about half. A deepened shortfall is one short before AND after
+    with coverage strictly lower after (beyond float noise); it is charged in
+    its tier exactly as a created one, and reported with both coverages.
     """
-    def created(reading: str) -> tuple[list[str], list[str], dict]:
+    def read(reading: str) -> tuple[list[str], list[str], dict[str, tuple[float, float]], dict]:
         c0 = condition_iv_coverage(_threshold_reserve(s0), before, reading)
         c1 = condition_iv_coverage(_threshold_reserve(s1), after, reading)
-        return (c0["domains_short"],
-                [d for d in c1["domains_short"] if d not in c0["domains_short"]], c1)
+        cov0 = {d: v["coverage_ratio"] for d, v in c0["per_domain"].items()}
+        cov1 = {d: v["coverage_ratio"] for d, v in c1["per_domain"].items()}
+        made = [d for d in c1["domains_short"] if d not in c0["domains_short"]]
+        deepened = {d: (cov0[d], cov1[d]) for d in c1["domains_short"]
+                    if d in c0["domains_short"] and cov1[d] < cov0[d]
+                    and not math.isclose(cov1[d], cov0[d], rel_tol=1e-9)}
+        return c0["domains_short"], made, deepened, c1
 
-    short_before, made, c1 = created("registered")
-    personal_before, personal_made, _ = created("personal")
-    if personal_made:
+    short_before, made, deepened, c1 = read("registered")
+    personal_before, personal_made, personal_deepened, _ = read("personal")
+    if personal_made or personal_deepened:
         outcome = "CRISIS"
-    elif made:
+    elif made or deepened:
         outcome = "DEGRADED"
     else:
         outcome = "STABLE"
+    note = "".join(
+        f"{d.capitalize()} was already short ({b:.3f}) and the shock deepens it to {a:.3f}"
+        f"{' — the personal tier' if d in personal_deepened else ''}. "
+        for d, (b, a) in sorted({**deepened, **personal_deepened}.items()))
     return {
         "competency_tested":                True,
         "competency_short_before":          short_before,
@@ -391,6 +406,9 @@ def _competency(s0: _State, before: dict, s1: _State, after: dict) -> dict:
         "competency_short_created":         made,
         "competency_personal_short_before": personal_before,
         "competency_personal_short_created": personal_made,
+        "competency_short_deepened":        deepened,
+        "competency_personal_short_deepened": personal_deepened,
+        "competency_note":                  note,
         "competency_coverage_after":        {d: v["coverage_ratio"] for d, v in c1["per_domain"].items()},
         "competency_unattributed_eoh":      c1["unattributed_eoh"],
         "competency_outcome":               outcome,
@@ -532,6 +550,7 @@ def automation_failure_shock(
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'} at the new mint. "
         + (f"Certified capacity falls short in {comp['competency_short_created']}. "
            if comp["competency_short_created"] else "")
+        + comp["competency_note"]
         + f"Outcome: {outcome}."
     )
     return {
@@ -639,7 +658,8 @@ def demographic_shock(
         f"labour supply {s0['labor_supply_per_capita'] * population:,.0f} → "
         f"{s1['labor_supply_per_capita'] * s1['population']:,.0f} h/yr; "
         f"{c['deferred_eoh']:,.0f} deferred. "
-        f"Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. Outcome: {outcome}."
+        f"Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. "
+        + comp["competency_note"] + f"Outcome: {outcome}."
     )
     return {
         "scenario":              "demographic_shock",
@@ -767,7 +787,8 @@ def ecological_eoh_spike(
         f"{restoration_years:.0f} years, of which people carry "
         f"{c['added_human_eoh']:,.0f} (machines the rest): {c['taken_up_eoh']:,.0f} "
         f"taken up, {c['deferred_eoh']:,.0f} deferred. The holder's GUF flow rises "
-        f"{guf_flow:,.0f} h/yr. Outcome: {outcome}. Not modelled: biological "
+        f"{guf_flow:,.0f} h/yr. " + comp["competency_note"]
+        + f"Outcome: {outcome}. Not modelled: biological "
         "recovery time."
     )
     return {
@@ -1010,7 +1031,8 @@ def compound_shock(
         + (f" ({c['deferred_personal_eoh']:,.0f} personal)"
            if c["deferred_personal_eoh"] > 0.0 else "")
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. "
-        f"Individual outcomes: {individual}. Combined outcome: {combined}."
+        + comp["competency_note"]
+        + f"Individual outcomes: {individual}. Combined outcome: {combined}."
     )
     return {
         "scenario":                       "compound_shock",

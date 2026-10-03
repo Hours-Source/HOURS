@@ -605,9 +605,17 @@ class TestAutomationFailureCascade:
         # measured supply, so it is constructed: below the personal demand
         # per head the floor itself goes unserved.
         assert automation_failure_shock(0.40)["outcome"] == "STABLE"
-        # DEGRADED: labour defers, and the care shortfall already there at ε=0.78
-        # is not blamed on the shock (care is a domain since 2026-10-01).
-        assert automation_failure_shock(0.78)["outcome"] == "DEGRADED"
+        # DEGRADED: labour defers non-personal hours and no certified domain is
+        # created short or deepened. Until 2026-10-03 this was ε=0.78, where
+        # the care shortfall already there was not blamed on the shock; the
+        # shock deepens it (0.99 → ~0.38 coverage), and since option 1 a
+        # deepened shortfall is charged — in the personal tier, CRISIS.
+        degraded = automation_failure_shock(0.45, fraction_lost=1.0)
+        assert degraded["outcome"] == "DEGRADED"
+        assert degraded["competency_outcome"] == "STABLE"
+        deepened = automation_failure_shock(0.78)
+        assert deepened["outcome"] == "CRISIS"
+        assert "care" in deepened["competency_personal_short_deepened"]
         crisis = automation_failure_shock(0.90, labor_supply_per_capita=800.0)
         assert crisis["deferred_personal_eoh"] > 0.0
         assert crisis["outcome"] == "CRISIS"
@@ -800,3 +808,37 @@ class TestTheSurvivalTier:
         r = automation_failure_shock(0.40)
         assert r["competency_unattributed_eoh"] > 0.0
         assert "unattributed" not in r["competency_coverage_after"]
+
+
+
+class TestADeepenedShortfallIsCharged:
+    """Author, 2026-10-03 (option 1): a shock is charged with the shortfalls it
+    DEEPENS, not only those it creates. A 50% automation loss read CRISIS at
+    ε 0.70 and 0.85 and STABLE between, where care was marginally short before."""
+
+    def test_the_verdict_no_longer_dips_over_the_care_window(self):
+        eps = [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
+        out = [compound_shock(e, automation_fraction_lost=0.5)["combined_outcome"] for e in eps]
+        assert out == ["CRISIS"] * len(eps)
+
+    @pytest.mark.parametrize("eps", [0.75, 0.80])
+    def test_it_reports_both_coverages(self, eps):
+        r = compound_shock(eps, automation_fraction_lost=0.5)
+        b, a = r["competency_personal_short_deepened"]["care"]
+        assert b < 1.0 and a < b
+        assert f"already short ({b:.3f})" in r["competency_note"]
+        assert f"deepens it to {a:.3f}" in r["competency_note"]
+        assert r["competency_note"] in r["recommendation"]
+
+    def test_an_untouched_shortfall_is_not_charged(self):
+        """Short before, unchanged after: reported, not blamed (no deepening)."""
+        r = compound_shock(0.78, automation_fraction_lost=1e-12)
+        assert r["competency_short_before"] and not r["competency_short_deepened"]
+        assert r["competency_outcome"] == "STABLE"
+
+    def test_every_shock_carries_the_note(self):
+        for r in (automation_failure_shock(0.78),
+                  demographic_shock(0.78, shock_type="aging", magnitude=0.2),
+                  compound_shock(0.78, automation_fraction_lost=0.5)):
+            assert "competency_note" in r
+            assert r["competency_note"] in r["recommendation"]
