@@ -52,7 +52,11 @@ class TestTheDefaultReadingIsUnchanged:
     def test_the_comparison_verdict_has_not_moved(self):
         c = LE.instrument_comparison()
         assert c["verdict"] == "ADJACENT"
-        assert repr(c["gap"]) == repr(0.04568693284802028)
+        # Re-pinned 2026-10-03: 0.04568693284802028 → 0.045610935473373415 when
+        # the default capital rates stopped being rounded copies of
+        # `conversion_band()` (15.94 → 15.9423…). The verdict, the grid's 18
+        # cells and the 8 inside the labour band are unchanged.
+        assert repr(c["gap"]) == repr(0.045610935473373415)
 
     def test_the_report_still_builds_its_verdict_string(self):
         r = LE.labour_epsilon_report()

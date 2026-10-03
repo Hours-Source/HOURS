@@ -46,7 +46,13 @@ from __future__ import annotations
 
 from typing import Callable, TypedDict
 
-from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR, REFERENCE_FRAME_POPULATION
+from hours_eoh.data import (
+    CONTESTABILITY_CHI_CRIT,
+    REFERENCE_FRAME_POPULATION,
+    THERMAL_DT_LO,
+    THERMAL_LAMBDA_FEEDBACK,
+    THERMAL_U_FLOOR,
+)
 from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
@@ -377,9 +383,20 @@ def measured_thermal_ceiling(
     utilization: float,
     epsilon_current: float = 0.40,
     u_floor: float = THERMAL_U_FLOOR,
+    delta_t_lo: float = THERMAL_DT_LO,
+    basis: str = "net_erf",
 ) -> Ceiling:
     """
-    The MEASURED thermal ceiling (Path C, finding F11). The binding thermal signal
+    The MEASURED thermal ceiling (Path C, finding F11).
+
+    NO BUDGET IS A WARNING, NOT A BOUND (author, 2026-10-03). U = ∞ means ψ* = 0:
+    at this ΔT_lo the forcing already exceeds λ·ΔT_lo, so nothing is allocated
+    to exceed. That is the state P0 reports as UNBUDGETED (advisory), and this
+    function now reads it the same way — non-binding, with the DIRECTION stated:
+    the forcing reduction (W·m⁻², on `basis`) that would open a budget, computed
+    from `delta_t_lo` and the measured forcing. It is a property of the
+    planetary forcing, not of this collective's automation. Contact (finite
+    U ≥ 1) still binds at ε_current. The binding thermal signal
     is a collective's utilization U = ψ/ψ* — its measured dissipation density
     against the allocated budget — not the (non-binding) global ε_max.
 
@@ -403,6 +420,14 @@ def measured_thermal_ceiling(
     Returns:
         Ceiling. Binding (at ε_current) iff U ≥ 1.
     """
+    if utilization == float("inf"):
+        from hours_eoh.research.thermal_path_c import _forcing_value
+        excess = _forcing_value(basis) - THERMAL_LAMBDA_FEEDBACK * delta_t_lo  # type: ignore[arg-type]
+        return Ceiling(
+            name="thermal_measured", epsilon_ceiling=None, binding=False,
+            status=f"UNBUDGETED (advisory): forcing {excess:.3f} W·m⁻² over "
+                   f"λ·ΔT_lo — decarbonise, not de-automate",
+        )
     if utilization >= 1.0:
         return Ceiling(
             name="thermal_measured", epsilon_ceiling=epsilon_current, binding=True,
@@ -472,6 +497,59 @@ def overbuild_floor(
     return Floor(name="overbuild", epsilon_floor=e, binding=True,
                  status=f"worth being in only at ε ≥ {e:.2f} — below it the "
                         f"apparatus costs members more hours than autarky")
+
+
+def overbuild_capital_limit(
+    capital_stock_teh: float,
+    population: float = REFERENCE_FRAME_POPULATION,
+    rel_tol: float = 1e-6,
+    **kwargs: float,
+) -> float | None:
+    """
+    How much capital this population can hold before the apparatus stops
+    paying — the DISTANCE behind `overbuild_floor`'s "pays at any ε".
+
+    The floor is non-binding while the OBLIGATION test passes,
+    B(K) + I(K) < B₀ (`core.autarky.overbuild_check`). B(K) falls with
+    saturating abatement while the overhead I(K) grows linearly, so the test
+    passes on (0, K*) and fails above K*. This returns K* (TEH), searched
+    upward from `capital_stock_teh` by doubling and then bisection, so it is
+    the crossing ABOVE the stock given. Added 2026-10-03: the band printed
+    "pays" with no distance, so a stock far below the crossing read the same
+    as one just under it.
+
+    Returns None when the given stock already fails the test (the floor binds;
+    `overbuild_floor` reports where), or when no crossing is found within 2⁶⁰×
+    the stock.
+
+    units: TEH. ε-behaviour: ε-free — the obligation test does not read ε.
+
+    Args:
+        capital_stock_teh: The stock to measure from (> 0).
+        population: Total population.
+        rel_tol: Relative bisection tolerance on K.
+        **kwargs: Forwarded to `overbuild_check`.
+    """
+    from hours_eoh.core.autarky import overbuild_check
+
+    def pays(k: float) -> bool:
+        return bool(overbuild_check(k, population, epsilon=0.0, **kwargs)["obligation_test"])  # type: ignore[arg-type]
+
+    if capital_stock_teh <= 0.0:
+        raise ValueError("capital_stock_teh must be > 0")
+    if not pays(capital_stock_teh):
+        return None
+    lo, hi = capital_stock_teh, 2.0 * capital_stock_teh
+    for _ in range(60):
+        if not pays(hi):
+            break
+        lo, hi = hi, 2.0 * hi
+    else:
+        return None
+    while hi - lo > rel_tol * lo:
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if pays(mid) else (lo, mid)
+    return hi
 
 
 def survival_floor(
@@ -571,8 +649,21 @@ def corridor(
         note = (f"corridor closed: the {floor_name or 'survival'} floor exceeds the "
                 f"tightest ceiling — no ε satisfies both")
     elif binding_name is None:
-        note = ("open corridor: no invariant binds within the arc; ε_max is "
-                "aspirational (thermal advisory — not proven open, needs measured ι)")
+        # The caveat names what is MISSING, so it must change when it is supplied:
+        # with the measured (Path C) ceiling present the thermal side is a
+        # measured non-binding reading, not an absent one (2026-10-03).
+        measured = [c for c in ceilings if c["name"] == "thermal_measured"]
+        if measured and measured[0]["status"].startswith("UNBUDGETED"):
+            note = ("open corridor: no invariant binds within the arc; thermal "
+                    "UNBUDGETED at this ΔT_lo — a warning with a direction "
+                    "(decarbonise), not a bound")
+        elif measured:
+            note = ("open corridor: no invariant binds within the arc; thermal "
+                    "measured non-binding (Path C utilization below its floor), "
+                    "the P0 bound advisory")
+        else:
+            note = ("open corridor: no invariant binds within the arc; ε_max is "
+                    "aspirational (thermal advisory — not proven open, needs measured ι)")
     else:
         note = f"corridor [{epsilon_suff:.2f}, {eps_max:.2f}] bounded above by {binding_name}"
 

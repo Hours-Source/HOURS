@@ -381,3 +381,208 @@ class TestTheBandCommandTravelsWithTheFrame:
         r = self._band("--capital-stock", "1e12")
         assert r["binding_floor"] == "overbuild"
         assert r["epsilon_suff"] > 0.5
+
+
+class TestTheBandOnARealFrame:
+    """`corridor band --frame us` (2026-10-03): US population and land, Census
+    ages, the BEA inventory at a stated rate, and the Path C utilization."""
+
+    _band = staticmethod(TestTheBandCommandTravelsWithTheFrame._band)
+
+    def test_the_frame_fills_every_input_from_the_repo(self):
+        from hours_eoh.data import JURISDICTION_FRAMES, M2_PER_HECTARE
+        from hours_eoh.research.thermal_path_c import all_collectives_utilization
+        r = self._band("--frame", "us", "--epsilon", "0.41")
+        inp, us = r["inputs"], JURISDICTION_FRAMES["us_mainland"]
+        assert inp["population"] == us["population"]
+        assert inp["land_m2"] == pytest.approx(us["land_hectares"] * M2_PER_HECTARE)
+        assert inp["ages"] == "census"
+        u = {c["name"]: c for c in all_collectives_utilization()}["United States"]["utilization"]
+        assert inp["utilization"] == pytest.approx(u)
+        assert "thermal_measured" in [c["name"] for c in r["ceilings"]]
+
+    def test_the_bea_capital_is_the_inventory_at_the_rate(self):
+        from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
+        r = self._band("--frame", "us", "--bea-usd-per-teh", "20")
+        assert r["inputs"]["capital_teh"] == pytest.approx(
+            epsilon_from_inventory(20.0)["capital_teh"])
+
+    @pytest.mark.parametrize("flags", [
+        ("--bea-usd-per-teh", "20"),
+        ("--frame", "us", "--population", "1e6", "--bea-usd-per-teh", "20"),
+        ("--frame", "us", "--capital-stock", "1e12", "--bea-usd-per-teh", "20"),
+    ])
+    def test_the_us_inventory_refuses_another_frame(self, flags):
+        with pytest.raises(SystemExit):
+            self._band(*flags)
+
+    def test_the_note_drops_the_missing_iota_caveat_when_measured(self):
+        assert "needs measured ι" in self._band()["note"]
+        assert "needs measured ι" not in self._band("--utilization", "0.42")["note"]
+
+    def test_a_measured_utilization_can_bind(self):
+        """The measured ceiling is live, not decorative: in contact it binds."""
+        r = self._band("--utilization", "1.84")
+        assert r["binding_ceiling"] == "thermal_measured"
+
+    def test_the_default_band_is_unchanged_by_the_new_flags(self):
+        r = self._band()
+        assert r["inputs"]["ages"] == "shipped" and r["inputs"]["utilization"] is None
+        assert [c["name"] for c in r["ceilings"]] == ["contestability", "thermal"]
+
+
+class TestHeadroom:
+    """The band printed "no / —" with no distance to binding (2026-10-03).
+    `overbuild_capital_limit` and the CLI's headroom column supply it."""
+
+    _band = staticmethod(TestTheBandCommandTravelsWithTheFrame._band)
+
+    @staticmethod
+    def _arc_capital(eps: float = 0.40, pop: float = 1e6) -> float:
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        return resolve_capital_stock(None, eps, population=pop)
+
+    def test_the_capital_limit_is_the_obligation_tests_crossing(self):
+        from hours_eoh.core.autarky import overbuild_check
+        from hours_eoh.research.corridor import overbuild_capital_limit
+        k = overbuild_capital_limit(self._arc_capital(), 1e6)
+        assert k is not None and k > self._arc_capital()
+        assert overbuild_check(k * 0.999, 1e6, epsilon=0.0)["obligation_test"]
+        assert not overbuild_check(k * 1.001, 1e6, epsilon=0.0)["obligation_test"]
+
+    def test_it_is_where_the_floor_starts_to_bind(self):
+        from hours_eoh.research.corridor import overbuild_capital_limit, overbuild_floor
+        k = overbuild_capital_limit(self._arc_capital(), 1e6)
+        assert not overbuild_floor(k * 0.999, 1e6)["binding"]
+        assert overbuild_floor(k * 1.001, 1e6)["binding"]
+
+    def test_the_limit_is_per_capita_invariant_and_start_free(self):
+        from hours_eoh.research.corridor import overbuild_capital_limit
+        per = [overbuild_capital_limit(s * p, p) / p
+               for p in (1e5, 1e6, 335e6) for s in (100.0, 2_400.0, 10_000.0)]
+        assert max(per) == pytest.approx(min(per), rel=1e-5)
+
+    def test_none_once_the_stock_already_fails(self):
+        from hours_eoh.research.corridor import overbuild_capital_limit
+        assert overbuild_capital_limit(1e12, 1e6) is None
+
+    def test_the_band_reports_each_distance(self):
+        from hours_eoh.data import THERMAL_U_FLOOR
+        from hours_eoh.research.corridor import (
+            DEFAULT_SURVIVAL_DOMAINS, overbuild_capital_limit, survival_inventory)
+        from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+        h = self._band("--utilization", "0.25")["headroom"]
+        need = sum(survival_inventory(population=1e6, epsilon=0.40)[d]
+                   for d in DEFAULT_SURVIVAL_DOMAINS)
+        assert h["survival"]["labour_cover"] == pytest.approx(labor_supply_per_capita() * 1e6 / need)
+        assert h["overbuild"]["capital_limit_teh"] == pytest.approx(overbuild_capital_limit(self._arc_capital(), 1e6))
+        assert h["thermal_measured"]["to_exposure"] == pytest.approx(THERMAL_U_FLOOR / 0.25)
+        assert h["thermal_measured"]["to_contact"] == pytest.approx(4.0)
+
+
+
+
+
+def test_one_threshold_drives_both_thermal_rows():
+    """`--delta-t-lo` reached only Path C at first; P0 kept its own default."""
+    from hours_eoh.core.eoh_generation import total_eoh
+    from hours_eoh.research.corridor import thermal_ceiling
+    band = TestTheBandCommandTravelsWithTheFrame._band
+    for dt in ("2.0", "3.0", "4.0"):
+        r = band("--delta-t-lo", dt)
+        p0 = next(c for c in r["ceilings"] if c["name"] == "thermal")
+        inp = r["inputs"]
+        assert p0 == thermal_ceiling(
+            inp["land_m2"], inp["phi_other_w"], epsilon=0.40,
+            eoh_by_domain=total_eoh(epsilon=0.40, population=inp["population"]),
+            delta_t_lo=float(dt))
+    assert len({str(band("--delta-t-lo", d)["ceilings"]) for d in ("2.0", "4.0")}) == 2
+
+
+class TestTheEchoAndTheWarning:
+    """2026-10-03: a ceiling that binds AT the current ε reports the input back
+    (the echo), and no budget is a warning with a direction, not a bound."""
+
+    _band = staticmethod(TestTheBandCommandTravelsWithTheFrame._band)
+
+    def test_json_says_when_the_ceiling_is_the_current_epsilon(self):
+        """Data, not wording: json readers need the flag (it was table-only)."""
+        assert self._band("--utilization", "1.5", "--epsilon", "0.41")["epsilon_max_is_current"]
+        assert not self._band("--utilization", "0.25")["epsilon_max_is_current"]
+
+    def test_the_us_frame_is_open_with_a_directed_warning(self):
+        r = self._band("--frame", "us", "--epsilon", "0.41")
+        tm = next(c for c in r["ceilings"] if c["name"] == "thermal_measured")
+        if r["inputs"]["thermal_zone"] == "determinate_unbudgeted":
+            assert not tm["binding"] and "decarbonise" in tm["status"]
+            assert r["binding_ceiling"] is None
+            assert "a warning with a direction" in r["note"]
+            assert r["headroom"]["thermal_measured"]["regime"] == "unbudgeted"
+
+
+class TestTheEpsilonReading:
+    """`--frame us` ran at the 0.40 reference silently (2026-10-03). Unsupplied,
+    ε now comes from the frame's two instruments as a point ± margin, the band
+    is checked at both ends, and with no reading the default is labelled."""
+
+    _band = staticmethod(TestTheBandCommandTravelsWithTheFrame._band)
+
+    def test_the_frame_reads_both_instruments(self):
+        from hours_eoh.scenarios.labour_epsilon import instrument_comparison
+        c = instrument_comparison()
+        lo = min(c["labour"]["low"], c["capital"]["low"])
+        hi = max(c["labour"]["high"], c["capital"]["high"])
+        e = self._band("--frame", "us")["epsilon_reading"]
+        assert (e["low"], e["high"]) == pytest.approx((lo, hi))
+        assert e["value"] == pytest.approx((lo + hi) / 2)
+        assert e["margin"] == pytest.approx((hi - lo) / 2)
+        assert c["verdict"] in e["source"]
+        assert isinstance(e["verdict_holds_across_range"], bool)
+
+    def test_a_stated_rate_narrows_the_capital_arm_to_it(self):
+        from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
+        e = self._band("--frame", "us", "--bea-usd-per-teh", "15.94")["epsilon_reading"]
+        assert e["instruments"]["capital"] == pytest.approx(
+            [epsilon_from_inventory(15.94)["epsilon"]] * 2)
+
+    def test_a_supplied_epsilon_is_used_as_given(self):
+        e = self._band("--frame", "us", "--epsilon", "0.33")["epsilon_reading"]
+        assert e["value"] == 0.33 and e["margin"] == 0.0 and e["source"] == "supplied"
+
+    def test_without_a_reading_the_default_is_labelled(self):
+        from utils.corridor_cmd import _EPSILON_REFERENCE
+        e = self._band()["epsilon_reading"]
+        assert e["value"] == _EPSILON_REFERENCE and e["margin"] is None
+        assert e["source"].startswith("default")
+
+    def test_the_inventory_is_taken_at_the_reading(self):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        r = self._band("--frame", "us")
+        e, inp = r["epsilon_reading"], r["inputs"]
+        assert inp["capital_teh"] == pytest.approx(
+            resolve_capital_stock(None, e["value"], population=inp["population"]))
+
+
+def test_instrument_comparison_reads_the_conversion_band():
+    """The default capital rates were rounded copies of the band's ends plus a
+    hand midpoint; three rates are kept because they set the grid's 18 cells."""
+    from hours_eoh.scenarios.capital_retrodiction import conversion_band
+    from hours_eoh.scenarios.labour_epsilon import instrument_comparison
+    b = conversion_band()
+    c = instrument_comparison()
+    assert tuple(c["capital"]["rates"]) == pytest.approx(
+        (b["low"], 0.5 * (b["low"] + b["high"]), b["high"]))
+    assert c["grid"]["cells_total"] == 18
+
+
+@pytest.mark.parametrize("flags", [
+    ("--frame", "us", "--bea-usd-per-teh", "15.94"),
+    ("--frame", "us"),
+])
+def test_a_divergent_reading_is_labelled_a_disagreement(flags):
+    """The margin is labelled by the instruments' OWN verdict: a disagreement
+    when DIVERGENT, a span otherwise (the `margin_kind` json readers get)."""
+    r = TestTheBandCommandTravelsWithTheFrame._band(*flags)
+    e = r["epsilon_reading"]
+    divergent = e["instruments"]["verdict"] == "DIVERGENT"
+    assert e["margin_kind"] == ("disagreement" if divergent else "span")

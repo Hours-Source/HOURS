@@ -811,3 +811,45 @@ class TestDemandIsThePipelinesSplit:
         r = [feasibility_check(adult_capacity_h_yr=cap, epsilon=i / 100)["demand_supply_ratio"]
              for i in range(100)]
         assert all(b <= a + 1e-12 for a, b in zip(r, r[1:]))
+
+
+class TestTheDemographicMargin:
+    """`demographic_margin` had no test (2026-10-03) although the record said it
+    was "pinned flat" on 2026-10-01. Pinned here, plus the age mix it gained."""
+
+    @staticmethod
+    def _us_ages() -> dict[str, float]:
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        return population_shares(AGE_GROUP_RANGES, year=2025)
+
+    def test_flat_in_epsilon(self):
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        m = [demographic_margin(epsilon=e)["margin_pp"] for e in (0.0, 0.40, 0.90, 0.99)]
+        assert max(m) - min(m) == pytest.approx(0.0, abs=1e-9)
+
+    def test_the_default_ages_are_the_shipped_ones(self):
+        from hours_eoh.data import AGE_GROUP_FRACTIONS
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        assert demographic_margin(age_fractions=dict(AGE_GROUP_FRACTIONS)) == pytest.approx(
+            demographic_margin())
+
+    def test_an_age_mix_moves_both_sides(self):
+        """Supply AND obligation: the US 2025 mix differs from the shipped one in
+        the adult share and in the per-capita personal obligation."""
+        from hours_eoh.scenarios.feasibility import demographic_margin
+        base, us = demographic_margin(), demographic_margin(age_fractions=self._us_ages())
+        assert us["adult_share"] != pytest.approx(base["adult_share"], rel=1e-4)
+        assert us["personal_demand_per_capita"] != pytest.approx(
+            base["personal_demand_per_capita"], rel=1e-4)
+        assert us["margin_pp"] != pytest.approx(base["margin_pp"], rel=1e-3)
+
+    def test_it_is_assembled_from_its_parts(self):
+        from hours_eoh.core.eoh_generation import total_eoh
+        from hours_eoh.scenarios.feasibility import (
+            capacity_weighted_adult_share, demographic_margin)
+        ages = self._us_ages()
+        m = demographic_margin(epsilon=0.40, population=335e6, age_fractions=ages)
+        a = capacity_weighted_adult_share(ages)
+        d = total_eoh(epsilon=0.40, population=335e6, age_distribution=ages)["personal"] / 335e6
+        assert m["margin_pp"] == pytest.approx((a - d / MEASURED_CAPACITY_H_YR) * 100.0)

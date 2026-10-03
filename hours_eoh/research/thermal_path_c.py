@@ -354,7 +354,7 @@ def collective_utilization(
     energy_ej: float,
     land_m2: float,
     fossil_nuclear_share: float,
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
     u_floor: float = THERMAL_U_FLOOR,
     eta: float | None = None,
@@ -380,7 +380,7 @@ def collective_utilization(
 
 
 def all_collectives_utilization(
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
 ) -> list[CollectiveUtilization]:
     """Utilization for every national record in the shipped dataset."""
@@ -516,7 +516,7 @@ def headroom_multiple(
 
 
 def global_ceiling(
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
     eps_current: float = THERMAL_EPS_CURRENT,
     r: float = THERMAL_COMMONS_RESERVE,

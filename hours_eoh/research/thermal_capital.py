@@ -44,6 +44,7 @@ from hours_eoh.data import (
     INFRA_AGE_FACTOR_MAX,
     CAPITAL_THERMAL_PROFILES,
     SECONDS_PER_YEAR,
+    THERMAL_DT_LO,
     THERMAL_GRID_KAPPA_DEFAULT,
     THERMAL_U_FLOOR,
 )
@@ -139,7 +140,7 @@ def collective_thermal_from_capital(
     population: float,
     land_m2: float,
     grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
     u_floor: float = THERMAL_U_FLOOR,
 ) -> CapitalThermalState:
@@ -230,7 +231,7 @@ def capital_thermal_ceiling(
     land_m2: float,
     epsilon_current: float | None = None,
     grid_kappa: float = THERMAL_GRID_KAPPA_DEFAULT,
-    delta_t_lo: float = 3.0,
+    delta_t_lo: float = THERMAL_DT_LO,
     basis: ForcingBasis = "net_erf",
 ) -> Ceiling:
     """
@@ -263,7 +264,8 @@ def capital_thermal_ceiling(
     )
     eps = (epsilon_current_from_inventory(capital_desc, population)
            if epsilon_current is None else epsilon_current)
-    return measured_thermal_ceiling(st["utilization"], eps)
+    return measured_thermal_ceiling(st["utilization"], eps,
+                                    delta_t_lo=delta_t_lo, basis=basis)
 
 
 # ---------------------------------------------------------------------------

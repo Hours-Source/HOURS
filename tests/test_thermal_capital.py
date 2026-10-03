@@ -22,6 +22,13 @@ from hours_eoh.research.corridor import corridor
 
 ALL_STANDARD = {t: "standard" for t in CAPITAL_MACHINE_PROFILES}
 POP = 1_000_000.0
+# The ceiling tests below exercise the DENSITY mechanism, which needs a budget
+# to exist. At the adopted THERMAL_DT_LO (2.0 K) there is none — every collective
+# is unbudgeted and binds regardless of land — so they run at 3.0 K, the
+# pre-2026-10-03 default, where a budget opens (`budget_opens_at`). At the
+# adopted value the "open when large" case had become a coincidence: a ceiling
+# at exactly the 0.40 floor reads feasible at zero width (mode 3).
+BUDGETED = {"delta_t_lo": 3.0}
 
 
 # ---------------------------------------------------------------------------
@@ -115,20 +122,20 @@ def test_phi_per_capita_reported():
 # ---------------------------------------------------------------------------
 
 def test_capital_thermal_ceiling_binds_when_dense():
-    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, epsilon_current=0.40)
+    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, epsilon_current=0.40, **BUDGETED)
     assert c["binding"] is True
     assert c["epsilon_ceiling"] == pytest.approx(0.40)
 
 
 def test_capital_thermal_ceiling_closes_corridor():
-    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, epsilon_current=0.40)
+    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, epsilon_current=0.40, **BUDGETED)
     rep = corridor(0.52, [c])  # survival floor above the thermal ceiling
     assert rep["feasible"] is False
     assert rep["binding_ceiling"] == "thermal_measured"
 
 
 def test_capital_thermal_ceiling_open_when_large():
-    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=9.15e12, epsilon_current=0.40)
+    c = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=9.15e12, epsilon_current=0.40, **BUDGETED)
     rep = corridor(0.40, [c])
     assert rep["feasible"] is True
     assert rep["success"] is True
@@ -161,7 +168,7 @@ def test_epsilon_current_rejects_bad_population():
 
 def test_ceiling_derives_epsilon_by_default():
     """Default (None) derives ε from the same inventory that produced Φ."""
-    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
+    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, **BUDGETED)
     assert derived["binding"] is True
     assert derived["epsilon_ceiling"] == pytest.approx(
         epsilon_current_from_inventory(ALL_STANDARD, POP)
@@ -169,9 +176,9 @@ def test_ceiling_derives_epsilon_by_default():
 
 
 def test_explicit_epsilon_overrides_the_derivation():
-    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
+    derived = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, **BUDGETED)
     forced = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8,
-                                     epsilon_current=0.40)
+                                     epsilon_current=0.40, **BUDGETED)
     assert forced["epsilon_ceiling"] == pytest.approx(0.40)
     assert derived["epsilon_ceiling"] != pytest.approx(0.40)
 
@@ -183,8 +190,8 @@ def test_same_dissipation_different_inventory_gives_different_ceiling():
     ceiling quoted at a single CHOSEN ε_current reports one number for both.
     """
     lean = {k: "basic" for k in ALL_STANDARD}
-    a = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8)
-    b = capital_thermal_ceiling(lean, POP, land_m2=7.3e8)
+    a = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, **BUDGETED)
+    b = capital_thermal_ceiling(lean, POP, land_m2=7.3e8, **BUDGETED)
     assert a["binding"] and b["binding"]
     assert a["epsilon_ceiling"] != pytest.approx(b["epsilon_ceiling"])
 
@@ -192,7 +199,7 @@ def test_same_dissipation_different_inventory_gives_different_ceiling():
 @pytest.mark.parametrize("tier", ["basic", "standard", "advanced"])
 def test_derived_ceiling_coherent_across_capital_tiers(tier):
     mix = {k: tier for k in ALL_STANDARD}
-    c = capital_thermal_ceiling(mix, POP, land_m2=7.3e8)
+    c = capital_thermal_ceiling(mix, POP, land_m2=7.3e8, **BUDGETED)
     eps = c["epsilon_ceiling"]
     assert eps is not None and 0.0 <= eps <= 0.99
 
@@ -311,3 +318,16 @@ def test_thermal_floor_is_epsilon_invariant():
     census = _dual_census()
     assert infrastructure_thermal_floor(census)["phi_total_w"] == pytest.approx(
         infrastructure_thermal_floor(census)["phi_total_w"])
+
+
+def test_the_density_cases_need_the_budgeted_threshold():
+    """Why BUDGETED exists: at the adopted threshold there is no budget, so the
+    land area stops mattering — dense and sparse read the same UNBUDGETED
+    warning, and neither binds (author, 2026-10-03: no budget is a warning)."""
+    from hours_eoh.data import THERMAL_DT_LO
+    from hours_eoh.research.thermal_path_c import budget_opens_at
+    assert THERMAL_DT_LO < budget_opens_at("net_erf") < BUDGETED["delta_t_lo"]
+    reads = [capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=land, epsilon_current=0.40)
+             for land in (7.3e8, 9.15e12)]
+    assert all(not c["binding"] and c["status"].startswith("UNBUDGETED") for c in reads)
+    assert reads[0] == reads[1]

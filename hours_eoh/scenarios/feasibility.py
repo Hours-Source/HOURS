@@ -223,9 +223,17 @@ def demographic_margin(
     epsilon: float = 0.0,
     population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict[str, float]:
     """
     How far the population is from the point where it cannot maintain itself.
+
+    `age_fractions` (2026-10-03): the population's age mix, as `total_eoh`'s
+    `age_distribution` takes it. It moves BOTH sides — the capacity-weighted
+    adult share and the age-weighted personal obligation — because one age
+    structure describes both. None → the shipped `AGE_GROUPS` fractions. Until
+    this the margin could only read the shipped demography, so a real pyramid
+    (e.g. `care_demand.population_shares(AGE_GROUP_RANGES)`) never reached it.
 
     WHY A MARGIN AND NOT A FLOOR. The survival floor is a STEP in one ratio,
     not a curve. The GROSS personal obligation per capita does not depend on ε
@@ -254,9 +262,10 @@ def demographic_margin(
     """
     from hours_eoh.core.eoh_generation import total_eoh
 
-    a = capacity_weighted_adult_share()
-    supply = labor_supply_per_capita(adult_capacity_h_yr)
-    demand = total_eoh(epsilon=epsilon, population=population)["personal"] / population
+    a = capacity_weighted_adult_share(age_fractions)
+    supply = labor_supply_per_capita(adult_capacity_h_yr, adult_share=a)
+    demand = total_eoh(epsilon=epsilon, population=population,
+                       age_distribution=age_fractions)["personal"] / population
     a_crit = demand / adult_capacity_h_yr
     return {
         "adult_share": a,

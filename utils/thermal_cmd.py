@@ -420,13 +420,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     ov.set_defaults(func=_overage)
 
     ar = sub2.add_parser("arc", help="Overage across the ε arc at one threshold")
-    ar.add_argument("--delta-t", type=float, default=2.0, dest="delta_t", metavar="K")
+    ar.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     ar.add_argument("--format", choices=["table", "csv", "json"], default="table", dest="fmt")
     _common(ar)
     ar.set_defaults(func=_arc)
 
     dz = sub2.add_parser("determinacy", help="Which determinacy zone a threshold lands in")
-    dz.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
+    dz.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     dz.add_argument("--txx", action="store_true",
                     help="Interpret --delta-t as land TXx rather than GMST (C6, ÷1.48)")
     dz.add_argument("--single-axis", action="store_true", dest="single_axis",
@@ -464,7 +464,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     gt.set_defaults(func=_gate)
 
     lm = sub2.add_parser("lambda", help="Derived climate feedback λ + budget sensitivity")
-    lm.add_argument("--delta-t", type=float, default=3.0, dest="delta_t", metavar="K")
+    lm.add_argument("--delta-t", type=float, default=THERMAL_DT_LO, dest="delta_t", metavar="K")
     lm.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     lm.set_defaults(func=_lambda)
 

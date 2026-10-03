@@ -397,7 +397,7 @@ def low_epsilon_obligation_sensitivity(
 
 
 def instrument_comparison(
-    capital_rates: tuple[float, ...] = (15.94, 19.50, 23.17),
+    capital_rates: tuple[float, ...] | None = None,
     population: float = BEA_POPULATION,
     *,
     scope: str = "government",
@@ -437,7 +437,15 @@ def instrument_comparison(
     A SUPPLIED inventory has no declared scope/doctrine grid to sweep, so
     `grid["available"]` is False for a ported capital arm.
     """
-    from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
+    from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
+
+    # None → `conversion_band()`'s low, midpoint and high. The default was
+    # (15.94, 19.50, 23.17): rounded copies of the band's ends and a hand
+    # midpoint (mode 4, 2026-10-03). The midpoint does not move the min/max
+    # span but DOES set the grid's size — three rates are its 18 cells.
+    if capital_rates is None:
+        _band = conversion_band()
+        capital_rates = (_band["low"], 0.5 * (_band["low"] + _band["high"]), _band["high"])
 
     # BOTH ARMS OR NEITHER, AND THE REPORT SAYS WHICH. Threading only the
     # capital inventory would compare a supplied capital reading against the
