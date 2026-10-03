@@ -154,6 +154,14 @@ AGE_WEIGHT_CHILD: float = 1.82
 #   relative to working age. The ONE band where both terms are measured:
 #   207.1 min/day self-maintenance + 30.5 care = 237.5 against working age's
 #   160.2, giving 1.4824, adopted at 1.48.
+# note: THE MEASUREMENT IT WAS ADOPTED FROM WAS DEFECTIVE (found 2026-10-02).
+#   ATUS codes eldercare recipients aged 80–84 as 80 (TEAGE_EC, 2024 data
+#   dictionary): the 80 cell was divided by the age-80 population alone, and
+#   ages 81–84 found no cell in the band average and dropped out (6.09M
+#   people). Corrected, the band reads 1.4680 (→ 1.47) and
+#   AGE_CARE_SHARE_ELDERLY 0.120525. NOT re-adopted here: 27 pins move and the knowledge-base fixed
+#   point with them (total EOH −0.15 to −0.25%), so it is the author's call.
+#   Both sides are pinned until then.
 # note: measured 2026-08-10 from ATUS 2021–25 pooled with Census 2025
 #   denominators (scenario run care_curve), replacing a shipped 2.5 that was
 #   asserted. Bound to the measurement by test rather than by expression —
@@ -190,7 +198,8 @@ AGE_WEIGHT_ELDERLY: float = 1.48
 # errs: LOW for the elderly share — 30.5 min/day is a mean over 35 years of age
 #   and EXCLUDES the institutional population by construction, which is where
 #   the terminal-window load concentrates. The two ATUS routes for this figure
-#   disagree 7.1x (`care_demand.elderly_route_disagreement`), unreconciled.
+#   disagree ~5.5x (`care_demand.elderly_route_disagreement` returns it; 7.1x
+#   before the 80–84 bin was corrected, 2026-10-02), unreconciled.
 AGE_CARE_SHARE_INFANT: float = 1.000000
 AGE_CARE_SHARE_CHILD: float = 0.887261
 AGE_CARE_SHARE_WORKING_AGE: float = 0.043861
@@ -1902,7 +1911,8 @@ WATER_WALKING_SPEED_M_S: float = 1.2
 #   reading it as the value is the error that status exists to prevent.
 #   Two further reasons it errs LOW, either alone sufficient. (1) CHILDcare only
 #   — elder and adult care are outside these codes, and elder care is the leg
-#   whose two ATUS routes disagree 7.13x. (2) It measures care DELIVERED, not
+#   whose two ATUS routes disagree ~5.5x (7.13x before the 2026-10-02 bin fix).
+#   (2) It measures care DELIVERED, not
 #   care OWED, and no sample here delivers all of what is owed. The model's care
 #   is broader again than ATUS's, covering household AND non-household members,
 #   so 0.827 is itself an upper estimate of the fraction captured.
@@ -1927,7 +1937,7 @@ WATER_WALKING_SPEED_M_S: float = 1.2
 # resolves_by: A CODE SET THAT CLEARS THE 5% BAR — that is the bar this repo
 #   already set for a code set BEING a component, and childcare does not clear
 #   it. Concretely: elder and adult care on the same footing, which needs the
-#   7.13x ATUS route disagreement reconciled first
+#   ~5.5x ATUS route disagreement reconciled first
 #   (`care_demand.elderly_route_disagreement`), and a dependency structure stated
 #   per sample so the figure is commensurable across age distributions — care
 #   hours per person-year are meaningless without one. THE POINT OF PRICING IT

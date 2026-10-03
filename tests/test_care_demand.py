@@ -245,7 +245,14 @@ def test_the_elderly_weight_was_adopted_from_this_measurement():
     """
     row = {r["band"]: r for r in care_curve.implied_weights()["rows"]}["elderly"]
     assert row["bound"] == "measured"
-    assert round(float(row["implied_weight"]), 2) == AGE_GROUPS["elderly"]["eoh_weight"]
+    # RE-ADOPTION PENDING (2026-10-02). The measurement 1.48 was read from
+    # counted ATUS's 80 cell — ages 80–84 (TEAGE_EC, 2024 data dictionary) —
+    # against the age-80 population alone, and ages 81–84 found no cell in the
+    # band average and dropped out. Corrected, it reads 1.4680 → 1.47.
+    # Re-adopting moves 27 pins and the knowledge-base fixed point, so it is the
+    # author's; until then BOTH sides are pinned, and either moving fails here.
+    assert AGE_GROUPS["elderly"]["eoh_weight"] == 1.48
+    assert round(float(row["implied_weight"]), 2) == 1.47
 
 
 def test_the_institutional_caveat_is_why_this_is_a_lower_bound():
@@ -469,3 +476,40 @@ class TestAgeGroupsSplit:
         record = pv.load().by_name["AGE_GROUP_FRACTIONS"]
         assert "census" in record.supplied_by.lower()
         assert record.default, "an instance default with nothing said about it"
+
+
+class TestTheEightyCellIsAFiveYearBin:
+    """ATUS codes ages 80–84 as 80 and 85+ as 85 ("TEAGE_EC is topcoded to 85.
+    All those age 80 through 84 have TEAGE_EC = 80." — 2024 ATUS Interview Data
+    Dictionary; TEAGE reads the same). Until 2026-10-02 the 80 cell's eldercare
+    was divided by the age-80 population alone: 255.4 min per person-day."""
+
+    def test_no_survey_year_records_ages_81_to_84(self):
+        import csv
+        from hours_eoh.reference.care_demand import _ELDER_FILE
+        ages = {int(r["recipient_age"]) for r in csv.DictReader(_ELDER_FILE.open())}
+        assert {80, 85} <= ages and not ages & {81, 82, 83, 84}
+
+    @pytest.mark.parametrize("age,code", [(79, 79), (80, 80), (84, 80), (85, 85), (99, 85)])
+    def test_the_mapping(self, age, code):
+        from hours_eoh.reference.care_demand import atus_age
+        assert atus_age(age) == code
+
+    def test_the_eighty_cell_divides_by_eighty_to_eighty_four(self):
+        from hours_eoh.reference.care_demand import elderly_per_capita
+        pc = elderly_per_capita()
+        assert pc[80] < 1440.0 / 10.0          # well under a tenth of the day
+        assert pc[80] < 2.0 * max(pc[78], pc[79], pc[85])
+
+    def test_a_knot_inside_the_bin_reads_the_bin(self):
+        from hours_eoh.reference.care_demand import curve_knots
+        k = curve_knots((80, 82))["elder_nonhh"]
+        assert k[82] == k[80] > 0.0
+
+
+def test_ages_81_to_84_are_in_the_band_average():
+    """`band_relative_demand` read `profile.get(min(age, top))`, so 81–84 found
+    no cell and 6.09M people dropped out of the elderly band (2026-10-02)."""
+    from hours_eoh.reference.care_demand import band_relative_demand
+    r = band_relative_demand({"inside": (81, 84), "working_age": (18, 64)}, "working_age")
+    assert r["inside"]["total"] is not None and r["inside"]["total"] > 0.0

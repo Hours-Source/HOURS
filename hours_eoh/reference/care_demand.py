@@ -110,6 +110,25 @@ PASSIVE_MAX_AGE: int = 12
 #: times the length of a day.
 ATUS_TOP_CODED_AGE: int = 85
 
+#: ...AND BINS 80–84 INTO 80. "TEAGE_EC is topcoded to 85. All those age 80
+#: through 84 have TEAGE_EC = 80. Those age 85 or above have TEAGE_EC = 85."
+#: (ATUS 2024 Interview Data Dictionary, TEAGE_EC; TEAGE reads the same.) Found
+#: 2026-10-02: no recipient aged 81–84 appears in any of the 15 survey years,
+#: and the 80 cell was divided by the single-year age-80 population — a
+#: five-year numerator over a one-year denominator, the defect the note above
+#: fixes at 85, one bin down.
+ATUS_BINNED_FROM_AGE: int = 80
+
+
+def atus_age(age: int) -> int:
+    """The ATUS code a single year of age is recorded under: 80 for 80–84,
+    85 for 85 and over, the age itself below."""
+    if age >= ATUS_TOP_CODED_AGE:
+        return ATUS_TOP_CODED_AGE
+    if age >= ATUS_BINNED_FROM_AGE:
+        return ATUS_BINNED_FROM_AGE
+    return age
+
 # MINUTES_PER_HOUR REMOVED 2026-08-28. It was declared here and read by
 # NOTHING — a dead duplicate of the live one in reference/atus_time_use.py,
 # which does the minute→hour conversion. This module's own header says its
@@ -338,13 +357,13 @@ def elderly_per_capita(
     for row_year in sorted(targets):
         pop_year = min(census, key=lambda y: abs(y - row_year))
         for age, people in census[pop_year].items():
-            # Fold everyone above the ATUS top code into it, so the 85 cell's
-            # denominator is the 85-AND-OVER population its numerator describes.
-            bucket = min(age, ATUS_TOP_CODED_AGE)
+            # Fold every single-year age into the ATUS code it is recorded
+            # under, so the 80 cell divides by 80–84 and the 85 cell by 85+.
+            bucket = atus_age(age)
             pop_days[bucket] = pop_days.get(bucket, 0.0) + people * DAYS_PER_YEAR
     out: dict[int, float] = {}
     for age, total in num.items():
-        exposure = pop_days.get(min(age, ATUS_TOP_CODED_AGE))
+        exposure = pop_days.get(atus_age(age))
         if exposure:
             out[age] = total / exposure
     return dict(sorted(out.items()))
@@ -507,7 +526,9 @@ def band_relative_demand(
         complete = True
         for age in range(lo, hi + 1):
             people = population.get(age, 0.0)
-            cell = profile.get(min(age, top))
+            # ATUS records 80–84 under 80 and 85+ under 85: read the cell an
+            # age is coded under, or 81–84 find no cell and drop out of the band.
+            cell = profile.get(min(atus_age(age), top))
             if not people or cell is None:
                 continue
             weight += people
@@ -590,6 +611,6 @@ def curve_knots(
         "active": {a: active_at(a) for a in ages},
         "passive": {a: passive_at(a) for a in ages if a <= PASSIVE_MAX_AGE},
         "elder_nonhh": {
-            a: elder.get(min(a, ATUS_TOP_CODED_AGE), 0.0) for a in ages
+            a: elder.get(atus_age(a), 0.0) for a in ages
         },
     }

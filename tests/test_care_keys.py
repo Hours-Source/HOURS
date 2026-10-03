@@ -94,9 +94,19 @@ class TestTheSharesAreBoundToTheirSource:
 
     def test_each_share_matches_the_live_atus_measurement(self) -> None:
         from hours_eoh.scenarios.care_curve import implied_weights
+        # The ELDERLY share awaits re-adoption (2026-10-02): the 80 cell was
+        # divided by the age-80 population where ATUS codes ages 80–84 there.
+        # Both sides pinned until the author re-adopts — see
+        # tests/test_care_demand.py::test_the_elderly_weight_was_adopted_from_this_measurement.
+        pending = {"elderly": (0.128292, 0.120525)}
         for row in implied_weights()["rows"]:
             total = row["total_minutes_per_day"]
             measured = row["care_minutes_per_day"] / total if total else 0.0
+            if row["band"] in pending:
+                shipped, corrected = pending[row["band"]]
+                assert AGE_GROUPS[row["band"]]["care_share"] == shipped
+                assert measured == pytest.approx(corrected, abs=5e-6)
+                continue
             assert AGE_GROUPS[row["band"]]["care_share"] == pytest.approx(
                 measured, abs=5e-6), (
                 f"{row['band']}: shipped care_share has drifted from the ATUS "
