@@ -65,6 +65,13 @@ def build_parser(sub: "argparse._SubParsersAction[argparse.ArgumentParser]") -> 
     )
     doc.set_defaults(func=_doc)
 
+    regen = sub2.add_parser(
+        "regen",
+        help="After editing data.py: write the audit CSV, the doc tables and the "
+             "census in one step (csv --write, doc --write, census --write)",
+    )
+    regen.set_defaults(func=_regen)
+
     cen = sub2.add_parser(
         "census",
         help="The counted figures (provenance, tiers, shadow, confidence) from "
@@ -412,3 +419,11 @@ def _census(args: argparse.Namespace) -> None:
     for line in bad:
         print(f"  {line}")
     raise SystemExit(1)
+
+
+def _regen(args: argparse.Namespace) -> None:
+    """Every generated artefact data.py feeds, so one cannot be left stale."""
+    write = argparse.Namespace(write=True)
+    _csv(write)
+    _doc(write)
+    _census(write)

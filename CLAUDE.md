@@ -46,6 +46,8 @@ python3 -m pytest tests/ -q                          # full suite
 python3 -m pytest tests/test_eoh_generation.py       # single file
 python3 -m mypy hours_eoh/                           # type-check
 python3 utils/eoh_cli.py <command>                   # research CLI (see README)
+python3 utils/eoh_cli.py provenance regen            # after editing data.py: audit CSV, doc tables, census
+python3 utils/record_index.py --write                # after editing record/: the generated entry indexes
 ```
 
 Diagram rendering (`mmdc`) is local tooling — see `notes/README.md`.
@@ -302,9 +304,10 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
   - Do not depend on human labor volume being large
   - Use named constants from `data.py` — no anonymous numeric literals
   - Include a comment referencing the relevant mission statement section
-  - Have tests at the four key ε values and monotonicity where expected
+  - Have ONE arc test per mechanism, parametrised over the four key ε values, plus monotonicity where expected — not a test per function (see the test rule under §3)
   - Be in `dashboard.py` or carry an explicit comment explaining why it is research-only
 - **Placement**: applied scenarios → `scenarios/`; experimental functions → `research/`; neither is imported by `core/`
+- **A CLI scenario that takes a population** runs on a frame: add it to `FRAME_AWARE` in `utils/scenario_cmd.py` and take its inputs from `utils/frame_inputs.py`, so every input is labelled and frame flags are refused where nothing reads them. A fixed reference value beside a settable `--population` is the frame seam (mode 6) this replaced.
 
 ---
 
@@ -709,6 +712,16 @@ that was the proxy's — each one a figure produced outside the functions, each 
 right the moment the function was called. This is mode 13's reader half, made the
 default rather than the check.
 
+**The same holds for claims about BEHAVIOUR (2026-10-03).** Before saying what a
+command prints, what a key contains or what binds, run the command and read the
+output; for CLI work, run the end-user path once, outside the test helpers.
+Most of one session's defects were here, not in numbers: a JSON key claimed and
+absent, an advisory line read as binding, a CSV stream polluted, an input that
+vanished silently. Two companions: **review the diff after any scripted
+multi-file edit** before trusting a green suite (a regex rewrote a lookup table
+nothing tested), and **get an independent review before declaring a batch done**
+(advisor or `/code-review`) — it caught four real defects in that session.
+
 ### Method — the finding this repo keeps re-learning
 
 **Verifying the neighbourhood is not verifying the claim.** Four separate times
@@ -759,7 +772,7 @@ are the ones worth knowing by name.
 | `test_one_register.py` | The register is read in ONE place: no registration curve imported outside `core/registration.py` (AST — aliases and multi-line imports included), and the register is state the simulation carries. **States its own gap:** a curve's formula copied inline would pass. |
 | `test_cli_dispatch.py` | Every registered scenario actually runs; walks the registry rather than a hand-kept list. |
 | `test_reference_data.py` | `reference/` layer isolation — no domain imports; globs the directory from disk so it cannot fall behind. |
-| `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the tier census (31/96/222 of 349 on 2026-09-30) cannot drift silently, that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
+| `test_verdict_ladder.py` | **The verdict ladder** (`utils/verdict_ladder.py`): a verdict may not outrank its weakest input. Pins that the ladder stays COMPUTABLE, that the tier census cannot drift silently (against `tests/census_snapshot.json`, see `utils/census.py`), that every headline function still resolves to POSSIBLE and is held there by named constants, and that the walk still sees DEFAULT ARGUMENTS — the blind spot that made the runtime instrument under-report by 4.5×. |
 | `test_anchor_page_figures.py` | The published anchor comparison (`docs/theory/anchor_comparison.md`) and its figure emitter. Every figure still reachable, a renamed key RAISES rather than returning an empty collection, every STRUCTURAL statement on the page (verdict strings, designed zeros, unit elasticity, eight anchors, not-unique) read from the page and checked against the functions, the superseded ratio-transfer figures forbidden, and each shape word's range pinned. **States its own gap:** a shape claim can drift inside its range unnoticed. |
 | `test_doc_examples.py` | **The published surface.** Every Python block in `README.md` and `docs/` runs (one namespace per page, block count proven), every `eoh_cli.py` example parses against the real argparse tree, and every API signature heading or row names real parameters. Template blocks and placeholder CLI lines are ratcheted. Cannot see printed output or prose beneath a correct signature. |
 | `test_tolerances.py` | Insensitivity, not pinning: a numerics-only tolerance must **not** move a reported result. If it does, it is an undeclared parameter. |
