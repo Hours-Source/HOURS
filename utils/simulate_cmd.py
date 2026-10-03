@@ -74,6 +74,14 @@ def run(args: argparse.Namespace) -> None:
     period_results = result.get("period_results", [])
     states = result.get("states", [])
 
+    # The STARTING state as its own row, before any period runs: simulate_period
+    # applies epsilon_delta before computing EOH, so period 0 is already one step
+    # along and the start would otherwise never appear. It carries state only;
+    # the flow columns are per-period and blank here.
+    start_row: dict = {"period": "start", "epsilon": state["epsilon"]}
+    for col in _STATE_COLS:
+        start_row[col] = state.get(col, "")
+
     # Merge state columns into period results for display
     merged = []
     for i, pr in enumerate(period_results):
@@ -91,9 +99,9 @@ def run(args: argparse.Namespace) -> None:
         if not merged:
             return
         keys = list(merged[0].keys())
-        writer = csv.DictWriter(sys.stdout, fieldnames=keys)
+        writer = csv.DictWriter(sys.stdout, fieldnames=keys, restval="")
         writer.writeheader()
-        for row in merged:
+        for row in [start_row] + merged:
             writer.writerow({k: str(v) for k, v in row.items()})
         return
 
@@ -101,17 +109,19 @@ def run(args: argparse.Namespace) -> None:
     display_cols = _TABLE_COLS + _STATE_COLS
     available = [c for c in display_cols if c in (merged[0] if merged else {})]
     rows = []
-    for r in merged:
+    for r in [start_row] + merged:
         row = []
         for col in available:
             v = r.get(col, "")
-            if col == "epsilon":
+            if v == "":
+                row.append("—")
+            elif col == "epsilon":
                 row.append(fmt_eps(float(v)))
             elif col in ("total_eoh", "registered_eoh", "teh_created",
                          "teh_destroyed", "trust_balance"):
-                row.append(fmt_float(float(v)) if v != "" else "—")
+                row.append(fmt_float(float(v)))
             elif col in ("ecosystem_health", "capital_age_ratio"):
-                row.append(f"{float(v):.3f}" if v != "" else "—")
+                row.append(f"{float(v):.3f}")
             else:
                 row.append(str(v))
         rows.append(row)
@@ -121,7 +131,9 @@ def run(args: argparse.Namespace) -> None:
     print(bold(f"Simulation — {args.periods} periods from ε={fmt_eps(args.epsilon)}  "
                f"solvent={'Y' if solvent else 'N'}"))
     if summary:
+        eps_lo, eps_hi = summary.get("epsilon_range", [state["epsilon"]] * 2)
+        eps_lo, eps_hi = min(eps_lo, state["epsilon"]), max(eps_hi, state["epsilon"])
         print(f"  TEH created total: {fmt_float(float(summary.get('total_teh_created', 0)))}"
-              f"  ε range: {summary.get('epsilon_range', [])}")
+              f"  ε range: {fmt_eps(eps_lo)}–{fmt_eps(eps_hi)}")
     print()
     print(fmt_table(available, rows))

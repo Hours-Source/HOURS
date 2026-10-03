@@ -456,6 +456,10 @@ someone remembering it, which is what this section is for.
    1e7 for one economy. *The tell:* an absolute count defaulted beside a
    `population`; the trust gate keys on `TRUST_BASE_TEH` and cannot see one.
    `gated by:` `TestShocksRunOnTheSharedPath::test_automation_verdict_is_frame_invariant`.
+   **And three CLI flags, 2026-10-03:** `corridor band` defaulted capital,
+   land and residual dissipation to 1M-collective totals beside `--population`;
+   at 1e4 the overbuild floor bound at ε 0.754 on 100× the intensity. `gated
+   by:` `test_corridor.py::TestTheBandCommandTravelsWithTheFrame`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -604,8 +608,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,416 tests passing (1 skipped), mypy clean on 107 source files** (verified
-2026-10-01). Provenance **355/355**, shadow ratchet **30**, confidence ratchet
+**5,423 tests passing (1 skipped), mypy clean on 107 source files** (verified
+2026-10-03). Provenance **355/355**, shadow ratchet **30**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

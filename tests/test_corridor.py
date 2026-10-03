@@ -347,3 +347,37 @@ class TestTwoFloors:
         rep = corridor(floors, [contestability_ceiling(POP)])
         assert 0.0 <= rep["epsilon_suff"] <= 1.0
         assert rep["success"] is True
+
+
+class TestTheBandCommandTravelsWithTheFrame:
+    """`corridor band` defaulted capital (1.9e9 TEH), land (1.86e10 m²) and
+    residual dissipation (2.5e9 W) to fixed 1M-collective totals beside a
+    settable --population; at 1e4 the overbuild floor bound at ε 0.754 on 100x
+    the capital intensity (mode 6, 2026-10-03). Unsupplied, each now resolves
+    against the population, and the thermal inventory travels with it."""
+
+    @staticmethod
+    def _band(*flags: str) -> dict:
+        import io, json
+        from contextlib import redirect_stdout
+        from utils.eoh_cli import build_parser
+        args = build_parser().parse_args(["corridor", "band", "--format", "json", *flags])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            args.func(args)
+        return json.loads(buf.getvalue())
+
+    @pytest.mark.parametrize("eps", ["0.0", "0.40", "0.90", "0.99"])
+    def test_the_default_verdict_is_frame_invariant(self, eps):
+        reps = [self._band("--population", p, "--epsilon", eps) for p in ("1e4", "1e6", "1e7")]
+        for key in ("epsilon_suff", "epsilon_max", "binding_floor", "binding_ceiling"):
+            assert len({str(r[key]) for r in reps}) == 1, key
+        floors = [{f["name"]: f["epsilon_floor"] for f in r["floors"]} for r in reps]
+        for f in floors[1:]:
+            assert f == pytest.approx(floors[0])
+
+    def test_a_supplied_stock_is_used_as_given(self):
+        """The overbuild floor can still bind: 1e12 TEH at 1M is a real overbuild."""
+        r = self._band("--capital-stock", "1e12")
+        assert r["binding_floor"] == "overbuild"
+        assert r["epsilon_suff"] > 0.5

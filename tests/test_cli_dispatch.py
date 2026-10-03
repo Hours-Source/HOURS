@@ -89,3 +89,31 @@ class TestDispatchAndRegistryAgree:
     def test_an_unregistered_name_is_refused(self) -> None:
         with pytest.raises((KeyError, ValueError, SystemExit)):
             _dispatch(_default_args("not_a_scenario"))
+
+
+# ── `simulate`: the starting state is a row, and the ε range is formatted ──────
+# simulate_period applies epsilon_delta before computing EOH, so period 0 is
+# already one step along; the table showed "from ε=0.300" over a first row at
+# 0.320, and printed the range as `[0.32, 0.7000000000000003]` (2026-10-03).
+
+def _simulate(capsys, *flags: str) -> str:
+    from utils.eoh_cli import build_parser as cli_parser
+    args = cli_parser().parse_args(["simulate", *flags])
+    args.func(args)
+    return capsys.readouterr().out
+
+
+def test_simulate_table_opens_on_the_starting_state(capsys):
+    out = _simulate(capsys, "--periods", "3", "--epsilon", "0.30", "--epsilon-delta", "0.02")
+    rows = [ln.split() for ln in out.splitlines() if ln.split()[:1] in (["start"], ["0"])]
+    assert rows[0][:2] == ["start", "0.300"]
+    assert rows[0][2:6] == ["—"] * 4                    # flows are per-period
+    assert rows[1][:2] == ["0", "0.320"]
+    assert "ε range: 0.300–0.360" in out
+
+
+def test_simulate_csv_carries_the_starting_state(capsys):
+    out = _simulate(capsys, "--periods", "2", "--epsilon", "0.30", "--format", "csv")
+    lines = out.splitlines()
+    assert lines[1].startswith("start,0.3,")
+    assert len(lines) == 4

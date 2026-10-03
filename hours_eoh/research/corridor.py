@@ -346,6 +346,7 @@ def thermal_ceiling(
     a_eff_collective: float,
     phi_other: float,
     epsilon: float = 0.40,
+    eoh_by_domain: dict[str, float] | None = None,
     **bound_kwargs: float,
 ) -> Ceiling:
     """
@@ -354,9 +355,13 @@ def thermal_ceiling(
     non-binding. SUPERSEDED for real use by measured_thermal_ceiling() (Path C):
     the measured signal is at the collective level (utilization U), not the global
     floor bound. Retained for the P0 story and as a regression anchor.
+
+    `eoh_by_domain` is the collective's inventory; None reads `total_eoh` at
+    the reference frame, so a caller at another population must supply it.
     """
     rep = provable_ceiling_bound(a_eff_collective, phi_other=phi_other,
-                                 epsilon=epsilon, **bound_kwargs)  # type: ignore[arg-type]
+                                 epsilon=epsilon, eoh_by_domain=eoh_by_domain,
+                                 **bound_kwargs)
     bound = rep["epsilon_max_bound"]
     if rep["verdict"] == "UNBUDGETED":
         return Ceiling(name="thermal", epsilon_ceiling=None, binding=False,

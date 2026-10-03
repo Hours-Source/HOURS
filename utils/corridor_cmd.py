@@ -16,7 +16,13 @@ Two subcommands:
 
 from __future__ import annotations
 
-from hours_eoh.data import REFERENCE_FRAME_POPULATION
+from hours_eoh.core.eoh_generation import resolve_capital_stock
+from hours_eoh.data import (
+    A_LAND_CLAIMED_M2,
+    REFERENCE_FRAME_POPULATION,
+    THERMAL_ANTHROPOGENIC_DISSIPATION_W,
+    WORLD_POPULATION,
+)
 
 import argparse
 import json
@@ -76,15 +82,24 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                       help="Use the SUPERSEDED bare-χ contestability axis instead "
                            "of the adopted §8.9 test (reproduces the pre-migration "
                            "closed-corridor result)")
-    band.add_argument("--capital-stock", type=float, default=1.9e9,
+    # FRAME (2026-10-03): these three defaulted to fixed totals for a 1M
+    # collective (1.9e9 TEH, 1.86e10 m², 2.5e9 W) beside a settable
+    # --population, so `--population 1e4` bound the overbuild floor at ε 0.754
+    # on 100x the capital intensity (mode 6). Unsupplied, each now resolves
+    # against the population: capital along the canonical arc, land and
+    # residual dissipation as the per-capita share of the global quantities.
+    band.add_argument("--capital-stock", type=float, default=None,
                       dest="capital_stock", metavar="TEH",
-                      help="Apparatus capital for the OVERBUILD floor (default: 1.9e9). "
+                      help="Apparatus capital for the OVERBUILD floor (default: the "
+                           "canonical arc's stock at --epsilon and --population). "
                            "Below its break-even ε the collective costs members more "
                            "hours than autarky and should dissolve")
-    band.add_argument("--land-m2", type=float, default=1.86e10, dest="land_m2",
-                      help="Claimed land area for the thermal ceiling (default: 1.86e10)")
-    band.add_argument("--phi-other", type=float, default=2.5e9, dest="phi_other",
-                      help="Non-automation dissipation, W (default: 2.5e9)")
+    band.add_argument("--land-m2", type=float, default=None, dest="land_m2",
+                      help="Claimed land area for the thermal ceiling (default: "
+                           "--population's share of A_LAND_CLAIMED_M2)")
+    band.add_argument("--phi-other", type=float, default=None, dest="phi_other",
+                      help="Non-automation dissipation, W (default: --population's "
+                           "share of THERMAL_ANTHROPOGENIC_DISSIPATION_W)")
     band.add_argument("--format", choices=["table", "json"], default="table", dest="fmt")
     band.set_defaults(func=_band)
 
@@ -118,9 +133,15 @@ def _band(args: argparse.Namespace) -> None:
         demographic_margin, labor_supply_per_capita)
     available_labor = (labor_supply_per_capita() * args.population
                        if args.available_labor is None else args.available_labor)
+    capital = resolve_capital_stock(args.capital_stock, args.epsilon,
+                                    population=args.population)
+    share = args.population / WORLD_POPULATION
+    land_m2 = A_LAND_CLAIMED_M2 * share if args.land_m2 is None else args.land_m2
+    phi_other = (THERMAL_ANTHROPOGENIC_DISSIPATION_W * share
+                 if args.phi_other is None else args.phi_other)
     floors = [
         survival_floor(eoh, available_labor),
-        overbuild_floor(args.capital_stock, args.population),
+        overbuild_floor(capital, args.population),
     ]
 
     if args.bare_chi:
@@ -130,7 +151,12 @@ def _band(args: argparse.Namespace) -> None:
         contest = contestability_ceiling(
             args.population, regime=args.regime, phi_policy=args.phi_policy)
 
-    therm = thermal_ceiling(args.land_m2, args.phi_other, epsilon=args.epsilon)
+    # The bound divides by the collective's EOH, so the inventory travels with
+    # the frame too; left to itself it reads total_eoh at the 1M default.
+    from hours_eoh.core.eoh_generation import total_eoh as _total_eoh
+    therm = thermal_ceiling(land_m2, phi_other, epsilon=args.epsilon,
+                            eoh_by_domain=_total_eoh(epsilon=args.epsilon,
+                                                     population=args.population))
     rep = corridor(floors, [contest, therm])
 
     if args.fmt == "json":
