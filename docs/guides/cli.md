@@ -127,10 +127,24 @@ python3 utils/eoh_cli.py corridor band --frame-file my_frame.json
 **The frame file** is JSON with any of: `name`, `population`, `age_fractions`
 (every `AGE_GROUPS` group, summing to 1), `epsilon` (a number, or
 `{"low": a, "high": b}`), `capital_teh`, `land_hectares`,
-`adult_capacity_h_yr`, `utilization`, `trust_balance`. Anything else is
-refused, never patched. What you leave out is derived or defaulted — and
+`adult_capacity_h_yr`, `utilization`, `trust_balance`, `retirement_age`,
+`retired_share`, `years_in_collective`. Anything else is refused, never
+patched. What you leave out is derived or defaulted — and
 labelled so. **ε is never imputed:** without a reading it runs at the
 reference value, labelled `default`.
+
+**Retirement as a register event** is a governance choice, so it is off unless
+you ask for it. With `--retirement-age` (bare: the charter default, or give an
+age within the elderly band), members past that age join the guarantee at the
+elderly obligation. `--years-in-collective` sets their claim through the
+framework's vesting curve — `0` is no claim, the same as leaving it off. The
+retired share is measured from Census ages where the frame has them, and
+labelled as leaning on the Census age profile where it does not.
+
+```bash
+python3 utils/eoh_cli.py scenario run demographic_shock --frame us --shock-type aging --shock-magnitude 0.04 --retirement-age
+python3 utils/eoh_cli.py scenario run demographic_shock --frame us --retirement-age 70 --years-in-collective 0
+```
 
 **When ε is a range** (a frame-file range, or the US instruments), the
 scenario also runs at both ends and prints each outcome. Where they differ,

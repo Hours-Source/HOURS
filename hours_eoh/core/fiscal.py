@@ -22,6 +22,7 @@ import math
 import warnings
 
 from hours_eoh.data import (
+    CONTESTABILITY_VESTING_YEARS,
     SUFF_GUARANTEE_FLOOR_FRACTION,
     ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
@@ -130,6 +131,23 @@ def resolve_trust_balance(
 _AGE_WEIGHTED_EOH_MEAN: float = sum(
     v["fraction"] * v["eoh_weight"] for v in AGE_GROUPS.values()
 )
+
+
+def vested_fraction(tenure_years: float,
+                    vesting_years: float = CONTESTABILITY_VESTING_YEARS) -> float:
+    """
+    v = min(1, tenure / vesting) — the framework's one account of how time in
+    the collective earns a claim: linear, full at `vesting_years`. Moved here
+    from `research/contestability.py` (2026-10-03) so the retirement register
+    and the Trust dividend read the SAME curve rather than two copies (mode 4).
+
+    Raises ValueError on a negative tenure or a non-positive vesting period.
+    """
+    if tenure_years < 0.0:
+        raise ValueError(f"tenure_years must be >= 0, got {tenure_years}")
+    if vesting_years <= 0.0:
+        raise ValueError(f"vesting_years must be > 0, got {vesting_years}")
+    return min(1.0, tenure_years / vesting_years)
 
 
 # ===========================================================================
@@ -476,6 +494,7 @@ def effective_personal_eoh(
     epsilon: float,
     personal_eoh_base: float = PERSONAL_EOH_BASE,
     automation_response: str = "per_component",
+    age_weighted_mean: float | None = None,
 ) -> float:
     """
     Personal obligation hours per person that still need human labour at ε.
@@ -515,7 +534,12 @@ def effective_personal_eoh(
     Reference: Mission Statement §"The sufficiency guarantee: purchasing power
     never declines"; record/fulfilment.md#guarantee-priced-in-hours.
     """
-    return (_AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
+    # `age_weighted_mean` (2026-10-03): ā for the population's OWN mix. None →
+    # the shipped-AGE_GROUPS constant. `sufficiency_guarantee` reported an
+    # age-mix ā in `raw_eoh_per_person` while paying from this function's
+    # constant — the reported value that was not the applied one (mode 10).
+    a_bar = _AGE_WEIGHTED_EOH_MEAN if age_weighted_mean is None else age_weighted_mean
+    return (a_bar * personal_eoh_base
             * personal_human_fraction(epsilon, automation_response))
 
 
@@ -531,9 +555,33 @@ def sufficiency_guarantee(
     design: str = "v1",
     need_fraction: float = SUFF_NEED_FRACTION,
     registration_epsilon: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     Compute the cost of the sufficiency guarantee at a given automation level.
+
+    THE AGE MIX AND THE RETIREMENT REGISTER (2026-10-03), all off by default
+    and bit-identical when off:
+
+    * `age_fractions` — the population's own mix. The per-recipient obligation
+      was age-weighted by a constant built from the shipped AGE_GROUPS, so a
+      frame's ages (or an ageing shock) never reached it. None → that constant.
+    * `retired_share` — the share of the WHOLE population added to the register
+      by the retirement event (`data.RETIREMENT_REGISTER_AGE`; whether that event
+      exists is the collective's governance choice). Retirees are a SEPARATE
+      component: on the register by construction, so `on_ledger` does not
+      apply; each is paid the ELDERLY obligation (weight × base × human share ×
+      M_FLOOR) plus the activity bonus. `retiree_vested_fraction`
+      (`vested_fraction(years in the collective)`) sets HOW MUCH of that the
+      register event carries: the vested share `retired_share × v` is on the
+      register; the unvested remainder stays in the general population, where
+      the need fraction reaches it like anyone else. So 0 years is exactly the
+      register switched off, and nobody's claim falls BELOW the off case. The
+      need-fraction recipients are drawn from the population NOT on the
+      register, at their own age mix, so no one is counted twice. Refused: a
+      retired share larger than the elderly share of the mix.
 
     `registration_epsilon` (2026-10-01, author: "registration is separate from
     machine capability — one is what the collective carries, the other how
@@ -644,10 +692,29 @@ def sufficiency_guarantee(
     if not 0.0 <= need_fraction <= 1.0:
         raise ValueError(f"need_fraction must be in [0, 1], got {need_fraction}")
 
-    raw_eoh_per_person = _AGE_WEIGHTED_EOH_MEAN * personal_eoh_base
+    if not 0.0 <= retired_share <= 1.0:
+        raise ValueError(f"retired_share must be in [0, 1], got {retired_share}")
+    if not 0.0 <= retiree_vested_fraction <= 1.0:
+        raise ValueError(
+            f"retiree_vested_fraction must be in [0, 1], got {retiree_vested_fraction}")
+    mix = ({g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS} if age_fractions is None
+           else dict(age_fractions))
+    if retired_share > mix["elderly"] + 1e-12:
+        raise ValueError(f"retired_share {retired_share} exceeds the elderly share "
+                         f"{mix['elderly']} of the age mix")
+    on_register = retired_share * retiree_vested_fraction
+    if on_register == 0.0:
+        age_weighted_mean = (_AGE_WEIGHTED_EOH_MEAN if age_fractions is None else
+                             sum(f * AGE_GROUPS[g]["eoh_weight"] for g, f in mix.items()))
+    else:
+        rest = {**mix, "elderly": mix["elderly"] - on_register}
+        age_weighted_mean = (sum(f * AGE_GROUPS[g]["eoh_weight"] for g, f in rest.items())
+                             / (1.0 - on_register))
+    raw_eoh_per_person = age_weighted_mean * personal_eoh_base
     human_fraction = personal_human_fraction(epsilon, automation_response)
     effective_per_person = effective_personal_eoh(
-        epsilon, personal_eoh_base, automation_response)
+        epsilon, personal_eoh_base, automation_response,
+        age_weighted_mean=age_weighted_mean)
     eoh_reimbursement_per_person = effective_per_person * M_FLOOR
 
     # Meaningful activity TEH grows quadratically with ε: as the labor pool shrinks,
@@ -683,10 +750,18 @@ def sufficiency_guarantee(
         on_ledger = register_shares(epsilon, registration_epsilon)["personal"]
         effective_fraction = on_ledger * (need_fraction if design == "v1" else 1.0)
 
-    recipients = population * effective_fraction
+    recipients = population * (1.0 - on_register) * effective_fraction
     eoh_reimbursement_total = recipients * eoh_reimbursement_per_person
     meaningful_activity_total = recipients * meaningful_activity_teh_effective
-    total_cost_teh = eoh_reimbursement_total + meaningful_activity_total
+
+    # THE RETIREMENT REGISTER: the vested share of retirees, on the ledger by
+    # the event itself, each at the elderly obligation.
+    retirees = population * retired_share
+    retiree_per_person = (
+        AGE_GROUPS["elderly"]["eoh_weight"] * personal_eoh_base * human_fraction * M_FLOOR
+        + meaningful_activity_teh_effective)
+    retiree_total = population * on_register * retiree_per_person
+    total_cost_teh = eoh_reimbursement_total + meaningful_activity_total + retiree_total
 
     return {
         "population":                                population,
@@ -704,6 +779,11 @@ def sufficiency_guarantee(
         "eoh_reimbursement_total":                   eoh_reimbursement_total,
         "meaningful_activity_total":                 meaningful_activity_total,
         "total_cost_teh":                            total_cost_teh,
+        "retired_share":                             retired_share,
+        "retirees":                                  retirees,
+        "retiree_vested_fraction":                   retiree_vested_fraction,
+        "retiree_per_person":                        retiree_per_person,
+        "retiree_total":                             retiree_total,
         "guarantee_design":                          design,
         "epsilon":                                   epsilon,
     }
@@ -1034,6 +1114,9 @@ def fiscal_snapshot(
     guf_revenue: float = 0.0,
     state: dict | None = None,
     registration_epsilon: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     Compute full fiscal balance for one period from first principles.
@@ -1089,6 +1172,9 @@ def fiscal_snapshot(
             ecological_eoh() is recomputed internally. Same pattern as infra_eoh_override.
         registration_epsilon: The ε the guarantee's register is read at.
             None → `epsilon`. Separate from the capability (author, 2026-10-01).
+        age_fractions, retired_share, retiree_vested_fraction: forwarded to
+            `sufficiency_guarantee` — the population's age mix and the
+            retirement register (2026-10-03). Defaults are off and bit-identical.
 
     Solvency identity (Trust is solvent when):
 
@@ -1288,6 +1374,10 @@ def fiscal_snapshot(
         # Supply the pre-shock ε when machines fail and the register stands,
         # as `eoh_to_teh_pipeline(registration_epsilon=)` does.
         registration_epsilon=registration_epsilon,
+        # The age mix and the retirement register (2026-10-03); off → bit-identical.
+        age_fractions=age_fractions,
+        retired_share=retired_share,
+        retiree_vested_fraction=retiree_vested_fraction,
     )
     # new-15: care stipend is care-labour compensation — co-equal with
     # stewardship and ecological as a requirement, distinct from the

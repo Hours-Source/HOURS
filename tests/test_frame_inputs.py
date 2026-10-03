@@ -254,3 +254,55 @@ class TestTheEndUserPath:
         u = _labels("--frame-file", str(f))["utilization"]
         assert u["value"] is None and u["kind"] == "default"
         assert "--utilization" in u["source"]
+
+
+class TestTheRetirementRegisterByCLI:
+
+    def test_off_unless_asked(self):
+        r = _labels("--frame", "us")["retired_share"]
+        assert r["value"] == 0.0 and r["kind"] == "default" and "OFF" in r["source"]
+
+    def test_census_ages_measure_the_retired_share(self):
+        from hours_eoh.data import AGE_GROUP_RANGES, RETIREMENT_REGISTER_AGE
+        from hours_eoh.reference.care_demand import population_shares
+        rows = _labels("--frame", "us", "--retirement-age")
+        hi = AGE_GROUP_RANGES["elderly"][1]
+        assert rows["retirement_age"]["value"] == RETIREMENT_REGISTER_AGE
+        assert rows["retired_share"]["kind"] == "measured"
+        assert rows["retired_share"]["value"] == pytest.approx(
+            population_shares({"r": (RETIREMENT_REGISTER_AGE, hi)})["r"])
+        assert rows["retiree_vested_fraction"]["value"] == 1.0
+
+    def test_band_only_ages_lean_on_the_census_profile_and_say_so(self):
+        rows = _labels("--retirement-age", "70")
+        assert rows["retired_share"]["kind"] == "derived (partly from defaults)" or \
+            rows["retired_share"]["kind"] == "derived (from defaults)"
+        assert 0.0 < rows["retired_share"]["value"] < 0.17
+
+    def test_zero_years_runs_and_vests_nothing(self):
+        r = _scenario("demographic_shock", "--frame", "us", "--retirement-age",
+                      "--years-in-collective", "0")
+        off = _scenario("demographic_shock", "--frame", "us")
+        assert r["inputs"]["retiree_vested_fraction"]["value"] == 0.0
+        assert r["guarantee_before"] == off["guarantee_before"]
+
+    def test_below_the_elderly_band_is_refused(self):
+        with pytest.raises(SystemExit):
+            _labels("--frame", "us", "--retirement-age", "60")
+
+    def test_commands_that_read_no_guarantee_refuse_it(self):
+        with pytest.raises(SystemExit):
+            a = _args("corridor", "band", "--frame", "us", "--retirement-age")
+            a.func(a)
+        with pytest.raises(SystemExit):
+            _dispatch(_args("scenario", "run", "labor_income_shock", "--retirement-age"))
+
+    def test_the_register_round_trips_through_a_frame_file(self, tmp_path: Path):
+        body = _frame_json("--frame", "us", "--retirement-age", "--years-in-collective", "3")
+        assert {"retirement_age", "retired_share", "years_in_collective"} <= set(body)
+        f = tmp_path / "ret.json"
+        f.write_text(json.dumps(body))
+        a = _scenario("demographic_shock", "--frame-file", str(f))
+        b = _scenario("demographic_shock", "--frame", "us", "--retirement-age",
+                      "--years-in-collective", "3")
+        assert a["guarantee_before"] == pytest.approx(b["guarantee_before"])

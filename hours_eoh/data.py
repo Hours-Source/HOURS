@@ -3134,6 +3134,27 @@ SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate 
 #   Changing it moves the Trust's whole liability: at 10% need the required levy
 #   roughly doubles (record/fulfilment.md).
 SUFF_NEED_FRACTION:           float = 0.05              # V1: share of on-ledger people the guarantee reaches
+# tag: normative | units: years of age
+# form: the age at which a member is ADDED TO THE REGISTER as a guarantee
+#   recipient — the retirement register event. OFF unless a run asks for it:
+#   the shipped guarantee reads the register share and SUFF_NEED_FRACTION, with
+#   no age term, so an ageing population asks nothing more of the Trust
+#   (found 2026-10-03 running the US ageing shock). Whether retirement is an
+#   automatic register event at all is the collective's governance question,
+#   which is why this is opt-in and only the AGE is defaulted.
+# decided_by: the collective's charter — when, if ever, age alone puts a
+#   member on the register. 68 is the author's working figure (2026-10-03),
+#   not a measured retirement age.
+RETIREMENT_REGISTER_AGE: int = 68
+# tag: instance | units: years
+# supplied_by: the collective's own membership record — how long its retirees
+#   were members before the register event.
+# default: 10 — the author's working figure (2026-10-03). Read through
+#   `core.fiscal.vested_fraction`, the framework's ONE tenure curve (linear,
+#   full at CONTESTABILITY_VESTING_YEARS), so any tenure at or past the vesting
+#   period is fully vested and 0 is none: under the shipped 5-year vesting this
+#   default and 5 give the same claim.
+RETIREMENT_YEARS_IN_COLLECTIVE: float = 10.0
 # tag: normative | units: fraction, per ε unit
 # decided_by: nothing measures how fast a guarantee floor should shrink as
 #   automation rises; it is a distributional commitment about who carries the

@@ -2203,3 +2203,59 @@ def test_floor_fraction_reaches_only_the_shipped_design():
         t = sufficiency_guarantee(1.0e6, eps, design="shipped",
                                   floor_fraction=2 * SUFF_GUARANTEE_FLOOR_FRACTION)
         assert t["total_cost_teh"] > s["total_cost_teh"]
+
+
+class TestTheAgeMixAndTheRetirementRegister:
+    """2026-10-03. The guarantee REPORTED an age-weighted obligation and PAID
+    from a shipped-ages constant (mode 10), and no age term reached recipients:
+    an ageing population asked nothing more of the Trust. The age mix now
+    reaches the payment; retirement as a register event is opt-in."""
+
+    @staticmethod
+    def _g(**kw):
+        from hours_eoh.core.fiscal import sufficiency_guarantee
+        return sufficiency_guarantee(1.0e6, 0.40, **kw)
+
+    def test_off_is_bit_identical(self):
+        from hours_eoh.data import AGE_GROUPS
+        shipped = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        base = self._g()
+        for kw in ({"age_fractions": shipped}, {"retired_share": 0.0},
+                   {"retired_share": 0.12, "retiree_vested_fraction": 0.0}):
+            assert self._g(**kw)["total_cost_teh"] == base["total_cost_teh"], kw
+
+    def test_the_applied_payment_reads_the_mix(self):
+        from hours_eoh.data import AGE_GROUPS
+        older = {g: AGE_GROUPS[g]["fraction"] for g in AGE_GROUPS}
+        older["working_age"] -= 0.05
+        older["elderly"] += 0.05
+        g = self._g(age_fractions=older)
+        assert g["total_cost_teh"] > self._g()["total_cost_teh"]
+        assert g["effective_personal_eoh_per_person"] == pytest.approx(
+            g["raw_eoh_per_person"] * g["personal_human_fraction"])
+
+    def test_vesting_sets_the_claim_and_zero_is_off(self):
+        from hours_eoh.core.fiscal import vested_fraction
+        cost = [self._g(retired_share=0.12, retiree_vested_fraction=vested_fraction(y))["total_cost_teh"]
+                for y in (0.0, 2.5, 5.0, 10.0)]
+        assert cost[0] == self._g()["total_cost_teh"]
+        assert cost[0] < cost[1] < cost[2] == cost[3]
+
+    def test_no_one_is_counted_twice(self):
+        """Need recipients come from the population NOT on the register."""
+        g = self._g(retired_share=0.12, retiree_vested_fraction=0.5)
+        off = self._g()
+        assert g["recipients"] == pytest.approx(off["recipients"] * (1 - 0.12 * 0.5))
+        assert g["retiree_total"] == pytest.approx(1.0e6 * 0.12 * 0.5 * g["retiree_per_person"])
+
+    def test_more_retired_than_elderly_is_refused(self):
+        with pytest.raises(ValueError):
+            self._g(retired_share=0.5)
+
+    def test_contestability_reads_the_same_vesting_curve(self):
+        from hours_eoh.core.fiscal import vested_fraction
+        from hours_eoh.research import contestability as C
+        assert C._vested_fraction is vested_fraction
+        assert vested_fraction(2.5, 5.0) == 0.5 and vested_fraction(50.0) == 1.0
+        with pytest.raises(ValueError):
+            vested_fraction(-1.0)

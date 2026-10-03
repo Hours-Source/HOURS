@@ -51,7 +51,7 @@ Mission Statement: §"Contestability — the invariant the arc must preserve."
 from __future__ import annotations
 
 from hours_eoh.core.eoh_generation import total_eoh, resolve_capital_stock
-from hours_eoh.core.fiscal import sufficiency_guarantee
+from hours_eoh.core.fiscal import sufficiency_guarantee, vested_fraction as _vested_fraction
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
     REFERENCE_FRAME_POPULATION,
@@ -224,7 +224,7 @@ def portable_endowment_individual(
         raise ValueError(f"savings must be >= 0, got {savings}")
 
     avg = portable_endowment(epsilon, population, trust_balance)
-    vested_fraction = min(1.0, tenure_years / vesting_years)
+    vested_fraction = _vested_fraction(tenure_years, vesting_years)
     dividend_vested = avg["trust_dividend_per_capita"] * vested_fraction
     p_individual = avg["guarantee_per_person"] + dividend_vested + savings
 
@@ -338,7 +338,7 @@ def portable_endowment_federated(
     # S is per-person and population-invariant; D_coll needs the collective's
     # own trust and population — portable_endowment() supplies both components.
     coll = portable_endowment(epsilon, collective_population, collective_trust)
-    vested_fraction = min(1.0, tenure_years / vesting_years)
+    vested_fraction = _vested_fraction(tenure_years, vesting_years)
     dividend_vested = coll["trust_dividend_per_capita"] * vested_fraction
     # M1: universal commons dividend — unvested, so it reaches tenure-0.
     dividend_commons = commons_balance * DEP_RATE * DIV_RATE / fed_pop

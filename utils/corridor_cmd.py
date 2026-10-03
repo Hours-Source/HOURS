@@ -152,6 +152,14 @@ def _verdict(rep: dict) -> tuple:
 
 
 def _band(args: argparse.Namespace) -> None:
+    # The band computes no guarantee, so the retirement register reaches
+    # nothing here: refused rather than accepted and ignored (mode 5).
+    unread = [f for f, a in (("--retirement-age", "retirement_age"),
+                             ("--years-in-collective", "years_in_collective"))
+              if getattr(args, a, None) is not None]
+    if unread:
+        raise SystemExit(f"corridor band does not read the retirement register "
+                         f"({', '.join(unread)}); run the shocks with it")
     eps = resolve_epsilon(args)
     args = argparse.Namespace(**{**vars(args), "epsilon": eps["value"]})
     rep = _compute(args)

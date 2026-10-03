@@ -106,6 +106,39 @@ def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> st
     return "CRISIS"
 
 
+def _fiscal_change(f0: dict, f1: dict, trust_balance: float,
+                   s0: "_State", s1: "_State") -> dict:
+    """
+    The Trust BEFORE and AFTER, reported (2026-10-03). The fiscal verdict reads
+    the position after the shock, so a shock on an already-insolvent Trust read
+    DEGRADED whether it barely moved the deficit or quadrupled it — the
+    created-not-deepened blind spot option 1 closed for competency, on the
+    fiscal side. Reporting only: the verdict is unchanged. Names the
+    retirement register when it is on, since it is then the main driver.
+    """
+    sd0, sd1 = f0["surplus_deficit"], f1["surplus_deficit"]
+    note = ""
+    if not f0["solvent"]:
+        move = ("deepens" if sd1 < sd0 else "eases" if sd1 > sd0 else "leaves")
+        note = (f"The Trust was already insolvent before the shock ({sd0:,.0f} TEH/yr); "
+                f"the shock {move} the deficit to {sd1:,.0f}. ")
+    elif not f1["solvent"]:
+        note = (f"The shock takes the Trust from solvent ({sd0:+,.0f} TEH/yr) to "
+                f"insolvent ({sd1:,.0f}). ")
+    if s0["retired_share"] > 0.0 or s1["retired_share"] > 0.0:
+        note += (f"Retirement register on: {s0['retired_share'] * s0['population']:,.0f} → "
+                 f"{s1['retired_share'] * s1['population']:,.0f} retirees "
+                 f"(vested {s0['retiree_vested_fraction']:.0%}); guarantee "
+                 f"{f0['guarantee']:,.0f} → {f1['guarantee']:,.0f} TEH/yr. ")
+    return {
+        "fiscal_outcome_before":  _classify(f0["solvent"], sd0, trust_balance),
+        "fiscal_outcome_after":   _classify(f1["solvent"], sd1, trust_balance),
+        "surplus_deficit_before": sd0,
+        "surplus_deficit_after":  sd1,
+        "fiscal_note":            note,
+    }
+
+
 def _worse(*outcomes: str) -> str:
     return _INV_SEVERITY[max(_SEVERITY[o] for o in outcomes)]
 
@@ -155,6 +188,9 @@ def _trust_position(
     div_rate: float,
     registration_epsilon: float | None = None,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     The Trust's position from `fiscal_snapshot`, the shared fiscal path.
@@ -178,6 +214,9 @@ def _trust_position(
         dep_rate=dep_rate,
         div_rate=div_rate,
         registration_epsilon=registration_epsilon,
+        age_fractions=age_fractions,
+        retired_share=retired_share,
+        retiree_vested_fraction=retiree_vested_fraction,
     )
     surplus = snap["trust"]["surplus_deficit"]
     return {
@@ -199,6 +238,8 @@ class _State(TypedDict):
     ecosystem_health: float
     restoration_eoh: float            # annual restoration obligation, h/yr
     labor_supply_per_capita: float    # L, h/person·yr — moves with the age mix
+    retired_share: float              # share of the population on the retirement register
+    retiree_vested_fraction: float    # vested_fraction(years in the collective)
 
 
 def _base_fractions() -> dict[str, float]:
@@ -222,6 +263,8 @@ def _base_state(
     ecosystem_health: float,
     labor_supply_per_capita: float | None,
     age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> _State:
     """The pre-shock state. `age_fractions` (2026-10-03) is the population's own
     age mix — e.g. a census grouped to AGE_GROUP_RANGES; None → the shipped
@@ -232,17 +275,28 @@ def _base_state(
     fractions = _base_fractions() if age_fractions is None else _checked_fractions(age_fractions)
     supply = (_measured_supply(adult_share=capacity_weighted_adult_share(fractions))
               if labor_supply_per_capita is None else labor_supply_per_capita)
+    if retired_share > fractions["elderly"] + 1e-12:
+        raise ValueError(f"retired_share {retired_share} exceeds the elderly share "
+                         f"{fractions['elderly']}")
     return _State(capability=epsilon, population=population, age_fractions=fractions,
                   ecosystem_health=ecosystem_health, restoration_eoh=0.0,
-                  labor_supply_per_capita=supply)
+                  labor_supply_per_capita=supply, retired_share=retired_share,
+                  retiree_vested_fraction=retiree_vested_fraction)
 
 
 def _with_age_mix(state: _State, population: float, fractions: dict[str, float]) -> _State:
     """A new population and age mix; supply per head follows the adult share."""
     ratio = (capacity_weighted_adult_share(fractions)
              / capacity_weighted_adult_share(state["age_fractions"]))
+    # THE RETIRED SHARE FOLLOWS THE ELDERLY BAND, proportionally (2026-10-03): a
+    # stated assumption — the shock moves people into the band at the band's
+    # existing within-band age profile. Exact for growth/decline (no mix
+    # change); for `aging` it is the assumption, not a measurement.
+    e0 = state["age_fractions"]["elderly"]
+    retired = state["retired_share"] * (fractions["elderly"] / e0) if e0 > 0.0 else 0.0
     return _State(**{**state, "population": population, "age_fractions": fractions,
-                     "labor_supply_per_capita": state["labor_supply_per_capita"] * ratio})
+                     "labor_supply_per_capita": state["labor_supply_per_capita"] * ratio,
+                     "retired_share": retired})
 
 
 def _demographic_change(state: _State, shock_type: str, magnitude: float) -> _State:
@@ -454,6 +508,8 @@ def _fiscal(
         capital_stock_teh, capital_age_ratio, meaningful_activity_teh,
         suff_levy_rate, dep_rate, div_rate,
         registration_epsilon=epsilon, ecosystem_health=state["ecosystem_health"],
+        age_fractions=state["age_fractions"], retired_share=state["retired_share"],
+        retiree_vested_fraction=state["retiree_vested_fraction"],
     )
 
 
@@ -483,6 +539,8 @@ def automation_failure_shock(
     fraction_lost: float = 1.0,
     labor_supply_per_capita: float | None = None,
     age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
     trust_balance: float | None = None,
 ) -> dict:
     """
@@ -529,7 +587,7 @@ def automation_failure_shock(
 
     def pair(eps: float, capital: float) -> tuple[_State, _State, dict, dict]:
         s0 = _base_state(eps, population, ecosystem_health, labor_supply_per_capita,
-                         age_fractions)
+                         age_fractions, retired_share, retiree_vested_fraction)
         s1 = _State(**{**s0, "capability": eps * (1.0 - fraction_lost)})
         return (s0, s1,
                 _run(s0, eps, capital, capital_age_ratio, knowledge_base_size),
@@ -540,6 +598,7 @@ def automation_failure_shock(
     f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio)
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh, capital_age_ratio)
     comp = _competency(s0, before, s1, after)
+    fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
     outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
 
@@ -570,7 +629,7 @@ def automation_failure_shock(
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'} at the new mint. "
         + (f"Certified capacity falls short in {comp['competency_short_created']}. "
            if comp["competency_short_created"] else "")
-        + comp["competency_note"]
+        + fc["fiscal_note"] + comp["competency_note"]
         + f"Outcome: {outcome}."
     )
     return {
@@ -598,6 +657,7 @@ def automation_failure_shock(
         "trust_surplus_after":     f1["surplus_deficit"],
         "trust_solvent_after":     f1["solvent"],
         **comp,
+        **fc,
         "labour_outcome":          c["labour_outcome"],
         "outcome":                 outcome,
         "failure_boundary":        failure_boundary,
@@ -624,6 +684,8 @@ def demographic_shock(
     population: float = REFERENCE_FRAME_POPULATION,
     labor_supply_per_capita: float | None = None,
     age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     A sudden change to the population: "growth" / "decline" (population ×
@@ -655,7 +717,7 @@ def demographic_shock(
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     s0 = _base_state(epsilon, population, ECOSYSTEM_HEALTH_DEFAULT, labor_supply_per_capita,
-                     age_fractions)
+                     age_fractions, retired_share, retiree_vested_fraction)
     s1 = _demographic_change(s0, shock_type, magnitude)
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)
     after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None)
@@ -670,6 +732,7 @@ def demographic_shock(
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh,
                  capital_age_ratio, labor_income=proxy, **kw)
     comp = _competency(s0, before, s1, after)
+    fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
     outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
     eoh_delta = float(after["total_eoh"]) - float(before["total_eoh"])
@@ -692,7 +755,7 @@ def demographic_shock(
         f"{s1['labor_supply_per_capita'] * s1['population']:,.0f} h/yr; "
         f"{c['deferred_eoh']:,.0f} deferred. "
         f"Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. "
-        + comp["competency_note"] + f"Outcome: {outcome}."
+        + fc["fiscal_note"] + comp["competency_note"] + f"Outcome: {outcome}."
     )
     return {
         "scenario":              "demographic_shock",
@@ -708,6 +771,9 @@ def demographic_shock(
         # running a shock on its own age mix must see that mix was used.
         "age_fractions_before":  dict(s0["age_fractions"]),
         "age_fractions_after":   dict(s1["age_fractions"]),
+        "retired_share_before":  s0["retired_share"],
+        "retired_share_after":   s1["retired_share"],
+        "retiree_vested_fraction": s0["retiree_vested_fraction"],
         "labor_supply_before":   s0["labor_supply_per_capita"] * population,
         "labor_supply_after":    s1["labor_supply_per_capita"] * s1["population"],
         "eoh_before":            float(before["total_eoh"]),
@@ -720,8 +786,9 @@ def demographic_shock(
         "guarantee_after":       f1["guarantee"],
         "trust_solvent_before":  f0["solvent"],
         "trust_solvent_after":   f1["solvent"],
-        "surplus_deficit_after": f1["surplus_deficit"],
+        # surplus_deficit_before/_after come from _fiscal_change (**fc), side by side.
         **comp,
+        **fc,
         "labour_outcome":        c["labour_outcome"],
         "outcome":               outcome,
         "recommendation":        rec,
@@ -751,6 +818,8 @@ def ecological_eoh_spike(
     restoration_corner: str = "high",
     labor_supply_per_capita: float | None = None,
     age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     An ecosystem collapse: what it leaves to be done, and who can do it.
@@ -798,7 +867,7 @@ def ecological_eoh_spike(
                                         ecosystem_health_after, restoration_years, corner)
                    for corner in ("low", "high")}
     s0 = _base_state(epsilon, population, ecosystem_health_before, labor_supply_per_capita,
-                     age_fractions)
+                     age_fractions, retired_share, retiree_vested_fraction)
     s1 = _State(**{**s0, "ecosystem_health": ecosystem_health_after,
                    "restoration_eoh": restoration[restoration_corner]})
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None,
@@ -817,6 +886,7 @@ def ecological_eoh_spike(
     spike = max(0.0, eoh_after - eoh_before)
     crossed = ecosystem_health_before > ECOLOGICAL_THRESHOLD >= ecosystem_health_after
     comp = _competency(s0, before, s1, after)
+    fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
     outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
     rec = (
@@ -826,7 +896,7 @@ def ecological_eoh_spike(
         f"{restoration_years:.0f} years, of which people carry "
         f"{c['added_human_eoh']:,.0f} (machines the rest): {c['taken_up_eoh']:,.0f} "
         f"taken up, {c['deferred_eoh']:,.0f} deferred. The holder's GUF flow rises "
-        f"{guf_flow:,.0f} h/yr. " + comp["competency_note"]
+        f"{guf_flow:,.0f} h/yr. " + fc["fiscal_note"] + comp["competency_note"]
         + f"Outcome: {outcome}. Not modelled: biological "
         "recovery time."
     )
@@ -855,6 +925,7 @@ def ecological_eoh_spike(
         "trust_absorbs":         f1["solvent"],
         "absorbed":              f1["solvent"],
         **comp,
+        **fc,
         "labour_outcome":        c["labour_outcome"],
         "outcome":               outcome,
         "recommendation":        rec,
@@ -989,6 +1060,8 @@ def compound_shock(
     div_rate: float = DIV_RATE,
     labor_supply_per_capita: float | None = None,
     age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
 ) -> dict:
     """
     Several shocks at once — applied to ONE state and run through ONE cascade.
@@ -1007,9 +1080,10 @@ def compound_shock(
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     common: dict[str, Any] = dict(trust_balance=trust_balance, population=population,
                   capital_stock_teh=capital_stock_teh, capital_age_ratio=capital_age_ratio,
-                  age_fractions=age_fractions)
+                  age_fractions=age_fractions, retired_share=retired_share,
+                  retiree_vested_fraction=retiree_vested_fraction)
     health0 = ecosystem_health_before if ecology_collapse else ECOSYSTEM_HEALTH_DEFAULT
-    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita, age_fractions)
+    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita, age_fractions, retired_share, retiree_vested_fraction)
     s1 = _State(**s0)
     individual: dict[str, str] = {}
     automation_deferred = 0.0
@@ -1059,9 +1133,12 @@ def compound_shock(
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)
     after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None)
     c = _cascade(before, after)
+    f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio,
+                 None, meaningful_activity_teh, suff_levy_rate, dep_rate, div_rate)
     f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh, capital_age_ratio,
                  None, meaningful_activity_teh, suff_levy_rate, dep_rate, div_rate)
     comp = _competency(s0, before, s1, after)
+    fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
     combined = _worse(c["labour_outcome"], comp["competency_outcome"],
                       _classify(f1["solvent"], f1["surplus_deficit"], trust_balance),
                       *individual.values())
@@ -1072,7 +1149,7 @@ def compound_shock(
         + (f" ({c['deferred_personal_eoh']:,.0f} personal)"
            if c["deferred_personal_eoh"] > 0.0 else "")
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. "
-        + comp["competency_note"]
+        + fc["fiscal_note"] + comp["competency_note"]
         + f"Individual outcomes: {individual}. Combined outcome: {combined}."
     )
     return {
@@ -1085,6 +1162,7 @@ def compound_shock(
         "automation_deferred_eoh":        automation_deferred,
         "trust_absorbs_combined":         f1["solvent"],
         **comp,
+        **fc,
         "combined_outcome":               combined,
         "recommendation":                 rec,
     }

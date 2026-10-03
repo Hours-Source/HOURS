@@ -894,3 +894,67 @@ class TestShocksTakeTheFramesAgeMix:
             automation_failure_shock(0.40, age_fractions=bad)
 
 
+
+class TestRetirementInTheShocks:
+
+    def test_an_ageing_population_now_asks_more_of_the_trust(self):
+        """Off: the age mix alone moves the guarantee (it did not until 2026-10-03)."""
+        r = demographic_shock(0.40, "aging", 0.04)
+        assert r["guarantee_after"] > r["guarantee_before"]
+
+    def test_with_the_register_on_ageing_adds_retirees(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        e0, e1 = r["age_fractions_before"]["elderly"], r["age_fractions_after"]["elderly"]
+        assert r["retired_share_after"] == pytest.approx(0.12 * e1 / e0)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert r["guarantee_before"] > off["guarantee_before"]
+        assert r["guarantee_after"] - r["guarantee_before"] > (
+            off["guarantee_after"] - off["guarantee_before"])
+
+    def test_zero_vesting_is_the_register_off(self):
+        on0 = demographic_shock(0.40, "aging", 0.04, retired_share=0.12, retiree_vested_fraction=0.0)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert on0["guarantee_before"] == off["guarantee_before"]
+        assert on0["guarantee_after"] == off["guarantee_after"]
+
+
+class TestTheFiscalChangeIsReported:
+    """The fiscal verdict reads the Trust AFTER the shock; an already-insolvent
+    Trust read DEGRADED whether the shock barely moved the deficit or
+    quadrupled it. Before/after are now reported; the verdict is unchanged."""
+
+    def test_a_shock_that_breaks_solvency_says_so(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        assert r["surplus_deficit_before"] > 0 > r["surplus_deficit_after"]
+        assert "from solvent" in r["fiscal_note"]
+
+    def test_an_already_insolvent_trust_is_named_with_both_deficits(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.15)
+        assert r["surplus_deficit_before"] < 0 and r["surplus_deficit_after"] < r["surplus_deficit_before"]
+        assert r["fiscal_outcome_before"] != "STABLE"
+        assert "already insolvent before the shock" in r["fiscal_note"]
+        assert f"{r['surplus_deficit_after']:,.0f}" in r["recommendation"]
+
+    def test_the_register_is_named_only_when_on(self):
+        on = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        off = demographic_shock(0.40, "aging", 0.04)
+        assert "Retirement register on" in on["recommendation"]
+        assert "Retirement register" not in off["recommendation"]
+        assert f"{on['guarantee_after']:,.0f}" in on["fiscal_note"]
+
+    def test_a_solvent_trust_gets_no_note(self):
+        r = demographic_shock(0.40, "aging", 0.04)
+        assert r["fiscal_outcome_before"] == r["fiscal_outcome_after"] == "STABLE"
+        assert r["fiscal_note"] == ""
+
+    def test_every_shock_reports_it(self):
+        for r in (automation_failure_shock(0.40, retired_share=0.12),
+                  ecological_eoh_spike(0.40, 0.70, 0.30, retired_share=0.12),
+                  compound_shock(0.40, automation_fraction_lost=0.5, retired_share=0.12)):
+            assert {"fiscal_outcome_before", "fiscal_outcome_after",
+                    "surplus_deficit_before", "fiscal_note"} <= set(r)
+            assert r["fiscal_note"] in r["recommendation"]
+
+    def test_reporting_does_not_move_the_verdict(self):
+        r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
+        assert r["fiscal_outcome_after"] == r["outcome"] or r["outcome"] in ("CRISIS",)

@@ -417,10 +417,17 @@ def _run(args: argparse.Namespace) -> None:
         # ones to 4 significant figures, dicts of shares rounded — the raw
         # repr (511881778323.14014) was unreadable — and the recommendation
         # wrapped under the table instead of stretching it. csv/json unchanged.
+        # A note the recommendation already carries is not printed twice, and
+        # an unset frame is not a "None" row (2026-10-03). json keeps both.
+        rec = str(display.get("recommendation", ""))
+        hidden = {k for k, v in display.items()
+                  if k.endswith("_note") and isinstance(v, str) and (not v or v in rec)}
+        if display.get("frame") is None:
+            hidden.add("frame")
         long_text = {k: v for k, v in display.items()
-                     if isinstance(v, str) and len(v) > 100}
+                     if isinstance(v, str) and len(v) > 100 and k not in hidden}
         print(fmt_table(["key", "value"], [[str(k), _readable(v)] for k, v in display.items()
-                                           if k not in long_text]))
+                                           if k not in long_text and k not in hidden]))
         for k, v in long_text.items():
             print()
             print(bold(k))
@@ -467,6 +474,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         labor_supply_per_capita=v["labor_supply_per_capita"],
         capital_stock_teh=None if v["capital_derived"] else v["capital_teh"],
         trust_balance=None if v["trust_derived"] else v["trust_balance"],
+        retired_share=v["retired_share"],
+        retiree_vested_fraction=v["retiree_vested_fraction"],
     )
     name = args.name
     if name == "automation_failure":

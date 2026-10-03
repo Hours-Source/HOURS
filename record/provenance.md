@@ -11,7 +11,7 @@ revaluations and re-anchors, the dataset-governance gate.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **355 constants in `data.py`, all tagged** — `provenance 355/355` *(gated)*.
+- **357 constants in `data.py`, all tagged** — `provenance 357/357` *(gated)*.
   placeholder 128 (36.8%), normative 72 (20.7%), convention 45 (12.9%), measured
   28 (8.0%), instance 23 (6.6%), derived 22 (6.3%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).

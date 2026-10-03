@@ -137,6 +137,12 @@ class TestTheCensusCannotDriftSilently:
                        achievable ceiling, which is derived and moves —
                        observable_epsilon_ceiling() reads 0.788-0.877 under
                        per_component, and the two are gated apart.
+                 357 = 32/100/225 after RETIREMENT_REGISTER_AGE (normative,
+                       the charter's age for the register event) and
+                       RETIREMENT_YEARS_IN_COLLECTIVE (instance, the
+                       collective's own record) were NAMED (2026-10-03) for
+                       the opt-in retirement register. One judgement the
+                       collective makes, one input it supplies.
                  355 = 32/99/224 after SUFF_GUARANTEE_FLOOR_FRACTION was
                        NAMED (2026-10-02) — the shipped guarantee design's
                        recipient share, a bare 0.15 at three defaults beside
@@ -191,10 +197,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 355
+        assert c["total"] == 357
         assert c["counts"]["CERTAIN"] == 32
-        assert c["counts"]["INSTANCE"] == 99
-        assert c["counts"]["POSSIBLE"] == 224
+        assert c["counts"]["INSTANCE"] == 100
+        assert c["counts"]["POSSIBLE"] == 225
 
     def test_possible_is_still_the_largest_tier(self):
         """

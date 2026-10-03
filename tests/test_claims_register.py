@@ -113,7 +113,7 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 355 and total == 355
+    return tagged == 357 and total == 357
 
 
 def _shadow_count_is_30() -> bool:
@@ -263,10 +263,10 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 355/355",
+        anchor="provenance 357/357",
         check=_provenance_is_complete,
         why=(
-            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01) -> 353 (ECOSYSTEM_HEALTH_DEFAULT, 2026-10-02) -> 354 (CANONICAL_CAPITAL_AGE_BASE) -> 355 (SUFF_GUARANTEE_FLOOR_FRACTION). "
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01) -> 353 (ECOSYSTEM_HEALTH_DEFAULT, 2026-10-02) -> 354 (CANONICAL_CAPITAL_AGE_BASE) -> 355 (SUFF_GUARANTEE_FLOOR_FRACTION) -> 357 (the retirement register's age and tenure, 2026-10-03). "
             "Anchored to the CURRENT entry, not a historical one: the old anchor "
             "matched six lines, five of them history, so the claim was checking a "
             "live number against text that must never be updated."

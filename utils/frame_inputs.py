@@ -52,6 +52,8 @@ from hours_eoh.data import (
     M2_PER_HECTARE,
     MEASURED_CAPACITY_H_YR,
     REFERENCE_FRAME_POPULATION,
+    RETIREMENT_REGISTER_AGE,
+    RETIREMENT_YEARS_IN_COLLECTIVE,
     THERMAL_ANTHROPOGENIC_DISSIPATION_W,
     THERMAL_DT_LO,
     WORLD_POPULATION,
@@ -73,6 +75,7 @@ FRAMES: dict[str, dict[str, str]] = {
 FRAME_FILE_KEYS = frozenset({
     "name", "population", "age_fractions", "epsilon", "capital_teh",
     "land_hectares", "adult_capacity_h_yr", "utilization", "trust_balance",
+    "retirement_age", "retired_share", "years_in_collective",
 })
 
 
@@ -126,9 +129,15 @@ def load_frame_file(path: str | Path) -> dict[str, Any]:
     for k in ("population", "capital_teh", "land_hectares", "adult_capacity_h_yr"):
         if k in data and not (isinstance(data[k], (int, float)) and data[k] > 0):
             raise SystemExit(f"{path}: {k} must be a positive number")
-    for k in ("utilization", "trust_balance"):
+    for k in ("utilization", "trust_balance", "years_in_collective"):
         if k in data and not (isinstance(data[k], (int, float)) and data[k] >= 0):
             raise SystemExit(f"{path}: {k} must be a non-negative number")
+    if "retirement_age" in data and not (isinstance(data["retirement_age"], (int, float))
+                                         and data["retirement_age"] > 0):
+        raise SystemExit(f"{path}: retirement_age must be a positive number")
+    if "retired_share" in data and not (isinstance(data["retired_share"], (int, float))
+                                        and 0.0 <= data["retired_share"] <= 1.0):
+        raise SystemExit(f"{path}: retired_share must be in [0, 1]")
     if "age_fractions" in data:
         a = data["age_fractions"]
         if not isinstance(a, dict) or set(a) != set(AGE_GROUPS):
@@ -168,6 +177,19 @@ def add_frame_arguments(p: argparse.ArgumentParser) -> None:
     p.add_argument("--adult-capacity", type=float, default=None, dest="adult_capacity",
                    metavar="H", help="Hours per adult-year of labour (default: the "
                    "frame's MTUS measurement, else the all-frame median)")
+    p.add_argument("--retirement-age", type=float, nargs="?", default=None,
+                   const=float(RETIREMENT_REGISTER_AGE), dest="retirement_age",
+                   metavar="AGE",
+                   help="Model RETIREMENT AS A REGISTER EVENT: members past AGE are "
+                        "added to the guarantee (a governance choice, off by "
+                        f"default; the bare flag uses {RETIREMENT_REGISTER_AGE}). "
+                        "Must be within the elderly band")
+    p.add_argument("--years-in-collective", type=float, default=None,
+                   dest="years_in_collective", metavar="Y",
+                   help="Retirees' years in the collective, read through the "
+                        "framework's vesting curve (linear, full at "
+                        "CONTESTABILITY_VESTING_YEARS); 0 → no retiree claim "
+                        f"(default {RETIREMENT_YEARS_IN_COLLECTIVE:g})")
     p.add_argument("--bea-usd-per-teh", type=float, default=None,
                    dest="bea_usd_per_teh", metavar="RATE",
                    help="Read capital from the BEA US inventory at this "
@@ -178,7 +200,9 @@ def add_frame_arguments(p: argparse.ArgumentParser) -> None:
 def frame_flags_given(args: argparse.Namespace) -> list[str]:
     """The frame flags this run set — for refusing them where nothing reads them."""
     names = {"frame": "--frame", "frame_file": "--frame-file", "ages": "--ages",
-             "adult_capacity": "--adult-capacity", "bea_usd_per_teh": "--bea-usd-per-teh"}
+             "adult_capacity": "--adult-capacity", "bea_usd_per_teh": "--bea-usd-per-teh",
+             "retirement_age": "--retirement-age",
+             "years_in_collective": "--years-in-collective"}
     return [flag for attr, flag in names.items() if getattr(args, attr, None) is not None]
 
 
@@ -383,6 +407,8 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
             "default", "not supplied — the measured thermal ceiling is not run; pass "
                        "--utilization or put `utilization` in the frame file")
 
+    _resolve_retirement(args, ff, src_ff, v, lab)
+
     # Trust
     tb = getattr(args, "trust_balance", None)
     if tb is not None:
@@ -396,6 +422,80 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["trust_derived"] = True
     v.setdefault("trust_derived", False)
     return v, lab
+
+
+def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: str,
+                        v: dict[str, Any], lab: dict[str, dict]) -> None:
+    """
+    The retirement register (2026-10-03): OFF unless --retirement-age or the
+    frame file asks for it, because whether retirement is a register event is
+    the collective's governance choice. When on:
+
+      retired_share — supplied (frame file), else MEASURED from Census
+                      single-year ages when the frame has them, else the
+                      frame's elderly share × the Census within-band profile
+                      (derived, partly from defaults — the move data.py makes
+                      for the elderly capacity weight);
+      years         — supplied, else RETIREMENT_YEARS_IN_COLLECTIVE (default),
+                      read through core.fiscal.vested_fraction.
+
+    An age below the elderly band is refused: retirees here are elderly, and
+    the shocks have no way to take people out of working age by age alone.
+    """
+    from hours_eoh.core.fiscal import vested_fraction
+    flag_age = getattr(args, "retirement_age", None)
+    on = flag_age is not None or "retirement_age" in ff or "retired_share" in ff
+    if not on:
+        v.update(retirement_age=None, retired_share=0.0, years_in_collective=None,
+                 retiree_vested_fraction=1.0)
+        lab["retired_share"] = label("default", "retirement register OFF — a governance "
+                                     "choice; pass --retirement-age to model it")
+        return
+    band_lo, band_hi = AGE_GROUP_RANGES["elderly"]
+    if flag_age is not None:
+        age, lab["retirement_age"] = float(flag_age), label("supplied", "--retirement-age")
+    elif "retirement_age" in ff:
+        age, lab["retirement_age"] = float(ff["retirement_age"]), label("supplied", src_ff)
+    else:
+        age, lab["retirement_age"] = float(RETIREMENT_REGISTER_AGE), label(
+            "default", "RETIREMENT_REGISTER_AGE")
+    if age < band_lo:
+        raise SystemExit(f"retirement age {age:g} is below the elderly band ({band_lo}); "
+                         "retirees are modelled within it")
+    v["retirement_age"] = age
+    if "retired_share" in ff and flag_age is None:
+        v["retired_share"], lab["retired_share"] = float(ff["retired_share"]), label(
+            "supplied", src_ff)
+    else:
+        from hours_eoh.reference.care_demand import population_shares
+        span = (int(math.ceil(age)), band_hi)
+        if v["ages"] == "census":
+            v["retired_share"] = population_shares({"r": span})["r"]
+            lab["retired_share"] = label(
+                "measured", f"Census, latest year, ages {span[0]}+ (population_shares)")
+        else:
+            ratio = (population_shares({"r": span})["r"]
+                     / population_shares({"e": (band_lo, band_hi)})["e"])
+            elderly = (AGE_GROUPS["elderly"]["fraction"] if v["age_fractions"] is None
+                       else v["age_fractions"]["elderly"])
+            v["retired_share"] = elderly * ratio
+            lab["retired_share"] = label(
+                "derived", f"elderly share × Census within-band share aged {span[0]}+",
+                ("age_fractions", "retirement_age", "default:US Census within-band profile"))
+    if "years_in_collective" in ff and getattr(args, "years_in_collective", None) is None:
+        years, lab["years_in_collective"] = float(ff["years_in_collective"]), label(
+            "supplied", src_ff)
+    elif getattr(args, "years_in_collective", None) is not None:
+        years, lab["years_in_collective"] = float(args.years_in_collective), label(
+            "supplied", "--years-in-collective")
+    else:
+        years, lab["years_in_collective"] = RETIREMENT_YEARS_IN_COLLECTIVE, label(
+            "default", "RETIREMENT_YEARS_IN_COLLECTIVE")
+    v["years_in_collective"] = years
+    v["retiree_vested_fraction"] = vested_fraction(years)
+    lab["retiree_vested_fraction"] = label(
+        "derived", "vested_fraction (linear, full at CONTESTABILITY_VESTING_YEARS)",
+        ("years_in_collective", "default:CONTESTABILITY_VESTING_YEARS"))
 
 
 def labelled_inputs(values: dict[str, Any], labels: dict[str, dict],
@@ -475,7 +575,9 @@ def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     keep = {"population": "population", "age_fractions": "age_fractions",
             "adult_capacity_h_yr": "adult_capacity_h_yr", "capital_teh": "capital_teh",
-            "utilization": "utilization", "trust_balance": "trust_balance"}
+            "utilization": "utilization", "trust_balance": "trust_balance",
+            "retirement_age": "retirement_age", "retired_share": "retired_share",
+            "years_in_collective": "years_in_collective"}
     for k, fk in keep.items():
         r = rows.get(k)
         if r and r["kind"] in ("supplied", "measured") and r["value"] is not None:
