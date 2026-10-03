@@ -26,6 +26,7 @@ commission they came from is in `notes/README.md`.
 - **Honor the layer rules.** `core/` stays pure and imports nothing outside itself. Experimental work (contestability, multi-collective) goes in `research/` until it has a stable API and tests. `scenarios/` and `land/` may import `core/` but never the reverse.
 - **ε-coherence is mandatory.** Every new function must return physically meaningful output across the full arc ε ∈ [0, 0.99], not just at the 0.40 reference. Add an arc test for each.
 - **Keep the suite green and typed.** The whole existing suite must still pass; add tests for new code; `python3 -m mypy hours_eoh/` must stay clean.
+- **Test what can silently change a number, a verdict or a machine-readable contract** (json/csv keys, refusals, defaults staying bit-identical). Do not test wording or table layout — run the command and look. One parametrised test per mechanism, not one per instance; breaking the code to see a test fail is how a test is verified, not a reason to keep another one. *(author, 2026-10-03: tests ran ~1:1 with code added.)*
 - **Additive, not destructive.** Prefer new modules and new functions; deprecate rather than delete public API; don't break the CLI.
 - **License.** Repo is AGPL-3.0; preserve headers and license obligations.
 - **Author sign-off for theory changes.** Some items are substantive intellectual commitments, not refactors (the price-as-floor reframing, demoting system-wide inflation-impossibility to a floor/limit property, and any objectivity→transparency language change). Implement these behind clearly-labeled PRs/issues that link the reconciliation doc, for the author (AWol) to approve. Do not silently rewrite the theory in docstrings or docs.
@@ -612,7 +613,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,560 tests passing (1 skipped), mypy clean on 107 source files** (verified
+**5,558 tests passing (1 skipped), mypy clean on 107 source files** (verified
 2026-10-03). Provenance **357/357**, shadow ratchet **30**, confidence ratchet
 **131** of 147, wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
