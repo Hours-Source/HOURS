@@ -20,7 +20,7 @@ from typing import Any
 from hours_eoh.params import EohParams
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import DEP_RATE, DIV_RATE, SUFF_LEVY_RATE
+from hours_eoh.data import DEP_RATE, DIV_RATE, SUFF_LEVY_RATE, ECOSYSTEM_HEALTH_DEFAULT
 
 from utils.formatters import bold, fmt_float, green, red, dim
 
@@ -98,7 +98,7 @@ def _impact_row(p: EohParams, eps: float) -> dict[str, Any]:
         population=float(data["population"]),
         capital_stock=float(data["capital_stock_teh"]),
         capital_age_ratio=float(data["capital_age_ratio"]),
-        ecosystem_health=float(data.get("ecosystem_health", 0.70)),
+        ecosystem_health=float(data.get("ecosystem_health", ECOSYSTEM_HEALTH_DEFAULT)),
     )
     teh_created  = float(pipeline.get("teh_created", 0.0))
     # The mint is the labour income (2026-09-30): this was `registered_eoh ×

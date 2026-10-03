@@ -33,6 +33,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     PERSONAL_EOH_BASE,
     TRUST_BASE_TEH,
     CONTESTABILITY_CHI_WARN,
@@ -77,7 +78,7 @@ def contestability_audit(
     terms: MembershipTerms,
     epsilon: float,
     collective_trust: float | None = None,
-    collective_population: float = 1_000_000.0,
+    collective_population: float = REFERENCE_FRAME_POPULATION,
     commons_balance: float = 0.0,
     federation_population: float | None = None,
     regime: str = "increasing_returns",

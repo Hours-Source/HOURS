@@ -29,6 +29,11 @@ import math
 from typing import Any
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    SUFF_GUARANTEE_FLOOR_FRACTION,
+    CANONICAL_CAPITAL_AGE_BASE,
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
     DEP_RATE, DIV_RATE, SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE, MEANINGFUL_ACTIVITY_TEH_SCALE,
@@ -50,13 +55,13 @@ from hours_eoh.core.registration import register_shares
 
 def make_economy_state(
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     workforce_fraction: float = AGE_GROUPS["working_age"]["fraction"],
     trust_balance: float | None = None,
     labor_income_teh: float = 5_000_000_000.0,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float | None = None,
     teh_created_cumulative: float = 0.0,
@@ -208,7 +213,7 @@ def simulate_period(
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    floor_fraction: float = 0.15,
+    floor_fraction: float = SUFF_GUARANTEE_FLOOR_FRACTION,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
     # Labor income model: income scales with workforce and (1-ε)
@@ -278,7 +283,8 @@ def simulate_period(
         mean_multiplier: Population-weighted mean multiplier.
         dep_rate: Trust depreciation rate.
         div_rate: Trust dividend fraction.
-        floor_fraction: Fraction of population receiving guarantee.
+        floor_fraction: Fraction of population receiving guarantee under the
+            `shipped` design only; inert under the default `v1`.
         meaningful_activity_teh: Discretionary bonus at ε=0.
         meaningful_activity_scale: Quadratic ε-growth factor for bonus.
         labor_income_scale: If provided, override auto-computed labor income.
@@ -303,7 +309,7 @@ def simulate_period(
     from hours_eoh.core.trajectory import canonical_physical_state as _cps
 
     # ---- 1. Extract current state ------------------------------------------
-    eps              = min(0.99, state["epsilon"] + epsilon_delta)
+    eps              = min(EPSILON_ARC_MAX, state["epsilon"] + epsilon_delta)
     # The REGISTER, as state (2026-10-01). None → it tracks `eps`; a set value
     # is held while the capability moves. `.get` so a state built before the
     # key existed still runs, as a register that tracks.

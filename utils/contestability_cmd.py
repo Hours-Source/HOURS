@@ -89,6 +89,7 @@ from hours_eoh.research.formation import (
 )
 from hours_eoh.research.recalibration import recalibrated_arc
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
@@ -121,7 +122,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                    help="K_entry regime (default: increasing_returns / adversarial)")
     a.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
-    a.add_argument("--population", type=float, default=1_000_000.0)
+    a.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
     # balance resolves against --population, so the inheritance travels with
     # the frame. Supplying the flag states YOUR balance and it is used as given.
@@ -140,7 +141,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     )
     s.add_argument("--points", type=int, default=20, metavar="N",
                    help="Number of ε points (default: 20)")
-    s.add_argument("--population", type=float, default=1_000_000.0)
+    s.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     s.add_argument("--trust-balance", type=float, default=None,
                    dest="trust_balance")
     s.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
@@ -160,7 +161,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     help="K_entry regime (default: increasing_returns / adversarial)")
     lv.add_argument("--points", type=int, default=20, metavar="N",
                     help="Number of ε points (default: 20)")
-    lv.add_argument("--population", type=float, default=1_000_000.0)
+    lv.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     lv.add_argument("--capital-stock", type=float, default=CAPITAL_STOCK_DEFAULT,
                     dest="capital_stock")
     lv.add_argument("--chi-target", type=float, default=CONTESTABILITY_CHI_CRIT,
@@ -201,7 +202,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                     dest="min_viable_population",
                     help="Founding cohort size (raise to stress the "
                          "escalation trigger)")
-    rc.add_argument("--population", type=float, default=1_000_000.0)
+    rc.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     rc.add_argument("--capital-output-ratio", type=float,
                     default=RECAL_CAPITAL_OUTPUT_RATIO, dest="capital_output_ratio",
                     help="ν: capital stock per unit annual machine output "
@@ -274,7 +275,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     au.add_argument("--epsilon", type=float, default=0.40)
     au.add_argument("--collective-trust", type=float, default=None,
                     dest="collective_trust")
-    au.add_argument("--collective-population", type=float, default=1_000_000.0,
+    au.add_argument("--collective-population", type=float, default=REFERENCE_FRAME_POPULATION,
                     dest="collective_population")
     au.add_argument("--federation-population", type=float, default=None,
                     dest="federation_population")

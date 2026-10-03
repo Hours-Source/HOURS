@@ -71,6 +71,7 @@ from hours_eoh.core.eoh_generation import (
     knowledge_eoh, skill_renewal_rate, total_eoh,
 )
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     AGE_GROUPS,
     H_REF,
     KNOWLEDGE_EOH_BASE,
@@ -303,7 +304,7 @@ def knowledge_base_from_registry(
     at 12.3 / 137.5 / 1,192 h/person·yr across ε ∈ {0, 0.40, 0.99}. At d = 1/40
     the same inputs give base_rate 4.901e8 and the SAME three arc figures.
     """
-    if not 0.0 <= epsilon_ref <= 0.99:
+    if not 0.0 <= epsilon_ref <= EPSILON_ARC_MAX:
         raise ValueError(
             f"epsilon_ref must be in [0, 0.99], got {epsilon_ref}"
         )
@@ -652,7 +653,7 @@ def labour_residual_epsilon(
 
     if unmet(0.0) < observed_hours_per_capita:
         return None
-    lo, hi = 0.0, 0.99
+    lo, hi = 0.0, EPSILON_ARC_MAX
     if unmet(hi) > observed_hours_per_capita:
         return hi
     for _ in range(max_iter):

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     CAPITAL_STOCK_DEFAULT,
+    REFERENCE_FRAME_POPULATION,
     ECOLOGICAL_THRESHOLD,
 )
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
@@ -30,7 +31,7 @@ from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.core.simulation import make_economy_state, run_simulation
 from hours_eoh.core.trajectory import canonical_physical_state as _canonical_state
 
-_POP_REFERENCE: float = 1_000_000.0  # reference population for per-capita scaling of TEH constants
+_POP_REFERENCE: float = REFERENCE_FRAME_POPULATION  # the frame the TEH constants are stated at
 from hours_eoh.indust_no_eco_params import (
     make_indust_no_eco_params,
     INDUST_NO_ECO_PIPELINE_KWARGS,

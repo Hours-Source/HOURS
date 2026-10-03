@@ -53,6 +53,8 @@ from __future__ import annotations
 from hours_eoh.core.eoh_generation import total_eoh, resolve_capital_stock
 from hours_eoh.core.fiscal import sufficiency_guarantee
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     AGE_GROUPS, PERSONAL_EOH_BASE, DEP_RATE, DIV_RATE,
     CONTESTABILITY_K0_TEH, CONTESTABILITY_K_SLOPE,
     CONTESTABILITY_K_FLOOR_FRACTION,
@@ -78,7 +80,7 @@ _AGE_WEIGHTED_EOH_MEAN: float = sum(
 
 def portable_endowment(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
 ) -> dict:
     """
@@ -119,7 +121,7 @@ def portable_endowment(
         effective_personal_eoh_per_person, epsilon.
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if population <= 0:
         raise ValueError(f"population must be positive, got {population}")
@@ -145,7 +147,7 @@ def portable_endowment_individual(
     tenure_years: float,
     vesting_years: float = CONTESTABILITY_VESTING_YEARS,
     savings: float = 0.0,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
 ) -> dict:
     """
@@ -465,7 +467,7 @@ def entry_cost(
     Returns:
         K_entry in TEH/person (float > 0).
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if regime == "increasing_returns":
         return k0 * (1.0 + k_slope * epsilon)
@@ -632,7 +634,7 @@ def commons_seed_required(
 
 def contestability_margin(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     regime: str = "increasing_returns",
     k0: float = CONTESTABILITY_K0_TEH,
@@ -862,7 +864,7 @@ def commonized_fraction(epsilon: float) -> float:
     Returns:
         φ(ε) ∈ [PHI_FLOOR, 1.0).
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     return CONTESTABILITY_PHI_FLOOR + (1.0 - CONTESTABILITY_PHI_FLOOR) * epsilon ** CONTESTABILITY_PHI_EXPONENT
 
@@ -1010,7 +1012,7 @@ def min_levy_for_pi(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock = resolve_capital_stock(capital_stock, epsilon)
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     levy_required = trust_balance * (g_priv + DEP_RATE * DIV_RATE)
@@ -1043,7 +1045,7 @@ def min_levy_for_pi(
 def trust_required_for_chi(
     epsilon: float,
     chi_target: float = CONTESTABILITY_CHI_CRIT,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     regime: str = "increasing_returns",
     k0: float = CONTESTABILITY_K0_TEH,
     k_slope: float = CONTESTABILITY_K_SLOPE,
@@ -1119,7 +1121,7 @@ def trust_required_for_chi(
     }
 
 
-def machine_output_teh(epsilon: float, population: float = 1_000_000.0) -> float:
+def machine_output_teh(epsilon: float, population: float = REFERENCE_FRAME_POPULATION) -> float:
     """
     Machine-fulfilled EOH per year — the physically-consistent levy base.
 
@@ -1154,7 +1156,7 @@ def machine_output_teh(epsilon: float, population: float = 1_000_000.0) -> float
 def levy_schedule_for_chi(
     n_points: int = 20,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock: float | None = None,
     chi_target: float = CONTESTABILITY_CHI_CRIT,
     trust_start: float | None = None,
@@ -1237,7 +1239,7 @@ def levy_schedule_for_chi(
     rows: list[dict] = []
     prev_target = None
     for i in range(n_points):
-        eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
+        eps = i / (n_points - 1) * EPSILON_ARC_MAX if n_points > 1 else 0.40
         req = trust_required_for_chi(eps, chi_target, population, regime)
         trust_target = max(trust_start, req["trust_required"])
         delta_trust = 0.0 if prev_target is None else trust_target - prev_target
@@ -1285,7 +1287,7 @@ def levy_schedule_for_chi(
 def chi_arc(
     n_points: int = 20,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock: float | None = None,
 ) -> list[dict]:
@@ -1319,7 +1321,7 @@ def chi_arc(
     capital_stock = resolve_capital_stock(capital_stock, None, population=population)
     rows = []
     for i in range(n_points):
-        eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
+        eps = i / (n_points - 1) * EPSILON_ARC_MAX if n_points > 1 else 0.40
         chi_result = contestability_margin(eps, population, trust_balance, regime)
         phi = commonized_fraction(eps)
         tau = trust_capital_ratio(trust_balance, capital_stock)

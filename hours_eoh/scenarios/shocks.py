@@ -46,6 +46,10 @@ import warnings
 from typing import Any, TypedDict
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    CANONICAL_CAPITAL_AGE_BASE,
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
     ECOLOGICAL_THRESHOLD,
     COMPETENCY_THRESHOLD,
@@ -110,7 +114,7 @@ def _pipeline(
     population: float,
     capital_stock_teh: float,
     capital_age_ratio: float,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     knowledge_base_size: float | None = None,
     age_distribution: dict[str, float] | None = None,
 ) -> dict:
@@ -149,7 +153,7 @@ def _trust_position(
     dep_rate: float,
     div_rate: float,
     registration_epsilon: float | None = None,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict:
     """
     The Trust's position from `fiscal_snapshot`, the shared fiscal path.
@@ -432,10 +436,10 @@ def _deprecated(fn: str, **supplied: object) -> None:
 
 def automation_failure_shock(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     knowledge_base_size: float | None = None,
     workforce_size: float | None = None,
     mean_entropy_reduction_capacity: float | None = None,
@@ -508,13 +512,13 @@ def automation_failure_shock(
         failure_boundary = epsilon
     else:
         for i in range(1, 20):
-            test_eps = min(0.99, epsilon + i * 0.05)
+            test_eps = min(EPSILON_ARC_MAX, epsilon + i * 0.05)
             _, _, b, a = pair(test_eps, resolve_capital_stock(
                 supplied_capital, test_eps, population=population))
             if float(a["deferred_total"]) > float(b["deferred_total"]):
                 failure_boundary = test_eps
                 break
-            if test_eps >= 0.99:
+            if test_eps >= EPSILON_ARC_MAX:
                 break
 
     lost = c["machine_eoh_before"] - c["machine_eoh_after"]
@@ -577,8 +581,8 @@ def demographic_shock(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    population: float = 1_000_000.0,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    population: float = REFERENCE_FRAME_POPULATION,
     labor_supply_per_capita: float | None = None,
 ) -> dict:
     """
@@ -682,10 +686,10 @@ def ecological_eoh_spike(
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
     restoration_years: float = DEFAULT_AMORTIZATION_YEARS,
     restoration_corner: str = "high",
     labor_supply_per_capita: float | None = None,
@@ -805,9 +809,9 @@ def labor_income_shock(
     epsilon: float,
     income_fraction: float,
     trust_balance: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
@@ -911,14 +915,14 @@ def labor_income_shock(
 def compound_shock(
     epsilon: float,
     ecology_collapse: bool = False,
-    ecosystem_health_before: float = 0.70,
+    ecosystem_health_before: float = ECOSYSTEM_HEALTH_DEFAULT,
     ecosystem_health_after: float = 0.30,
     demographic_shock_spec: dict | None = None,
     automation_fraction_lost: float = 0.0,
     trust_balance: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,

@@ -80,6 +80,7 @@ from typing import Any
 
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     ARC_REPORTING_POINTS,
     CARE_AUTOMATION_FLOOR,
     PERSONAL_AUTOMATION_FLOORS,
@@ -168,7 +169,7 @@ def obligation_accounts(epsilon: float = 0.40, **state: Any) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     d = total_eoh(epsilon=epsilon, **state)
@@ -255,7 +256,7 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
         dict with `crossover_epsilon` (None if it never crosses in [0, 0.99]),
         and the ratio at each end of the arc.
     """
-    lo, hi = 0.0, 0.99
+    lo, hi = 0.0, EPSILON_ARC_MAX
     if obligation_accounts(hi, **state)["delivery_over_obligation"] < 1.0:
         crossover = None
     else:
@@ -315,7 +316,7 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     s_care = PERSONAL_EOH_COMPONENTS["care"]["share"]
@@ -451,7 +452,7 @@ def anchor_sensitivity(
     def _residual(base: float, uniform: bool) -> float | None:
         if _required(0.0, base, uniform) < observed_hours_per_capita:
             return None
-        lo, hi = 0.0, 0.99
+        lo, hi = 0.0, EPSILON_ARC_MAX
         if _required(hi, base, uniform) > observed_hours_per_capita:
             return hi
         for _ in range(120):

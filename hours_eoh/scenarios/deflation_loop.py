@@ -37,6 +37,8 @@ remove — see `record/personal.md` and `scenarios/abatement_split`.
 
 from __future__ import annotations
 
+from hours_eoh.data import REFERENCE_FRAME_POPULATION
+
 from typing import TypedDict
 
 import hours_eoh.data as _d
@@ -105,7 +107,7 @@ def _point(scale: float, population: float) -> LoopPoint:
 
 def deflation_loop(
     scales: tuple[float, ...] = DEFAULT_SCALES,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
 ) -> LoopReport:
     """
     Sweep capital, derive ε from it, and compare TEH created with and without

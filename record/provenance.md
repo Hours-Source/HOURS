@@ -11,7 +11,7 @@ revaluations and re-anchors, the dataset-governance gate.
 Counts verified live against `utils.provenance.scan()` at migration, not
 recalled. Regenerate with `eoh provenance check`.
 
-- **352 constants in `data.py`, all tagged** — `provenance 352/352` *(gated)*.
+- **355 constants in `data.py`, all tagged** — `provenance 355/355` *(gated)*.
   placeholder 128 (36.8%), normative 72 (20.7%), convention 45 (12.9%), measured
   28 (8.0%), instance 23 (6.6%), derived 22 (6.3%), bounded 19 (5.5%),
   derived-then-FROZEN 6 (1.7%), **physics 3 (0.9%)**, baseline 2 (0.6%).
@@ -74,7 +74,7 @@ recalled. Regenerate with `eoh provenance check`.
   side of each assignment is a dependency statement" claim holds for **12 of
   300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
   so deriving those 12 takes the check from one edge to twelve.
-- **The scan is `data.py`-only.** *(caveat)* The 33 shadow constants are
+- **The scan is `data.py`-only.** *(caveat)* The 30 shadow constants are
   invisible to every count published.
 
 ## Cross-area entries

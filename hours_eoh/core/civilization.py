@@ -50,6 +50,8 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
     CAPITAL_MACHINE_PROFILES,
     CANONICAL_MONITORING_CAPABILITY_BASE,
@@ -309,12 +311,12 @@ def civilization_epsilon(civ: dict) -> dict:
 
     warnings: list[str] = []
 
-    population           = float(civ.get("population",           1_000_000.0))
+    population           = float(civ.get("population",           REFERENCE_FRAME_POPULATION))
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
     workforce_fraction   = float(civ.get("workforce_fraction",
                                          AGE_GROUPS["working_age"]["fraction"]))
-    ecosystem_health     = float(civ.get("ecosystem_health",     0.70))
+    ecosystem_health     = float(civ.get("ecosystem_health",     ECOSYSTEM_HEALTH_DEFAULT))
     deferred_ecological  = float(civ.get("deferred_ecological",  0.0))
     # None when absent, so the arc fills it at this ε (2026-09-09) — a hard
     # 1.0 would freeze the corpus at the ε=0 reference now that a supplied

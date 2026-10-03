@@ -17,6 +17,7 @@ degrades if care admission lags collective demand"
 from __future__ import annotations
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     COMPOUNDING_CRIT,
     MEAN_MULTIPLIER_REFERENCE,
 )
@@ -166,7 +167,7 @@ def deferred_maintenance_crisis(
 def care_registration_delay(
     epsilon: float,
     delay_epsilon: float = 0.10,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> dict:
     """

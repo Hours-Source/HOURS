@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
+from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION, CANONICAL_CAPITAL_AGE_BASE, EPSILON_ARC_MAX
 from hours_eoh.core.eoh_generation import (
     resolve_capital_stock,
     resolve_knowledge_base_size,
@@ -27,10 +27,10 @@ from hours_eoh.core.fiscal import resolve_trust_balance
 
 def epsilon_sweep(
     n_points: int = 100,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     knowledge_base_size: float | None = None,
     trust_balance: float | None = None,
     floor_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
@@ -76,7 +76,7 @@ def epsilon_sweep(
     floor_pps       = []
 
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
 
         # (e) 2026-09-09: an unspecified stock resolves along the arc at EACH ε,
         # so the sweep still sweeps capital (and knowledge). Resolved once per

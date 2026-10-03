@@ -32,6 +32,7 @@ from hours_eoh.reference.onet_multipliers import registry_segments
 import math
 
 from hours_eoh.data import (
+    ECOSYSTEM_HEALTH_DEFAULT,
     CARE_SIGMOID_DEFAULTS,
     COMPETENCY_THRESHOLD,
     LAND_HECTARES_PER_CAPITA,
@@ -241,7 +242,7 @@ def fiscal_health_check(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     baseline_basket_cost: float = MEANINGFUL_ACTIVITY_TEH_BASE,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     eco_eoh_override: float | None = None,
     capital_eoh_eliminated: float = 0.0,

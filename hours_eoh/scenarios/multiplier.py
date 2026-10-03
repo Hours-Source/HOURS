@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, M_MAX, M_FLOOR,
     TIER_ASSESSMENT_INTERVAL_YEARS,
     CAPITAL_STOCK_DEFAULT,
@@ -238,7 +239,7 @@ def m_below_band_drift(
     m_drift_rate: float = -0.05,
     governance_lag: int = TIER_ASSESSMENT_INTERVAL_YEARS,
     correction_magnitude: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
@@ -318,7 +319,7 @@ def m_above_band_drift(
     m_drift_rate: float = 0.04,
     governance_lag: int = TIER_ASSESSMENT_INTERVAL_YEARS,
     correction_magnitude: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
@@ -385,7 +386,7 @@ def m_band_sweep(
     epsilon: float = 0.40,
     m_values: list[float] | None = None,
     n_periods: int = 10,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,

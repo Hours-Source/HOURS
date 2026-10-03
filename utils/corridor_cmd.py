@@ -16,6 +16,8 @@ Two subcommands:
 
 from __future__ import annotations
 
+from hours_eoh.data import REFERENCE_FRAME_POPULATION
+
 import argparse
 import json
 
@@ -44,7 +46,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     band = sub2.add_parser("band", help="The corridor and its binding ceiling")
     band.add_argument("--epsilon", type=float, default=0.40, metavar="ε",
                       help="ε at which the EOH inventory is taken (default: 0.40)")
-    band.add_argument("--population", type=float, default=1_000_000.0)
+    band.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     band.add_argument("--available-labor", type=float, default=None,
                       dest="available_labor", metavar="EOH",
                       help="Human labor capacity, EOH-hours/yr. Default: DERIVED "
@@ -88,7 +90,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
 
     axes = sub2.add_parser(
         "axes", help="Both contestability axes side by side, and their disagreement")
-    axes.add_argument("--population", type=float, default=1_000_000.0)
+    axes.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     axes.add_argument("--trust-balance", type=float, default=None,
                       dest="trust_balance")
     axes.add_argument("--regime", choices=["increasing_returns", "replicable"],

@@ -81,7 +81,7 @@ from typing import Any
 from hours_eoh.core.autarky import overbuild_check
 from hours_eoh.core.eoh_fulfillment import personal_human_fraction
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
-from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT
+from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
@@ -155,7 +155,7 @@ def _as_dict(x: Any) -> dict:
 def stability_at(
     epsilon: float = 0.40,
     capital_stock_teh: float | None = None,
-    population: float = 1.0e6,
+    population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     standard: str = "sufficiency",
 ) -> dict:
@@ -204,7 +204,7 @@ def stability_at(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if standard not in STANDARDS:
         raise ValueError(f"standard must be one of {STANDARDS}, got {standard!r}")
@@ -333,8 +333,8 @@ def stationary_band(
     building through; this reports where standing still is possible, not where
     anyone should stand.
     """
-    n = max(2, int(round(0.99 / tol)))
-    grid = [i * 0.99 / n for i in range(n + 1)]
+    n = max(2, int(round(EPSILON_ARC_MAX / tol)))
+    grid = [i * EPSILON_ARC_MAX / n for i in range(n + 1)]
     flags = [(e, stability_at(e, **kw)["stationary"]) for e in grid]
     return band_from_flags(flags)
 

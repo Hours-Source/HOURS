@@ -42,6 +42,8 @@ scenarios. Reporting only; nothing here changes a shipped number.
 
 from __future__ import annotations
 
+from hours_eoh.data import REFERENCE_FRAME_POPULATION
+
 import inspect
 from dataclasses import dataclass
 
@@ -196,7 +198,7 @@ def determinacy_table() -> list[dict]:
 
 
 def hours_shock_response(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capability: float = 0.40,
     working_age_share: float = 0.63,
     employment_rate: float = 0.70,

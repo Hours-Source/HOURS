@@ -51,6 +51,8 @@ Mission Statement: §"EOH as demand signal", §"The dual ledger",
 from __future__ import annotations
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     PERSONAL_AUTOMATION_FLOORS,
     PERSONAL_EOH_COMPONENTS,
     CAPITAL_FAILURE_RATE,
@@ -703,11 +705,11 @@ def labor_constrained_fulfillment(
 
 def eoh_to_teh_pipeline(
     epsilon: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     age_distribution: dict | None = None,
     capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float | None = None,
     # BOUND 2026-08-15 (author sign-off), was a bare `0.10` literal.

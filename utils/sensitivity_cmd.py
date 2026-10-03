@@ -7,6 +7,8 @@ sensitivity — parameter sensitivity analysis.
 """
 
 from __future__ import annotations
+
+from hours_eoh.data import REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 import argparse
 import csv
 import json
@@ -34,7 +36,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     fp.add_argument("--values", required=True, metavar="V1,V2,...",
                     help="Comma-separated list of values to sweep")
     fp.add_argument("--epsilon", type=float, default=0.40, metavar="ε")
-    fp.add_argument("--population", type=float, default=1_000_000.0)
+    fp.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
     # balance resolves against --population, so the inheritance travels with
     # the frame. Supplying the flag states YOUR balance and it is used as given.
@@ -46,7 +48,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # -- arc
     ap = sub2.add_parser("arc", help="Cross-sectional metrics across the ε arc")
     ap.add_argument("--start", type=float, default=0.0, metavar="ε")
-    ap.add_argument("--end", type=float, default=0.99, metavar="ε")
+    ap.add_argument("--end", type=float, default=EPSILON_ARC_MAX, metavar="ε")
     ap.add_argument("--points", type=int, default=10)
     ap.add_argument("--delta", type=float, default=0.05,
                     help="ε increment used for each delta calculation (default: 0.05)")

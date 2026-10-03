@@ -47,6 +47,7 @@ from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     MEANINGFUL_ACTIVITY_TEH_BASE, BASKET_EOH_CONTENT, MEAN_MULTIPLIER_REFERENCE,
     BASKET_GOODS_WEIGHT, BASKET_SERVICES_WEIGHT,
     GOODS_PRICE_FLOOR, SERVICES_PRICE_FLOOR, SERVICES_PRICE_DECLINE_EXPONENT,
@@ -183,7 +184,7 @@ def teh_price_trajectory(
     base_price = teh_price(human_labor_hours_at_eps0, 0.0, mean_multiplier)
     result = []
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         price = teh_price(human_labor_hours_at_eps0, eps, mean_multiplier)
         result.append({
             "epsilon":         eps,
@@ -472,7 +473,7 @@ def floor_monotonicity_guard(
 
     pp_at = {}
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         result = floor_purchasing_power(floor_teh, eps, baseline_basket_cost)
         pp = result["pp_index"]
 
@@ -485,7 +486,7 @@ def floor_monotonicity_guard(
             })
 
         for target in (0.0, 0.40, 0.90, 0.99):
-            if abs(eps - target) < 0.99 / (2 * n_points):
+            if abs(eps - target) < EPSILON_ARC_MAX / (2 * n_points):
                 pp_at[target] = pp
 
         prev_pp = pp
@@ -524,7 +525,7 @@ def purchasing_power_sweep(
     """
     result = []
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
         result.append(purchasing_power(teh_amount, eps, baseline_basket_cost))
     return result
 
@@ -581,7 +582,7 @@ def full_price_monotonicity_audit(
     basket_vals, goods_vals, fp_vals = [], [], []
 
     for i in range(n_points + 1):
-        eps = i * 0.99 / n_points
+        eps = i * EPSILON_ARC_MAX / n_points
 
         b_price = basket_price(eps, baseline_cost_teh)
         g_price = teh_price(human_labor_hours_at_eps0, eps)

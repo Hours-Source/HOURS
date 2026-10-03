@@ -92,6 +92,8 @@ import math
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     ANNUAL_DEATH_RATE,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_UNDERWRITE_FRACTION,
@@ -119,14 +121,14 @@ _FD_STEP: float = 0.01
 _RATCHET_STEP: float = 0.01
 
 # Top of the ε range (CLAUDE.md design invariant: ε ∈ [0, 0.99]).
-_EPS_MAX: float = 0.99
+_EPS_MAX: float = EPSILON_ARC_MAX
 
 _PHI_POLICIES = ("target", "dilution", "escalated")
 
 
 def capital_stock_epsilon(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> float:
     """
@@ -212,7 +214,7 @@ def _private_capital_ratchet(
 def phi_actual(
     epsilon: float,
     phi_policy: str = "dilution",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> dict:
     """
@@ -283,7 +285,7 @@ def phi_actual(
 
 def commons_capital(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     phi_policy: str = "dilution",
 ) -> dict:
@@ -340,7 +342,7 @@ def commons_capital(
 
 def formation_share_required(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
 ) -> dict:
     """
@@ -403,7 +405,7 @@ def formation_share_required(
 
 def formation_levy_rate(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
 ) -> dict:
@@ -470,7 +472,7 @@ def formation_levy_rate(
 
 
 def bridge_advance(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     step: float = 0.005,
@@ -540,7 +542,7 @@ def bridge_advance(
 
 def commons_income_statement(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     phi_policy: str = "dilution",
@@ -680,7 +682,7 @@ def commons_income_statement(
 def capital_account_stock(
     tenure_years: float,
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     credit_share: float = RECAL_ACCOUNT_CREDIT_SHARE,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
@@ -753,7 +755,7 @@ def capital_account_stock(
 def estate_conversion_flow(
     epsilon: float,
     escheat_share: float = RECAL_ESTATE_CAPITAL_ESCHEAT_SHARE,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     death_rate: float = ANNUAL_DEATH_RATE,
 ) -> dict:
@@ -820,7 +822,7 @@ def estate_conversion_flow(
 def escalation_trigger(
     epsilon: float,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     capacity_floor: float = RECAL_ESCALATION_CAPACITY_FLOOR,
@@ -968,7 +970,7 @@ def _exit_channels(
 
 def exit_financing(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     regime: str = "increasing_returns",
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
@@ -1073,7 +1075,7 @@ def exit_financing(
 def recalibrated_arc(
     n_points: int = 20,
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     exit_horizon_years: float = RECAL_EXIT_HORIZON_YEARS,

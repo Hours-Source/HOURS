@@ -2186,3 +2186,20 @@ class TestTheInjectionRegisterIsComplete:
         switches = [p for p, c in INJECTION_REGISTER.items() if c == "theory_switch"]
         assert set(switches) == {"health_response", "standing_response"}
         assert "theory_switch" not in PROMOTABLE_CATEGORIES
+
+
+def test_floor_fraction_reaches_only_the_shipped_design():
+    """`SUFF_GUARANTEE_FLOOR_FRACTION` (named 2026-10-02) is read by
+    `design="shipped"` alone; the default V1 sets its share from the register.
+    Pinned both ways so the docstring's 'inert under v1' stays true, and so the
+    parameter cannot become silently inert under `shipped` either."""
+    from hours_eoh.data import SUFF_GUARANTEE_FLOOR_FRACTION
+    for eps in (0.0, 0.40, 0.90):
+        a = sufficiency_guarantee(1.0e6, eps, floor_fraction=SUFF_GUARANTEE_FLOOR_FRACTION)
+        b = sufficiency_guarantee(1.0e6, eps, floor_fraction=2 * SUFF_GUARANTEE_FLOOR_FRACTION)
+        assert a["total_cost_teh"] == b["total_cost_teh"]
+        s = sufficiency_guarantee(1.0e6, eps, design="shipped",
+                                  floor_fraction=SUFF_GUARANTEE_FLOOR_FRACTION)
+        t = sufficiency_guarantee(1.0e6, eps, design="shipped",
+                                  floor_fraction=2 * SUFF_GUARANTEE_FLOOR_FRACTION)
+        assert t["total_cost_teh"] > s["total_cost_teh"]

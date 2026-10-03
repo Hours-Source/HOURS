@@ -339,7 +339,7 @@ def feasibility_check(
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
     epsilon: float = 0.0,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     personal_base: float = PERSONAL_EOH_BASE,
     verification_h_per_capita: float = 0.0,
     automation_response: str = "per_component",
@@ -636,7 +636,7 @@ def feasible_epsilon(
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
     personal_base: float = PERSONAL_EOH_BASE,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     tol: float = 1e-6,
     automation_response: str = "per_component",
 ) -> float:
@@ -718,7 +718,7 @@ def identify_base(
     machine_eoh_per_capita: float,
     observed_human_hours_per_capita: float,
     residual_per_capita: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
 ) -> BaseIdentification:
     """
     Identify PERSONAL_EOH_BASE from the accounting identity, without circularity.
@@ -809,7 +809,7 @@ def implied_human_hours(
     machine_eoh_per_capita: float,
     personal_base: float = PERSONAL_EOH_BASE,
     adult_share: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
 ) -> dict:
     """
     The overidentifying test: fix B, and the human-hours residual becomes a
@@ -861,7 +861,7 @@ def implied_human_hours(
 
 def mint_floor_reach(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     **pipeline_kwargs: object,
 ) -> dict:

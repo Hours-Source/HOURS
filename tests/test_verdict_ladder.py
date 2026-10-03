@@ -137,6 +137,18 @@ class TestTheCensusCannotDriftSilently:
                        achievable ceiling, which is derived and moves —
                        observable_epsilon_ceiling() reads 0.788-0.877 under
                        per_component, and the two are gated apart.
+                 355 = 32/99/224 after SUFF_GUARANTEE_FLOOR_FRACTION was
+                       NAMED (2026-10-02) — the shipped guarantee design's
+                       recipient share, a bare 0.15 at three defaults beside
+                       its two named companions. POSSIBLE rose: normative.
+                 354 = 32/99/223 after CANONICAL_CAPITAL_AGE_BASE was
+                       NAMED (2026-10-02) — the canonical arc's ε=0 capital
+                       age, a bare 0.30 in trajectory.py beside its named
+                       drift, and retyped as a default at ten sites.
+                 353 = 32/98/223 after ECOSYSTEM_HEALTH_DEFAULT was NAMED
+                       (2026-10-02) — `instance`, the 0.70 retyped at 24 sites
+                       with no source. INSTANCE rose: naming an input the
+                       caller supplies makes it explicit, not more certain.
                  352 = 32/97/223 after COLLECTIVE_LAND_RESERVE_FACTOR
                        (normative, the author's ×4, 2026-10-01) and
                        M2_PER_HECTARE (convention, the SI unit) were NAMED
@@ -179,10 +191,10 @@ class TestTheCensusCannotDriftSilently:
         explicit about what it is asking you to supply.
         """
         c = VL.tier_census()
-        assert c["total"] == 352
+        assert c["total"] == 355
         assert c["counts"]["CERTAIN"] == 32
-        assert c["counts"]["INSTANCE"] == 97
-        assert c["counts"]["POSSIBLE"] == 223
+        assert c["counts"]["INSTANCE"] == 99
+        assert c["counts"]["POSSIBLE"] == 224
 
     def test_possible_is_still_the_largest_tier(self):
         """

@@ -46,7 +46,7 @@ from __future__ import annotations
 
 from typing import Callable, TypedDict
 
-from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR
+from hours_eoh.data import CONTESTABILITY_CHI_CRIT, THERMAL_U_FLOOR, REFERENCE_FRAME_POPULATION
 from hours_eoh.research.contestability import contestability_margin
 from hours_eoh.research.recalibration import exit_financing
 from hours_eoh.research.thermal import provable_ceiling_bound
@@ -63,7 +63,7 @@ _ARC = tuple(i / 100 for i in range(100))  # 0.00 … 0.99
 # ---------------------------------------------------------------------------
 
 def survival_inventory(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     **kwargs: float,
 ) -> dict[str, float]:
     """
@@ -428,7 +428,7 @@ class Floor(TypedDict):
 
 def overbuild_floor(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     **kwargs: float,
 ) -> Floor:
     """

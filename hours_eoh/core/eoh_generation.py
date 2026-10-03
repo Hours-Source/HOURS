@@ -27,10 +27,10 @@ import math
 from typing import TypedDict
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    ECOSYSTEM_HEALTH_DEFAULT,
     INFRA_STATUTORY_INTERVAL_MONTHS_DEFAULT,
-    INFRA_MAINT_RATE,
     INFRA_AGE_FACTOR_MAX,
-    ECOLOGICAL_THRESHOLD,
     AGE_GROUPS, ESSENTIAL_DOMAINS, ESSENTIAL_BRIDGE_PERSONAL,
     PERSONAL_EOH_BASE, PERSONAL_EOH_SURVIVAL, PERSONAL_EOH_SUFFICIENCY,
     CAPITAL_STOCK_DEFAULT, ECOLOGICAL_BASE_RATE, ECOLOGICAL_INTENSITY_BASE,
@@ -1719,11 +1719,11 @@ def ecological_eoh_breakdown(
 
 def total_eoh(
     epsilon: float | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     age_distribution: dict[str, float] | None = None,
     capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float | None = None,
     skill_decay_rate: float = SKILL_TRANSMISSION_RATE,
@@ -2148,10 +2148,10 @@ def eoh_to_essential_domains(
 def epsilon_delta_sensitivity(
     base_epsilon: float,
     delta_epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     knowledge_complexity: float | None = None,
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
 ) -> dict:
@@ -2204,7 +2204,7 @@ def epsilon_delta_sensitivity(
     """
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
-    new_eps = max(0.0, min(0.99, base_epsilon + delta_epsilon))
+    new_eps = max(0.0, min(EPSILON_ARC_MAX, base_epsilon + delta_epsilon))
     actual_delta = new_eps - base_epsilon
 
     def _snapshot(eps: float) -> dict:

@@ -85,6 +85,8 @@ import random as _random
 from typing import Any
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_N_MAX,
     COASEAN_BOUNDARY_EXPONENT,
@@ -172,7 +174,7 @@ def run_collective_period(
     trust_balance: float,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     mean_multiplier: float | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
@@ -232,11 +234,11 @@ def run_collective_period(
 def make_federation(
     epsilon: float,
     n: int | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     ecosystem_health_schedule: list[float] | None = None,
     capital_schedule: list[float] | None = None,
     multiplier_schedule: list[float] | None = None,
@@ -349,11 +351,11 @@ def make_federation(
 
 def n1_regression_anchor(
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict[str, Any]:
     """
     Verify that a single-collective federation exactly reproduces the reference pipeline.
@@ -1076,12 +1078,12 @@ def _consolidation_escheat(
 
 def simulate_federation(
     epsilon_trajectory: list[float],
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
     heterogeneity: float = 0.10,
-    baseline_ecosystem_health: float = 0.70,
+    baseline_ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     seed: int = 42,
     dynamics: bool = False,
     g_priv: float = 0.0,

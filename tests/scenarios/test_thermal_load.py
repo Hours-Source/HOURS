@@ -191,3 +191,20 @@ def test_rejects_bad_inputs():
         thermal_load_arc(thermal_obligation=-1.0)
     with pytest.raises(ValueError):
         thermal_load_arc(population=0.0)
+
+
+def test_the_reference_flow_is_the_research_call_it_records():
+    """`REFERENCE_THERMAL_FLOW_EOH` is a recorded copy of
+    `research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"]`;
+    scenarios/ cannot import research/, so the binding is this test (mode 4).
+    The copy is rounded to the hour."""
+    from hours_eoh.research.thermal_solvency import solvency_at_epsilon
+    assert REFERENCE_THERMAL_FLOW_EOH == pytest.approx(
+        solvency_at_epsilon(0.40)["thermal_flow_eoh"], abs=0.5)
+
+
+def test_the_reference_population_is_the_frame():
+    from hours_eoh.data import REFERENCE_FRAME_POPULATION
+    from hours_eoh.scenarios.thermal_load import REFERENCE_POPULATION
+    assert REFERENCE_POPULATION is REFERENCE_FRAME_POPULATION or \
+        REFERENCE_POPULATION == REFERENCE_FRAME_POPULATION

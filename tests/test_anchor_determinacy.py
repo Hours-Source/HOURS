@@ -56,7 +56,11 @@ class TestNoRivalIsSimulated:
             if isinstance(node, ast.ImportFrom)
             and (node.module or "").startswith("hours_eoh")
         })
-        assert all(m.startswith("hours_eoh.core.") for m in imported), (
+        # `hours_eoh.data` is HOURS' own constants, allowed since 2026-10-02 when
+        # the module's 1M default was bound to REFERENCE_FRAME_POPULATION rather
+        # than retyped. A rival acquiring a model would arrive from anywhere else.
+        assert all(m.startswith("hours_eoh.core.") or m == "hours_eoh.data"
+                   for m in imported), (
             f"this module classifies rivals from their definitions and measures "
             f"only HOURS: {imported}"
         )

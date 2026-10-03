@@ -10,6 +10,8 @@ All output is clearly marked EXPERIMENTAL — research API, not stable.
 """
 
 from __future__ import annotations
+
+from hours_eoh.data import REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 import argparse
 import json
 
@@ -28,7 +30,7 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
 
     # n1-check
     n1 = csub.add_parser("n1-check", help="Verify N=1 regression anchor")
-    n1.add_argument("--population", type=float, default=1_000_000.0)
+    n1.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     n1.set_defaults(func=run_n1_check)
 
     # count
@@ -39,7 +41,7 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
     # federation
     fed = csub.add_parser("federation", help="Per-collective snapshot at a given ε")
     fed.add_argument("--epsilon", type=float, default=0.40)
-    fed.add_argument("--population", type=float, default=1_000_000.0)
+    fed.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     fed.add_argument("--n", type=int, default=None,
                      help="Override collective count (default: emergent N(ε))")
     fed.set_defaults(func=run_federation)
@@ -50,8 +52,8 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
     sim.add_argument("--periods", type=int, default=10,
                      help="Number of periods (default: 10)")
     sim.add_argument("--epsilon-start", type=float, default=0.10, dest="eps_start")
-    sim.add_argument("--epsilon-end",   type=float, default=0.99, dest="eps_end")
-    sim.add_argument("--population",    type=float, default=1_000_000.0)
+    sim.add_argument("--epsilon-end",   type=float, default=EPSILON_ARC_MAX, dest="eps_end")
+    sim.add_argument("--population",    type=float, default=REFERENCE_FRAME_POPULATION)
     sim.add_argument("--heterogeneity", type=float, default=0.10,
                      help="Std dev of ecosystem health variation (default: 0.10)")
     sim.add_argument("--seed",          type=int,   default=42)
@@ -137,7 +139,7 @@ def run_count(args: argparse.Namespace) -> None:
     n_points = args.points
     rows_data = []
     for i in range(n_points):
-        eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
+        eps = i / (n_points - 1) * EPSILON_ARC_MAX if n_points > 1 else 0.40
         n = coasean_collective_count(eps)
         rows_data.append({"epsilon": eps, "n_collectives": n})
 

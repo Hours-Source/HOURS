@@ -35,6 +35,7 @@ Every mechanism must express the arc, not just a point on it."
 from __future__ import annotations
 
 from hours_eoh.data import (
+    CANONICAL_CAPITAL_AGE_BASE,
     CAPITAL_STOCK_DEFAULT,
     AGE_GROUPS,
     CANONICAL_CAPITAL_GROWTH_SLOPE,
@@ -201,7 +202,7 @@ def canonical_physical_state(epsilon: float, population: float | None = None) ->
     scale = 1.0 if population is None else population / REFERENCE_FRAME_POPULATION
     return {
         "capital_stock_teh":     CAPITAL_STOCK_DEFAULT * (1.0 + CANONICAL_CAPITAL_GROWTH_SLOPE) * eps * scale,
-        "capital_age_ratio":     0.30 + CANONICAL_CAPITAL_AGE_DRIFT * eps,
+        "capital_age_ratio":     CANONICAL_CAPITAL_AGE_BASE + CANONICAL_CAPITAL_AGE_DRIFT * eps,
         "ecosystem_health":      max(0.01, CANONICAL_ECOSYSTEM_HEALTH_BASE + CANONICAL_ECOSYSTEM_HEALTH_DRIFT * eps),
         "monitoring_capability": CANONICAL_MONITORING_CAPABILITY_BASE + CANONICAL_MONITORING_CAPABILITY_SLOPE * eps,
         "knowledge_base_size":   1.0 + CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE * eps,

@@ -18,6 +18,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from hours_eoh.data import (
+    ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
     PERSONAL_EOH_BASE, INFRA_MAINT_RATE, INFRA_AGE_FACTOR_MAX,
     ECOLOGICAL_BASE_RATE, ECOLOGICAL_THRESHOLD,
@@ -58,7 +59,7 @@ EOH_DEFAULTS: dict[str, Any] = {
     "infra_age_factor_max":    INFRA_AGE_FACTOR_MAX,
 
     # --- Ecological EOH domain ---
-    "ecosystem_health":     0.70,                 # 0=collapsed, 1=pristine
+    "ecosystem_health":     ECOSYSTEM_HEALTH_DEFAULT,                 # 0=collapsed, 1=pristine
     "ecological_base_rate": ECOLOGICAL_BASE_RATE,
     "ecological_threshold": ECOLOGICAL_THRESHOLD,
     "deferred_ecological":  0.0,                  # accumulated deferred EOH (hours)

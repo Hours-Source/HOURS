@@ -69,7 +69,7 @@ import json
 import csv
 import sys
 
-from hours_eoh.data import H_REF
+from hours_eoh.data import H_REF, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 from hours_eoh.reference.land_stewardship import (
     ALLOCATION_POLICIES as _LAND_ALLOCATIONS,
 )
@@ -168,7 +168,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # Universal params
     run_p.add_argument("--epsilon", type=float, default=0.40, metavar="ε",
                        help="Automation level (default: 0.40)")
-    run_p.add_argument("--population", type=float, default=1_000_000.0,
+    run_p.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION,
                        help="Population (default: 1 000 000)")
     run_p.add_argument("--hectares-per-capita", type=float,
                        default=LAND_HECTARES_PER_CAPITA, metavar="HA",
@@ -183,7 +183,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--epsilon-start", type=float, default=0.0,
                        dest="epsilon_start", metavar="ε",
                        help="Arc start ε (canonical_arc, transition; default: 0.0)")
-    run_p.add_argument("--epsilon-end", type=float, default=0.99,
+    run_p.add_argument("--epsilon-end", type=float, default=EPSILON_ARC_MAX,
                        dest="epsilon_end", metavar="ε",
                        help="Arc end ε (canonical_arc; default: 0.99)")
     run_p.add_argument("--epsilon-delta", type=float, default=0.05,
@@ -206,7 +206,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--ecology-collapse", action="store_true",
                        dest="ecology_collapse",
                        help="Enable ecological shock component (compound_shock)")
-    run_p.add_argument("--ecosystem-health-before", type=float, default=0.70,
+    run_p.add_argument("--ecosystem-health-before", type=float, default=ECOSYSTEM_HEALTH_DEFAULT,
                        dest="ecosystem_health_before",
                        help="Ecosystem health before shock (default: 0.70)")
     run_p.add_argument("--ecosystem-health-after", type=float, default=0.30,

@@ -48,6 +48,7 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     ARC_REPORTING_POINTS,
     REFERENCE_FRAME_POPULATION,
     US_REFERENCE_POPULATION,
@@ -969,7 +970,7 @@ def cadence_feasibility(
         if entry["fits"]:
             affordable_from[key] = None
             continue
-        lo, hi = epsilon, 0.99
+        lo, hi = epsilon, EPSILON_ARC_MAX
         if not _regime_fits(key, hi, scope, basis, documented_share, state):
             affordable_from[key] = None      # never, on this arc
             continue

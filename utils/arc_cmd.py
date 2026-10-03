@@ -16,7 +16,7 @@ from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.registration import register_shares
 from hours_eoh.core.prices import basket_price, floor_price, floor_purchasing_power
-from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE
+from hours_eoh.data import MEANINGFUL_ACTIVITY_TEH_BASE, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 
@@ -32,7 +32,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                    default="all", help="Domain to highlight (default: all)")
     p.add_argument("--format", choices=["table", "csv", "json"], default="table",
                    dest="fmt", help="Output format (default: table)")
-    p.add_argument("--population", type=float, default=1_000_000.0)
+    p.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
     # DEFAULT None since 2026-09-17 (Trust-frame decision): an unsupplied
     # balance resolves against --population, so the inheritance travels with
     # the frame. Supplying the flag states YOUR balance and it is used as given.
@@ -61,7 +61,7 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
     trust_balance = resolve_trust_balance(trust_balance, population)
     results = []
     for i in range(n_points):
-        eps = i / (n_points - 1) * 0.99 if n_points > 1 else 0.40
+        eps = i / (n_points - 1) * EPSILON_ARC_MAX if n_points > 1 else 0.40
         state = canonical_physical_state(eps, population=population)
         eoh = total_eoh(
             capital_stock=state["capital_stock_teh"],

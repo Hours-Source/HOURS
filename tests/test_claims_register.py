@@ -113,12 +113,12 @@ def _domain_is_empty_by_default() -> bool:
 def _provenance_is_complete() -> bool:
     from utils import provenance as pv
     tagged, total = pv.coverage(pv.scan(pv.DATA_PY.read_text(encoding="utf-8")))
-    return tagged == 352 and total == 352
+    return tagged == 355 and total == 355
 
 
-def _shadow_count_is_33() -> bool:
+def _shadow_count_is_30() -> bool:
     from utils import provenance as pv
-    return len([s for s in pv.shadow_constants() if not s.bound]) == 33
+    return len([s for s in pv.shadow_constants() if not s.bound]) == 30
 
 
 def _guf_is_a_separate_revenue_line() -> bool:
@@ -263,19 +263,21 @@ LIVE_CLAIMS: tuple[Claim, ...] = (
         ),
     ),
     Claim(
-        anchor="provenance 352/352",
+        anchor="provenance 355/355",
         check=_provenance_is_complete,
         why=(
-            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01). "
+            "the coverage figure quoted to institutions; 265 -> 288 -> 292 -> 294 -> 296 -> 297 -> 299 -> 300 -> 320 -> 321 -> 341 (the sigmoid split) -> 342 -> 349 (SHOCK_DEGRADED_TRUST_FRACTION, 2026-09-30) -> 350 (ESSENTIAL_BRIDGE_PERSONAL, 2026-10-01) -> 352 (the reserved land floor, 2026-10-01) -> 353 (ECOSYSTEM_HEALTH_DEFAULT, 2026-10-02) -> 354 (CANONICAL_CAPITAL_AGE_BASE) -> 355 (SUFF_GUARANTEE_FLOOR_FRACTION). "
             "Anchored to the CURRENT entry, not a historical one: the old anchor "
             "matched six lines, five of them history, so the claim was checking a "
             "live number against text that must never be updated."
         ),
     ),
     Claim(
-        anchor="shadow ratchet at 33",
-        check=_shadow_count_is_33,
-        why="the ratchet's bound. Quoted beside the 100% figure it qualifies.",
+        anchor="shadow ratchet **30**",
+        check=_shadow_count_is_30,
+        why="the ratchet's bound. Quoted beside the 100% figure it qualifies. "
+            "Re-anchored 2026-10-02 from 'shadow ratchet at 33', a line in dated "
+            "history that must never be updated, to the live figure.",
     ),
     Claim(
         anchor="GUF IS ITS OWN REVENUE LINE AND IS DELIBERATELY NOT FOLDED INTO THE LEVY",
@@ -909,8 +911,13 @@ def _confidence_ratchet_is_131_of_147() -> bool:
 
 
 def _scan_is_data_py_only() -> bool:
+    """The caveat's own figure, not only its premise: until 2026-10-02 this
+    checked the file name alone, so the item's "33 shadow constants" could go
+    stale with every gate green (mode 7) — and did, when three were bound."""
     from utils import provenance as pv
-    return pv.DATA_PY.name == "data.py"
+    text = (REPO_ROOT / "record" / "provenance.md").read_text(encoding="utf-8")
+    n = len([s for s in pv.shadow_constants() if not s.bound])
+    return pv.DATA_PY.name == "data.py" and f"The {n} shadow constants are" in text
 
 
 def _kappa_ratio_is_12_to_69() -> bool:
@@ -929,6 +936,80 @@ def _compensation_audits_only_the_inflows() -> bool:
     import hours_eoh.scenarios.compensation as C
     families = [n for n in vars(C) if n.endswith("_mechanisms") and callable(getattr(C, n))]
     return families == ["inflow_mechanisms"]
+
+
+def _pillars_cannot_fire() -> bool:
+    """Both dashboard pillars read GREEN at every ε, at a collapsed ecosystem
+    and an empty Trust (2026-10-01). The gap closes when either can fire."""
+    from hours_eoh.core.dashboard import fiscal_health_check
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.eoh_generation import resolve_capital_stock
+    for eps in (0.0, 0.40, 0.90, 0.99):
+        cap = resolve_capital_stock(None, eps)
+        p = eoh_to_teh_pipeline(eps, capital_stock=cap, ecosystem_health=0.10)
+        for trust in (0.0, 3.5e10):
+            r = fiscal_health_check(trust, p["teh_created"], cap, 0.5, 1.0e6, 1000.0, eps,
+                                    ecosystem_health=0.10,
+                                    eco_eoh_override=p["eoh_by_domain"]["ecological"])
+            if r["pp_status"] != "GREEN" or r["ecological_status"] != "GREEN":
+                return False
+    return True
+
+
+def _parcel_index_unread_by_the_fee() -> bool:
+    import inspect
+    from hours_eoh.land import collective, guf
+    src = inspect.getsource(guf) + inspect.getsource(collective)
+    return ("parcel_condition" not in src
+            and "condition" not in inspect.signature(guf.ground_use_fee).parameters)
+
+
+def _formation_cobweb_persists() -> bool:
+    from hours_eoh.research.dynamic_stability import formation_stability
+    return formation_stability(priority="dividend")[
+        "fields"]["eps_actual"]["verdict"] == "OSCILLATING"
+
+
+def _care_short_at_the_threshold() -> bool:
+    """The question stands while the threshold is unchanged and care, certified
+    at it, is still short at ε=0.78 in the survival reading."""
+    from hours_eoh.core.conditions import condition_iv_coverage
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.workforce import competency_reserve
+    from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD, ESSENTIAL_DOMAINS
+    wf = 1.0e6 * AGE_GROUPS["working_age"]["fraction"]
+    res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+    r = condition_iv_coverage(res, eoh_to_teh_pipeline(0.78), demand="personal")
+    return COMPETENCY_THRESHOLD == 0.155 and "care" in r["domains_short"]
+
+
+def _bridge_bound_matches_its_figure() -> bool:
+    """The caveat's figure (≥1.69×), recomputed: all three untagged columns on
+    one domain, threshold certification, fine grid."""
+    from hours_eoh.core.conditions import condition_iv_coverage
+    from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+    from hours_eoh.core.eoh_generation import essential_weights
+    from hours_eoh.core.workforce import competency_reserve
+    from hours_eoh.data import AGE_GROUPS, COMPETENCY_THRESHOLD, ESSENTIAL_DOMAINS
+    cols = ("infrastructure", "ecological", "knowledge")
+    wf = 1.0e6 * AGE_GROUPS["working_age"]["fraction"]
+    res = competency_reserve({d: wf * COMPETENCY_THRESHOLD for d in ESSENTIAL_DOMAINS}, wf)
+    worst = float("inf")
+    for i in range(100):
+        p = eoh_to_teh_pipeline(min(i / 100, 0.99))
+        for d in ESSENTIAL_DOMAINS:
+            if d == "care":
+                continue
+            w = essential_weights()
+            for row in w.values():
+                for c in cols:
+                    row[c] = 0.0
+            for c in cols:
+                w[d][c] = 1.0
+            worst = min(worst, condition_iv_coverage(res, p, weights=w)[
+                "per_domain"][d]["coverage_ratio"])
+    text = (REPO_ROOT / "record" / "provenance.md").read_text(encoding="utf-8")
+    return f"≥{worst:.2f}×" in text
 
 
 def _desire_is_still_a_stub() -> bool:
@@ -997,6 +1078,16 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       "person", _maint_rate_still_unbound),
     OpenItemPredicate("The claims register checks only some of the open items", "gap",
                       _predicate_coverage_is_incomplete),
+    OpenItemPredicate("Dashboard PP and ecological pillars cannot fire", "gap",
+                      _pillars_cannot_fire),
+    OpenItemPredicate("The parcel index does not reach the fee", "gap",
+                      _parcel_index_unread_by_the_fee),
+    OpenItemPredicate("Dynamic stability — one cycle found", "gap",
+                      _formation_cobweb_persists),
+    OpenItemPredicate("Is the 15.5% threshold enough for care?", "person",
+                      _care_short_at_the_threshold),
+    OpenItemPredicate("Three bridge columns are untagged", "caveat",
+                      _bridge_bound_matches_its_figure),
 )
 
 
@@ -1019,8 +1110,9 @@ class TestTheOpenItemPredicates:
 
     STATED GAPS:
 
-      * COVERAGE IS 13 OF 41 ITEMS, and the ratchet below only forbids it
-        FALLING. An item with no predicate is checked by nothing here — the
+      * COVERAGE IS PARTIAL — the live count is
+        `_predicate_coverage_is_incomplete`, not restated here — and the
+        ratchet below only forbids it FALLING. An item with no predicate is checked by nothing here — the
         same standing this file's `LIVE_CLAIMS` has always had. The gap is
         itself an item with a predicate: `_predicate_coverage_is_incomplete`
         fails once every typed item is covered, so this admission cannot
@@ -1044,7 +1136,7 @@ class TestTheOpenItemPredicates:
     #: May not FALL. Rises when an item gains an observable; falls only when an
     #: item CLOSES, and a closing item is struck rather than deleted — so a fall
     #: means a predicate was dropped, which is the move this ratchet forbids.
-    PREDICATE_FLOOR = 12
+    PREDICATE_FLOOR = 18
 
     def _by_marker(self) -> dict[str, str]:
         """`{bullet text: kind}` for every typed `## Open` item."""
@@ -1139,5 +1231,5 @@ class TestTheOpenItemPredicates:
     def test_the_stated_gaps_are_still_stated(self) -> None:
         doc = self.__doc__ or ""
         assert "STATED GAPS" in doc
-        assert "COVERAGE IS 13 OF 41" in doc
+        assert "COVERAGE IS PARTIAL" in doc
         assert "PROVES THE OBSERVABLE, NOT THE ITEM" in doc

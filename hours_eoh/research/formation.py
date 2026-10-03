@@ -54,6 +54,8 @@ from __future__ import annotations
 
 from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     ANNUAL_DEATH_RATE,
     CONTESTABILITY_MIN_VIABLE_POPULATION,
     CONTESTABILITY_PHI_FLOOR,
@@ -76,7 +78,7 @@ from hours_eoh.research.recalibration import (
 )
 
 # Top of the ε range (CLAUDE.md design invariant: ε ∈ [0, 0.99]).
-_EPS_MAX: float = 0.99
+_EPS_MAX: float = EPSILON_ARC_MAX
 
 # Formation-demand tolerance: below this (TEH/yr) demand counts as met, so
 # the terminal arc plateau is not misreported as a stall. Numerics only.
@@ -207,7 +209,7 @@ def formation_feedback_simulation(
     n_years: int = 100,
     priority: str = "share",
     regime: str = "increasing_returns",
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_output_ratio: float = RECAL_CAPITAL_OUTPUT_RATIO,
     epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
     depreciation_rate: float = FORMATION_DEPRECIATION_RATE,

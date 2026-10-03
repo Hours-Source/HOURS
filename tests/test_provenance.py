@@ -1711,8 +1711,11 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # deleted from reference/care_demand.py rather than migrated — nothing read
     # it, and the live one is in reference/atus_time_use.py. Removing a
     # duplicate is a better outcome than tagging it.
-    assert len(free) <= 33, (
-        f"{len(free)} shadow constants, was 33. New ones: a domain constant "
+    # 33 -> 30 on 2026-10-02: three retyped copies of the reference-frame
+    # population (ecological_floor, thermal_load, indust_overshoot) BOUND to
+    # data.REFERENCE_FRAME_POPULATION — the frame declaration they copied.
+    assert len(free) <= 30, (
+        f"{len(free)} shadow constants, was 30. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."
@@ -2052,3 +2055,163 @@ class TestTheSigmoidsStaySplit:
             r = by[name]
             assert r.decided_by, f"{name}: normative with no decided_by"
             assert not r.resolves_by, f"{name}: normative must not point at data"
+
+
+class TestTheEcosystemHealthDefaultIsNamed:
+    """`ECOSYSTEM_HEALTH_DEFAULT` was a bare 0.70 at 24 sites until 2026-10-02 —
+    every entry point, EohParams and two CLI flags (failure mode 4). By AST:
+    no parameter, `.get()` or CLI flag whose name carries `ecosystem_health`
+    may default to a float LITERAL equal to it. STATES ITS GAP: a different
+    literal is a different quantity and passes (the shock's 0.30 'after')."""
+
+    def test_no_site_retypes_it(self):
+        import ast
+        import pathlib
+        from hours_eoh.data import ECOSYSTEM_HEALTH_DEFAULT
+        root = pathlib.Path(__file__).resolve().parents[1]
+        bad = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+                    pairs = []
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        a = n.args
+                        pos = a.posonlyargs + a.args
+                        pairs += [(x.arg, v) for x, v in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                        pairs += [(x.arg, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "get" and len(n.args) == 2:
+                        k, v = n.args
+                        if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                            pairs.append((k.value, v))
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "add_argument":
+                        flag = next((x.value for x in n.args if isinstance(x, ast.Constant)), "")
+                        pairs += [(str(flag).replace("-", "_"), kw.value) for kw in n.keywords if kw.arg == "default"]
+                    if isinstance(n, ast.Dict):
+                        pairs += [(k.value, v) for k, v in zip(n.keys, n.values)
+                                  if isinstance(k, ast.Constant) and isinstance(k.value, str)]
+                    for name, v in pairs:
+                        if ("ecosystem_health" in str(name) and isinstance(v, ast.Constant)
+                                and v.value == ECOSYSTEM_HEALTH_DEFAULT):
+                            bad.append(f"{f.relative_to(root)}:{v.lineno} {name}")
+        assert not bad, "bind to data.ECOSYSTEM_HEALTH_DEFAULT:\n  " + "\n  ".join(bad)
+
+    def test_the_entry_points_read_it(self):
+        import inspect
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.data import ECOSYSTEM_HEALTH_DEFAULT
+        from hours_eoh.params import EohParams
+        assert inspect.signature(eoh_to_teh_pipeline).parameters[
+            "ecosystem_health"].default == ECOSYSTEM_HEALTH_DEFAULT
+        assert EohParams()["ecosystem_health"] == ECOSYSTEM_HEALTH_DEFAULT
+
+
+class TestTheReferencePopulationIsNamed:
+    """A default population of 1M is the reference FRAME — the population
+    `data.REFERENCE_FRAME_POPULATION` declares every extensive constant is
+    stated at. Until 2026-10-02 it was retyped at 83 sites in four spellings
+    (`1_000_000.0`, `1e6`, `1.0e6`, `1_000_000`) across core/, scenarios/,
+    research/ and twelve CLI flags. By AST, none may come back. STATES ITS
+    GAP: a 1M population passed at a CALL site (not a default) is a caller's
+    choice and is not flagged."""
+
+    def test_no_default_retypes_it(self):
+        import ast
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        bad = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+                    pairs = []
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        a = n.args
+                        pos = a.posonlyargs + a.args
+                        pairs += [(x.arg, v) for x, v in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                        pairs += [(x.arg, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "get" and len(n.args) == 2:
+                        k, v = n.args
+                        if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                            pairs.append((k.value, v))
+                    if isinstance(n, ast.Call) and getattr(n.func, "attr", None) == "add_argument":
+                        flag = next((x.value for x in n.args if isinstance(x, ast.Constant)), "")
+                        pairs += [(str(flag), kw.value) for kw in n.keywords if kw.arg == "default"]
+                    for name, v in pairs:
+                        if ("pop" in str(name).lower() and isinstance(v, ast.Constant)
+                                and v.value == 1_000_000):
+                            bad.append(f"{f.relative_to(root)}:{v.lineno} {name}")
+        assert not bad, "bind to data.REFERENCE_FRAME_POPULATION:\n  " + "\n  ".join(bad)
+
+    def test_no_module_imports_a_data_name_twice(self):
+        """Seven duplicate names across five modules were found the same day,
+        two of them introduced by the binding itself."""
+        import ast
+        import pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        dups = []
+        for d in ("hours_eoh", "utils"):
+            for f in sorted((root / d).rglob("*.py")):
+                seen: set[str] = set()
+                for s in ast.parse(f.read_text(encoding="utf-8")).body:
+                    if isinstance(s, ast.ImportFrom) and s.module == "hours_eoh.data":
+                        for a in s.names:
+                            nm = a.asname or a.name
+                            if nm in seen:
+                                dups.append(f"{f.relative_to(root)} {nm}")
+                            seen.add(nm)
+        assert not dups, dups
+
+
+def test_the_capital_age_default_is_the_named_canonical_base():
+    """`CANONICAL_CAPITAL_AGE_BASE` was a bare 0.30 in `canonical_physical_state`
+    and a retyped default at ten scenario/simulation sites until 2026-10-02.
+    STATES ITS GAP: eoh_to_teh_pipeline, total_eoh and EohParams default to 0.50 — the
+    arc's ε=1 age — a second value for one default, reported in the record,
+    not unified here."""
+    import ast
+    import pathlib
+    from hours_eoh.data import CANONICAL_CAPITAL_AGE_BASE
+    from hours_eoh.core.trajectory import canonical_physical_state
+    assert canonical_physical_state(0.0)["capital_age_ratio"] == CANONICAL_CAPITAL_AGE_BASE
+    root = pathlib.Path(__file__).resolve().parents[1]
+    bad = []
+    for f in sorted((root / "hours_eoh").rglob("*.py")):
+        for n in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = n.args
+                pos = a.posonlyargs + a.args
+                for x, v in list(zip(pos[len(pos) - len(a.defaults):], a.defaults)) + [
+                        (x, v) for x, v in zip(a.kwonlyargs, a.kw_defaults) if v is not None]:
+                    if (x.arg == "capital_age_ratio" and isinstance(v, ast.Constant)
+                            and v.value == CANONICAL_CAPITAL_AGE_BASE):
+                        bad.append(f"{f.relative_to(root)}:{v.lineno}")
+    assert not bad, bad
+
+
+def test_the_arc_bound_is_read_not_retyped():
+    """`EPSILON_ARC_MAX` was retyped as 0.99 in 51 arc-bound uses — clamps, range
+    checks, arc grids, bisection bounds, `epsilon_end` defaults and two
+    `_EPS_MAX` copies — until 2026-10-02. Reporting points like
+    `(0.0, 0.40, 0.90, 0.99)` and calls AT the top are left as written.
+    STATES ITS GAP: pattern-based, so a new arc-bound form it does not list
+    passes; and the ecosystem-health clamp in `research/coasean.py` is the same
+    number for a DIFFERENT quantity, allowed by name."""
+    import pathlib
+    import re
+    cats = [r"min\(0\.99,", r"<= 0\.99:", r"\* 0\.99 /", r"\* 0\.99 if", r"round\(0\.99 /",
+            r"_EPS_MAX: float = 0\.99", r"epsilon_end: float = 0\.99",
+            r"--epsilon-end.*default=0\.99", r"lo, hi = (0\.0|epsilon), 0\.99"]
+    allowed = {("hours_eoh/research/coasean.py",
+                "eco = max(0.01, min(0.99, ecosystem_health_schedule[i]))")}
+    pat = re.compile("|".join(cats))
+    root = pathlib.Path(__file__).resolve().parents[1]
+    bad = []
+    for d in ("hours_eoh", "utils"):
+        for f in sorted((root / d).rglob("*.py")):
+            if f.name == "data.py":
+                continue
+            rel = f.relative_to(root).as_posix()
+            for i, line in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+                code = line.split("#")[0]
+                if pat.search(code) and (rel, line.strip()) not in allowed:
+                    bad.append(f"{rel}:{i} {line.strip()[:80]}")
+    assert not bad, "read data.EPSILON_ARC_MAX:\n  " + "\n  ".join(bad)

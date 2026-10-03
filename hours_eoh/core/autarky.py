@@ -65,7 +65,7 @@ from hours_eoh.core.eoh_generation import (
     personal_base_for,
     personal_eoh,
 )
-from hours_eoh.data import CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION
 
 
 class AutarkyReference(TypedDict):
@@ -77,9 +77,9 @@ class AutarkyReference(TypedDict):
 
 
 def autarky_reference(
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     standard: str = "sufficiency",
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     age_distribution: dict[str, float] | None = None,
 ) -> AutarkyReference:
     """
@@ -164,10 +164,10 @@ class OverbuildCheck(TypedDict):
 
 def overbuild_check(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     epsilon: float = 0.40,
     standard: str = "sufficiency",
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     capital_age_ratio: float = 0.50,
     knowledge_base_size: float = 1.0,
     knowledge_complexity_per_unit: float = 1.0,
@@ -289,7 +289,7 @@ def overbuild_check(
 
 def break_even_epsilon(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     tol: float = 1e-6,
     **kwargs: float,
 ) -> float:
@@ -347,7 +347,7 @@ class Payback(TypedDict):
 
 def payback(
     capital_stock_teh: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     epsilon: float = 0.40,
     design_life_years: float = 40.0,
     **kwargs: float,

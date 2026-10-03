@@ -22,6 +22,8 @@ import math
 import warnings
 
 from hours_eoh.data import (
+    SUFF_GUARANTEE_FLOOR_FRACTION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     SUFF_LEVY_RATE, DEP_RATE, DIV_RATE,
     PERSONAL_EOH_BASE, AGE_GROUPS,
@@ -523,7 +525,7 @@ def sufficiency_guarantee(
     personal_eoh_base: float = PERSONAL_EOH_BASE,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
-    floor_fraction: float = 0.15,
+    floor_fraction: float = SUFF_GUARANTEE_FLOOR_FRACTION,
     capital_personal_eoh_fulfilled_per_person: float = 0.0,
     automation_response: str = "per_component",
     design: str = "v1",
@@ -572,7 +574,9 @@ def sufficiency_guarantee(
         personal_eoh_base: Personal EOH base rate (h/yr per working-age-equivalent).
         meaningful_activity_teh: Discretionary spending bonus at ε=0 (TEH/yr).
         meaningful_activity_scale: Quadratic growth factor: bonus = base×(1+scale×ε²).
-        floor_fraction: Fraction of population receiving the guarantee.
+        floor_fraction: Fraction of population receiving the guarantee under
+            `design="shipped"` ONLY; inert under the default `v1`, where the
+            register and `need_fraction` set the share.
         capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15 and
             NOT APPLIED. The human share in `effective_personal_eoh` already
             carries machine fulfilment, so subtracting capital-fulfilled hours
@@ -597,7 +601,9 @@ def sufficiency_guarantee(
     Returns:
         dict: {
           "population":                              float,
-          "floor_fraction":                          float,
+          "floor_fraction":                          float,  the EFFECTIVE recipient
+                                                     share under the design in
+                                                     force — not the parameter
           "recipients":                              float,
           "raw_eoh_per_person":                      float,  h/yr — age-weighted gross obligation
           "personal_human_fraction":                 float,  human-carried share at ε
@@ -1006,7 +1012,7 @@ def fiscal_snapshot(
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
-    floor_fraction: float = 0.15,
+    floor_fraction: float = SUFF_GUARANTEE_FLOOR_FRACTION,
     design: str = "v1",
     need_fraction: float = SUFF_NEED_FRACTION,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
@@ -1014,7 +1020,7 @@ def fiscal_snapshot(
     capital_personal_eoh_fulfilled_per_person: float = 0.0,
     capital_eoh_eliminated: float = 0.0,
     infra_eoh_override: float | None = None,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     eco_eoh_override: float | None = None,
     care_stipend_aggregate: float = 0.0,
@@ -1728,7 +1734,7 @@ def trust_solvency_trajectory(
     epsilon: float = 0.40,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     solvency_floor: float | None = None,
 ) -> dict:
     """
@@ -1979,7 +1985,7 @@ def min_levy_for_solvency(
     div_rate: float = DIV_RATE,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = 0.50,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     stewardship_teh: float | None = None,
     guarantee_teh: float | None = None,
     labor_income: float | None = None,

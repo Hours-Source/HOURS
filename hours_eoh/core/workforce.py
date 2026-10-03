@@ -25,6 +25,7 @@ rotation, stewardship service, and regular employment"; §"Automation failure
 from __future__ import annotations
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
     ESSENTIAL_DOMAINS,
     COMPETENCY_THRESHOLD,
     H_MIN,
@@ -347,7 +348,7 @@ def automation_failure_scenario(
     sufficient to cover critical infrastructure EOH for at least one maintenance
     cycle without automation support."
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if critical_eoh < 0:
         raise ValueError(f"critical_eoh must be non-negative, got {critical_eoh}")

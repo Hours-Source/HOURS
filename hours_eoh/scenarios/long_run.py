@@ -20,6 +20,8 @@ import math
 from typing import Any
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     ECOLOGICAL_THRESHOLD,
 )
@@ -38,9 +40,9 @@ _CONVERGENCE_TOLERANCE: float = 0.05    # relative surplus change below which fi
 
 def canonical_arc_trajectory(
     epsilon_start: float = 0.0,
-    epsilon_end: float = 0.99,
+    epsilon_end: float = EPSILON_ARC_MAX,
     n_periods: int = 20,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
     **sim_kwargs: Any,
@@ -165,7 +167,7 @@ def trust_depletion_stress(
     epsilon: float = 0.40,
     n_periods: int = 30,
     stressor_profile: dict | None = None,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
 ) -> dict:
@@ -276,7 +278,7 @@ def automation_transition_trajectory(
     epsilon_start: float = 0.10,
     epsilon_delta: float = 0.05,
     n_periods: int = 15,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
 ) -> dict:

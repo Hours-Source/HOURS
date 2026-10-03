@@ -53,11 +53,15 @@ from __future__ import annotations
 
 from hours_eoh.core.eoh_generation import ecological_statutory_floor, total_eoh
 from hours_eoh.core.trajectory import canonical_physical_state
-from hours_eoh.data import ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import (
+    ECOLOGICAL_BASE_RATE, LAND_HECTARES_PER_CAPITA, REFERENCE_FRAME_POPULATION,
+)
 
 #: The 1M reference population the whole repo quotes at, and `total_eoh`'s own
-#: default. Named here rather than repeated as a literal at four call sites.
-REFERENCE_POPULATION: float = 1_000_000.0
+#: default. Named here rather than repeated as a literal at four call sites —
+#: and BOUND to `data.REFERENCE_FRAME_POPULATION` (2026-10-02), the frame
+#: declaration it was a retyped copy of (failure mode 4).
+REFERENCE_POPULATION: float = REFERENCE_FRAME_POPULATION
 
 #: Shares of total EOH to invert for. 5% is the point at which the domain could
 #: plausibly move ε at all; 10% and 25% bracket "comparable to infrastructure"

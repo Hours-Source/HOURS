@@ -43,7 +43,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from hours_eoh.data import PERSONAL_EOH_COMPONENTS
+from hours_eoh.data import PERSONAL_EOH_COMPONENTS, REFERENCE_FRAME_POPULATION
 
 #: What the capital physically does, per component. A JUDGEMENT, not a
 #: measurement — each entry states the reading so it can be disputed.
@@ -259,7 +259,7 @@ def personal_serving_capital(capital_desc: dict, population: float) -> float:
     return total / population if population else 0.0
 
 
-def capital_weighting(tier: str = "standard", population: float = 1_000_000.0) -> CapitalWeighting:
+def capital_weighting(tier: str = "standard", population: float = REFERENCE_FRAME_POPULATION) -> CapitalWeighting:
     """
     What weighting K by `personal_fulfillment_rate` does to a(K).
 
@@ -422,7 +422,7 @@ class RemovalAudit(TypedDict):
     verdict: str
 
 
-def removal_audit(population: float = 1_000_000.0) -> RemovalAudit:
+def removal_audit(population: float = REFERENCE_FRAME_POPULATION) -> RemovalAudit:
     """
     Measure the abatabilities against their own definition, with what exists.
 

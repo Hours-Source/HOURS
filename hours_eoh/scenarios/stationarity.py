@@ -84,6 +84,8 @@ from hours_eoh.core.fiscal import (
     trust_management,
 )
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    REFERENCE_FRAME_POPULATION,
     ARC_REPORTING_POINTS,
     MEASURED_CAPACITY_H_YR,
     M_FLOOR,
@@ -184,7 +186,7 @@ def _guarantee_owed(
 def stationarity_at(
     epsilon: float = 0.40,
     *,
-    population: float = 1.0e6,
+    population: float = REFERENCE_FRAME_POPULATION,
     standard: str | None = None,
     personal_base: float | None = None,
     capital_stock_teh: float | None = None,
@@ -245,7 +247,7 @@ def stationarity_at(
     Raises:
         ValueError: on an ε, standard, design, cap rule or share out of range.
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
     if standard is not None and standard not in STANDARDS:
         raise ValueError(f"standard must be one of {STANDARDS} or None, got {standard!r}")
@@ -389,10 +391,10 @@ def stationary_bands(step: float = 0.01, **kw: Any) -> dict:
 
     units: dimensionless ε.
     """
-    n = max(2, int(round(0.99 / step)))
+    n = max(2, int(round(EPSILON_ARC_MAX / step)))
     # Clamped: `i * 0.99 / n` lands on 0.9900000000000001 at the last point,
     # which the range check correctly refuses.
-    rows = [stationarity_at(min(0.99, i * 0.99 / n), **kw) for i in range(n + 1)]
+    rows = [stationarity_at(min(EPSILON_ARC_MAX, i * EPSILON_ARC_MAX / n), **kw) for i in range(n + 1)]
     return {
         "labour": band_from_flags([(r["epsilon"], r["labour"]["stationary"]) for r in rows]),
         "teh":    band_from_flags([(r["epsilon"], r["teh"]["stationary"]) for r in rows]),
@@ -404,7 +406,7 @@ def stationary_bands(step: float = 0.01, **kw: Any) -> dict:
 def drawdown(
     years: int,
     epsilon_start: float = 0.0,
-    epsilon_end: float = 0.99,
+    epsilon_end: float = EPSILON_ARC_MAX,
     **kw: Any,
 ) -> dict:
     """
@@ -468,7 +470,7 @@ def reserve_plan(
     epsilon: float = 0.40,
     *,
     years_of_guarantee: float,
-    insure_at_epsilon: float = 0.99,
+    insure_at_epsilon: float = EPSILON_ARC_MAX,
     build_years: float = 25.0,
     **kw: Any,
 ) -> dict:
@@ -517,11 +519,11 @@ def reserve_plan(
         raise ValueError(f"years_of_guarantee must be > 0, got {years_of_guarantee}")
     if build_years <= 0.0:
         raise ValueError(f"build_years must be > 0, got {build_years}")
-    if not 0.0 <= insure_at_epsilon <= 0.99:
+    if not 0.0 <= insure_at_epsilon <= EPSILON_ARC_MAX:
         raise ValueError(
             f"insure_at_epsilon must be in [0.0, 0.99], got {insure_at_epsilon}")
 
-    population = float(kw.get("population", 1.0e6))
+    population = float(kw.get("population", REFERENCE_FRAME_POPULATION))
     here = stationarity_at(epsilon, **kw)["teh"]
     insured = stationarity_at(insure_at_epsilon, **kw)["teh"]
 
@@ -653,7 +655,7 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
 
 def registered_work_access(
     epsilon: float,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     **pipeline_kwargs: Any,
 ) -> dict:

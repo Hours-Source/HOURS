@@ -73,7 +73,7 @@ Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
 
 from __future__ import annotations
 
-from hours_eoh.data import SLU_HECTARES, SUBDIVISION_FP_TOLERANCE
+from hours_eoh.data import SLU_HECTARES, SUBDIVISION_FP_TOLERANCE, EPSILON_ARC_MAX
 from hours_eoh.land.collective import (
     compute_collective_guf,
     make_rural_collective,
@@ -206,7 +206,7 @@ def target_vs_realised(
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     by_class = {
@@ -381,7 +381,7 @@ def conservation_credit_check(
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     rows = [
@@ -622,7 +622,7 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     parcels = make_urban_collective(10_000)
@@ -769,7 +769,7 @@ def psi_double_application(epsilon: float = 0.99) -> dict:
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
-    if not 0.0 <= epsilon <= 0.99:
+    if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
 
     arc = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99)

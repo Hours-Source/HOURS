@@ -17,6 +17,10 @@ from __future__ import annotations
 from typing import Callable
 
 from hours_eoh.data import (
+    EPSILON_ARC_MAX,
+    CANONICAL_CAPITAL_AGE_BASE,
+    REFERENCE_FRAME_POPULATION,
+    ECOSYSTEM_HEALTH_DEFAULT,
     SUFF_LEVY_RATE,
     DEP_RATE,
     DIV_RATE,
@@ -37,12 +41,12 @@ def fiscal_parameter_sweep(
     parameter: str,
     values: list[float],
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     labor_income: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.30,
-    ecosystem_health: float = 0.70,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict:
     """
     Sweep a single fiscal parameter across a list of values at a given ε.
@@ -171,7 +175,7 @@ def fiscal_parameter_sweep(
 
 def eoh_arc_sensitivity(
     epsilon_start: float = 0.0,
-    epsilon_end: float = 0.99,
+    epsilon_end: float = EPSILON_ARC_MAX,
     n_points: int = 20,
     delta_epsilon: float = 0.05,
 ) -> list[dict]:

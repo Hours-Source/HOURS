@@ -45,7 +45,7 @@ from typing import TypedDict
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import CAPITAL_STOCK_DEFAULT
+from hours_eoh.data import CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, ECOSYSTEM_HEALTH_DEFAULT
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -53,9 +53,11 @@ from hours_eoh.core.fiscal import resolve_trust_balance
 # from research/thermal_solvency.solvency_at_epsilon(0.40)["thermal_flow_eoh"] —
 # the drawdown-chain labour requirement at a 2.0 K threshold, allocated by
 # responsibility. Tier D at root (CDR_LABOR_HOURS_PER_TONNE = 0.6); recorded here
-# so the scenario is runnable without reaching into research/.
+# so the scenario is runnable without reaching into research/. BOUND BY TEST to
+# that call (tests/scenarios/test_thermal_load.py), since scenarios/ cannot
+# import research/ — the copy was rounded and nothing checked it (mode 4).
 REFERENCE_THERMAL_FLOW_EOH: float = 1_789_175.0
-REFERENCE_POPULATION: float = 1_000_000.0
+REFERENCE_POPULATION: float = REFERENCE_FRAME_POPULATION
 
 
 class ThermalLoadRow(TypedDict):
@@ -83,7 +85,7 @@ def thermal_load_arc(
     arc: tuple[float, ...] = (0.0, 0.20, 0.40, 0.60, 0.80, 0.99),
     trust_balance: float | None = None,
     capital_stock: float | None = None,
-    ecosystem_health: float = 0.70,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> list[ThermalLoadRow]:
     """
     Carry a thermal obligation across the ε arc and report what it moves.

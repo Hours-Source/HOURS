@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 from hours_eoh.data import (
+    REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_IMBALANCE_CEILING,
     COASEAN_RESERVE_FRACTION,
@@ -910,7 +911,7 @@ class FederationBook:
 
 def n1_accounting_anchor(
     epsilon: float = 0.40,
-    population: float = 1_000_000.0,
+    population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
     trust_balance: float | None = None,
     hectares_per_capita: float = LAND_HECTARES_PER_CAPITA,

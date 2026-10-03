@@ -2398,6 +2398,19 @@ JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
 #   of claim on the deferral rate rather than the state; both resolve from one
 #   series.
 ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics (regime shift) / CHOSEN (0.40 on this index)
+# tag: instance | units: index [0, 1] — 0 collapsed, 1 pristine
+# supplied_by: YOUR ecosystem's measured condition, on the same index
+#   ECOLOGICAL_THRESHOLD is stated on. Nothing about your land's condition is
+#   derivable from this framework.
+# default: 0.70 — a moderately degraded reference state. NAMED 2026-10-02: it was
+#   retyped as a bare literal at 24 sites (every generation, fulfilment, fiscal,
+#   dashboard, simulation and shock entry point, EohParams and two CLI flags),
+#   with no stated source. It equals the canonical arc's health at ε=1
+#   (CANONICAL_ECOSYSTEM_HEALTH_BASE + CANONICAL_ECOSYSTEM_HEALTH_DRIFT), an
+#   equality NOT asserted as its derivation. Under the adopted Phase 4e/4f
+#   partition the ecological domain is health-invariant, so on the documented
+#   entry point this moves only the relocated-to-GUF report.
+ECOSYSTEM_HEALTH_DEFAULT: float = 0.70
 # tag: placeholder | units: dimensionless multiplier on the base ecological rate
 # form: the magnitude of the sub-threshold spike —
 #     spike = rate × INTENSITY × ((threshold − health) / threshold)²
@@ -3139,6 +3152,17 @@ SUFF_GUARANTEE_EPS_DECAY:     float = 0.50              # rate at which guarante
 #   It is the floor's floor, so it binds precisely where the model is least
 #   tested: ε→1, with human labour income near zero.
 SUFF_GUARANTEE_STRUCTURAL_MIN: float = 0.05
+# tag: normative | units: fraction of population
+# form: the SHIPPED design's recipient share at ε=0, decaying toward
+#   SUFF_GUARANTEE_STRUCTURAL_MIN at SUFF_GUARANTEE_EPS_DECAY. Read ONLY by
+#   `sufficiency_guarantee(design="shipped")`; the default design V1 derives
+#   the share from the register and SUFF_NEED_FRACTION, and ignores this
+#   (measured 2026-10-02: doubling it moves V1 by nothing at ε 0, 0.40, 0.90).
+# decided_by: the charter of the pre-V1 design — who the guarantee reached
+#   before the Trust owed only what is on the ledger. NAMED 2026-10-02: the
+#   companion of the two constants above had stayed a bare 0.15 at three
+#   parameter defaults.
+SUFF_GUARANTEE_FLOOR_FRACTION: float = 0.15
 # tag: placeholder | units: fraction of the full care rate
 # form: the residual share of care that stays human-carried however high
 #   automation goes. `care_stipend`'s automation factor is
@@ -3757,6 +3781,7 @@ CANONICAL_MONITORING_CAPABILITY_BASE: float = 0.50  # fraction of deferred ecolo
 CANONICAL_MONITORING_CAPABILITY_SLOPE: float = 0.50 # additional visibility per ε unit (full at ε=1)
 CANONICAL_KNOWLEDGE_COMPLEXITY_SLOPE: float = 9.0   # knowledge base ≈ 10× by ε=1: kbs = 1 + slope×ε
 CANONICAL_KNOWLEDGE_COMPLEXITY_EXP:   float = 2.0   # per-unit complexity: factor = 1 + (ε^exp) × slope
+CANONICAL_CAPITAL_AGE_BASE:           float = 0.30  # mean asset age / design life at ε=0 — NAMED 2026-10-02; was a bare literal in trajectory.py
 CANONICAL_CAPITAL_AGE_DRIFT:          float = 0.20  # age_ratio increases across arc: 0.30 at ε=0 → 0.50 at ε=1
 CANONICAL_ECOSYSTEM_HEALTH_BASE:      float = 0.90  # ecosystem health at ε=0 on ideal trajectory
 CANONICAL_ECOSYSTEM_HEALTH_DRIFT:     float = -0.20 # drift by ε=1 (net of development pressure vs. stewardship)
