@@ -117,3 +117,19 @@ def test_simulate_csv_carries_the_starting_state(capsys):
     lines = out.splitlines()
     assert lines[1].startswith("start,0.3,")
     assert len(lines) == 4
+
+
+def test_an_empty_compound_shock_says_so_on_stderr(capsys):
+    """`scenario run compound_shock` with defaults applies no shock; it read
+    STABLE (2026-10-03). The hint goes to stderr so json/csv stay parseable."""
+    from utils.eoh_cli import build_parser as cli_parser
+    args = cli_parser().parse_args(["scenario", "run", "compound_shock", "--format", "json"])
+    args.func(args)
+    out = capsys.readouterr()
+    assert "no component enabled" in out.err
+    import json
+    assert json.loads(out.out)["combined_outcome"] == "NO_SHOCK"
+    args = cli_parser().parse_args(["scenario", "run", "compound_shock",
+                                    "--automation-fraction-lost", "0.5"])
+    args.func(args)
+    assert "no component enabled" not in capsys.readouterr().err

@@ -980,13 +980,18 @@ def compound_shock(
         s1 = _State(**{**s1, "capability": epsilon * (1.0 - automation_fraction_lost)})
 
     if not individual:
+        # NOTHING WAS TESTED, SO NOTHING IS CLAIMED (2026-10-03). This returned
+        # "STABLE" and trust_absorbs_combined=True — a verdict and an answer
+        # from a run that applied no shock and never asked the Trust, which a
+        # test pinned as intended (mode 9: it could not fail).
         return {
             "scenario": "compound_shock", "epsilon": epsilon,
             "individual_outcomes": {}, "combined_eoh_delta": 0.0,
             "combined_deferred_eoh": 0.0, "combined_deferred_personal_eoh": 0.0,
-            "automation_deferred_eoh": 0.0, "trust_absorbs_combined": True,
-            "combined_outcome": "STABLE",
-            "recommendation": f"Compound shock at ε={epsilon:.2f}: no components enabled.",
+            "automation_deferred_eoh": 0.0, "trust_absorbs_combined": None,
+            "combined_outcome": "NO_SHOCK",
+            "recommendation": (f"Compound shock at ε={epsilon:.2f}: no components "
+                               "enabled — nothing was tested."),
         }
 
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)

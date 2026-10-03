@@ -479,6 +479,11 @@ def _dispatch(args: argparse.Namespace) -> object:
             {"shock_type": args.shock_type, "magnitude": args.shock_magnitude}
             if args.shock_type is not None else None
         )
+        if not (args.ecology_collapse or dem_spec or args.automation_fraction_lost):
+            # On stderr, so --format json/csv stay parseable (2026-10-03).
+            print("compound_shock: no component enabled — pass --ecology-collapse, "
+                  "--shock-type (with --shock-magnitude) or --automation-fraction-lost",
+                  file=sys.stderr)
         return compound_shock(
             epsilon=epsilon,
             ecology_collapse=args.ecology_collapse,

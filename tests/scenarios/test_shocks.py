@@ -195,13 +195,21 @@ class TestCompoundShock:
     def test_scenario_name(self):
         assert compound_shock(0.40)["scenario"] == "compound_shock"
 
-    def test_no_shocks_is_stable(self):
-        """All shocks disabled → combined_outcome is STABLE."""
+    def test_no_shocks_tests_nothing(self):
+        """All shocks disabled → NO_SHOCK, and the Trust question is unasked.
+        It read STABLE / True until 2026-10-03 — a verdict from a run that
+        applied no shock (mode 9)."""
         result = compound_shock(0.40, ecology_collapse=False,
                                 demographic_shock_spec=None,
                                 automation_fraction_lost=0.0)
-        assert result["combined_outcome"] == "STABLE"
+        assert result["combined_outcome"] == "NO_SHOCK"
+        assert result["trust_absorbs_combined"] is None
+        assert result["individual_outcomes"] == {}
         assert result["combined_eoh_delta"] == 0.0
+
+    def test_a_shock_never_reads_no_shock(self):
+        for kw in ({"automation_fraction_lost": 0.5}, {"ecology_collapse": True}):
+            assert compound_shock(0.40, **kw)["combined_outcome"] in VALID_OUTCOMES
 
     def test_combined_outcome_at_least_as_severe_as_worst_individual(self):
         """Combined outcome must be >= worst individual outcome in severity."""
@@ -246,8 +254,9 @@ class TestCompoundShock:
         assert result["combined_eoh_delta"] >= 0.0
 
     def test_combined_outcome_is_valid(self):
-        result = compound_shock(0.40)
+        result = compound_shock(0.40, automation_fraction_lost=0.5)
         assert result["combined_outcome"] in VALID_OUTCOMES
+        assert compound_shock(0.40)["combined_outcome"] == "NO_SHOCK"
 
     def test_recommendation_is_string(self):
         result = compound_shock(0.40, ecology_collapse=True,
