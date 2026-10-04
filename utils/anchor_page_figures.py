@@ -162,7 +162,7 @@ FIGURES: dict[str, tuple[Callable[[], Any], str]] = {
     # Supply is endogenous to the population — the second instrument
     "instrument_verdict": (
         lambda: instrument_comparison()["verdict"],
-        "the labour and capital routes to epsilon sit just apart at the default cell (divergent by a small gap)",
+        "the labour and capital routes to epsilon overlap at the default cell",
     ),
     # ε is the share of obligation still dependent on human agency — the ceiling
     "observable_epsilon_at_top_capability": (

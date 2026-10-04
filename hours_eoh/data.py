@@ -689,22 +689,45 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
 }
 
 # ---------------------------------------------------------------------------
-# Capital condition derivation constants (used in civilization.py)
-# Linear decay: condition = 1.0 - COND_DECAY_SLOPE × (age/design_life),
-# floored at COND_DECAY_FLOOR so end-of-life assets remain operational
-# (full write-down is a separate explicit event via execute_writedown).
+# Capital condition from age (used in civilization.py) — the BLS age-efficiency
+# curve since 2026-10-04: efficiency = (1 − x) / (1 − β·x), x = age / service
+# life, floored at COND_DECAY_FLOOR so an asset still in service keeps a share
+# of its capacity (full write-down is a separate event via execute_writedown).
 # ---------------------------------------------------------------------------
-# tag: placeholder | units: fraction of condition (slope over full design life; floor level) | family: COND_DECAY_*
-# form: linear decay to a floor. Physics in one respect — an end-of-life asset
-#   is degraded but still operational, so the floor must be above zero (full
-#   write-down is a separate explicit event via execute_writedown). The
-#   linearity is a simplification; real condition curves are convex.
+# tag: convention | units: dimensionless — the hyperbolic shape parameter | family: AGE_EFFICIENCY_BETA_*
+# form: BLS's age-efficiency function for productive capital stocks,
+#   S_t = (L − t) / (L − β·t): efficiency relative to a new asset, slow loss
+#   early and fast late. It measures PRODUCTIVE EFFICIENCY, not price — the
+#   quantity `condition` is in `machine_eoh_from_capital`, where it multiplies
+#   what a unit of capital does. BLS Handbook of Methods, "Industry
+#   productivity — calculation" (bls.gov/opub/hom/inp/calculation.htm), read
+#   2026-10-04: "assumed to be 0.5 for equipment and 0.75 for structures".
+# note: REPLACED the linear COND_DECAY_SLOPE (0.70 lost over a design life, a
+#   placeholder whose own note said "real condition curves are convex"). BLS is
+#   silent on IPP; software and R&D take the equipment β — a judgement, stated.
+#   BLS applies the curve over a normal distribution of service lives and
+#   retires to zero; applied here at a stock's MEAN age with a floor, so the
+#   derived condition errs HIGH (a concave curve at the mean overstates the
+#   mean of the curve), in the same direction as BEA's net-stock-weighted ages.
+AGE_EFFICIENCY_BETA_EQUIPMENT:  float = 0.5
+AGE_EFFICIENCY_BETA_STRUCTURES: float = 0.75
+# tag: placeholder | units: fraction of condition
+# form: the condition of an asset still in service at or past the end of its
+#   life — the floor must be above zero (write-down is a separate event).
 # resolves_by: measured condition ratings against age by asset class. Bridge
-#   inventories publish exactly this (the NBIS condition data behind
-#   INFRA_TREATMENT_HOURS_* is the same source), so this is reconcilable
-#   against data the repo already reaches for elsewhere.
-COND_DECAY_SLOPE: float = 0.70   # fractional condition lost over full design life
+#   inventories publish exactly this (FHWA NBI, the source behind
+#   INFRA_TREATMENT_HOURS_*). Under BLS the curve reaches zero at end of life
+#   over a DISTRIBUTION of lives; this floor stands in for that distribution.
 COND_DECAY_FLOOR: float = 0.30   # minimum condition for an asset still in service
+# tag: measured | units: share of value, current cost
+# form: structures' share of the US stock that carries both an age and a BEA
+#   service life ('government' scope, current cost, 2024) — the blend between
+#   the two BLS curves for a stock whose mix is not stated
+#   (`civilization.condition_from_age_ratio`). Frozen here because data.py
+#   cannot import the scenario layer; a test holds it to `stock_age_ratio`.
+# note: the unclassed path reads the US mix, as the default age reads the US
+#   age (CAPITAL_AGE_RATIO_DEFAULT): one economy standing in for one not stated.
+CAPITAL_STRUCTURES_SHARE_DEFAULT: float = 0.788
 
 # Environmental monitoring saturation constant: at this many TEH per capita
 # of environmental_monitoring capital, monitoring_capability reaches 1.0.
@@ -5860,9 +5883,9 @@ LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA: tuple[float, ...] = (
 # tag: convention | units: dimensionless ε — the gap between two ε intervals
 # form: `instrument_comparison`'s cut between ADJACENT and DIVERGENT, when the
 #   labour and capital intervals do not overlap: a gap below it is ADJACENT.
-# note: NAMED 2026-10-04: a bare 0.05 at two sites (the corner and the grid),
-#   and the US verdict turns on it — the measured stock age moved the gap to
-#   0.0597. It states how near counts as near, not a property of either
+# note: NAMED 2026-10-04: a bare 0.05 at two sites (the corner and the grid);
+#   the measured stock age alone moved the US gap to 0.0597, past it, before
+#   the measured condition closed it. It states how near counts as near, not a property of either
 #   instrument; the verdict is reported beside both intervals and the grid's,
 #   so a reader can apply their own.
 INSTRUMENT_ADJACENT_GAP: float = 0.05

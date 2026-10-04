@@ -86,7 +86,10 @@ from utils.provenance import SOFT_TAGS  # noqa: E402 — one definition, shared 
 #: retagging shed debt silently would reward relabelling over measuring, so the
 #: tag carries its own gate (`compares:`, `expected:`, and the named test must
 #: exist) and the arithmetic is written here.
-BASELINE_WITHOUT = 131
+#: LOWERED 131 -> 130 on 2026-10-04: COND_DECAY_SLOPE (placeholder, no
+#: confidence) was RETIRED, replaced by BLS's age-efficiency curve, whose two
+#: β are `convention` with a cited source — a placeholder replaced by a method.
+BASELINE_WITHOUT = 130
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

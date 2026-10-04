@@ -55,7 +55,9 @@ from hours_eoh.data import (
     AGE_GROUPS,
     CAPITAL_MACHINE_PROFILES,
     CANONICAL_MONITORING_CAPABILITY_BASE,
-    COND_DECAY_SLOPE,
+    AGE_EFFICIENCY_BETA_EQUIPMENT,
+    AGE_EFFICIENCY_BETA_STRUCTURES,
+    CAPITAL_STRUCTURES_SHARE_DEFAULT,
     COND_DECAY_FLOOR,
     ENV_MONITORING_SATURATION_TEH_PER_CAPITA,
 )
@@ -65,23 +67,36 @@ from hours_eoh.data import (
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def condition_from_age_ratio(age_ratio: float) -> float:
-    """A stock's condition from its age as a share of design life — the
-    linear decay below, read where only the ratio is known (a frame's
-    `capital_age_ratio`). 1.0 new → COND_DECAY_FLOOR at end of life."""
-    return _condition_from_age(age_ratio, 1.0)
+def age_efficiency(age_ratio: float, beta: float) -> float:
+    """
+    An asset's productive efficiency relative to new, from its age as a share
+    of its service life — BLS's hyperbolic age-efficiency function,
+    (1 − x) / (1 − β·x) (BLS Handbook of Methods, industry productivity),
+    floored at COND_DECAY_FLOOR for an asset still in service. β is
+    `AGE_EFFICIENCY_BETA_EQUIPMENT` (0.5) or `_STRUCTURES` (0.75): structures
+    hold their capacity longer, then lose it faster.
+    """
+    if not 0.0 <= beta < 1.0:
+        raise ValueError(f"beta must be in [0, 1), got {beta}")
+    x = min(1.0, max(0.0, age_ratio))
+    return max(COND_DECAY_FLOOR, (1.0 - x) / (1.0 - beta * x))
+
+
+def condition_from_age_ratio(age_ratio: float,
+                             structures_share: float = CAPITAL_STRUCTURES_SHARE_DEFAULT) -> float:
+    """A stock's condition from its age as a share of its life, where only the
+    ratio is known (a frame's `capital_age_ratio`): the two BLS curves blended
+    by the stock's structures share — the US share by default. 1.0 new →
+    COND_DECAY_FLOOR at end of life."""
+    return (structures_share * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_STRUCTURES)
+            + (1.0 - structures_share) * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_EQUIPMENT))
 
 
 def _condition_from_age(age: float, design_life: float) -> float:
-    """
-    Derive condition from age and design life when condition is not specified.
-
-    Linear decay: 1.0 (brand new) → 0.30 (at end of design life).
-    Assets past their design life are floor-capped at 0.30 — degraded but
-    still operational (full write-down is a separate event via execute_writedown).
-    """
-    age_fraction = min(1.0, max(0.0, age / max(design_life, 1.0)))
-    return max(COND_DECAY_FLOOR, 1.0 - COND_DECAY_SLOPE * age_fraction)
+    """Condition from age and design life when no condition is stated — the
+    BLS curve at age / design life (`condition_from_age_ratio`). Replaced the
+    linear 1.0 → 0.30 decay on 2026-10-04."""
+    return condition_from_age_ratio(age / max(design_life, 1.0))
 
 
 def _resolve_capital_entry(

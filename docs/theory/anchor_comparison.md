@@ -280,12 +280,12 @@ the US in a **band across the middle of the arc**, with none of the declared gri
 saturating. A second instrument that shares none of that data — time diaries,
 with no currency anywhere in the chain — lands **below** the capital reading, and
 the two bands do not overlap at the cell the comparison reads by default —
-government scope, current-cost doctrine — separated by a gap small against
-either band's width but just past the cut the comparison declares for "near".
-That verdict is **DIVERGENT**: the accurate word for that cell under that cut,
-and it was ADJACENT until the capital reading took each part of the stock at
-its measured age rather than one age that put the whole stock past the end of
-its life. **Across the whole declared grid the two OVERLAP**, with 8 of the 18 cells inside the labour band. The capital route
+government scope, current-cost doctrine — meet. That verdict is **OVERLAP**.
+It was ADJACENT until the capital reading took each part of the stock at its
+measured age (one age had put the whole stock past the end of its life) and at
+the productive condition that age implies on a statistical agency's
+age-efficiency curve, rather than a flat assumed condition. **Across the whole
+declared grid the two OVERLAP too**, with 8 of the 18 cells inside the labour band. The capital route
 returns a grid *because* its three judgements are undeclared, so the verdict is
 a function of which cell is read; reporting only the agreeing one would be
 calibrating to the answer, and reporting only the disagreeing one overstates
@@ -402,7 +402,7 @@ naming them as research is not a promise that they will be resolved.
 | **Measurement debt** | Every constant is tagged and published with its basis. Roughly two in five are placeholder or bounded, most without a confidence figure, and the constants the results move most with are among the least confident. | Measurement, constant by constant, in order of leverage. The debt is ratcheted so it cannot quietly grow; whether it can be paid down far enough is open. |
 | **The personal floor** | Most of the obligation carries a price from physical quantities. Water resolves by declaration: a collective states its distance to water and the floor reports whether it fits. | Shelter is instance data of the same kind. Sanitation has no named instrument and is the weakest component. Health is undefined — not unmeasured — below the apparatus that delivers it, and is reported that way rather than imputed. |
 | **Automation floors** | Two of four components carry one: nutrition bounded from above, care from below. | Shelter and health, so the ceiling errs high. The instrument is a time-use split of each component into hours whose value depends on a person doing them — and for care, a stated-preference survey. |
-| **Reading ε off a real economy** | Two independent instruments, capital and time use, give bands just apart at the default cell (**DIVERGENT**, by a small gap) and overlapping across the declared grid. | Both divide by the same obligation, so an error there passes both. A third instrument that does not would be a genuine check; there is no candidate. |
+| **Reading ε off a real economy** | Two independent instruments, capital and time use, give bands that **OVERLAP** at the default cell and across most of the declared grid. | Both divide by the same obligation, so an error there passes both. A third instrument that does not would be a genuine check; there is no candidate. |
 | **Verification cost** | The apparatus is measured at two scopes and peaks at a low single-digit percentage of the obligation. The registrant side is priced by the register's declared cadence, defaulting to episodic, and on that default the corridor closes (`closed_and_usable`). | A continuous register leaves the corridor with `open_edges` until mid-arc. A measured hours-per-record figure for a *fulfilment* register would settle the registrant side outright; the two nearest analogues disagree by two orders of magnitude. Verification spread thinly across many jobs is not yet counted, so the broad scope is not an upper bound. And part of the cost is a governance choice: re-reviewing annually costs several times re-reviewing every five years for the same obligation. |
 
 Capture bites hardest against the criticism this page makes of fiat. Fiat's

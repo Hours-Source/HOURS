@@ -405,6 +405,7 @@ def instrument_comparison(
     doctrine: str = "current_cost",
     inventory: "Mapping[str, float] | None" = None,
     age_ratios: "Mapping[str, float] | None" = None,
+    conditions: "Mapping[str, float] | None" = None,
     population_15_plus_supplied: float | None = None,
     unpaid_per_15plus: float | None = None,
     paid_per_15plus: float | None = None,
@@ -427,11 +428,10 @@ def instrument_comparison(
     undeclared is the whole reason it returns 18 cells. Measured at the US
     frame: the corner gave ADJACENT with a gap of 0.046, while **8 of the 18
     declared cells fall inside the labour band** and the full grid OVERLAPS it.
-    Since 2026-10-04 — the capital arm reading its stock at BEA's measured ages
-    instead of one class age that put the whole stock past end of life (1.15
-    lives) — the corner reads DIVERGENT, its gap just past
-    `INSTRUMENT_ADJACENT_GAP`; the grid still overlaps. Call the function for
-    the figures.
+    Since 2026-10-04 the capital arm reads its stock at BEA's measured ages
+    (one class age had put the whole stock past end of life, 1.15 lives) and
+    at the condition those imply on BLS's age-efficiency curve (it was a flat
+    0.85): the corner reads OVERLAP. Call the function for the figures.
 
     The corner remains the headline because government/current_cost is the most
     defensible single reading — switching the headline to the framing that
@@ -442,7 +442,8 @@ def instrument_comparison(
 
     A SUPPLIED inventory has no declared scope/doctrine grid to sweep, so
     `grid["available"]` is False for a ported capital arm. Its stock's ages
-    travel with it as `age_ratios` (else `CAPITAL_AGE_RATIO_DEFAULT`).
+    and conditions travel with it as `age_ratios` and `conditions` (else the
+    default age, and condition derived from it).
     """
     from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
 
@@ -463,9 +464,9 @@ def instrument_comparison(
                    (population_15_plus_supplied, unpaid_per_15plus,
                     paid_per_15plus, employment))
     _cap_own = inventory is not None
-    if age_ratios is not None and not _cap_own:
-        raise ValueError("age_ratios describe a supplied inventory's stock; the "
-                         "shipped table reads BEA's measured ages")
+    if (age_ratios is not None or conditions is not None) and not _cap_own:
+        raise ValueError("age_ratios and conditions describe a supplied inventory's "
+                         "stock; the shipped table reads BEA's measured ages")
     if _lab_own != _cap_own:
         raise ValueError(
             "supply BOTH arms or neither: "
@@ -483,7 +484,7 @@ def instrument_comparison(
            for s in ("core", "broad")}
     cap = [epsilon_from_inventory(r, scope=scope, doctrine=doctrine,
                                   population=population, inventory=inventory,
-                                  age_ratios=age_ratios)["epsilon"]
+                                  age_ratios=age_ratios, conditions=conditions)["epsilon"]
            for r in capital_rates]
     lab_lo, lab_hi = lab["broad"], lab["core"]
     cap_lo, cap_hi = min(cap), max(cap)
@@ -555,6 +556,7 @@ def reconciling_rate(
     *,
     inventory: "Mapping[str, float] | None" = None,
     age_ratios: "Mapping[str, float] | None" = None,
+    conditions: "Mapping[str, float] | None" = None,
     population_15_plus_supplied: float | None = None,
     unpaid_per_15plus: float | None = None,
     paid_per_15plus: float | None = None,
@@ -587,7 +589,7 @@ def reconciling_rate(
         mid = (lo + hi) / 2.0
         if epsilon_from_inventory(mid, scope="government", population=population,
                                   inventory=inventory,
-                                  age_ratios=age_ratios)["epsilon"] > target:
+                                  age_ratios=age_ratios, conditions=conditions)["epsilon"] > target:
             lo = mid            # ε falls as the rate rises
         else:
             hi = mid
@@ -627,7 +629,8 @@ def labour_epsilon_report(population: float = BEA_POPULATION) -> dict:
                 ""
                 if not comp["grid"]["available"]
                 else (
-                    f" — but {comp['grid']['verdict']} across the declared grid "
+                    f" — {'and' if comp['grid']['verdict'] == comp['verdict'] else 'but'} "
+                    f"{comp['grid']['verdict']} across the declared grid "
                     f"({comp['grid']['cells_inside_labour']} of "
                     f"{comp['grid']['cells_total']} cells inside the labour band, "
                     f"{comp['grid']['low']:.3f}–{comp['grid']['high']:.3f}), so the "

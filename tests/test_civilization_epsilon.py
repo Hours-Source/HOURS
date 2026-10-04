@@ -62,8 +62,15 @@ class TestResolveCapitalEntry:
     def test_explicit_derives_condition_from_age_when_absent(self):
         design_life = CAPITAL_MACHINE_PROFILES["power_grid"]["design_life"]  # 40
         r = _resolve_capital_entry("power_grid", {"teh_value": 5e8, "age": 20}, POPULATION)
-        # age_fraction = 20/40 = 0.5 → condition = 1 - 0.7*0.5 = 0.65
-        assert r["condition"] == pytest.approx(0.65)
+        # age_fraction = 20/40 = 0.5 → BLS age-efficiency (1 − x)/(1 − βx), the
+        # two curves blended by the US structures share (2026-10-04; it was the
+        # linear 1 − 0.7x = 0.65).
+        from hours_eoh.data import (AGE_EFFICIENCY_BETA_EQUIPMENT as be,
+                                    AGE_EFFICIENCY_BETA_STRUCTURES as bs,
+                                    CAPITAL_STRUCTURES_SHARE_DEFAULT as s)
+        want = s * 0.5 / (1 - bs * 0.5) + (1 - s) * 0.5 / (1 - be * 0.5)
+        assert r["condition"] == pytest.approx(want)
+        assert r["condition"] > 0.65, "structures hold capacity longer than linear decay"
 
     def test_explicit_condition_overrides_derivation(self):
         r = _resolve_capital_entry("power_grid", {"teh_value": 5e8, "age": 20, "condition": 0.90}, POPULATION)

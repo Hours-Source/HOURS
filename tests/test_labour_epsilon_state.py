@@ -54,15 +54,16 @@ class TestTheDefaultReadingIsUnchanged:
 
     def test_the_comparison_verdict_has_not_moved(self):
         c = LE.instrument_comparison()
-        # DIVERGENT since 2026-10-04: the capital arm reads its BEA ages (and
-        # the labour arm's obligation the measured default age); ADJACENT before.
-        assert c["verdict"] == "DIVERGENT"
+        # OVERLAP since 2026-10-04: the capital arm reads its BEA ages and its
+        # condition on BLS's age-efficiency curve (ADJACENT before; DIVERGENT
+        # with the ages alone).
+        assert c["verdict"] == "OVERLAP"
         # Re-pinned 2026-10-03: 0.04568693284802028 → 0.045610935473373415 when
         # the default capital rates stopped being rounded copies of
         # `conversion_band()` (15.94 → 15.9423…). The verdict, the grid's 18
         # cells and the 8 inside the labour band are unchanged.
-        # → 0.05965894206317429 on 2026-10-04.
-        assert repr(c["gap"]) == repr(0.05965894206317429)
+        # → 0.0 on 2026-10-04: the intervals meet.
+        assert c["gap"] == 0.0
 
     def test_the_report_still_builds_its_verdict_string(self):
         r = LE.labour_epsilon_report()

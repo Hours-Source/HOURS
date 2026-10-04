@@ -50,7 +50,11 @@ from hours_eoh.reference.capital_inventory import (
     PROFILE_MAP, UNALLOCATED, UNALLOCATED_USD_B,
     capital_by_profile, scope_total, what_this_cannot_settle,
 )
-from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX
+from hours_eoh.data import (
+    AGE_EFFICIENCY_BETA_EQUIPMENT, AGE_EFFICIENCY_BETA_STRUCTURES,
+    CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX,
+)
+from hours_eoh.core.civilization import age_efficiency, condition_from_age_ratio
 from hours_eoh.research.thermal_capital import epsilon_current_from_inventory
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 
@@ -146,6 +150,7 @@ def epsilon_from_inventory(
     *,
     inventory: Mapping[str, float] | None = None,
     age_ratios: Mapping[str, float] | None = None,
+    conditions: Mapping[str, float] | None = None,
 ) -> dict:
     """
     ε derived from a capital inventory at a SUPPLIED conversion rate.
@@ -179,6 +184,10 @@ def epsilon_from_inventory(
             (2026-10-04). Unstated, the shipped table reads its BEA ages and a
             supplied inventory `CAPITAL_AGE_RATIO_DEFAULT`; `age_source` says
             which.
+        conditions: YOUR stock's productive condition, by profile, in [0, 1].
+            Unstated, the shipped table reads BLS age-efficiency on its BEA
+            rows, and a supplied inventory derives it from its age on the same
+            curve (`civilization.condition_from_age_ratio`).
 
     Raises:
         ValueError: on a non-positive rate, an unknown scope or doctrine, an
@@ -211,13 +220,14 @@ def epsilon_from_inventory(
         if negative:
             raise ValueError(f"inventory values must be >= 0, negative at {negative}")
         by_profile, source = {k: float(v) for k, v in inventory.items()}, "supplied"
-    ratios, age_source = _ages(scope, inventory is not None, age_ratios)
-    desc = {
-        name: {"teh_value": usd_b * 1e9 / currency_per_teh,
-               "age": ratios[name] * CAPITAL_MACHINE_PROFILES[name]["design_life"],
-               "condition": 0.85}
-        for name, usd_b in by_profile.items() if usd_b > 0.0
-    }
+    ratios, derived, age_source = _ages(scope, inventory is not None, age_ratios)
+    if conditions is not None:
+        unknown = sorted(set(conditions) - set(CAPITAL_MACHINE_PROFILES))
+        bad = sorted(k for k, v in conditions.items() if not 0.0 <= float(v) <= 1.0)
+        if unknown or bad:
+            raise ValueError(f"conditions: unknown profiles {unknown}, outside [0, 1] at {bad}")
+        derived = {**(derived or {}), **{k: float(v) for k, v in conditions.items()}}
+    desc = _describe(by_profile, currency_per_teh, ratios, derived)
     total_teh = sum(d["teh_value"] for d in desc.values())
     eps = epsilon_current_from_inventory(desc, population)
     return {
@@ -235,6 +245,7 @@ def epsilon_from_inventory(
         "teh_per_capita":   total_teh / population,
         "age_ratio":        sum(d["teh_value"] * ratios[n] for n, d in desc.items()) / total_teh,
         "age_ratio_by_profile": {n: ratios[n] for n in desc},
+        "condition_by_profile": {n: _condition_of(d, n) for n, d in desc.items()},
         "age_source":       age_source,
         "epsilon":          eps,
         # REPORTED PER CALL, not only per grid. The shipped grid is guarded by
@@ -246,35 +257,77 @@ def epsilon_from_inventory(
     }
 
 
+def _row_efficiency(row: Mapping[str, Any]) -> float:
+    """One BEA row's productive condition: BLS age-efficiency at its mean age
+    over its mid service life, β by BEA class (IPP takes equipment's)."""
+    beta = (AGE_EFFICIENCY_BETA_STRUCTURES if row["class"] == "structures"
+            else AGE_EFFICIENCY_BETA_EQUIPMENT)
+    return age_efficiency(row["age"] / (0.5 * sum(row["life"])), beta)
+
+
 def _ages(scope: str, supplied: bool,
-          stated: Mapping[str, float] | None = None) -> tuple[dict[str, float], str]:
-    """Each machine profile's age over its life: as stated (a profile left out
-    takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA rows on the shipped
-    inventory (a profile with no row carrying a life takes the scope's ratio),
-    `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one."""
+          stated: Mapping[str, float] | None = None
+          ) -> tuple[dict[str, float], dict[str, float] | None, str]:
+    """Each machine profile's age over its life, and its condition: as stated
+    (a profile left out takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA
+    rows on the shipped inventory (a profile with no row carrying a life takes
+    the scope's), `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one. Conditions
+    are None where only a ratio is known: `civilization` then derives them
+    from the age it is passed, on the same curve."""
     if stated is not None:
         unknown = sorted(set(stated) - set(CAPITAL_MACHINE_PROFILES))
         bad = sorted(k for k, v in stated.items() if not 0.0 <= float(v))
         if unknown or bad:
             raise ValueError(f"age_ratios: unknown profiles {unknown}, negative at {bad}")
         return ({n: float(stated.get(n, CAPITAL_AGE_RATIO_DEFAULT)) for n in CAPITAL_MACHINE_PROFILES},
-                "supplied: age_ratios")
+                None, "supplied: age_ratios")
     if supplied:
-        return ({n: CAPITAL_AGE_RATIO_DEFAULT for n in CAPITAL_MACHINE_PROFILES},
+        return ({n: CAPITAL_AGE_RATIO_DEFAULT for n in CAPITAL_MACHINE_PROFILES}, None,
                 "default: CAPITAL_AGE_RATIO_DEFAULT — a supplied inventory's ages are not known")
-    scope_ratio = stock_age_ratio(scope)["ratio"]
+    whole = stock_age_ratio(scope)
     profile_of = {r["line"]: r["profile"] for r in PROFILE_MAP
                   if r["scope"] in SCOPES[scope]["includes"]}
-    num: dict[str, float] = {}
-    den: dict[str, float] = {}
+    age_sum: dict[str, float] = {}
+    cond_sum: dict[str, float] = {}
+    weight: dict[str, float] = {}
     for row in AGE_ROWS:
         name = profile_of.get(row["line"])
         if name is None or row["life"] is None or row["age"] is None:
             continue
-        num[name] = num.get(name, 0.0) + row["usd_b"] * row["age"] / (0.5 * sum(row["life"]))
-        den[name] = den.get(name, 0.0) + row["usd_b"]
-    return ({n: num[n] / den[n] if den.get(n) else scope_ratio for n in CAPITAL_MACHINE_PROFILES},
-            f"measured: BEA {BEA_YEAR} average age over BEA service life, by profile")
+        w = row["usd_b"]
+        age_sum[name] = age_sum.get(name, 0.0) + w * row["age"] / (0.5 * sum(row["life"]))
+        cond_sum[name] = cond_sum.get(name, 0.0) + w * _row_efficiency(row)
+        weight[name] = weight.get(name, 0.0) + w
+    return ({n: age_sum[n] / weight[n] if weight.get(n) else whole["ratio"]
+             for n in CAPITAL_MACHINE_PROFILES},
+            {n: cond_sum[n] / weight[n] if weight.get(n) else whole["condition"]
+             for n in CAPITAL_MACHINE_PROFILES},
+            f"measured: BEA {BEA_YEAR} average age over BEA service life, by profile; "
+            "condition on BLS's age-efficiency curve")
+
+
+def _describe(by_profile: Mapping[str, float], currency_per_teh: float,
+              ratios: Mapping[str, float], conditions: Mapping[str, float] | None) -> dict:
+    """The inventory as `civilization` reads it — each profile at its age
+    (ratio × the profile's design life, so the placeholder lives cancel) and,
+    where measured, its condition."""
+    out = {}
+    for n, usd_b in by_profile.items():
+        if usd_b <= 0.0:
+            continue
+        d: dict[str, float] = {"teh_value": usd_b * 1e9 / currency_per_teh,
+                               "age": ratios[n] * CAPITAL_MACHINE_PROFILES[n]["design_life"]}
+        if conditions is not None and n in conditions:
+            d["condition"] = conditions[n]
+        out[n] = d
+    return out
+
+def _condition_of(d: Mapping[str, float], name: str) -> float:
+    """The condition `civilization` reads for one entry: stated, or derived
+    from its age on the same curve."""
+    if "condition" in d:
+        return float(d["condition"])
+    return condition_from_age_ratio(d["age"] / max(CAPITAL_MACHINE_PROFILES[name]["design_life"], 1.0))
 
 
 def retrodiction_grid(
@@ -333,16 +386,13 @@ def unallocated_sensitivity(currency_per_teh: float, scope: str = "government") 
     base = capital_by_profile(scope)
     amount = UNALLOCATED_USD_B
     placed = "computing_ai"
-    ratios, _ = _ages(scope, False)
+    ratios, conditions, _ = _ages(scope, False)
     out: dict[str, float] = {}
     for target in base:
         moved = dict(base)
         moved[placed] = moved.get(placed, 0.0) - amount
         moved[target] = moved.get(target, 0.0) + amount
-        desc = {n: {"teh_value": v * 1e9 / currency_per_teh,
-                    "age": ratios[n] * CAPITAL_MACHINE_PROFILES[n]["design_life"],
-                    "condition": 0.85}
-                for n, v in moved.items() if v > 0.0}
+        desc = _describe(moved, currency_per_teh, ratios, conditions)
         out[target] = epsilon_current_from_inventory(desc, BEA_POPULATION)
     lo, hi = min(out.values()), max(out.values())
     return {
@@ -433,6 +483,8 @@ def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -
     admitted = {r["line"] for r in PROFILE_MAP if r["scope"] in SCOPES[scope]["includes"]}
     hist = doctrine == "historical_cost"
     used, excluded, total = [], [], 0.0
+    classes: list[str] = []
+    conds: list[float] = []
     for row in AGE_ROWS:
         if row["line"] not in admitted:
             continue
@@ -449,6 +501,8 @@ def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -
                              "reason": row["life_basis"]})
             continue
         used.append((weight, age, row["life"]))
+        classes.append(row["class"])
+        conds.append(_row_efficiency({**row, "age": age}))
     covered = sum(w for w, _, _ in used)
     if covered <= 0.0:
         raise ValueError(f"no row in scope {scope!r} carries both an age and a life")
@@ -464,6 +518,11 @@ def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -
         "low": mean(lambda a, life: a / life[1]),
         "high": mean(lambda a, life: a / life[0]),
         "mean_age_years": mean(lambda a, life: a),
+        # Productive condition on BLS's age-efficiency curve, and the
+        # structures share that blends the two curves (2026-10-04).
+        "condition": sum(w * c for (w, _, _), c in zip(used, conds)) / covered,
+        "structures_share": sum(w for (w, _, _), k in zip(used, classes)
+                                if k == "structures") / covered,
         "share_past_life": sum(w for w, a, life in used if a > mid(life)) / covered,
         "coverage": covered / total,
         "excluded": excluded,

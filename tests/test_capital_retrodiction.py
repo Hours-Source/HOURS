@@ -286,7 +286,7 @@ class TestTheInventoryCanBeSupplied:
         a = CR.epsilon_from_inventory(20.0)
         b = CR.epsilon_from_inventory(
             20.0, inventory=CR.capital_by_profile("government", "current_cost"),
-            age_ratios=a["age_ratio_by_profile"])
+            age_ratios=a["age_ratio_by_profile"], conditions=a["condition_by_profile"])
         assert a["epsilon"] == pytest.approx(b["epsilon"], rel=1e-12)
         assert b["age_source"].startswith("supplied")
         assert a["capital_usd_b"] == pytest.approx(b["capital_usd_b"], rel=1e-12)
@@ -420,3 +420,43 @@ class TestTheStockAgeRatio:
             CR.stock_age_ratio("everything")
         with pytest.raises(ValueError):
             CR.stock_age_ratio(doctrine="replacement")
+
+
+class TestTheConditionIsMeasured:
+    """The capital arm's condition (2026-10-04): BLS's age-efficiency curve on
+    each BEA row's measured age, in place of a flat 0.85 at every profile."""
+
+    @pytest.mark.parametrize("beta_name", ["AGE_EFFICIENCY_BETA_EQUIPMENT",
+                                           "AGE_EFFICIENCY_BETA_STRUCTURES"])
+    def test_the_curve_has_the_shape_bls_states(self, beta_name):
+        """New at 1, falling, slow early and fast late (concave), floored."""
+        import hours_eoh.data as D
+        from hours_eoh.core.civilization import age_efficiency
+        beta = getattr(D, beta_name)
+        xs = [i / 20 for i in range(21)]
+        e = [age_efficiency(x, beta) for x in xs]
+        assert e[0] == 1.0 and e[-1] == D.COND_DECAY_FLOOR
+        assert all(a >= b for a, b in zip(e, e[1:]))
+        early, late = e[0] - e[5], e[10] - e[15]
+        assert early < late, "BLS: efficiency is lost slowly at first, then faster"
+
+    def test_structures_hold_capacity_longer(self):
+        import hours_eoh.data as D
+        from hours_eoh.core.civilization import age_efficiency
+        assert age_efficiency(0.5, D.AGE_EFFICIENCY_BETA_STRUCTURES) > \
+            age_efficiency(0.5, D.AGE_EFFICIENCY_BETA_EQUIPMENT)
+
+    def test_the_default_mix_is_the_us_reading(self):
+        from hours_eoh.data import CAPITAL_STRUCTURES_SHARE_DEFAULT
+        assert CAPITAL_STRUCTURES_SHARE_DEFAULT == pytest.approx(
+            CR.stock_age_ratio()["structures_share"], abs=5e-4)
+
+    def test_no_profile_reads_a_flat_condition(self):
+        conds = CR.epsilon_from_inventory(20.0)["condition_by_profile"]
+        assert len({round(c, 6) for c in conds.values()}) > 1
+
+    def test_the_curve_reaches_the_reading(self, monkeypatch):
+        """Broken on purpose: a steeper structures curve lowers capital ε."""
+        base = CR.epsilon_from_inventory(20.0)["epsilon"]
+        monkeypatch.setattr(CR, "AGE_EFFICIENCY_BETA_STRUCTURES", 0.0)
+        assert CR.epsilon_from_inventory(20.0)["epsilon"] < base
