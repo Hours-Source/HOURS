@@ -562,11 +562,20 @@ class TestTheEpsilonReading:
         assert e["source"].startswith("EPSILON_REFERENCE")
 
     def test_the_inventory_is_taken_at_the_reading(self):
+        """An unstated capital follows the canonical arc at the reading's ε —
+        on a frame with no inventory. The US frame reads its own stock off BEA
+        at the conversion band's midpoint (2026-10-04), whatever the ε."""
         from hours_eoh.core.eoh_generation import resolve_capital_stock
-        r = self._band("--frame", "us")
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
+        r = self._band()
         e, inp = r["epsilon_reading"], r["inputs"]
         assert inp["capital_teh"] == pytest.approx(
             resolve_capital_stock(None, e["value"], population=inp["population"]))
+        us = self._band("--frame", "us")
+        b = conversion_band()
+        assert us["inputs"]["capital_teh"] == pytest.approx(
+            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"])
+        assert us["verdict_holds_across_capital"] in (True, False)
 
 
 def test_instrument_comparison_reads_the_conversion_band():

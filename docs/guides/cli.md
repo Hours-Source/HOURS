@@ -115,13 +115,18 @@ the frame's ε for the same reason:
 | Kind | Meaning |
 |---|---|
 | `supplied` | you gave it — a flag, or your frame file |
-| `measured` | read from a dataset the repo ships for a built-in frame (`--frame us`: Census ages, MTUS capacity, both ε instruments, Path C) |
+| `measured` | read from a dataset the repo ships for a built-in frame (`--frame us`: Census ages, MTUS capacity, both ε instruments, BEA stock ages, EIA energy) |
 | `derived` | computed from other inputs, all of them supplied or measured |
 | `derived (partly from defaults)` | computed, but leaning on a framework default (e.g. a per-head intensity) |
-| `derived (from defaults)` / `default` | the framework's reference value — it says nothing about your frame |
+| `derived (from defaults)` / `default` | the framework's reference value — it says nothing about your frame. A `default` whose source begins *charter choice* (the Trust's opening balance, the retirement register, who carries ecological work) is a governance setting, not missing data |
 
 Read a result only as far as its inputs go: an outcome built on `default` rows
 is a statement about the reference collective, not about yours.
+
+On `--frame us` the capital is the US stock: BEA's inventory at the midpoint of
+`conversion_band()`, the derived dollars-per-hour band. Each scenario that reads
+capital also reports its verdict at both ends of that band ("at both ends of the
+conversion band"). `--bea-usd-per-teh` or `--capital-stock` states your own.
 
 ```bash
 # What a frame resolves to, every input labelled

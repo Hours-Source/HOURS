@@ -71,7 +71,13 @@ FRAMES: dict[str, dict[str, str]] = {
     "us": {"jurisdiction": "us_mainland", "path_c": "United States", "mtus": "US",
            # the stock's age over its life, read off BEA (2026-10-04): this scope
            # is the capital instrument's own default (roads, water, schools in)
-           "capital_age": "government"},
+           "capital_age": "government",
+           # the stock itself, off BEA (2026-10-04): the inventory at
+           # `conversion_band()`'s midpoint, both ends reported
+           "capital": "bea",
+           # its energy off EIA SEDS, contiguous 48 (2026-10-04), not the
+           # unverified Path C record
+           "energy": "eia_seds"},
 }
 
 #: What a --frame-file may state.
@@ -413,6 +419,28 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
     elif "capital_teh" in ff:
         v["capital_teh"], lab["capital_teh"] = float(ff["capital_teh"]), label("supplied", src_ff)
         v["capital_derived"] = False
+    elif frame and frame.get("capital") == "bea":
+        # THE US STOCK, NOT THE REFERENCE CURVE (2026-10-04). The canonical arc
+        # gave 742B TEH at the US frame's ε; BEA's inventory at the derived
+        # conversion band gives 2.3–3.4T. The rate stays a judgement — it is
+        # `conversion_band()`'s (OEWS wages over hours), its midpoint run and
+        # both ends re-run by the commands (`capital_rate_band`); a stated
+        # --bea-usd-per-teh or --capital-stock overrides it. Per head × the
+        # frame's population, so a moved population keeps the US intensity.
+        from hours_eoh.reference.capital_inventory import BEA_POPULATION, BEA_YEAR
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
+        band = conversion_band()
+        rate = getattr(args, "_capital_rate", None) or 0.5 * (band["low"] + band["high"])
+        v["capital_teh"] = epsilon_from_inventory(rate)["capital_teh"] / BEA_POPULATION * pop
+        v["capital_rate_band"] = (band["low"], rate, band["high"])
+        lab["capital_teh"] = label(
+            "derived", f"BEA {BEA_YEAR} US inventory ('government' scope, current cost) at "
+            f"{rate:.2f} $/TEH — conversion_band() {band['low']:.2f}–{band['high']:.2f}, "
+            "midpoint run, ends re-run; per head × population",
+            ("population", "default:conversion_band midpoint"))
+        # The frame's own stock, whatever rate set it: a frame file carries it.
+        lab["capital_teh"]["fixed_stock"] = True
+        v["capital_derived"] = False
     else:
         v["capital_teh"] = resolve_capital_stock(None, epsilon, population=pop)
         lab["capital_teh"] = label("derived", "canonical arc at ε and population",
@@ -450,6 +478,21 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["utilization"], lab["utilization"] = float(args.utilization), label("supplied", "--utilization")
     elif "utilization" in ff:
         v["utilization"], lab["utilization"] = float(ff["utilization"]), label("supplied", src_ff)
+    elif frame and frame.get("energy") == "eia_seds":
+        # MEASURED ENERGY ON THE FRAME'S OWN LAND (2026-10-04): EIA SEDS for the
+        # contiguous 48, through the same `collective_utilization`; the Path C
+        # record it replaces is tier C ("NOT verified") and whole-US land.
+        from hours_eoh.reference.energy_use import (
+            SEDS_SOURCE, contiguous_48_energy_ej, contiguous_48_fossil_nuclear_share)
+        from hours_eoh.research.thermal_path_c import collective_utilization
+        cu = collective_utilization(frame["path_c"], contiguous_48_energy_ej(), v["land_m2"],
+                                    contiguous_48_fossil_nuclear_share(), delta_t_lo=dt)
+        v["utilization"] = float(cu["utilization"])
+        lab["utilization"] = label(
+            "measured", f"{SEDS_SOURCE}, contiguous 48, on the frame's land at ΔT_lo "
+            f"{dt:.2f} K" + (" — UNBUDGETED: no dissipation budget at this threshold"
+                             if cu["regime"] == "unbudgeted" else f" — {cu['regime']}"),
+            ("land_m2",))
     elif frame and frame.get("path_c"):
         rows = {c["name"]: c for c in all_collectives_utilization(delta_t_lo=dt)}
         v["utilization"] = float(rows[frame["path_c"]]["utilization"])
@@ -472,9 +515,15 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
     elif "trust_balance" in ff:
         v["trust_balance"], lab["trust_balance"] = float(ff["trust_balance"]), label("supplied", src_ff)
     else:
+        from hours_eoh.data import TRUST_BASE_TEH_PER_CAPITA
         v["trust_balance"] = resolve_trust_balance(None, pop)
-        lab["trust_balance"] = label("derived", "TRUST_BASE_TEH per head × population",
-                                     ("population", "default:TRUST_BASE_TEH"))
+        # A CHARTER CHOICE, NOT MISSING DATA (2026-10-04): the opening labour
+        # inheritance has no measurement path (its own provenance says so); the
+        # shipped per-head figure is a scenario a collective replaces with its own.
+        lab["trust_balance"] = label(
+            "default", f"charter choice — the opening labour inheritance, "
+            f"TRUST_BASE_TEH_PER_CAPITA ({TRUST_BASE_TEH_PER_CAPITA:,.0f}/head) × population "
+            "shipped as a scenario; no measurement path. State it with --trust-balance")
         v["trust_derived"] = True
     v.setdefault("trust_derived", False)
     return v, lab
@@ -520,7 +569,8 @@ def _resolve_ecology(ff: dict[str, Any], src_ff: str,
     v["ecological_carried_by_people"] = carried
     lab["ecological_carried_by_people"] = (
         label("supplied", src_ff) if "ecological_carried_by_people" in ff else
-        label("default", "off — the GUF carries the recurring ecological work (partition 4e/4f)"))
+        label("default", "charter choice — off: the GUF carries the recurring ecological "
+                         "work (partition 4e/4f); a frame file can put it on its people"))
     v["ecological_response"] = "domain" if carried else "guf"
     if not carried:
         v["restoration_eoh"] = 0.0
@@ -561,8 +611,8 @@ def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: st
     if not on:
         v.update(retirement_age=None, retired_share=0.0, years_in_collective=None,
                  retiree_vested_fraction=1.0)
-        lab["retired_share"] = label("default", "retirement register OFF — a governance "
-                                     "choice; pass --retirement-age to model it")
+        lab["retired_share"] = label("default", "charter choice — retirement register OFF; "
+                                     "pass --retirement-age to model it")
         return
     band_lo, band_hi = AGE_GROUP_RANGES["elderly"]
     if flag_age is not None:
@@ -621,6 +671,8 @@ def labelled_inputs(values: dict[str, Any], labels: dict[str, dict],
     for k, lab in labels.items():
         out[k] = {"value": values.get(k), "kind": effective_kind(allk, k),
                   "source": lab["source"], "derived_from": lab["derived_from"]}
+        if lab.get("fixed_stock"):
+            out[k]["fixed_stock"] = True
     e = {"value": epsilon["value"], "kind": epsilon["kind"], "source": epsilon["source"],
          "derived_from": []}
     if epsilon["high"] > epsilon["low"]:
@@ -698,7 +750,11 @@ def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
             "ecological_carried_by_people": "ecological_carried_by_people"}
     for k, fk in keep.items():
         r = rows.get(k)
-        if r and r["kind"] in ("supplied", "measured") and r["value"] is not None:
+        # A stock read off an inventory is the frame's own, whatever rate set
+        # it — written out, so an institution edits the stock it ran on
+        # (2026-10-04). The canonical arc's capital re-derives with ε and stays out.
+        fixed_stock = bool(r and r.get("fixed_stock"))
+        if r and (r["kind"] in ("supplied", "measured") or fixed_stock) and r["value"] is not None:
             # A non-finite U (unbudgeted at the threshold in force) is a reading
             # OF the threshold, not of the frame, and is not valid JSON either:
             # left out, so the frame file stays standard JSON (2026-10-03).

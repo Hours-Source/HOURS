@@ -119,6 +119,8 @@ hours_eoh/
     capital_inventory.py  THE US CAPITAL STOCK MAPPED ONTO THE MACHINE PROFILES (BEA Fixed
                        Assets 1.1/2.1/7.1, 2024) — three scopes, BOTH valuation doctrines,
                        measured ages. NO currency conversion: that is intake
+    energy_use.py      US PRIMARY ENERGY, EIA SEDS 2024 — contiguous 48 by subtraction;
+                       what the US frame's thermal utilization reads
     obligation_work.py WHICH PAID WORK DISCHARGES AN OBLIGATION — SOC major groups, two
                        scopes that bound, every group decided. The labour route's ONE judgement
     verification.py    WHAT RUNNING THE REGISTER COSTS: the occupations that decide what counts and
@@ -634,7 +636,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,858 tests passing (1 skipped), mypy clean on 107 source files** (verified
+**5,868 tests passing (1 skipped), mypy clean on 108 source files** (verified
 2026-10-04). <!-- census:state -->Provenance **367/367**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

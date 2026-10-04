@@ -542,9 +542,14 @@ def _run(args: argparse.Namespace) -> None:
             print_inputs(result["inputs"], eps,
                          ends=None if acr is None else "  ".join(f"ε {e}: {o}" for e, o in acr.items()),
                          frame=result.get("frame"), file=out)
+            acc = result.get("outcomes_across_capital")
+            if acc:
+                print("     at both ends of the conversion band: "
+                      + "  ".join(f"{r} $/TEH: {o}" for r, o in acc.items()), file=out)
             print(file=out)
         result = {k: v for k, v in result.items()
-                  if k not in ("inputs", "epsilon_reading", "outcomes_across_epsilon")}
+                  if k not in ("inputs", "epsilon_reading", "outcomes_across_epsilon",
+                               "outcomes_across_capital")}
 
     # Trajectory scenarios: show the inner list as the primary table
     display = result
@@ -889,6 +894,14 @@ def _frame_run(args: argparse.Namespace) -> dict:
         result["outcomes_across_epsilon"] = {
             f"{e:.3f}": outcome_of(args.name, _frame_call(args, e)[0])
             for e in (eps["low"], eps["value"], eps["high"])}
+    band = v.get("capital_rate_band")
+    if band and "capital_teh" in reads and _OUTCOME_KEY[args.name] is not None:
+        # THE STOCK'S OWN RANGE (2026-10-04): a capital read off BEA at a
+        # derived conversion rate is run at both ends of that rate's band.
+        result["outcomes_across_capital"] = {
+            f"{r:.2f}": outcome_of(args.name, _frame_call(
+                argparse.Namespace(**{**vars(args), "_capital_rate": r}), eps["value"])[0])
+            for r in (band[0], band[2])}
     result["epsilon_reading"] = None if swept else eps
     stated = {k for k in _READS_IF_STATED.get(args.name, ())
               if k in lab and lab[k]["kind"] != "default"}

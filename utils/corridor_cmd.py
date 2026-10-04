@@ -169,6 +169,13 @@ def _band(args: argparse.Namespace) -> None:
         eps["verdict_holds_across_range"] = all(
             _verdict(r) == _verdict(rep) for r in ends.values())
     rep["epsilon_reading"] = eps
+    band = rep["inputs"].get("capital_rate_band") if isinstance(rep.get("inputs"), dict) else None
+    if band:
+        # The stock's own range (2026-10-04): BEA at both ends of the rate band.
+        ends_k = {r: _compute(argparse.Namespace(**{**vars(args), "_capital_rate": r}))
+                  for r in (band[0], band[2])}
+        rep["verdict_holds_across_capital"] = all(
+            _verdict(r) == _verdict(rep) for r in ends_k.values())
     # THE ECHO (2026-10-03): a ceiling that binds AT the current ε (thermal
     # contact) reports the --epsilon it was given, not a limit it located.
     # Set before output so json carries it too.
@@ -284,6 +291,10 @@ def _show(args: argparse.Namespace, rep: dict) -> None:
                  ends=None if holds is None else (
                      green("same verdict") if holds else red("verdict DIFFERS — read the band at each end")),
                  frame=inp["frame"])
+    hk = rep.get("verdict_holds_across_capital")
+    if hk is not None:
+        print("     at both ends of the conversion band: "
+              + (green("same verdict") if hk else red("verdict DIFFERS — read the band at each rate")))
     if inp["utilization"] is not None:
         print(f"  {'thermal zone':24s} {inp['thermal_zone']} at ΔT_lo {inp['delta_t_lo']:.2f} K")
     print()

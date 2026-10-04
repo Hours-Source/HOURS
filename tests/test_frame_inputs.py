@@ -80,7 +80,10 @@ def _labels(*flags: str) -> dict:
 
 def _strip(r: dict) -> dict:
     """The scenario's numbers, without where the inputs came from."""
-    out = {k: v for k, v in r.items() if k not in ("inputs", "frame", "epsilon_reading")}
+    # `outcomes_across_capital` re-runs a DERIVED rate's band; a file states
+    # the stock itself, so it has no band to re-run (2026-10-04).
+    out = {k: v for k, v in r.items()
+           if k not in ("inputs", "frame", "epsilon_reading", "outcomes_across_capital")}
     e = r["epsilon_reading"]                       # None when the scenario sweeps ε
     out["_eps"] = None if e is None else (e["value"], e["low"], e["high"])
     return out
@@ -117,7 +120,11 @@ class TestTheLabels:
     def test_a_default_ingredient_shows_in_the_kind(self):
         rows = _labels("--frame", "us")
         assert rows["labor_supply_per_capita"]["kind"] == "derived"          # all roots measured
-        assert rows["trust_balance"]["kind"] == "derived (partly from defaults)"
+        # A charter choice is a default, said so (2026-10-04) — not "derived
+        # (partly from defaults)", which read as missing data.
+        assert rows["trust_balance"]["kind"] == "default"
+        assert rows["trust_balance"]["source"].startswith("charter choice")
+        # BEA's stock at the conversion band's midpoint: the midpoint is the default.
         assert rows["capital_teh"]["kind"] == "derived (partly from defaults)"
 
     def test_effective_kind_walks_the_lineage(self):
@@ -578,3 +585,89 @@ class TestTheUsAgeIsMeasured:
         big["age"] *= 2
         monkeypatch.setattr(CR, "AGE_ROWS", tuple(rows))
         assert _labels("--frame", "us")["capital_age_ratio"]["value"] > before
+
+
+class TestTheUsStockIsBea:
+    """2026-10-04: `--frame us` reads its capital off BEA's inventory at
+    `conversion_band()`'s midpoint instead of the canonical arc (742B TEH
+    against ~2.7T), and re-runs each verdict at both ends of the band."""
+
+    def test_the_stock_is_the_inventory_at_the_band_midpoint(self):
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
+        b = conversion_band()
+        row = _labels("--frame", "us")["capital_teh"]
+        assert row["value"] == pytest.approx(
+            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"])
+        assert row["kind"].startswith("derived") and "default:conversion_band midpoint" in row["derived_from"]
+
+    def test_both_ends_of_the_band_are_run(self):
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band
+        b = conversion_band()
+        r = _scenario("overbuild", "--frame", "us")
+        assert set(r["outcomes_across_capital"]) == {f"{b['low']:.2f}", f"{b['high']:.2f}"}
+
+    def test_the_ends_are_different_stocks(self):
+        """Broken on purpose: the re-run must reach the stock, not repeat the midpoint."""
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band
+        b = conversion_band()
+        lo = _labels_at_rate(b["low"])
+        hi = _labels_at_rate(b["high"])
+        assert lo > hi, "a lower rate converts the same dollars into more TEH"
+
+    @pytest.mark.parametrize("flag", [("--capital-stock", "1e12"), ("--bea-usd-per-teh", "20")])
+    def test_a_stated_stock_or_rate_overrides_it(self, flag):
+        r = _scenario("overbuild", "--frame", "us", *flag)
+        assert "outcomes_across_capital" not in r
+        assert r["inputs"]["capital_teh"]["kind"] in ("supplied", "measured")
+
+
+def _labels_at_rate(rate: float) -> float:
+    from utils.frame_inputs import resolve_inputs
+    a = _args("frame", "show", "--frame", "us")
+    a._capital_rate = rate
+    return resolve_inputs(a, 0.4)[0]["capital_teh"]
+
+
+class TestTheUsEnergyIsEia:
+    """2026-10-04: the US frame's thermal utilization reads EIA SEDS energy
+    for the contiguous 48 on the frame's own land, through the existing
+    `collective_utilization` — not the Path C record its dataset flags as
+    unverified (tier C), on whole-US land."""
+
+    def test_the_contiguous_48_is_a_subtraction_within_one_table(self):
+        from hours_eoh.reference import energy_use as E
+        s = E.SEDS_BILLION_BTU
+        for k in ("TETCB", "CLTCB", "NNTCB", "PMTCB", "NUETB"):
+            assert s["US"][k] >= s["AK"][k] + s["HI"][k] >= 0.0
+        for st in s.values():
+            assert sum(st[k] for k in ("CLTCB", "NNTCB", "PMTCB", "NUETB")) <= st["TETCB"]
+        assert 0.0 < E.contiguous_48_fossil_nuclear_share() < 1.0
+
+    def test_the_frame_reads_it_on_its_own_land(self):
+        from hours_eoh.reference.energy_use import (
+            contiguous_48_energy_ej, contiguous_48_fossil_nuclear_share)
+        from hours_eoh.research.thermal_path_c import collective_utilization
+        r = _band_json("--frame", "us", "--delta-t-lo", "3.0")["inputs"]
+        want = collective_utilization("United States", contiguous_48_energy_ej(), r["land_m2"],
+                                      contiguous_48_fossil_nuclear_share(), delta_t_lo=3.0)
+        assert r["utilization"] == pytest.approx(want["utilization"])
+
+    def test_the_data_reaches_it(self, monkeypatch):
+        """Broken on purpose: double the energy and the utilization doubles."""
+        from hours_eoh.reference import energy_use as E
+        base = _band_json("--frame", "us", "--delta-t-lo", "3.0")["inputs"]["utilization"]
+        real = E.contiguous_48_energy_ej()
+        monkeypatch.setattr(E, "contiguous_48_energy_ej", lambda: 2 * real)
+        moved = _band_json("--frame", "us", "--delta-t-lo", "3.0")["inputs"]["utilization"]
+        assert moved == pytest.approx(2 * base, rel=1e-3)
+
+    def test_unbudgeted_says_so(self):
+        assert "UNBUDGETED" in _labels("--frame", "us")["utilization"]["source"]
+
+
+def _band_json(*flags: str) -> dict:
+    buf = io.StringIO()
+    a = _args("corridor", "band", "--format", "json", *flags)
+    with redirect_stdout(buf):
+        a.func(a)
+    return json.loads(buf.getvalue())

@@ -427,7 +427,7 @@ def instrument_comparison(
     the capital route insists must stay a grid — its three judgements being
     undeclared is the whole reason it returns 18 cells. Measured at the US
     frame: the corner gave ADJACENT with a gap of 0.046, while **8 of the 18
-    declared cells fall inside the labour band** and the full grid OVERLAPS it.
+    declared cells fell inside the labour band** then and the full grid OVERLAPPED it.
     Since 2026-10-04 the capital arm reads its stock at BEA's measured ages
     (one class age had put the whole stock past end of life, 1.15 lives) and
     at the condition those imply on BLS's age-efficiency curve (it was a flat
