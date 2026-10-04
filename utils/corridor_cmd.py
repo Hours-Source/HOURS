@@ -181,13 +181,20 @@ def _band(args: argparse.Namespace) -> None:
 def _compute(args: argparse.Namespace) -> dict:
     inp, labels = resolve_inputs(args, args.epsilon)
     pop, ages = inp["population"], inp["age_fractions"]
+    # THE FRAME'S ECOLOGY (2026-10-04): a frame that declares its people carry
+    # its ecological work brings its restoration and the recurring flow into
+    # the obligation the band reads; off, both are the shipped defaults.
+    eco = dict(restoration_obligation=inp["restoration_eoh"],
+               ecological_health_response=inp["ecological_response"],
+               ecological_standing_response=inp["ecological_response"],
+               ecosystem_health=inp["ecosystem_health"])
     if args.standard == "survival":
         eoh = survival_inventory(population=pop, epsilon=args.epsilon,
                                  age_distribution=ages)
     else:
         from hours_eoh.core.eoh_generation import total_eoh
         eoh = total_eoh(epsilon=args.epsilon, population=pop,
-                        personal_standard=args.standard, age_distribution=ages)
+                        personal_standard=args.standard, age_distribution=ages, **eco)
     # ONE ACCOUNT OF L. `scenarios/feasibility.labor_supply_per_capita` is the
     # framed one — c·a, adult capacity times the capacity-weighted adult share —
     # and `arc_stability` already used it. This CLI carried a bare 1e9 instead:
@@ -198,7 +205,9 @@ def _compute(args: argparse.Namespace) -> dict:
                        if args.available_labor is None else args.available_labor)
     floors = [
         survival_floor(eoh, available_labor),
-        overbuild_floor(inp["capital_teh"], pop),
+        overbuild_floor(inp["capital_teh"], pop, **{
+            k: inp[k] for k in ("capital_age_ratio", "ecosystem_health")
+            if labels[k]["kind"] != "default"}),
     ]
 
     if args.bare_chi:
@@ -213,7 +222,7 @@ def _compute(args: argparse.Namespace) -> dict:
     from hours_eoh.core.eoh_generation import total_eoh as _total_eoh
     therm = thermal_ceiling(inp["land_m2"], inp["phi_other_w"], epsilon=args.epsilon,
                             eoh_by_domain=_total_eoh(epsilon=args.epsilon, population=pop,
-                                                     age_distribution=ages),
+                                                     age_distribution=ages, **eco),
                             delta_t_lo=args.delta_t_lo)
     ceilings = [contest, therm]
     if inp["utilization"] is not None:
@@ -225,7 +234,10 @@ def _compute(args: argparse.Namespace) -> dict:
     # about how far it is from binding — the gap the demographic margin closed
     # for one bound, closed here for the rest that have a distance.
     eoh_surv = sum(eoh.get(d, 0.0) for d in DEFAULT_SURVIVAL_DOMAINS)
-    k_limit = overbuild_capital_limit(inp["capital_teh"], pop) if inp["capital_teh"] > 0 else None
+    ob_state = {k: inp[k] for k in ("capital_age_ratio", "ecosystem_health")
+                if labels[k]["kind"] != "default"}
+    k_limit = (overbuild_capital_limit(inp["capital_teh"], pop, **ob_state)
+               if inp["capital_teh"] > 0 else None)
     u = inp["utilization"]
     headroom: dict = {
         "survival": {"labour_cover": available_labor / eoh_surv if eoh_surv > 0 else None},

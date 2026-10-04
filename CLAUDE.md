@@ -244,7 +244,9 @@ utils/                 Presentation layer — CLI and research helpers (see READ
   frame_inputs.py      THE FRAME A COMMAND RUNS ON, EVERY INPUT LABELLED supplied / measured /
                        derived / default (with lineage, so a value leaning on a default says
                        so). --frame us reads the repo's US data; --frame-file is an
-                       institution's own. Shared by `corridor band`, `scenario run`, `frame show`
+                       institution's own, or a SHIPPED frame by name (reference/data/frames/,
+                       each generated from its owner — `indust_overbuilt`, a constructed
+                       bound-testing frame). Shared by `corridor band`, `scenario run`, `frame`
   explorers/           In-browser explorers published with the docs at tools/<name>/ — a
                        template + a builder that embeds the shipped data and data.py
                        constants, and REFUSES unless the repo's own functions reproduce
@@ -476,6 +478,12 @@ someone remembering it, which is what this section is for.
    population (the CLI ran it at 1M: 65× the stated backlog per head). *The
    tell:* a comment that STATES the frame beside a value nothing scales. `gated
    by:` `test_frame_inputs.py::TestScenarioRunOnAFrame::test_the_population_takers_are_frame_invariant`.
+   **And three on 2026-10-04:** the ecological spike priced its restoration on
+   population × 1.65 ha whatever land the frame measured (US 2.29); the
+   maintenance crisis its upkeep at the default stock age; `compound_shock` the
+   default health unless a collapse was modelled. *The tell, once more:* a
+   default standing in for a quantity the frame states. `gated by:`
+   `test_frame_inputs.py::TestTheFrameStateReachesTheRun`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -624,8 +632,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,694 tests passing (1 skipped), mypy clean on 107 source files** (verified
-2026-10-03). <!-- census:state -->Provenance **361/361**, shadow ratchet **29**, confidence ratchet **131** of 147<!-- /census:state -->,
+**5,768 tests passing (1 skipped), mypy clean on 107 source files** (verified
+2026-10-04). <!-- census:state -->Provenance **361/361**, shadow ratchet **29**, confidence ratchet **131** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -808,7 +816,7 @@ are the ones worth knowing by name.
 | `test_capital_retrodiction.py` | `reference/capital_inventory.py` + `scenarios/capital_retrodiction.py` — the US inventory against the machine profiles. Pins that all three judgements stay DECLARED, that `currency_per_teh` stays intake with no default, and that the saturation check can still fire |
 | `test_verification_census.py` | `reference/verification.py` — the register's own labour cost. Named for the census rather than the module because `verification` in this repo means the gates. Pins the DISCIPLINE, not the total: exclusions by name, disjointness from `servicing.py` by construction, and two error directions that may never be netted |
 | `test_work_year.py` | The work-year reference — `H_REF`, policy-free, with the band reported |
-| `test_frame_inputs.py` | `utils/frame_inputs.py` — the labelled frame inputs. Pins the US frame against the repo's own US data, the lineage rule (a value leaning on a default is never plain "derived"), refusal of bad frame files, ε never imputed, and the ROUND TRIP: `frame show --frame us --format json` reproduces `--frame us` in every frame-aware scenario, and an edited file does not. Found by breaking it: dropping the age mix passed the round trip, so the applied pyramid is pinned directly |
+| `test_frame_inputs.py` | `utils/frame_inputs.py` — the labelled frame inputs, and the SHIPPED frame files (each held to the module that generates it). Pins the US frame against the repo's own US data, the lineage rule (a value leaning on a default is never plain "derived"), refusal of bad frame files, ε never imputed, and the ROUND TRIP: `frame show --frame us --format json` reproduces `--frame us` in every frame-aware scenario, and an edited file does not. Found by breaking it: dropping the age mix passed the round trip, so the applied pyramid is pinned directly |
 | `test_cli_mint_income.py` | The `arc` and `params` CLI commands pass the MINT as labour income. Both passed `registered_eoh × 2200.0` from the initial commit (~1,100× the mint), so `arc`'s solvency column could not fire; pins that it can |
 | `test_corridor.py` | `research/corridor.py` — including `contestability_ceiling_bare_chi`, kept as the superseded form |
 | `test_personal_floor.py` | The currency-free personal floor across `core/`, `reference/` and `scenarios/` |

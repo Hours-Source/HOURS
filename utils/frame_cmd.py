@@ -1,7 +1,8 @@
 """
 frame — show the inputs a frame resolves to, and write a frame file to start from.
 
-  eoh frame show [--frame us | --frame-file PATH] [overrides] [--format table|json|labels]
+  eoh frame show [--frame us | --frame-file PATH|NAME] [overrides] [--format table|json|labels]
+  eoh frame shipped [--write]      the shipped frame files (constructed scenarios among them)
 
 `table` prints every input with its kind (supplied · measured · derived ·
 default). `json` writes a FRAME FILE: only what the frame states (supplied and
@@ -35,6 +36,22 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     show.add_argument("--format", choices=["table", "json", "labels"], default="table",
                       dest="fmt")
     show.set_defaults(func=_show)
+    sh = sub2.add_parser("shipped", help="List the shipped frame files; --write regenerates them")
+    sh.add_argument("--write", action="store_true",
+                    help="Regenerate every shipped frame from the module that owns it")
+    sh.set_defaults(func=_shipped)
+
+
+def _shipped(args: argparse.Namespace) -> None:
+    from utils.frame_inputs import SHIPPED_FRAMES_DIR, shipped_frame_sources, write_shipped_frames
+    if args.write:
+        for p in write_shipped_frames():
+            print(f"wrote {p.relative_to(SHIPPED_FRAMES_DIR.parents[3])}")
+        return
+    for name, src in shipped_frame_sources().items():
+        body = src()
+        print(f"{name}  — {body.get('note', '')}")
+        print(f"    run: --frame-file {name}")
 
 
 def rows_for(args: argparse.Namespace) -> tuple[dict, dict]:

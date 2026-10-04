@@ -227,11 +227,13 @@ class TestScenarioRunOnAFrame:
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_the_inputs_shown_are_what_the_scenario_reads(self, name):
+        from utils.scenario_cmd import _READS_IF_STATED
         rows = _scenario(name, "--frame", "us")["inputs"]
         shown = set(rows)
         assert ("epsilon" in shown) is ("epsilon" in _READS[name])
         assert _READS[name] & set(_labels("--frame", "us")) <= shown
-        for k in shown - _READS[name]:          # only what a read input derives from
+        for k in shown - _READS[name] - set(_READS_IF_STATED.get(name, ())):
+            # only what a read input derives from
             assert any(k in rows[r]["derived_from"] for r in shown)
 
     @pytest.mark.parametrize("name", ["labor_income_shock", "trust_stress", "measured_sim",
@@ -419,3 +421,106 @@ class TestTheRetirementRegisterByCLI:
         b = _scenario("demographic_shock", "--frame", "us", "--retirement-age",
                       "--years-in-collective", "3")
         assert a["guarantee_before"] == pytest.approx(b["guarantee_before"])
+
+
+class TestShippedAndConstructedFrames:
+    """Frame files are the one intake (author, 2026-10-04): any country's, or a
+    constructed scenario's — fictitious on purpose, to test bounds and
+    collapse. `indust_overbuilt` ships, generated from the archetype module."""
+
+    def test_every_shipped_file_is_its_source(self):
+        """The census pattern: the JSON is regenerated, never hand-typed, so the
+        file cannot drift from the constants it states."""
+        from utils.frame_inputs import SHIPPED_FRAMES_DIR, shipped_frame_sources
+        for name, src in shipped_frame_sources().items():
+            assert json.loads((SHIPPED_FRAMES_DIR / f"{name}.json").read_text()) == src()
+
+    def test_a_shipped_frame_is_found_by_name_and_reads_supplied(self):
+        lab = _labels("--frame-file", "indust_overbuilt")
+        for k in ("population", "capital_teh", "ecosystem_health", "capital_age_ratio"):
+            assert lab[k]["kind"] == "supplied", k
+        with pytest.raises(SystemExit):
+            _labels("--frame-file", "no_such_frame")
+
+    @pytest.mark.parametrize("body", [{"ecosystem_health": 1.5}, {"capital_age_ratio": -0.1},
+                                      {"ecological_carried_by_people": "yes"}, {"note": 3}])
+    def test_bad_ecology_keys_are_refused(self, tmp_path: Path, body):
+        f = tmp_path / "bad.json"
+        f.write_text(json.dumps(body))
+        with pytest.raises(SystemExit):
+            load_frame_file(f)
+
+    def test_restoration_is_derived_only_when_the_frame_declares_it(self, tmp_path: Path):
+        """Gate on the declaration, not on health < 1: the US frame at the
+        reference health grows no stock nobody asked for."""
+        from hours_eoh.data import M2_PER_HECTARE
+        from hours_eoh.scenarios.restoration_cost import deficit_obligation
+        us = _labels("--frame", "us")
+        assert us["restoration_eoh"]["value"] == 0.0 and us["restoration_eoh"]["kind"] == "default"
+        body = _frame_json("--frame", "us")
+        body.update(ecosystem_health=0.5, ecological_carried_by_people=True)
+        f = tmp_path / "carried.json"
+        f.write_text(json.dumps(body))
+        lab = _labels("--frame-file", str(f))
+        land_ha = lab["land_m2"]["value"] / M2_PER_HECTARE
+        assert lab["restoration_eoh"]["value"] == deficit_obligation(land_ha, 0.5) > 0.0
+
+    @pytest.mark.parametrize("name", ["automation_failure", "demographic_shock", "capital_loss"])
+    def test_carried_ecology_reaches_the_shock(self, tmp_path: Path, name):
+        """Declared carried by people, the restoration and the recurring flow
+        are labour: the same frame asks more of its people than with the GUF
+        carrying it."""
+        body = _frame_json("--frame", "us")
+        body.update(ecosystem_health=0.2)
+        guf, ppl = tmp_path / "guf.json", tmp_path / "ppl.json"
+        guf.write_text(json.dumps(body))
+        ppl.write_text(json.dumps({**body, "ecological_carried_by_people": True}))
+        a = _scenario(name, "--frame-file", str(guf))
+        b = _scenario(name, "--frame-file", str(ppl))
+        assert "restoration_eoh" in b["inputs"] and "restoration_eoh" not in a["inputs"]
+        assert _strip(a) != _strip(b)
+
+    def test_the_archetype_runs_the_band_and_the_shocks(self):
+        for name in ("automation_failure", "capital_loss", "overbuild", "maintenance_crisis"):
+            r = _scenario(name, "--frame-file", "indust_overbuilt")
+            assert r["inputs"]["capital_age_ratio"]["value"] == 0.75
+
+
+
+class TestTheFrameStateReachesTheRun:
+    """The three seams of 2026-10-04 and the reads the nine claim, each by the
+    output it moves (the mode-6 entry in CLAUDE.md names this class)."""
+
+    def test_the_spike_prices_the_frames_land(self):
+        from hours_eoh.data import M2_PER_HECTARE
+        from hours_eoh.scenarios.restoration_cost import DEFAULT_AMORTIZATION_YEARS, deficit_obligation
+        r = _scenario("ecological_spike", "--frame", "us")
+        land_ha = r["inputs"]["land_m2"]["value"] / M2_PER_HECTARE
+        assert r["restoration_eoh_high"] == pytest.approx(deficit_obligation(
+            land_ha, r["health_before"] - r["health_after"], DEFAULT_AMORTIZATION_YEARS, "high"))
+
+    def test_maintenance_prices_the_frames_stock_age(self, tmp_path: Path):
+        body = _frame_json("--frame-file", "indust_overbuilt")
+        young = tmp_path / "young.json"
+        young.write_text(json.dumps({**body, "capital_age_ratio": 0.1}))
+        old = _scenario("maintenance_crisis", "--frame-file", "indust_overbuilt")
+        new = _scenario("maintenance_crisis", "--frame-file", str(young))
+        assert old["annual_eoh"] > new["annual_eoh"]                      # the upkeep
+        assert old["overbuild_margin_before"] != new["overbuild_margin_before"]  # the floor
+
+    def test_the_frames_health_reaches_a_compound_without_a_collapse(self, tmp_path: Path):
+        body = _frame_json("--frame", "us")
+        f = tmp_path / "carried.json"
+        f.write_text(json.dumps({**body, "ecological_carried_by_people": True}))
+        sick = tmp_path / "sick.json"
+        sick.write_text(json.dumps({**body, "ecological_carried_by_people": True,
+                                    "ecosystem_health": 0.2}))
+        a = _scenario("compound_shock", "--frame-file", str(f), "--automation-fraction-lost", "0.5")
+        b = _scenario("compound_shock", "--frame-file", str(sick), "--automation-fraction-lost", "0.5")
+        assert _strip(a) != _strip(b)
+
+    @pytest.mark.parametrize("name", ["arc_stability", "stationarity"])
+    def test_adult_capacity_reaches_the_arc_checks(self, name):
+        a = _scenario(name, "--frame", "us")
+        b = _scenario(name, "--frame", "us", "--adult-capacity", "1200")
+        assert _strip(a) != _strip(b)

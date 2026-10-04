@@ -41,6 +41,7 @@ def deferred_maintenance_crisis(
     population: float | None = None,
     capital_stock_teh: float | None = None,
     degraded_compounding: float = COMPOUNDING_WARN,
+    capital_age_ratio: float | None = None,
 ) -> dict:
     """
     Simulate sustained underinvestment in infrastructure EOH over multiple years.
@@ -56,6 +57,8 @@ def deferred_maintenance_crisis(
         fulfillment_fraction: Fraction actually fulfilled each year, ∈ [0,1].
         years: Number of years to simulate.
         asset_type: Asset type controlling compounding profile.
+        capital_age_ratio: The frame's stock age (2026-10-04), passed to the
+            overbuild reading; None → `overbuild_check`'s own default.
         degraded_compounding: The compounding ratio read as DEGRADED
             (default COMPOUNDING_WARN, the dashboard's YELLOW — one value since
             2026-10-03). See its data.py note: below the threshold age the
@@ -131,8 +134,11 @@ def deferred_maintenance_crisis(
     worst_overbuild = None
     k_frame = float(capital_stock_teh or 0.0)
     pop_frame = float(population or REFERENCE_FRAME_POPULATION)
-    margin_before = (overbuild_check(k_frame, pop_frame, epsilon=epsilon)["net_vs_autarky"]
-                     if framed else None)
+    # Passed only when stated, so overbuild_check keeps its own default.
+    ob_state: dict[str, Any] = ({} if capital_age_ratio is None
+                                else {"capital_age_ratio": capital_age_ratio})
+    margin_before = (overbuild_check(k_frame, pop_frame, epsilon=epsilon, **ob_state)
+                     ["net_vs_autarky"] if framed else None)
 
     trajectory   = []
     deferred     = 0.0
@@ -174,7 +180,7 @@ def deferred_maintenance_crisis(
                 writedown_year = year
             ob = overbuild_check(k_frame, pop_frame, epsilon=epsilon * ratio,
                                  added_upkeep_eoh=compounding,
-                                 abating_capital_teh=k_frame * ratio)
+                                 abating_capital_teh=k_frame * ratio, **ob_state)
             row["capacity"] = ratio
             row["overbuild_margin"] = ob["net_vs_autarky"]
             row["overbuild_verdict"] = ob["verdict"]

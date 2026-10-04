@@ -293,3 +293,27 @@ def pristine_gap_obligation(
             "survey settles."
         ),
     }
+
+
+def deficit_obligation(
+    hectares: float,
+    deficit: float,
+    amortization_years: float = DEFAULT_AMORTIZATION_YEARS,
+    corner: str = "high",
+) -> float:
+    """
+    The annual restoration obligation, h/yr, for a uniform health DEFICIT over
+    `hectares` — one class through `pristine_gap_obligation`. The ONE reading
+    of a frame's or a collapse's deficit (2026-10-04): `shocks._restoration`
+    (a collapse, before − after), the frame resolver (1 − health, when a frame
+    declares its people carry its ecological work) and the industrial
+    archetype all call it. A deficit ≤ 0 owes nothing.
+
+    units: hours/year. Priced by field-operation sequences — machinery; what
+    it does not price is biological recovery TIME (`implied_kappa`).
+    """
+    if deficit <= 0.0 or hectares <= 0.0:
+        return 0.0
+    return float(pristine_gap_obligation(
+        [{"class": "deficit", "hectares": hectares, "deficit": deficit}],
+        amortization_years=amortization_years, corner=corner)["annual_hours"])

@@ -139,6 +139,27 @@ patched. What you leave out is derived or defaulted — and
 labelled so. **ε is never imputed:** without a reading it runs at the
 reference value, labelled `default`.
 
+**Shipped and constructed frames.** A frame file is the one intake — a
+country's, an institution's, or a constructed scenario's. `eoh frame shipped`
+lists the files that ship with the repo (`--write` regenerates them from the
+module that owns each), and `--frame-file NAME` runs one. `indust_overbuilt` is
+CONSTRUCTED, not measured: an overbuilt industrial collective (10× capital per
+head, an aged stock, ecosystem health below the spike threshold) whose
+ecological work its people carry rather than the GUF. Constructed frames are
+fictitious on purpose — some extreme, to test the framework's bounds and how it
+handles collapse; a combination that looks unworkable and still reads stable is
+itself a finding. A frame file may also state `ecosystem_health`,
+`capital_age_ratio` and `ecological_carried_by_people`; declared carried, the
+health deficit over the frame's land is priced as a restoration obligation and
+carried as labour with the recurring ecological work, in the shocks, the band
+and the overbuild floor.
+
+```bash
+python3 utils/eoh_cli.py frame shipped
+python3 utils/eoh_cli.py corridor band --frame-file indust_overbuilt
+python3 utils/eoh_cli.py scenario run capital_loss --frame-file indust_overbuilt --capital-fraction-lost 0.2
+```
+
 **Retirement as a register event** is a governance choice, so it is off unless
 you ask for it. With `--retirement-age` (bare: the charter default, or give an
 age within the elderly band), members past that age join the guarantee at the

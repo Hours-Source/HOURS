@@ -53,7 +53,7 @@ Key options (not all apply to every scenario):
   --shock-type TYPE            growth|decline|aging (demographic / compound)
   --shock-magnitude F          Shock magnitude (default: 0.10)
   --ecology-collapse           Enable ecological component in compound_shock
-  --ecosystem-health-before F  Pre-shock ecosystem health (default: 0.70)
+  --ecosystem-health-before F  Pre-shock ecosystem health (default: the frame's, else 0.70)
   --ecosystem-health-after F   Post-shock ecosystem health (default: 0.30)
   --automation-fraction-lost F Automation dropout fraction (default: 0.0)
   --pathway PATH               restoration|abandonment for guf_writedown
@@ -175,6 +175,18 @@ _READS: dict[str, frozenset[str]] = {
     **{n: frozenset({"epsilon"}) for n in ("frame", "guf_magnitude", "guf_writedown",
                                            "guf_integration")},
 }
+#: Inputs a scenario reads ONLY WHEN THE FRAME STATES THEM (2026-10-04): left
+#: at the framework default they are not passed, so they are not shown either.
+#: `restoration_eoh` joins them when the frame declares its ecological work
+#: carried by its people.
+_ECO_STATE = ("ecosystem_health", "capital_age_ratio", "ecological_carried_by_people")
+_READS_IF_STATED: dict[str, tuple[str, ...]] = {
+    **{n: _ECO_STATE for n in ("automation_failure", "demographic_shock", "capital_loss")},
+    **{n: _ECO_STATE + ("land_m2",) for n in ("ecological_spike", "compound_shock")},
+    "overbuild": ("ecosystem_health", "capital_age_ratio"),
+    **{n: ("capital_age_ratio",) for n in ("maintenance_crisis", "recovery")},
+}
+
 #: The input each input-specific flag sets (--frame and --frame-file set the
 #: whole frame; --population is read by every frame-aware scenario).
 _FLAG_INPUT = {"--ages": "age_fractions", "--adult-capacity": "adult_capacity_h_yr",
@@ -334,9 +346,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--ecology-collapse", action="store_true",
                        dest="ecology_collapse",
                        help="Enable ecological shock component (compound_shock)")
-    run_p.add_argument("--ecosystem-health-before", type=float, default=ECOSYSTEM_HEALTH_DEFAULT,
+    run_p.add_argument("--ecosystem-health-before", type=float, default=None,
                        dest="ecosystem_health_before",
-                       help="Ecosystem health before shock (default: 0.70)")
+                       help="Ecosystem health before shock (default: the frame's "
+                            "ecosystem_health, else 0.70)")
     run_p.add_argument("--ecosystem-health-after", type=float, default=0.30,
                        dest="ecosystem_health_after",
                        help="Ecosystem health after shock (default: 0.30)")
@@ -615,32 +628,46 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         trust_balance=None if v["trust_derived"] else v["trust_balance"],
         retired_share=v["retired_share"],
         retiree_vested_fraction=v["retiree_vested_fraction"],
+        # The frame's physical state and who carries its ecological work
+        # (2026-10-04): defaults reproduce every result exactly.
+        capital_age_ratio=v["capital_age_ratio"],
+        restoration_eoh=v["restoration_eoh"],
+        ecological_response=v["ecological_response"],
     )
+    health = (v["ecosystem_health"] if args.ecosystem_health_before is None
+              else args.ecosystem_health_before)
+    # The frame's own land when it states one; None keeps the shocks' default
+    # (population × LAND_HECTARES_PER_CAPITA), so an unstated frame is unchanged.
+    land_ha = (v["land_m2"] / M2_PER_HECTARE
+               if lab["land_m2"]["kind"] in ("supplied", "measured") else None)
     name = args.name
     if name == "automation_failure":
         from hours_eoh.scenarios.shocks import automation_failure_shock
         kw = ({"fraction_lost": args.automation_fraction_lost}
               if args.automation_fraction_lost else {})
-        return automation_failure_shock(epsilon=epsilon, **kw, **common), v, lab
+        return automation_failure_shock(epsilon=epsilon, ecosystem_health=health,
+                                        **kw, **common), v, lab
     if name == "demographic_shock":
         from hours_eoh.scenarios.shocks import demographic_shock
         return demographic_shock(epsilon=epsilon, shock_type=args.shock_type or "decline",
-                                 magnitude=args.shock_magnitude, **common), v, lab
+                                 magnitude=args.shock_magnitude, ecosystem_health=health,
+                                 **common), v, lab
     if name == "ecological_spike":
         # Population was not passed until 2026-10-03: the spike ran at 1M
         # whatever --population said (mode 6).
         from hours_eoh.scenarios.shocks import ecological_eoh_spike
         return ecological_eoh_spike(
-            epsilon=epsilon, ecosystem_health_before=args.ecosystem_health_before,
-            ecosystem_health_after=args.ecosystem_health_after, **common), v, lab
+            epsilon=epsilon, ecosystem_health_before=health,
+            ecosystem_health_after=args.ecosystem_health_after, land_hectares=land_ha,
+            **common), v, lab
     if name == "compound_shock":
         from hours_eoh.scenarios.shocks import compound_shock
         dem_spec = ({"shock_type": args.shock_type, "magnitude": args.shock_magnitude}
                     if args.shock_type is not None else None)
         return compound_shock(
             epsilon=epsilon, ecology_collapse=args.ecology_collapse,
-            ecosystem_health_before=args.ecosystem_health_before,
-            ecosystem_health_after=args.ecosystem_health_after,
+            ecosystem_health_before=health,
+            ecosystem_health_after=args.ecosystem_health_after, land_hectares=land_ha,
             demographic_shock_spec=dem_spec,
             automation_fraction_lost=args.automation_fraction_lost,
             capital_fraction_lost=args.capital_fraction_lost or 0.0,
@@ -653,7 +680,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             fraction_lost=(CAPITAL_LOSS_FRACTION_DEFAULT if args.capital_fraction_lost is None
                            else args.capital_fraction_lost),
             capability_fraction_lost=args.capability_fraction_lost,
-            rebuild_years=args.rebuild_years, **common), v, lab
+            rebuild_years=args.rebuild_years, ecosystem_health=health, **common), v, lab
     sim = dict(population=pop,
                trust_balance=None if v["trust_derived"] else v["trust_balance"],
                capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
@@ -748,11 +775,16 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
         k = v["capital_teh"]
         years = args.periods if args.periods is not None else MAINTENANCE_CRISIS_YEARS
-        annual = total_eoh(epsilon=epsilon, population=pop, capital_stock=k)["infrastructure"]
+        # The frame's stock age where it states one (2026-10-04); left at the
+        # default, neither call moves.
+        age = ({"capital_age_ratio": v["capital_age_ratio"]}
+               if lab["capital_age_ratio"]["kind"] != "default" else {})
+        annual = total_eoh(epsilon=epsilon, population=pop, capital_stock=k,
+                           **age)["infrastructure"]
         crisis = deferred_maintenance_crisis(
             epsilon=epsilon, annual_eoh=annual,
             fulfillment_fraction=args.fulfilment_fraction, years=years,
-            population=pop, capital_stock_teh=k,
+            population=pop, capital_stock_teh=k, **age,
             **({"degraded_compounding": args.degraded_compounding}
                if args.degraded_compounding is not None else {}))
         if name == "maintenance_crisis":
@@ -764,16 +796,21 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
     if name == "overbuild":
         from hours_eoh.core.autarky import break_even_epsilon, overbuild_check, payback
         k = v["capital_teh"]
-        c = overbuild_check(k, pop, epsilon=epsilon)
-        pb = payback(k, pop, epsilon=epsilon)
+        # The frame's physical state where it STATES one: overbuild_check's own
+        # capital-age default (0.50) differs from the frame's reference (0.30),
+        # so a default is not passed and the shipped figures stay as they were.
+        state = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")
+                 if lab[key]["kind"] != "default"}
+        c = overbuild_check(k, pop, epsilon=epsilon, **state)
+        pb = payback(k, pop, epsilon=epsilon, **state)
         out: dict = {kk: vv for kk, vv in c.items()}
-        out["break_even_epsilon"] = break_even_epsilon(k, pop)
+        out["break_even_epsilon"] = break_even_epsilon(k, pop, **state)
         out["payback_years"] = pb["payback_years"]
         out["payback_verdict"] = pb["verdict"]
         # a sweep so the interior optimum is visible, not just the point verdict
         rows = []
         for kpc in (0.0, 250.0, 1_000.0, 4_145.0, 20_000.0, 100_000.0):
-            cc = overbuild_check(kpc * pop, pop, epsilon=epsilon)
+            cc = overbuild_check(kpc * pop, pop, epsilon=epsilon, **state)
             rows.append({
                 "K_per_capita": kpc,
                 "abatement": round(cc["abatement"], 4),
@@ -833,6 +870,11 @@ def _frame_run(args: argparse.Namespace) -> dict:
             f"{e:.3f}": outcome_of(args.name, _frame_call(args, e)[0])
             for e in (eps["low"], eps["value"], eps["high"])}
     result["epsilon_reading"] = None if swept else eps
+    stated = {k for k in _READS_IF_STATED.get(args.name, ())
+              if k in lab and lab[k]["kind"] != "default"}
+    if v.get("ecological_carried_by_people") and "ecological_carried_by_people" in stated:
+        stated.add("restoration_eoh")
+    reads = reads | stated
     rows = labelled_inputs(v, lab, eps)
     if swept and v.get("capital_derived"):
         rows["capital_teh"] = {**rows["capital_teh"], "value": None,

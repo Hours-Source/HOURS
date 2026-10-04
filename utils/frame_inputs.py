@@ -73,9 +73,12 @@ FRAMES: dict[str, dict[str, str]] = {
 
 #: What a --frame-file may state.
 FRAME_FILE_KEYS = frozenset({
-    "name", "population", "age_fractions", "epsilon", "capital_teh",
+    "name", "note", "population", "age_fractions", "epsilon", "capital_teh",
     "land_hectares", "adult_capacity_h_yr", "utilization", "trust_balance",
     "retirement_age", "retired_share", "years_in_collective",
+    # 2026-10-04: the physical state a constructed (or measured) frame states,
+    # and whether its people, rather than the GUF, carry its ecological work.
+    "ecosystem_health", "capital_age_ratio", "ecological_carried_by_people",
 })
 
 
@@ -138,6 +141,15 @@ def load_frame_file(path: str | Path) -> dict[str, Any]:
     if "retired_share" in data and not (isinstance(data["retired_share"], (int, float))
                                         and 0.0 <= data["retired_share"] <= 1.0):
         raise SystemExit(f"{path}: retired_share must be in [0, 1]")
+    for k in ("ecosystem_health", "capital_age_ratio"):
+        if k in data and not (isinstance(data[k], (int, float)) and 0.0 <= data[k] <= 1.0):
+            raise SystemExit(f"{path}: {k} must be in [0, 1]")
+    if "ecological_carried_by_people" in data and not isinstance(
+            data["ecological_carried_by_people"], bool):
+        raise SystemExit(f"{path}: ecological_carried_by_people must be true or false")
+    for k in ("name", "note"):
+        if k in data and not isinstance(data[k], str):
+            raise SystemExit(f"{path}: {k} must be text")
     if "age_fractions" in data:
         a = data["age_fractions"]
         if not isinstance(a, dict) or set(a) != set(AGE_GROUPS):
@@ -169,7 +181,8 @@ def add_frame_arguments(p: argparse.ArgumentParser) -> None:
                         "capacity, both ε instruments, Path C). Flags override it")
     g.add_argument("--frame-file", default=None, dest="frame_file", metavar="PATH",
                    help="YOUR frame, as JSON (keys: " + ", ".join(sorted(FRAME_FILE_KEYS))
-                        + "). Start from `eoh frame show --frame us --format json`")
+                        + "), or a SHIPPED frame by name (`eoh frame shipped` lists "
+                        "them). Start from `eoh frame show --frame us --format json`")
     p.add_argument("--ages", choices=["shipped", "census"], default=None,
                    help="Age mix: 'shipped' = AGE_GROUPS fractions, 'census' = US "
                         "Census single-year ages (latest year) grouped to "
@@ -210,9 +223,48 @@ def frame_flags_given(args: argparse.Namespace) -> list[str]:
 # resolution
 # ---------------------------------------------------------------------------
 
+#: SHIPPED FRAME FILES (2026-10-04, author: "all frames including the USA or
+#: from any country or constructed scenarios can be tested"). A frame file is
+#: the one intake; these ship with the repo, each GENERATED from the module
+#: that owns it (`eoh frame shipped --write`), and a test holds every file to
+#: its source. `--frame-file NAME` finds one by name. A constructed frame is
+#: fictitious on purpose — some extreme, to test bounds and how the framework
+#: handles collapse — and says so in its `note`; its values read "supplied".
+SHIPPED_FRAMES_DIR = Path(__file__).resolve().parents[1] / "hours_eoh" / "reference" / "data" / "frames"
+
+
+def shipped_frame_sources() -> dict[str, Any]:
+    """name → the function whose output IS that shipped file."""
+    from hours_eoh.indust_no_eco_params import indust_frame
+    return {"indust_overbuilt": indust_frame}
+
+
+def frame_file_path(name_or_path: str) -> Path:
+    """A path as given, else a shipped frame by name."""
+    p = Path(name_or_path)
+    if p.exists():
+        return p
+    shipped = SHIPPED_FRAMES_DIR / f"{name_or_path}.json"
+    if shipped.exists():
+        return shipped
+    raise SystemExit(f"{name_or_path}: no such file, and no shipped frame by that name "
+                     f"(shipped: {', '.join(sorted(shipped_frame_sources()))})")
+
+
+def write_shipped_frames() -> list[Path]:
+    """Regenerate every shipped frame file from its source."""
+    SHIPPED_FRAMES_DIR.mkdir(parents=True, exist_ok=True)
+    out = []
+    for name, src in shipped_frame_sources().items():
+        path = SHIPPED_FRAMES_DIR / f"{name}.json"
+        path.write_text(json.dumps(src(), indent=2) + "\n", encoding="utf-8")
+        out.append(path)
+    return out
+
+
 def _frame_file(args: argparse.Namespace) -> dict[str, Any]:
     path = getattr(args, "frame_file", None)
-    return load_frame_file(path) if path else {}
+    return load_frame_file(frame_file_path(path)) if path else {}
 
 
 def _span(r: dict) -> str:
@@ -408,6 +460,7 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
                        "--utilization or put `utilization` in the frame file")
 
     _resolve_retirement(args, ff, src_ff, v, lab)
+    _resolve_ecology(ff, src_ff, v, lab)
 
     # Trust
     tb = getattr(args, "trust_balance", None)
@@ -422,6 +475,51 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["trust_derived"] = True
     v.setdefault("trust_derived", False)
     return v, lab
+
+
+def _resolve_ecology(ff: dict[str, Any], src_ff: str,
+                     v: dict[str, Any], lab: dict[str, dict]) -> None:
+    """
+    The frame's physical state and who carries its ecological work (2026-10-04).
+
+      ecosystem_health, capital_age_ratio — supplied by the frame file, else
+          the framework's reference state (defaults);
+      ecological_carried_by_people — off by default: under the adopted
+          partition the recurring ecological work is the land holder's, through
+          the GUF. A frame that declares it ON has its PEOPLE carry it as labour:
+          the recurring flow returns to the domain, and the health DEFICIT
+          (1 − health, 1 = reference condition) over the frame's land is priced
+          as a restoration stock by `restoration_cost.pristine_gap_obligation`
+          (high corner, `DEFAULT_AMORTIZATION_YEARS`) — the reading
+          `ecological_spike` gives a collapse. Off, nothing is derived: a frame
+          at the reference health does not grow a stock nobody declared.
+    """
+    from hours_eoh.data import CANONICAL_CAPITAL_AGE_BASE, ECOSYSTEM_HEALTH_DEFAULT
+    for key, dflt, name in (("ecosystem_health", ECOSYSTEM_HEALTH_DEFAULT, "ECOSYSTEM_HEALTH_DEFAULT"),
+                            ("capital_age_ratio", CANONICAL_CAPITAL_AGE_BASE, "CANONICAL_CAPITAL_AGE_BASE")):
+        if key in ff:
+            v[key], lab[key] = float(ff[key]), label("supplied", src_ff)
+        else:
+            v[key], lab[key] = dflt, label("default", name)
+    carried = bool(ff.get("ecological_carried_by_people", False))
+    v["ecological_carried_by_people"] = carried
+    lab["ecological_carried_by_people"] = (
+        label("supplied", src_ff) if "ecological_carried_by_people" in ff else
+        label("default", "off — the GUF carries the recurring ecological work (partition 4e/4f)"))
+    v["ecological_response"] = "domain" if carried else "guf"
+    if not carried:
+        v["restoration_eoh"] = 0.0
+        lab["restoration_eoh"] = label("default", "none — the frame does not declare its "
+                                       "ecological work carried by its people")
+        return
+    from hours_eoh.scenarios.restoration_cost import deficit_obligation
+    v["restoration_eoh"] = deficit_obligation(v["land_m2"] / M2_PER_HECTARE,
+                                              1.0 - v["ecosystem_health"])
+    lab["restoration_eoh"] = label(
+        "derived", "health deficit over the frame's land, priced by "
+        "pristine_gap_obligation and spread over DEFAULT_AMORTIZATION_YEARS",
+        ("ecosystem_health", "land_m2", "default:pristine_gap_obligation high corner",
+         "default:DEFAULT_AMORTIZATION_YEARS"))
 
 
 def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: str,
@@ -548,6 +646,7 @@ def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None =
             say(f"     at both ends of the range: {ends}")
     else:
         say(f"  ε: {e['value']:.3f}  — {e['kind']}: {e['source']}")
+    width = max([24] + [len(k) for k in rows])
     for k, r in rows.items():
         if k == "epsilon":
             continue
@@ -566,7 +665,7 @@ def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None =
             shown = f"{val:.4g}"
         else:
             shown = str(val)
-        say(f"  {k:24s} {shown}  — {r['kind']}: {r['source']}"
+        say(f"  {k:{width}s} {shown}  — {r['kind']}: {r['source']}"
               + (f" (from {', '.join(r['derived_from'])})" if r["derived_from"] else ""))
 
 
@@ -579,7 +678,9 @@ def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
             "adult_capacity_h_yr": "adult_capacity_h_yr", "capital_teh": "capital_teh",
             "utilization": "utilization", "trust_balance": "trust_balance",
             "retirement_age": "retirement_age", "retired_share": "retired_share",
-            "years_in_collective": "years_in_collective"}
+            "years_in_collective": "years_in_collective",
+            "ecosystem_health": "ecosystem_health", "capital_age_ratio": "capital_age_ratio",
+            "ecological_carried_by_people": "ecological_carried_by_people"}
     for k, fk in keep.items():
         r = rows.get(k)
         if r and r["kind"] in ("supplied", "measured") and r["value"] is not None:

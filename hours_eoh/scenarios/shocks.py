@@ -80,7 +80,7 @@ from hours_eoh.scenarios.feasibility import (
 )
 from hours_eoh.scenarios.restoration_cost import (
     DEFAULT_AMORTIZATION_YEARS,
-    pristine_gap_obligation,
+    deficit_obligation,
 )
 
 # THE LEGACY LABOUR-INCOME PROXY — superseded as the DEFAULT 2026-09-30.
@@ -242,6 +242,8 @@ class _State(TypedDict):
     labor_supply_per_capita: float    # L, h/person·yr — moves with the age mix
     retired_share: float              # share of the population on the retirement register
     retiree_vested_fraction: float    # vested_fraction(years in the collective)
+    ecological_response: str          # "guf": the GUF carries the recurring eco work;
+                                      # "domain": the frame's people do (2026-10-04)
 
 
 def _base_fractions() -> dict[str, float]:
@@ -267,6 +269,8 @@ def _base_state(
     age_fractions: dict[str, float] | None = None,
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> _State:
     """The pre-shock state. `age_fractions` (2026-10-03) is the population's own
     age mix — e.g. a census grouped to AGE_GROUP_RANGES; None → the shipped
@@ -280,10 +284,15 @@ def _base_state(
     if retired_share > fractions["elderly"] + 1e-12:
         raise ValueError(f"retired_share {retired_share} exceeds the elderly share "
                          f"{fractions['elderly']}")
+    if ecological_response not in ("guf", "domain"):
+        raise ValueError(f"ecological_response must be 'guf' or 'domain', got {ecological_response!r}")
+    if restoration_eoh < 0.0:
+        raise ValueError(f"restoration_eoh must be ≥ 0, got {restoration_eoh}")
     return _State(capability=epsilon, population=population, age_fractions=fractions,
-                  ecosystem_health=ecosystem_health, restoration_eoh=0.0,
+                  ecosystem_health=ecosystem_health, restoration_eoh=restoration_eoh,
                   labor_supply_per_capita=supply, retired_share=retired_share,
-                  retiree_vested_fraction=retiree_vested_fraction)
+                  retiree_vested_fraction=retiree_vested_fraction,
+                  ecological_response=ecological_response)
 
 
 def _with_age_mix(state: _State, population: float, fractions: dict[str, float]) -> _State:
@@ -334,10 +343,14 @@ def _restoration(
     health_after: float,
     amortization_years: float,
     corner: str,
+    land_hectares: float | None = None,
 ) -> float:
     """
     The annual restoration obligation a collapse leaves, h/yr —
     `restoration_cost.pristine_gap_obligation` on the frame's land.
+    `land_hectares` is the frame's own land when it states one (2026-10-04:
+    the US frame measures 2.28 ha/head and this priced 1.65 — mode 6); None →
+    `population × LAND_HECTARES_PER_CAPITA`, as before.
 
     DECLARED BINDING: the deficit is the health LOST, `h_before − h_after`,
     uniformly over `population × LAND_HECTARES_PER_CAPITA`. Health and deficit
@@ -346,14 +359,9 @@ def _restoration(
     input. Priced by the repo's measured field-operation sequences, which are
     machinery: what they do NOT price is biological recovery TIME.
     """
-    deficit = max(0.0, health_before - health_after)
-    if deficit == 0.0:
-        return 0.0
-    return float(pristine_gap_obligation(
-        [{"class": "shock", "hectares": population * LAND_HECTARES_PER_CAPITA,
-          "deficit": deficit}],
-        amortization_years=amortization_years, corner=corner,
-    )["annual_hours"])
+    return deficit_obligation(
+        population * LAND_HECTARES_PER_CAPITA if land_hectares is None else land_hectares,
+        health_before - health_after, amortization_years, corner)
 
 
 def _run(
@@ -387,6 +395,8 @@ def _run(
         monitoring_capability=phys["monitoring_capability"],
         knowledge_complexity_per_unit=phys["knowledge_complexity_per_unit"],
         restoration_obligation=state["restoration_eoh"],
+        ecological_health_response=state["ecological_response"],
+        ecological_standing_response=state["ecological_response"],
         deferred_ecological=deferred_ecological,
         reconstruction_obligation=reconstruction_eoh,
         available_labor_eoh=state["labor_supply_per_capita"] * state["population"],
@@ -557,6 +567,8 @@ def automation_failure_shock(
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
     trust_balance: float | None = None,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> dict:
     """
     Machines lose `fraction_lost` of their capability; the register stands.
@@ -602,7 +614,8 @@ def automation_failure_shock(
 
     def pair(eps: float, capital: float) -> tuple[_State, _State, dict, dict]:
         s0 = _base_state(eps, population, ecosystem_health, labor_supply_per_capita,
-                         age_fractions, retired_share, retiree_vested_fraction)
+                         age_fractions, retired_share, retiree_vested_fraction,
+                         restoration_eoh, ecological_response)
         s1 = _State(**{**s0, "capability": eps * (1.0 - fraction_lost)})
         return (s0, s1,
                 _run(s0, eps, capital, capital_age_ratio, knowledge_base_size),
@@ -704,6 +717,9 @@ def demographic_shock(
     age_fractions: dict[str, float] | None = None,
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> dict:
     """
     A sudden change to the population: "growth" / "decline" (population ×
@@ -734,8 +750,9 @@ def demographic_shock(
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
-    s0 = _base_state(epsilon, population, ECOSYSTEM_HEALTH_DEFAULT, labor_supply_per_capita,
-                     age_fractions, retired_share, retiree_vested_fraction)
+    s0 = _base_state(epsilon, population, ecosystem_health, labor_supply_per_capita,
+                     age_fractions, retired_share, retiree_vested_fraction,
+                     restoration_eoh, ecological_response)
     s1 = _demographic_change(s0, shock_type, magnitude)
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)
     after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None)
@@ -838,6 +855,9 @@ def ecological_eoh_spike(
     age_fractions: dict[str, float] | None = None,
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
+    land_hectares: float | None = None,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> dict:
     """
     An ecosystem collapse: what it leaves to be done, and who can do it.
@@ -869,7 +889,8 @@ def ecological_eoh_spike(
         labor_income: None → the state's mint. Supplied → used for both
             fiscal readings.
         suff_levy_rate, dep_rate, div_rate, meaningful_activity_teh: Fiscal.
-        population: Population; the land is population × LAND_HECTARES_PER_CAPITA.
+        population: Population; the land is `land_hectares`, else population ×
+            LAND_HECTARES_PER_CAPITA.
         capital_stock_teh, capital_age_ratio: Physical state.
         restoration_years: Horizon the restoration stock is discharged over.
         restoration_corner: "high" (default, conservative) or "low" band corner;
@@ -882,12 +903,14 @@ def ecological_eoh_spike(
     # stock is the ACTUAL stock and is never rescaled.
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     restoration = {corner: _restoration(population, ecosystem_health_before,
-                                        ecosystem_health_after, restoration_years, corner)
+                                        ecosystem_health_after, restoration_years, corner,
+                                        land_hectares)
                    for corner in ("low", "high")}
     s0 = _base_state(epsilon, population, ecosystem_health_before, labor_supply_per_capita,
-                     age_fractions, retired_share, retiree_vested_fraction)
+                     age_fractions, retired_share, retiree_vested_fraction,
+                     restoration_eoh, ecological_response)
     s1 = _State(**{**s0, "ecosystem_health": ecosystem_health_after,
-                   "restoration_eoh": restoration[restoration_corner]})
+                   "restoration_eoh": s0["restoration_eoh"] + restoration[restoration_corner]})
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None,
                   deferred_ecological=deferred_ecological_eoh)
     after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None,
@@ -992,6 +1015,8 @@ def capital_loss_shock(
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
     trust_balance: float | None = None,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> dict:
     """
     A disaster — a wildfire, flood or earthquake — destroys `fraction_lost` of
@@ -1049,7 +1074,8 @@ def capital_loss_shock(
     rebuild_per_year = loss["rebuild_per_year"]
 
     s0 = _base_state(epsilon, population, ecosystem_health, labor_supply_per_capita,
-                     age_fractions, retired_share, retiree_vested_fraction)
+                     age_fractions, retired_share, retiree_vested_fraction,
+                     restoration_eoh, ecological_response)
     s1 = _State(**{**s0, "capability": epsilon * (1.0 - g)})
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, knowledge_base_size)
     after = _run(s1, epsilon, k_after, capital_age_ratio, knowledge_base_size,
@@ -1254,6 +1280,9 @@ def compound_shock(
     age_fractions: dict[str, float] | None = None,
     retired_share: float = 0.0,
     retiree_vested_fraction: float = 1.0,
+    land_hectares: float | None = None,
+    restoration_eoh: float = 0.0,
+    ecological_response: str = "guf",
 ) -> dict:
     """
     Several shocks at once — applied to ONE state and run through ONE cascade.
@@ -1280,9 +1309,14 @@ def compound_shock(
     common: dict[str, Any] = dict(trust_balance=trust_balance, population=population,
                   capital_stock_teh=capital_stock_teh, capital_age_ratio=capital_age_ratio,
                   age_fractions=age_fractions, retired_share=retired_share,
-                  retiree_vested_fraction=retiree_vested_fraction)
-    health0 = ecosystem_health_before if ecology_collapse else ECOSYSTEM_HEALTH_DEFAULT
-    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita, age_fractions, retired_share, retiree_vested_fraction)
+                  retiree_vested_fraction=retiree_vested_fraction,
+                  restoration_eoh=restoration_eoh, ecological_response=ecological_response)
+    # The frame's health whether or not a collapse is modelled (2026-10-04):
+    # this read ECOSYSTEM_HEALTH_DEFAULT without a collapse, so a frame's own
+    # condition reached no component. Identical at the default.
+    health0 = ecosystem_health_before
+    s0 = _base_state(epsilon, population, health0, labor_supply_per_capita, age_fractions,
+                     retired_share, retiree_vested_fraction, restoration_eoh, ecological_response)
     s1 = _State(**s0)
     individual: dict[str, str] = {}
     automation_deferred = 0.0
@@ -1292,16 +1326,17 @@ def compound_shock(
 
     if ecology_collapse:
         eco = ecological_eoh_spike(
-            epsilon, ecosystem_health_before, ecosystem_health_after,
+            epsilon, ecosystem_health_before, ecosystem_health_after, land_hectares=land_hectares,
             suff_levy_rate=suff_levy_rate, dep_rate=dep_rate, div_rate=div_rate,
             meaningful_activity_teh=meaningful_activity_teh,
             labor_supply_per_capita=labor_supply_per_capita, **common)
         individual["ecological_eoh_spike"] = eco["outcome"]
         s1 = _State(**{**s1, "ecosystem_health": ecosystem_health_after,
-                       "restoration_eoh": eco["restoration_eoh_high"]})
+                       "restoration_eoh": s0["restoration_eoh"] + eco["restoration_eoh_high"]})
     if demographic_shock_spec is not None:
         dem = demographic_shock(
             epsilon, demographic_shock_spec["shock_type"], demographic_shock_spec["magnitude"],
+            ecosystem_health=ecosystem_health_before,
             meaningful_activity_teh=meaningful_activity_teh, suff_levy_rate=suff_levy_rate,
             dep_rate=dep_rate, div_rate=div_rate,
             labor_supply_per_capita=labor_supply_per_capita, **common)
@@ -1311,14 +1346,14 @@ def compound_shock(
         s1 = _with_age_mix(s1, changed["population"], changed["age_fractions"])
     if automation_fraction_lost > 0.0:
         auto = automation_failure_shock(
-            epsilon, fraction_lost=automation_fraction_lost,
+            epsilon, fraction_lost=automation_fraction_lost, ecosystem_health=ecosystem_health_before,
             labor_supply_per_capita=labor_supply_per_capita, **common)
         individual["automation_failure_shock"] = auto["outcome"]
         automation_deferred = auto["deferred_eoh"]
         s1 = _State(**{**s1, "capability": epsilon * (1.0 - automation_fraction_lost)})
     if capital_fraction_lost > 0.0:
         cap = capital_loss_shock(
-            epsilon, fraction_lost=capital_fraction_lost,
+            epsilon, fraction_lost=capital_fraction_lost, ecosystem_health=ecosystem_health_before,
             capability_fraction_lost=capability_fraction_lost, rebuild_years=rebuild_years,
             labor_supply_per_capita=labor_supply_per_capita, **common)
         individual["capital_loss_shock"] = cap["outcome"]

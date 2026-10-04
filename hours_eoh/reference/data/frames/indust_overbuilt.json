@@ -1,0 +1,11 @@
+{
+  "name": "indust_overbuilt",
+  "note": "CONSTRUCTED, not a measurement: an overbuilt industrial collective \u2014 10x the canonical capital per head, the stock 75% through its design life, ecosystem health 0.38 (below the spike threshold, 0.4), and its ecological work carried by its people rather than the GUF. A bound-testing frame for how the framework handles collapse, not an everyday collective. Its epsilon is declared, not read.",
+  "population": 65000000,
+  "epsilon": 0.4,
+  "capital_teh": 1300000000000.0,
+  "capital_age_ratio": 0.75,
+  "ecosystem_health": 0.38,
+  "land_hectares": 107250000.0,
+  "ecological_carried_by_people": true
+}

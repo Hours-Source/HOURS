@@ -5,7 +5,8 @@ Uses indust_no_eco_params to construct the industrial-overshoot physical state:
   - 10× canonical capital stock per capita
   - Capital age ratio 0.75 (aging industrial fleet)
   - Ecosystem health 0.38 (below spike threshold)
-  - 100 B-hour deferred ecological backlog
+  - Its ecological backlog DERIVED from the health deficit and carried by its
+    people (2026-10-04; the 100 B-hour figure is the baseline it is compared with)
   - Capital provides zero EOH offset (consumes, never reduces obligations)
 
 Two scenarios:
@@ -34,10 +35,30 @@ from hours_eoh.core.trajectory import canonical_physical_state as _canonical_sta
 _POP_REFERENCE: float = REFERENCE_FRAME_POPULATION  # the frame the TEH constants are stated at
 from hours_eoh.indust_no_eco_params import (
     make_indust_no_eco_params,
+    indust_baseline_backlog,
     INDUST_NO_ECO_PIPELINE_KWARGS,
     INDUST_CAPITAL_AGE_RATIO,
+    INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE,
     INDUST_ECOSYSTEM_HEALTH,
+    INDUST_EPSILON,
+    INDUST_REFERENCE_POPULATION,
 )
+from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+from hours_eoh.scenarios.restoration_cost import DEFAULT_AMORTIZATION_YEARS, deficit_obligation
+
+
+def _archetype_ecology(population: float) -> dict:
+    """The archetype's ecological backlog, DERIVED (2026-10-04): the health
+    deficit over its land through `deficit_obligation` — the reading every
+    frame and collapse uses — carried by its people with the recurring work
+    the partition gives the GUF. Beside it, the superseded 100 B baseline."""
+    flow = deficit_obligation(population * LAND_HECTARES_PER_CAPITA,
+                              1.0 - INDUST_ECOSYSTEM_HEALTH)
+    response = "domain" if INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE else "guf"
+    return {"restoration_eoh": flow,
+            "restoration_stock_eoh": flow * DEFAULT_AMORTIZATION_YEARS,
+            "response": response,
+            "baseline_backlog_eoh": indust_baseline_backlog(population)}
 from hours_eoh.core.fiscal import resolve_trust_balance
 
 
@@ -46,8 +67,8 @@ from hours_eoh.core.fiscal import resolve_trust_balance
 # ---------------------------------------------------------------------------
 
 def indust_overshoot_baseline(
-    population: float = 65_000_000,
-    epsilon: float = 0.40,
+    population: float = INDUST_REFERENCE_POPULATION,
+    epsilon: float = INDUST_EPSILON,
 ) -> dict:
     """
     Single-period EOH/fiscal snapshot under industrial-overshoot physical state.
@@ -75,6 +96,7 @@ def indust_overshoot_baseline(
         }
     """
     p = make_indust_no_eco_params(population=population, epsilon=epsilon)
+    eco = _archetype_ecology(population)
 
     pipeline = eoh_to_teh_pipeline(
         epsilon=epsilon,
@@ -82,7 +104,9 @@ def indust_overshoot_baseline(
         capital_stock=p["capital_stock_teh"],
         capital_age_ratio=p["capital_age_ratio"],
         ecosystem_health=p["ecosystem_health"],
-        deferred_ecological=p["deferred_ecological"],
+        restoration_obligation=eco["restoration_eoh"],
+        ecological_health_response=eco["response"],
+        ecological_standing_response=eco["response"],
         **INDUST_NO_ECO_PIPELINE_KWARGS,
     )
 
@@ -95,7 +119,8 @@ def indust_overshoot_baseline(
         population=population,
         epsilon=epsilon,
         ecosystem_health=p["ecosystem_health"],
-        deferred_ecological=p["deferred_ecological"],
+        health_response=eco["response"],
+        standing_response=eco["response"],
     )
 
     # Canonical baseline for comparison
@@ -138,6 +163,9 @@ def indust_overshoot_baseline(
         "fiscal":                 fiscal,
         "canonical_total_eoh":    canon_eoh,
         "eoh_vs_canonical_ratio": ratio,
+        "restoration_eoh":        eco["restoration_eoh"],
+        "ecological_carried_by":  "people" if eco["response"] == "domain" else "GUF",
+        "baseline_backlog_eoh":   eco["baseline_backlog_eoh"],
         "outcome":                outcome,
         "recommendation":         rec,
     }
@@ -148,8 +176,8 @@ def indust_overshoot_baseline(
 # ---------------------------------------------------------------------------
 
 def indust_recovery_trajectory(
-    population: float = 65_000_000,
-    epsilon: float = 0.40,
+    population: float = INDUST_REFERENCE_POPULATION,
+    epsilon: float = INDUST_EPSILON,
     ecological_restoration_rate: float = 0.02,
     n_periods: int = 30,
 ) -> dict:
@@ -187,6 +215,7 @@ def indust_recovery_trajectory(
         }
     """
     p = make_indust_no_eco_params(population=population, epsilon=epsilon)
+    ecology = _archetype_ecology(population)
     scaled_trust = resolve_trust_balance(None, population)
 
     initial_state = make_economy_state(
@@ -196,7 +225,9 @@ def indust_recovery_trajectory(
         capital_stock_teh=p["capital_stock_teh"],
         capital_age_ratio=INDUST_CAPITAL_AGE_RATIO,
         ecosystem_health=INDUST_ECOSYSTEM_HEALTH,
-        deferred_ecological=p["deferred_ecological"],
+        # The derived STOCK — the priced flow over its horizon — which the
+        # simulation pays down; the superseded 100 B is reported beside it.
+        deferred_ecological=ecology["restoration_stock_eoh"],
     )
 
     raw = run_simulation(
@@ -240,6 +271,8 @@ def indust_recovery_trajectory(
         "ecosystem_recovered":         ecosystem_recovered,
         "fiscal_recovered":            fiscal_recovered,
         "years_to_ecosystem_recovery": years_to_recovery,
+        "initial_backlog_eoh":         ecology["restoration_stock_eoh"],
+        "baseline_backlog_eoh":        ecology["baseline_backlog_eoh"],
         "trajectory":                  trajectory,
         "raw":                         raw,
     }
