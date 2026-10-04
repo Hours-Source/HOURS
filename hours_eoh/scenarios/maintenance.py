@@ -75,7 +75,8 @@ def deferred_maintenance_crisis(
             the deferral moves it. Cost side and benefit side are two terms of
             one neglect, not one mechanism counted twice (mode 11). Upkeep
             stays on the full stock. A COMPOSITION OF TWO REPO MECHANISMS
-            (2026-10-03), for the author to confirm. Per year:
+            (2026-10-03), CONFIRMED by the author 2026-10-04 with the
+            capacity/efficiency breakdown below. Per year:
             `capacity`, `overbuild_margin` (B₀ − total, h/yr) and
             `overbuild_verdict`; overall `overbuild_year`, the first year it
             reads overbuilt, and `writedown_year`, the first year
