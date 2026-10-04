@@ -423,7 +423,8 @@ ASSET_TYPES: dict[str, dict] = {
 # tiers: shorthand specs per named tier.
 #   teh_per_capita: TEH value per person (scaled by population at call time).
 #   default_age: assumed age in years when tier is used without explicit age.
-#   default_condition: assumed condition ∈ [0,1] when tier is used without explicit condition.
+#   (condition: none per tier since 2026-10-04 — it follows from default_age on
+#   civilization's age-efficiency curve; it was a hand-set copy of a curve.)
 #
 # Calibration rationale:
 #   A civilization with all types at "standard" tier totals ~2000 TEH/person
@@ -545,10 +546,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.15,
         "design_life": 40,
         "tiers": {
-            "minimal":  {"teh_per_capita":   80, "default_age": 35, "default_condition": 0.58},
-            "basic":    {"teh_per_capita":  160, "default_age": 25, "default_condition": 0.72},
-            "standard": {"teh_per_capita":  380, "default_age": 15, "default_condition": 0.82},
-            "advanced": {"teh_per_capita":  950, "default_age":  8, "default_condition": 0.92},
+            "minimal":  {"teh_per_capita":   80, "default_age": 35},
+            "basic":    {"teh_per_capita":  160, "default_age": 25},
+            "standard": {"teh_per_capita":  380, "default_age": 15},
+            "advanced": {"teh_per_capita":  950, "default_age":  8},
         },
     },
     "water_treatment": {
@@ -557,10 +558,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.18,
         "design_life": 50,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 40, "default_condition": 0.60},
-            "basic":    {"teh_per_capita":   80, "default_age": 25, "default_condition": 0.73},
-            "standard": {"teh_per_capita":  180, "default_age": 20, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  450, "default_age": 10, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   40, "default_age": 40},
+            "basic":    {"teh_per_capita":   80, "default_age": 25},
+            "standard": {"teh_per_capita":  180, "default_age": 20},
+            "advanced": {"teh_per_capita":  450, "default_age": 10},
         },
     },
     # --- Healthcare ---
@@ -571,10 +572,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.22,
         "design_life": 20,
         "tiers": {
-            "minimal":  {"teh_per_capita":   60, "default_age": 18, "default_condition": 0.65},
-            "basic":    {"teh_per_capita":  120, "default_age": 12, "default_condition": 0.76},
-            "standard": {"teh_per_capita":  280, "default_age":  8, "default_condition": 0.85},
-            "advanced": {"teh_per_capita":  700, "default_age":  4, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   60, "default_age": 18},
+            "basic":    {"teh_per_capita":  120, "default_age": 12},
+            "standard": {"teh_per_capita":  280, "default_age":  8},
+            "advanced": {"teh_per_capita":  700, "default_age":  4},
         },
     },
     # --- Food and ecology ---
@@ -585,10 +586,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.18,
         "design_life": 15,
         "tiers": {
-            "minimal":  {"teh_per_capita":   20, "default_age": 12, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   45, "default_age":  8, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   90, "default_age":  5, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  225, "default_age":  2, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   20, "default_age": 12},
+            "basic":    {"teh_per_capita":   45, "default_age":  8},
+            "standard": {"teh_per_capita":   90, "default_age":  5},
+            "advanced": {"teh_per_capita":  225, "default_age":  2},
         },
     },
     "environmental_monitoring": {
@@ -599,10 +600,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.00,
         "design_life": 12,
         "tiers": {
-            "minimal":  {"teh_per_capita":    4, "default_age": 10, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":    8, "default_age":  7, "default_condition": 0.76},
-            "standard": {"teh_per_capita":   18, "default_age":  4, "default_condition": 0.87},
-            "advanced": {"teh_per_capita":   45, "default_age":  2, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":    4, "default_age": 10},
+            "basic":    {"teh_per_capita":    8, "default_age":  7},
+            "standard": {"teh_per_capita":   18, "default_age":  4},
+            "advanced": {"teh_per_capita":   45, "default_age":  2},
         },
     },
     # --- Industrial and logistics ---
@@ -613,10 +614,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.02,
         "design_life": 20,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 18, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   80, "default_age": 12, "default_condition": 0.74},
-            "standard": {"teh_per_capita":  180, "default_age":  8, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  450, "default_age":  4, "default_condition": 0.94},
+            "minimal":  {"teh_per_capita":   40, "default_age": 18},
+            "basic":    {"teh_per_capita":   80, "default_age": 12},
+            "standard": {"teh_per_capita":  180, "default_age":  8},
+            "advanced": {"teh_per_capita":  450, "default_age":  4},
         },
     },
     "transportation": {
@@ -626,10 +627,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.06,
         "design_life": 30,
         "tiers": {
-            "minimal":  {"teh_per_capita":   40, "default_age": 25, "default_condition": 0.63},
-            "basic":    {"teh_per_capita":   80, "default_age": 18, "default_condition": 0.74},
-            "standard": {"teh_per_capita":  180, "default_age": 12, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  450, "default_age":  6, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   40, "default_age": 25},
+            "basic":    {"teh_per_capita":   80, "default_age": 18},
+            "standard": {"teh_per_capita":  180, "default_age": 12},
+            "advanced": {"teh_per_capita":  450, "default_age":  6},
         },
     },
     # --- Knowledge and computing ---
@@ -640,10 +641,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.01,
         "design_life": 6,
         "tiers": {
-            "minimal":  {"teh_per_capita":   20, "default_age": 5, "default_condition": 0.60},
-            "basic":    {"teh_per_capita":   45, "default_age": 3, "default_condition": 0.76},
-            "standard": {"teh_per_capita":  100, "default_age": 2, "default_condition": 0.88},
-            "advanced": {"teh_per_capita":  250, "default_age": 1, "default_condition": 0.96},
+            "minimal":  {"teh_per_capita":   20, "default_age": 5},
+            "basic":    {"teh_per_capita":   45, "default_age": 3},
+            "standard": {"teh_per_capita":  100, "default_age": 2},
+            "advanced": {"teh_per_capita":  250, "default_age": 1},
         },
     },
     "software": {
@@ -653,10 +654,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.01,
         "design_life": 8,
         "tiers": {
-            "minimal":  {"teh_per_capita":   10, "default_age": 6, "default_condition": 0.62},
-            "basic":    {"teh_per_capita":   25, "default_age": 4, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   60, "default_age": 2, "default_condition": 0.86},
-            "advanced": {"teh_per_capita":  150, "default_age": 1, "default_condition": 0.95},
+            "minimal":  {"teh_per_capita":   10, "default_age": 6},
+            "basic":    {"teh_per_capita":   25, "default_age": 4},
+            "standard": {"teh_per_capita":   60, "default_age": 2},
+            "advanced": {"teh_per_capita":  150, "default_age": 1},
         },
     },
     # --- Built environment ---
@@ -667,10 +668,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.08,
         "design_life": 60,
         "tiers": {
-            "minimal":  {"teh_per_capita":   80, "default_age": 50, "default_condition": 0.68},
-            "basic":    {"teh_per_capita":  160, "default_age": 30, "default_condition": 0.77},
-            "standard": {"teh_per_capita":  380, "default_age": 20, "default_condition": 0.84},
-            "advanced": {"teh_per_capita":  950, "default_age": 10, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   80, "default_age": 50},
+            "basic":    {"teh_per_capita":  160, "default_age": 30},
+            "standard": {"teh_per_capita":  380, "default_age": 20},
+            "advanced": {"teh_per_capita":  950, "default_age": 10},
         },
     },
     "generic_infra": {
@@ -680,10 +681,10 @@ CAPITAL_MACHINE_PROFILES: dict[str, dict] = {
         "personal_fulfillment_rate": 0.02,
         "design_life": 40,
         "tiers": {
-            "minimal":  {"teh_per_capita":   12, "default_age": 35, "default_condition": 0.63},
-            "basic":    {"teh_per_capita":   30, "default_age": 25, "default_condition": 0.74},
-            "standard": {"teh_per_capita":   54, "default_age": 15, "default_condition": 0.83},
-            "advanced": {"teh_per_capita":  135, "default_age":  8, "default_condition": 0.93},
+            "minimal":  {"teh_per_capita":   12, "default_age": 35},
+            "basic":    {"teh_per_capita":   30, "default_age": 25},
+            "standard": {"teh_per_capita":   54, "default_age": 15},
+            "advanced": {"teh_per_capita":  135, "default_age":  8},
         },
     },
 }

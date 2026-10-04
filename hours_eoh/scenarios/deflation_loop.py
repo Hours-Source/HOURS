@@ -81,8 +81,7 @@ def _point(scale: float, population: float) -> LoopPoint:
         per = tier["teh_per_capita"] * scale
         capital[name] = {
             "teh_value": per * population,
-            "age": tier["default_age"],
-            "condition": tier["default_condition"],
+            "age": tier["default_age"],     # condition follows from the age
         }
         k_per_capita += per
 

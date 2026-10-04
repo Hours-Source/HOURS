@@ -53,7 +53,11 @@ class TestResolveCapitalEntry:
         r = _resolve_capital_entry("medical_systems", "basic", POPULATION)
         td = CAPITAL_MACHINE_PROFILES["medical_systems"]["tiers"]["basic"]
         assert r["age"] == pytest.approx(td["default_age"])
-        assert r["condition"] == pytest.approx(td["default_condition"])
+        # Its condition is its age's on the one curve (2026-10-04).
+        from hours_eoh.core.civilization import condition_from_age_ratio
+        dl = CAPITAL_MACHINE_PROFILES["medical_systems"]["design_life"]
+        assert r["condition"] == pytest.approx(condition_from_age_ratio(td["default_age"] / dl))
+        assert "default_condition" not in td
 
     def test_explicit_teh_value(self):
         r = _resolve_capital_entry("power_grid", {"teh_value": 5e8, "age": 20}, POPULATION)

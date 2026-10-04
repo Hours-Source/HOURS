@@ -150,7 +150,11 @@ def _resolve_capital_entry(
         td        = tiers[tier_name]
         teh_value = float(explicit.get("teh_value", td["teh_per_capita"] * population))
         age       = float(explicit.get("age",       td["default_age"]))
-        condition = explicit.get("condition", td["default_condition"])
+        # A tier's condition is its age's, on the one curve (2026-10-04) — the
+        # hand-set `default_condition` per tier was a copy of a curve.
+        condition = explicit.get("condition")
+        if condition is None:
+            condition = _condition_from_age(age, design_life)
     else:
         if "teh_value" not in explicit:
             raise ValueError(
