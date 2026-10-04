@@ -161,7 +161,8 @@ in `total_eoh` and the pipeline) and the result says `rebuild: on`. The
 result separates **capacity** (the machine stock that can still run — only a
 rebuild restores it) from **efficiency** (the share of people's work actually
 done — labour restores it), so a broken plant and an unstaffed one do not read
-alike.
+alike. A wildfire also burns ecosystem: `compound_shock --ecology-collapse
+--capital-fraction-lost F` applies both to one state.
 
 ```bash
 python3 utils/eoh_cli.py scenario run capital_loss --frame us --capital-fraction-lost 0.05 --rebuild-years 5

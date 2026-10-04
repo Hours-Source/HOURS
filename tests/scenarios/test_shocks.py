@@ -1023,3 +1023,21 @@ class TestCapacityAndEfficiency:
         from hours_eoh.scenarios.shocks import automation_failure_shock
         r = automation_failure_shock(eps, fraction_lost=0.5, labor_supply_per_capita=800)
         assert 0.0 <= r["efficiency_after"] <= 1.0 and r["capacity_after"] == 0.5
+
+
+class TestCompoundTakesACapitalLoss:
+    """A wildfire is capital AND ecosystem (author, 2026-10-03)."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_off_is_unchanged_and_on_composes(self, eps):
+        from hours_eoh.scenarios.shocks import _SEVERITY, compound_shock
+        base = compound_shock(eps, ecology_collapse=True)
+        off = compound_shock(eps, ecology_collapse=True, capital_fraction_lost=0.0)
+        assert {k: off[k] for k in base} == base
+        fire = compound_shock(eps, ecology_collapse=True, automation_fraction_lost=0.5,
+                              capital_fraction_lost=0.2, rebuild_years=5)
+        assert "capital_loss_shock" in fire["individual_outcomes"]
+        assert fire["capacity_after"] == pytest.approx(0.5 * 0.8)
+        assert _SEVERITY[fire["combined_outcome"]] >= max(
+            _SEVERITY[o] for o in fire["individual_outcomes"].values())
+        assert fire["capital_teh_destroyed"] >= 0.0 and fire["rebuild"] == "on"

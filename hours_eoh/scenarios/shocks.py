@@ -954,6 +954,29 @@ def ecological_eoh_spike(
 # Capital Loss Shock
 # ---------------------------------------------------------------------------
 
+def _capital_loss(capital_stock_teh: float, fraction_lost: float,
+                  capital_age_ratio: float, rebuild_years: float | None) -> dict:
+    """The stock after a loss, the upkeep it takes with it, the D1 write-down
+    (`capital.execute_writedown`'s figures) and the rebuild flow — ONE reading,
+    shared by `capital_loss_shock` and `compound_shock`."""
+    from hours_eoh.core.capital import execute_writedown
+    from hours_eoh.core.eoh_generation import infrastructure_eoh
+    if not 0.0 < fraction_lost <= 1.0:
+        raise ValueError(f"fraction_lost must be in (0, 1], got {fraction_lost}")
+    if rebuild_years is not None and rebuild_years <= 0.0:
+        raise ValueError(f"rebuild_years must be positive, got {rebuild_years}")
+    k_after = capital_stock_teh * (1.0 - fraction_lost)
+    upkeep_lost = (infrastructure_eoh(capital_stock_teh, capital_age_ratio)
+                   - infrastructure_eoh(k_after, capital_age_ratio))
+    wd = execute_writedown({
+        "asset_id": "capital_loss", "asset_type": "generic_infra",
+        "teh_value": capital_stock_teh - k_after, "annual_eoh": upkeep_lost,
+    })
+    return {"k_after": k_after, "upkeep_lost": upkeep_lost, "writedown": wd,
+            "rebuild_per_year": (0.0 if rebuild_years is None
+                                 else float(wd["rebuild_eoh_needed"]) / rebuild_years)}
+
+
 def capital_loss_shock(
     epsilon: float,
     population: float = REFERENCE_FRAME_POPULATION,
@@ -1016,28 +1039,14 @@ def capital_loss_shock(
         rebuild_years: None → no rebuild modelled; > 0 → the horizon.
         trust_balance: None → resolved at `population`.
     """
-    from hours_eoh.core.capital import execute_writedown
-    from hours_eoh.core.eoh_generation import infrastructure_eoh
-
-    if not 0.0 < fraction_lost <= 1.0:
-        raise ValueError(f"fraction_lost must be in (0, 1], got {fraction_lost}")
     g = fraction_lost if capability_fraction_lost is None else capability_fraction_lost
     if not 0.0 <= g <= 1.0:
         raise ValueError(f"capability_fraction_lost must be in [0, 1], got {g}")
-    if rebuild_years is not None and rebuild_years <= 0.0:
-        raise ValueError(f"rebuild_years must be positive, got {rebuild_years}")
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     trust_balance = resolve_trust_balance(trust_balance, population)
-    k_after = capital_stock_teh * (1.0 - fraction_lost)
-
-    upkeep_lost = (infrastructure_eoh(capital_stock_teh, capital_age_ratio)
-                   - infrastructure_eoh(k_after, capital_age_ratio))
-    wd = execute_writedown({
-        "asset_id": "capital_loss", "asset_type": "generic_infra",
-        "teh_value": capital_stock_teh - k_after, "annual_eoh": upkeep_lost,
-    })
-    rebuild_per_year = (0.0 if rebuild_years is None
-                        else float(wd["rebuild_eoh_needed"]) / rebuild_years)
+    loss = _capital_loss(capital_stock_teh, fraction_lost, capital_age_ratio, rebuild_years)
+    k_after, upkeep_lost, wd = loss["k_after"], loss["upkeep_lost"], loss["writedown"]
+    rebuild_per_year = loss["rebuild_per_year"]
 
     s0 = _base_state(epsilon, population, ecosystem_health, labor_supply_per_capita,
                      age_fractions, retired_share, retiree_vested_fraction)
@@ -1234,6 +1243,9 @@ def compound_shock(
     population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
     capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    capital_fraction_lost: float = 0.0,
+    capability_fraction_lost: float | None = None,
+    rebuild_years: float | None = None,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
@@ -1253,6 +1265,13 @@ def compound_shock(
     mix — and read the cascade once. Each component is also run alone and
     reported in `individual_outcomes`; the combined outcome is never better
     than the worst of them.
+
+    A CAPITAL LOSS is a component since 2026-10-03 (author: a wildfire takes
+    capital AND ecosystem — `capital_fraction_lost` with `ecology_collapse`).
+    It applies `capital_loss_shock`'s reading (`_capital_loss`) to the same
+    state: the stock falls, capability falls by `capability_fraction_lost`
+    (default the capital share) ON TOP of any automation loss, and an opt-in
+    rebuild is the period's reconstruction obligation. 0 → off.
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
@@ -1267,6 +1286,9 @@ def compound_shock(
     s1 = _State(**s0)
     individual: dict[str, str] = {}
     automation_deferred = 0.0
+    k_after = capital_stock_teh
+    loss: dict | None = None
+    cap: dict = {}
 
     if ecology_collapse:
         eco = ecological_eoh_spike(
@@ -1294,6 +1316,16 @@ def compound_shock(
         individual["automation_failure_shock"] = auto["outcome"]
         automation_deferred = auto["deferred_eoh"]
         s1 = _State(**{**s1, "capability": epsilon * (1.0 - automation_fraction_lost)})
+    if capital_fraction_lost > 0.0:
+        cap = capital_loss_shock(
+            epsilon, fraction_lost=capital_fraction_lost,
+            capability_fraction_lost=capability_fraction_lost, rebuild_years=rebuild_years,
+            labor_supply_per_capita=labor_supply_per_capita, **common)
+        individual["capital_loss_shock"] = cap["outcome"]
+        loss = _capital_loss(capital_stock_teh, capital_fraction_lost, capital_age_ratio,
+                             rebuild_years)
+        k_after = loss["k_after"]
+        s1 = _State(**{**s1, "capability": s1["capability"] * (1.0 - cap["capability_fraction_lost"])})
 
     if not individual:
         # NOTHING WAS TESTED, SO NOTHING IS CLAIMED (2026-10-03). This returned
@@ -1311,11 +1343,12 @@ def compound_shock(
         }
 
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, None)
-    after = _run(s1, epsilon, capital_stock_teh, capital_age_ratio, None)
+    after = _run(s1, epsilon, k_after, capital_age_ratio, None,
+                 reconstruction_eoh=loss["rebuild_per_year"] if loss else 0.0)
     c = _cascade(before, after)
     f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio,
                  None, meaningful_activity_teh, suff_levy_rate, dep_rate, div_rate)
-    f1 = _fiscal(s1, epsilon, after, trust_balance, capital_stock_teh, capital_age_ratio,
+    f1 = _fiscal(s1, epsilon, after, trust_balance, k_after, capital_age_ratio,
                  None, meaningful_activity_teh, suff_levy_rate, dep_rate, div_rate)
     comp = _competency(s0, before, s1, after)
     fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
@@ -1329,6 +1362,10 @@ def compound_shock(
         + (f" ({c['deferred_personal_eoh']:,.0f} personal)"
            if c["deferred_personal_eoh"] > 0.0 else "")
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'}. "
+        + (f"Capital loss: {capital_fraction_lost:.0%} of the stock, "
+           f"{loss['writedown']['teh_destroyed']:,.0f} TEH written down (D1, reported, not "
+           f"charged); rebuild {'over ' + format(rebuild_years, 'g') + ' years' if rebuild_years else 'off'}. "
+           if loss else "")
         + fc["fiscal_note"] + comp["competency_note"]
         + f"Individual outcomes: {individual}. Combined outcome: {combined}."
     )
@@ -1340,6 +1377,12 @@ def compound_shock(
         "combined_deferred_eoh":          c["deferred_eoh"],
         "combined_deferred_personal_eoh": c["deferred_personal_eoh"],
         "automation_deferred_eoh":        automation_deferred,
+        "capital_teh_destroyed":          float(loss["writedown"]["teh_destroyed"]) if loss else 0.0,
+        "rebuild":                        ("on" if rebuild_years is not None else "off") if loss else None,
+        "capacity_after":                 (1.0 - automation_fraction_lost) * (
+            1.0 - (cap["capability_fraction_lost"] if loss else 0.0)),
+        "efficiency_before":              c["efficiency_before"],
+        "efficiency_after":               c["efficiency_after"],
         "trust_absorbs_combined":         f1["solvent"],
         **comp,
         **fc,

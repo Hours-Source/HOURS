@@ -153,7 +153,7 @@ _SCENARIOS: dict[str, str] = {
     # -- new shocks --
     "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction]",
     "capital_loss":        "capital_loss_shock() — a disaster (wildfire, flood) destroys capital: D1 write-down, machine work falls to people, optional rebuild  [--capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh, --retirement-age]",
-    "compound_shock":      "compound_shock() — simultaneous multi-axis shock  [--ecology-collapse, --shock-type, --automation-fraction-lost, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
+    "compound_shock":      "compound_shock() — simultaneous multi-axis shock (a wildfire: --ecology-collapse with --capital-fraction-lost)  [--ecology-collapse, --shock-type, --automation-fraction-lost, --capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- multi-period trajectories --
     "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods]",
     "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion  [--epsilon, --periods]",
@@ -282,10 +282,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="automation_fraction_lost",
                        help="Fraction of automation lost (compound_shock; default: 0.0)")
     run_p.add_argument("--capital-fraction-lost", type=float,
-                       default=CAPITAL_LOSS_FRACTION_DEFAULT, dest="capital_fraction_lost",
+                       default=None, dest="capital_fraction_lost",
                        metavar="F",
-                       help="Share of the capital stock a disaster destroys (capital_loss; "
-                            f"default {CAPITAL_LOSS_FRACTION_DEFAULT} — illustrative)")
+                       help="Share of the capital stock a disaster destroys (capital_loss: "
+                            f"default {CAPITAL_LOSS_FRACTION_DEFAULT}, illustrative; "
+                            "compound_shock: off unless given)")
     run_p.add_argument("--capability-fraction-lost", type=float, default=None,
                        dest="capability_fraction_lost", metavar="F",
                        help="Share of machine capability lost (capital_loss; default: "
@@ -575,11 +576,16 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             ecosystem_health_before=args.ecosystem_health_before,
             ecosystem_health_after=args.ecosystem_health_after,
             demographic_shock_spec=dem_spec,
-            automation_fraction_lost=args.automation_fraction_lost, **common), v, lab
+            automation_fraction_lost=args.automation_fraction_lost,
+            capital_fraction_lost=args.capital_fraction_lost or 0.0,
+            capability_fraction_lost=args.capability_fraction_lost,
+            rebuild_years=args.rebuild_years, **common), v, lab
     if name == "capital_loss":
         from hours_eoh.scenarios.shocks import capital_loss_shock
         return capital_loss_shock(
-            epsilon=epsilon, fraction_lost=args.capital_fraction_lost,
+            epsilon=epsilon,
+            fraction_lost=(CAPITAL_LOSS_FRACTION_DEFAULT if args.capital_fraction_lost is None
+                           else args.capital_fraction_lost),
             capability_fraction_lost=args.capability_fraction_lost,
             rebuild_years=args.rebuild_years, **common), v, lab
     if name in ("maintenance_crisis", "recovery"):
@@ -647,10 +653,12 @@ def _frame_run(args: argparse.Namespace) -> dict:
     finding, so it is printed rather than summarised as same/differs.
     """
     if args.name == "compound_shock" and not (
-            args.ecology_collapse or args.shock_type is not None or args.automation_fraction_lost):
+            args.ecology_collapse or args.shock_type is not None or args.automation_fraction_lost
+            or args.capital_fraction_lost):
         # On stderr, so --format json/csv stay parseable (2026-10-03).
         print("compound_shock: no component enabled — pass --ecology-collapse, "
-              "--shock-type (with --shock-magnitude) or --automation-fraction-lost",
+              "--shock-type (with --shock-magnitude), --automation-fraction-lost or "
+              "--capital-fraction-lost",
               file=sys.stderr)
     reads = _READS[args.name]
     unread = [f for f in frame_flags_given(args) if f in _FLAG_INPUT and _FLAG_INPUT[f] not in reads]
