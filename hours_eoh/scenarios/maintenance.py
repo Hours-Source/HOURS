@@ -70,23 +70,26 @@ def deferred_maintenance_crisis(
             than autarky. AND THE NEGLECTED STOCK ABATES LESS: its condition
             falls under under-maintenance (`capital.asset_condition`) and
             machine work is TEH × condition (`civilization.machine_eoh_from_capital`),
-            so the abating stock is K × `condition_ratio` — this fulfilment's
+            so the abating stock is K × `capacity` (the condition ratio) — this fulfilment's
             condition over full fulfilment's, so natural wear cancels and only
             the deferral moves it. Cost side and benefit side are two terms of
             one neglect, not one mechanism counted twice (mode 11). Upkeep
             stays on the full stock. A COMPOSITION OF TWO REPO MECHANISMS
             (2026-10-03), for the author to confirm. Per year:
-            `condition_ratio`, `overbuild_margin` (B₀ − total, h/yr) and
+            `capacity`, `overbuild_margin` (B₀ − total, h/yr) and
             `overbuild_verdict`; overall `overbuild_year`, the first year it
             reads overbuilt, and `writedown_year`, the first year
             `capital.writedown_trigger` fires on the condition ratio — past it
             the framework says the asset no longer exists in maintainable
             form, so later years are read past that point. Not reconciled with
             `failure_boundary` (the backlog multiple): two thresholds for one
-            idea. NOT MODELLED: machine capability falling with condition —
-            the overbuild LABOUR test reads `epsilon` as given, so DEGRADED
-            vs CRISIS under deep neglect leans on an ε the worn stock may no
-            longer deliver. Overbuilt on the obligation test with the labour
+            idea. CAPACITY ALSO READS THE MACHINE SHARE (2026-10-03, author:
+            capacity vs efficiency): the overbuild LABOUR test runs at
+            ε × capacity — a worn stock does less of the work, as a
+            disaster's does in `capital_loss_shock`. Upkeep not performed is
+            the EFFICIENCY side (`fulfillment_fraction`); sustained, it
+            becomes lost capacity, which only maintenance or a rebuild
+            restores. Overbuilt on the obligation test with the labour
             test still passing (at the stated ε) is DEGRADED;
             failing both is CRISIS. Omitted → no overbuild reading and the
             result is unchanged.
@@ -107,7 +110,7 @@ def deferred_maintenance_crisis(
           "recommendation":         str,
           on a frame, also: "overbuild_margin_before", "overbuild_margin_after",
           "overbuild_year", "overbuild_outcome", "writedown_year", and per row
-          "condition_ratio", "overbuild_margin", "overbuild_verdict"
+          "capacity", "overbuild_margin", "overbuild_verdict"
         }
     """
     CRIT_RATIO = COMPOUNDING_CRIT
@@ -168,10 +171,10 @@ def deferred_maintenance_crisis(
             ratio = cond[year - 1]["condition"] / full[year - 1]["condition"]
             if writedown_trigger(ratio) and writedown_year is None:
                 writedown_year = year
-            ob = overbuild_check(k_frame, pop_frame, epsilon=epsilon,
+            ob = overbuild_check(k_frame, pop_frame, epsilon=epsilon * ratio,
                                  added_upkeep_eoh=compounding,
                                  abating_capital_teh=k_frame * ratio)
-            row["condition_ratio"] = ratio
+            row["capacity"] = ratio
             row["overbuild_margin"] = ob["net_vs_autarky"]
             row["overbuild_verdict"] = ob["verdict"]
             if ob["verdict"] == "overbuilt":
@@ -239,10 +242,11 @@ def deferred_maintenance_crisis(
                 f"{last['overbuild_margin']:,.0f} h/yr over {years} years"
                 + (f"; the apparatus reads OVERBUILT from year {overbuild_year} — upkeep "
                    "plus compounding exceeds what it saves"
-                   + (", and automation no longer masks it" if overbuild_outcome == "CRISIS"
-                      else "; the labour test still passes at the stated ε")
+                   + ("; with the worn machines doing less, the labour test fails too"
+                      if overbuild_outcome == "CRISIS"
+                      else "; the labour test still passes at the worn stock's ε")
                    if overbuild_year else "; the apparatus still pays")
-                + f" (condition {last['condition_ratio']:.1%} of maintained"
+                + f" (capacity {last['capacity']:.1%} of maintained"
                 + (f"; write-down threshold crossed in year {writedown_year}" if writedown_year else "")
                 + f"). Outcome: {outcome}.")
     out = {
@@ -263,7 +267,7 @@ def deferred_maintenance_crisis(
         out.update(overbuild_margin_before=margin_before,
                    overbuild_margin_after=trajectory[-1]["overbuild_margin"],
                    overbuild_year=overbuild_year, overbuild_outcome=overbuild_outcome,
-                   writedown_year=writedown_year)
+                   writedown_year=writedown_year, capacity_after=trajectory[-1]["capacity"])
     return out
 
 

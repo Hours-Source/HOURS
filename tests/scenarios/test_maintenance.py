@@ -199,6 +199,14 @@ class TestDeferralAgainstTheOverbuildFloor:
         per = [r["overbuild_margin_after"] / p for p, r in runs]
         assert max(per) == pytest.approx(min(per), rel=1e-9)
 
+    def test_a_worn_stock_does_less_of_the_work(self):
+        """Capacity reaches the labour test: under full neglect the worn
+        machines carry less, so the overbuild reading is CRISIS, not the
+        DEGRADED an unworn ε gave."""
+        r = self._run(0.0, 30)
+        assert r["capacity_after"] == r["trajectory"][-1]["capacity"] < 0.01
+        assert r["overbuild_outcome"] == "CRISIS"
+
     def test_the_frame_is_both_or_neither(self):
         with pytest.raises(ValueError):
             deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10, population=1e6)

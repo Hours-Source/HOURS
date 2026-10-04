@@ -422,6 +422,12 @@ def _cascade(before: dict, after: dict) -> dict:
         "deferred_eoh":          newly_deferred,
         "deferred_personal_eoh": deferred_personal,
         "coverage_ratio":        (added - newly_deferred) / added if added > 0.0 else 1.0,
+        # EFFICIENCY (author, 2026-10-03): of the work people are asked for,
+        # the share done — the labour side of "3 of 5 lines running". Paired
+        # with a shock's CAPACITY (the machine stock that can run), so a stock
+        # that is broken and one that is unstaffed do not read alike.
+        "efficiency_before":     float(before["human_eoh"]) / demand(before) if demand(before) > 0.0 else 1.0,
+        "efficiency_after":      float(after["human_eoh"]) / demand(after) if demand(after) > 0.0 else 1.0,
         "labour_outcome":        labour,
     }
 
@@ -648,6 +654,9 @@ def automation_failure_shock(
         "total_eoh":               float(before["total_eoh"]),
         "machine_eoh_before":      c["machine_eoh_before"],
         "machine_eoh_lost":        lost,
+        "capacity_after":          1.0 - fraction_lost,
+        "efficiency_before":       c["efficiency_before"],
+        "efficiency_after":        c["efficiency_after"],
         "labor_supply_eoh":        s0["labor_supply_per_capita"] * population,
         "human_eoh_before":        float(before["human_eoh"]),
         "human_eoh_after":         float(after["human_eoh"]),
@@ -1070,6 +1079,12 @@ def capital_loss_shock(
         "fraction_lost":           fraction_lost,
         "capability_fraction_lost": g,
         "capability_assumed":      capability_fraction_lost is None,
+        # CAPACITY / EFFICIENCY (2026-10-03): the machine stock that can run,
+        # restored only by a rebuild; and the share of people's work done,
+        # restored by labour. See `_cascade`.
+        "capacity_after":          1.0 - g,
+        "efficiency_before":       c["efficiency_before"],
+        "efficiency_after":        c["efficiency_after"],
         "capital_before":          capital_stock_teh,
         "capital_after":           k_after,
         "teh_destroyed":           float(wd["teh_destroyed"]),

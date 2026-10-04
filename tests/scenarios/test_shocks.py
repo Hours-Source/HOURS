@@ -1003,3 +1003,23 @@ class TestCapitalLoss:
         from hours_eoh.scenarios.shocks import capital_loss_shock
         with pytest.raises(ValueError):
             capital_loss_shock(0.4, **kw)
+
+
+class TestCapacityAndEfficiency:
+    """Author, 2026-10-03: five lines with two broken and five lines with two
+    unstaffed look alike, but only one recovers with labour. CAPACITY is the
+    machine stock that can run; EFFICIENCY the share of people's work done."""
+
+    def test_labour_moves_efficiency_and_not_capacity(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        staffed = capital_loss_shock(0.6, fraction_lost=0.4)
+        short = capital_loss_shock(0.6, fraction_lost=0.4, labor_supply_per_capita=600)
+        assert staffed["capacity_after"] == short["capacity_after"] == pytest.approx(0.6)
+        assert staffed["efficiency_after"] == 1.0
+        assert short["efficiency_after"] < short["efficiency_before"] < 1.0
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_efficiency_is_a_share_across_the_arc(self, eps):
+        from hours_eoh.scenarios.shocks import automation_failure_shock
+        r = automation_failure_shock(eps, fraction_lost=0.5, labor_supply_per_capita=800)
+        assert 0.0 <= r["efficiency_after"] <= 1.0 and r["capacity_after"] == 0.5

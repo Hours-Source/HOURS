@@ -157,7 +157,11 @@ same share as the capital, which assumes the loss is spread across the stock;
 `--capability-fraction-lost` sets it apart (a fire that takes houses and spares
 the grid). Rebuilding is a choice, off unless `--rebuild-years` is given; when
 on, it is booked as the reconstruction obligation (`reconstruction_obligation`
-in `total_eoh` and the pipeline) and the result says `rebuild: on`.
+in `total_eoh` and the pipeline) and the result says `rebuild: on`. The
+result separates **capacity** (the machine stock that can still run — only a
+rebuild restores it) from **efficiency** (the share of people's work actually
+done — labour restores it), so a broken plant and an unstaffed one do not read
+alike.
 
 ```bash
 python3 utils/eoh_cli.py scenario run capital_loss --frame us --capital-fraction-lost 0.05 --rebuild-years 5
