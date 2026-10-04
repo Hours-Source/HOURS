@@ -91,7 +91,7 @@ from hours_eoh.scenarios.land_stewardship import SCOPES as _LAND_SCOPES
 from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.data import REGISTER_CADENCE
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
-from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import LAND_HECTARES_PER_CAPITA, M2_PER_HECTARE
 from hours_eoh.data import (
     CAPITAL_LOSS_FRACTION_DEFAULT, MAINTENANCE_CRISIS_FULFILMENT, MAINTENANCE_CRISIS_YEARS,
 )
@@ -115,7 +115,9 @@ FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "compound_shock", "capital_loss", "labor_income_shock", "overbuild",
                "maintenance_crisis", "recovery", "trust_stress", "measured_sim",
                "indust_baseline", "indust_recovery", "canonical_arc", "transition",
-               "thermal_load")
+               "thermal_load", "arc_stability", "stationarity", "ecological_floor",
+               "care_delay", "verification_band", "frame", "guf_magnitude",
+               "guf_writedown", "guf_integration")
 #: The key holding each scenario's verdict; None where it has none to read at
 #: the ends of the ε range (a swept arc, or two separate recovery flags).
 _OUTCOME_KEY: dict[str, str | None] = {
@@ -124,7 +126,10 @@ _OUTCOME_KEY: dict[str, str | None] = {
     "capital_loss": "outcome", "labor_income_shock": "outcome", "overbuild": "verdict",
     "maintenance_crisis": "outcome", "recovery": "recoverable", "trust_stress": "outcome",
     "measured_sim": "solvent_all", "indust_baseline": "outcome", "indust_recovery": None,
-    "canonical_arc": None, "transition": None, "thermal_load": None}
+    "canonical_arc": None, "transition": None, "thermal_load": None,
+    "arc_stability": None, "stationarity": None, "ecological_floor": None,
+    "care_delay": "outcome", "verification_band": "verdict", "frame": None,
+    "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome"}
 #: A verdict that is a bool, as words.
 _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
                "measured_sim": ("solvent throughout", "insolvent in some period")}
@@ -154,21 +159,43 @@ _READS: dict[str, frozenset[str]] = {
     **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
     **{n: _SIM_READS - {"epsilon"} for n in ("canonical_arc", "transition")},
     "thermal_load": (_SIM_READS - {"epsilon"}) | {"thermal_obligation_eoh"},
+    # The institutional-intake case study runs these on the US frame
+    # (author, 2026-10-04). Each reads what its function takes: the arc and
+    # stationarity checks the population, capital and adult capacity; the
+    # ecological floor the land per head; the register's cost the population
+    # (its figures are shares — reaching, and correctly moving nothing).
+    **{n: frozenset({"population", "capital_teh", "adult_capacity_h_yr", "epsilon"})
+       for n in ("arc_stability", "stationarity")},
+    "ecological_floor": frozenset({"population", "hectares_per_capita", "epsilon"}),
+    **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
+    # ε ONLY: their land is a PARCEL inventory or configuration (the urban
+    # archetype; one parcel for guf_integration), and pairing it with a
+    # frame's people and capital is `collective`'s objection. `frame` reports
+    # several frames side by side, so it has none to take.
+    **{n: frozenset({"epsilon"}) for n in ("frame", "guf_magnitude", "guf_writedown",
+                                           "guf_integration")},
 }
 #: The input each input-specific flag sets (--frame and --frame-file set the
 #: whole frame; --population is read by every frame-aware scenario).
 _FLAG_INPUT = {"--ages": "age_fractions", "--adult-capacity": "adult_capacity_h_yr",
                "--retirement-age": "retired_share", "--years-in-collective": "retired_share",
                "--bea-usd-per-teh": "capital_teh", "--capital-stock": "capital_teh",
-               "--epsilon": "epsilon", "--thermal-obligation": "thermal_obligation_eoh"}
+               "--epsilon": "epsilon", "--thermal-obligation": "thermal_obligation_eoh",
+               "--hectares-per-capita": "hectares_per_capita"}
 
 
 def _flags_given(args: argparse.Namespace) -> list[str]:
     """The frame flags set, plus the three scenario flags that are frame inputs."""
     extra = [f for f, a in (("--epsilon", "epsilon"), ("--capital-stock", "capital_stock"),
-                            ("--thermal-obligation", "thermal_obligation"))
+                            ("--thermal-obligation", "thermal_obligation"),
+                            ("--hectares-per-capita", "hectares_per_capita"))
              if getattr(args, a, None) is not None]
     return frame_flags_given(args) + extra
+
+#: Frame-aware scenarios that run their ordinary branch on the frame's values.
+_BRANCH_ON_FRAME = frozenset({"arc_stability", "stationarity", "ecological_floor",
+                              "care_delay", "verification_band", "frame",
+                              "guf_magnitude", "guf_writedown", "guf_integration"})
 
 #: The trajectory horizon when --periods is unset (maintenance_crisis and
 #: recovery default to MAINTENANCE_CRISIS_YEARS instead).
@@ -183,7 +210,7 @@ _SCENARIOS: dict[str, str] = {
     "demographic_shock":   "demographic_shock() — population age-structure shift  [--shock-type, --shock-magnitude, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     "ecological_spike":    "ecological_eoh_spike() — threshold ecosystem EOH surge  [--ecosystem-health-before/after, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     "maintenance_crisis":  "deferred_maintenance_crisis() — compounding deferred backlog, read against the overbuild floor each year  [--fulfilment-fraction, --periods, --capital-stock, --frame, --frame-file, --bea-usd-per-teh]",
-    "care_delay":          "care_registration_delay() — lag in care EOH admission",
+    "care_delay":          "care_registration_delay() — lag in care EOH admission  [--frame, --frame-file]",
     "recovery":            "maintenance_recovery_schedule() — backlog paydown arc, from maintenance_crisis's backlog  [--fulfilment-fraction, --periods, --capital-stock, --frame, --frame-file, --bea-usd-per-teh]",
     # -- new shocks --
     "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
@@ -197,27 +224,27 @@ _SCENARIOS: dict[str, str] = {
     "indust_baseline":     "indust_overshoot_baseline() — industrial overshoot fiscal snapshot  [--frame, --frame-file]",
     "indust_recovery":     "indust_recovery_trajectory() — ecosystem recovery from overshoot  [--restoration-rate, --periods, --frame, --frame-file]",
     # -- GUF stress --
-    "guf_integration":     "guf_fiscal_integration() — GUF revenue vs. levy deficit  [--area-slu, --location-value, --use-category]",
-    "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone]",
+    "guf_integration":     "guf_fiscal_integration() — GUF revenue vs. levy deficit  [--area-slu, --location-value, --use-category, --frame, --frame-file (ε only)]",
+    "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone, --frame, --frame-file (ε only)]",
     "guf_sweep":           "guf_revenue_sweep() — GUF across the arc; monotone falling under the default psi_policy=retired",
     # -- measured inputs (the measurement spine) --
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point  [--epsilon, --population]",
-    "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon]",
-    "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita]",
+    "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
+    "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita, --frame, --frame-file]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
     "restoration_cost":    "restoration_report() — labour-hours to reset a hectare, from ASAE field capacity; the legacy-stock and implied-κ readings; REPORTING ONLY  [--restorable-hectares, --amortization-years]",
     "servicing_census":    "census_report() + realized_vs_measured() — the SERVICING-cost census (BLS employment x ERS land use) against the GUF_USE_* x100 fit; REPORTING ONLY  [--scope]",
     "capacity_frames":     "measured_capacity_frames() — the feasibility test against MEASURED labour capacity, 50 MTUS frames over 1965-2024; H_REF understates 45 of 50 and the over-determination survives the correction; REPORTING ONLY",
     "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
-    "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock]",
-    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard]",
+    "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock, --frame, --frame-file, --adult-capacity]",
+    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard, --frame, --frame-file, --capital-stock, --adult-capacity]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
-    "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope]",
+    "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope, --frame, --frame-file (ε only)]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
@@ -231,7 +258,7 @@ _SCENARIOS: dict[str, str] = {
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     # -- the register: its own cost, and its capture exposure --
     "verification_cost":   "verification_report() + which_binds_across_the_arc() — what running the register costs, and WHICH of the three bounds actually binds; REPORTING ONLY  [--scope]",
-    "verification_band":   "corridor_is_usable() + cadence_feasibility() — is the verification corridor closed as a usable band, and can the declared register cadence be afforded?  [--verification-scope, --cadence]",
+    "verification_band":   "corridor_is_usable() + cadence_feasibility() — is the verification corridor closed as a usable band, and can the declared register cadence be afforded?  [--verification-scope, --cadence, --frame, --frame-file]",
     "register_capture":    "capture_report() — the register's failure model: which channel is widest and what admitting more moves; REPORTING ONLY",
     "labour_epsilon":      "labour_epsilon_report() — ε read off time use, the second instrument, with no currency in the chain; REPORTING ONLY",
 }
@@ -267,11 +294,11 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # frame-aware scenarios (FRAME_AWARE); any other scenario refuses them.
     add_frame_arguments(run_p)
     run_p.add_argument("--hectares-per-capita", type=float,
-                       default=LAND_HECTARES_PER_CAPITA, metavar="HA",
+                       default=None, metavar="HA",
                        help=(f"Stewarded land per person, ha (ecological_floor; "
-                             f"default: {LAND_HECTARES_PER_CAPITA} — a PLANETARY "
-                             f"average, wrong for any actual collective; supply "
-                             f"your own)"))
+                             f"default: the frame's land per head where the frame "
+                             f"states its land, else {LAND_HECTARES_PER_CAPITA} — a "
+                             f"PLANETARY average, wrong for any actual collective)"))
 
     # Trajectory params
     run_p.add_argument("--periods", type=int, default=None,
@@ -688,6 +715,31 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         tout["coverage_below_one_at"] = str(tv["coverage_below_one_at"])
         tout["summary_table"] = tv["rows"]
         return tout, v, lab
+    if name in _BRANCH_ON_FRAME:
+        from utils.frame_inputs import label
+        fs: dict[str, Any] = {}
+        if name in ("arc_stability", "stationarity"):
+            if not v["capital_derived"]:
+                fs["capital_stock_teh"] = v["capital_teh"]
+            if lab["adult_capacity_h_yr"]["kind"] != "default":
+                fs["adult_capacity_h_yr"] = v["adult_capacity_h_yr"]
+        if name == "ecological_floor":
+            land_kind = lab["land_m2"]["kind"]
+            if args.hectares_per_capita is not None:
+                v["hectares_per_capita"] = float(args.hectares_per_capita)
+                lab["hectares_per_capita"] = label("supplied", "--hectares-per-capita")
+            elif land_kind in ("supplied", "measured"):
+                v["hectares_per_capita"] = v["land_m2"] / M2_PER_HECTARE / pop
+                lab["hectares_per_capita"] = label("derived", "the frame's land per head",
+                                                   ("land_m2", "population"))
+            else:
+                v["hectares_per_capita"] = LAND_HECTARES_PER_CAPITA
+                lab["hectares_per_capita"] = label(
+                    "default", "LAND_HECTARES_PER_CAPITA — a planetary average")
+            fs["hectares_per_capita"] = v["hectares_per_capita"]
+        fa = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": pop,
+                                   "periods": periods, "frame_state": fs})
+        return _branch(fa), v, lab  # type: ignore[return-value]
     if name in ("maintenance_crisis", "recovery"):
         # The frame's own capital (supplied, BEA, or the arc at this ε) sets the
         # upkeep; until 2026-10-03 the frame was the reference one at a settable
@@ -824,6 +876,19 @@ def _dispatch(args: argparse.Namespace) -> object:
     periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
     args = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": population,
                                  "periods": periods})
+    return _branch(args, population_given)
+
+
+def _branch(args: argparse.Namespace, population_given: float | None = None) -> object:
+    """The scenario branches, on RESOLVED values (`args.epsilon`,
+    `args.population` set). Shared by the plain path and the frame path
+    (`_frame_call` hands the frame's values in, plus `args.frame_state` — the
+    frame inputs a branch passes on), so each branch's display shaping is
+    written once."""
+    name = args.name
+    epsilon = args.epsilon
+    population = args.population
+    frame_state: dict[str, Any] = getattr(args, "frame_state", None) or {}
 
     # -- original scenarios ---------------------------------------------------
 
@@ -833,7 +898,7 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     if name == "care_delay":
         from hours_eoh.scenarios.maintenance import care_registration_delay
-        return care_registration_delay(epsilon=epsilon)
+        return care_registration_delay(epsilon=epsilon, population=population)
 
     # -- new shock scenarios --------------------------------------------------
 
@@ -1187,7 +1252,8 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "stationarity":
         from hours_eoh.scenarios.stationarity import stationarity_report
         rep = stationarity_report(
-            epsilon, standard=getattr(args, "standard", None)
+            epsilon, standard=getattr(args, "standard", None),
+            population=population, **frame_state,
         )
         sr: dict = {}
         for r in rep["arc"]:
@@ -1209,7 +1275,8 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "arc_stability":
         from hours_eoh.scenarios.arc_stability import stability_report
         rep = stability_report(
-            epsilon, standard=getattr(args, "standard", None) or "sufficiency"
+            epsilon, standard=getattr(args, "standard", None) or "sufficiency",
+            population=population, **frame_state,
         )
         st: dict = {}
         for r in rep["arc"]:
@@ -1336,8 +1403,8 @@ def _dispatch(args: argparse.Namespace) -> object:
     if name == "ecological_floor":
         from hours_eoh.scenarios.ecological_floor import domain_balance_report
         rep = domain_balance_report(
-            epsilon=args.epsilon,
-            hectares_per_capita=args.hectares_per_capita,
+            epsilon=args.epsilon, population=population,
+            hectares_per_capita=frame_state.get("hectares_per_capita", LAND_HECTARES_PER_CAPITA),
         )
         cur = rep["current"]
         eco_out: dict = {
@@ -1661,9 +1728,9 @@ def _dispatch(args: argparse.Namespace) -> object:
             corridor_is_usable,
         )
         r = corridor_is_usable(scope=args.verification_scope,
-                               cadence=args.cadence)
+                               cadence=args.cadence, population=population)
         cf = cadence_feasibility(args.cadence, epsilon=epsilon,
-                                 scope=args.verification_scope)
+                                 scope=args.verification_scope, population=population)
         out = {k: v for k, v in r.items() if k != "conditions"}
         out["headroom_share_of_obligation"] = cf["headroom_share_of_obligation"]
         out["affordable_from_epsilon"] = cf["affordable_from_epsilon"]

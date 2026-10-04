@@ -104,7 +104,8 @@ age mix and labour supply; the long-run, Trust and simulation scenarios read
 population, capital, Trust and ε; `indust_*` read population and ε; the arcs
 (`canonical_arc`, `transition`, `thermal_load`) sweep ε themselves and refuse
 `--epsilon`. `collective` is the exception: its frame is its own parcel
-inventory, so it refuses `--frame`:
+inventory, so it refuses `--frame`; the parcel-based GUF scenarios take only
+the frame's ε for the same reason:
 
 | Kind | Meaning |
 |---|---|

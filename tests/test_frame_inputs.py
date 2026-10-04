@@ -42,6 +42,15 @@ _SCENARIO_FLAGS = {
     "canonical_arc": ["--periods", "3"],
     "transition": ["--periods", "3"],
     "thermal_load": [],
+    "arc_stability": [],
+    "stationarity": [],
+    "ecological_floor": [],
+    "care_delay": [],
+    "verification_band": [],
+    "frame": [],
+    "guf_magnitude": [],
+    "guf_writedown": [],
+    "guf_integration": [],
 }
 
 
@@ -171,6 +180,8 @@ class TestTheFrameFile:
         body = _frame_json("--frame", "us")
         body["population"] = body["population"] * 0.5
         body["age_fractions"] = {"infant": 0.05, "child": 0.12, "working_age": 0.55, "elderly": 0.28}
+        # and ε: per-head and ε-only scenarios rightly ignore the two above
+        body["epsilon"] = 0.55
         f = tmp_path / "edited.json"
         f.write_text(json.dumps(body))
         assert _strip(_scenario(name, "--frame-file", str(f))) != _strip(_scenario(name, "--frame", "us"))
@@ -204,7 +215,8 @@ class TestScenarioRunOnAFrame:
         argv = {"--ages": ["census"], "--adult-capacity": ["2300"],
                 "--retirement-age": [], "--years-in-collective": ["5"],
                 "--bea-usd-per-teh": ["15.94"], "--capital-stock": ["1e12"],
-                "--epsilon": ["0.5"], "--thermal-obligation": ["1e8"]}
+                "--epsilon": ["0.5"], "--thermal-obligation": ["1e8"],
+                "--hectares-per-capita": ["2.0"]}
         for flag, inp in _FLAG_INPUT.items():
             run = lambda: _scenario(name, "--frame", "us", flag, *argv[flag])  # noqa: E731
             if inp in _READS[name]:
@@ -224,10 +236,14 @@ class TestScenarioRunOnAFrame:
 
     @pytest.mark.parametrize("name", ["labor_income_shock", "trust_stress", "measured_sim",
                                       "indust_baseline", "canonical_arc", "transition",
-                                      "thermal_load"])
+                                      "thermal_load", "stationarity"])
     def test_the_population_takers_are_frame_invariant(self, name):
         """Every scenario that takes a population is on the frame since
-        2026-10-03; per head, one economy reads the same at any size."""
+        2026-10-03; per head, one economy reads the same at any size. Not here:
+        `arc_stability`, `care_delay`, `verification_band` and
+        `ecological_floor` report ONLY per-head figures or shares, so a
+        population cannot move a total and "reached" is unobservable — their
+        invariance is by construction."""
         def flat(r: dict) -> dict:
             """The scalars, plus the first row of a period table, where a
             trajectory keeps its totals."""
@@ -332,6 +348,8 @@ class TestTheEndUserPath:
         aimed at the help strings landed in a table."""
         from utils.scenario_cmd import _OUTCOME_KEY
         assert set(FRAME_AWARE) == set(_OUTCOME_KEY) == set(_READS) == set(_SCENARIO_FLAGS)
+        # and the VALUES: a third substitution landed in this table (2026-10-04)
+        assert all(k is None or k.isidentifier() for k in _OUTCOME_KEY.values())
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_csv_stays_parseable(self, capsys, name):
