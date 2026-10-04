@@ -486,6 +486,17 @@ ASSET_OVER_MAINT_RESTORE_RATE: float = 0.05  # condition restore per unit surplu
 #   catch-up, and with it the rebuild crossover (`capital.rebuild_crossover_ratio`).
 #   Named 2026-10-04 from a bare 2.0 in `asset_condition`.
 ASSET_MAX_MAINTENANCE_QUALITY: float = 2.0
+# tag: placeholder | units: fraction of condition per year
+# form: an asset's unavoidable wear under FULL maintenance — the maintained
+#   path `asset_condition_trajectory` carries, and the ceiling restoration
+#   climbs to. Split 2026-10-04 from HUMAN_CAPITAL_NATURAL_DECAY, which the
+#   asset functions read although it names a person's functional decline;
+#   same value, so nothing moved — the two are now free to differ.
+# resolves_by: the FHWA NBI panel named for ASSET_FULL_NEGLECT_DECAY — FIELD:
+#   the year-on-year rating change for structures under ADEQUATE maintenance.
+# confidence: 5 — not measured; inherited from the human-capital rate it was
+#   read through, which is itself a placeholder.
+ASSET_NATURAL_WEAR_RATE:       float = 0.005
 # tag: placeholder | units: EOH capacity per year; EOH capacity per TEH^exponent; dimensionless
 # form: core/capital.maturation_update —
 #     capacity_delta = BASE_GROWTH × years

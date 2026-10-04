@@ -25,14 +25,14 @@ from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    ASSET_NATURAL_WEAR_RATE,
     ASSET_WRITEDOWN_CONDITION,
     ASSET_TYPES,
-    HUMAN_CAPITAL_NATURAL_DECAY,
     MONITORING_SPIKE_SOFTENING_MAX,
     PRE_THRESHOLD_COMPOUND_RATE,
     REGEN_AUTOMATION_LEVERAGE_MAX,
 )
-from hours_eoh.core.capital import asset_condition, writedown_trigger
+from hours_eoh.core.capital import asset_condition, rebuild_crossover_ratio, writedown_trigger
 
 
 # ---------------------------------------------------------------------------
@@ -640,8 +640,8 @@ def maintenance_strategy_compare(
     initial_condition: float = 1.0,
     years_horizon: int = 30,
     epsilon: float = 0.40,
-    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
-    writedown_threshold: float = ASSET_WRITEDOWN_CONDITION,
+    natural_decay_rate: float = ASSET_NATURAL_WEAR_RATE,
+    writedown_threshold: float | None = None,
 ) -> dict:
     """
     Compare total human-labor EOH cost of three maintenance strategies over a
@@ -688,8 +688,14 @@ def maintenance_strategy_compare(
         epsilon: Automation level. Scales human-labor cost of all strategies.
         natural_decay_rate: Annual condition loss from unavoidable wear.
         writedown_threshold: Condition below which write-down triggers.
-                             Default: ASSET_WRITEDOWN_CONDITION, the one
-                             `writedown_trigger` reads (2026-10-04: was a copy).
+                             None (default, 2026-10-04) → DERIVED: the
+                             condition ratio to the maintained path below which
+                             catching up costs more labour than rebuilding,
+                             `capital.rebuild_crossover_ratio(teh_value /
+                             annual_eoh)` — the clock the maintenance scenario
+                             reads. A value given → the old ABSOLUTE condition
+                             threshold (ASSET_WRITEDOWN_CONDITION is the generic
+                             one).
 
     Returns:
         dict: {
@@ -736,11 +742,20 @@ def maintenance_strategy_compare(
     # soon as writedown triggers — avoids computing the full years_horizon list
     # when the threshold is hit early.
     neglect_period = [{"eoh_demanded": annual_eoh, "eoh_fulfilled": 0.0}]
+    full_period    = [{"eoh_demanded": annual_eoh, "eoh_fulfilled": annual_eoh}]
+    derived        = writedown_threshold is None
+    crossover      = (rebuild_crossover_ratio(teh_value / annual_eoh)
+                      if derived and annual_eoh > 0.0 else
+                      (ASSET_WRITEDOWN_CONDITION if writedown_threshold is None
+                       else writedown_threshold))
     condition      = initial_condition
+    maintained     = initial_condition
     writedown_year = None
     for yr in range(1, years_horizon + 1):
         condition = asset_condition(condition, neglect_period, natural_decay_rate)
-        if writedown_trigger(condition, writedown_threshold):
+        maintained = asset_condition(maintained, full_period, natural_decay_rate)
+        reading = condition / maintained if derived and maintained > 0.0 else condition
+        if writedown_trigger(reading, crossover):
             writedown_year = yr
             break
 
@@ -782,6 +797,9 @@ def maintenance_strategy_compare(
 
     return {
         "asset_type":           asset_type,
+        "writedown_basis":      ("derived crossover (condition / maintained path)" if derived
+                                 else "absolute condition threshold"),
+        "writedown_threshold":  crossover,
         "years_horizon":        years_horizon,
         "epsilon":              epsilon,
         "human_labor_fraction": human_fraction,

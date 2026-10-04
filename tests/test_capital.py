@@ -777,7 +777,7 @@ class TestRestorationAndTheRebuildCrossover:
 
     def test_neglect_damage_is_won_back_and_age_is_not(self):
         from hours_eoh.core.capital import asset_condition_trajectory
-        from hours_eoh.data import HUMAN_CAPITAL_NATURAL_DECAY as d
+        from hours_eoh.data import ASSET_NATURAL_WEAR_RATE as d
         tr = asset_condition_trajectory(0.4, 1.0, 2.0, 60, as_built=1.0)
         conds = [r["condition"] for r in tr]
         maintained = [(1.0 - d) ** (t + 1) for t in range(60)]

@@ -10,8 +10,8 @@ revaluations and re-anchors, the dataset-governance gate.
 
 Counts below are generated, never hand-kept.
 
-- <!-- census:provenance -->**362 constants in `data.py`, all tagged** — `provenance 362/362`<!-- /census:provenance --> *(gated)*.
-  <!-- census:tags -->placeholder 129 (35.6%), normative 77 (21.3%), convention 47 (13.0%), instance 28 (7.7%), measured 28 (7.7%), derived 23 (6.4%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
+- <!-- census:provenance -->**363 constants in `data.py`, all tagged** — `provenance 363/363`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 130 (35.8%), normative 77 (21.2%), convention 47 (12.9%), instance 28 (7.7%), measured 28 (7.7%), derived 23 (6.3%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
   constants are decisions needing argument, not data — they are forbidden a
   `resolves_by` and that is the point.
@@ -49,7 +49,7 @@ Counts below are generated, never hand-kept.
   share **+0.23% / −0.66% / +2.91% / −5.68%**, a **25× leverage spread** inside
   one constant, on the quantity that is unit-elastic on the money supply.
   *Settles by:* a pass over the 30, mixed units first.
-- <!-- census:confidence -->**131 of 148**<!-- /census:confidence --> **placeholder/bounded constants carry no confidence figure.**
+- <!-- census:confidence -->**131 of 149**<!-- /census:confidence --> **placeholder/bounded constants carry no confidence figure.**
   *(caveat)* Ratcheted; may not rise. 125 → 133 (sigmoid split), 133 → 131 (two
   baselines retagged, 2026-09-16); arithmetic in `tests/test_confidence.py`.
 - **Two of four personal automation floors carry a value; both are improved

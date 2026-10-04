@@ -524,3 +524,18 @@ class TestTheFrameStateReachesTheRun:
         a = _scenario(name, "--frame", "us")
         b = _scenario(name, "--frame", "us", "--adult-capacity", "1200")
         assert _strip(a) != _strip(b)
+
+
+class TestOneAgePerFrame:
+    """Author, 2026-10-04: the stock's age follows the frame — stated, or the
+    canonical 0.30, labelled default — in every scenario that reads it. Before,
+    `overbuild` read its margin at overbuild_check's own 0.50 and
+    `maintenance_crisis` at 0.30 on the same frame."""
+
+    @pytest.mark.parametrize("flags", [(), ("--frame", "us"), ("--frame-file", "indust_overbuilt")])
+    def test_overbuild_and_maintenance_read_one_margin(self, flags):
+        a = _scenario("overbuild", *flags)
+        b = _scenario("maintenance_crisis", *flags)
+        assert a["net_vs_autarky"] == pytest.approx(b["overbuild_margin_before"])
+        assert a["inputs"]["capital_age_ratio"]["value"] == b["inputs"]["capital_age_ratio"]["value"]
+

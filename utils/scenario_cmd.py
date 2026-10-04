@@ -148,13 +148,14 @@ _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
 _SHOCK_READS = frozenset({
     "population", "age_fractions", "adult_capacity_h_yr", "adult_share",
     "labor_supply_per_capita", "capital_teh", "retirement_age", "retired_share",
-    "years_in_collective", "retiree_vested_fraction", "trust_balance", "epsilon"})
+    "years_in_collective", "retiree_vested_fraction", "trust_balance", "epsilon",
+    "capital_age_ratio", "ecosystem_health", "ecological_carried_by_people"})
 _CAPITAL_READS = frozenset({"population", "capital_teh", "epsilon"})
 _SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "epsilon"})
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
                                  "ecological_spike", "compound_shock", "capital_loss")},
-    "overbuild": _CAPITAL_READS,
+    "overbuild": _CAPITAL_READS | {"capital_age_ratio", "ecosystem_health"},
     **{n: _CAPITAL_READS | {"capital_age_ratio"} for n in ("maintenance_crisis", "recovery")},
     **{n: _SIM_READS for n in ("labor_income_shock", "trust_stress", "measured_sim")},
     **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
@@ -176,15 +177,17 @@ _READS: dict[str, frozenset[str]] = {
     **{n: frozenset({"epsilon"}) for n in ("frame", "guf_magnitude", "guf_writedown",
                                            "guf_integration")},
 }
-#: Inputs a scenario reads ONLY WHEN THE FRAME STATES THEM (2026-10-04): left
-#: at the framework default they are not passed, so they are not shown either.
-#: `restoration_eoh` joins them when the frame declares its ecological work
-#: carried by its people.
-_ECO_STATE = ("ecosystem_health", "capital_age_ratio", "ecological_carried_by_people")
+#: Inputs a scenario reads ONLY WHEN THE FRAME STATES THEM (2026-10-04): the
+#: spike and compound shocks price the frame's land only when it states one
+#: (else population × LAND_HECTARES_PER_CAPITA). `restoration_eoh` joins them
+#: when the frame declares its ecological work carried by its people. The
+#: physical state (age, health, who carries the ecology) is read ALWAYS and
+#: shown with its label, default included (author, 2026-10-04).
 _READS_IF_STATED: dict[str, tuple[str, ...]] = {
-    **{n: _ECO_STATE for n in ("automation_failure", "demographic_shock", "capital_loss")},
-    **{n: _ECO_STATE + ("land_m2",) for n in ("ecological_spike", "compound_shock")},
-    "overbuild": ("ecosystem_health", "capital_age_ratio"),
+    **{n: ("ecological_carried_by_people",) for n in ("automation_failure",
+       "demographic_shock", "capital_loss")},
+    **{n: ("ecological_carried_by_people", "land_m2")
+       for n in ("ecological_spike", "compound_shock")},
 }
 
 #: The input each input-specific flag sets (--frame and --frame-file set the
@@ -813,11 +816,11 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
     if name == "overbuild":
         from hours_eoh.core.autarky import break_even_epsilon, overbuild_check, payback
         k = v["capital_teh"]
-        # The frame's physical state where it STATES one: overbuild_check's own
-        # capital-age default (0.50) differs from the frame's reference (0.30),
-        # so a default is not passed and the shipped figures stay as they were.
-        state = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")
-                 if lab[key]["kind"] != "default"}
+        # THE FRAME'S STATE, ALWAYS (author, 2026-10-04: "should follow the
+        # frame … default to the canonical .3 everywhere when not given but
+        # stated clearly default was used"). overbuild_check's own default age
+        # is 0.50; the frame's labelled default is CANONICAL_CAPITAL_AGE_BASE.
+        state = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")}
         c = overbuild_check(k, pop, epsilon=epsilon, **state)
         pb = payback(k, pop, epsilon=epsilon, **state)
         out: dict = {kk: vv for kk, vv in c.items()}

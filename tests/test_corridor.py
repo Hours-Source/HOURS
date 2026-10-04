@@ -475,7 +475,11 @@ class TestHeadroom:
         need = sum(survival_inventory(population=1e6, epsilon=0.40)[d]
                    for d in DEFAULT_SURVIVAL_DOMAINS)
         assert h["survival"]["labour_cover"] == pytest.approx(labor_supply_per_capita() * 1e6 / need)
-        assert h["overbuild"]["capital_limit_teh"] == pytest.approx(overbuild_capital_limit(self._arc_capital(), 1e6))
+        # the frame's labelled default age (2026-10-04), not overbuild_check's own 0.50
+        from hours_eoh.data import CANONICAL_CAPITAL_AGE_BASE, ECOSYSTEM_HEALTH_DEFAULT
+        assert h["overbuild"]["capital_limit_teh"] == pytest.approx(overbuild_capital_limit(
+            self._arc_capital(), 1e6, capital_age_ratio=CANONICAL_CAPITAL_AGE_BASE,
+            ecosystem_health=ECOSYSTEM_HEALTH_DEFAULT))
         assert h["thermal_measured"]["to_exposure"] == pytest.approx(THERMAL_U_FLOOR / 0.25)
         assert h["thermal_measured"]["to_contact"] == pytest.approx(4.0)
 

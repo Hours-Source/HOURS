@@ -205,9 +205,10 @@ def _compute(args: argparse.Namespace) -> dict:
                        if args.available_labor is None else args.available_labor)
     floors = [
         survival_floor(eoh, available_labor),
-        overbuild_floor(inp["capital_teh"], pop, **{
-            k: inp[k] for k in ("capital_age_ratio", "ecosystem_health")
-            if labels[k]["kind"] != "default"}),
+        # The frame's age and health ALWAYS — stated, or the labelled default
+        # (CANONICAL_CAPITAL_AGE_BASE), never overbuild_check's own 0.50.
+        overbuild_floor(inp["capital_teh"], pop, capital_age_ratio=inp["capital_age_ratio"],
+                        ecosystem_health=inp["ecosystem_health"]),
     ]
 
     if args.bare_chi:
@@ -234,8 +235,7 @@ def _compute(args: argparse.Namespace) -> dict:
     # about how far it is from binding — the gap the demographic margin closed
     # for one bound, closed here for the rest that have a distance.
     eoh_surv = sum(eoh.get(d, 0.0) for d in DEFAULT_SURVIVAL_DOMAINS)
-    ob_state = {k: inp[k] for k in ("capital_age_ratio", "ecosystem_health")
-                if labels[k]["kind"] != "default"}
+    ob_state = {k: inp[k] for k in ("capital_age_ratio", "ecosystem_health")}
     k_limit = (overbuild_capital_limit(inp["capital_teh"], pop, **ob_state)
                if inp["capital_teh"] > 0 else None)
     u = inp["utilization"]

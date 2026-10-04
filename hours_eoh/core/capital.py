@@ -24,8 +24,8 @@ from __future__ import annotations
 from typing import TypedDict
 
 from hours_eoh.data import (
-    AGE_GROUPS, ASSET_MAX_MAINTENANCE_QUALITY, ASSET_WRITEDOWN_CONDITION,
-    HUMAN_CAPITAL_NATURAL_DECAY, PERSONAL_EOH_BASE,
+    AGE_GROUPS, ASSET_MAX_MAINTENANCE_QUALITY, ASSET_NATURAL_WEAR_RATE,
+    ASSET_WRITEDOWN_CONDITION, PERSONAL_EOH_BASE,
     INFANT_EOH_EPSILON_FACTOR, MATURATION_AUTO_LEVERAGE,
     ANNUAL_DEATH_RATE, ESTATE_INHERITANCE_FRACTION,
     ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
@@ -194,7 +194,7 @@ def aggregate_personal_eoh_fulfilled(
 def asset_condition(
     initial_condition: float,
     maintenance_history: list[dict],
-    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
+    natural_decay_rate: float = ASSET_NATURAL_WEAR_RATE,
     ceiling: float | None = None,
 ) -> float:
     """
@@ -272,7 +272,7 @@ def asset_condition_trajectory(
     annual_eoh: float,
     fulfillment_fraction: float,
     years: int,
-    natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
+    natural_decay_rate: float = ASSET_NATURAL_WEAR_RATE,
     as_built: float | None = None,
 ) -> list[dict]:
     """
