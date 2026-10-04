@@ -36,14 +36,17 @@ US2024_BROAD_HUMAN_PC = 1042.2
 class TestTheDefaultReadingIsUnchanged:
     """The repair is additive. A caller who ignores it sees the same numbers."""
 
+    # Re-pinned 2026-10-04: the default stock age became the measured US one
+    # (0.50 → 0.591), so the obligation the hours are divided by grew. The
+    # measured hours (human_per_capita) did not move.
     def test_the_shipped_epsilons_are_bit_identical(self):
-        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.40689963045285293)
-        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.21380613330205045)
+        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.40980274229863733)
+        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.21589293990276104)
 
     def test_the_shipped_intermediates_are_bit_identical(self):
         core = LE.labour_epsilon("core")
         assert repr(core["human_per_capita"]) == repr(911.3211693717458)
-        assert repr(core["total_obligation_per_capita"]) == repr(1536.537854575224)
+        assert repr(core["total_obligation_per_capita"]) == repr(1544.095906038368)
 
     def test_supplying_no_state_equals_supplying_an_empty_one(self):
         assert (LE.labour_epsilon("core", obligation_state={})["epsilon"]
@@ -51,12 +54,15 @@ class TestTheDefaultReadingIsUnchanged:
 
     def test_the_comparison_verdict_has_not_moved(self):
         c = LE.instrument_comparison()
-        assert c["verdict"] == "ADJACENT"
+        # DIVERGENT since 2026-10-04: the capital arm reads its BEA ages (and
+        # the labour arm's obligation the measured default age); ADJACENT before.
+        assert c["verdict"] == "DIVERGENT"
         # Re-pinned 2026-10-03: 0.04568693284802028 → 0.045610935473373415 when
         # the default capital rates stopped being rounded copies of
         # `conversion_band()` (15.94 → 15.9423…). The verdict, the grid's 18
         # cells and the 8 inside the labour band are unchanged.
-        assert repr(c["gap"]) == repr(0.045610935473373415)
+        # → 0.05965894206317429 on 2026-10-04.
+        assert repr(c["gap"]) == repr(0.05965894206317429)
 
     def test_the_report_still_builds_its_verdict_string(self):
         r = LE.labour_epsilon_report()

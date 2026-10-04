@@ -5,6 +5,8 @@ Covers: automation_failure_shock, demographic_shock, ecological_eoh_spike,
         labor_income_shock, compound_shock.
 """
 
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+
 import pytest
 from hours_eoh.scenarios.shocks import (
     _LABOR_INCOME_AUTO_SLOPE, _LABOR_INCOME_BASE, _LABOR_INCOME_MIN)
@@ -353,7 +355,7 @@ class TestShocksPayFromTheMint:
         r = demographic_shock(epsilon=eps, shock_type="aging", magnitude=0.2)
         mint = eoh_to_teh_pipeline(
             eps, population=1_000_000.0,
-            capital_stock=resolve_capital_stock(None, eps), capital_age_ratio=0.30,
+            capital_stock=resolve_capital_stock(None, eps), capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
         )["teh_created"]
         assert r["labor_income"] == pytest.approx(mint, rel=1e-12)
 
@@ -368,8 +370,8 @@ class TestShocksPayFromTheMint:
         from hours_eoh.scenarios.shocks import _mint_income
         from hours_eoh.core.eoh_generation import resolve_capital_stock
         for pop in (1.0e5, 1.0e7):
-            got = _mint_income(0.40, pop, resolve_capital_stock(None, 0.40, population=pop), 0.30)
-            ref = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), 0.30)
+            got = _mint_income(0.40, pop, resolve_capital_stock(None, 0.40, population=pop), CAPITAL_AGE_RATIO_DEFAULT)
+            ref = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), CAPITAL_AGE_RATIO_DEFAULT)
             assert got / pop == pytest.approx(ref / 1.0e6, rel=1e-9)
 
     def test_the_spike_reports_the_mint_and_honours_an_explicit_income(self):
@@ -379,7 +381,7 @@ class TestShocksPayFromTheMint:
         # The after-state's mint (2026-10-01): restoration work registers, so it
         # sits ABOVE the pre-collapse mint, by less than the restoration hours
         # would mint at the multiplier cap `M_MAX`.
-        before = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), 0.30)
+        before = _mint_income(0.40, 1.0e6, resolve_capital_stock(None, 0.40, population=1.0e6), CAPITAL_AGE_RATIO_DEFAULT)
         from hours_eoh.data import M_MAX
         assert before < r["labor_income"] < before + r["restoration_eoh_high"] * M_MAX
         assert ecological_eoh_spike(0.40, 0.7, 0.3, labor_income=1.0e10)["labor_income"] == 1.0e10
@@ -449,7 +451,7 @@ class TestAgeDistributionIsFractions:
         r = demographic_shock(eps, "growth", 0.2)
         ref = total_eoh(eps, population=1.0e6,
                         capital_stock=resolve_capital_stock(None, eps),
-                        capital_age_ratio=0.30)["total"]
+                        capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT)["total"]
         assert r["eoh_before"] == pytest.approx(ref, rel=1e-12)
 
     def test_growth_scales_the_personal_obligation_by_the_growth(self):
@@ -496,7 +498,7 @@ class TestShocksRunOnTheSharedPath:
         r = automation_failure_shock(eps)
         ref = eoh_to_teh_pipeline(
             eps, capital_stock=resolve_capital_stock(None, eps, population=1.0e6),
-            capital_age_ratio=0.30, ecosystem_health=0.70,
+            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, ecosystem_health=0.70,
             knowledge_complexity=resolve_knowledge_base_size(None, eps))
         assert r["total_eoh"] == pytest.approx(ref["total_eoh"], rel=1e-12)
 
@@ -508,7 +510,7 @@ class TestShocksRunOnTheSharedPath:
             cap = resolve_capital_stock(None, eps, population=pop)
             r = labor_income_shock(eps, 0.5, population=pop)
             assert r["baseline_income"] == pytest.approx(
-                _mint_income(eps, pop, cap, 0.30), rel=1e-12)
+                _mint_income(eps, pop, cap, CAPITAL_AGE_RATIO_DEFAULT), rel=1e-12)
 
     def test_total_income_collapse_reaches_zero(self):
         # The docstring's "0.0 = total income collapse" was floored at 3e8.
@@ -521,7 +523,7 @@ class TestShocksRunOnTheSharedPath:
         # the REGISTER's, held apart from the capability (author, 2026-10-01).
         from hours_eoh.core.fiscal import fiscal_snapshot
         kw = dict(labor_income=3.0e8, capital_stock_teh=1.0e9,
-                  capital_age_ratio=0.30, population=1.0e6)
+                  capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, population=1.0e6)
         held = fiscal_snapshot(epsilon=0.0, registration_epsilon=eps, **kw)
         ref = fiscal_snapshot(epsilon=eps, **kw)
         lost = fiscal_snapshot(epsilon=0.0, **kw)
@@ -604,7 +606,11 @@ class TestAutomationFailureCascade:
         # Mode 9: CRISIS (the survival floor deferred) never fires at the
         # measured supply, so it is constructed: below the personal demand
         # per head the floor itself goes unserved.
-        assert automation_failure_shock(0.40)["outcome"] == "STABLE"
+        # Since 2026-10-04 the default stock is the measured US one (age 0.594):
+        # losing ALL machines at ε=0.40 now defers 2.7% (DEGRADED); half stays
+        # STABLE.
+        assert automation_failure_shock(0.40, fraction_lost=0.5)["outcome"] == "STABLE"
+        assert automation_failure_shock(0.40)["outcome"] == "DEGRADED"
         # DEGRADED: labour defers non-personal hours and no certified domain is
         # created short or deepened. Until 2026-10-03 this was ε=0.78, where
         # the care shortfall already there was not blamed on the shock; the

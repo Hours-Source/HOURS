@@ -368,9 +368,10 @@ number.** The framework carries two instruments that share no data:
 
 Run for the US, the two bands land close to each other without overlapping **at
 government scope and current-cost doctrine** — the one cell the comparison reads
-by default — and ADJACENT is the honest word for that. **Across the whole
-declared grid they OVERLAP**: 8 of the 18 cells fall inside the labour band
-(0.200–0.757 against 0.214–0.407). The capital route returns a grid precisely
+by default — DIVERGENT, by a gap just past the cut the comparison declares
+for "near" (`INSTRUMENT_ADJACENT_GAP`). **Across the whole declared grid they
+OVERLAP**: 8 of the 18 cells fall inside the labour band. Call
+`instrument_comparison()` for the figures. The capital route returns a grid precisely
 because its three judgements are undeclared, so *which verdict you get is a
 function of the scope and doctrine you pick, not a property of the instruments*.
 `instrument_comparison()` reports both, and takes `scope=` and `doctrine=`

@@ -257,8 +257,8 @@ class TestPartitionChangesNothing:
             # moves nothing, and only the decision may move them.
         expected = {
             0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.40: 1537387332.1096926,   # measured default age, 2026-10-04
+            0.99: 2361901009.2416563,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -361,16 +361,16 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
             # moves nothing, and only the decision may move them.
         expected = {
             0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.40: 1537387332.1096926,   # measured default age, 2026-10-04
+            0.99: 2361901009.2416563,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
         # the pre-4f arc is still reachable, and is what every earlier figure used
         legacy = {
             0.0:  1360742321.1688159,
-            0.40: 1531928871.729177,
-            0.99: 2348389048.8611407,
+            0.40: 1537388871.729177,   # measured default age, 2026-10-04
+            0.99: 2361902548.8611407,
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,

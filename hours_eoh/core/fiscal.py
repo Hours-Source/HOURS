@@ -22,6 +22,7 @@ import math
 import warnings
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     CONTESTABILITY_VESTING_YEARS,
     SUFF_GUARANTEE_FLOOR_FRACTION,
     ECOSYSTEM_HEALTH_DEFAULT,
@@ -1823,7 +1824,7 @@ def trust_solvency_trajectory(
     div_rate: float = DIV_RATE,
     epsilon: float = 0.40,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     population: float = REFERENCE_FRAME_POPULATION,
     solvency_floor: float | None = None,
 ) -> dict:
@@ -2074,7 +2075,7 @@ def min_levy_for_solvency(
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     population: float = REFERENCE_FRAME_POPULATION,
     stewardship_teh: float | None = None,
     guarantee_teh: float | None = None,

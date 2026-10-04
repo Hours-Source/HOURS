@@ -42,7 +42,7 @@ scenarios. Reporting only; nothing here changes a shipped number.
 
 from __future__ import annotations
 
-from hours_eoh.data import REFERENCE_FRAME_POPULATION
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, REFERENCE_FRAME_POPULATION
 
 import inspect
 from dataclasses import dataclass
@@ -236,7 +236,7 @@ def hours_shock_response(
             # The frame's capital (2026-09-30): was a retyped 2.0e9 — the 1M
             # constant — beside a `population` the docstring calls THE FRAME.
             capital_stock=resolve_capital_stock(None, None, population=population) * capital_mult,
-            capital_age_ratio=0.50,
+            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
             ecosystem_health=health, monitoring_capability=0.70,
             available_labor_eoh=labour * labour_mult,
         )

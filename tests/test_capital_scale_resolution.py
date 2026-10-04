@@ -249,9 +249,11 @@ class TestTheFrameHoldsAtRuntime:
             eoh_to_teh_pipeline(epsilon=0.40, population=pop)["eoh_by_domain"]["infrastructure"] / pop
             for pop in (1e5, 1e6, 1e7)
         ]
-        assert pc[0] == pytest.approx(90.0, rel=1e-9)   # was 900.00
-        assert pc[1] == pytest.approx(90.0, rel=1e-9)
-        assert pc[2] == pytest.approx(90.0, rel=1e-9)   # was 9.00
+        # 90.0 until 2026-10-04, when the default age became the measured US
+        # stock (CAPITAL_AGE_RATIO_DEFAULT, 0.50 → 0.591).
+        assert pc[0] == pytest.approx(95.46, rel=1e-9)   # was 954.6
+        assert pc[1] == pytest.approx(95.46, rel=1e-9)
+        assert pc[2] == pytest.approx(95.46, rel=1e-9)   # was 9.546
 
     def test_a_supplied_stock_is_never_rescaled(self) -> None:
         """The doctrine the repair must not break: a caller who names a stock is
@@ -532,3 +534,47 @@ class TestTheReferenceConstantIsScaledBesideAPopulation:
                             ):
                                 hits.append((str(f.relative_to(_REPO)), c.lineno, fn.name))
         assert not hits, f"literal capital stock beside a population: {hits}"
+
+
+class TestTheStockAgeHasNamedDefaults:
+    """The stock's age (2026-10-04). A bare 0.50 sat at 18 sites from the first
+    commit with no source; it is now `CAPITAL_AGE_RATIO_DEFAULT`, beside the
+    canonical arc's `CANONICAL_CAPITAL_AGE_BASE` and the US reading off BEA.
+    A literal age as a parameter default or a keyword argument in the package
+    is the copy (mode 4) this replaced. **States its own gap:** static, and
+    the package only — an age computed inline, passed positionally, held in a
+    dict literal (EohParams' shape) or set in `utils/` is not seen."""
+
+    _KEY = "capital_age_ratio"
+
+    def _literal_ages(self) -> list[str]:
+        found = []
+        for path in sorted(PKG.rglob("*.py")):
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                pairs: list[tuple[str, ast.AST]] = []
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    a = node.args
+                    pos = a.posonlyargs + a.args
+                    pairs += [(p.arg, d) for p, d in zip(pos[len(pos) - len(a.defaults):], a.defaults)]
+                    pairs += [(p.arg, d) for p, d in zip(a.kwonlyargs, a.kw_defaults) if d is not None]
+                elif isinstance(node, ast.Call):
+                    pairs += [(k.arg, k.value) for k in node.keywords if k.arg]
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.value:
+                    pairs.append((node.target.id, node.value))
+                for name, value in pairs:
+                    if name == self._KEY and isinstance(value, ast.Constant) \
+                            and isinstance(value.value, (int, float)):
+                        found.append(f"{path.relative_to(PKG)}:{value.lineno}")
+        return found
+
+    def test_no_literal_age_in_the_package(self):
+        assert self._literal_ages() == []
+
+    def test_it_can_fire(self, monkeypatch, tmp_path):
+        """Broken on purpose: the gate sees a planted literal."""
+        bad = tmp_path / "hours_eoh"
+        bad.mkdir()
+        (bad / "m.py").write_text("def f(capital_age_ratio: float = 0.5):\n    return g(capital_age_ratio=0.3)\n")
+        monkeypatch.setattr(__import__(__name__, fromlist=["PKG"]), "PKG", bad)
+        assert len(self._literal_ages()) == 2

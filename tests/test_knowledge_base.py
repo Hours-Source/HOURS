@@ -307,7 +307,9 @@ class TestDomainShareProjection:
         # the two re-anchors act in OPPOSITE directions on the total: the
         # elderly revalue shrank the total knowledge is a share of, while the
         # working life grew knowledge itself.
-        assert rows[0.99]["knowledge_share"] == pytest.approx(0.479, abs=0.01)
+        # → 0.469 when the default stock age was measured (2026-10-04): older
+        # stock, more infrastructure, so knowledge's share fell.
+        assert rows[0.99]["knowledge_share"] == pytest.approx(0.469, abs=0.01)
 
     def test_delivers_the_behaviour_the_docstring_asserts(self):
         """knowledge_eoh's own reference says human labor at ε→1 is 'almost

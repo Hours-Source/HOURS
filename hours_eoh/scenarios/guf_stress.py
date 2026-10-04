@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from hours_eoh.data import (
-    CANONICAL_CAPITAL_AGE_BASE,
+    CAPITAL_AGE_RATIO_DEFAULT,
     REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     DEP_RATE,
@@ -66,7 +66,7 @@ def guf_fiscal_integration(
     trust_balance: float | None = None,
     population: float = REFERENCE_FRAME_POPULATION,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     levy_rates: dict | None = None,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
@@ -415,7 +415,7 @@ def automation_levy_guf_stress(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     levy_rates: dict | None = None,
     median_income: float = 0.0,
     dep_rate: float = DEP_RATE,

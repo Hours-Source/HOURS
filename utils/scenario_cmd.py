@@ -818,8 +818,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         k = v["capital_teh"]
         # THE FRAME'S STATE, ALWAYS (author, 2026-10-04: "should follow the
         # frame … default to the canonical .3 everywhere when not given but
-        # stated clearly default was used"). overbuild_check's own default age
-        # is 0.50; the frame's labelled default is CANONICAL_CAPITAL_AGE_BASE.
+        # stated clearly default was used"); the default is now the measured US
+        # stock, CAPITAL_AGE_RATIO_DEFAULT, and the US frame reads its own).
         state = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")}
         c = overbuild_check(k, pop, epsilon=epsilon, **state)
         pb = payback(k, pop, epsilon=epsilon, **state)

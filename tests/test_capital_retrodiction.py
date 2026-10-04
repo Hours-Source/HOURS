@@ -91,7 +91,12 @@ class TestTheJudgementsStayDeclared:
         """Replaces the `age: 10.0` placeholder every earlier run of this used."""
         assert CI.MEASURED_AGES["private_structures"] == pytest.approx(28.6)
         assert CI.MEASURED_AGES["government_equipment"] == pytest.approx(8.7)
-        assert CR.epsilon_from_inventory(20.0)["age_years"] != 10.0
+        r = CR.epsilon_from_inventory(20.0)
+        assert r["age_source"].startswith("measured")
+        # Each profile at its own BEA ratio (2026-10-04), not one class age.
+        assert len({round(v, 6) for v in r["age_ratio_by_profile"].values()}) > 1
+        supplied = CR.epsilon_from_inventory(20.0, inventory={"building": 1000.0})
+        assert supplied["age_source"].startswith("default")
 
 
 class TestTheConversionRateIsIntakeAndNotADefault:
@@ -270,7 +275,7 @@ class TestTheInventoryCanBeSupplied:
     instrument to another jurisdiction. The call is therefore unconditional and
     its result discarded on the supplied path, which looks wasteful and is not.
 
-    AND THE SUPPLIED TABLE ARRIVES UNDECLARED. The shipped one is 36 rows each
+    AND THE SUPPLIED TABLE ARRIVES UNDECLARED. The shipped one is 37 rows each
     carrying a `basis` (see TestTheJudgementsStayDeclared); a supplied mapping has
     none, because mapping national accounts onto machine profiles is the user's
     judgement. `inventory_source` reports which table produced a figure so the two
@@ -280,8 +285,10 @@ class TestTheInventoryCanBeSupplied:
     def test_the_default_reads_the_shipped_table(self):
         a = CR.epsilon_from_inventory(20.0)
         b = CR.epsilon_from_inventory(
-            20.0, inventory=CR.capital_by_profile("government", "current_cost"))
+            20.0, inventory=CR.capital_by_profile("government", "current_cost"),
+            age_ratios=a["age_ratio_by_profile"])
         assert a["epsilon"] == pytest.approx(b["epsilon"], rel=1e-12)
+        assert b["age_source"].startswith("supplied")
         assert a["capital_usd_b"] == pytest.approx(b["capital_usd_b"], rel=1e-12)
 
     def test_a_supplied_inventory_is_used_as_given(self):
@@ -356,3 +363,60 @@ class TestTheInventoryCanBeSupplied:
         small = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 100.0})
         large = CR.epsilon_from_inventory(20.0, inventory={"power_grid": 10000.0})
         assert large["epsilon"] > small["epsilon"]
+
+
+class TestTheStockAgeRatio:
+    """`stock_age_ratio` — the stock's age over its life, off BEA (2026-10-04).
+    The rows are the inventory rebuilt from BEA's finest lines, so a row that
+    drifts from `PROFILE_MAP` fails here unless it is named with the reason."""
+
+    def test_the_rows_rebuild_every_line(self):
+        """Rebuilding the lines from BEA's rows found four inventory errors
+        (corrected 2026-10-04); a line that drifts from its rows fails here."""
+        sums: dict[str, float] = {}
+        for r in CI.AGE_ROWS:
+            sums[r["line"]] = sums.get(r["line"], 0.0) + r["usd_b"]
+        off = {p["line"] for p in CI.PROFILE_MAP if abs(sums.get(p["line"], 0.0) - p["usd_b"]) > 0.1}
+        assert off == set() and set(sums) == {p["line"] for p in CI.PROFILE_MAP}
+
+    def test_the_default_is_the_us_reading(self):
+        """`CAPITAL_AGE_RATIO_DEFAULT` is the measured US stock, frozen in
+        data.py (which cannot import this layer) and held to the function."""
+        from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+        assert CAPITAL_AGE_RATIO_DEFAULT == pytest.approx(CR.stock_age_ratio()["ratio"], abs=5e-4)
+
+    def test_every_uncovered_row_says_why(self):
+        for r in CI.AGE_ROWS:
+            assert r["life_basis"]
+            if r["life"] is not None:
+                lo, hi = r["life"]
+                assert 0 < lo <= hi
+
+    @pytest.mark.parametrize("scope", sorted(CI.SCOPES))
+    def test_the_shape(self, scope):
+        cur = CR.stock_age_ratio(scope)
+        hist = CR.stock_age_ratio(scope, "historical_cost")
+        for r in (cur, hist):
+            assert 0.0 < r["low"] <= r["ratio"] <= r["high"]
+            assert 0.5 < r["coverage"] < 1.0
+            assert all(e["reason"] for e in r["excluded"])
+        # Historical cost weights old vintages at their nominal outlay: younger.
+        assert hist["ratio"] < cur["ratio"]
+        assert hist["private_only"] and not cur["private_only"]
+        dropped = [e for e in hist["excluded"] if "usd_b_current_cost" in e]
+        assert bool(dropped) == (scope != "productive")
+
+    def test_it_reads_the_age_and_the_life(self, monkeypatch):
+        base = CR.stock_age_ratio()["ratio"]
+        rows = [dict(r) for r in CI.AGE_ROWS]
+        for r in rows:
+            if r["life"]:
+                r["life"] = (2 * r["life"][0], 2 * r["life"][1])
+        monkeypatch.setattr(CR, "AGE_ROWS", tuple(rows))
+        assert CR.stock_age_ratio()["ratio"] == pytest.approx(base / 2)
+
+    def test_it_refuses_what_it_does_not_know(self):
+        with pytest.raises(ValueError):
+            CR.stock_age_ratio("everything")
+        with pytest.raises(ValueError):
+            CR.stock_age_ratio(doctrine="replacement")

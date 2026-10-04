@@ -634,14 +634,15 @@ class TestTrustSolvencyTrajectory:
         surfaced now, because a quantity the function computes and hides is one
         no test can pin.
 
-        The requirement at these defaults is 1.078067e8, so a 1.0e6 opening
+        The requirement at these defaults is 1.143469e8 (1.078067e8 before the
+        default stock age was measured, 2026-10-04), so a 1.0e6 opening
         balance sits well below it and the old cap genuinely binds here.
         """
         rich  = trust_solvency_trajectory(initial_trust_balance=3.5e10, n_periods=3)
         broke = trust_solvency_trajectory(initial_trust_balance=1.0e6, n_periods=3)
         assert broke["stewardship_cost_per_period"] == pytest.approx(
             rich["stewardship_cost_per_period"], rel=1e-12)
-        assert broke["stewardship_cost_per_period"] == pytest.approx(1.078067e8, rel=1e-4)
+        assert broke["stewardship_cost_per_period"] == pytest.approx(1.143469e8, rel=1e-4)
         # Larger than the balance that used to cap it, which is the whole point.
         assert broke["stewardship_cost_per_period"] > 1.0e6
         # An explicitly supplied cost is still honoured untouched.

@@ -41,32 +41,35 @@ Layer: scenarios/ — imports from core/, reference/ and research/, never the re
 from __future__ import annotations
 
 import csv
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from hours_eoh.reference.capital_inventory import (
-    BEA_POPULATION, BEA_YEAR, DOCTRINE_RATIOS, MEASURED_AGES, SCOPES,
-    UNALLOCATED, UNALLOCATED_USD_B,
+    AGE_ROWS, BEA_POPULATION, BEA_YEAR, DOCTRINE_RATIOS, SCOPES,
+    PROFILE_MAP, UNALLOCATED, UNALLOCATED_USD_B,
     capital_by_profile, scope_total, what_this_cannot_settle,
 )
-from hours_eoh.data import CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX
 from hours_eoh.research.thermal_capital import epsilon_current_from_inventory
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 
 __all__ = [
     "conversion_band", "epsilon_from_inventory", "retrodiction_grid",
     "doctrine_spread", "unallocated_sensitivity", "retrodiction_report",
+    "stock_age_ratio",
 ]
 
 _REGISTRY = Path(__file__).resolve().parents[1] / "reference" / "data" / "multiplier_registry_v5.csv"
 
-#: Age used when the inventory carries no measured age for a profile. The
-#: measured class ages in `MEASURED_AGES` cover equipment, structures and IPP;
-#: profiles mix classes, so a profile-level age is a weighted question the
-#: inventory does not answer. Structures dominate every scope by value, so the
-#: structures age is the honest fallback and is stated rather than assumed.
-_FALLBACK_AGE_KEY: str = "private_structures"
+#: THE AGES THE INVENTORY IS READ AT (2026-10-04). Each profile's age over its
+#: life comes from its own BEA rows (`AGE_ROWS`: average age over BEA service
+#: life, current cost — the physical reading whatever doctrine values the
+#: stock), replacing one class age (private structures, 28.6 yr) applied to
+#: every profile. `civilization` divides age by the PROFILE's design life, so
+#: the age passed is ratio × that life: the ratio arrives intact and the
+#: placeholder lives cancel. A supplied inventory is someone else's stock, so
+#: it is read at `CAPITAL_AGE_RATIO_DEFAULT` and says so.
 
 #: ε at or above which a reading counts as SATURATED — the §7 retrodiction
 #: falsifier's own threshold. 0.99 and not 1.0 because the arc's declared
@@ -142,6 +145,7 @@ def epsilon_from_inventory(
     population: float = BEA_POPULATION,
     *,
     inventory: Mapping[str, float] | None = None,
+    age_ratios: Mapping[str, float] | None = None,
 ) -> dict:
     """
     ε derived from a capital inventory at a SUPPLIED conversion rate.
@@ -165,12 +169,16 @@ def epsilon_from_inventory(
             non-US institution run this instrument.
 
             IT ARRIVES UNDECLARED, AND THE RESULT SAYS SO. The shipped table is
-            36 rows each carrying a `basis`, plus 2 exclusions each carrying a
+            37 rows each carrying a `basis`, plus 3 exclusions each carrying a
             `reason`, and `TestTheJudgementsStayDeclared` checks them. A supplied
             mapping has none of that — the mapping from your national accounts
             onto the machine profiles is YOUR judgement, and the framework cannot
             see it. `inventory_source` in the returned dict reports which table
             produced the figure so the two can never be confused.
+        age_ratios: YOUR stock's age over its life, by machine profile
+            (2026-10-04). Unstated, the shipped table reads its BEA ages and a
+            supplied inventory `CAPITAL_AGE_RATIO_DEFAULT`; `age_source` says
+            which.
 
     Raises:
         ValueError: on a non-positive rate, an unknown scope or doctrine, an
@@ -203,9 +211,11 @@ def epsilon_from_inventory(
         if negative:
             raise ValueError(f"inventory values must be >= 0, negative at {negative}")
         by_profile, source = {k: float(v) for k, v in inventory.items()}, "supplied"
-    age = MEASURED_AGES[_FALLBACK_AGE_KEY]
+    ratios, age_source = _ages(scope, inventory is not None, age_ratios)
     desc = {
-        name: {"teh_value": usd_b * 1e9 / currency_per_teh, "age": age, "condition": 0.85}
+        name: {"teh_value": usd_b * 1e9 / currency_per_teh,
+               "age": ratios[name] * CAPITAL_MACHINE_PROFILES[name]["design_life"],
+               "condition": 0.85}
         for name, usd_b in by_profile.items() if usd_b > 0.0
     }
     total_teh = sum(d["teh_value"] for d in desc.values())
@@ -223,7 +233,9 @@ def epsilon_from_inventory(
         "capital_usd_b":    sum(by_profile.values()),
         "capital_teh":      total_teh,
         "teh_per_capita":   total_teh / population,
-        "age_years":        age,
+        "age_ratio":        sum(d["teh_value"] * ratios[n] for n, d in desc.items()) / total_teh,
+        "age_ratio_by_profile": {n: ratios[n] for n in desc},
+        "age_source":       age_source,
         "epsilon":          eps,
         # REPORTED PER CALL, not only per grid. The shipped grid is guarded by
         # `test_no_cell_of_the_declared_grid_saturates` AND by a can-fire test; a
@@ -232,6 +244,37 @@ def epsilon_from_inventory(
         # too low for their inventory) as a finding about their economy.
         "saturated":        eps >= _SATURATION_EPSILON,
     }
+
+
+def _ages(scope: str, supplied: bool,
+          stated: Mapping[str, float] | None = None) -> tuple[dict[str, float], str]:
+    """Each machine profile's age over its life: as stated (a profile left out
+    takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA rows on the shipped
+    inventory (a profile with no row carrying a life takes the scope's ratio),
+    `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one."""
+    if stated is not None:
+        unknown = sorted(set(stated) - set(CAPITAL_MACHINE_PROFILES))
+        bad = sorted(k for k, v in stated.items() if not 0.0 <= float(v))
+        if unknown or bad:
+            raise ValueError(f"age_ratios: unknown profiles {unknown}, negative at {bad}")
+        return ({n: float(stated.get(n, CAPITAL_AGE_RATIO_DEFAULT)) for n in CAPITAL_MACHINE_PROFILES},
+                "supplied: age_ratios")
+    if supplied:
+        return ({n: CAPITAL_AGE_RATIO_DEFAULT for n in CAPITAL_MACHINE_PROFILES},
+                "default: CAPITAL_AGE_RATIO_DEFAULT — a supplied inventory's ages are not known")
+    scope_ratio = stock_age_ratio(scope)["ratio"]
+    profile_of = {r["line"]: r["profile"] for r in PROFILE_MAP
+                  if r["scope"] in SCOPES[scope]["includes"]}
+    num: dict[str, float] = {}
+    den: dict[str, float] = {}
+    for row in AGE_ROWS:
+        name = profile_of.get(row["line"])
+        if name is None or row["life"] is None or row["age"] is None:
+            continue
+        num[name] = num.get(name, 0.0) + row["usd_b"] * row["age"] / (0.5 * sum(row["life"]))
+        den[name] = den.get(name, 0.0) + row["usd_b"]
+    return ({n: num[n] / den[n] if den.get(n) else scope_ratio for n in CAPITAL_MACHINE_PROFILES},
+            f"measured: BEA {BEA_YEAR} average age over BEA service life, by profile")
 
 
 def retrodiction_grid(
@@ -290,13 +333,15 @@ def unallocated_sensitivity(currency_per_teh: float, scope: str = "government") 
     base = capital_by_profile(scope)
     amount = UNALLOCATED_USD_B
     placed = "computing_ai"
-    age = MEASURED_AGES[_FALLBACK_AGE_KEY]
+    ratios, _ = _ages(scope, False)
     out: dict[str, float] = {}
     for target in base:
         moved = dict(base)
         moved[placed] = moved.get(placed, 0.0) - amount
         moved[target] = moved.get(target, 0.0) + amount
-        desc = {n: {"teh_value": v * 1e9 / currency_per_teh, "age": age, "condition": 0.85}
+        desc = {n: {"teh_value": v * 1e9 / currency_per_teh,
+                    "age": ratios[n] * CAPITAL_MACHINE_PROFILES[n]["design_life"],
+                    "condition": 0.85}
                 for n, v in moved.items() if v > 0.0}
         out[target] = epsilon_current_from_inventory(desc, BEA_POPULATION)
     lo, hi = min(out.values()), max(out.values())
@@ -347,4 +392,79 @@ def retrodiction_report(currency_per_teh: float | None = None) -> dict:
         "point_estimate":    None,
         "verdict":           verdict,
         "adopted":           False,
+    }
+
+
+def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -> dict:
+    """
+    THE STOCK'S AGE AS A FRACTION OF ITS LIFE — `capital_age_ratio`, measured
+    (2026-10-04). Until now every reading of it was a default: a bare 0.50 in
+    core, frozen from the first commit, or the canonical arc's 0.30.
+
+    Value-weighted mean of BEA average age over BEA service life, row by row
+    (`AGE_ROWS`) — the same weighting `civilization.machine_eoh_from_capital`
+    uses (TEH-weighted age / design life). A RATIO, so no currency enters: the
+    rate that would turn dollars into TEH cancels.
+
+    THE DIRECTION OF ITS ERROR: BEA's ages are weighted by NET (depreciated)
+    stock, so an old asset counts for less than in a physical count — the
+    ratio errs LOW. Current cost is the doctrine that matches a physical age
+    (each vintage at its real quantity, today's prices); historical cost weights
+    by nominal outlay, which inflation tilts younger. Both are returned.
+
+    Args:
+        scope: one of `SCOPES` — what counts as capital.
+        doctrine: "current_cost" (Tables 2.9 / 7.7) or "historical_cost"
+            (2.10; PRIVATE ONLY — BEA publishes no historical-cost government
+            age, so the government lines are reported as not covered).
+
+    Returns: ratio (at each row's mid life), low / high (each row at its
+        longest / shortest BEA life), mean_age_years, share_past_life (stock
+        older than its mid life), coverage (share of the scope's stock with both
+        an age and a life — WITHIN PRIVATE assets when `private_only`, the
+        government rows then listed in `excluded` at their current-cost size),
+        and the excluded rows with BEA's reason.
+    """
+    if scope not in SCOPES:
+        raise ValueError(f"scope must be one of {sorted(SCOPES)}, got {scope!r}")
+    if doctrine not in ("current_cost", "historical_cost"):
+        raise ValueError(
+            f"doctrine must be 'current_cost' or 'historical_cost', got {doctrine!r}")
+    admitted = {r["line"] for r in PROFILE_MAP if r["scope"] in SCOPES[scope]["includes"]}
+    hist = doctrine == "historical_cost"
+    used, excluded, total = [], [], 0.0
+    for row in AGE_ROWS:
+        if row["line"] not in admitted:
+            continue
+        weight = row.get("usd_b_hist") if hist else row["usd_b"]
+        age = row.get("age_hist") if hist else row["age"]
+        if weight is None:
+            excluded.append({"bea": row["bea"], "type": row["type"],
+                             "usd_b_current_cost": row["usd_b"],
+                             "reason": "no historical-cost table for government assets"})
+            continue
+        total += weight
+        if age is None or row["life"] is None:
+            excluded.append({"bea": row["bea"], "type": row["type"], "usd_b": weight,
+                             "reason": row["life_basis"]})
+            continue
+        used.append((weight, age, row["life"]))
+    covered = sum(w for w, _, _ in used)
+    if covered <= 0.0:
+        raise ValueError(f"no row in scope {scope!r} carries both an age and a life")
+
+    def mean(f: Callable[[float, tuple[int, int]], float]) -> float:
+        return sum(w * f(a, life) for w, a, life in used) / covered
+
+    mid = lambda life: 0.5 * (life[0] + life[1])  # noqa: E731
+    return {
+        "scope": scope, "doctrine": doctrine, "year": BEA_YEAR,
+        "private_only": hist,
+        "ratio": mean(lambda a, life: a / mid(life)),
+        "low": mean(lambda a, life: a / life[1]),
+        "high": mean(lambda a, life: a / life[0]),
+        "mean_age_years": mean(lambda a, life: a),
+        "share_past_life": sum(w for w, a, life in used if a > mid(life)) / covered,
+        "coverage": covered / total,
+        "excluded": excluded,
     }

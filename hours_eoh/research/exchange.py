@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     REFERENCE_FRAME_POPULATION,
     CAPITAL_STOCK_DEFAULT,
     COASEAN_IMBALANCE_CEILING,
@@ -139,7 +140,7 @@ class CollectiveFrame:
     land_hectares:     float
     capital_stock_teh: float
     trust_balance:     float | None = None
-    capital_age_ratio: float = 0.50
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT
     ecosystem_health:  float = 0.70
     label:             str = ""
 
@@ -961,7 +962,7 @@ def n1_accounting_anchor(
         trust_balance=trust_balance,
         labor_income=ref["teh_created"],
         capital_stock_teh=capital_stock_teh,
-        capital_age_ratio=0.50,
+        capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
         population=population,
         epsilon=epsilon,
         eco_eoh_override=ref["eoh_by_domain"]["ecological"],

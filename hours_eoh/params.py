@@ -18,6 +18,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
     PERSONAL_EOH_BASE, INFRA_MAINT_RATE, INFRA_AGE_FACTOR_MAX,
@@ -55,7 +56,7 @@ EOH_DEFAULTS: dict[str, Any] = {
     # population — see CAPITAL_STOCK_DEFAULT's own tag block on the frame.
     "capital_stock_teh":       CAPITAL_STOCK_DEFAULT,
     "infra_maintenance_rate":  INFRA_MAINT_RATE,
-    "capital_age_ratio":       0.50,              # mean(current_age / design_life)
+    "capital_age_ratio":       CAPITAL_AGE_RATIO_DEFAULT,              # mean(current_age / design_life)
     "infra_age_factor_max":    INFRA_AGE_FACTOR_MAX,
 
     # --- Ecological EOH domain ---

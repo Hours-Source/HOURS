@@ -31,7 +31,7 @@ from typing import Any
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
     SUFF_GUARANTEE_FLOOR_FRACTION,
-    CANONICAL_CAPITAL_AGE_BASE,
+    CAPITAL_AGE_RATIO_DEFAULT,
     REFERENCE_FRAME_POPULATION,
     ECOSYSTEM_HEALTH_DEFAULT,
     AGE_GROUPS,
@@ -60,7 +60,7 @@ def make_economy_state(
     trust_balance: float | None = None,
     labor_income_teh: float = 5_000_000_000.0,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float | None = None,

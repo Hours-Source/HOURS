@@ -711,14 +711,16 @@ class TestPipelineScaleOverrides:
         # of this test is unchanged: adding parameters must move nothing for a
         # caller who passes none of them. What moved here was a DEFAULT, which
         # is the one thing that legitimately re-pins it.
+        # And 2026-10-04: the default stock age became the measured US one
+        # (0.50 → 0.591). ε=0 holds no capital, so its total did not move.
         expected_total = {
             0.0:  1360740781.5493312,
-            0.40: 1531927332.1096926,
-            0.99: 2348387509.2416563,
+            0.40: 1537387332.1096926,
+            0.99: 2361901009.2416563,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 339635131.5742957
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 343504433.07478446
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """

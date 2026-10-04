@@ -149,13 +149,19 @@ class TestTheLabourRouteIsCurrencyFree:
 class TestTheComparisonCanDisagree:
     """MODE 9. A cross-check that cannot report disagreement is not one."""
 
-    def test_the_shipped_comparison_is_adjacent(self):
+    def test_the_shipped_comparison_is_divergent_just_past_the_cut(self):
+        """ADJACENT (gap 0.046) until 2026-10-04, when the capital arm read its
+        stock at BEA's measured ages instead of one class age that put the
+        whole stock 1.15 lives old. Pinned at its level, because the page's
+        statement turns on it."""
+        from hours_eoh.data import INSTRUMENT_ADJACENT_GAP
         c = LE.instrument_comparison()
-        assert c["verdict"] == "ADJACENT", (
+        assert c["verdict"] == "DIVERGENT", (
             f"the instruments moved to {c['verdict']} (gap {c['gap']:.4f}) — the "
-            "page's corroboration claim has to change with it"
+            "page's statement has to change with it"
         )
-        assert c["gap"] < 0.05
+        assert c["gap"] == pytest.approx(0.0597, abs=5e-4)
+        assert c["gap"] < 2 * INSTRUMENT_ADJACENT_GAP
 
     def test_it_reports_divergent_when_the_instruments_disagree(self):
         """Forced by pushing the capital route somewhere the labour route is not."""
@@ -168,8 +174,10 @@ class TestTheComparisonCanDisagree:
 
     def test_all_three_verdicts_are_reachable(self):
         """Stated as one assertion so a future edit cannot quietly lose a branch."""
+        # ADJACENT is no longer the shipped corner (2026-10-04), so it is
+        # constructed: one rate a little above the band.
         got = {LE.instrument_comparison(capital_rates=r)["verdict"]
-               for r in ((2.0, 3.0), (24.0, 40.0), (15.94, 23.17))}
+               for r in ((2.0, 3.0), (24.0, 40.0), (24.0,))}
         assert got == {"DIVERGENT", "OVERLAP", "ADJACENT"}
 
     def test_the_shared_denominator_is_declared(self):
@@ -243,6 +251,17 @@ class TestTheLabourArmTakesItsDataToo:
                     unpaid_per_15plus=m["unpaid_per_15plus"],
                     paid_per_15plus=m["paid_per_15plus"])
 
+    @staticmethod
+    def _shipped_ages():
+        """The shipped table's ages travel with it when it is handed back as a
+        supplied inventory (2026-10-04) — without them it reads the default."""
+        from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
+        return epsilon_from_inventory(20.0)["age_ratio_by_profile"]
+
+    def test_ages_without_an_inventory_are_refused(self):
+        with pytest.raises(ValueError, match="age_ratios"):
+            LE.instrument_comparison(age_ratios={"building": 0.5})
+
     def test_supplying_the_shipped_values_reproduces_the_shipped_reading(self):
         """The sentinel resolves to exactly what it replaced."""
         a = LE.measured_hours()
@@ -296,7 +315,8 @@ class TestTheLabourArmTakesItsDataToo:
         from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
         inv = capital_by_profile("government", "current_cost")
         a = LE.instrument_comparison()
-        b = LE.instrument_comparison(inventory=inv, **self._shipped_inputs())
+        b = LE.instrument_comparison(inventory=inv, age_ratios=self._shipped_ages(),
+                                     **self._shipped_inputs())
         assert a["verdict"] == b["verdict"]
         assert a["gap"] == pytest.approx(b["gap"], rel=1e-12)
         assert a["sources"] == {"capital": "shipped_bea", "labour": "shipped_atus"}
@@ -307,7 +327,8 @@ class TestTheLabourArmTakesItsDataToo:
         from hours_eoh.scenarios.capital_retrodiction import capital_by_profile
         inv = capital_by_profile("government", "current_cost")
         a = LE.reconciling_rate("core")["reconciling_rate"]
-        b = LE.reconciling_rate("core", inventory=inv, **self._shipped_inputs())["reconciling_rate"]
+        b = LE.reconciling_rate("core", inventory=inv, age_ratios=self._shipped_ages(),
+                                **self._shipped_inputs())["reconciling_rate"]
         assert a == pytest.approx(b, rel=1e-9)
 
 class TestTheVerdictIsAChoiceAndSaysSo:
@@ -319,7 +340,8 @@ class TestTheVerdictIsAChoiceAndSaysSo:
     reported the result as a property of the instruments. The capital route
     returns 18 cells precisely BECAUSE its three judgements are undeclared.
 
-    Measured at the US frame: the corner gives ADJACENT at gap 0.046, while 8 of
+    Measured at the US frame (DIVERGENT at 0.0597 since 2026-10-04, when the
+    capital arm took its measured ages): the corner gave ADJACENT at gap 0.046, while 8 of
     the 18 declared cells fall inside the labour band and the full grid
     (0.200-0.757) OVERLAPS it. The corner stays the headline — government /
     current_cost is the most defensible single reading, and switching the
@@ -329,8 +351,11 @@ class TestTheVerdictIsAChoiceAndSaysSo:
     """
 
     def test_the_corner_is_still_the_headline(self):
+        """The corner stays the headline when its verdict is the less agreeable
+        one (DIVERGENT since 2026-10-04) — the same rule that kept it there
+        when the grid agreed and it did not."""
         c = LE.instrument_comparison()
-        assert c["verdict"] == "ADJACENT"
+        assert c["verdict"] == "DIVERGENT"
         assert c["capital"]["scope"] == "government"
         assert c["capital"]["doctrine"] == "current_cost"
 
@@ -353,7 +378,7 @@ class TestTheVerdictIsAChoiceAndSaysSo:
         """
         cur = LE.instrument_comparison(doctrine="current_cost")
         hist = LE.instrument_comparison(doctrine="historical_cost")
-        assert cur["verdict"] == "ADJACENT"
+        assert cur["verdict"] == "DIVERGENT"
         assert hist["verdict"] == "OVERLAP", (
             f"historical cost read {hist['capital']['low']:.4f}-"
             f"{hist['capital']['high']:.4f} against labour "
@@ -385,6 +410,6 @@ class TestTheVerdictIsAChoiceAndSaysSo:
         """
         v = LE.labour_epsilon_report()["verdict"]
         assert "government/current_cost" in v
-        assert "ADJACENT" in v
+        assert "DIVERGENT" in v
         assert "OVERLAP across the declared grid" in v
         assert "depends on the scope and doctrine chosen" in v

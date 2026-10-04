@@ -84,6 +84,7 @@ from hours_eoh.core.fiscal import (
     trust_management,
 )
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     EPSILON_ARC_MAX,
     REFERENCE_FRAME_POPULATION,
     ARC_REPORTING_POINTS,
@@ -329,7 +330,7 @@ def stationarity_at(
     # reach the result. Passed by keyword at the pipeline's own default so it
     # reads as that, not as a domain figure.
     stew = stewardship_allocation(
-        capital_stock_teh=capital, capital_age_ratio=0.5, epsilon=epsilon,
+        capital_stock_teh=capital, capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, epsilon=epsilon,
         available_teh=float("inf"),
         infra_eoh_override=by_domain["infrastructure"],
     )["teh_required"]

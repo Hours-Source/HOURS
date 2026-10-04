@@ -65,7 +65,7 @@ from hours_eoh.core.eoh_generation import (
     personal_base_for,
     personal_eoh,
 )
-from hours_eoh.data import CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_PERSONAL_SERVING_SHARE, ABATEMENT_HALF_CAPITAL_TEH, LAND_HECTARES_PER_CAPITA, ECOSYSTEM_HEALTH_DEFAULT, REFERENCE_FRAME_POPULATION
 
 
 class AutarkyReference(TypedDict):
@@ -168,7 +168,7 @@ def overbuild_check(
     epsilon: float = 0.40,
     standard: str = "sufficiency",
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     knowledge_base_size: float = 1.0,
     knowledge_complexity_per_unit: float = 1.0,
     half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,

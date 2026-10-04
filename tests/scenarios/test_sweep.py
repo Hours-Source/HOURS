@@ -4,6 +4,8 @@ Tests for hours_eoh.scenarios.sweep.epsilon_sweep at its canonical location.
 The sweep verifies EOH framework coherence across the full automation arc.
 """
 
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT
+
 import pytest
 from hours_eoh.scenarios.sweep import epsilon_sweep
 
@@ -139,7 +141,7 @@ class TestTheSweepsDomainsAreThePipelines:
             e = row["epsilon"]
             p = eoh_to_teh_pipeline(
                 e, capital_stock=resolve_capital_stock(None, e, population=1.0e6),
-                capital_age_ratio=0.30, ecosystem_health=0.70,
+                capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, ecosystem_health=0.70,
                 knowledge_complexity=resolve_knowledge_base_size(None, e),
             )["eoh_by_domain"]
             for key, dom in (("personal_eoh", "personal"), ("infrastructure_eoh", "infrastructure"),

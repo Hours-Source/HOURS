@@ -164,7 +164,7 @@ class TestThePublishedPageSaysWhatTheFunctionsSay:
 
     def test_the_instrument_verdict_on_the_page_is_the_live_one(self, live, page):
         assert live["instrument_verdict"].lower() in page.lower()
-        assert "ADJACENT" in page, "the page must use the verdict word"
+        assert live["instrument_verdict"] in page, "the page must use the verdict word"
 
     def test_the_designed_zeros_are_stated_and_still_zero(self, live, page):
         assert live["shock_capital_minting"] == 0.0

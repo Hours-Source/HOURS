@@ -18,7 +18,7 @@ from typing import Callable
 
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
-    CANONICAL_CAPITAL_AGE_BASE,
+    CAPITAL_AGE_RATIO_DEFAULT,
     REFERENCE_FRAME_POPULATION,
     ECOSYSTEM_HEALTH_DEFAULT,
     SUFF_LEVY_RATE,
@@ -45,7 +45,7 @@ def fiscal_parameter_sweep(
     trust_balance: float | None = None,
     labor_income: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict:
     """

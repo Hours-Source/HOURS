@@ -10,8 +10,8 @@ revaluations and re-anchors, the dataset-governance gate.
 
 Counts below are generated, never hand-kept.
 
-- <!-- census:provenance -->**363 constants in `data.py`, all tagged** — `provenance 363/363`<!-- /census:provenance --> *(gated)*.
-  <!-- census:tags -->placeholder 130 (35.8%), normative 77 (21.2%), convention 47 (12.9%), instance 28 (7.7%), measured 28 (7.7%), derived 23 (6.3%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
+- <!-- census:provenance -->**365 constants in `data.py`, all tagged** — `provenance 365/365`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 130 (35.6%), normative 77 (21.1%), convention 48 (13.2%), instance 29 (7.9%), measured 28 (7.7%), derived 23 (6.3%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.6%), physics 3 (0.8%), baseline 2 (0.5%)<!-- /census:tags -->. [Census](#census-one-source).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
   constants are decisions needing argument, not data — they are forbidden a
   `resolves_by` and that is the point.
@@ -37,7 +37,7 @@ Counts below are generated, never hand-kept.
 
 ## Open
 
-- **Three bridge columns are untagged** *(caveat)* — and BOUNDED: all three on one domain leaves every domain but care covered (≥1.69×). [verification.md](verification.md#one-headcount)
+- **Three bridge columns are untagged** *(caveat)* — and BOUNDED: all three on one domain leaves every domain but care covered (≥1.66×). [verification.md](verification.md#one-headcount)
 - **30 dict/tuple constants carry ONE tag over several fields; two checked**
   *(gap)* — a composite's tag reads its WEAKEST element and says nothing about
   the others. **9 of the 30 declare MIXED UNITS in their own `units:` field and

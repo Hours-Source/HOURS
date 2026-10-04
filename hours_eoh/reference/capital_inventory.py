@@ -36,6 +36,8 @@ STRUCTURE, following `reference/servicing.py` and `reference/verification.py`:
              2024 current-cost, yearend, $B. Both doctrines at class level.
   MEASURED   average age at yearend — Tables 2.9 and 7.7. This REPLACES the
              `age: 10.0` placeholder every previous run of this comparison used.
+  MEASURED   line by line in `AGE_ROWS` (2026-10-04), with BEA's own SERVICE
+             LIVES beside the ages — what the stock's age ratio is read from.
   ASSUMED    WHICH BEA LINE SERVES WHICH PROFILE. The one judgement, isolated in
              `PROFILE_MAP`, every line carrying the basis it was assigned on.
   ASSUMED    WHAT COUNTS AS CAPITAL AT ALL. A SECOND judgement, never merged with
@@ -58,6 +60,7 @@ __all__ = [
     "BEA_YEAR", "BEA_UNITS", "BEA_POPULATION",
     "PROFILE_MAP", "EXCLUDED_LINES", "SCOPES",
     "DOCTRINE_RATIOS", "MEASURED_AGES", "UNALLOCATED", "UNALLOCATED_USD_B",
+    "AGE_ROWS",
     "capital_by_profile", "scope_total", "what_this_cannot_settle",
 ]
 
@@ -98,6 +101,11 @@ PROFILE_MAP: tuple[dict, ...] = (
      "scope": "productive", "basis": "Networks carry computation; no separate profile exists."},
     {"line": "Furniture, photocopy, office, other equipment", "usd_b": 1028.5, "profile": "generic_infra",
      "scope": "productive", "basis": "Fulfils no named obligation; the catch-all is honest here."},
+    {"line": "Electrical equipment, n.e.c.", "usd_b": 55.2, "profile": "generic_infra",
+     "scope": "productive",
+     "basis": "Miscellaneous electrical equipment; no named obligation, so the same "
+              "catch-all. ADDED 2026-10-04: it had been in no line and in no "
+              "exclusion — dropped without a name."},
     # ---- private nonresidential: structures -------------------------------
     {"line": "Power structures", "usd_b": 2951.7, "profile": "power_grid",
      "scope": "productive", "basis": "Generation and distribution plant."},
@@ -137,12 +145,19 @@ PROFILE_MAP: tuple[dict, ...] = (
      "scope": "government", "basis": "Municipal and federal generation."},
     {"line": "Government health care structures", "usd_b": 479.1, "profile": "medical_systems",
      "scope": "government", "basis": "Public hospitals and clinics; serves the health component exactly as the private line does."},
-    {"line": "Government buildings", "usd_b": 6967.5, "profile": "building",
-     "scope": "government", "basis": "Office, educational, public safety, commercial, recreation."},
+    {"line": "Government buildings", "usd_b": 6488.5, "profile": "building",
+     "scope": "government",
+     "basis": "Office, educational, public safety, commercial, recreation. CORRECTED "
+              "2026-10-04 from 6,967.5, which also held government health care "
+              "(479.1) — counted again as its own line."},
     {"line": "Conservation and development", "usd_b": 613.5, "profile": "environmental_monitoring",
      "scope": "government", "basis": "The only stewardship-coded line in the inventory."},
-    {"line": "Government other structures and industrial", "usd_b": 209.4, "profile": "generic_infra",
-     "scope": "government", "basis": "Residual after water and sewer are broken out."},
+    {"line": "Government other structures", "usd_b": 100.7, "profile": "generic_infra",
+     "scope": "government",
+     "basis": "Residual after water and sewer are broken out. CORRECTED 2026-10-04 "
+              "from 209.4 ('… and industrial'): BEA's government industrial "
+              "structures (108.7) are all national defence (Table 7.1 lines 5 = "
+              "33), which `EXCLUDED_LINES` already drops."},
     # ---- government nondefence: IPP and equipment -------------------------
     {"line": "Government software", "usd_b": 169.1, "profile": "software",
      "scope": "government", "basis": "Named for the obligation it serves."},
@@ -161,8 +176,12 @@ PROFILE_MAP: tuple[dict, ...] = (
               "carries personal_fulfillment_rate 0.08 — but whether a dwelling "
               "is MACHINE capital that displaces human agency is the judgement "
               "this scope exists to isolate."},
-    {"line": "Government residential", "usd_b": 599.4, "profile": "building",
-     "scope": "residential", "basis": "Same reading as private housing, publicly held; kept separate so the tenure split stays visible."},
+    {"line": "Government residential", "usd_b": 434.1, "profile": "building",
+     "scope": "residential",
+     "basis": "Same reading as private housing, publicly held; kept separate so the "
+              "tenure split stays visible. State and local only — CORRECTED "
+              "2026-10-04 from 599.4, which held federal DEFENCE housing (165.3) "
+              "that the National defense exclusion also drops."},
 )
 
 
@@ -180,6 +199,10 @@ EXCLUDED_LINES: tuple[dict, ...] = (
                "machine plainly abates household labour, so this is the most "
                "arguable exclusion in the module and is named rather than "
                "quietly dropped."},
+    {"line": "Entertainment, literary, and artistic originals", "usd_b": 712.2,
+     "reason": "Films, television, books and music: an asset in the accounts, but "
+               "no machine that does obligation work. NAMED 2026-10-04 — it had "
+               "been dropped with no line and no exclusion."},
 )
 
 
@@ -252,6 +275,333 @@ UNALLOCATED: dict[str, object] = {
         "7.5 both carry government equipment as a single line outside defence."
     ),
 }
+
+
+#: THE STOCK'S AGE AGAINST ITS LIFE, LINE BY LINE (2026-10-04). Each `PROFILE_MAP`
+#: line rebuilt from BEA's finest published rows, so the age ratio needs no
+#: profile judgement — `CAPITAL_MACHINE_PROFILES`' design lives are placeholders
+#: and the profile map assigns a line by the OBLIGATION it serves, which says
+#: nothing about how long it lasts (communication structures under `computing_ai`
+#: would read 3.9 lives old against its 6 years).
+#:   usd_b, age          MEASURED — current-cost net stock (Tables 2.1 / 7.1, $B,
+#:                       yearend 2024) and current-cost average age (2.9 / 7.7, yr)
+#:   usd_b_hist, age_hist  MEASURED — historical cost (2.3 / 2.10); private only,
+#:                       BEA publishes no historical-cost government tables
+#:   life                BEA's service life, (low, high) years, from "BEA Rates of
+#:                       Depreciation, Service Lives, Declining-Balance Rates, and
+#:                       Hulten-Wykoff Categories" (apps.bea.gov/national/pdf/
+#:                       BEA_depreciation_rates.pdf, FETCHED 2026-10-04 — not a
+#:                       handoff). A span where BEA varies the life by industry or
+#:                       the line holds sub-types; None where BEA publishes a
+#:                       depreciation rate and NO life (R&D, computers, autos) or
+#:                       no age, each saying why. Excluded by name, never zeroed.
+#:   life_basis          WHICH methodology row the life was read from — the ONE
+#:                       judgement here, made per row and stated
+#: Every line's rows sum to its `PROFILE_MAP` figure — rebuilding them found
+#: four errors in the inventory, corrected 2026-10-04 and marked on their lines.
+#: BEA's service life is the mean of a retirement distribution, so a row can
+#: sit past it.
+AGE_ROWS: tuple[dict, ...] = (
+    # ---- Electrical transmission equipment
+    {"line": "Electrical transmission equipment", "bea": "2.1/2.9 line 17", "type": "Electrical transmission, distribution, and industrial apparatus",
+     "usd_b": 851.912, "age": 12.2, "usd_b_hist": 661.187, "age_hist": 9.8,
+     "life": (33, 33), "life_basis": "Electrical transmission, distribution, and industrial apparatus"},
+    # ---- Medical equipment and instruments
+    {"line": "Medical equipment and instruments", "bea": "2.1/2.9 line 7", "type": "Medical equipment and instruments",
+     "usd_b": 657.85, "age": 4.9, "usd_b_hist": 617.72, "age_hist": 4.9,
+     "life": (9, 12), "life_basis": "Medical instruments 12; electromedical equipment 9"},
+    # ---- Nonmedical instruments
+    {"line": "Nonmedical instruments", "bea": "2.1/2.9 line 8", "type": "Nonmedical instruments",
+     "usd_b": 285.224, "age": 6.2, "usd_b_hist": 243.368, "age_hist": 5.7,
+     "life": (12, 12), "life_basis": "Nonmedical instruments"},
+    # ---- Industrial equipment less transmission
+    {"line": "Industrial equipment less transmission", "bea": "2.1/2.9 line 12", "type": "Fabricated metal products",
+     "usd_b": 248.94, "age": 9.4, "usd_b_hist": 187.068, "age_hist": 7.6,
+     "life": (18, 18), "life_basis": "Other fabricated metal products"},
+    {"line": "Industrial equipment less transmission", "bea": "2.1/2.9 line 13", "type": "Engines and turbines",
+     "usd_b": 156.288, "age": 13.7, "usd_b_hist": 123.49, "age_hist": 10.9,
+     "life": (8, 32), "life_basis": "Steam engines and turbines 32; internal combustion engines 8"},
+    {"line": "Industrial equipment less transmission", "bea": "2.1/2.9 line 14", "type": "Metalworking machinery",
+     "usd_b": 345.636, "age": 9.0, "usd_b_hist": 291.7, "age_hist": 7.8,
+     "life": (12, 27), "life_basis": "Metalworking machinery, by industry"},
+    {"line": "Industrial equipment less transmission", "bea": "2.1/2.9 line 15", "type": "Special industry machinery, n.e.c.",
+     "usd_b": 434.247, "age": 8.7, "usd_b_hist": 377.479, "age_hist": 7.5,
+     "life": (12, 27), "life_basis": "Special industry machinery, nec, by industry"},
+    {"line": "Industrial equipment less transmission", "bea": "2.1/2.9 line 16", "type": "General industrial, including materials handling, equipment",
+     "usd_b": 1002.066, "age": 8.0, "usd_b_hist": 817.615, "age_hist": 6.7,
+     "life": (12, 27), "life_basis": "General industrial incl. materials handling, by industry"},
+    # ---- Construction/mining/service machinery
+    {"line": "Construction/mining/service machinery", "bea": "2.1/2.9 line 29", "type": "Construction machinery",
+     "usd_b": 321.407, "age": 5.6, "usd_b_hist": 274.792, "age_hist": 4.9,
+     "life": (8, 10), "life_basis": "Construction tractors 8; construction machinery 10"},
+    {"line": "Construction/mining/service machinery", "bea": "2.1/2.9 line 30", "type": "Mining and oilfield machinery",
+     "usd_b": 190.491, "age": 5.6, "usd_b_hist": 162.968, "age_hist": 5.1,
+     "life": (11, 11), "life_basis": "Mining and oil field machinery"},
+    {"line": "Construction/mining/service machinery", "bea": "2.1/2.9 line 31", "type": "Service industry machinery",
+     "usd_b": 258.437, "age": 5.9, "usd_b_hist": 206.633, "age_hist": 5.1,
+     "life": (10, 11), "life_basis": "Service industry machinery, by industry"},
+    # ---- Agricultural machinery
+    {"line": "Agricultural machinery", "bea": "2.1/2.9 line 28", "type": "Agricultural machinery",
+     "usd_b": 304.2, "age": 6.5, "usd_b_hist": 253.907, "age_hist": 5.6,
+     "life": (9, 14), "life_basis": "Farm tractors 9; agricultural machinery except tractors 14"},
+    # ---- Transportation equipment
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 20", "type": "Light trucks (including utility vehicles)",
+     "usd_b": 629.714, "age": 1.6, "usd_b_hist": 573.282, "age_hist": 1.4,
+     "life": (17, 17), "life_basis": "Light trucks (1992 and later)"},
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 21", "type": "Other trucks, buses, and truck trailers",
+     "usd_b": 305.499, "age": 4.5, "usd_b_hist": 290.671, "age_hist": 4.0,
+     "life": (9, 14), "life_basis": "Other trucks, buses and trailers, by industry"},
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 22", "type": "Autos",
+     "usd_b": 118.172, "age": 7.0, "usd_b_hist": 114.33, "age_hist": 6.2,
+     "life": None, "life_basis": "Autos: BEA derives depreciation from used-auto prices with no service life"},
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 23", "type": "Aircraft",
+     "usd_b": 560.404, "age": 10.7, "usd_b_hist": 415.373, "age_hist": 8.3,
+     "life": (15, 25), "life_basis": "Aircraft (1960 and later), by industry"},
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 24", "type": "Ships and boats",
+     "usd_b": 115.628, "age": 14.9, "usd_b_hist": 85.353, "age_hist": 10.9,
+     "life": (27, 27), "life_basis": "Ships and boats"},
+    {"line": "Transportation equipment", "bea": "2.1/2.9 line 25", "type": "Railroad equipment",
+     "usd_b": 190.045, "age": 14.0, "usd_b_hist": 157.81, "age_hist": 10.3,
+     "life": (28, 28), "life_basis": "Railroad equipment"},
+    # ---- Computers and peripheral equipment
+    {"line": "Computers and peripheral equipment", "bea": "2.1/2.9 line 5", "type": "Computers and peripheral equipment",
+     "usd_b": 378.344, "age": 2.0, "usd_b_hist": 373.732, "age_hist": 2.0,
+     "life": None, "life_basis": "Computers: empirical used-price profiles, no service life"},
+    # ---- Communication equipment
+    {"line": "Communication equipment", "bea": "2.1/2.9 line 6", "type": "Communication equipment",
+     "usd_b": 843.656, "age": 4.9, "usd_b_hist": 1045.509, "age_hist": 7.0,
+     "life": (11, 15), "life_basis": "Communications equipment, by industry"},
+    # ---- Furniture, photocopy, office, other equipment
+    {"line": "Furniture, photocopy, office, other equipment", "bea": "2.1/2.9 line 27", "type": "Furniture and fixtures",
+     "usd_b": 438.049, "age": 7.7, "usd_b_hist": 359.889, "age_hist": 6.6,
+     "life": (12, 14), "life_basis": "Household furniture 12; other furniture 14"},
+    {"line": "Furniture, photocopy, office, other equipment", "bea": "2.1/2.9 line 9", "type": "Photocopy and related equipment",
+     "usd_b": 43.0, "age": 4.6, "usd_b_hist": 42.867, "age_hist": 4.7,
+     "life": (9, 9), "life_basis": "Photocopy and related equipment"},
+    {"line": "Furniture, photocopy, office, other equipment", "bea": "2.1/2.9 line 10", "type": "Office and accounting equipment",
+     "usd_b": 14.071, "age": 2.8, "usd_b_hist": 13.193, "age_hist": 2.7,
+     "life": (7, 7), "life_basis": "Office and accounting equipment (1978 and later)"},
+    {"line": "Furniture, photocopy, office, other equipment", "bea": "2.1/2.9 line 33", "type": "Other nonresidential equipment",
+     "usd_b": 533.36, "age": 5.9, "usd_b_hist": 458.885, "age_hist": 5.3,
+     "life": (11, 11), "life_basis": "Other nonresidential equipment"},
+    # ---- Electrical equipment, n.e.c.
+    {"line": "Electrical equipment, n.e.c.", "bea": "2.1/2.9 line 32", "type": "Electrical equipment, n.e.c.",
+     "usd_b": 55.246, "age": 4.4, "usd_b_hist": 48.859, "age_hist": 4.0,
+     "life": (9, 9), "life_basis": "Miscellaneous electrical equipment"},
+    # ---- Power structures
+    {"line": "Power structures", "bea": "2.1/2.9 line 51", "type": "Electric",
+     "usd_b": 2085.599, "age": 21.8, "usd_b_hist": 1324.319, "age_hist": 11.8,
+     "life": (45, 45), "life_basis": "Electric light and power (1946 and later)"},
+    {"line": "Power structures", "bea": "2.1/2.9 line 52", "type": "Other power",
+     "usd_b": 866.058, "age": 28.1, "usd_b_hist": 404.583, "age_hist": 13.5,
+     "life": (30, 40), "life_basis": "Gas and petroleum pipelines 40; wind and solar 30"},
+    # ---- Communication structures
+    {"line": "Communication structures", "bea": "2.1/2.9 line 53", "type": "Communication",
+     "usd_b": 951.184, "age": 23.2, "usd_b_hist": 509.309, "age_hist": 16.0,
+     "life": (40, 40), "life_basis": "Communication"},
+    # ---- Health care structures
+    {"line": "Health care structures", "bea": "2.1/2.9 line 41", "type": "Hospitals",
+     "usd_b": 1085.613, "age": 23.9, "usd_b_hist": 558.321, "age_hist": 15.7,
+     "life": (48, 48), "life_basis": "Hospitals"},
+    {"line": "Health care structures", "bea": "2.1/2.9 line 42", "type": "Special care",
+     "usd_b": 236.9, "age": 25.8, "usd_b_hist": 114.241, "age_hist": 17.0,
+     "life": (48, 48), "life_basis": "Special care"},
+    {"line": "Health care structures", "bea": "2.1/2.9 line 43", "type": "Medical buildings",
+     "usd_b": 416.575, "age": 18.7, "usd_b_hist": 251.47, "age_hist": 11.7,
+     "life": (36, 36), "life_basis": "Medical buildings"},
+    # ---- Manufacturing structures
+    {"line": "Manufacturing structures", "bea": "2.1/2.9 line 48", "type": "Manufacturing",
+     "usd_b": 2904.602, "age": 21.3, "usd_b_hist": 1540.667, "age_hist": 11.0,
+     "life": (31, 31), "life_basis": "Manufacturing"},
+    # ---- Farm structures
+    {"line": "Farm structures", "bea": "2.1/2.9 line 65", "type": "Farm",
+     "usd_b": 545.861, "age": 37.2, "usd_b_hist": 198.773, "age_hist": 16.9,
+     "life": (38, 38), "life_basis": "Farm"},
+    # ---- Transportation structures
+    {"line": "Transportation structures", "bea": "2.1/2.9 line 63", "type": "Air",
+     "usd_b": 96.746, "age": 19.3, "usd_b_hist": 54.524, "age_hist": 10.6,
+     "life": (38, 38), "life_basis": "Air transportation"},
+    {"line": "Transportation structures", "bea": "2.1/2.9 line 64", "type": "Land",
+     "usd_b": 561.443, "age": 50.1, "usd_b_hist": 231.435, "age_hist": 16.1,
+     "life": (38, 54), "life_basis": "Other land transportation and railroad track 38; other railroad structures 54"},
+    # ---- Commercial and other structures
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 38", "type": "Office",
+     "usd_b": 3278.523, "age": 24.0, "usd_b_hist": 1447.001, "age_hist": 14.2,
+     "life": (36, 36), "life_basis": "Office buildings"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 44", "type": "Multimerchandise shopping",
+     "usd_b": 1083.229, "age": 26.6, "usd_b_hist": 435.194, "age_hist": 17.2,
+     "life": (34, 34), "life_basis": "Multimerchandise shopping"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 45", "type": "Food and beverage establishments",
+     "usd_b": 532.67, "age": 27.6, "usd_b_hist": 211.507, "age_hist": 16.7,
+     "life": (34, 34), "life_basis": "Food and beverage establishments"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 46", "type": "Warehouses",
+     "usd_b": 1078.431, "age": 18.4, "usd_b_hist": 596.92, "age_hist": 9.9,
+     "life": (40, 40), "life_basis": "Commercial warehouses"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 47", "type": "Other commercial",
+     "usd_b": 849.487, "age": 25.6, "usd_b_hist": 346.443, "age_hist": 16.3,
+     "life": (16, 34), "life_basis": "Other commercial buildings 34; mobile offices 16"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 58", "type": "Religious",
+     "usd_b": 459.681, "age": 36.9, "usd_b_hist": 152.376, "age_hist": 21.8,
+     "life": (48, 48), "life_basis": "Religious buildings"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 59", "type": "Educational and vocational",
+     "usd_b": 889.391, "age": 24.2, "usd_b_hist": 412.908, "age_hist": 14.0,
+     "life": (48, 48), "life_basis": "Educational buildings"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 60", "type": "Lodging",
+     "usd_b": 1001.765, "age": 20.1, "usd_b_hist": 529.736, "age_hist": 13.2,
+     "life": (32, 32), "life_basis": "Lodging"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 61", "type": "Amusement and recreation",
+     "usd_b": 607.825, "age": 23.5, "usd_b_hist": 301.074, "age_hist": 13.7,
+     "life": (30, 30), "life_basis": "Amusement and recreational buildings"},
+    {"line": "Commercial and other structures", "bea": "2.1/2.9 line 66", "type": "Other",
+     "usd_b": 243.264, "age": 33.4, "usd_b_hist": 88.479, "age_hist": 21.3,
+     "life": (38, 40), "life_basis": "Water supply, sewage, highway and conservation 40; public safety 38"},
+    # ---- Mining exploration structures
+    {"line": "Mining exploration structures", "bea": "2.1/2.9 line 55", "type": "Petroleum and natural gas",
+     "usd_b": 1203.724, "age": 13.4, "usd_b_hist": 1005.622, "age_hist": 9.2,
+     "life": (12, 12), "life_basis": "Petroleum and natural gas (1973 and later)"},
+    {"line": "Mining exploration structures", "bea": "2.1/2.9 line 56", "type": "Mining",
+     "usd_b": 215.667, "age": 13.7, "usd_b_hist": 134.523, "age_hist": 9.4,
+     "life": (20, 20), "life_basis": "Mining exploration, other"},
+    # ---- Software
+    {"line": "Software", "bea": "2.1/2.9 line 79", "type": "Prepackaged",
+     "usd_b": 419.579, "age": 1.2, "usd_b_hist": 408.839, "age_hist": 1.2,
+     "life": (3, 3), "life_basis": "Prepackaged software"},
+    {"line": "Software", "bea": "2.1/2.9 line 80", "type": "Custom",
+     "usd_b": 582.678, "age": 2.1, "usd_b_hist": 586.759, "age_hist": 2.2,
+     "life": (5, 5), "life_basis": "Custom software"},
+    {"line": "Software", "bea": "2.1/2.9 line 81", "type": "Own account",
+     "usd_b": 217.301, "age": 2.1, "usd_b_hist": 219.024, "age_hist": 2.2,
+     "life": (5, 5), "life_basis": "Own-account software"},
+    # ---- Semiconductor and electronics R&D
+    {"line": "Semiconductor and electronics R&D", "bea": "2.1/2.9 line 87", "type": "Semiconductor and other electronic component manufacturing",
+     "usd_b": 183.611, "age": 3.1, "usd_b_hist": 170.154, "age_hist": 2.9,
+     "life": None, "life_basis": "R&D: BEA estimates a depreciation rate directly, no service life"},
+    {"line": "Semiconductor and electronics R&D", "bea": "2.1/2.9 line 88", "type": "Other computer and electronic product manufacturing",
+     "usd_b": 147.065, "age": 2.7, "usd_b_hist": 137.309, "age_hist": 2.6,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    # ---- Pharmaceutical and medicine R&D
+    {"line": "Pharmaceutical and medicine R&D", "bea": "2.1/2.9 line 85", "type": "Pharmaceutical and medicine manufacturing",
+     "usd_b": 1000.907, "age": 6.2, "usd_b_hist": 867.539, "age_hist": 5.5,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    # ---- Other research and development
+    {"line": "Other research and development", "bea": "2.1/2.9 line 86", "type": "Chemical manufacturing, excluding pharmaceutical and medicine",
+     "usd_b": 73.154, "age": 6.0, "usd_b_hist": 63.607, "age_hist": 5.3,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Other research and development", "bea": "2.1/2.9 line 89", "type": "Motor vehicles, bodies and trailers, and parts manufacturing",
+     "usd_b": 93.689, "age": 2.5, "usd_b_hist": 87.954, "age_hist": 2.4,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Other research and development", "bea": "2.1/2.9 line 90", "type": "Aerospace products and parts manufacturing",
+     "usd_b": 68.992, "age": 3.8, "usd_b_hist": 62.872, "age_hist": 3.4,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Other research and development", "bea": "2.1/2.9 line 91", "type": "Other manufacturing",
+     "usd_b": 420.967, "age": 5.0, "usd_b_hist": 373.82, "age_hist": 4.5,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Other research and development", "bea": "2.1/2.9 line 92", "type": "Nonmanufacturing",
+     "usd_b": 1303.829, "age": 3.6, "usd_b_hist": 1195.218, "age_hist": 3.3,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Other research and development", "bea": "2.1/2.9 line 95", "type": "Nonprofit institutions serving households (NPISHs)",
+     "usd_b": 199.824, "age": 4.6, "usd_b_hist": 181.26, "age_hist": 4.2,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    # ---- Private residential structures and equipment
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 70", "type": "1 to 4 unit",
+     "usd_b": 21879.036, "age": 36.9, "usd_b_hist": 8265.726, "age_hist": 18.3,
+     "life": (80, 80), "life_basis": "1-to-4-unit structures, new"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 71", "type": "5-or more-unit",
+     "usd_b": 3412.636, "age": 33.7, "usd_b_hist": 1401.998, "age_hist": 15.0,
+     "life": (65, 65), "life_basis": "5-or-more-unit structures, new"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 72", "type": "Manufactured homes",
+     "usd_b": 388.373, "age": 26.8, "usd_b_hist": 192.371, "age_hist": 15.6,
+     "life": (20, 20), "life_basis": "Manufactured homes"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 73", "type": "Brokers' commissions and other ownership transfer costs",
+     "usd_b": 169.446, "age": None, "usd_b_hist": 690.061, "age_hist": None,
+     "life": None, "life_basis": "Ownership transfer costs: BEA publishes no average age (the stock can be negative)"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 74", "type": "Improvements",
+     "usd_b": 8280.338, "age": 19.2, "usd_b_hist": 4638.463, "age_hist": 11.9,
+     "life": (20, 40), "life_basis": "Additions and alterations 32-40; major replacements 20-25"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 75", "type": "Other residential",
+     "usd_b": 146.81, "age": 26.8, "usd_b_hist": 67.585, "age_hist": 12.6,
+     "life": (40, 40), "life_basis": "Other residential structures"},
+    {"line": "Private residential structures and equipment", "bea": "2.1/2.9 line 34", "type": "Residential equipment",
+     "usd_b": 99.942, "age": 4.6, "usd_b_hist": 105.435, "age_hist": 4.7,
+     "life": (11, 11), "life_basis": "Residential equipment"},
+    # ---- Sewer systems
+    {"line": "Sewer systems", "bea": "7.1/7.7 line 68", "type": "Sewer systems",
+     "usd_b": 1234.526, "age": 30.2,
+     "life": (60, 60), "life_basis": "Government nonbuildings: sewer systems"},
+    # ---- Water systems
+    {"line": "Water systems", "bea": "7.1/7.7 line 69", "type": "Water systems",
+     "usd_b": 923.826, "age": 28.8,
+     "life": (60, 60), "life_basis": "Government nonbuildings: water systems"},
+    # ---- Highways and streets
+    {"line": "Highways and streets", "bea": "7.1/7.7 line 14", "type": "Highways and streets",
+     "usd_b": 5020.642, "age": 29.0,
+     "life": (45, 45), "life_basis": "Highways and streets (shortened from 60 in 1999)"},
+    # ---- Government transportation structures
+    {"line": "Government transportation structures", "bea": "7.1/7.7 line 12", "type": "Transportation",
+     "usd_b": 1256.385, "age": 21.3,
+     "life": (50, 60), "life_basis": "Government buildings, other 50; nonbuildings, other 60"},
+    # ---- Government power structures
+    {"line": "Government power structures", "bea": "7.1/7.7 line 13", "type": "Power",
+     "usd_b": 573.654, "age": 28.9,
+     "life": (45, 60), "life_basis": "Private electric light and power 45; government nonbuildings, other 60"},
+    # ---- Government health care structures
+    {"line": "Government health care structures", "bea": "7.1/7.7 line 8", "type": "Health care",
+     "usd_b": 479.088, "age": 29.6,
+     "life": (50, 50), "life_basis": "Government buildings: hospital"},
+    # ---- Government buildings
+    {"line": "Government buildings", "bea": "7.1/7.7 line 6", "type": "Office",
+     "usd_b": 1471.606, "age": 24.2,
+     "life": (50, 50), "life_basis": "Government buildings, other"},
+    {"line": "Government buildings", "bea": "7.1/7.7 line 7", "type": "Commercial",
+     "usd_b": 90.887, "age": 38.9,
+     "life": (50, 50), "life_basis": "Government buildings, other"},
+    {"line": "Government buildings", "bea": "7.1/7.7 line 9", "type": "Educational",
+     "usd_b": 4080.436, "age": 25.5,
+     "life": (50, 50), "life_basis": "Government buildings: educational"},
+    {"line": "Government buildings", "bea": "7.1/7.7 line 10", "type": "Public safety",
+     "usd_b": 408.037, "age": 28.2,
+     "life": (50, 50), "life_basis": "Government buildings, other"},
+    {"line": "Government buildings", "bea": "7.1/7.7 line 11", "type": "Amusement and recreation",
+     "usd_b": 437.535, "age": 25.2,
+     "life": (50, 50), "life_basis": "Government buildings, other"},
+    # ---- Conservation and development
+    {"line": "Conservation and development", "bea": "7.1/7.7 line 16", "type": "Conservation and development",
+     "usd_b": 613.499, "age": 37.5,
+     "life": (60, 60), "life_basis": "Government nonbuildings: conservation and development"},
+    # ---- Government other structures and industrial
+    {"line": "Government other structures", "bea": "7.1/7.7 line 51", "type": "Other structures",
+     "usd_b": 55.366, "age": 24.7,
+     "life": (50, 60), "life_basis": "Government buildings, other 50; nonbuildings, other 60"},
+    {"line": "Government other structures", "bea": "7.1/7.7 line 71", "type": "Other structures",
+     "usd_b": 45.335, "age": 30.0,
+     "life": (50, 60), "life_basis": "Government buildings, other 50; nonbuildings, other 60"},
+    # ---- Government software
+    {"line": "Government software", "bea": "7.1/7.7 line 53", "type": "Software",
+     "usd_b": 100.164, "age": 1.9,
+     "life": (3, 5), "life_basis": "Government software: prepackaged 3; custom and own-account 5"},
+    {"line": "Government software", "bea": "7.1/7.7 line 73", "type": "Software",
+     "usd_b": 68.894, "age": 1.7,
+     "life": (3, 5), "life_basis": "Government software: prepackaged 3; custom and own-account 5"},
+    # ---- Government research and development
+    {"line": "Government research and development", "bea": "7.1/7.7 line 54", "type": "Research and development",
+     "usd_b": 982.277, "age": 8.3,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    {"line": "Government research and development", "bea": "7.1/7.7 line 74", "type": "Research and development",
+     "usd_b": 149.334, "age": 4.9,
+     "life": None, "life_basis": "R&D: depreciation rate only"},
+    # ---- Government equipment, all types
+    {"line": "Government equipment, all types", "bea": "7.1/7.7 line 39", "type": "Equipment",
+     "usd_b": 191.441, "age": 7.4,
+     "life": None, "life_basis": "No by-type breakdown outside defence (see UNALLOCATED); lives span 5-33"},
+    {"line": "Government equipment, all types", "bea": "7.1/7.7 line 56", "type": "Equipment",
+     "usd_b": 323.951, "age": 8.3,
+     "life": None, "life_basis": "No by-type breakdown outside defence (see UNALLOCATED); lives span 5-33"},
+    # ---- Government residential
+    {"line": "Government residential", "bea": "7.1/7.7 line 58", "type": "Residential",
+     "usd_b": 434.054, "age": 31.7,
+     "life": (65, 80), "life_basis": "Residential capital: 5-or-more-unit 65; 1-to-4-unit 80 (state and local; federal housing is defence, excluded)"},
+)
+
 
 
 def capital_by_profile(

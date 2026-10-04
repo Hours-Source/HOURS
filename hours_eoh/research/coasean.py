@@ -85,6 +85,7 @@ import random as _random
 from typing import Any
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     REFERENCE_FRAME_POPULATION,
     ECOSYSTEM_HEALTH_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
@@ -173,7 +174,7 @@ def run_collective_period(
     population: float,
     trust_balance: float,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     mean_multiplier: float | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -237,7 +238,7 @@ def make_federation(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     ecosystem_health_schedule: list[float] | None = None,
     capital_schedule: list[float] | None = None,
@@ -354,7 +355,7 @@ def n1_regression_anchor(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
 ) -> dict[str, Any]:
     """
@@ -1081,7 +1082,7 @@ def simulate_federation(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     heterogeneity: float = 0.10,
     baseline_ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     seed: int = 42,

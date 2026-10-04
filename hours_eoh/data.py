@@ -2444,6 +2444,23 @@ ECOLOGICAL_THRESHOLD: float = 0.40     # below this → nonlinear spike. physics
 #   partition the ecological domain is health-invariant, so on the documented
 #   entry point this moves only the relocated-to-GUF report.
 ECOSYSTEM_HEALTH_DEFAULT: float = 0.70
+# tag: instance | units: mean asset age / design life, value-weighted — 0 new, 1 at end of life
+# supplied_by: YOUR stock's average age over its service life, value-weighted —
+#   for the US, `capital_retrodiction.stock_age_ratio` reads it off BEA (Tables
+#   2.9 / 7.7 ages over BEA's own service lives, line by line), and `--frame us`
+#   takes it from there, labelled measured.
+# default: 0.591 — the US stock, MEASURED (2026-10-04): `stock_age_ratio`,
+#   'government' scope, current cost — BEA 2024 average age over BEA service
+#   life, band 0.571–0.630, 89.5% of the stock covered. One economy standing in
+#   for one not stated; a test holds this value to the function. It errs LOW:
+#   BEA weights by depreciated stock, so old assets count for less.
+# note: REPLACED a bare 0.50 ("halfway through design life") at 18 sites from
+#   the initial commit, with no source, and CANONICAL_CAPITAL_AGE_BASE (0.30) as
+#   the default at 11 more and the frame resolver — the canonical arc's axis at
+#   ε=0, not a reading of any stock. The arc itself still reads the canonical
+#   pair; only the DEFAULTS moved. Infrastructure EOH at ε 0.40 90.0M → 95.5M
+#   h/yr from the 0.50.
+CAPITAL_AGE_RATIO_DEFAULT: float = 0.591
 # tag: placeholder | units: dimensionless multiplier on the base ecological rate
 # form: the magnitude of the sub-threshold spike —
 #     spike = rate × INTENSITY × ((threshold − health) / threshold)²
@@ -5840,3 +5857,12 @@ THERMAL_GRID_KAPPA_DEFAULT: float = 0.93  # CHOSEN/measured; resolves_by: physic
 LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA: tuple[float, ...] = (
     0.0, 500.0, 1_000.0, 2_000.0, 4_000.0, 8_301.0, 16_000.0,
 )
+# tag: convention | units: dimensionless ε — the gap between two ε intervals
+# form: `instrument_comparison`'s cut between ADJACENT and DIVERGENT, when the
+#   labour and capital intervals do not overlap: a gap below it is ADJACENT.
+# note: NAMED 2026-10-04: a bare 0.05 at two sites (the corner and the grid),
+#   and the US verdict turns on it — the measured stock age moved the gap to
+#   0.0597. It states how near counts as near, not a property of either
+#   instrument; the verdict is reported beside both intervals and the grid's,
+#   so a reader can apply their own.
+INSTRUMENT_ADJACENT_GAP: float = 0.05

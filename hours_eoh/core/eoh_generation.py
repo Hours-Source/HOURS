@@ -27,6 +27,7 @@ import math
 from typing import TypedDict
 
 from hours_eoh.data import (
+    CAPITAL_AGE_RATIO_DEFAULT,
     EPSILON_ARC_MAX,
     H_REF,
     ECOSYSTEM_HEALTH_DEFAULT,
@@ -445,7 +446,7 @@ def personal_eoh(
 
 def infrastructure_eoh(
     capital_stock: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     epsilon: float | None = None,
     base_maint_rate: float = INFRA_MAINT_RATE,
     age_factor_max: float = INFRA_AGE_FACTOR_MAX,
@@ -905,7 +906,7 @@ def personal_statutory_floor(
 
 def infrastructure_eoh_breakdown(
     capital_stock: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     asset_census: list[dict] | None = None,
     discretionary_eoh: float = 0.0,
     deferred_stock: float = 0.0,
@@ -1723,7 +1724,7 @@ def total_eoh(
     population: float = REFERENCE_FRAME_POPULATION,
     age_distribution: dict[str, float] | None = None,
     capital_stock: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     deferred_ecological: float = 0.0,
     knowledge_complexity: float | None = None,
@@ -2185,7 +2186,7 @@ def epsilon_delta_sensitivity(
     delta_epsilon: float,
     population: float = REFERENCE_FRAME_POPULATION,
     capital_stock: float | None = None,
-    capital_age_ratio: float = 0.50,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     knowledge_complexity: float | None = None,
     mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,

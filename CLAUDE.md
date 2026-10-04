@@ -187,7 +187,9 @@ hours_eoh/
     care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
     capital_retrodiction.py  READING ε OFF A REAL ECONOMY — and the three judgements it
                        rests on (doctrine 1.79x, convention 1.45x, scope ~2.5x).
-                       `currency_per_teh` is REQUIRED; the band is not a default. REPORTING ONLY
+                       `currency_per_teh` is REQUIRED; the band is not a default. And
+                       `stock_age_ratio` — the stock's AGE over BEA's service lives,
+                       currency-free, what `--frame us` reads. REPORTING ONLY
     labour_epsilon.py  ε READ OFF TIME USE — the SECOND instrument, currency-free. ONE
                        judgement against the capital route's three; reports OVERLAP/ADJACENT/
                        DIVERGENT and never asserts agreement. The obligation it divides by
@@ -632,8 +634,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,835 tests passing (1 skipped), mypy clean on 107 source files** (verified
-2026-10-04). <!-- census:state -->Provenance **363/363**, shadow ratchet **29**, confidence ratchet **131** of 149<!-- /census:state -->,
+**5,852 tests passing (1 skipped), mypy clean on 107 source files** (verified
+2026-10-04). <!-- census:state -->Provenance **365/365**, shadow ratchet **29**, confidence ratchet **131** of 149<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

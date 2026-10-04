@@ -539,3 +539,42 @@ class TestOneAgePerFrame:
         assert a["net_vs_autarky"] == pytest.approx(b["overbuild_margin_before"])
         assert a["inputs"]["capital_age_ratio"]["value"] == b["inputs"]["capital_age_ratio"]["value"]
 
+
+
+class TestTheUsAgeIsMeasured:
+    """2026-10-04: `--frame us` reads its stock's age off BEA
+    (`capital_retrodiction.stock_age_ratio`) instead of the canonical 0.30 —
+    labelled measured, outranked by a stated value, absent elsewhere. Moving it
+    0.30 → 0.594 passed the whole suite, so it is pinned here."""
+
+    def test_the_us_frame_reads_the_function(self):
+        from hours_eoh.scenarios.capital_retrodiction import stock_age_ratio
+        row = _labels("--frame", "us")["capital_age_ratio"]
+        assert row["kind"] == "measured"
+        assert row["value"] == stock_age_ratio("government")["ratio"]
+
+    def test_only_a_frame_with_a_reading_gets_one(self):
+        assert _labels()["capital_age_ratio"]["kind"] == "default"
+
+    def test_the_round_trip_carries_it_and_an_edit_wins(self, tmp_path: Path):
+        """--frame and --frame-file are exclusive, so an institution states its
+        own age by editing the US frame's file: the edit is what runs."""
+        body = _frame_json("--frame", "us")
+        f = tmp_path / "us.json"
+        f.write_text(json.dumps(body))
+        assert _labels("--frame-file", str(f))["capital_age_ratio"]["value"] == \
+            _labels("--frame", "us")["capital_age_ratio"]["value"]
+        f.write_text(json.dumps({**body, "capital_age_ratio": 0.42}))
+        row = _labels("--frame-file", str(f))["capital_age_ratio"]
+        assert (row["kind"], row["value"]) == ("supplied", 0.42)
+
+    def test_the_data_reaches_it(self, monkeypatch):
+        """Broken on purpose: age the largest covered row and the frame moves."""
+        from hours_eoh.scenarios import capital_retrodiction as CR
+        before = _labels("--frame", "us")["capital_age_ratio"]["value"]
+        rows = [dict(r) for r in CR.AGE_ROWS]
+        big = max((r for r in rows if r["life"]), key=lambda r: r["usd_b"]
+                  if r["line"] != "Private residential structures and equipment" else 0)
+        big["age"] *= 2
+        monkeypatch.setattr(CR, "AGE_ROWS", tuple(rows))
+        assert _labels("--frame", "us")["capital_age_ratio"]["value"] > before

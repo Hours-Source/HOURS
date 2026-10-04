@@ -68,7 +68,10 @@ EPSILON_REFERENCE = 0.40
 #: Built-in frames: the declared jurisdiction (data.JURISDICTION_FRAMES), the
 #: Path C collective, and the MTUS country whose latest sample is its capacity.
 FRAMES: dict[str, dict[str, str]] = {
-    "us": {"jurisdiction": "us_mainland", "path_c": "United States", "mtus": "US"},
+    "us": {"jurisdiction": "us_mainland", "path_c": "United States", "mtus": "US",
+           # the stock's age over its life, read off BEA (2026-10-04): this scope
+           # is the capital instrument's own default (roads, water, schools in)
+           "capital_age": "government"},
 }
 
 #: What a --frame-file may state.
@@ -460,7 +463,7 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
                        "--utilization or put `utilization` in the frame file")
 
     _resolve_retirement(args, ff, src_ff, v, lab)
-    _resolve_ecology(ff, src_ff, v, lab)
+    _resolve_ecology(ff, src_ff, v, lab, frame)
 
     # Trust
     tb = getattr(args, "trust_balance", None)
@@ -478,12 +481,15 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
 
 
 def _resolve_ecology(ff: dict[str, Any], src_ff: str,
-                     v: dict[str, Any], lab: dict[str, dict]) -> None:
+                     v: dict[str, Any], lab: dict[str, dict],
+                     frame: dict[str, str] | None = None) -> None:
     """
     The frame's physical state and who carries its ecological work (2026-10-04).
 
       ecosystem_health, capital_age_ratio — supplied by the frame file, else
-          the framework's reference state (defaults);
+          measured where the frame has a reading (the US age, off BEA:
+          `capital_retrodiction.stock_age_ratio`), else the framework's
+          reference state (defaults);
       ecological_carried_by_people — off by default: under the adopted
           partition the recurring ecological work is the land holder's, through
           the GUF. A frame that declares it ON has its PEOPLE carry it as labour:
@@ -494,11 +500,20 @@ def _resolve_ecology(ff: dict[str, Any], src_ff: str,
           `ecological_spike` gives a collapse. Off, nothing is derived: a frame
           at the reference health does not grow a stock nobody declared.
     """
-    from hours_eoh.data import CANONICAL_CAPITAL_AGE_BASE, ECOSYSTEM_HEALTH_DEFAULT
+    from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, ECOSYSTEM_HEALTH_DEFAULT
     for key, dflt, name in (("ecosystem_health", ECOSYSTEM_HEALTH_DEFAULT, "ECOSYSTEM_HEALTH_DEFAULT"),
-                            ("capital_age_ratio", CANONICAL_CAPITAL_AGE_BASE, "CANONICAL_CAPITAL_AGE_BASE")):
+                            ("capital_age_ratio", CAPITAL_AGE_RATIO_DEFAULT,
+                             "CAPITAL_AGE_RATIO_DEFAULT (the US stock, measured)")):
         if key in ff:
             v[key], lab[key] = float(ff[key]), label("supplied", src_ff)
+        elif key == "capital_age_ratio" and frame and frame.get("capital_age"):
+            from hours_eoh.scenarios.capital_retrodiction import stock_age_ratio
+            r = stock_age_ratio(frame["capital_age"])
+            v[key] = r["ratio"]
+            lab[key] = label(
+                "measured", f"BEA {r['year']} average age over BEA service life, "
+                f"'{r['scope']}' scope, current cost — band {r['low']:.3f}–{r['high']:.3f}, "
+                f"{r['coverage']:.0%} of the stock covered (stock_age_ratio)")
         else:
             v[key], lab[key] = dflt, label("default", name)
     carried = bool(ff.get("ecological_carried_by_people", False))

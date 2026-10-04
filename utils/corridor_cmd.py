@@ -206,7 +206,7 @@ def _compute(args: argparse.Namespace) -> dict:
     floors = [
         survival_floor(eoh, available_labor),
         # The frame's age and health ALWAYS — stated, or the labelled default
-        # (CANONICAL_CAPITAL_AGE_BASE), never overbuild_check's own 0.50.
+        # (CAPITAL_AGE_RATIO_DEFAULT; the US frame's is measured off BEA).
         overbuild_floor(inp["capital_teh"], pop, capital_age_ratio=inp["capital_age_ratio"],
                         ecosystem_health=inp["ecosystem_health"]),
     ]

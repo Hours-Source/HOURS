@@ -45,7 +45,7 @@ from typing import TypedDict
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.data import CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, ECOSYSTEM_HEALTH_DEFAULT
+from hours_eoh.data import CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, ECOSYSTEM_HEALTH_DEFAULT
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -178,7 +178,7 @@ def thermal_load_arc(
             trust_balance=trust_balance,
             labor_income=teh_created,
             capital_stock_teh=cap_at_eps,
-            capital_age_ratio=0.5,
+            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
             ecosystem_health=ecosystem_health,
             thermal_obligation=thermal_obligation,
             eco_eoh_override=loaded["ecological"],

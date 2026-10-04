@@ -263,14 +263,14 @@ class TestFulfilmentIsAssumedUnlessLabourIsSupplied:
             epsilon=0.40, population=0.0, capital_stock=self.APPARATUS_TEH
         )
         assert r["teh_created"] > 0.0
-        assert abs(r["teh_created"] / 6.377970e7 - 1.0) < 1e-4
+        assert abs(r["teh_created"] / 6.7649e7 - 1.0) < 1e-4  # 6.378e7 before 2026-10-04: the default stock age became the measured US one (0.50 → 0.591)
         assert r["labor_constrained"] is False
         assert r["eoh_by_domain"]["personal"] == 0.0
         assert r["eoh_by_domain"]["knowledge"] == 0.0, (
             "knowledge scales with the people who carry the corpus — it was "
             "never part of the 'does not depend on anyone existing' claim"
         )
-        assert abs(r["eoh_by_domain"]["infrastructure"] / 9.0e7 - 1.0) < 1e-9, (
+        assert abs(r["eoh_by_domain"]["infrastructure"] / 9.546e7 - 1.0) < 1e-9, (  # 9.0e7 before
             "the obligation that remains is the apparatus's, and only its"
         )
 
@@ -281,7 +281,7 @@ class TestFulfilmentIsAssumedUnlessLabourIsSupplied:
         )
         assert r["teh_created"] == 0.0
         assert r["deferred_total"] > 0.0, "the obligation is deferred, not erased"
-        assert abs(r["deferred_total"] / 5.4e7 - 1.0) < 1e-9
+        assert abs(r["deferred_total"] / 5.7276e7 - 1.0) < 1e-9  # 5.4e7 before the measured age
 
     def test_the_two_paths_disagree_and_that_is_the_finding(self):
         assumed = eoh_to_teh_pipeline(
