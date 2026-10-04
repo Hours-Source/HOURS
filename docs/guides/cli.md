@@ -155,7 +155,9 @@ reported, not charged to the Trust), its upkeep leaves the obligation, and the
 machine work it did falls to people. By default machine capability falls by the
 same share as the capital, which assumes the loss is spread across the stock;
 `--capability-fraction-lost` sets it apart (a fire that takes houses and spares
-the grid). Rebuilding is a choice, off unless `--rebuild-years` is given.
+the grid). Rebuilding is a choice, off unless `--rebuild-years` is given; when
+on, it is booked as the reconstruction obligation (`reconstruction_obligation`
+in `total_eoh` and the pipeline) and the result says `rebuild: on`.
 
 ```bash
 python3 utils/eoh_cli.py scenario run capital_loss --frame us --capital-fraction-lost 0.05 --rebuild-years 5

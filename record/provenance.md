@@ -10,8 +10,8 @@ revaluations and re-anchors, the dataset-governance gate.
 
 Counts below are generated, never hand-kept.
 
-- <!-- census:provenance -->**362 constants in `data.py`, all tagged** — `provenance 362/362`<!-- /census:provenance --> *(gated)*.
-  <!-- census:tags -->placeholder 128 (35.4%), normative 78 (21.5%), convention 47 (13.0%), instance 28 (7.7%), measured 28 (7.7%), derived 23 (6.4%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
+- <!-- census:provenance -->**361 constants in `data.py`, all tagged** — `provenance 361/361`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 128 (35.5%), normative 77 (21.3%), convention 47 (13.0%), instance 28 (7.8%), measured 28 (7.8%), derived 23 (6.4%), bounded 19 (5.3%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
   constants are decisions needing argument, not data — they are forbidden a
   `resolves_by` and that is the point.

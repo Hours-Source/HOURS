@@ -21,7 +21,7 @@ from typing import Any
 from hours_eoh.data import (
     REFERENCE_FRAME_POPULATION,
     COMPOUNDING_CRIT,
-    MAINTENANCE_DEGRADED_COMPOUNDING,
+    COMPOUNDING_WARN,
     MAINTENANCE_IRREVERSIBILITY_MULTIPLE,
     MEAN_MULTIPLIER_REFERENCE,
 )
@@ -40,6 +40,7 @@ def deferred_maintenance_crisis(
     asset_type: str = "generic_infra",
     population: float | None = None,
     capital_stock_teh: float | None = None,
+    degraded_compounding: float = COMPOUNDING_WARN,
 ) -> dict:
     """
     Simulate sustained underinvestment in infrastructure EOH over multiple years.
@@ -55,6 +56,11 @@ def deferred_maintenance_crisis(
         fulfillment_fraction: Fraction actually fulfilled each year, ∈ [0,1].
         years: Number of years to simulate.
         asset_type: Asset type controlling compounding profile.
+        degraded_compounding: The compounding ratio read as DEGRADED
+            (default COMPOUNDING_WARN, the dashboard's YELLOW — one value since
+            2026-10-03). See its data.py note: below the threshold age the
+            ratio stays under ~0.10, so any value in [0.10, 0.50] fires only
+            with CRISIS.
         population, capital_stock_teh: The frame (2026-10-03). Given both,
             each year is ALSO read against the overbuild floor
             (`core.autarky.overbuild_check`): the year's compounding joins the
@@ -105,6 +111,9 @@ def deferred_maintenance_crisis(
         }
     """
     CRIT_RATIO = COMPOUNDING_CRIT
+    if not 0.0 < degraded_compounding <= CRIT_RATIO:
+        raise ValueError(f"degraded_compounding must be in (0, COMPOUNDING_CRIT], "
+                         f"got {degraded_compounding}")
     if (population is None) != (capital_stock_teh is None):
         raise ValueError("population and capital_stock_teh are the frame: give both or neither")
     framed = population is not None
@@ -196,7 +205,7 @@ def deferred_maintenance_crisis(
     # either field against a neglected asset.
     if final_ratio >= CRIT_RATIO:
         outcome = "CRISIS"
-    elif final_ratio >= MAINTENANCE_DEGRADED_COMPOUNDING or failure_year is not None:
+    elif final_ratio >= degraded_compounding or failure_year is not None:
         outcome = "DEGRADED"
     else:
         outcome = "STABLE"

@@ -295,6 +295,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="rebuild_years", metavar="Y",
                        help="Rebuild the destroyed capital over Y years (capital_loss; "
                             "default: no rebuild modelled — a choice, not a given)")
+    run_p.add_argument("--degraded-compounding", type=float, default=None,
+                       dest="degraded_compounding", metavar="R",
+                       help="Compounding ratio read as DEGRADED (maintenance_crisis; "
+                            "default COMPOUNDING_WARN, the dashboard's YELLOW)")
     run_p.add_argument("--fulfilment-fraction", type=float,
                        default=MAINTENANCE_CRISIS_FULFILMENT, dest="fulfilment_fraction",
                        metavar="F",
@@ -590,7 +594,9 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         crisis = deferred_maintenance_crisis(
             epsilon=epsilon, annual_eoh=annual,
             fulfillment_fraction=args.fulfilment_fraction, years=years,
-            population=pop, capital_stock_teh=k)
+            population=pop, capital_stock_teh=k,
+            **({"degraded_compounding": args.degraded_compounding}
+               if args.degraded_compounding is not None else {}))
         if name == "maintenance_crisis":
             return crisis, v, lab
         from hours_eoh.scenarios.recovery import maintenance_recovery_schedule

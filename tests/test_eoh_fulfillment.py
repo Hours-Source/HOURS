@@ -839,3 +839,23 @@ class TestLegibilityGatesTheMintNotTheObligation:
         empty = eoh_to_teh_pipeline(epsilon=0.40)
         assert blind["teh_created"] == pytest.approx(empty["teh_created"], rel=1e-12)
         assert blind["total_eoh"] > empty["total_eoh"]
+
+
+class TestTheReconstructionSocket:
+    """`reconstruction_obligation` (2026-10-03): a rebuild flow booked into the
+    infrastructure domain before the split — default off, bit-identical."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_it_adds_to_infrastructure_and_mints_where_done(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        base = eoh_to_teh_pipeline(eps)
+        assert eoh_to_teh_pipeline(eps, reconstruction_obligation=0.0) == base
+        on = eoh_to_teh_pipeline(eps, reconstruction_obligation=1e8)
+        assert (on["eoh_by_domain"]["infrastructure"] - base["eoh_by_domain"]["infrastructure"]
+                == pytest.approx(1e8))
+        assert on["teh_created"] >= base["teh_created"]
+
+    def test_negative_is_refused(self):
+        from hours_eoh.core.eoh_generation import total_eoh
+        with pytest.raises(ValueError):
+            total_eoh(epsilon=0.4, reconstruction_obligation=-1.0)

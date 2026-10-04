@@ -202,3 +202,25 @@ class TestDeferralAgainstTheOverbuildFloor:
     def test_the_frame_is_both_or_neither(self):
         with pytest.raises(ValueError):
             deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10, population=1e6)
+
+
+class TestTheDegradedRatio:
+    """One value with the dashboard since 2026-10-03, settable."""
+
+    def test_it_can_be_set(self):
+        assert deferred_maintenance_crisis(0.40, 1e9, 0.85, 10)["outcome"] == "STABLE"
+        assert deferred_maintenance_crisis(0.40, 1e9, 0.85, 10,
+                                           degraded_compounding=0.04)["outcome"] == "DEGRADED"
+        with pytest.raises(ValueError):
+            deferred_maintenance_crisis(0.40, 1e9, 0.85, 10, degraded_compounding=0.9)
+
+    @pytest.mark.parametrize("asset_type", sorted(__import__("hours_eoh.data", fromlist=["ASSET_TYPES"]).ASSET_TYPES))
+    def test_the_dead_band_the_data_note_states(self, asset_type):
+        """data.py's COMPOUNDING_WARN note: below the threshold age the ratio
+        stays under 0.10, and it reaches COMPOUNDING_CRIT in one step — so the
+        DEGRADED ratio cannot fire on its own anywhere in [0.10, 0.50]. If an
+        asset profile changes so it can, the note is stale."""
+        from hours_eoh.data import COMPOUNDING_CRIT
+        tr = deferred_maintenance_crisis(0.40, 1e9, 0.5, 300, asset_type=asset_type)["trajectory"]
+        crit = next(x["year"] for x in tr if x["compounding_ratio"] >= COMPOUNDING_CRIT)
+        assert max(x["compounding_ratio"] for x in tr if x["year"] < crit) <= 0.10

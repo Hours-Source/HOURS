@@ -1756,6 +1756,13 @@ def total_eoh(
     # carries ONLY stocks, so this is one of three, and it was the one an
     # institution following the documented intake path could not supply.
     restoration_obligation: float = 0.0,
+    # THE RECONSTRUCTION SOCKET (2026-10-03, author: "default off, cleanly
+    # labeled"). Capital destroyed by a disaster booked NO obligation to
+    # rebuild it — ecology had `restoration_obligation`, capital nothing — so a
+    # disaster cut the mint (record/fulfilment.md#capital-reconstruction-gap).
+    # A rebuild flow in h/yr, added to the infrastructure domain before the
+    # machine/human split, beside `infrastructure_compounding_eoh`. 0 → off.
+    reconstruction_obligation: float = 0.0,
     basis: str = "gross",
 ) -> dict[str, float]:
     """
@@ -1858,9 +1865,12 @@ def total_eoh(
     # failure mode 4, a literal equal to a named constant 1,400 lines away, so a
     # reprice of the constant would have moved every other caller and not this
     # one. Values were identical, so binding changes nothing today.
-    i = infrastructure_eoh(capital_stock, capital_age_ratio, epsilon,
-                           infra_maint_rate, INFRA_AGE_FACTOR_MAX,
-                           population=population) + infrastructure_compounding_eoh
+    if reconstruction_obligation < 0.0:
+        raise ValueError(f"reconstruction_obligation must be ≥ 0, got {reconstruction_obligation}")
+    i = (infrastructure_eoh(capital_stock, capital_age_ratio, epsilon,
+                            infra_maint_rate, INFRA_AGE_FACTOR_MAX,
+                            population=population)
+         + infrastructure_compounding_eoh + reconstruction_obligation)
     # Ecological scale: an AREA or an absolute base, never both. `ecological_scale`
     # silently prefers base_rate when given both (it honours pre-2026-08-16 callers);
     # here there is no legacy combination to honour, so the ambiguity is refused
@@ -1958,6 +1968,7 @@ def total_eoh(
         "capital_eoh_eliminated":         capital_eoh_eliminated,
         "capital_personal_eoh_fulfilled":  capital_personal_eoh_fulfilled,
         "infrastructure_compounding_eoh":  infrastructure_compounding_eoh,
+        "infrastructure_reconstruction_eoh": reconstruction_obligation,
         "competency_gap_factor":           competency_gap_factor,
     }
 

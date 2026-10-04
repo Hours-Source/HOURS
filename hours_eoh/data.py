@@ -4562,15 +4562,16 @@ REGISTRATION_CRIT:         float = 0.20   # RED below 20%
 #   outruns any feasible maintenance response — derivable from that table plus
 #   a labour-supply constraint, so this is a wiring debt rather than a data
 #   debt.
-COMPOUNDING_WARN:          float = 0.20   # YELLOW: compounding adds >20% of original
+# ONE VALUE SINCE 2026-10-03 (author: "default to .15 to split the
+#   difference"): the dashboard's YELLOW was 0.20 and
+#   `deferred_maintenance_crisis`'s DEGRADED a separate 0.10; both read this
+#   now, and the scenario's is settable. MEASURED THE SAME DAY, AND A DEAD BAND:
+#   before an asset's threshold age the ratio peaks just under 0.10 (0.093–0.100
+#   across ASSET_TYPES) and at the threshold jumps past 0.50 in one step, so any
+#   value in [0.10, 0.50] first fires in the same year as COMPOUNDING_CRIT —
+#   moving 0.10/0.20 → 0.15 changed no verdict, and none of them can fire alone.
+COMPOUNDING_WARN:          float = 0.15   # YELLOW: compounding adds >15% of original
 COMPOUNDING_CRIT:          float = 0.50   # RED: compounding adds >50% (spiral risk)
-# tag: normative | units: fraction of deferred EOH added by compounding
-# decided_by: the same judgement as COMPOUNDING_WARN — where compounding stops
-#   being catch-up work. `deferred_maintenance_crisis` reads DEGRADED at this
-#   ratio; the dashboard turns YELLOW at COMPOUNDING_WARN (0.20). Two values
-#   for one kind of threshold, NOT reconciled: named 2026-10-03 from a bare
-#   0.10 in the scenario, kept at its value because moving it moves verdicts.
-MAINTENANCE_DEGRADED_COMPOUNDING: float = 0.10
 # tag: normative | units: multiple of one year's EOH
 # decided_by: the backlog, in years of the asset's own demand, past which
 #   rebuilding is cheaper than catching up — `deferred_maintenance_crisis`'s

@@ -363,17 +363,16 @@ def _run(
     capital_age_ratio: float,
     knowledge_base_size: float | None,
     deferred_ecological: float = 0.0,
-    added_infrastructure_eoh: float = 0.0,
+    reconstruction_eoh: float = 0.0,
 ) -> dict:
     """
     The pipeline at `state`, the physical state and the REGISTER held at the
     pre-shock `epsilon`, capped at the state's labour supply.
 
-    `added_infrastructure_eoh` is infrastructure demand beyond the stock's
-    upkeep (a rebuild, `capital_loss_shock`). It enters through the pipeline's
-    `infrastructure_compounding_eoh` — the one input that adds to the
-    infrastructure domain BEFORE the machine/human split — so the machines
-    left after the event carry their share and people the rest.
+    `reconstruction_eoh` is a rebuild flow (`capital_loss_shock`), passed to
+    the pipeline's `reconstruction_obligation` — added to the infrastructure
+    domain BEFORE the machine/human split, so the machines left after the
+    event carry their share and people the rest.
     """
     phys = canonical_physical_state(epsilon)
     return eoh_to_teh_pipeline(
@@ -389,7 +388,7 @@ def _run(
         knowledge_complexity_per_unit=phys["knowledge_complexity_per_unit"],
         restoration_obligation=state["restoration_eoh"],
         deferred_ecological=deferred_ecological,
-        infrastructure_compounding_eoh=added_infrastructure_eoh,
+        reconstruction_obligation=reconstruction_eoh,
         available_labor_eoh=state["labor_supply_per_capita"] * state["population"],
     )
 
@@ -988,10 +987,10 @@ def capital_loss_shock(
         Trust — `fiscal_snapshot` has no input for it, and a balance does not
         owe for a burned building;
       * THE REBUILD is a choice, like the retirement register: OFF unless
-        `rebuild_years` is given. On, `rebuild_eoh_needed / rebuild_years`
-        joins the infrastructure domain as demand for the shocked period —
-        split at the reduced capability, taken up or deferred, and minted where
-        it is done.
+        `rebuild_years` is given. On, `rebuild_eoh_needed / rebuild_years` is
+        the period's `reconstruction_obligation` (core's named socket, default
+        off) — split at the reduced capability, taken up or deferred, and
+        minted where it is done. `rebuild` says "on" or "off" in the result.
 
     NOT MODELLED: the ecological damage a wildfire also does (compose it in
     `compound_shock`), the stock regrowing as the rebuild proceeds, or more
@@ -1036,7 +1035,7 @@ def capital_loss_shock(
     s1 = _State(**{**s0, "capability": epsilon * (1.0 - g)})
     before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, knowledge_base_size)
     after = _run(s1, epsilon, k_after, capital_age_ratio, knowledge_base_size,
-                 added_infrastructure_eoh=rebuild_per_year)
+                 reconstruction_eoh=rebuild_per_year)
     c = _cascade(before, after)
     f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio)
     f1 = _fiscal(s1, epsilon, after, trust_balance, k_after, capital_age_ratio)
@@ -1055,7 +1054,7 @@ def capital_loss_shock(
         + f": {lost:,.0f} EOH/yr the machines carried falls to people. "
         + (f"Rebuild over {rebuild_years:g} years adds {rebuild_per_year:,.0f} EOH/yr. "
            if rebuild_years is not None else
-           f"No rebuild modelled (pass rebuild_years); it would need "
+           f"Rebuild OFF (the default; rebuild_years books it as the reconstruction obligation); it would need "
            f"{wd['rebuild_eoh_needed']:,.0f} EOH. ")
         + f"Of the added human demand {c['taken_up_eoh']:,.0f} is taken up, "
         f"{c['deferred_eoh']:,.0f} deferred"
@@ -1076,6 +1075,7 @@ def capital_loss_shock(
         "teh_destroyed":           float(wd["teh_destroyed"]),
         "upkeep_removed_eoh":      upkeep_lost,
         "rebuild_eoh_needed":      float(wd["rebuild_eoh_needed"]),
+        "rebuild":                 "off" if rebuild_years is None else "on",
         "rebuild_years":           rebuild_years,
         "rebuild_eoh_per_year":    rebuild_per_year,
         "total_eoh_before":        float(before["total_eoh"]),
