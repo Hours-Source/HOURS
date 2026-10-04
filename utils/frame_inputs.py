@@ -517,7 +517,7 @@ def labelled_inputs(values: dict[str, Any], labels: dict[str, dict],
     return out
 
 
-def print_inputs(rows: dict[str, dict], epsilon: dict, ends: str | None = None,
+def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None = None,
                  frame: str | None = None, file: Any = None) -> None:
     """
     The Inputs block: ε first — a point, a span with its margin, or a labelled
@@ -535,7 +535,9 @@ def print_inputs(rows: dict[str, dict], epsilon: dict, ends: str | None = None,
     say(bold("Inputs") + "  (kinds: supplied · measured · derived [partly / from "
           "defaults] · default)" + (f"   frame: {frame}" if frame else ""))
     e = epsilon
-    if e["high"] > e["low"]:
+    if e is None:
+        say("  ε: swept by the scenario — not an input")
+    elif e["high"] > e["low"]:
         if e.get("margin_kind") == "disagreement":
             say(f"  ε: span [{e['low']:.3f}, {e['high']:.3f}] — run at {e['value']:.3f}, "
                   f"NOT a reading  — {e['kind']}: {e['source']}")

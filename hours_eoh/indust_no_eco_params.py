@@ -65,6 +65,12 @@ INDUST_ECOSYSTEM_HEALTH:     float = 0.38
 # At ε=0.40 monitoring capability = 0.70, so 70 B hours are visible to
 # the ledger (nearly half of personal EOH for a 65 M population).
 INDUST_DEFERRED_ECOLOGICAL:  float = 100_000_000_000.0
+# THE FRAME THE BACKLOG IS STATED AT (2026-10-03). The 100 B hours above is "at
+# a 65 M-person scale", and was applied unscaled at every population — at the
+# CLI's 1M default, 65× the stated backlog per head; at the US frame, a fifth.
+# Mode 6, the frame seam. It now scales with population like the capital
+# beside it; at 65M it is bit-identical.
+INDUST_REFERENCE_POPULATION: float = 65_000_000
 
 # Capital provides no EOH reduction in any domain — it consumes only.
 # Setting both to zero explicitly: the industrial capital stock generates
@@ -97,7 +103,7 @@ INDUST_NO_ECO_PIPELINE_KWARGS: dict = {
 # ---------------------------------------------------------------------------
 
 def make_indust_no_eco_params(
-    population: float = 65_000_000,
+    population: float = INDUST_REFERENCE_POPULATION,
     epsilon:    float = 0.40,
 ) -> EohParams:
     """
@@ -128,4 +134,7 @@ def make_indust_no_eco_params(
           phase=0, reason=f"10× industrial capital base ({INDUST_CAPITAL_MULTIPLIER}× canonical)")
     for key, val in INDUST_NO_ECO_OVERRIDES.items():
         p.set(key, val, phase=0, reason="indust_no_eco scenario")
+    p.set("deferred_ecological",
+          INDUST_DEFERRED_ECOLOGICAL * population / INDUST_REFERENCE_POPULATION,
+          phase=0, reason="the 65M-frame backlog, scaled to this population")
     return p

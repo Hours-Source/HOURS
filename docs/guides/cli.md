@@ -96,13 +96,15 @@ See [Running Scenarios](scenarios_howto.md) for Python API usage.
 
 ## frame — running on your own frame
 
-The shocks (`automation_failure`, `demographic_shock`, `ecological_spike`,
-`compound_shock`, `capital_loss`), `overbuild`, `maintenance_crisis`,
-`recovery` and `corridor band` run on a **frame**: a population, its age mix,
-its adult labour capacity, its capital, its land, its Trust and its ε. Each
-prints the inputs it READS, with where each came from, and refuses a frame
-flag it does not read (`overbuild`, `maintenance_crisis` and `recovery` read
-population, capital and ε only):
+**Every scenario that takes a population runs on a frame**, as does
+`corridor band`: a population, its age mix, its adult labour capacity, its
+capital, its land, its Trust and its ε. Each prints the inputs it READS, with
+where each came from, and refuses a flag it does not read — the shocks read the
+age mix and labour supply; the long-run, Trust and simulation scenarios read
+population, capital, Trust and ε; `indust_*` read population and ε; the arcs
+(`canonical_arc`, `transition`, `thermal_load`) sweep ε themselves and refuse
+`--epsilon`. `collective` is the exception: its frame is its own parcel
+inventory, so it refuses `--frame`:
 
 | Kind | Meaning |
 |---|---|

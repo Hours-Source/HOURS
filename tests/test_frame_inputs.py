@@ -34,6 +34,14 @@ _SCENARIO_FLAGS = {
     "overbuild": [],
     "maintenance_crisis": [],
     "recovery": [],
+    "labor_income_shock": ["--income-fraction", "0.7"],
+    "trust_stress": ["--periods", "3"],
+    "measured_sim": ["--periods", "2"],
+    "indust_baseline": [],
+    "indust_recovery": ["--periods", "3"],
+    "canonical_arc": ["--periods", "3"],
+    "transition": ["--periods", "3"],
+    "thermal_load": [],
 }
 
 
@@ -64,8 +72,8 @@ def _labels(*flags: str) -> dict:
 def _strip(r: dict) -> dict:
     """The scenario's numbers, without where the inputs came from."""
     out = {k: v for k, v in r.items() if k not in ("inputs", "frame", "epsilon_reading")}
-    e = r["epsilon_reading"]
-    out["_eps"] = (e["value"], e["low"], e["high"])
+    e = r["epsilon_reading"]                       # None when the scenario sweeps ε
+    out["_eps"] = None if e is None else (e["value"], e["low"], e["high"])
     return out
 
 
@@ -195,7 +203,8 @@ class TestScenarioRunOnAFrame:
         inputs while reading population and capital only (mode 5)."""
         argv = {"--ages": ["census"], "--adult-capacity": ["2300"],
                 "--retirement-age": [], "--years-in-collective": ["5"],
-                "--bea-usd-per-teh": ["15.94"]}
+                "--bea-usd-per-teh": ["15.94"], "--capital-stock": ["1e12"],
+                "--epsilon": ["0.5"], "--thermal-obligation": ["1e8"]}
         for flag, inp in _FLAG_INPUT.items():
             run = lambda: _scenario(name, "--frame", "us", flag, *argv[flag])  # noqa: E731
             if inp in _READS[name]:
@@ -207,10 +216,61 @@ class TestScenarioRunOnAFrame:
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_the_inputs_shown_are_what_the_scenario_reads(self, name):
         rows = _scenario(name, "--frame", "us")["inputs"]
-        shown = set(rows) - {"epsilon"}
+        shown = set(rows)
+        assert ("epsilon" in shown) is ("epsilon" in _READS[name])
         assert _READS[name] & set(_labels("--frame", "us")) <= shown
         for k in shown - _READS[name]:          # only what a read input derives from
             assert any(k in rows[r]["derived_from"] for r in shown)
+
+    @pytest.mark.parametrize("name", ["labor_income_shock", "trust_stress", "measured_sim",
+                                      "indust_baseline", "canonical_arc", "transition",
+                                      "thermal_load"])
+    def test_the_population_takers_are_frame_invariant(self, name):
+        """Every scenario that takes a population is on the frame since
+        2026-10-03; per head, one economy reads the same at any size."""
+        def flat(r: dict) -> dict:
+            """The scalars, plus the first row of a period table, where a
+            trajectory keeps its totals."""
+            out = dict(r)
+            for tab in ("summary_table", "trajectory", "period_results"):
+                if isinstance(r.get(tab), list) and r[tab] and isinstance(r[tab][0], dict):
+                    out.update({f"{tab}[0].{k}": v for k, v in r[tab][0].items()})
+            return out
+        runs = [(p, flat(_scenario(name, "--population", str(p)))) for p in (1e5, 1e6, 1e7)]
+        nums = [k for k, v in runs[0][1].items()
+                if isinstance(v, float) and not isinstance(v, bool)
+                and k.rsplit(".", 1)[-1] not in ("epsilon", "epsilon_start", "epsilon_end",
+                                                 "epsilon_delta", "income_fraction")]
+        for k in nums:                     # a total is invariant per head, a ratio as is
+            per = [r[k] / p for p, r in runs]
+            raw = [r[k] for _, r in runs]
+            assert (max(per) == pytest.approx(min(per), rel=1e-6, abs=1e-12)
+                    or max(raw) == pytest.approx(min(raw), rel=1e-6, abs=1e-12)), k
+        # and the population REACHED it: a run that ignores it is "invariant as
+        # is" everywhere (found by dropping population= from one call).
+        assert any(runs[0][1][k] != pytest.approx(runs[2][1][k], rel=1e-6) for k in nums)
+        verdicts = [{k: v for k, v in r.items()
+                     if isinstance(v, bool) or k in ("outcome", "verdict")} for _, r in runs]
+        assert verdicts[0] == verdicts[1] == verdicts[2]
+
+    def test_the_thermal_obligation_travels_with_the_frame(self):
+        """It was the 1M frame's flow beside a settable population (mode 6)."""
+        from hours_eoh.research.thermal_solvency import solvency_at_epsilon
+        r = _scenario("thermal_load", "--frame", "us")
+        assert r["thermal_obligation"] == solvency_at_epsilon(0.40, population=335e6)["thermal_flow_eoh"]
+        assert r["inputs"]["thermal_obligation_eoh"]["kind"] != "supplied"
+
+    def test_off_the_frame_unread_population_and_capital_are_refused(self):
+        for argv in (["sweep", "--population", "5e6"], ["use_split", "--capital-stock", "1e9"]):
+            with pytest.raises(SystemExit):
+                _dispatch(_args("scenario", "run", *argv))
+
+    def test_collective_refuses_a_frame_and_keeps_an_explicit_population(self):
+        with pytest.raises(SystemExit):
+            _dispatch(_args("scenario", "run", "collective", "--frame", "us"))
+        assert _dispatch(_args("scenario", "run", "collective"))["population"] == 30_000.0
+        assert _dispatch(_args("scenario", "run", "collective",
+                               "--population", "1000000"))["population"] == 1e6
 
     def test_feasibility_still_reads_adult_capacity(self):
         r = _dispatch(_args("scenario", "run", "feasibility", "--adult-capacity", "2300"))
@@ -258,10 +318,20 @@ class TestTheEndUserPath:
     def test_each_scenario_reports_its_outcome_across_epsilon(self, name):
         """The outcome key per scenario was once corrupted by a bad edit and no
         test noticed: only demographic_shock's was checked."""
+        from utils.scenario_cmd import _OUTCOME_KEY
         r = _scenario(name, "--frame", "us")
+        if _OUTCOME_KEY[name] is None or "epsilon" not in _READS[name]:
+            assert "outcomes_across_epsilon" not in r      # swept, or no single verdict
+            return
         acr = r["outcomes_across_epsilon"]
         assert acr[f"{r['epsilon_reading']['value']:.3f}"] == outcome_of(name, r)
         assert all(isinstance(o, str) for o in acr.values())
+
+    def test_the_three_tables_name_the_same_scenarios(self):
+        """A regex once rewrote `_OUTCOME_KEY`; twice in one day a substitution
+        aimed at the help strings landed in a table."""
+        from utils.scenario_cmd import _OUTCOME_KEY
+        assert set(FRAME_AWARE) == set(_OUTCOME_KEY) == set(_READS) == set(_SCENARIO_FLAGS)
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_csv_stays_parseable(self, capsys, name):

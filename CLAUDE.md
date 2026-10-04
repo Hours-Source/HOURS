@@ -469,6 +469,13 @@ someone remembering it, which is what this section is for.
    land and residual dissipation to 1M-collective totals beside `--population`;
    at 1e4 the overbuild floor bound at ε 0.754 on 100× the intensity. `gated
    by:` `test_corridor.py::TestTheBandCommandTravelsWithTheFrame`.
+   **And two more the same day, found by moving every population-taking
+   scenario onto the frame:** `thermal_load`'s obligation defaulted to the 1M
+   frame's flow beside `--population`, and `INDUST_DEFERRED_ECOLOGICAL` — 1e11 h
+   "at a 65 M-person scale" in its own comment — was applied unscaled at every
+   population (the CLI ran it at 1M: 65× the stated backlog per head). *The
+   tell:* a comment that STATES the frame beside a value nothing scales. `gated
+   by:` `test_frame_inputs.py::TestScenarioRunOnAFrame::test_the_population_takers_are_frame_invariant`.
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -617,7 +624,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,635 tests passing (1 skipped), mypy clean on 107 source files** (verified
+**5,694 tests passing (1 skipped), mypy clean on 107 source files** (verified
 2026-10-03). <!-- census:state -->Provenance **361/361**, shadow ratchet **29**, confidence ratchet **131** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

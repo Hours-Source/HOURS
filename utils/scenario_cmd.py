@@ -73,6 +73,7 @@ Key options (not all apply to every scenario):
 
 from __future__ import annotations
 import argparse
+from typing import Any
 import json
 import csv
 import math
@@ -100,18 +101,33 @@ from utils.frame_inputs import (
     print_inputs, resolve_epsilon, resolve_inputs,
 )
 
-#: Scenarios that run on a resolved frame — population, age mix, labour
-#: supply, capital and Trust, each labelled — and report their outcome at both
-#: ends of the frame's ε range. `labor_income_shock` is not one: it does not
-#: build the shocks' shared state, so an age mix or labour supply would reach
-#: nothing (mode 5); frame flags are refused there rather than ignored.
+#: Scenarios that run on a resolved frame — each input labelled — and report
+#: their outcome at both ends of the frame's ε range. EVERY SCENARIO THAT TAKES
+#: A POPULATION IS HERE (2026-10-03, author: "fixing the frame gap lets the US
+#: frame run on all"); each reads only what `_READS` names, so the shocks take
+#: the age mix and labour supply while the long-run and industrial ones take
+#: population, capital and Trust. The ONE exception is `collective`: its frame
+#: is a parcel inventory (the urban archetype, 302.5 ha), and the US frame has
+#: county parcel COUNTS, not parcels — taking a population, capital and Trust
+#: while the land stays the archetype's is the mismatch that scenario exists to
+#: forbid. It refuses --frame and says so.
 FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
-               "compound_shock", "capital_loss", "overbuild", "maintenance_crisis",
-               "recovery")
-_OUTCOME_KEY = {"automation_failure": "outcome", "demographic_shock": "outcome",
-                "ecological_spike": "outcome", "compound_shock": "combined_outcome",
-                "capital_loss": "outcome", "overbuild": "verdict",
-                "maintenance_crisis": "outcome", "recovery": "recoverable"}
+               "compound_shock", "capital_loss", "labor_income_shock", "overbuild",
+               "maintenance_crisis", "recovery", "trust_stress", "measured_sim",
+               "indust_baseline", "indust_recovery", "canonical_arc", "transition",
+               "thermal_load")
+#: The key holding each scenario's verdict; None where it has none to read at
+#: the ends of the ε range (a swept arc, or two separate recovery flags).
+_OUTCOME_KEY: dict[str, str | None] = {
+    "automation_failure": "outcome", "demographic_shock": "outcome",
+    "ecological_spike": "outcome", "compound_shock": "combined_outcome",
+    "capital_loss": "outcome", "labor_income_shock": "outcome", "overbuild": "verdict",
+    "maintenance_crisis": "outcome", "recovery": "recoverable", "trust_stress": "outcome",
+    "measured_sim": "solvent_all", "indust_baseline": "outcome", "indust_recovery": None,
+    "canonical_arc": None, "transition": None, "thermal_load": None}
+#: A verdict that is a bool, as words.
+_BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
+               "measured_sim": ("solvent throughout", "insolvent in some period")}
 
 #: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
 #: all-or-nothing: `overbuild` accepted --ages and --retirement-age and printed
@@ -119,21 +135,40 @@ _OUTCOME_KEY = {"automation_failure": "outcome", "demographic_shock": "outcome",
 #: `corridor band` refused. A frame flag whose input a scenario does not read is
 #: refused, and the Inputs block shows only what reaches the run (plus what
 #: those are derived from).
+#: A scenario without "epsilon" SWEEPS ε itself (an arc): --epsilon is refused,
+#: the outcome is not re-run at the ends of a range, and a derived capital is
+#: resolved per period by the scenario rather than shown at one ε.
+#: `indust_*` read population and ε only — the archetype's capital is the
+#: scenario's premise and its Trust resolves inside from the population.
 _SHOCK_READS = frozenset({
     "population", "age_fractions", "adult_capacity_h_yr", "adult_share",
     "labor_supply_per_capita", "capital_teh", "retirement_age", "retired_share",
-    "years_in_collective", "retiree_vested_fraction", "trust_balance"})
-_CAPITAL_READS = frozenset({"population", "capital_teh"})
+    "years_in_collective", "retiree_vested_fraction", "trust_balance", "epsilon"})
+_CAPITAL_READS = frozenset({"population", "capital_teh", "epsilon"})
+_SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "epsilon"})
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
                                  "ecological_spike", "compound_shock", "capital_loss")},
     **{n: _CAPITAL_READS for n in ("overbuild", "maintenance_crisis", "recovery")},
+    **{n: _SIM_READS for n in ("labor_income_shock", "trust_stress", "measured_sim")},
+    **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
+    **{n: _SIM_READS - {"epsilon"} for n in ("canonical_arc", "transition")},
+    "thermal_load": (_SIM_READS - {"epsilon"}) | {"thermal_obligation_eoh"},
 }
-#: The input each input-specific frame flag sets (--frame and --frame-file set
-#: the whole frame and are read by every frame-aware scenario).
+#: The input each input-specific flag sets (--frame and --frame-file set the
+#: whole frame; --population is read by every frame-aware scenario).
 _FLAG_INPUT = {"--ages": "age_fractions", "--adult-capacity": "adult_capacity_h_yr",
                "--retirement-age": "retired_share", "--years-in-collective": "retired_share",
-               "--bea-usd-per-teh": "capital_teh"}
+               "--bea-usd-per-teh": "capital_teh", "--capital-stock": "capital_teh",
+               "--epsilon": "epsilon", "--thermal-obligation": "thermal_obligation_eoh"}
+
+
+def _flags_given(args: argparse.Namespace) -> list[str]:
+    """The frame flags set, plus the three scenario flags that are frame inputs."""
+    extra = [f for f, a in (("--epsilon", "epsilon"), ("--capital-stock", "capital_stock"),
+                            ("--thermal-obligation", "thermal_obligation"))
+             if getattr(args, a, None) is not None]
+    return frame_flags_given(args) + extra
 
 #: The trajectory horizon when --periods is unset (maintenance_crisis and
 #: recovery default to MAINTENANCE_CRISIS_YEARS instead).
@@ -151,22 +186,22 @@ _SCENARIOS: dict[str, str] = {
     "care_delay":          "care_registration_delay() — lag in care EOH admission",
     "recovery":            "maintenance_recovery_schedule() — backlog paydown arc, from maintenance_crisis's backlog  [--fulfilment-fraction, --periods, --capital-stock, --frame, --frame-file, --bea-usd-per-teh]",
     # -- new shocks --
-    "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction]",
+    "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "capital_loss":        "capital_loss_shock() — a disaster (wildfire, flood) destroys capital: D1 write-down, machine work falls to people, optional rebuild  [--capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh, --retirement-age]",
     "compound_shock":      "compound_shock() — simultaneous multi-axis shock (a wildfire: --ecology-collapse with --capital-fraction-lost)  [--ecology-collapse, --shock-type, --automation-fraction-lost, --capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- multi-period trajectories --
-    "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods]",
-    "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion  [--epsilon, --periods]",
-    "transition":          "automation_transition_trajectory() — fixed Δε convergence  [--epsilon-start, --epsilon-delta, --periods]",
+    "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "trust_stress":        "trust_depletion_stress() — multi-stressor Trust depletion  [--epsilon, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "transition":          "automation_transition_trajectory() — fixed Δε convergence  [--epsilon-start, --epsilon-delta, --periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     # -- industrial overshoot --
-    "indust_baseline":     "indust_overshoot_baseline() — industrial overshoot fiscal snapshot",
-    "indust_recovery":     "indust_recovery_trajectory() — ecosystem recovery from overshoot  [--restoration-rate, --periods]",
+    "indust_baseline":     "indust_overshoot_baseline() — industrial overshoot fiscal snapshot  [--frame, --frame-file]",
+    "indust_recovery":     "indust_recovery_trajectory() — ecosystem recovery from overshoot  [--restoration-rate, --periods, --frame, --frame-file]",
     # -- GUF stress --
     "guf_integration":     "guf_fiscal_integration() — GUF revenue vs. levy deficit  [--area-slu, --location-value, --use-category]",
     "guf_writedown":       "guf_writedown_scenario() — ecological write-down pathways  [--pathway, --unfulfilled-eoh, --total-eoh-zone]",
     "guf_sweep":           "guf_revenue_sweep() — GUF across the arc; monotone falling under the default psi_policy=retired",
     # -- measured inputs (the measurement spine) --
-    "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods]",
+    "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
     "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point  [--epsilon, --population]",
@@ -189,7 +224,7 @@ _SCENARIOS: dict[str, str] = {
     "food_conservation":   "conservation_test() — did automation eliminate food labour, or relocate it? stage by stage  [--atus-year]",
     "care_curve":          "implied_weights() — measured personal obligation by age (self-maintenance + care received) vs the shipped AGE_GROUPS weights; REPORTING ONLY",
     # -- thermal obligation carried in the ledger --
-    "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
+    "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation (default: the frame population's share), --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     # -- autarky / overbuild --
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
@@ -354,7 +389,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
 
     # Thermal obligation
     run_p.add_argument("--thermal-obligation", type=float,
-                       default=REFERENCE_THERMAL_FLOW_EOH,
+                       default=None,
                        dest="thermal_obligation", metavar="EOH",
                        help=f"Annual planetary radiative obligation in EOH-hours "
                             f"(thermal_load; default: {REFERENCE_THERMAL_FLOW_EOH:,.0f} "
@@ -514,6 +549,10 @@ def _readable(v: object) -> str:
         return f"{v:,.0f}" if abs(v) >= 1e4 else f"{v:.4g}"
     if isinstance(v, dict) and v and all(isinstance(x, float) for x in v.values()):
         return "{" + ", ".join(f"{k}: {_readable(x)}" for k, x in v.items()) + "}"
+    if isinstance(v, dict) and any(isinstance(x, (dict, list)) for x in v.values()):
+        # Nested: a table cell cannot hold it readably (it stretched the
+        # indust_baseline table across the screen). json carries it whole.
+        return f"{{{len(v)} keys — see --format json}}"
     if isinstance(v, dict) and v and all(isinstance(x, tuple) for x in v.values()):
         return "{" + ", ".join(f"{k}: " + " → ".join(_readable(y) for y in x)
                                for k, x in v.items()) + "}"
@@ -588,6 +627,67 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                            else args.capital_fraction_lost),
             capability_fraction_lost=args.capability_fraction_lost,
             rebuild_years=args.rebuild_years, **common), v, lab
+    sim = dict(population=pop,
+               trust_balance=None if v["trust_derived"] else v["trust_balance"],
+               capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
+    periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
+    if name == "labor_income_shock":
+        from hours_eoh.scenarios.shocks import labor_income_shock
+        return labor_income_shock(epsilon=epsilon, income_fraction=args.income_fraction,
+                                  **sim), v, lab
+    if name == "trust_stress":
+        from hours_eoh.scenarios.long_run import trust_depletion_stress
+        return trust_depletion_stress(epsilon=epsilon, n_periods=periods, **sim), v, lab
+    if name == "measured_sim":
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.scenarios.measured import run_measured_simulation
+        state = make_economy_state(epsilon=epsilon, **sim)
+        return run_measured_simulation(state, n_periods=periods), v, lab
+    if name == "canonical_arc":
+        from hours_eoh.scenarios.long_run import canonical_arc_trajectory
+        return canonical_arc_trajectory(epsilon_start=args.epsilon_start,
+                                        epsilon_end=args.epsilon_end,
+                                        n_periods=periods, **sim), v, lab
+    if name == "transition":
+        from hours_eoh.scenarios.long_run import automation_transition_trajectory
+        return automation_transition_trajectory(epsilon_start=args.epsilon_start,
+                                                epsilon_delta=args.epsilon_delta,
+                                                n_periods=periods, **sim), v, lab
+    if name == "indust_baseline":
+        from hours_eoh.scenarios.indust_overshoot import indust_overshoot_baseline
+        return indust_overshoot_baseline(population=pop, epsilon=epsilon), v, lab
+    if name == "indust_recovery":
+        from hours_eoh.scenarios.indust_overshoot import indust_recovery_trajectory
+        return indust_recovery_trajectory(population=pop, epsilon=epsilon,
+                                          ecological_restoration_rate=args.restoration_rate,
+                                          n_periods=periods), v, lab
+    if name == "thermal_load":
+        # THE OBLIGATION TRAVELS WITH THE FRAME (2026-10-03): the default was
+        # REFERENCE_THERMAL_FLOW_EOH, the 1M frame's flow, beside a settable
+        # population (mode 6). Derived now from the research call that figure
+        # recorded, at the frame's population — the population's share of the
+        # world drawdown, ε-invariant (checked: 1.789175 h/head at every ε).
+        from hours_eoh.scenarios.thermal_load import thermal_load_verdict
+        from utils.frame_inputs import label
+        if args.thermal_obligation is not None:
+            v["thermal_obligation_eoh"] = float(args.thermal_obligation)
+            lab["thermal_obligation_eoh"] = label("supplied", "--thermal-obligation")
+        else:
+            from hours_eoh.research.thermal_solvency import solvency_at_epsilon
+            v["thermal_obligation_eoh"] = float(
+                solvency_at_epsilon(EPSILON_REFERENCE, population=pop)["thermal_flow_eoh"])
+            lab["thermal_obligation_eoh"] = label(
+                "derived", "research.thermal_solvency: the population's share of the "
+                "world drawdown", ("population", "default:THERMAL drawdown programme"))
+        tv = thermal_load_verdict(
+            thermal_obligation=v["thermal_obligation_eoh"], population=pop,
+            trust_balance=sim["trust_balance"], capital_stock=sim["capital_stock_teh"])
+        # Reshape at the CLI boundary: the display layer renders "summary_table"
+        # as the period table with the scalars printed above it.
+        tout: dict[str, Any] = {k: val for k, val in tv.items() if k != "rows"}
+        tout["coverage_below_one_at"] = str(tv["coverage_below_one_at"])
+        tout["summary_table"] = tv["rows"]
+        return tout, v, lab
     if name in ("maintenance_crisis", "recovery"):
         # The frame's own capital (supplied, BEA, or the arc at this ε) sets the
         # upkeep; until 2026-10-03 the frame was the reference one at a settable
@@ -638,9 +738,13 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
 
 def outcome_of(name: str, result: dict) -> str:
     """A frame-aware scenario's outcome as a word — `recovery` reports a bool."""
-    o = result[_OUTCOME_KEY[name]]
+    key = _OUTCOME_KEY[name]
+    if key is None:
+        raise KeyError(f"{name} has no single verdict")
+    o = result[key]
     if isinstance(o, bool):
-        return "recovers" if o else "does not recover"
+        yes, no = _BOOL_WORDS[name]
+        return yes if o else no
     return str(o)
 
 
@@ -661,25 +765,35 @@ def _frame_run(args: argparse.Namespace) -> dict:
               "--capital-fraction-lost",
               file=sys.stderr)
     reads = _READS[args.name]
-    unread = [f for f in frame_flags_given(args) if f in _FLAG_INPUT and _FLAG_INPUT[f] not in reads]
+    unread = [f for f in _flags_given(args) if f in _FLAG_INPUT and _FLAG_INPUT[f] not in reads]
     if unread:
         raise SystemExit(f"{args.name} does not read {', '.join(unread)}: it runs on "
-                         f"{', '.join(sorted(reads))} and ε")
-    eps = resolve_epsilon(args)
+                         f"{', '.join(sorted(reads))}"
+                         + ("" if "epsilon" in reads else " and sweeps ε itself"))
+    swept = "epsilon" not in reads
+    eps: dict[str, Any] = (resolve_epsilon(args) if not swept else
+           {"value": EPSILON_REFERENCE, "low": EPSILON_REFERENCE, "high": EPSILON_REFERENCE,
+            "margin": None, "margin_kind": None, "kind": "derived",
+            "source": "swept by the scenario"})
     result, v, lab = _frame_call(args, eps["value"])
-    if eps["high"] > eps["low"]:
+    if not swept and _OUTCOME_KEY[args.name] is not None and eps["high"] > eps["low"]:
         result["outcomes_across_epsilon"] = {
             f"{e:.3f}": outcome_of(args.name, _frame_call(args, e)[0])
             for e in (eps["low"], eps["value"], eps["high"])}
-    result["epsilon_reading"] = eps
+    result["epsilon_reading"] = None if swept else eps
     rows = labelled_inputs(v, lab, eps)
+    if swept and v.get("capital_derived"):
+        rows["capital_teh"] = {**rows["capital_teh"], "value": None,
+                               "source": "resolved per period along the arc by the scenario"}
     shown, stack = set(), [k for k in reads if k in rows]
     while stack:
         k = stack.pop()
         if k not in shown:
             shown.add(k)
-            stack.extend(d for d in rows[k]["derived_from"] if d in rows)
-    result["inputs"] = {k: r for k, r in rows.items() if k in shown or k == "epsilon"}
+            stack.extend(d for d in rows[k]["derived_from"]
+                         if d in rows and not (swept and d == "epsilon"))
+    result["inputs"] = {k: r for k, r in rows.items()
+                        if k in shown or (k == "epsilon" and not swept)}
     result["frame"] = v["frame"]
     return result
 
@@ -690,9 +804,19 @@ def _dispatch(args: argparse.Namespace) -> object:
         return _frame_run(args)
     given = [f for f in frame_flags_given(args)
              if not (name == "feasibility" and f == "--adult-capacity")]
+    if name == "collective" and given:
+        raise SystemExit("collective runs on its own parcel inventory (the urban archetype, "
+                         "302.5 ha); a --frame would pair that land with another frame's "
+                         "people and capital, the mismatch it exists to forbid. Pass "
+                         "--population to scale the archetype's people")
+    # Read by no scenario off the frame (2026-10-03): silently ignored before.
+    given += [f for f, a in (("--capital-stock", "capital_stock"), ("--population", "population"))
+              if getattr(args, a, None) is not None
+              and not (name == "collective" and a == "population")]
     if given:
-        raise SystemExit(f"{name} does not read frame inputs ({', '.join(given)}); the "
+        raise SystemExit(f"{name} does not read {', '.join(given)}; the "
                          f"frame-aware scenarios are {', '.join(FRAME_AWARE)}")
+    population_given = args.population
     epsilon    = args.epsilon if args.epsilon is not None else EPSILON_REFERENCE
     population = args.population if args.population is not None else REFERENCE_FRAME_POPULATION
     # Some branches read args.epsilon / args.population directly: give them the
@@ -713,56 +837,9 @@ def _dispatch(args: argparse.Namespace) -> object:
 
     # -- new shock scenarios --------------------------------------------------
 
-    if name == "labor_income_shock":
-        from hours_eoh.scenarios.shocks import labor_income_shock
-        return labor_income_shock(
-            epsilon=epsilon,
-            income_fraction=args.income_fraction,
-            population=population,
-        )
-
     # -- multi-period trajectories --------------------------------------------
 
-    if name == "canonical_arc":
-        from hours_eoh.scenarios.long_run import canonical_arc_trajectory
-        return canonical_arc_trajectory(
-            epsilon_start=args.epsilon_start,
-            epsilon_end=args.epsilon_end,
-            n_periods=args.periods,
-            population=population,
-        )
-
-    if name == "trust_stress":
-        from hours_eoh.scenarios.long_run import trust_depletion_stress
-        return trust_depletion_stress(
-            epsilon=epsilon,
-            n_periods=args.periods,
-            population=population,
-        )
-
-    if name == "transition":
-        from hours_eoh.scenarios.long_run import automation_transition_trajectory
-        return automation_transition_trajectory(
-            epsilon_start=args.epsilon_start,
-            epsilon_delta=args.epsilon_delta,
-            n_periods=args.periods,
-            population=population,
-        )
-
     # -- industrial overshoot -------------------------------------------------
-
-    if name == "indust_baseline":
-        from hours_eoh.scenarios.indust_overshoot import indust_overshoot_baseline
-        return indust_overshoot_baseline(population=population, epsilon=epsilon)
-
-    if name == "indust_recovery":
-        from hours_eoh.scenarios.indust_overshoot import indust_recovery_trajectory
-        return indust_recovery_trajectory(
-            population=population,
-            epsilon=epsilon,
-            ecological_restoration_rate=args.restoration_rate,
-            n_periods=args.periods,
-        )
 
     # -- GUF stress scenarios -------------------------------------------------
 
@@ -791,12 +868,6 @@ def _dispatch(args: argparse.Namespace) -> object:
         return guf_revenue_sweep()
 
     # -- measured inputs ------------------------------------------------------
-
-    if name == "measured_sim":
-        from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.scenarios.measured import run_measured_simulation
-        state = make_economy_state(epsilon=epsilon, population=population)
-        return run_measured_simulation(state, n_periods=args.periods)
 
     if name == "multiplier_sensitivity":
         from hours_eoh.scenarios.multiplier_sensitivity import sensitivity_report
@@ -1218,7 +1289,9 @@ def _dispatch(args: argparse.Namespace) -> object:
         # people with 302 hectares is the undeclared-frame defect this scenario
         # exists to make impossible. Capital and Trust scale with it, because
         # both are declared "at the 1M reference population" in their tag blocks.
-        pop = float(args.population) if args.population != 1_000_000.0 else 30_000.0
+        # Keyed on whether --population was GIVEN: comparing the resolved
+        # value to 1e6 sent an explicit `--population 1000000` to 30,000.
+        pop = float(population_given) if population_given is not None else 30_000.0
         state = make_economy_state(
             population=pop,
             capital_stock_teh=resolve_capital_stock(None, None, population=pop),
@@ -1558,19 +1631,6 @@ def _dispatch(args: argparse.Namespace) -> object:
             out["summary_table"] = [dict(c)]
         else:
             out["summary_table"] = [dict(c) for c in r["subsistence_cases"]]
-        return out
-
-    if name == "thermal_load":
-        from hours_eoh.scenarios.thermal_load import thermal_load_verdict
-        v = thermal_load_verdict(
-            thermal_obligation=args.thermal_obligation,
-            population=population,
-        )
-        # Reshape at the CLI boundary: the display layer renders "summary_table"
-        # as the period table with the scalars printed above it.
-        out = {k: val for k, val in v.items() if k != "rows"}
-        out["coverage_below_one_at"] = str(v["coverage_below_one_at"])
-        out["summary_table"] = v["rows"]
         return out
 
     if name == "verification_cost":

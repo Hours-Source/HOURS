@@ -37,7 +37,6 @@ from hours_eoh.indust_no_eco_params import (
     INDUST_NO_ECO_PIPELINE_KWARGS,
     INDUST_CAPITAL_AGE_RATIO,
     INDUST_ECOSYSTEM_HEALTH,
-    INDUST_DEFERRED_ECOLOGICAL,
 )
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -197,7 +196,7 @@ def indust_recovery_trajectory(
         capital_stock_teh=p["capital_stock_teh"],
         capital_age_ratio=INDUST_CAPITAL_AGE_RATIO,
         ecosystem_health=INDUST_ECOSYSTEM_HEALTH,
-        deferred_ecological=INDUST_DEFERRED_ECOLOGICAL,
+        deferred_ecological=p["deferred_ecological"],
     )
 
     raw = run_simulation(
