@@ -172,6 +172,8 @@ def overbuild_check(
     knowledge_base_size: float = 1.0,
     knowledge_complexity_per_unit: float = 1.0,
     half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,
+    added_upkeep_eoh: float = 0.0,
+    abating_capital_teh: float | None = None,
 ) -> OverbuildCheck:
     """
     Is this collective carrying its own weight, or is it overhead?
@@ -202,6 +204,18 @@ def overbuild_check(
         knowledge_complexity_per_unit: Measured complexity; drives the apparatus
             share of knowledge EOH.
         half_capital: K_half for the abatement curve.
+        added_upkeep_eoh: Upkeep the apparatus demands BEYOND its standing
+            maintenance, h/yr — e.g. the compounding a deferred backlog adds
+            (`scenarios/maintenance`), which the pipeline books the same way
+            (`infrastructure_compounding_eoh`). It joins I(K) and abates
+            nothing: the route by which an apparatus that pays becomes
+            overbuilt without a single asset added (2026-10-03). 0 →
+            bit-identical.
+        abating_capital_teh: The stock that still ABATES, when it differs from
+            the stock that is owed upkeep — a neglected stock in poor condition
+            (machine work is TEH × condition, `civilization.machine_eoh_from_capital`).
+            Upkeep I(K) stays on `capital_stock_teh`: a failing bridge is still
+            owed its maintenance. None → `capital_stock_teh`, bit-identical.
 
     Returns:
         OverbuildCheck.
@@ -221,6 +235,11 @@ def overbuild_check(
         raise ValueError(f"population must be positive, got {population}")
     if not 0.0 <= epsilon < 1.0:
         raise ValueError(f"epsilon must be in [0, 1), got {epsilon}")
+    if added_upkeep_eoh < 0.0:
+        raise ValueError(f"added_upkeep_eoh must be ≥ 0, got {added_upkeep_eoh}")
+    abating = capital_stock_teh if abating_capital_teh is None else abating_capital_teh
+    if not 0.0 <= abating <= capital_stock_teh:
+        raise ValueError(f"abating_capital_teh must be in [0, capital_stock_teh], got {abating}")
 
     ref = autarky_reference(population, standard, ecosystem_health)
     b0 = ref["total"]
@@ -230,7 +249,7 @@ def overbuild_check(
     # water-hauling. `ABATEMENT_HALF_CAPITAL_TEH` was redenominated to match on
     # 2026-09-08, and because a(K) is invariant under scaling K and K_half
     # together, every figure here is bit-identical to before the conversion.
-    k_pc = capital_stock_teh / population * CAPITAL_PERSONAL_SERVING_SHARE
+    k_pc = abating / population * CAPITAL_PERSONAL_SERVING_SHARE
     a = abatement_fraction(k_pc, half_capital)
 
     # B(K): the abated personal obligation, plus the unabatable ecological one.
@@ -242,7 +261,7 @@ def overbuild_check(
     infra = infrastructure_eoh(capital_stock_teh, capital_age_ratio)
     know = knowledge_eoh_breakdown(
         knowledge_base_size, complexity_per_unit=knowledge_complexity_per_unit)
-    i_k = infra + know["apparatus"]
+    i_k = infra + know["apparatus"] + added_upkeep_eoh
 
     total = b_k + i_k
     threshold = epsilon / (1.0 - epsilon)

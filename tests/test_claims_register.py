@@ -926,7 +926,10 @@ def _scan_is_data_py_only() -> bool:
     from utils import provenance as pv
     text = (REPO_ROOT / "record" / "provenance.md").read_text(encoding="utf-8")
     n = len([s for s in pv.shadow_constants() if not s.bound])
-    return pv.DATA_PY.name == "data.py" and f"The {n} shadow constants are" in text
+    # The figure is a generated census block since 2026-10-03 (it was hand-kept
+    # and missed by the first sweep); the block must still render the live count.
+    return (pv.DATA_PY.name == "data.py"
+            and f"The <!-- census:shadow -->{n}<!-- /census:shadow --> shadow constants are" in text)
 
 
 def _kappa_ratio_is_12_to_69() -> bool:

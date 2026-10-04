@@ -11,7 +11,7 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
     ecological_spike    maintenance_crisis  care_delay  recovery
 
   New shock scenarios:
-    labor_income_shock  compound_shock
+    labor_income_shock  compound_shock  capital_loss
 
   Multi-period trajectory scenarios:
     canonical_arc  trust_stress  transition
@@ -38,7 +38,15 @@ Available scenarios (use 'eoh scenario list' for full descriptions):
 Key options (not all apply to every scenario):
   --epsilon ε                  Automation level (default: 0.40)
   --population N               Population (default: 1 000 000)
-  --periods N                  Simulation periods (default: 20)
+  --periods N                  Simulation periods (default: 20; maintenance_crisis
+                               and recovery: MAINTENANCE_CRISIS_YEARS)
+  --fulfilment-fraction F      Share of infrastructure upkeep performed
+                               (maintenance_crisis, recovery; default 0.85)
+  --capital-fraction-lost F    Share of the capital stock destroyed (capital_loss)
+  --capability-fraction-lost F Share of machine capability lost (capital_loss;
+                               default: the capital fraction — an assumption)
+  --rebuild-years Y            Rebuild the lost capital over Y years (capital_loss;
+                               default: no rebuild modelled)
   --epsilon-start / --end      Arc start/end for trajectory scenarios
   --epsilon-delta RATE         Fixed Δε per period (transition)
   --income-fraction F          Labor income shock fraction (default: 1.0)
@@ -56,7 +64,7 @@ Key options (not all apply to every scenario):
   --use-category CAT           Land use category for GUF scenarios
   --restoration-rate F         Ecological restoration rate (default: 0.05)
   --thermal-obligation EOH     Planetary radiative obligation (thermal_load)
-  --capital-stock TEH          Apparatus capital (overbuild)
+  --capital-stock TEH          Capital stock (frame-aware scenarios)
   --adult-capacity H           Adult annual labour capacity (feasibility)
   --adult-share F              Adult share of population (feasibility)
   --epsilon-ref ε              Anchoring ε for the measured O*NET workforce
@@ -83,6 +91,9 @@ from hours_eoh.scenarios.personal_floor import OBSERVED_CONVENTIONS
 from hours_eoh.data import REGISTER_CADENCE
 from hours_eoh.scenarios.thermal_load import REFERENCE_THERMAL_FLOW_EOH
 from hours_eoh.data import LAND_HECTARES_PER_CAPITA
+from hours_eoh.data import (
+    CAPITAL_LOSS_FRACTION_DEFAULT, MAINTENANCE_CRISIS_FULFILMENT, MAINTENANCE_CRISIS_YEARS,
+)
 from utils.formatters import bold, dim, fmt_float, fmt_eps, table as fmt_table
 from utils.frame_inputs import (
     EPSILON_REFERENCE, add_frame_arguments, frame_flags_given, labelled_inputs,
@@ -95,10 +106,38 @@ from utils.frame_inputs import (
 #: build the shocks' shared state, so an age mix or labour supply would reach
 #: nothing (mode 5); frame flags are refused there rather than ignored.
 FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
-               "compound_shock", "overbuild")
+               "compound_shock", "capital_loss", "overbuild", "maintenance_crisis",
+               "recovery")
 _OUTCOME_KEY = {"automation_failure": "outcome", "demographic_shock": "outcome",
                 "ecological_spike": "outcome", "compound_shock": "combined_outcome",
-                "overbuild": "verdict"}
+                "capital_loss": "outcome", "overbuild": "verdict",
+                "maintenance_crisis": "outcome", "recovery": "recoverable"}
+
+#: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
+#: all-or-nothing: `overbuild` accepted --ages and --retirement-age and printed
+#: them as inputs while reading only population and capital — the mode-5 shape
+#: `corridor band` refused. A frame flag whose input a scenario does not read is
+#: refused, and the Inputs block shows only what reaches the run (plus what
+#: those are derived from).
+_SHOCK_READS = frozenset({
+    "population", "age_fractions", "adult_capacity_h_yr", "adult_share",
+    "labor_supply_per_capita", "capital_teh", "retirement_age", "retired_share",
+    "years_in_collective", "retiree_vested_fraction", "trust_balance"})
+_CAPITAL_READS = frozenset({"population", "capital_teh"})
+_READS: dict[str, frozenset[str]] = {
+    **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
+                                 "ecological_spike", "compound_shock", "capital_loss")},
+    **{n: _CAPITAL_READS for n in ("overbuild", "maintenance_crisis", "recovery")},
+}
+#: The input each input-specific frame flag sets (--frame and --frame-file set
+#: the whole frame and are read by every frame-aware scenario).
+_FLAG_INPUT = {"--ages": "age_fractions", "--adult-capacity": "adult_capacity_h_yr",
+               "--retirement-age": "retired_share", "--years-in-collective": "retired_share",
+               "--bea-usd-per-teh": "capital_teh"}
+
+#: The trajectory horizon when --periods is unset (maintenance_crisis and
+#: recovery default to MAINTENANCE_CRISIS_YEARS instead).
+_PERIODS_DEFAULT = 20
 from hours_eoh.core.fiscal import resolve_trust_balance
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 
@@ -108,11 +147,12 @@ _SCENARIOS: dict[str, str] = {
     "automation_failure":  "automation_failure_shock() — sudden machine EOH dropout  [--frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     "demographic_shock":   "demographic_shock() — population age-structure shift  [--shock-type, --shock-magnitude, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     "ecological_spike":    "ecological_eoh_spike() — threshold ecosystem EOH surge  [--ecosystem-health-before/after, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
-    "maintenance_crisis":  "deferred_maintenance_crisis() — compounding deferred backlog",
+    "maintenance_crisis":  "deferred_maintenance_crisis() — compounding deferred backlog, read against the overbuild floor each year  [--fulfilment-fraction, --periods, --capital-stock, --frame, --frame-file, --bea-usd-per-teh]",
     "care_delay":          "care_registration_delay() — lag in care EOH admission",
-    "recovery":            "maintenance_recovery_schedule() — backlog paydown arc",
+    "recovery":            "maintenance_recovery_schedule() — backlog paydown arc, from maintenance_crisis's backlog  [--fulfilment-fraction, --periods, --capital-stock, --frame, --frame-file, --bea-usd-per-teh]",
     # -- new shocks --
     "labor_income_shock":  "labor_income_shock() — wage compression / automation displacement  [--income-fraction]",
+    "capital_loss":        "capital_loss_shock() — a disaster (wildfire, flood) destroys capital: D1 write-down, machine work falls to people, optional rebuild  [--capital-fraction-lost, --capability-fraction-lost, --rebuild-years, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh, --retirement-age]",
     "compound_shock":      "compound_shock() — simultaneous multi-axis shock  [--ecology-collapse, --shock-type, --automation-fraction-lost, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
     # -- multi-period trajectories --
     "canonical_arc":       "canonical_arc_trajectory() — full ε arc over N periods  [--epsilon-start, --epsilon-end, --periods]",
@@ -151,7 +191,7 @@ _SCENARIOS: dict[str, str] = {
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation]",
     # -- autarky / overbuild --
-    "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --ages, --adult-capacity, --bea-usd-per-teh]",
+    "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     # -- the register: its own cost, and its capture exposure --
@@ -199,8 +239,9 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                              f"your own)"))
 
     # Trajectory params
-    run_p.add_argument("--periods", type=int, default=20,
-                       help="Simulation periods (default: 20)")
+    run_p.add_argument("--periods", type=int, default=None,
+                       help=f"Simulation periods (default: {_PERIODS_DEFAULT}; "
+                            f"maintenance_crisis/recovery: {MAINTENANCE_CRISIS_YEARS})")
     run_p.add_argument("--epsilon-start", type=float, default=0.0,
                        dest="epsilon_start", metavar="ε",
                        help="Arc start ε (canonical_arc, transition; default: 0.0)")
@@ -240,6 +281,27 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--automation-fraction-lost", type=float, default=0.0,
                        dest="automation_fraction_lost",
                        help="Fraction of automation lost (compound_shock; default: 0.0)")
+    run_p.add_argument("--capital-fraction-lost", type=float,
+                       default=CAPITAL_LOSS_FRACTION_DEFAULT, dest="capital_fraction_lost",
+                       metavar="F",
+                       help="Share of the capital stock a disaster destroys (capital_loss; "
+                            f"default {CAPITAL_LOSS_FRACTION_DEFAULT} — illustrative)")
+    run_p.add_argument("--capability-fraction-lost", type=float, default=None,
+                       dest="capability_fraction_lost", metavar="F",
+                       help="Share of machine capability lost (capital_loss; default: "
+                            "the capital fraction — assumes the loss is spread across "
+                            "the stock)")
+    run_p.add_argument("--rebuild-years", type=float, default=None,
+                       dest="rebuild_years", metavar="Y",
+                       help="Rebuild the destroyed capital over Y years (capital_loss; "
+                            "default: no rebuild modelled — a choice, not a given)")
+    run_p.add_argument("--fulfilment-fraction", type=float,
+                       default=MAINTENANCE_CRISIS_FULFILMENT, dest="fulfilment_fraction",
+                       metavar="F",
+                       help="Share of infrastructure upkeep actually performed each year "
+                            "(maintenance_crisis; for recovery it sets the backlog's "
+                            "under-service, not the paydown rate; default "
+                            f"{MAINTENANCE_CRISIS_FULFILMENT})")
 
     # GUF params
     run_p.add_argument("--pathway", choices=["restoration", "abandonment"],
@@ -404,7 +466,7 @@ def _run(args: argparse.Namespace) -> None:
         # Print scalar summary above the period table when displaying inner list
         if isinstance(result, dict) and display is not result:
             _print_scalar_summary(result)
-        print(fmt_table(keys, [[str(r.get(k, "")) for k in keys] for r in display]))
+        print(fmt_table(keys, [[_readable(r.get(k, "")) for k in keys] for r in display]))
         return
 
     if isinstance(display, dict):
@@ -458,8 +520,14 @@ def _print_scalar_summary(result: dict) -> None:
         k: v for k, v in result.items()
         if isinstance(v, (int, float, str, bool)) and k != "raw"
     }
+    long_text = {k: v for k, v in scalars.items() if isinstance(v, str) and len(v) > 100}
     if scalars:
-        print(fmt_table(["key", "value"], [[str(k), str(v)] for k, v in scalars.items()]))
+        print(fmt_table(["key", "value"], [[str(k), _readable(v)] for k, v in scalars.items()
+                                           if k not in long_text]))
+        for k, v in long_text.items():
+            print()
+            print(bold(k))
+            print(textwrap.fill(v, width=100, initial_indent="  ", subsequent_indent="  "))
         print()
 
 
@@ -504,6 +572,31 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             ecosystem_health_after=args.ecosystem_health_after,
             demographic_shock_spec=dem_spec,
             automation_fraction_lost=args.automation_fraction_lost, **common), v, lab
+    if name == "capital_loss":
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        return capital_loss_shock(
+            epsilon=epsilon, fraction_lost=args.capital_fraction_lost,
+            capability_fraction_lost=args.capability_fraction_lost,
+            rebuild_years=args.rebuild_years, **common), v, lab
+    if name in ("maintenance_crisis", "recovery"):
+        # The frame's own capital (supplied, BEA, or the arc at this ε) sets the
+        # upkeep; until 2026-10-03 the frame was the reference one at a settable
+        # --population, and the 0.85 / 10 years were bare literals.
+        from hours_eoh.core.eoh_generation import total_eoh
+        from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
+        k = v["capital_teh"]
+        years = args.periods if args.periods is not None else MAINTENANCE_CRISIS_YEARS
+        annual = total_eoh(epsilon=epsilon, population=pop, capital_stock=k)["infrastructure"]
+        crisis = deferred_maintenance_crisis(
+            epsilon=epsilon, annual_eoh=annual,
+            fulfillment_fraction=args.fulfilment_fraction, years=years,
+            population=pop, capital_stock_teh=k)
+        if name == "maintenance_crisis":
+            return crisis, v, lab
+        from hours_eoh.scenarios.recovery import maintenance_recovery_schedule
+        return maintenance_recovery_schedule(
+            epsilon=epsilon, current_deferred=crisis["final_deferred"],
+            annual_eoh=annual), v, lab
     if name == "overbuild":
         from hours_eoh.core.autarky import break_even_epsilon, overbuild_check, payback
         k = v["capital_teh"]
@@ -531,6 +624,14 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
     raise ValueError(f"{name} is not frame-aware")
 
 
+def outcome_of(name: str, result: dict) -> str:
+    """A frame-aware scenario's outcome as a word — `recovery` reports a bool."""
+    o = result[_OUTCOME_KEY[name]]
+    if isinstance(o, bool):
+        return "recovers" if o else "does not recover"
+    return str(o)
+
+
 def _frame_run(args: argparse.Namespace) -> dict:
     """
     A frame-aware scenario on a resolved frame (2026-10-03). Every input is
@@ -545,14 +646,26 @@ def _frame_run(args: argparse.Namespace) -> dict:
         print("compound_shock: no component enabled — pass --ecology-collapse, "
               "--shock-type (with --shock-magnitude) or --automation-fraction-lost",
               file=sys.stderr)
+    reads = _READS[args.name]
+    unread = [f for f in frame_flags_given(args) if f in _FLAG_INPUT and _FLAG_INPUT[f] not in reads]
+    if unread:
+        raise SystemExit(f"{args.name} does not read {', '.join(unread)}: it runs on "
+                         f"{', '.join(sorted(reads))} and ε")
     eps = resolve_epsilon(args)
     result, v, lab = _frame_call(args, eps["value"])
-    key = _OUTCOME_KEY[args.name]
     if eps["high"] > eps["low"]:
         result["outcomes_across_epsilon"] = {
-            f"{e:.3f}": _frame_call(args, e)[0][key] for e in (eps["low"], eps["value"], eps["high"])}
+            f"{e:.3f}": outcome_of(args.name, _frame_call(args, e)[0])
+            for e in (eps["low"], eps["value"], eps["high"])}
     result["epsilon_reading"] = eps
-    result["inputs"] = labelled_inputs(v, lab, eps)
+    rows = labelled_inputs(v, lab, eps)
+    shown, stack = set(), [k for k in reads if k in rows]
+    while stack:
+        k = stack.pop()
+        if k not in shown:
+            shown.add(k)
+            stack.extend(d for d in rows[k]["derived_from"] if d in rows)
+    result["inputs"] = {k: r for k, r in rows.items() if k in shown or k == "epsilon"}
     result["frame"] = v["frame"]
     return result
 
@@ -570,7 +683,9 @@ def _dispatch(args: argparse.Namespace) -> object:
     population = args.population if args.population is not None else REFERENCE_FRAME_POPULATION
     # Some branches read args.epsilon / args.population directly: give them the
     # resolved values, never the unset None.
-    args = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": population})
+    periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
+    args = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": population,
+                                 "periods": periods})
 
     # -- original scenarios ---------------------------------------------------
 
@@ -578,41 +693,9 @@ def _dispatch(args: argparse.Namespace) -> object:
         from hours_eoh.scenarios.sweep import epsilon_sweep
         return epsilon_sweep()
 
-    if name == "maintenance_crisis":
-        from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
-        # annual_eoh / fulfillment_fraction / years are REQUIRED and were never
-        # passed. Defaults here are the CLI's, not the function's: the
-        # infrastructure domain at the reference frame, chronic under-service,
-        # and a decade — enough to show the compounding the scenario is about.
-        from hours_eoh.core.eoh_generation import total_eoh
-        return deferred_maintenance_crisis(
-            epsilon=epsilon,
-            annual_eoh=total_eoh(epsilon=epsilon, population=population)["infrastructure"],
-            fulfillment_fraction=0.85,
-            years=10,
-        )
-
     if name == "care_delay":
         from hours_eoh.scenarios.maintenance import care_registration_delay
         return care_registration_delay(epsilon=epsilon)
-
-    if name == "recovery":
-        from hours_eoh.core.eoh_generation import total_eoh
-        from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
-        from hours_eoh.scenarios.recovery import maintenance_recovery_schedule
-        # current_deferred / annual_eoh are REQUIRED and were never passed. The
-        # backlog is taken from the crisis scenario above so the two agree
-        # rather than each inventing a starting point.
-        _annual = total_eoh(epsilon=epsilon, population=population)["infrastructure"]
-        _crisis = deferred_maintenance_crisis(
-            epsilon=epsilon, annual_eoh=_annual,
-            fulfillment_fraction=0.85, years=10,
-        )
-        return maintenance_recovery_schedule(
-            epsilon=epsilon,
-            current_deferred=_crisis["final_deferred"],
-            annual_eoh=_annual,
-        )
 
     # -- new shock scenarios --------------------------------------------------
 

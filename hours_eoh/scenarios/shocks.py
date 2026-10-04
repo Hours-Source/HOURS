@@ -6,6 +6,7 @@ scenarios/shocks — Sudden-onset shock scenarios.
   ecological_eoh_spike      — ecosystem collapse and the restoration it leaves
   labor_income_shock        — the mint falls
   compound_shock            — any of the first three, applied to ONE state
+  capital_loss_shock        — a disaster destroys capital; the D1 write-down
 
 Each returns "outcome" ∈ {"STABLE", "DEGRADED", "CRISIS"} and a
 "recommendation".
@@ -61,6 +62,7 @@ from hours_eoh.data import (
     SUFF_LEVY_RATE,
     MEANINGFUL_ACTIVITY_TEH_BASE,
     SHOCK_DEGRADED_TRUST_FRACTION,
+    CAPITAL_LOSS_FRACTION_DEFAULT,
 )
 from hours_eoh.core.eoh_generation import (
     resolve_capital_stock,
@@ -361,10 +363,17 @@ def _run(
     capital_age_ratio: float,
     knowledge_base_size: float | None,
     deferred_ecological: float = 0.0,
+    added_infrastructure_eoh: float = 0.0,
 ) -> dict:
     """
     The pipeline at `state`, the physical state and the REGISTER held at the
     pre-shock `epsilon`, capped at the state's labour supply.
+
+    `added_infrastructure_eoh` is infrastructure demand beyond the stock's
+    upkeep (a rebuild, `capital_loss_shock`). It enters through the pipeline's
+    `infrastructure_compounding_eoh` — the one input that adds to the
+    infrastructure domain BEFORE the machine/human split — so the machines
+    left after the event carry their share and people the rest.
     """
     phys = canonical_physical_state(epsilon)
     return eoh_to_teh_pipeline(
@@ -380,6 +389,7 @@ def _run(
         knowledge_complexity_per_unit=phys["knowledge_complexity_per_unit"],
         restoration_obligation=state["restoration_eoh"],
         deferred_ecological=deferred_ecological,
+        infrastructure_compounding_eoh=added_infrastructure_eoh,
         available_labor_eoh=state["labor_supply_per_capita"] * state["population"],
     )
 
@@ -929,6 +939,161 @@ def ecological_eoh_spike(
         "labour_outcome":        c["labour_outcome"],
         "outcome":               outcome,
         "recommendation":        rec,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Capital Loss Shock
+# ---------------------------------------------------------------------------
+
+def capital_loss_shock(
+    epsilon: float,
+    population: float = REFERENCE_FRAME_POPULATION,
+    capital_stock_teh: float | None = None,
+    capital_age_ratio: float = CANONICAL_CAPITAL_AGE_BASE,
+    ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    knowledge_base_size: float | None = None,
+    fraction_lost: float = CAPITAL_LOSS_FRACTION_DEFAULT,
+    capability_fraction_lost: float | None = None,
+    rebuild_years: float | None = None,
+    labor_supply_per_capita: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    retired_share: float = 0.0,
+    retiree_vested_fraction: float = 1.0,
+    trust_balance: float | None = None,
+) -> dict:
+    """
+    A disaster — a wildfire, flood or earthquake — destroys `fraction_lost` of
+    the capital stock, and the loss is WRITTEN DOWN (Guardrail II, D1). Built
+    2026-10-03 at the author's request ("large amounts of capital is lost and
+    goes through a write-down event").
+
+    WHAT MOVES, each through the function that owns it:
+
+      * the STOCK, K → K(1 − f): its upkeep leaves the infrastructure
+        obligation, so less work registers and the mint falls — which is the
+        ONLY way the stock reaches the Trust. In `fiscal_snapshot` capital
+        sizes stewardship, paid by the mint (`paid_by_mint`); holding the mint
+        fixed, the surplus does not move with K (checked 2026-10-03);
+      * MACHINE CAPABILITY, ε → ε(1 − g): what the burned machines did falls
+        to people, through the same cascade as `automation_failure_shock`.
+        g defaults to f — A STATED ASSUMPTION: the loss is spread across the
+        stock as it stands. It follows from `civilization.machine_eoh_from_capital`,
+        where machine work is linear in each asset's TEH, so a uniform loss of
+        f removes f of it. A fire that takes houses and spares the grid is not
+        uniform: pass `capability_fraction_lost`;
+      * THE WRITE-DOWN, `capital.execute_writedown` on the lost stock as one
+        asset: `teh_destroyed` and `rebuild_eoh_needed` are ITS figures.
+        Destroyed capital-embodied TEH is REPORTED, never charged to the
+        Trust — `fiscal_snapshot` has no input for it, and a balance does not
+        owe for a burned building;
+      * THE REBUILD is a choice, like the retirement register: OFF unless
+        `rebuild_years` is given. On, `rebuild_eoh_needed / rebuild_years`
+        joins the infrastructure domain as demand for the shocked period —
+        split at the reduced capability, taken up or deferred, and minted where
+        it is done.
+
+    NOT MODELLED: the ecological damage a wildfire also does (compose it in
+    `compound_shock`), the stock regrowing as the rebuild proceeds, or more
+    than one period.
+
+    Args:
+        epsilon: Machine capability before the event [0.0, 0.99].
+        population: Total population.
+        capital_stock_teh: None → the canonical arc's stock at this ε and
+            population; a supplied stock is the ACTUAL stock.
+        fraction_lost: Share of the capital stock destroyed, (0, 1].
+        capability_fraction_lost: Share of machine capability lost, [0, 1].
+            None → `fraction_lost` (see above).
+        rebuild_years: None → no rebuild modelled; > 0 → the horizon.
+        trust_balance: None → resolved at `population`.
+    """
+    from hours_eoh.core.capital import execute_writedown
+    from hours_eoh.core.eoh_generation import infrastructure_eoh
+
+    if not 0.0 < fraction_lost <= 1.0:
+        raise ValueError(f"fraction_lost must be in (0, 1], got {fraction_lost}")
+    g = fraction_lost if capability_fraction_lost is None else capability_fraction_lost
+    if not 0.0 <= g <= 1.0:
+        raise ValueError(f"capability_fraction_lost must be in [0, 1], got {g}")
+    if rebuild_years is not None and rebuild_years <= 0.0:
+        raise ValueError(f"rebuild_years must be positive, got {rebuild_years}")
+    capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    trust_balance = resolve_trust_balance(trust_balance, population)
+    k_after = capital_stock_teh * (1.0 - fraction_lost)
+
+    upkeep_lost = (infrastructure_eoh(capital_stock_teh, capital_age_ratio)
+                   - infrastructure_eoh(k_after, capital_age_ratio))
+    wd = execute_writedown({
+        "asset_id": "capital_loss", "asset_type": "generic_infra",
+        "teh_value": capital_stock_teh - k_after, "annual_eoh": upkeep_lost,
+    })
+    rebuild_per_year = (0.0 if rebuild_years is None
+                        else float(wd["rebuild_eoh_needed"]) / rebuild_years)
+
+    s0 = _base_state(epsilon, population, ecosystem_health, labor_supply_per_capita,
+                     age_fractions, retired_share, retiree_vested_fraction)
+    s1 = _State(**{**s0, "capability": epsilon * (1.0 - g)})
+    before = _run(s0, epsilon, capital_stock_teh, capital_age_ratio, knowledge_base_size)
+    after = _run(s1, epsilon, k_after, capital_age_ratio, knowledge_base_size,
+                 added_infrastructure_eoh=rebuild_per_year)
+    c = _cascade(before, after)
+    f0 = _fiscal(s0, epsilon, before, trust_balance, capital_stock_teh, capital_age_ratio)
+    f1 = _fiscal(s1, epsilon, after, trust_balance, k_after, capital_age_ratio)
+    comp = _competency(s0, before, s1, after)
+    fc = _fiscal_change(f0, f1, trust_balance, s0, s1)
+    outcome = _worse(c["labour_outcome"], comp["competency_outcome"],
+                     _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
+
+    lost = c["machine_eoh_before"] - c["machine_eoh_after"]
+    rec = (
+        f"Capital loss at ε={epsilon:.2f}: {fraction_lost:.0%} of the stock destroyed "
+        f"({wd['teh_destroyed']:,.0f} TEH written down, D1 — reported, not charged to "
+        f"the Trust); its upkeep, {upkeep_lost:,.0f} EOH/yr, leaves the obligation. "
+        f"Machine capability falls {g:.0%}"
+        + (" (assumed equal to the capital lost)" if capability_fraction_lost is None else "")
+        + f": {lost:,.0f} EOH/yr the machines carried falls to people. "
+        + (f"Rebuild over {rebuild_years:g} years adds {rebuild_per_year:,.0f} EOH/yr. "
+           if rebuild_years is not None else
+           f"No rebuild modelled (pass rebuild_years); it would need "
+           f"{wd['rebuild_eoh_needed']:,.0f} EOH. ")
+        + f"Of the added human demand {c['taken_up_eoh']:,.0f} is taken up, "
+        f"{c['deferred_eoh']:,.0f} deferred"
+        + (f", {c['deferred_personal_eoh']:,.0f} of it PERSONAL — the survival floor "
+           "is unmet" if c["deferred_personal_eoh"] > 0.0 else ", none of it personal")
+        + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'} after. "
+        + fc["fiscal_note"] + comp["competency_note"]
+        + f"Outcome: {outcome}."
+    )
+    return {
+        "scenario":                "capital_loss_shock",
+        "epsilon":                 epsilon,
+        "fraction_lost":           fraction_lost,
+        "capability_fraction_lost": g,
+        "capability_assumed":      capability_fraction_lost is None,
+        "capital_before":          capital_stock_teh,
+        "capital_after":           k_after,
+        "teh_destroyed":           float(wd["teh_destroyed"]),
+        "upkeep_removed_eoh":      upkeep_lost,
+        "rebuild_eoh_needed":      float(wd["rebuild_eoh_needed"]),
+        "rebuild_years":           rebuild_years,
+        "rebuild_eoh_per_year":    rebuild_per_year,
+        "total_eoh_before":        float(before["total_eoh"]),
+        "total_eoh_after":         float(after["total_eoh"]),
+        "machine_eoh_lost":        lost,
+        "labor_supply_eoh":        s0["labor_supply_per_capita"] * population,
+        "added_human_eoh":         c["added_human_eoh"],
+        "taken_up_eoh":            c["taken_up_eoh"],
+        "deferred_eoh":            c["deferred_eoh"],
+        "deferred_personal_eoh":   c["deferred_personal_eoh"],
+        "mint_before":             float(before["teh_created"]),
+        "mint_after":              float(after["teh_created"]),
+        "trust_solvent_after":     f1["solvent"],
+        **comp,
+        **fc,
+        "labour_outcome":          c["labour_outcome"],
+        "outcome":                 outcome,
+        "recommendation":          rec,
     }
 
 

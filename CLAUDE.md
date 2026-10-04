@@ -127,8 +127,9 @@ hours_eoh/
 
   scenarios/           Applied research: stress tests and scenario runners
     sweep.py           epsilon_sweep — arc coherence check with fiscal solvency
-    shocks.py          automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock
-    maintenance.py     deferred_maintenance_crisis, care_registration_delay
+    shocks.py          automation_failure_shock, demographic_shock, ecological_eoh_spike, labor_income_shock, compound_shock,
+                       capital_loss_shock (a disaster's D1 write-down; rebuild opt-in)
+    maintenance.py     deferred_maintenance_crisis (on a frame: each year read against the overbuild floor), care_registration_delay
     recovery.py        maintenance_recovery_schedule, minimum_fulfillment_for_recovery
     sensitivity.py     fiscal_parameter_sweep, eoh_arc_sensitivity, epsilon_delta_sensitivity
     long_run.py        canonical_arc_trajectory, trust_depletion_stress, automation_transition_trajectory
@@ -616,8 +617,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,562 tests passing (1 skipped), mypy clean on 107 source files** (verified
-2026-10-03). <!-- census:state -->Provenance **357/357**, shadow ratchet **30**, confidence ratchet **131** of 147<!-- /census:state -->,
+**5,613 tests passing (1 skipped), mypy clean on 107 source files** (verified
+2026-10-03). <!-- census:state -->Provenance **362/362**, shadow ratchet **29**, confidence ratchet **131** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

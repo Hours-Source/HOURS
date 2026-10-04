@@ -958,3 +958,48 @@ class TestTheFiscalChangeIsReported:
     def test_reporting_does_not_move_the_verdict(self):
         r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
         assert r["fiscal_outcome_after"] == r["outcome"] or r["outcome"] in ("CRISIS",)
+
+
+class TestCapitalLoss:
+    """A disaster destroys capital (2026-10-03): the stock and its upkeep fall,
+    machine work falls to people, the loss is written down (D1) and reported,
+    and a rebuild is opt-in demand."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_across_the_arc(self, eps):
+        from hours_eoh.core.capital import execute_writedown
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        k = resolve_capital_stock(None, eps, population=1e6)
+        r = capital_loss_shock(eps, fraction_lost=0.3)
+        assert r["capital_after"] == pytest.approx(0.7 * k)
+        wd = execute_writedown({"asset_id": "x", "asset_type": "generic_infra",
+                                "teh_value": k - 0.7 * k, "annual_eoh": 0.0})
+        assert r["teh_destroyed"] == wd["teh_destroyed"]
+        assert r["machine_eoh_lost"] >= 0.0 and r["outcome"] in ("STABLE", "DEGRADED", "CRISIS")
+        rebuilt = capital_loss_shock(eps, fraction_lost=0.3, rebuild_years=5)
+        assert rebuilt["total_eoh_after"] >= r["total_eoh_after"]
+        assert rebuilt["rebuild_eoh_per_year"] == pytest.approx(wd["rebuild_eoh_needed"] / 5)
+
+    def test_capability_defaults_to_the_capital_lost_and_can_be_set_apart(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        assumed = capital_loss_shock(0.6, fraction_lost=0.4)
+        spared = capital_loss_shock(0.6, fraction_lost=0.4, capability_fraction_lost=0.0)
+        assert assumed["capability_assumed"] and not spared["capability_assumed"]
+        assert spared["machine_eoh_lost"] < assumed["machine_eoh_lost"]
+
+    def test_the_verdict_is_frame_invariant(self):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        runs = [(p, capital_loss_shock(0.4, population=p, fraction_lost=0.5, rebuild_years=3))
+                for p in (1e5, 1e6, 1e7)]
+        assert len({r["outcome"] for _, r in runs}) == 1
+        per = [r["deferred_eoh"] / p for p, r in runs]
+        assert max(per) == pytest.approx(min(per), rel=1e-9)
+
+    @pytest.mark.parametrize("kw", [{"fraction_lost": 0.0}, {"fraction_lost": 1.2},
+                                    {"capability_fraction_lost": -0.1},
+                                    {"rebuild_years": 0.0}])
+    def test_out_of_range_is_refused(self, kw):
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        with pytest.raises(ValueError):
+            capital_loss_shock(0.4, **kw)

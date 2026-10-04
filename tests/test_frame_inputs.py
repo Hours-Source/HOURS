@@ -23,14 +23,17 @@ from utils.eoh_cli import build_parser
 from utils.frame_inputs import (
     EPSILON_REFERENCE, effective_kind, label, load_frame_file,
 )
-from utils.scenario_cmd import FRAME_AWARE, _dispatch
+from utils.scenario_cmd import _FLAG_INPUT, _READS, FRAME_AWARE, _dispatch, outcome_of
 
 _SCENARIO_FLAGS = {
     "automation_failure": [],
     "demographic_shock": ["--shock-type", "aging", "--shock-magnitude", "0.2"],
     "ecological_spike": [],
     "compound_shock": ["--automation-fraction-lost", "0.5"],
+    "capital_loss": ["--capital-fraction-lost", "0.3"],
     "overbuild": [],
+    "maintenance_crisis": [],
+    "recovery": [],
 }
 
 
@@ -186,6 +189,29 @@ class TestScenarioRunOnAFrame:
         with pytest.raises(SystemExit):
             _dispatch(_args("scenario", "run", "labor_income_shock", "--ages", "census"))
 
+    @pytest.mark.parametrize("name", FRAME_AWARE)
+    def test_a_frame_flag_the_scenario_does_not_read_is_refused(self, name):
+        """`overbuild` accepted --ages and --retirement-age and printed them as
+        inputs while reading population and capital only (mode 5)."""
+        argv = {"--ages": ["census"], "--adult-capacity": ["2300"],
+                "--retirement-age": [], "--years-in-collective": ["5"],
+                "--bea-usd-per-teh": ["15.94"]}
+        for flag, inp in _FLAG_INPUT.items():
+            run = lambda: _scenario(name, "--frame", "us", flag, *argv[flag])  # noqa: E731
+            if inp in _READS[name]:
+                assert run()
+            else:
+                with pytest.raises(SystemExit):
+                    run()
+
+    @pytest.mark.parametrize("name", FRAME_AWARE)
+    def test_the_inputs_shown_are_what_the_scenario_reads(self, name):
+        rows = _scenario(name, "--frame", "us")["inputs"]
+        shown = set(rows) - {"epsilon"}
+        assert _READS[name] & set(_labels("--frame", "us")) <= shown
+        for k in shown - _READS[name]:          # only what a read input derives from
+            assert any(k in rows[r]["derived_from"] for r in shown)
+
     def test_feasibility_still_reads_adult_capacity(self):
         r = _dispatch(_args("scenario", "run", "feasibility", "--adult-capacity", "2300"))
         assert r
@@ -216,7 +242,7 @@ class TestTheFramesAgesReachTheShock:
         r = _scenario("demographic_shock", "--frame", "us")
         assert r["age_fractions_before"] == pytest.approx(population_shares(AGE_GROUP_RANGES))
 
-    @pytest.mark.parametrize("name", [n for n in FRAME_AWARE if n != "overbuild"])
+    @pytest.mark.parametrize("name", [n for n in FRAME_AWARE if "age_fractions" in _READS[n]])
     def test_an_ages_only_edit_moves_every_shock(self, tmp_path: Path, name):
         body = _frame_json("--frame", "us")
         body["age_fractions"] = {"infant": 0.05, "child": 0.12, "working_age": 0.55, "elderly": 0.28}
@@ -232,10 +258,9 @@ class TestTheEndUserPath:
     def test_each_scenario_reports_its_outcome_across_epsilon(self, name):
         """The outcome key per scenario was once corrupted by a bad edit and no
         test noticed: only demographic_shock's was checked."""
-        from utils.scenario_cmd import _OUTCOME_KEY
         r = _scenario(name, "--frame", "us")
         acr = r["outcomes_across_epsilon"]
-        assert acr[f"{r['epsilon_reading']['value']:.3f}"] == r[_OUTCOME_KEY[name]]
+        assert acr[f"{r['epsilon_reading']['value']:.3f}"] == outcome_of(name, r)
         assert all(isinstance(o, str) for o in acr.values())
 
     @pytest.mark.parametrize("name", FRAME_AWARE)

@@ -1714,8 +1714,10 @@ def test_shadow_constant_count_does_not_grow(scanned):
     # 33 -> 30 on 2026-10-02: three retyped copies of the reference-frame
     # population (ecological_floor, thermal_load, indust_overshoot) BOUND to
     # data.REFERENCE_FRAME_POPULATION — the frame declaration they copied.
-    assert len(free) <= 30, (
-        f"{len(free)} shadow constants, was 30. New ones: a domain constant "
+    # 30 -> 29 on 2026-10-03: scenarios/maintenance's _IRREVERSIBILITY_MULTIPLE
+    # moved to data.py as MAINTENANCE_IRREVERSIBILITY_MULTIPLE, with a tag.
+    assert len(free) <= 29, (
+        f"{len(free)} shadow constants, was 29. New ones: a domain constant "
         f"declared outside data.py carries no tag, no resolves_by, and appears "
         f"in no coverage or debt figure this repo publishes. Put it in data.py "
         f"with a tag block, or bind it to the constant it duplicates."

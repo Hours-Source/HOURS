@@ -298,3 +298,29 @@ class TestPayback:
     def test_rejects_bad_life(self):
         with pytest.raises(ValueError):
             payback(1e9, POP, design_life_years=0.0)
+
+
+class TestUpkeepThatAbatesNothing:
+    """`added_upkeep_eoh` and `abating_capital_teh` (2026-10-03): the two ways a
+    neglected apparatus slides toward the overbuild floor — more upkeep, less
+    abatement — each at its default bit-identical."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_defaults_are_bit_identical_and_each_term_moves_the_right_way(self, eps):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        k = resolve_capital_stock(None, 0.40, population=1e6)
+        base = overbuild_check(k, 1e6, epsilon=eps)
+        assert overbuild_check(k, 1e6, epsilon=eps, added_upkeep_eoh=0.0,
+                               abating_capital_teh=k) == base
+        up = overbuild_check(k, 1e6, epsilon=eps, added_upkeep_eoh=1e8)
+        assert up["net_vs_autarky"] == pytest.approx(base["net_vs_autarky"] - 1e8)
+        worn = overbuild_check(k, 1e6, epsilon=eps, abating_capital_teh=0.5 * k)
+        assert worn["overhead"] == base["overhead"]           # upkeep stays on the stock
+        assert worn["abatement"] < base["abatement"]
+        assert worn["net_vs_autarky"] < base["net_vs_autarky"]
+
+    def test_out_of_range_is_refused(self):
+        with pytest.raises(ValueError):
+            overbuild_check(1e9, 1e6, added_upkeep_eoh=-1.0)
+        with pytest.raises(ValueError):
+            overbuild_check(1e9, 1e6, abating_capital_teh=2e9)

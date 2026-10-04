@@ -10,8 +10,8 @@ revaluations and re-anchors, the dataset-governance gate.
 
 Counts below are generated, never hand-kept.
 
-- <!-- census:provenance -->**357 constants in `data.py`, all tagged** — `provenance 357/357`<!-- /census:provenance --> *(gated)*.
-  <!-- census:tags -->placeholder 128 (35.9%), normative 76 (21.3%), convention 47 (13.2%), measured 28 (7.8%), instance 25 (7.0%), derived 23 (6.4%), bounded 19 (5.3%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
+- <!-- census:provenance -->**362 constants in `data.py`, all tagged** — `provenance 362/362`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 128 (35.4%), normative 78 (21.5%), convention 47 (13.0%), instance 28 (7.7%), measured 28 (7.7%), derived 23 (6.4%), bounded 19 (5.2%), derived-then-FROZEN 6 (1.7%), physics 3 (0.8%), baseline 2 (0.6%)<!-- /census:tags -->. [Census](#census-one-source).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
   constants are decisions needing argument, not data — they are forbidden a
   `resolves_by` and that is the point.
@@ -63,14 +63,14 @@ Counts below are generated, never hand-kept.
 - **`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates `INFRA_MAINT_RATE`** *(person)*
   as an unbound literal 1,087 lines away. Reported, not bound — binding would
   ASSERT the aggregate and the catch-all are one quantity, which is a theory
-  claim. *Settles by:* an author decision on whether they are.
+  claim. *Settles by:* the author deciding.
 - **`derive `form:` edges from the expressions.** *(gap)* `band_from:` is
   opt-in, the wrong shape for a circularity check — every failure found so far
   was one nobody thought to declare. **Measured 2026-09-04:** the "right-hand
   side of each assignment is a dependency statement" claim holds for **12 of
-  300**; the rest are bare literals. Small, but `band_from:` is declared ONCE,
-  so deriving those 12 takes the check from one edge to twelve.
-- **The scan is `data.py`-only.** *(caveat)* The 30 shadow constants are
+  300**; the rest are bare literals. Deriving those 12 takes the check from
+  one declared edge to twelve.
+- **The scan is `data.py`-only.** *(caveat)* The <!-- census:shadow -->29<!-- /census:shadow --> shadow constants are
   invisible to every count published.
 
 ## Cross-area entries

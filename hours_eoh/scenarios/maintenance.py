@@ -16,15 +16,20 @@ degrades if care admission lags collective demand"
 
 from __future__ import annotations
 
+from typing import Any
+
 from hours_eoh.data import (
     REFERENCE_FRAME_POPULATION,
     COMPOUNDING_CRIT,
+    MAINTENANCE_DEGRADED_COMPOUNDING,
+    MAINTENANCE_IRREVERSIBILITY_MULTIPLE,
     MEAN_MULTIPLIER_REFERENCE,
 )
 from hours_eoh.core.eoh_dynamics import eoh_compounding
 from hours_eoh.core.registration import register_shares
 
-_IRREVERSIBILITY_MULTIPLE: float = 5.0  # deferred/annual ratio → rebuilding required
+#: Kept under its old name; the value lives in data.py since 2026-10-03.
+_IRREVERSIBILITY_MULTIPLE: float = MAINTENANCE_IRREVERSIBILITY_MULTIPLE
 
 
 def deferred_maintenance_crisis(
@@ -33,6 +38,8 @@ def deferred_maintenance_crisis(
     fulfillment_fraction: float,
     years: int,
     asset_type: str = "generic_infra",
+    population: float | None = None,
+    capital_stock_teh: float | None = None,
 ) -> dict:
     """
     Simulate sustained underinvestment in infrastructure EOH over multiple years.
@@ -48,6 +55,35 @@ def deferred_maintenance_crisis(
         fulfillment_fraction: Fraction actually fulfilled each year, ∈ [0,1].
         years: Number of years to simulate.
         asset_type: Asset type controlling compounding profile.
+        population, capital_stock_teh: The frame (2026-10-03). Given both,
+            each year is ALSO read against the overbuild floor
+            (`core.autarky.overbuild_check`): the year's compounding joins the
+            apparatus's upkeep I(K) and abates nothing — the pipeline books it
+            the same way (`infrastructure_compounding_eoh`) — so a backlog can
+            turn an apparatus that pays into one that costs its members more
+            than autarky. AND THE NEGLECTED STOCK ABATES LESS: its condition
+            falls under under-maintenance (`capital.asset_condition`) and
+            machine work is TEH × condition (`civilization.machine_eoh_from_capital`),
+            so the abating stock is K × `condition_ratio` — this fulfilment's
+            condition over full fulfilment's, so natural wear cancels and only
+            the deferral moves it. Cost side and benefit side are two terms of
+            one neglect, not one mechanism counted twice (mode 11). Upkeep
+            stays on the full stock. A COMPOSITION OF TWO REPO MECHANISMS
+            (2026-10-03), for the author to confirm. Per year:
+            `condition_ratio`, `overbuild_margin` (B₀ − total, h/yr) and
+            `overbuild_verdict`; overall `overbuild_year`, the first year it
+            reads overbuilt, and `writedown_year`, the first year
+            `capital.writedown_trigger` fires on the condition ratio — past it
+            the framework says the asset no longer exists in maintainable
+            form, so later years are read past that point. Not reconciled with
+            `failure_boundary` (the backlog multiple): two thresholds for one
+            idea. NOT MODELLED: machine capability falling with condition —
+            the overbuild LABOUR test reads `epsilon` as given, so DEGRADED
+            vs CRISIS under deep neglect leans on an ε the worn stock may no
+            longer deliver. Overbuilt on the obligation test with the labour
+            test still passing (at the stated ε) is DEGRADED;
+            failing both is CRISIS. Omitted → no overbuild reading and the
+            result is unchanged.
 
     Returns:
         dict: {
@@ -63,9 +99,27 @@ def deferred_maintenance_crisis(
           "outcome":                str,
           "failure_boundary":       int | None,   (year of irreversibility)
           "recommendation":         str,
+          on a frame, also: "overbuild_margin_before", "overbuild_margin_after",
+          "overbuild_year", "overbuild_outcome", "writedown_year", and per row
+          "condition_ratio", "overbuild_margin", "overbuild_verdict"
         }
     """
     CRIT_RATIO = COMPOUNDING_CRIT
+    if (population is None) != (capital_stock_teh is None):
+        raise ValueError("population and capital_stock_teh are the frame: give both or neither")
+    framed = population is not None
+    if framed:
+        from hours_eoh.core.autarky import overbuild_check
+        from hours_eoh.core.capital import asset_condition_trajectory, writedown_trigger
+        cond = asset_condition_trajectory(1.0, annual_eoh, fulfillment_fraction, years)
+        full = asset_condition_trajectory(1.0, annual_eoh, 1.0, years)
+    writedown_year: int | None = None
+    overbuild_year: int | None = None
+    worst_overbuild = None
+    k_frame = float(capital_stock_teh or 0.0)
+    pop_frame = float(population or REFERENCE_FRAME_POPULATION)
+    margin_before = (overbuild_check(k_frame, pop_frame, epsilon=epsilon)["net_vs_autarky"]
+                     if framed else None)
 
     trajectory   = []
     deferred     = 0.0
@@ -91,7 +145,7 @@ def deferred_maintenance_crisis(
         if total_obligation > annual_eoh * _IRREVERSIBILITY_MULTIPLE and failure_year is None:
             failure_year = year
 
-        trajectory.append({
+        row: dict[str, Any] = {
             "year":               year,
             "annual_eoh":         annual_eoh,
             "fulfilled":          fulfilled,
@@ -100,7 +154,23 @@ def deferred_maintenance_crisis(
             "compounding":        compounding,
             "compounding_ratio":  compounding_ratio,
             "total_obligation":   total_obligation,
-        })
+        }
+        if framed:
+            ratio = cond[year - 1]["condition"] / full[year - 1]["condition"]
+            if writedown_trigger(ratio) and writedown_year is None:
+                writedown_year = year
+            ob = overbuild_check(k_frame, pop_frame, epsilon=epsilon,
+                                 added_upkeep_eoh=compounding,
+                                 abating_capital_teh=k_frame * ratio)
+            row["condition_ratio"] = ratio
+            row["overbuild_margin"] = ob["net_vs_autarky"]
+            row["overbuild_verdict"] = ob["verdict"]
+            if ob["verdict"] == "overbuilt":
+                if overbuild_year is None:
+                    overbuild_year = year
+                if worst_overbuild is None or not ob["labour_test"]:
+                    worst_overbuild = ob
+        trajectory.append(row)
 
     final       = trajectory[-1]
     final_ratio = final["compounding_ratio"]
@@ -126,10 +196,16 @@ def deferred_maintenance_crisis(
     # either field against a neglected asset.
     if final_ratio >= CRIT_RATIO:
         outcome = "CRISIS"
-    elif final_ratio >= 0.10 or failure_year is not None:
+    elif final_ratio >= MAINTENANCE_DEGRADED_COMPOUNDING or failure_year is not None:
         outcome = "DEGRADED"
     else:
         outcome = "STABLE"
+    overbuild_outcome = None
+    if framed:
+        overbuild_outcome = ("STABLE" if worst_overbuild is None
+                             else "DEGRADED" if worst_overbuild["labour_test"] else "CRISIS")
+        severity = {"STABLE": 0, "DEGRADED": 1, "CRISIS": 2}
+        outcome = max(outcome, overbuild_outcome, key=severity.__getitem__)
 
     if crisis_year:
         rec = (
@@ -148,7 +224,19 @@ def deferred_maintenance_crisis(
             f"Compounding ratio {final_ratio:.1%} after {years} years — below crisis threshold."
         )
 
-    return {
+    if framed:
+        last = trajectory[-1]
+        rec += (f" Overbuild floor: margin {margin_before:,.0f} → "
+                f"{last['overbuild_margin']:,.0f} h/yr over {years} years"
+                + (f"; the apparatus reads OVERBUILT from year {overbuild_year} — upkeep "
+                   "plus compounding exceeds what it saves"
+                   + (", and automation no longer masks it" if overbuild_outcome == "CRISIS"
+                      else "; the labour test still passes at the stated ε")
+                   if overbuild_year else "; the apparatus still pays")
+                + f" (condition {last['condition_ratio']:.1%} of maintained"
+                + (f"; write-down threshold crossed in year {writedown_year}" if writedown_year else "")
+                + f"). Outcome: {outcome}.")
+    out = {
         "scenario":               "deferred_maintenance_crisis",
         "epsilon":                epsilon,
         "annual_eoh":             annual_eoh,
@@ -162,6 +250,12 @@ def deferred_maintenance_crisis(
         "failure_boundary":       failure_year,
         "recommendation":         rec,
     }
+    if framed:
+        out.update(overbuild_margin_before=margin_before,
+                   overbuild_margin_after=trajectory[-1]["overbuild_margin"],
+                   overbuild_year=overbuild_year, overbuild_outcome=overbuild_outcome,
+                   writedown_year=writedown_year)
+    return out
 
 
 def care_registration_delay(

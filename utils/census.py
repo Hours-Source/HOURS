@@ -69,6 +69,8 @@ def render(name: str, s: dict[str, Any]) -> str:
         return (f"Provenance **{s['provenance_tagged']}/{s['provenance_total']}**, "
                 f"shadow ratchet **{s['shadow_unbound']}**, confidence ratchet "
                 f"**{s['confidence_without']}** of {s['confidence_soft']}")
+    if name == "shadow":
+        return str(s["shadow_unbound"])
     if name == "confidence":
         return f"**{s['confidence_without']} of {s['confidence_soft']}**"
     if name == "tags":

@@ -163,3 +163,42 @@ class TestTheIrreversibilityThreshold:
         prev = [t for t in r["trajectory"] if t["year"] == fy - 1]
         if prev:
             assert prev[0]["total_obligation"] <= annual * _IRREVERSIBILITY_MULTIPLE
+
+
+class TestDeferralAgainstTheOverbuildFloor:
+    """On a frame (2026-10-03) each year is read against the overbuild floor:
+    compounding joins upkeep, and the neglected stock abates at its condition
+    ratio. Unframed, the result carries none of it."""
+
+    @staticmethod
+    def _run(fraction, years, population=1e6, eps=0.40):
+        from hours_eoh.core.eoh_generation import resolve_capital_stock, total_eoh
+        k = resolve_capital_stock(None, eps, population=population)
+        annual = total_eoh(epsilon=eps, population=population, capital_stock=k)["infrastructure"]
+        return deferred_maintenance_crisis(eps, annual, fraction, years,
+                                           population=population, capital_stock_teh=k)
+
+    def test_unframed_is_unchanged(self):
+        r = deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10)
+        assert not any(k.startswith(("overbuild", "writedown")) for k in r)
+        assert "overbuild_margin" not in r["trajectory"][0]
+
+    def test_it_can_fire_and_can_not_fire(self):
+        """Mode 9, both questions: chronic under-service for a decade still
+        pays; full neglect crosses the write-down threshold and then the floor."""
+        mild, neglect = self._run(0.85, 10), self._run(0.0, 30)
+        assert mild["overbuild_year"] is None and mild["overbuild_outcome"] == "STABLE"
+        assert neglect["writedown_year"] is not None and neglect["overbuild_year"] is not None
+        assert neglect["writedown_year"] <= neglect["overbuild_year"]
+        assert neglect["overbuild_outcome"] in ("DEGRADED", "CRISIS")
+        assert neglect["outcome"] != "STABLE"
+
+    def test_the_overbuild_reading_is_frame_invariant(self):
+        runs = [(p, self._run(0.5, 30, population=p)) for p in (1e5, 1e6, 1e7)]
+        assert len({(r["overbuild_year"], r["writedown_year"], r["outcome"]) for _, r in runs}) == 1
+        per = [r["overbuild_margin_after"] / p for p, r in runs]
+        assert max(per) == pytest.approx(min(per), rel=1e-9)
+
+    def test_the_frame_is_both_or_neither(self):
+        with pytest.raises(ValueError):
+            deferred_maintenance_crisis(0.40, 100_000.0, 0.85, 10, population=1e6)

@@ -78,7 +78,7 @@ below names the families and a representative of each; it is not exhaustive.
 | Family | Representative scenarios |
 |---|---|
 | Arc coherence | `sweep` |
-| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock` |
+| Shocks | `automation_failure`, `demographic_shock`, `ecological_spike`, `labor_income_shock`, `compound_shock`, `capital_loss` |
 | Maintenance & recovery | `maintenance_crisis`, `care_delay`, `recovery` |
 | Long run | `canonical_arc`, `trust_stress`, `transition`, `indust_baseline`, `indust_recovery` |
 | Land / GUF | `guf_integration`, `guf_writedown`, `guf_sweep`, `guf_magnitude`, `servicing_census`, `land_tenure` |
@@ -97,9 +97,12 @@ See [Running Scenarios](scenarios_howto.md) for Python API usage.
 ## frame — running on your own frame
 
 The shocks (`automation_failure`, `demographic_shock`, `ecological_spike`,
-`compound_shock`), `overbuild` and `corridor band` run on a **frame**: a
-population, its age mix, its adult labour capacity, its capital, its land,
-its Trust and its ε. Every input is printed with where it came from:
+`compound_shock`, `capital_loss`), `overbuild`, `maintenance_crisis`,
+`recovery` and `corridor band` run on a **frame**: a population, its age mix,
+its adult labour capacity, its capital, its land, its Trust and its ε. Each
+prints the inputs it READS, with where each came from, and refuses a frame
+flag it does not read (`overbuild`, `maintenance_crisis` and `recovery` read
+population, capital and ε only):
 
 | Kind | Meaning |
 |---|---|
@@ -144,6 +147,30 @@ labelled as leaning on the Census age profile where it does not.
 ```bash
 python3 utils/eoh_cli.py scenario run demographic_shock --frame us --shock-type aging --shock-magnitude 0.04 --retirement-age
 python3 utils/eoh_cli.py scenario run demographic_shock --frame us --retirement-age 70 --years-in-collective 0
+```
+
+**A disaster that destroys capital** — a wildfire, flood or earthquake — is
+`capital_loss`. The share destroyed is written down (D1: the TEH it embodied is
+reported, not charged to the Trust), its upkeep leaves the obligation, and the
+machine work it did falls to people. By default machine capability falls by the
+same share as the capital, which assumes the loss is spread across the stock;
+`--capability-fraction-lost` sets it apart (a fire that takes houses and spares
+the grid). Rebuilding is a choice, off unless `--rebuild-years` is given.
+
+```bash
+python3 utils/eoh_cli.py scenario run capital_loss --frame us --capital-fraction-lost 0.05 --rebuild-years 5
+```
+
+**Deferred upkeep against the overbuild floor.** On a frame,
+`maintenance_crisis` reads every year against the overbuild floor — whether
+the apparatus still saves more hours than it costs its members against
+autarky. Deferred upkeep pushes toward the floor two ways: the compounding
+backlog adds upkeep, and the neglected stock, its condition falling, abates
+less. The table shows the condition ratio and the margin each year, and the
+year the asset crosses the write-down threshold.
+
+```bash
+python3 utils/eoh_cli.py scenario run maintenance_crisis --frame us --fulfilment-fraction 0.5 --periods 30
 ```
 
 **When ε is a range** (a frame-file range, or the US instruments), the

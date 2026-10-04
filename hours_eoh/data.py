@@ -4564,6 +4564,35 @@ REGISTRATION_CRIT:         float = 0.20   # RED below 20%
 #   debt.
 COMPOUNDING_WARN:          float = 0.20   # YELLOW: compounding adds >20% of original
 COMPOUNDING_CRIT:          float = 0.50   # RED: compounding adds >50% (spiral risk)
+# tag: normative | units: fraction of deferred EOH added by compounding
+# decided_by: the same judgement as COMPOUNDING_WARN — where compounding stops
+#   being catch-up work. `deferred_maintenance_crisis` reads DEGRADED at this
+#   ratio; the dashboard turns YELLOW at COMPOUNDING_WARN (0.20). Two values
+#   for one kind of threshold, NOT reconciled: named 2026-10-03 from a bare
+#   0.10 in the scenario, kept at its value because moving it moves verdicts.
+MAINTENANCE_DEGRADED_COMPOUNDING: float = 0.10
+# tag: normative | units: multiple of one year's EOH
+# decided_by: the backlog, in years of the asset's own demand, past which
+#   rebuilding is cheaper than catching up — `deferred_maintenance_crisis`'s
+#   irreversibility year. Named 2026-10-03; it was the module-level
+#   `_IRREVERSIBILITY_MULTIPLE`, invisible to the provenance gate.
+MAINTENANCE_IRREVERSIBILITY_MULTIPLE: float = 5.0
+# tag: instance | units: fraction of annual infrastructure EOH fulfilled
+# supplied_by: the collective's own maintenance record — what share of its
+#   infrastructure upkeep it actually performs.
+# default: 0.85 — chronic under-service, the CLI's working figure for the
+#   `maintenance_crisis` scenario since it was first wired; not a measurement.
+MAINTENANCE_CRISIS_FULFILMENT: float = 0.85
+# tag: instance | units: years
+# supplied_by: the horizon the caller wants to see the backlog over.
+# default: 10 — long enough to show the compounding the scenario is about.
+MAINTENANCE_CRISIS_YEARS: int = 10
+# tag: instance | units: fraction of the capital stock
+# supplied_by: the event's own damage assessment — the share of the
+#   collective's capital a wildfire, flood or earthquake destroyed.
+# default: 0.10 — illustrative, so `scenario run capital_loss` runs with no
+#   flags; not a statement about any event (2026-10-03).
+CAPITAL_LOSS_FRACTION_DEFAULT: float = 0.10
 # tag: normative | units: purchasing-power index (1.0 = parity)
 # form: the threshold is ε-scaled, threshold = 1 + slope × ε, because
 #   purchasing power is expected to RISE across the arc — so a flat 1.05 would
