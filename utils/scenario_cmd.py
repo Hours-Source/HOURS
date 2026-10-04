@@ -209,6 +209,21 @@ _BRANCH_ON_FRAME = frozenset({"arc_stability", "stationarity", "ecological_floor
                               "care_delay", "verification_band", "frame",
                               "guf_magnitude", "guf_writedown", "guf_integration"})
 
+#: SCENARIOS WHOSE OUTPUT DOES NOT DEPEND ON ε (2026-10-04, author: option A).
+#: Each accepted --epsilon and printed the same report at every value — an arc
+#: it sweeps itself, measured or reference data, or a function that takes ε
+#: and only echoes it (`personal_floor`'s, an inert parameter reported, not
+#: fixed here). A flag that changes nothing is refused, as frame flags are.
+#: Found by RUNNING each at ε 0.2 and 0.7 (`test_cli_dispatch`
+#: re-runs that check on every scenario, so the list cannot go stale).
+#: `feasibility` reads ε only with --adult-capacity or --adult-share.
+_EPSILON_FREE = frozenset({
+    "automation_floors", "capacity_frames", "care_curve", "component_shares",
+    "food_conservation", "guf_sweep", "infra_floor", "knowledge_base",
+    "labour_epsilon", "land_stewardship", "land_tenure", "multiplier_sensitivity",
+    "personal_floor", "register_capture", "restoration_cost", "servicing_census",
+    "sweep", "use_split", "verification_cost"})
+
 #: The trajectory horizon when --periods is unset (maintenance_crisis and
 #: recovery default to MAINTENANCE_CRISIS_YEARS instead).
 _PERIODS_DEFAULT = 20
@@ -299,7 +314,8 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     # Universal params
     run_p.add_argument("--epsilon", type=float, default=None, metavar="ε",
                        help="Automation level. Default: the frame's measured "
-                            "reading (frame-aware scenarios), else 0.40, labelled")
+                            "reading (frame-aware scenarios), else 0.40, labelled. "
+                            "Refused where the output does not depend on it")
     run_p.add_argument("--population", type=float, default=None,
                        help="Population (default: the frame's, else 1 000 000)")
     # FRAME INPUTS (2026-10-03): shared with `corridor band`. Read by the
@@ -910,6 +926,14 @@ def _dispatch(args: argparse.Namespace) -> object:
     if given:
         raise SystemExit(f"{name} does not read {', '.join(given)}; the "
                          f"frame-aware scenarios are {', '.join(FRAME_AWARE)}")
+    if args.epsilon is not None and (
+            name in _EPSILON_FREE
+            or (name == "feasibility" and args.adult_capacity is None
+                and args.adult_share is None)):
+        raise SystemExit(
+            f"{name} does not read --epsilon: its output is the same at every ε"
+            + (" unless --adult-capacity or --adult-share is given" if name == "feasibility"
+               else " (an arc it sweeps itself, or measured/reference data)"))
     population_given = args.population
     epsilon    = args.epsilon if args.epsilon is not None else EPSILON_REFERENCE
     population = args.population if args.population is not None else REFERENCE_FRAME_POPULATION
@@ -1346,7 +1370,12 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
     if name == "obligation_accounts":
         from hours_eoh.scenarios.obligation_accounts import accounts_report
         rep = accounts_report(epsilon)
-        oa: dict = {}
+        # THE POINT READING AT --epsilon (2026-10-04): computed by the report
+        # and never printed, so the flag moved nothing a reader could see.
+        here = rep["here"]
+        oa: dict = {"epsilon": here["epsilon"], "here | obligation": here["obligation"],
+                    "here | delivery": here["delivery"], "here | stock": here["stock"],
+                    "here | delivery/obligation": here["delivery_over_obligation"]}
         for r in rep["arc"]:
             e = r["epsilon"]
             oa[f"eps {e:.2f} | obligation"] = r["obligation"]

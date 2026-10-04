@@ -112,3 +112,29 @@ def test_an_empty_compound_shock_says_so_on_stderr(capsys):
 
 
 
+
+
+class TestAnAcceptedEpsilonMovesTheOutput:
+    """Option A (author, 2026-10-04): --epsilon is refused where the output does
+    not depend on it, and anywhere it is accepted it must move the output — the
+    rule frame flags already follow. Run, not read: this re-derives the
+    `_EPSILON_FREE` list on every scenario, so the list cannot go stale."""
+
+    @pytest.mark.parametrize("name", sorted(SCENARIOS))
+    def test_epsilon_is_read_or_refused(self, name: str) -> None:
+        import json
+        from utils.scenario_cmd import _EPSILON_FREE, _READS, FRAME_AWARE
+
+        def run(eps: str) -> str:
+            parser = argparse.ArgumentParser()
+            build_parser(parser.add_subparsers(dest="cmd"))
+            a = parser.parse_args(["scenario", "run", name, "--epsilon", eps])
+            return json.dumps(_dispatch(a), default=str, sort_keys=True)
+
+        refused = (name in _EPSILON_FREE or name == "feasibility"
+                   or (name in FRAME_AWARE and "epsilon" not in _READS[name]))
+        if refused:
+            with pytest.raises(SystemExit):
+                run("0.2")
+        else:
+            assert run("0.2") != run("0.7"), f"{name} accepts --epsilon and ignores it"

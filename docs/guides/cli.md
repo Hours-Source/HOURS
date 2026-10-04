@@ -90,6 +90,11 @@ below names the families and a representative of each; it is not exhaustive.
 python3 utils/eoh_cli.py scenario run automation_failure --format csv > results/shock.csv
 ```
 
+**A flag is read or refused.** `--epsilon` is refused by a scenario whose
+output is the same at every ε — an arc it sweeps itself, or measured and
+reference data — rather than accepted and ignored; `feasibility` reads it only
+with `--adult-capacity` or `--adult-share`. Frame flags follow the same rule.
+
 See [Running Scenarios](scenarios_howto.md) for Python API usage.
 
 ---
