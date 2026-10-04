@@ -618,7 +618,23 @@ class TestTheUsStockIsBea:
     def test_a_stated_stock_or_rate_overrides_it(self, flag):
         r = _scenario("overbuild", "--frame", "us", *flag)
         assert "outcomes_across_capital" not in r
-        assert r["inputs"]["capital_teh"]["kind"] in ("supplied", "measured")
+        assert r["inputs"]["capital_teh"]["kind"] in ("supplied", "derived")
+
+    @pytest.mark.parametrize("rate,outside", [("7.25", True), ("19.56", False), ("38.21", True)])
+    def test_a_rate_outside_the_band_is_flagged_not_refused(self, rate, outside):
+        row = _labels("--frame", "us", "--bea-usd-per-teh", rate)["capital_teh"]
+        assert ("OUTSIDE conversion_band()" in row["source"]) is outside
+        assert row["value"] > 0
+
+    def test_both_bea_paths_read_alike(self):
+        """The default midpoint and a stated rate are the same stock times a
+        rate: one label form, differing only in where the rate came from."""
+        mid = _labels("--frame", "us")["capital_teh"]
+        own = _labels("--frame", "us", "--bea-usd-per-teh", "15.94")["capital_teh"]
+        assert mid["source"].split(" at ")[0] == own["source"].split(" at ")[0]
+        assert own["kind"] == "derived" and "supplied" in own["source"]
+        assert mid["kind"] == "derived (partly from defaults)"
+        assert mid.get("fixed_stock") and own.get("fixed_stock")
 
 
 def _labels_at_rate(rate: float) -> float:

@@ -318,6 +318,23 @@ class TestTwoFloors:
         assert 0.0 < f["epsilon_floor"] < 1.0
         assert "worth being in only at" in f["status"]
 
+    def test_a_binding_floor_never_prints_as_zero(self):
+        """2026-10-04: the status rounded to two places while the column used
+        three, so a floor binding at 0.005 read "ε ≥ 0.00"."""
+        f = overbuild_floor(2.21e10, POP)        # just past break-even: floor ~0.004
+        assert f["binding"] and 0.0 < f["epsilon_floor"] < 0.01
+        assert f"ε ≥ {f['epsilon_floor']:.3f}" in f["status"]
+        assert "ε ≥ 0.00 " not in f["status"]
+
+    def test_the_open_note_names_a_binding_floor(self):
+        """The footer spoke of 'no invariant' binding while a floor did; it
+        speaks of ceilings and names the floor."""
+        over = Floor(name="overbuild", epsilon_floor=0.005, binding=True, status="y")
+        note = corridor([over], [_ceiling("thermal", None, False)])["note"]
+        assert "no ceiling binds" in note and "floor at ε ≥ 0.005 (overbuild)" in note
+        free = corridor(0.0, [_ceiling("thermal", None, False)])["note"]
+        assert "no ceiling binds" in free and "floor at" not in free
+
     def test_binding_floor_is_the_max(self):
         surv = Floor(name="survival", epsilon_floor=0.20, binding=True, status="x")
         over = Floor(name="overbuild", epsilon_floor=0.55, binding=True, status="y")

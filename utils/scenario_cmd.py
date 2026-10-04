@@ -539,13 +539,12 @@ def _run(args: argparse.Namespace) -> None:
         # inputs in the document itself (2026-10-03).
         if args.fmt != "json":
             out = sys.stderr if args.fmt == "csv" else sys.stdout
+            acc = result.get("outcomes_across_capital")
             print_inputs(result["inputs"], eps,
                          ends=None if acr is None else "  ".join(f"ε {e}: {o}" for e, o in acr.items()),
-                         frame=result.get("frame"), file=out)
-            acc = result.get("outcomes_across_capital")
-            if acc:
-                print("     at both ends of the conversion band: "
-                      + "  ".join(f"{r} $/TEH: {o}" for r, o in acc.items()), file=out)
+                         frame=result.get("frame"), file=out,
+                         capital_ends=None if not acc else
+                         "  ".join(f"{r} $/TEH: {o}" for r, o in acc.items()))
             print(file=out)
         result = {k: v for k, v in result.items()
                   if k not in ("inputs", "epsilon_reading", "outcomes_across_epsilon",

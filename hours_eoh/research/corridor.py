@@ -495,7 +495,7 @@ def overbuild_floor(
         return Floor(name="overbuild", epsilon_floor=0.0, binding=False,
                      status=f"apparatus pays at any ε ({check['verdict']})")
     return Floor(name="overbuild", epsilon_floor=e, binding=True,
-                 status=f"worth being in only at ε ≥ {e:.2f} — below it the "
+                 status=f"worth being in only at ε ≥ {e:.3f} — below it the "
                         f"apparatus costs members more hours than autarky")
 
 
@@ -650,20 +650,22 @@ def corridor(
                 f"tightest ceiling — no ε satisfies both")
     elif binding_name is None:
         # The caveat names what is MISSING, so it must change when it is supplied:
-        # with the measured (Path C) ceiling present the thermal side is a
-        # measured non-binding reading, not an absent one (2026-10-03).
+        # with the measured ceiling present the thermal side is a measured
+        # non-binding reading, not an absent one (2026-10-03). It speaks of
+        # CEILINGS, and names a binding floor (2026-10-04): "no invariant binds"
+        # read as nothing binding while the overbuild floor did.
+        head = ("open corridor: no ceiling binds within the arc"
+                + (f"; floor at ε ≥ {epsilon_suff:.3f} ({floor_name})" if floor_name else ""))
         measured = [c for c in ceilings if c["name"] == "thermal_measured"]
         if measured and measured[0]["status"].startswith("UNBUDGETED"):
-            note = ("open corridor: no invariant binds within the arc; thermal "
-                    "UNBUDGETED at this ΔT_lo — a warning with a direction "
-                    "(decarbonise), not a bound")
+            note = (f"{head}; thermal UNBUDGETED at this ΔT_lo — a warning with a "
+                    "direction (decarbonise), not a bound")
         elif measured:
-            note = ("open corridor: no invariant binds within the arc; thermal "
-                    "measured non-binding (Path C utilization below its floor), "
-                    "the P0 bound advisory")
+            note = (f"{head}; thermal measured non-binding (utilization below "
+                    "contact), the P0 bound advisory")
         else:
-            note = ("open corridor: no invariant binds within the arc; ε_max is "
-                    "aspirational (thermal advisory — not proven open, needs measured ι)")
+            note = (f"{head}; ε_max is aspirational (thermal advisory — not proven "
+                    "open, needs measured ι)")
     else:
         note = f"corridor [{epsilon_suff:.2f}, {eps_max:.2f}] bounded above by {binding_name}"
 

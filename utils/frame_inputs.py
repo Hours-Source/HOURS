@@ -411,7 +411,10 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
             raise SystemExit("--bea-usd-per-teh and --capital-stock both set capital")
         from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
         v["capital_teh"] = float(epsilon_from_inventory(rate)["capital_teh"])
-        lab["capital_teh"] = label("measured", f"BEA US inventory at {rate} $/TEH")
+        from hours_eoh.scenarios.capital_retrodiction import conversion_band
+        _b = conversion_band()
+        lab["capital_teh"] = _bea_stock_label(rate, "rate: supplied (--bea-usd-per-teh)",
+                                              band=(_b["low"], _b["high"]))
         v["capital_derived"] = False
     elif cap_flag is not None:
         v["capital_teh"], lab["capital_teh"] = float(cap_flag), label("supplied", "--capital-stock")
@@ -427,19 +430,16 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         # both ends re-run by the commands (`capital_rate_band`); a stated
         # --bea-usd-per-teh or --capital-stock overrides it. Per head × the
         # frame's population, so a moved population keeps the US intensity.
-        from hours_eoh.reference.capital_inventory import BEA_POPULATION, BEA_YEAR
+        from hours_eoh.reference.capital_inventory import BEA_POPULATION
         from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
         band = conversion_band()
         rate = getattr(args, "_capital_rate", None) or 0.5 * (band["low"] + band["high"])
         v["capital_teh"] = epsilon_from_inventory(rate)["capital_teh"] / BEA_POPULATION * pop
         v["capital_rate_band"] = (band["low"], rate, band["high"])
-        lab["capital_teh"] = label(
-            "derived", f"BEA {BEA_YEAR} US inventory ('government' scope, current cost) at "
-            f"{rate:.2f} $/TEH — conversion_band() {band['low']:.2f}–{band['high']:.2f}, "
-            "midpoint run, ends re-run; per head × population",
+        lab["capital_teh"] = _bea_stock_label(
+            rate, f"rate: conversion_band() midpoint ({band['low']:.2f}–{band['high']:.2f}), "
+            "ends re-run; per head × population",
             ("population", "default:conversion_band midpoint"))
-        # The frame's own stock, whatever rate set it: a frame file carries it.
-        lab["capital_teh"]["fixed_stock"] = True
         v["capital_derived"] = False
     else:
         v["capital_teh"] = resolve_capital_stock(None, epsilon, population=pop)
@@ -527,6 +527,29 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["trust_derived"] = True
     v.setdefault("trust_derived", False)
     return v, lab
+
+
+def _bea_stock_label(rate: float, rate_source: str,
+                     derived_from: tuple[str, ...] = (),
+                     band: tuple[float, float] | None = None) -> dict:
+    """ONE label for the US stock read off BEA (2026-10-04), whichever path set
+    the rate: the inventory is measured, the rate converting it to TEH is not,
+    so it is DERIVED either way — from a supplied rate, or (partly from
+    defaults) from the conversion band's midpoint. Marked as the frame's own
+    stock, which a frame file carries. A rate outside `band` (the derived
+    conversion band) is FLAGGED, not refused: the rate is the institution's to
+    state, but a reading at a rate nothing derives is a choice, and choosing
+    the rate that makes the instruments agree is calibrating to the answer."""
+    from hours_eoh.reference.capital_inventory import BEA_YEAR
+    flag = ""
+    if band is not None and not band[0] <= rate <= band[1]:
+        side = (f"{rate / band[1]:.2f}× its top" if rate > band[1]
+                else f"{band[0] / rate:.2f}× below its bottom")
+        flag = f"; OUTSIDE conversion_band() {band[0]:.2f}–{band[1]:.2f} ({side})"
+    lab = label("derived", f"BEA {BEA_YEAR} US inventory ('government' scope, current cost) "
+                f"at {rate:.2f} $/TEH — {rate_source}{flag}", derived_from)
+    lab["fixed_stock"] = True
+    return lab
 
 
 def _resolve_ecology(ff: dict[str, Any], src_ff: str,
@@ -683,12 +706,14 @@ def labelled_inputs(values: dict[str, Any], labels: dict[str, dict],
 
 
 def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None = None,
-                 frame: str | None = None, file: Any = None) -> None:
+                 frame: str | None = None, file: Any = None,
+                 capital_ends: str | None = None) -> None:
     """
     The Inputs block: ε first — a point, a span with its margin, or a labelled
     DISAGREEMENT — then every other input with its value and kind. `ends` is
     the caller's one-line reading at both ends of the ε range (a verdict, or
-    the outcomes), printed under ε.
+    the outcomes), printed under ε; `capital_ends` the same at both ends of
+    the conversion band, printed under the capital it is about.
     """
     import sys as _sys
     from utils.formatters import bold, fmt_float
@@ -734,6 +759,8 @@ def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None =
             shown = str(val)
         say(f"  {k:{width}s} {shown}  — {r['kind']}: {r['source']}"
               + (f" (from {', '.join(r['derived_from'])})" if r["derived_from"] else ""))
+        if k == "capital_teh" and capital_ends:
+            say(f"     at both ends of the conversion band: {capital_ends}")
 
 
 def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:

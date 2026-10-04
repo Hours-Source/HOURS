@@ -287,14 +287,13 @@ def _show(args: argparse.Namespace, rep: dict) -> None:
 
     er = rep["epsilon_reading"]
     holds = er.get("verdict_holds_across_range")
+    hk = rep.get("verdict_holds_across_capital")
     print_inputs(labelled_inputs(inp, rep["input_labels"], er), er,
                  ends=None if holds is None else (
                      green("same verdict") if holds else red("verdict DIFFERS — read the band at each end")),
-                 frame=inp["frame"])
-    hk = rep.get("verdict_holds_across_capital")
-    if hk is not None:
-        print("     at both ends of the conversion band: "
-              + (green("same verdict") if hk else red("verdict DIFFERS — read the band at each rate")))
+                 frame=inp["frame"],
+                 capital_ends=None if hk is None else (
+                     green("same verdict") if hk else red("verdict DIFFERS — read the band at each rate")))
     if inp["utilization"] is not None:
         print(f"  {'thermal zone':24s} {inp['thermal_zone']} at ΔT_lo {inp['delta_t_lo']:.2f} K")
     print()
