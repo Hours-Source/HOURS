@@ -5,7 +5,6 @@ Covers: deferred_maintenance_crisis, care_registration_delay.
 """
 
 import pytest
-from hours_eoh.scenarios.maintenance import _IRREVERSIBILITY_MULTIPLE
 from hours_eoh.scenarios.maintenance import (
     deferred_maintenance_crisis,
     care_registration_delay,
@@ -151,18 +150,27 @@ class TestTheIrreversibilityThreshold:
             years.append(r["failure_boundary"] or 10**6)
         assert years == sorted(years), f"worse neglect must fail sooner: {years}"
 
-    def test_failure_is_declared_at_the_declared_multiple(self):
-        """Binds the constant to the behaviour rather than restating 5.0."""
-        annual = 1_000_000.0
-        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=annual,
+    def test_failure_is_declared_at_the_derived_crossover(self):
+        """REPLACED 2026-10-04: the 5× backlog multiple is gone; the year of
+        irreversibility is the first the condition ratio falls below
+        `rebuild_crossover_ratio` — bound to the functions, not restated."""
+        from hours_eoh.core.capital import asset_condition_trajectory
+        r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
                                         fulfillment_fraction=0.0, years=30)
-        fy = r["failure_boundary"]
-        assert fy is not None
-        row = next(t for t in r["trajectory"] if t["year"] == fy)
-        assert row["total_obligation"] > annual * _IRREVERSIBILITY_MULTIPLE
-        prev = [t for t in r["trajectory"] if t["year"] == fy - 1]
-        if prev:
-            assert prev[0]["total_obligation"] <= annual * _IRREVERSIBILITY_MULTIPLE
+        fy, x = r["failure_boundary"], r["rebuild_crossover"]
+        assert fy is not None and 0.0 < x < 1.0
+        cond = asset_condition_trajectory(1.0, 1.0, 0.0, fy)
+        full = asset_condition_trajectory(1.0, 1.0, 1.0, fy)
+        ratio = [c["condition"] / f["condition"] for c, f in zip(cond, full)]
+        assert ratio[fy - 1] < x and all(q >= x for q in ratio[:fy - 1])
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_an_older_stock_crosses_sooner_across_the_arc(self, eps):
+        """Age reaches the clock through upkeep intensity: an older stock costs
+        more to keep relative to its value, so rebuilding wins sooner."""
+        years = [deferred_maintenance_crisis(eps, 1e6, 0.5, 60, capital_age_ratio=a)
+                 ["failure_boundary"] for a in (0.0, 0.3, 0.75)]
+        assert None not in years and years == sorted(years, reverse=True), years
 
 
 class TestDeferralAgainstTheOverbuildFloor:
@@ -188,14 +196,13 @@ class TestDeferralAgainstTheOverbuildFloor:
         pays; full neglect crosses the write-down threshold and then the floor."""
         mild, neglect = self._run(0.85, 10), self._run(0.0, 30)
         assert mild["overbuild_year"] is None and mild["overbuild_outcome"] == "STABLE"
-        assert neglect["writedown_year"] is not None and neglect["overbuild_year"] is not None
-        assert neglect["writedown_year"] <= neglect["overbuild_year"]
+        assert neglect["failure_boundary"] is not None and neglect["overbuild_year"] is not None
         assert neglect["overbuild_outcome"] in ("DEGRADED", "CRISIS")
         assert neglect["outcome"] != "STABLE"
 
     def test_the_overbuild_reading_is_frame_invariant(self):
         runs = [(p, self._run(0.5, 30, population=p)) for p in (1e5, 1e6, 1e7)]
-        assert len({(r["overbuild_year"], r["writedown_year"], r["outcome"]) for _, r in runs}) == 1
+        assert len({(r["overbuild_year"], r["failure_boundary"], r["outcome"]) for _, r in runs}) == 1
         per = [r["overbuild_margin_after"] / p for p, r in runs]
         assert max(per) == pytest.approx(min(per), rel=1e-9)
 

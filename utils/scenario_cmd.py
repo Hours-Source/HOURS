@@ -154,7 +154,8 @@ _SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "epsilon"}
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
                                  "ecological_spike", "compound_shock", "capital_loss")},
-    **{n: _CAPITAL_READS for n in ("overbuild", "maintenance_crisis", "recovery")},
+    "overbuild": _CAPITAL_READS,
+    **{n: _CAPITAL_READS | {"capital_age_ratio"} for n in ("maintenance_crisis", "recovery")},
     **{n: _SIM_READS for n in ("labor_income_shock", "trust_stress", "measured_sim")},
     **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
     **{n: _SIM_READS - {"epsilon"} for n in ("canonical_arc", "transition")},
@@ -184,7 +185,6 @@ _READS_IF_STATED: dict[str, tuple[str, ...]] = {
     **{n: _ECO_STATE for n in ("automation_failure", "demographic_shock", "capital_loss")},
     **{n: _ECO_STATE + ("land_m2",) for n in ("ecological_spike", "compound_shock")},
     "overbuild": ("ecosystem_health", "capital_age_ratio"),
-    **{n: ("capital_age_ratio",) for n in ("maintenance_crisis", "recovery")},
 }
 
 #: The input each input-specific flag sets (--frame and --frame-file set the
@@ -791,10 +791,11 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         from hours_eoh.scenarios.maintenance import deferred_maintenance_crisis
         k = v["capital_teh"]
         years = args.periods if args.periods is not None else MAINTENANCE_CRISIS_YEARS
-        # The frame's stock age where it states one (2026-10-04); left at the
-        # default, neither call moves.
-        age = ({"capital_age_ratio": v["capital_age_ratio"]}
-               if lab["capital_age_ratio"]["kind"] != "default" else {})
+        # ONE AGE PER RUN (2026-10-04): the frame's resolved stock age —
+        # stated, or the labelled default — reaches the upkeep, the starting
+        # condition and the overbuild reading alike. Stated-only left a run
+        # pricing c0 at one age and the overbuild margin at another.
+        age = {"capital_age_ratio": v["capital_age_ratio"]}
         annual = total_eoh(epsilon=epsilon, population=pop, capital_stock=k,
                            **age)["infrastructure"]
         crisis = deferred_maintenance_crisis(

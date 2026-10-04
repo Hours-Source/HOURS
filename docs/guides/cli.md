@@ -203,7 +203,10 @@ the apparatus still saves more hours than it costs its members against
 autarky. Deferred upkeep pushes toward the floor two ways: the compounding
 backlog adds upkeep, and the neglected stock, its condition falling, abates
 less. The table shows the condition ratio and the margin each year, and the
-year the asset crosses the write-down threshold.
+year the stock is past saving: from then on catching up the neglect costs more
+labour than rebuilding. That year is derived, not set — an older or more
+upkeep-intensive stock reaches it sooner — and the frame's capital age sets
+where the stock starts.
 
 ```bash
 python3 utils/eoh_cli.py scenario run maintenance_crisis --frame us --fulfilment-fraction 0.5 --periods 30

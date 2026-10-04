@@ -25,6 +25,7 @@ from __future__ import annotations
 import math
 
 from hours_eoh.data import (
+    ASSET_WRITEDOWN_CONDITION,
     ASSET_TYPES,
     HUMAN_CAPITAL_NATURAL_DECAY,
     MONITORING_SPIKE_SOFTENING_MAX,
@@ -640,7 +641,7 @@ def maintenance_strategy_compare(
     years_horizon: int = 30,
     epsilon: float = 0.40,
     natural_decay_rate: float = HUMAN_CAPITAL_NATURAL_DECAY,
-    writedown_threshold: float = 0.20,
+    writedown_threshold: float = ASSET_WRITEDOWN_CONDITION,
 ) -> dict:
     """
     Compare total human-labor EOH cost of three maintenance strategies over a
@@ -687,7 +688,8 @@ def maintenance_strategy_compare(
         epsilon: Automation level. Scales human-labor cost of all strategies.
         natural_decay_rate: Annual condition loss from unavoidable wear.
         writedown_threshold: Condition below which write-down triggers.
-                             Default: 0.20 (matches writedown_trigger default).
+                             Default: ASSET_WRITEDOWN_CONDITION, the one
+                             `writedown_trigger` reads (2026-10-04: was a copy).
 
     Returns:
         dict: {

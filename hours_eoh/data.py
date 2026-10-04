@@ -454,16 +454,38 @@ ASSET_TYPES: dict[str, dict] = {
 #   zero-versus-adequate maintenance. NOT the ASCE report-card grades, which
 #   are an aggregate letter and cannot resolve a per-period rate.
 ASSET_FULL_NEGLECT_DECAY:      float = 0.20  # condition drop per period at zero maintenance
+# tag: placeholder | units: condition ∈ [0, 1]
+# form: the condition below which an asset is written down — "the maintenance
+#   labour required to restore function exceeds the labour required to
+#   rebuild" (`core.capital.writedown_trigger`). NAMED 2026-10-04: it was a bare
+#   0.20 default in `writedown_trigger` and copied into
+#   `eoh_dynamics.maintenance_strategy_compare` with a comment saying it matched.
+# resolves_by: the same FHWA NBI panel as ASSET_FULL_NEGLECT_DECAY — the
+#   condition rating at which structures are replaced rather than repaired.
+# confidence: 5 — nothing in it is measured; it was a bare default. Where an
+#   asset's upkeep against its value is known the write-down point is DERIVED
+#   instead (`capital.rebuild_crossover_ratio`, the maintenance scenario's one
+#   clock); this generic value governs only `writedown_trigger`'s default and
+#   `eoh_dynamics.maintenance_strategy_compare`.
+ASSET_WRITEDOWN_CONDITION:     float = 0.20
 # tag: placeholder | units: fraction of condition per period
 # form: the over-maintenance arm of the same response —
 #   condition += surplus × RESTORE_RATE × condition, bounded above by the
-#   initial condition. See ASSET_FULL_NEGLECT_DECAY for the pair and for why
+#   MAINTAINED path via `asset_condition_trajectory` (what full upkeep would
+#   have left — 2026-10-04; it was the current condition, so nothing ever
+#   restored); `asset_condition` alone still caps at its `initial_condition`. See ASSET_FULL_NEGLECT_DECAY for the pair and for why
 #   the 4x asymmetry between them is the defensible part.
 # resolves_by: as for ASSET_FULL_NEGLECT_DECAY — FHWA NBI condition ratings
 #   against maintenance expenditure. FIELD: the rating change for structures
 #   maintained ABOVE their assessed need, which is the rarer half of that
 #   panel and the reason this arm is the weaker of the two.
 ASSET_OVER_MAINT_RESTORE_RATE: float = 0.05  # condition restore per unit surplus maintenance
+# tag: normative | units: multiple of the period's maintenance demand
+# decided_by: how much upkeep a period can usefully absorb above its demand —
+#   the most surplus effort the restore arm credits. It sets the fastest
+#   catch-up, and with it the rebuild crossover (`capital.rebuild_crossover_ratio`).
+#   Named 2026-10-04 from a bare 2.0 in `asset_condition`.
+ASSET_MAX_MAINTENANCE_QUALITY: float = 2.0
 # tag: placeholder | units: EOH capacity per year; EOH capacity per TEH^exponent; dimensionless
 # form: core/capital.maturation_update —
 #     capacity_delta = BASE_GROWTH × years
@@ -4572,12 +4594,6 @@ REGISTRATION_CRIT:         float = 0.20   # RED below 20%
 #   moving 0.10/0.20 → 0.15 changed no verdict, and none of them can fire alone.
 COMPOUNDING_WARN:          float = 0.15   # YELLOW: compounding adds >15% of original
 COMPOUNDING_CRIT:          float = 0.50   # RED: compounding adds >50% (spiral risk)
-# tag: normative | units: multiple of one year's EOH
-# decided_by: the backlog, in years of the asset's own demand, past which
-#   rebuilding is cheaper than catching up — `deferred_maintenance_crisis`'s
-#   irreversibility year. Named 2026-10-03; it was the module-level
-#   `_IRREVERSIBILITY_MULTIPLE`, invisible to the provenance gate.
-MAINTENANCE_IRREVERSIBILITY_MULTIPLE: float = 5.0
 # tag: instance | units: fraction of annual infrastructure EOH fulfilled
 # supplied_by: the collective's own maintenance record — what share of its
 #   infrastructure upkeep it actually performs.

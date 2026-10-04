@@ -767,3 +767,51 @@ class TestMaturationShape:
         assert self._delta(0.0, eps=0.99) == pytest.approx(self._delta(0.0, eps=0.0),
                                                            rel=1e-12)
         assert self._delta(400.0, eps=0.99) > self._delta(400.0, eps=0.0)
+
+
+class TestRestorationAndTheRebuildCrossover:
+    """2026-10-04. `asset_condition_trajectory` reset the restore ceiling to the
+    current condition every year, so nothing restored; the maintained path is
+    the ceiling now. And the write-down point is DERIVED — the condition ratio
+    below which catching up costs more labour than rebuilding."""
+
+    def test_neglect_damage_is_won_back_and_age_is_not(self):
+        from hours_eoh.core.capital import asset_condition_trajectory
+        from hours_eoh.data import HUMAN_CAPITAL_NATURAL_DECAY as d
+        tr = asset_condition_trajectory(0.4, 1.0, 2.0, 60, as_built=1.0)
+        conds = [r["condition"] for r in tr]
+        maintained = [(1.0 - d) ** (t + 1) for t in range(60)]
+        assert conds[9] > 0.4                                   # restored
+        assert all(c <= m + 1e-12 for c, m in zip(conds, maintained))  # never above the path
+        assert conds[-1] == pytest.approx(maintained[-1])       # and reaches it
+
+    @pytest.mark.parametrize("f", [0.0, 0.5, 1.0])
+    def test_at_or_below_full_upkeep_the_trajectory_is_unchanged(self, f):
+        """The old per-year loop, re-run: no restoration at fulfilment ≤ 1."""
+        from hours_eoh.core.capital import asset_condition, asset_condition_trajectory
+        c, old = 1.0, []
+        for _ in range(30):
+            c = asset_condition(c, [{"eoh_demanded": 1.0, "eoh_fulfilled": f}])
+            old.append(c)
+        assert [r["condition"] for r in asset_condition_trajectory(1.0, 1.0, f, 30)] == old
+
+    @pytest.mark.parametrize("rebuild_years", [5.0, 20.0, 40.0])
+    def test_the_closed_form_matches_the_model(self, rebuild_years):
+        """Mode 12: the formula must summarise the model it names. From ρ*,
+        catching up at the surplus cap takes rebuild_years / s years of surplus
+        upkeep — simulated through the fixed trajectory, to the year."""
+        import math
+        from hours_eoh.core.capital import asset_condition_trajectory, rebuild_crossover_ratio
+        from hours_eoh.data import ASSET_MAX_MAINTENANCE_QUALITY as q
+        rho = rebuild_crossover_ratio(rebuild_years)
+        tr = asset_condition_trajectory(rho, 1.0, q, 400, as_built=1.0)
+        full = asset_condition_trajectory(1.0, 1.0, 1.0, 400)
+        years = next(t + 1 for t in range(400)
+                     if tr[t]["condition"] >= full[t]["condition"] * (1 - 1e-9))
+        assert abs(years * (q - 1.0) - rebuild_years) <= q - 1.0 + 1e-9
+        assert math.isclose(rebuild_crossover_ratio(0.0), 1.0)
+
+    def test_dearer_upkeep_means_an_earlier_write_down(self):
+        from hours_eoh.core.capital import rebuild_crossover_ratio
+        xs = [rebuild_crossover_ratio(r) for r in (40.0, 30.0, 20.0, 5.0)]
+        assert xs == sorted(xs) and 0.0 < xs[0] < xs[-1] < 1.0

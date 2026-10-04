@@ -22,14 +22,11 @@ from hours_eoh.data import (
     REFERENCE_FRAME_POPULATION,
     COMPOUNDING_CRIT,
     COMPOUNDING_WARN,
-    MAINTENANCE_IRREVERSIBILITY_MULTIPLE,
     MEAN_MULTIPLIER_REFERENCE,
 )
 from hours_eoh.core.eoh_dynamics import eoh_compounding
 from hours_eoh.core.registration import register_shares
 
-#: Kept under its old name; the value lives in data.py since 2026-10-03.
-_IRREVERSIBILITY_MULTIPLE: float = MAINTENANCE_IRREVERSIBILITY_MULTIPLE
 
 
 def deferred_maintenance_crisis(
@@ -57,8 +54,24 @@ def deferred_maintenance_crisis(
         fulfillment_fraction: Fraction actually fulfilled each year, ∈ [0,1].
         years: Number of years to simulate.
         asset_type: Asset type controlling compounding profile.
-        capital_age_ratio: The frame's stock age (2026-10-04), passed to the
-            overbuild reading; None → `overbuild_check`'s own default.
+        capital_age_ratio: The frame's stock age (2026-10-04): the starting
+            condition (`civilization.condition_from_age_ratio`, reported per
+            row as `condition`), the upkeep intensity the rebuild crossover
+            reads, and the overbuild reading. None → a new stock, and each
+            function's own default age.
+
+    IRREVERSIBILITY IS ONE DERIVED CLOCK (2026-10-04, author). Two hand-set
+    thresholds named the same crossover — rebuilding cheaper than catching up —
+    and disagreed at every fulfilment: a backlog of 5× a year's demand (it fired
+    first, always) and a condition of 0.20. `failure_boundary` is now the first
+    year the condition, as a share of the maintained path, falls below
+    `capital.rebuild_crossover_ratio` — catching up at the most surplus a year
+    can absorb costs more labour than the rebuild (`execute_writedown`'s
+    `rebuild_eoh_needed`, over the annual upkeep: the frame's K when it is
+    given, else the asset type's upkeep rate at the stock's age). An older,
+    more upkeep-intensive stock crosses sooner. Restoration recovers neglect
+    damage only — the maintained path is the ceiling — so the starting
+    condition is reported, not compared.
         degraded_compounding: The compounding ratio read as DEGRADED
             (default COMPOUNDING_WARN, the dashboard's YELLOW — one value since
             2026-10-03). See its data.py note: below the threshold age the
@@ -82,12 +95,7 @@ def deferred_maintenance_crisis(
             capacity/efficiency breakdown below. Per year:
             `capacity`, `overbuild_margin` (B₀ − total, h/yr) and
             `overbuild_verdict`; overall `overbuild_year`, the first year it
-            reads overbuilt, and `writedown_year`, the first year
-            `capital.writedown_trigger` fires on the condition ratio — past it
-            the framework says the asset no longer exists in maintainable
-            form, so later years are read past that point. Not reconciled with
-            `failure_boundary` (the backlog multiple): two thresholds for one
-            idea. CAPACITY ALSO READS THE MACHINE SHARE (2026-10-03, author:
+            reads overbuilt. CAPACITY ALSO READS THE MACHINE SHARE (2026-10-03, author:
             capacity vs efficiency): the overbuild LABOUR test runs at
             ε × capacity — a worn stock does less of the work, as a
             disaster's does in `capital_loss_shock`. Upkeep not performed is
@@ -110,10 +118,12 @@ def deferred_maintenance_crisis(
           "final_deferred":         float,
           "final_compounding_ratio": float,
           "outcome":                str,
-          "failure_boundary":       int | None,   (year of irreversibility)
+          "failure_boundary":       int | None,   (year of irreversibility — the derived crossover)
+          "rebuild_years":          float,        (rebuild labour over annual upkeep)
+          "rebuild_crossover":      float,        (`rebuild_crossover_ratio`)
           "recommendation":         str,
           on a frame, also: "overbuild_margin_before", "overbuild_margin_after",
-          "overbuild_year", "overbuild_outcome", "writedown_year", and per row
+          "overbuild_year", "overbuild_outcome", and per row
           "capacity", "overbuild_margin", "overbuild_verdict"
         }
     """
@@ -124,12 +134,32 @@ def deferred_maintenance_crisis(
     if (population is None) != (capital_stock_teh is None):
         raise ValueError("population and capital_stock_teh are the frame: give both or neither")
     framed = population is not None
+    from hours_eoh.core.capital import (
+        asset_condition_trajectory, execute_writedown, rebuild_crossover_ratio,
+        writedown_trigger,
+    )
+    from hours_eoh.core.civilization import condition_from_age_ratio
+    from hours_eoh.core.eoh_generation import infrastructure_eoh
+    from hours_eoh.data import ASSET_TYPES
+    age_kw: dict[str, Any] = ({} if capital_age_ratio is None
+                              else {"capital_age_ratio": capital_age_ratio})
+    # The starting condition (2026-10-04): reported per row; no age → new.
+    c0 = 1.0 if capital_age_ratio is None else condition_from_age_ratio(capital_age_ratio)
+    cond = asset_condition_trajectory(1.0, annual_eoh, fulfillment_fraction, years)
+    full = asset_condition_trajectory(1.0, annual_eoh, 1.0, years)
+    # REBUILD COST IN YEARS OF UPKEEP: the frame's own stock when given, else
+    # the asset type's upkeep rate at the stock's age (one unit of capital).
+    if framed and annual_eoh > 0.0:
+        rebuild_years = float(execute_writedown({
+            "asset_id": "stock", "asset_type": asset_type,
+            "teh_value": float(capital_stock_teh), "annual_eoh": annual_eoh,  # type: ignore[arg-type]
+        })["rebuild_eoh_needed"]) / annual_eoh
+    else:
+        rebuild_years = 1.0 / infrastructure_eoh(
+            1.0, base_maint_rate=ASSET_TYPES[asset_type]["maint_rate"], **age_kw)
+    crossover = rebuild_crossover_ratio(rebuild_years)
     if framed:
         from hours_eoh.core.autarky import overbuild_check
-        from hours_eoh.core.capital import asset_condition_trajectory, writedown_trigger
-        cond = asset_condition_trajectory(1.0, annual_eoh, fulfillment_fraction, years)
-        full = asset_condition_trajectory(1.0, annual_eoh, 1.0, years)
-    writedown_year: int | None = None
     overbuild_year: int | None = None
     worst_overbuild = None
     k_frame = float(capital_stock_teh or 0.0)
@@ -161,7 +191,8 @@ def deferred_maintenance_crisis(
 
         if compounding_ratio >= CRIT_RATIO and crisis_year is None:
             crisis_year = year
-        if total_obligation > annual_eoh * _IRREVERSIBILITY_MULTIPLE and failure_year is None:
+        ratio = cond[year - 1]["condition"] / full[year - 1]["condition"]
+        if writedown_trigger(ratio, crossover) and failure_year is None:
             failure_year = year
 
         row: dict[str, Any] = {
@@ -175,13 +206,11 @@ def deferred_maintenance_crisis(
             "total_obligation":   total_obligation,
         }
         if framed:
-            ratio = cond[year - 1]["condition"] / full[year - 1]["condition"]
-            if writedown_trigger(ratio) and writedown_year is None:
-                writedown_year = year
             ob = overbuild_check(k_frame, pop_frame, epsilon=epsilon * ratio,
                                  added_upkeep_eoh=compounding,
                                  abating_capital_teh=k_frame * ratio, **ob_state)
             row["capacity"] = ratio
+            row["condition"] = c0 * ratio
             row["overbuild_margin"] = ob["net_vs_autarky"]
             row["overbuild_verdict"] = ob["verdict"]
             if ob["verdict"] == "overbuilt":
@@ -195,7 +224,8 @@ def deferred_maintenance_crisis(
     final_ratio = final["compounding_ratio"]
 
     # TWO DEFECTS FIXED 2026-08-28, both found by asking why
-    # `_IRREVERSIBILITY_MULTIPLE` was unpinned.
+    # `_IRREVERSIBILITY_MULTIPLE` (the 5× backlog multiple, retired 2026-10-04
+    # for the derived crossover) was unpinned.
     #
     # (1) `failure_boundary` is documented as "year of irreversibility" and
     #     RETURNED `crisis_year` — which is already returned under its own key,
@@ -234,7 +264,9 @@ def deferred_maintenance_crisis(
         )
     elif failure_year:
         rec = (
-            f"Deferred maintenance exceeds {_IRREVERSIBILITY_MULTIPLE:.0f}× annual EOH at year {failure_year}. "
+            f"From year {failure_year} catching up the neglect costs more labour than "
+            f"rebuilding (condition below {crossover:.0%} of the maintained path, the "
+            f"derived crossover). "
             f"Rebuilding required. Preventive maintenance cannot restore function."
         )
     else:
@@ -254,7 +286,7 @@ def deferred_maintenance_crisis(
                       else "; the labour test still passes at the worn stock's ε")
                    if overbuild_year else "; the apparatus still pays")
                 + f" (capacity {last['capacity']:.1%} of maintained"
-                + (f"; write-down threshold crossed in year {writedown_year}" if writedown_year else "")
+
                 + f"). Outcome: {outcome}.")
     out = {
         "scenario":               "deferred_maintenance_crisis",
@@ -268,13 +300,15 @@ def deferred_maintenance_crisis(
         "final_compounding_ratio": final_ratio,
         "outcome":                outcome,
         "failure_boundary":       failure_year,
+        "rebuild_years":          rebuild_years,
+        "rebuild_crossover":      crossover,
         "recommendation":         rec,
     }
     if framed:
         out.update(overbuild_margin_before=margin_before,
                    overbuild_margin_after=trajectory[-1]["overbuild_margin"],
                    overbuild_year=overbuild_year, overbuild_outcome=overbuild_outcome,
-                   writedown_year=writedown_year, capacity_after=trajectory[-1]["capacity"])
+                   capacity_after=trajectory[-1]["capacity"])
     return out
 
 

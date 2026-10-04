@@ -65,6 +65,13 @@ from hours_eoh.data import (
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def condition_from_age_ratio(age_ratio: float) -> float:
+    """A stock's condition from its age as a share of design life — the
+    linear decay below, read where only the ratio is known (a frame's
+    `capital_age_ratio`). 1.0 new → COND_DECAY_FLOOR at end of life."""
+    return _condition_from_age(age_ratio, 1.0)
+
+
 def _condition_from_age(age: float, design_life: float) -> float:
     """
     Derive condition from age and design life when condition is not specified.
