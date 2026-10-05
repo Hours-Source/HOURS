@@ -53,7 +53,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.core.eoh_generation import total_eoh
 from hours_eoh.reference.atus_time_use import (
-    hours_per_person_15plus, latest_year, population_15_plus,
+    census_adult_share, hours_per_person_15plus, latest_year, population_15_plus,
 )
 from hours_eoh.reference.capital_inventory import BEA_POPULATION
 from hours_eoh.reference.obligation_work import obligation_share, what_this_cannot_settle
@@ -178,7 +178,14 @@ def measured_hours(
     # The reference layer already owns this conversion AND the days-per-year it
     # needs; re-declaring either would be a second account of one quantity.
     paid_15 = _paid_own if _own else hours_per_person_15plus(y, (_WORK_PREFIX,))
-    share_15 = p15 / population
+    # THE SURVEY YEAR'S OWN ADULT SHARE (2026-10-04). It was the year's ATUS
+    # 15+ count over `population`, a fixed 2024 total — the SERIES TRAP
+    # `per_capita_scale` names: 2003 read 0.6725 against a real 0.7910, hours
+    # per head fell 15% short, and ε fell 0.525 → 0.410 over 2003–2025 that,
+    # corrected, runs 0.407 → 0.412. The shipped hours now take Census's share
+    # for their year (one universe, one year); supplied hours keep their own
+    # 15+ count over their own population.
+    share_15 = p15 / population if _own else census_adult_share(y)
     return {
         # The ATUS survey year belongs to the SHIPPED series. Supplied hours have
         # their own vintage this module does not know, so it is not asserted.
@@ -188,6 +195,8 @@ def measured_hours(
         "population":        population,
         "population_15_plus": population_15_plus(y),
         "share_15_plus":     share_15,
+        "share_source":      ("supplied 15+ count over population" if _own else
+                              f"Census resident 15+ share, {y}"),
         "unpaid_per_15plus": unpaid_15,
         "paid_per_15plus":   paid_15,
         "unpaid_per_capita": unpaid_15 * share_15,

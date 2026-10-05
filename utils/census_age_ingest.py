@@ -4,7 +4,10 @@ US Census population by single year of age → the shipped age-structure extract
     python3 utils/census_age_ingest.py [--raw rawdata/age] [--out hours_eoh/reference/data]
 
 Output (committed):
-    census_age_2020_2025.csv   year, age, population
+    census_age_2020_2025.csv     year, age, population
+    census_adults_2000_2025.csv  year, total, age_15_plus, vintage — the adult
+                                 share by year, from three Census vintages
+                                 (intercensal 2000s, Vintage 2020, Vintage 2025)
 
 Reads `nc-est2025-agesex-res.csv` (Vintage 2025 national estimates, SEX × single
 year of age × 2020–2025). Only SEX=0 (both sexes) is kept; AGE=999 is the
@@ -89,12 +92,64 @@ def ingest(raw_dir: Path, out_dir: Path) -> Path:
     return out_path
 
 
+#: THE ADULT SHARE BY YEAR (2026-10-04) — the matching total-population series
+#: `atus_time_use.per_capita_scale` says a per-capita SERIES needs and this
+#: extract did not carry. Without it `labour_epsilon(year=…)` divided each
+#: survey year's 15+ count by a fixed 2024 total and manufactured a falling ε.
+#: Each year from the latest Census vintage that covers it:
+_ADULT_SOURCES = (
+    # (file, years, vintage label)
+    ("us-est00int-alldata.csv", range(2000, 2010), "intercensal 2000-2010 (July)"),
+    ("nc-est2020-agesex-res.csv", range(2010, 2020), "Vintage 2020"),
+    ("nc-est2025-agesex-res.csv", range(2020, 2026), "Vintage 2025"),
+)
+ADULT_AGE = 15
+
+
+def _adult_rows(raw_dir: Path, name: str, years: range) -> dict[int, tuple[int, int]]:
+    """{year: (total, aged 15+)} from one source, checked: ages partition the total."""
+    src = raw_dir / name
+    if not src.exists():
+        raise FileNotFoundError(f"missing raw census file: {src}")
+    with src.open(newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    out: dict[int, tuple[int, int]] = {}
+    for year in years:
+        if "MONTH" in rows[0]:                      # intercensal: one row per month/age
+            sel = {int(r["AGE"]): int(r["TOT_POP"]) for r in rows
+                   if r["MONTH"] == "7" and int(r["YEAR"]) == year}
+        else:                                        # post-censal: a column per year
+            sel = {int(r["AGE"]): int(r[f"POPESTIMATE{year}"]) for r in rows
+                   if r["SEX"] == BOTH_SEXES}
+        total = sel[TOTAL_AGE]
+        ages = {a: v for a, v in sel.items() if a != TOTAL_AGE}
+        if sum(ages.values()) != total:
+            raise ValueError(f"{name} {year}: ages sum to {sum(ages.values()):,}, "
+                             f"published total {total:,}")
+        out[year] = (total, sum(v for a, v in ages.items() if a >= ADULT_AGE))
+    return out
+
+
+def ingest_adults(raw_dir: Path, out_dir: Path) -> Path:
+    """census_adults_2000_2025.csv: year, total, age_15_plus, vintage."""
+    out_path = out_dir / "census_adults_2000_2025.csv"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["year", "total", "age_15_plus", "vintage"])
+        for name, years, vintage in _ADULT_SOURCES:
+            for year, (total, adults) in sorted(_adult_rows(raw_dir, name, years).items()):
+                writer.writerow([year, total, adults, vintage])
+    return out_path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw", default="rawdata/age", type=Path)
     parser.add_argument("--out", default="hours_eoh/reference/data", type=Path)
     args = parser.parse_args(argv)
     print(f"wrote {ingest(args.raw, args.out)}")
+    print(f"wrote {ingest_adults(args.raw, args.out)}")
     return 0
 
 

@@ -70,6 +70,7 @@ _DATA_DIR = Path(__file__).resolve().parent / "data"
 _ANNUAL_FILE = _DATA_DIR / "atus_annual_0325.csv"
 _YEARS_FILE = _DATA_DIR / "atus_years_0325.csv"
 _TIER3_FILE = _DATA_DIR / "atus_tier3_0325.csv"
+_ADULTS_FILE = _DATA_DIR / "census_adults_2000_2025.csv"
 
 #: ATUS annualizing convention: diary minutes/day → hours/year. Named for the
 #: survey, not generically, because `personal_basket.DIET_DAYS_PER_YEAR` is a
@@ -288,6 +289,35 @@ def population_15_plus(year: int) -> float:
     raise KeyError(f"{year} is not an ATUS survey year")
 
 
+@lru_cache(maxsize=1)
+def _census_adults() -> dict[int, tuple[float, float, str]]:
+    with _ADULTS_FILE.open(newline="") as fh:
+        return {int(r["year"]): (float(r["total"]), float(r["age_15_plus"]), r["vintage"])
+                for r in csv.DictReader(fh)}
+
+
+def census_adult_share(year: int) -> float:
+    """
+    The share of the US resident population aged 15+ in `year` — the matching
+    series `per_capita_scale` says a per-capita SERIES needs (2026-10-04).
+    Both counts are Census's, one universe, one year: the ATUS 15+ count over a
+    resident total would mix the survey's civilian non-institutional universe
+    with a resident one.
+
+    units: dimensionless. Source: `census_adults_2000_2025.csv`
+    (`utils/census_age_ingest.py`), each year from the latest Census vintage
+    that covers it — intercensal 2000s, Vintage 2020, Vintage 2025.
+
+    Raises:
+        KeyError: if the year is not in the extract.
+    """
+    rows = _census_adults()
+    if year not in rows:
+        raise KeyError(f"no Census adult share for {year}; have {min(rows)}–{max(rows)}")
+    total, adults, _ = rows[year]
+    return adults / total
+
+
 def per_capita_scale(year: int, total_population: float) -> float:
     """
     The 15+ → all-ages bridge: multiply a per-person-15+ figure by this.
@@ -308,7 +338,8 @@ def per_capita_scale(year: int, total_population: float) -> float:
     denominator manufactures a spurious +23% trend. It turned a measured −26%
     into −8% once already. Per-capita conversion is valid at a single year; a
     historical per-capita series needs a matching total-population series, which
-    this extract does not carry. Report `series()` in its native per-person-15+
+    this extract did not carry — `census_adult_share(year)` now does (Census,
+    2000–2025). Or report `series()` in its native per-person-15+
     unit instead.
 
     Raises:

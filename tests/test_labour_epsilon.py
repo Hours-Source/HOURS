@@ -119,10 +119,29 @@ class TestTheFrameIsCarriedNotAssumed:
             LE.labour_epsilon("core", population=200e6)
 
     def test_a_larger_population_lowers_the_adult_share_and_raises_epsilon(self):
-        """The direction, so the pairing is checked rather than merely guarded."""
-        a = LE.labour_epsilon("core", population=335e6)["epsilon"]
-        b = LE.labour_epsilon("core", population=400e6)["epsilon"]
+        """The direction, so the pairing is checked rather than merely guarded —
+        on SUPPLIED hours, where `population` is the adult share's denominator.
+        The shipped US hours take Census's share for their year (2026-10-04)."""
+        m = LE.measured_hours()
+        own = dict(population_15_plus_supplied=m["population_15_plus"],
+                   unpaid_per_15plus=m["unpaid_per_15plus"],
+                   paid_per_15plus=m["paid_per_15plus"])
+        a = LE.labour_epsilon("core", population=335e6, **own)["epsilon"]
+        b = LE.labour_epsilon("core", population=400e6, **own)["epsilon"]
         assert b > a, "diluting the adult share must leave less measured human labour"
+
+    def test_the_shipped_series_takes_each_years_own_share(self):
+        """THE SERIES TRAP, closed (2026-10-04): each survey year's 15+ count
+        over a fixed 2024 total manufactured a falling ε (core 0.525 → 0.410
+        over 2003–2025). Each year now reads Census's share for that year, and
+        a moved population does not move it."""
+        from hours_eoh.reference.atus_time_use import census_adult_share
+        for y in (2003, 2013, 2025):
+            assert LE.measured_hours(y)["share_15_plus"] == census_adult_share(y)
+        assert (LE.labour_epsilon("core", year=2003)["epsilon"]
+                == LE.labour_epsilon("core", year=2003, population=400e6)["epsilon"])
+        series = [LE.labour_epsilon("core", year=y)["epsilon"] for y in (2003, 2013, 2025)]
+        assert max(series) - min(series) < 0.05, f"the trend is back: {series}"
 
 
 class TestTheLabourRouteIsCurrencyFree:
@@ -247,8 +266,12 @@ class TestTheLabourArmTakesItsDataToo:
     """
 
     def _shipped_inputs(self):
+        """The shipped reading, handed back. Since 2026-10-04 the shipped adult
+        share is Census's for the survey year, so the 15+ count that reproduces
+        it over the default population is that share × the population — the
+        ATUS count itself would bring back the series trap."""
         m = LE.measured_hours()
-        return dict(population_15_plus_supplied=m["population_15_plus"],
+        return dict(population_15_plus_supplied=m["share_15_plus"] * LE.BEA_POPULATION,
                     unpaid_per_15plus=m["unpaid_per_15plus"],
                     paid_per_15plus=m["paid_per_15plus"])
 
@@ -421,3 +444,30 @@ class TestTheVerdictIsAChoiceAndSaysSo:
         assert "OVERLAP" in v.split(" — ")[0]
         assert "OVERLAP across the declared grid" in v
         assert "depends on the scope and doctrine chosen" in v
+
+
+class TestTheCensusAdultSeries:
+    """`census_adults_2000_2025.csv` (2026-10-04): the total-population series a
+    per-capita SERIES needs. Three Census vintages spliced; held together here."""
+
+    def test_every_year_from_2000_and_adults_within_the_total(self):
+        from hours_eoh.reference.atus_time_use import _census_adults
+        rows = _census_adults()
+        assert sorted(rows) == list(range(2000, 2026))
+        assert all(0 < a < t for t, a, _ in rows.values())
+
+    def test_it_agrees_with_the_single_age_extract_where_they_overlap(self):
+        """Same vintage, two files: 2020–2025 must match to the person."""
+        import csv
+        from collections import defaultdict
+        from hours_eoh.reference.atus_time_use import _DATA_DIR, _census_adults
+        tot: dict[int, float] = defaultdict(float)
+        adults: dict[int, float] = defaultdict(float)
+        with (_DATA_DIR / "census_age_2020_2025.csv").open() as fh:
+            for r in csv.DictReader(fh):
+                tot[int(r["year"])] += float(r["population"])
+                if int(r["age"]) >= 15:
+                    adults[int(r["year"])] += float(r["population"])
+        rows = _census_adults()
+        for y in tot:
+            assert rows[y][:2] == (tot[y], adults[y])

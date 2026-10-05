@@ -39,14 +39,18 @@ class TestTheDefaultReadingIsUnchanged:
     # Re-pinned 2026-10-04: the default stock age became the measured US one
     # (0.50 → 0.591), so the obligation the hours are divided by grew. The
     # measured hours (human_per_capita) did not move.
+    # Re-pinned again 2026-10-04: the shipped hours convert to per head at the
+    # survey year's Census adult share (0.8277), not the ATUS 15+ count over a
+    # fixed 335M (0.8298) — the series trap, closed. Human hours per head fell
+    # 0.27%; the obligation moved with the fixed point.
     def test_the_shipped_epsilons_are_bit_identical(self):
-        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.40980274229863733)
-        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.21589293990276104)
+        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.4118671488818556)
+        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.2185295669192957)
 
     def test_the_shipped_intermediates_are_bit_identical(self):
         core = LE.labour_epsilon("core")
-        assert repr(core["human_per_capita"]) == repr(911.3211693717458)
-        assert repr(core["total_obligation_per_capita"]) == repr(1544.095906038368)
+        assert repr(core["human_per_capita"]) == repr(908.9767878732426)
+        assert repr(core["total_obligation_per_capita"]) == repr(1545.5296981712845)
 
     def test_supplying_no_state_equals_supplying_an_empty_one(self):
         assert (LE.labour_epsilon("core", obligation_state={})["epsilon"]
