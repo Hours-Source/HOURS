@@ -489,3 +489,46 @@ class TestRegisteredWorkAccess:
         r = registered_work_access(0.40)
         assert r["min_market_wage"] is None and "charter" in r["min_market_wage_basis"]
         assert "who it admits" in r["averages_only"]
+
+
+class TestTheStockAgeReachesBothSides:
+    """
+    The frame's measured stock age was resolved and never passed: the pipeline
+    and the compass both read `CAPITAL_AGE_RATIO_DEFAULT` (2026-10-07). Mode 5,
+    the stranded parameter.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_an_older_stock_needs_more_hours_and_unsupplied_is_declared(self, eps):
+        kw = dict(capital_stock_teh=2.0e9, standard="sufficiency")
+        young = mod.stationarity_at(eps, capital_age_ratio=0.2, **kw)
+        old = mod.stationarity_at(eps, capital_age_ratio=0.9, **kw)
+        assert (old["labour"]["human_hours_per_capita"]
+                > young["labour"]["human_hours_per_capita"])
+        assert (old["labour"]["arc_stability_human_per_capita"]
+                > young["labour"]["arc_stability_human_per_capita"])
+        assert young["capital_age_supplied"] is True
+        unsupplied = mod.stationarity_at(eps, **kw)
+        assert unsupplied["capital_age_supplied"] is False
+        assert "NOT SUPPLIED" in unsupplied["capital_age_source"]
+        assert "NOT SUPPLIED" in mod.stationarity_at(eps)["capital_source"]
+
+
+class TestTheAdultShareReachesBothFunctions:
+    """2026-10-07: the frame's adult share now sets the supply in
+    `stationarity_at`, its compass reading, and `registered_work_access`."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_share_moves_supply_compass_and_access(self, eps):
+        kw = dict(capital_stock_teh=2.0e9, standard="sufficiency")
+        lo = mod.stationarity_at(eps, adult_share=0.55, **kw)
+        hi = mod.stationarity_at(eps, adult_share=0.75, **kw)
+        assert hi["labour"]["supply_per_capita"] > lo["labour"]["supply_per_capita"]
+        for r in (lo, hi):
+            assert (r["labour"]["arc_stability_supply_per_capita"]
+                    == r["labour"]["supply_per_capita"])
+        assert lo["adult_share_source"] == "passed in by the caller"
+        assert "NOT SUPPLIED" in mod.stationarity_at(eps, **kw)["adult_share_source"]
+        a = mod.registered_work_access(eps, adult_share=0.55)
+        b = mod.registered_work_access(eps, adult_share=0.75)
+        assert a != b

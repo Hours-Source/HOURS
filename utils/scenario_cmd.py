@@ -117,7 +117,7 @@ FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "indust_baseline", "indust_recovery", "canonical_arc", "transition",
                "thermal_load", "arc_stability", "stationarity", "ecological_floor",
                "care_delay", "verification_band", "frame", "guf_magnitude",
-               "guf_writedown", "guf_integration")
+               "guf_writedown", "guf_integration", "capacity_breakdown")
 #: The key holding each scenario's verdict; None where it has none to read at
 #: the ends of the ε range (a swept arc, or two separate recovery flags).
 _OUTCOME_KEY: dict[str, str | None] = {
@@ -127,12 +127,16 @@ _OUTCOME_KEY: dict[str, str | None] = {
     "maintenance_crisis": "outcome", "recovery": "recoverable", "trust_stress": "outcome",
     "measured_sim": "solvent_all", "indust_baseline": "outcome", "indust_recovery": None,
     "canonical_arc": None, "transition": None, "thermal_load": None,
-    "arc_stability": None, "stationarity": None, "ecological_floor": None,
+    "arc_stability": "stationary", "stationarity": "stationary", "ecological_floor": None,
     "care_delay": "outcome", "verification_band": "verdict", "frame": None,
-    "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome"}
+    "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome",
+    "capacity_breakdown": "sufficiency_within_capacity"}
 #: A verdict that is a bool, as words.
 _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
-               "measured_sim": ("solvent throughout", "insolvent in some period")}
+               "measured_sim": ("solvent throughout", "insolvent in some period"),
+               **{n: ("stationary", "NOT stationary") for n in ("arc_stability", "stationarity")},
+               "capacity_breakdown": ("sufficiency within capacity",
+                                      "sufficiency BEYOND capacity")}
 
 #: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
 #: all-or-nothing: `overbuild` accepted --ages and --retirement-age and printed
@@ -166,9 +170,16 @@ _READS: dict[str, frozenset[str]] = {
     # stationarity checks the population, capital and adult capacity; the
     # ecological floor the land per head; the register's cost the population
     # (its figures are shares — reaching, and correctly moving nothing).
-    **{n: frozenset({"population", "capital_teh", "adult_capacity_h_yr", "epsilon"})
+    # Both also read the stock's age and the frame's adult share (2026-10-07):
+    # the age sets the upkeep, the share the labour supply.
+    **{n: frozenset({"population", "capital_teh", "adult_capacity_h_yr",
+                     "adult_share", "capital_age_ratio", "epsilon"})
        for n in ("arc_stability", "stationarity")},
     "ecological_floor": frozenset({"population", "hectares_per_capita", "epsilon"}),
+    # Where the work goes, as hours of capacity (2026-10-07): the compass's
+    # inputs plus the frame's own adult share, which sets the capacity.
+    "capacity_breakdown": frozenset({"population", "capital_teh", "capital_age_ratio",
+                                     "adult_capacity_h_yr", "adult_share", "epsilon"}),
     **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
     # ε ONLY: their land is a PARCEL inventory or configuration (the urban
     # archetype; one parcel for guf_integration), and pairing it with a
@@ -283,6 +294,7 @@ _SCENARIOS: dict[str, str] = {
     # -- thermal obligation carried in the ledger --
     "thermal_load":        "thermal_load_verdict() — carry the planetary radiative obligation and report what it moves  [--thermal-obligation (default: the frame population's share), --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     # -- autarky / overbuild --
+    "capacity_breakdown":  "capacity_report() — WHERE THE WORK GOES: each obligation's human hours as a share of labour capacity, survival beside sufficiency, desk and ATUS splits. Hours of work, no currency; REPORTING ONLY  [--epsilon, --capital-stock, --frame, --frame-file, --adult-capacity, --bea-usd-per-teh]",
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
@@ -768,11 +780,21 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
     if name in _BRANCH_ON_FRAME:
         from utils.frame_inputs import label
         fs: dict[str, Any] = {}
+        capital_label: str | None = None
+        age_label: str | None = None
         if name in ("arc_stability", "stationarity"):
             if not v["capital_derived"]:
                 fs["capital_stock_teh"] = v["capital_teh"]
+                # The Inputs header's own label, so the two never disagree:
+                # passed in is not the same as SUPPLIED by the user.
+                from utils.frame_inputs import effective_kind
+                capital_label = (f"{effective_kind(lab, 'capital_teh')}: "
+                                 f"{lab['capital_teh']['source']}")
             if lab["adult_capacity_h_yr"]["kind"] != "default":
                 fs["adult_capacity_h_yr"] = v["adult_capacity_h_yr"]
+            fs["capital_age_ratio"] = v["capital_age_ratio"]
+            age_label = f"{lab['capital_age_ratio']['kind']}: {lab['capital_age_ratio']['source']}"
+            fs["adult_share"] = v["adult_share"]
         if name == "ecological_floor":
             land_kind = lab["land_m2"]["kind"]
             if args.hectares_per_capita is not None:
@@ -788,7 +810,9 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                     "default", "LAND_HECTARES_PER_CAPITA — a planetary average")
             fs["hectares_per_capita"] = v["hectares_per_capita"]
         fa = argparse.Namespace(**{**vars(args), "epsilon": epsilon, "population": pop,
-                                   "periods": periods, "frame_state": fs})
+                                   "periods": periods, "frame_state": fs,
+                                   "capital_label": capital_label,
+                                   "capital_age_label": age_label})
         return _branch(fa), v, lab  # type: ignore[return-value]
     if name in ("maintenance_crisis", "recovery"):
         # The frame's own capital (supplied, BEA, or the arc at this ε) sets the
@@ -831,12 +855,35 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         out["break_even_epsilon"] = break_even_epsilon(k, pop, **state)
         out["payback_years"] = pb["payback_years"]
         out["payback_verdict"] = pb["verdict"]
-        # a sweep so the interior optimum is visible, not just the point verdict
+        from hours_eoh.data import ABATEMENT_HALF_CAPITAL_TEH
+        from hours_eoh.scenarios.abatement_split import pace_sensitivity
+
+        def peak_pc(**kw: Any) -> float:
+            """Capital per head at which the net saving peaks: a log grid,
+            then the grid around its best point refined linearly."""
+            def net(kpc: float) -> float:
+                return float(overbuild_check(kpc * pop, pop, epsilon=epsilon,
+                                             **state, **kw)["net_vs_autarky"])
+            grid = [10.0 ** (i / 100.0) for i in range(0, 601)]   # 1 … 1e6 per head
+            i = max(range(len(grid)), key=lambda j: net(grid[j]))
+            lo, hi = grid[max(0, i - 1)], grid[min(len(grid) - 1, i + 1)]
+            fine = [lo + (hi - lo) * j / 400.0 for j in range(401)]
+            return max(fine, key=net)
+
+        # THE SWEEP CARRIES THE FRAME'S OWN STOCK AND THE PEAK (2026-10-07).
+        # Until now its rows were fixed per-head levels — one of them 4,145,
+        # sourced nowhere — so the table never showed where this frame sits.
+        k_pc = k / pop
+        k_peak = peak_pc()
+        marks = {0.0: "", 250.0: "", 1_000.0: "", 20_000.0: "", 100_000.0: ""}
+        marks[k_peak] = "peak"
+        marks[k_pc] = "this frame"
         rows = []
-        for kpc in (0.0, 250.0, 1_000.0, 4_145.0, 20_000.0, 100_000.0):
+        for kpc in sorted(marks):
             cc = overbuild_check(kpc * pop, pop, epsilon=epsilon, **state)
             rows.append({
-                "K_per_capita": kpc,
+                "row": marks[kpc],
+                "K_per_capita": round(kpc, 1),
                 "abatement": round(cc["abatement"], 4),
                 "obligation_pc": round(cc["obligation_with_apparatus"] / pop, 1),
                 "overhead_pc": round(cc["overhead"] / pop, 1),
@@ -844,8 +891,99 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                 "net_vs_autarky_pc": round(cc["net_vs_autarky"] / pop, 1),
                 "verdict": cc["verdict"],
             })
+        out["peak_K_per_capita"] = k_peak
+        out["frame_vs_peak"] = ("past the peak" if k_pc > k_peak else
+                                "below the peak" if k_pc < k_peak else "at the peak")
+
+        # THE PACE SENSITIVITY `ABATEMENT_HALF_CAPITAL_TEH`'s tag asks for beside
+        # any abatement figure (confidence 5): the verdict, the net saving and
+        # the peak re-read at each K_half multiple `pace_sensitivity` sweeps.
+        ps = pace_sensitivity()
+        for r in ps["rows"]:
+            m = r["k_half_multiple"]
+            kh = ABATEMENT_HALF_CAPITAL_TEH * m
+            cc = overbuild_check(k, pop, epsilon=epsilon, **state, half_capital=kh)
+            pk = peak_pc(half_capital=kh)
+            out[f"pace K_half ×{m:g}"] = (
+                f"{cc['verdict']}, net {cc['net_vs_autarky'] / pop:,.1f} h/person·yr, "
+                f"peak at {pk:,.0f}/head — frame "
+                f"{'past' if k_pc > pk else 'below'} it")
         out["summary_table"] = rows
         return out, v, lab
+    if name == "capacity_breakdown":
+        from hours_eoh.scenarios.capacity_breakdown import capacity_report
+        rep = capacity_report(
+            epsilon, population=pop, adult_capacity_h_yr=v["adult_capacity_h_yr"],
+            adult_share=v["adult_share"], capital_age_ratio=v["capital_age_ratio"],
+            capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
+        runs = rep["runs"]
+        sv, sf = runs[("survival", "desk")], runs[("sufficiency", "desk")]
+        so, fo = runs[("survival", "observed")], runs[("sufficiency", "observed")]
+        cb: dict[str, Any] = {
+            "units": sf["units"],
+            "capacity_per_adult_week": sf["capacity_per_adult_week"],
+            "capacity_per_capita_yr": sf["capacity_per_capita_yr"],
+        }
+        for tag, r in (("survival", sv), ("sufficiency", sf),
+                       ("survival (ATUS split)", so), ("sufficiency (ATUS split)", fo)):
+            cb[f"{tag} | share of capacity"] = f"{r['total_share_of_capacity']:.1%}"
+            cb[f"{tag} | h per adult-week"] = round(r["total_hours_per_adult_week"], 1)
+        cb["survival_within_capacity"] = rep["survival_within_capacity"]
+        cb["sufficiency_within_capacity"] = rep["sufficiency_within_capacity"]
+        from utils.frame_inputs import effective_kind
+        cb["capital_source"] = (
+            f"{effective_kind(lab, 'capital_teh')}: {lab['capital_teh']['source']}"
+            if not v["capital_derived"] else sf["capital_source"])
+        cb["capital_age_source"] = (f"{lab['capital_age_ratio']['kind']}: "
+                                    f"{lab['capital_age_ratio']['source']}")
+        cb["adult_share_source"] = (f"{effective_kind(lab, 'adult_share')}: "
+                                    f"{lab['adult_share']['source']}")
+        cb["verdict"] = rep["verdict"]
+
+        # THE BREAKDOWN AT THE ENDS OF THE ε RANGE (2026-10-07): the range line
+        # above the table gives only the verdict; these columns show which rows
+        # move. Same frame inputs; a derived capital re-resolves at each ε.
+        from hours_eoh.scenarios.capacity_breakdown import breakdown_at
+        er = resolve_epsilon(args)
+        ends = [e for e in (er["low"], er["high"]) if er["high"] > er["low"]]
+        end_rows = {e: breakdown_at(
+            e, standard="sufficiency", population=pop,
+            adult_capacity_h_yr=v["adult_capacity_h_yr"], adult_share=v["adult_share"],
+            capital_age_ratio=v["capital_age_ratio"],
+            capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
+            for e in ends}
+
+        def _row(name: str, account: str, a: dict, b: dict, c: dict, d: dict,
+                 added: float, at_ends: list[dict]) -> dict:
+            row = {
+                "component": name,
+                "account": account,
+                "survival %": f"{a['share_of_capacity']:.1%}",
+                "survival h/wk": round(a["hours_per_adult_week"], 1),
+                "sufficiency %": f"{b['share_of_capacity']:.1%}",
+                "sufficiency h/wk": round(b["hours_per_adult_week"], 1),
+                "added h/wk": round(added, 1),
+                "survival % ATUS": f"{c['share_of_capacity']:.1%}",
+                "sufficiency % ATUS": f"{d['share_of_capacity']:.1%}",
+            }
+            for e, r in zip(ends, at_ends):
+                row[f"suff % at ε {e:.3f}"] = f"{r['share_of_capacity']:.1%}"
+            return row
+
+        table = [
+            _row(a["component"], a["account"], a, b, c, d,
+                 rep["added_by_sufficiency"][a["component"]],
+                 [end_rows[e]["rows"][i] for e in ends])
+            for i, (a, b, c, d) in enumerate(zip(sv["rows"], sf["rows"], so["rows"], fo["rows"]))]
+
+        def _tot(r: dict) -> dict:
+            return {"share_of_capacity": r["total_share_of_capacity"],
+                    "hours_per_adult_week": r["total_hours_per_adult_week"]}
+        table.append(_row("TOTAL", "", _tot(sv), _tot(sf), _tot(so), _tot(fo),
+                          sum(rep["added_by_sufficiency"].values()),
+                          [_tot(end_rows[e]) for e in ends]))
+        cb["summary_table"] = table
+        return cb, v, lab
     raise ValueError(f"{name} is not frame-aware")
 
 
@@ -1351,6 +1489,13 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             b = rep["bands"][side]
             sr[f"band | {side}"] = (f"[{b['lower']:.2f}, {b['upper']:.2f}]"
                                     if b["any_stationary"] else "none")
+        h = rep["here"]
+        sr["stationary"] = h["stationary"]   # both sides; re-read at the range ends
+        sr["capital_source"] = (getattr(args, "capital_label", None)
+                                or h["capital_source"])
+        sr["capital_age_ratio"] = h["capital_age_ratio"]
+        sr["capital_age_source"] = (getattr(args, "capital_age_label", None)
+                                    or h["capital_age_source"])
         sr["verdict"] = rep["verdict"]
         return sr
 
@@ -1360,7 +1505,18 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             epsilon, standard=getattr(args, "standard", None) or "sufficiency",
             population=population, **frame_state,
         )
-        st: dict = {}
+        # THE POINT READING AT --epsilon: the verdict is stated here, so its
+        # figures are printed beside it rather than left to interpolation.
+        h = rep["here"]
+        st: dict = {
+            f"here {h['epsilon']:.3f} | supply": h["supply_per_capita"],
+            f"here {h['epsilon']:.3f} | obligation": h["obligation_per_capita"],
+            f"here {h['epsilon']:.3f} | delivery": h["delivery_per_capita"],
+            f"here {h['epsilon']:.3f} | surplus": h["surplus_per_capita"],
+            f"here {h['epsilon']:.3f} | stationary": h["stationary"],
+        }
+        if h["failing"]:
+            st[f"here {h['epsilon']:.3f} | failing"] = ", ".join(h["failing"])
         for r in rep["arc"]:
             e = r["epsilon"]
             st[f"eps {e:.2f} | supply"] = r["supply_per_capita"]
@@ -1371,10 +1527,19 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             if r["failing"]:
                 st[f"eps {e:.2f} | failing"] = ", ".join(r["failing"])
         b = rep["band"]
+        # The outcome the frame run re-reads at both ends of the ε range and of
+        # the conversion band (2026-10-07) — the label said "ends re-run" while
+        # this scenario had no outcome for them to read.
+        st["stationary"] = h["stationary"]
+        st["capital_source"] = (getattr(args, "capital_label", None)
+                                or h["capital_source"])
+        st["capital_age_ratio"] = h["capital_age_ratio"]
+        st["capital_age_source"] = (getattr(args, "capital_age_label", None)
+                                    or h["capital_age_source"])
         st["standard"] = rep["standard"]
         for _name, _sb in rep["band_by_standard"].items():
             st[f"band @ {_name}"] = (
-                f"[{_sb['lower']}, {_sb['upper']}]"
+                f"[{_sb['lower']:.3f}, {_sb['upper']:.3f}]"
                 if _sb["any_stationary"] else "none"
             )
         st["band_lower"] = b["lower"]

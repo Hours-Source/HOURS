@@ -440,3 +440,48 @@ class TestItIsComparableToTheNeighbouringQuestions:
         """Both corners survive rather than one being picked — SCOPES precedent."""
         by = band_by_standard()
         assert set(by) == set(STANDARDS)
+
+
+class TestASuppliedStockReachesTheAccounts:
+    """
+    A supplied stock moved only `delivery_pays`: obligation and delivery read
+    the canonical arc's capital, so `--frame us` gave bit-identical figures
+    across the whole BEA conversion band (2026-10-07). Mode 5, the stranded
+    parameter.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_delivery_rises_with_the_supplied_stock_and_unsupplied_is_declared(self, eps):
+        lo = stability_at(eps, capital_stock_teh=1.0e9)
+        hi = stability_at(eps, capital_stock_teh=4.0e9)
+        assert hi["delivery_per_capita"] > lo["delivery_per_capita"]
+        assert hi["surplus_per_capita"] < lo["surplus_per_capita"]
+        assert lo["capital_supplied"] is True
+        unsupplied = stability_at(eps)
+        assert unsupplied["capital_supplied"] is False
+        assert "NOT SUPPLIED" in unsupplied["capital_source"]
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_an_older_stock_costs_more_to_keep_and_unsupplied_is_declared(self, eps):
+        young = stability_at(eps, capital_stock_teh=2.0e9, capital_age_ratio=0.2)
+        old = stability_at(eps, capital_stock_teh=2.0e9, capital_age_ratio=0.9)
+        assert old["delivery_per_capita"] > young["delivery_per_capita"]
+        assert old["net_vs_autarky"] != young["net_vs_autarky"]   # condition 2
+        assert young["capital_age_supplied"] is True
+        unsupplied = stability_at(eps, capital_stock_teh=2.0e9)
+        assert unsupplied["capital_age_supplied"] is False
+        assert "NOT SUPPLIED" in unsupplied["capital_age_source"]
+
+
+class TestTheAdultShareReachesTheSupply:
+    """The frame's adult share was resolved and labelled while supply read the
+    shipped age weights (2026-10-07) — mode 5 again."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_larger_adult_share_supplies_more_and_unsupplied_is_declared(self, eps):
+        lo = stability_at(eps, adult_share=0.55)
+        hi = stability_at(eps, adult_share=0.75)
+        assert hi["supply_per_capita"] > lo["supply_per_capita"]
+        assert hi["surplus_per_capita"] > lo["surplus_per_capita"]
+        assert lo["adult_share_source"] == "passed in by the caller"
+        assert "NOT SUPPLIED" in stability_at(eps)["adult_share_source"]

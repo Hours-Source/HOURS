@@ -51,6 +51,7 @@ _SCENARIO_FLAGS = {
     "guf_magnitude": [],
     "guf_writedown": [],
     "guf_integration": [],
+    "capacity_breakdown": [],
 }
 
 
@@ -83,7 +84,8 @@ def _strip(r: dict) -> dict:
     # `outcomes_across_capital` re-runs a DERIVED rate's band; a file states
     # the stock itself, so it has no band to re-run (2026-10-04).
     out = {k: v for k, v in r.items()
-           if k not in ("inputs", "frame", "epsilon_reading", "outcomes_across_capital")}
+           if k not in ("inputs", "frame", "epsilon_reading", "outcomes_across_capital",
+                        "capital_source", "capital_age_source")}
     e = r["epsilon_reading"]                       # None when the scenario sweeps ε
     out["_eps"] = None if e is None else (e["value"], e["low"], e["high"])
     return out
@@ -545,6 +547,15 @@ class TestOneAgePerFrame:
         b = _scenario("maintenance_crisis", *flags)
         assert a["net_vs_autarky"] == pytest.approx(b["overbuild_margin_before"])
         assert a["inputs"]["capital_age_ratio"]["value"] == b["inputs"]["capital_age_ratio"]["value"]
+
+    @pytest.mark.parametrize("name", ["arc_stability", "stationarity"])
+    def test_the_frames_age_reaches_the_arc_checks(self, tmp_path: Path, name):
+        """2026-10-07: resolved, labelled, and passed to neither."""
+        body = _frame_json("--frame", "us")
+        young = tmp_path / "young.json"
+        young.write_text(json.dumps({**body, "capital_age_ratio": 0.1}))
+        assert (_strip(_scenario(name, "--frame-file", str(young)))
+                != _strip(_scenario(name, "--frame", "us")))
 
 
 

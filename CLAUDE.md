@@ -184,6 +184,9 @@ hours_eoh/
                        can a member walk away to registered work, and does it cover the
                        members (cover structural, access watched); REPORTING ONLY
     component_shares.py  The desk component shares measured against observed ATUS time use; a BOUND, REPORTING ONLY
+    capacity_breakdown.py  WHERE THE WORK GOES — each obligation's human hours as a share of labour
+                       CAPACITY, survival beside sufficiency, desk and ATUS splits. Hours of
+                       work, NO currency; reconciles exactly with arc_stability; REPORTING ONLY
     use_split.py       U = servicing + stewardship + policy — the ten GUF ratios decomposed; REPORTING ONLY
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
     care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
@@ -401,6 +404,24 @@ someone remembering it, which is what this section is for.
    `restoration_obligation`. *Do:* a new parameter is not wired until it is
    reachable from the documented entry point and a test moves an output through
    it. `gated by:` `tests/test_parameter_wiring.py`
+   **And three inputs, 2026-10-07 — stranded INSIDE scenarios, past a CLI that
+   labelled them:** `arc_stability.stability_at` sent a supplied capital to
+   `overbuild_check` only, so obligation and delivery read the canonical stock
+   while `--frame us` printed BEA's in its Inputs (US sufficiency band 0.391 →
+   0.472 once wired); the frame's measured stock age reached neither
+   `arc_stability` nor `stationarity`; and the frame's adult share reached
+   neither, nor `registered_work_access` — supply read the shipped age weights
+   (band → 0.464). *The tell:* the FIGURES are bit-identical at both ends of an
+   input's band — a range re-run whose numbers cannot move is a stranded input,
+   not a robust result (an identical VERDICT can be either). The third was found
+   differently: a NEW report that took the input disagreed with the old one on
+   the same frame. Functions now report `capital_source` / `capital_age_source` /
+   `adult_share_source`, and say NOT SUPPLIED rather than default silently.
+   `gated by:` `TestASuppliedStockReachesTheAccounts`,
+   `TestTheStockAgeReachesBothSides`, `TestTheAdultShareReachesTheSupply`,
+   `TestTheAdultShareReachesBothFunctions`, and at the CLI
+   `test_the_frames_age_reaches_the_arc_checks`. See
+   [`record/fulfilment.md`](record/fulfilment.md#compass-stock-reaches-accounts).
 
 6. **THE FRAME SEAM** *(corpus F-002, F-005, F-030)* — a quantity that must travel with the population/land
    frame and does not. Seven instances in the population/land frame — and an
@@ -637,7 +658,7 @@ requires every `record/` file to be linked from `record/README.md`.
 ### The state
 
 **5,877 tests passing (1 skipped), mypy clean on 108 source files** (verified
-2026-10-04). <!-- census:state -->Provenance **367/367**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
+2026-10-04). <!-- census:state -->Provenance **369/369**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -759,7 +780,7 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**120 test files. The name rule covers 80 of them:** `tests/test_<module>.py`
+**121 test files. The name rule covers 81 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The

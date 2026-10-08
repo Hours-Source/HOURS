@@ -2931,6 +2931,19 @@ SKILL_CPD_RATE: float = 0.0027  # fraction of stock renewed per year by continui
 #   and never as a plausible one.
 PHYSICAL_CAPACITY_CEILING_H_YR: float = 8766.0
 
+# tag: convention | units: hours per week
+# form: 7 d × 24 h — the hours that ELAPSE in a week. A stated denominator for
+#   reading an annual hour figure per week; it says nothing about how long
+#   anyone works, and is not the 40-hour week.
+HOURS_ELAPSED_PER_WEEK: float = 168.0
+
+# tag: convention | units: weeks per year
+# form: PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK — the Julian
+#   year in weeks (52.18). Bound by EXPRESSION so the year has one length in
+#   this file; used only to restate per-year hours per week
+#   (`scenarios.capacity_breakdown`).
+WEEKS_PER_YEAR: float = PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK
+
 # tag: measured | units: hours per adult per year | tier: A
 # form: the median of 50 MTUS frames over 1965-2024 across ten countries — paid
 #   work plus unpaid domestic work plus childcare, ages 18-69, weighted by

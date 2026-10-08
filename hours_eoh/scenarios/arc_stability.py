@@ -81,7 +81,7 @@ from typing import Any
 from hours_eoh.core.autarky import overbuild_check
 from hours_eoh.core.eoh_fulfillment import personal_human_fraction
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
-from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
+from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 from hours_eoh.scenarios.feasibility import labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
@@ -158,6 +158,8 @@ def stability_at(
     population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     standard: str = "sufficiency",
+    capital_age_ratio: float | None = None,
+    adult_share: float | None = None,
 ) -> dict:
     """
     The three conditions at one ε. Can the system stop here?
@@ -197,12 +199,21 @@ def stability_at(
             there was no apparatus.**
         population: Frame population.
         adult_capacity_h_yr: Hours an adult can supply in a year.
+        capital_age_ratio: The stock's age over its service life — it sets the
+            infrastructure upkeep in the delivery account and in condition 2.
+            None reads `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
+        adult_share: Share of the population able to supply labour — sets the
+            supply. None derives it from the shipped age weights
+            (`labor_supply_per_capita`'s default), and the result says so.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
     """
     # (e) 2026-09-09: unspecified capital resolves along the arc; a supplied
     # stock is the ACTUAL stock and is never rescaled.
+    capital_supplied = capital_stock_teh is not None
+    age_supplied = capital_age_ratio is not None
+    age = CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None else capital_age_ratio
     capital_stock_teh = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     if not 0.0 <= epsilon <= EPSILON_ARC_MAX:
         raise ValueError(f"epsilon must be in [0.0, 0.99], got {epsilon}")
@@ -210,20 +221,28 @@ def stability_at(
         raise ValueError(f"standard must be one of {STANDARDS}, got {standard!r}")
 
     base = personal_base_for(standard)
+    # THE STOCK REACHES THE ACCOUNTS (2026-10-07). Until now only
+    # `overbuild_check` saw a supplied stock; the obligation and delivery came
+    # from `obligation_accounts` at the CANONICAL arc's capital, so `--frame us`
+    # printed BEA capital in its inputs and canonical capital in its figures —
+    # bit-identical across the whole conversion band.
     acct = obligation_accounts(
-        epsilon, population=population, personal_standard=standard
+        epsilon, population=population, personal_standard=standard,
+        capital_stock=capital_stock_teh, capital_age_ratio=age,
     )
     # `labor_supply_per_capita` directly, NOT `feasibility_check`: the only
     # quantity needed here is the supply, which does not depend on
     # `personal_base` at all. Passing a standard into a call whose output
     # ignores it is the silently-ignored-parameter failure, and it was in this
     # module for one commit.
-    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr)
+    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr,
+                                     adult_share=adult_share)
     over = _as_dict(overbuild_check(
         capital_stock_teh=capital_stock_teh,
         population=population,
         epsilon=epsilon,
         standard=standard,
+        capital_age_ratio=age,
     ))
 
     # THE ADOPTED SPLIT: the personal part carries its own human share (care and
@@ -286,6 +305,19 @@ def stability_at(
         "autarky_reference":  over["autarky_reference"],
         "net_vs_autarky":     over["net_vs_autarky"],
         "capital_stock_teh":  capital_stock_teh,
+        "capital_supplied":   capital_supplied,
+        "capital_source": (
+            "passed in by the caller" if capital_supplied
+            else "NOT SUPPLIED — the canonical arc's stock at this ε and population"
+        ),
+        "capital_age_ratio":  age,
+        "capital_age_supplied": age_supplied,
+        "adult_share_source": ("passed in by the caller" if adult_share is not None
+                               else "NOT SUPPLIED — the shipped age weights"),
+        "capital_age_source": (
+            "passed in by the caller" if age_supplied
+            else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"
+        ),
         "note": (
             "Conditions 1 and 3 are ordered by construction — 3 implies 1 — and "
             "are reported separately because WHICH fails says what to do. All "
@@ -426,6 +458,14 @@ def stability_report(epsilon: float = 0.40, **kw: Any) -> dict:
             + (f", and the band is ε ∈ [{band['lower']:.3f}, {band['upper']:.3f}]"
                f"{'' if band['contiguous'] else ' — NOT contiguous'}."
                if band["any_stationary"] else ", and no point is.")
+            + ("" if here["capital_supplied"] else
+               " Capital was NOT supplied: every point reads the canonical arc's "
+               "stock at its own ε, not an economy's.")
+            + ("" if here["capital_age_supplied"] else
+               " Capital age was NOT supplied: upkeep reads "
+               "CAPITAL_AGE_RATIO_DEFAULT.")
+            + ("" if "NOT SUPPLIED" not in here["adult_share_source"] else
+               " Adult share was NOT supplied: supply reads the shipped age weights.")
             + " The compass asks whether the system can STOP here, not whether "
               "it can reach the end of the arc."
         ),

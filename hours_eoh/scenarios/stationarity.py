@@ -199,6 +199,8 @@ def stationarity_at(
     guf_parcel_count: float | None = None,
     guf_cap: float | str | None = None,
     trust_start: float = 0.0,
+    capital_age_ratio: float | None = None,
+    adult_share: float | None = None,
 ) -> dict:
     """
     Both sides at one ε. Can the collective stand still here?
@@ -241,6 +243,11 @@ def stationarity_at(
         guf_cap: None (uncapped), a float share of the mint, or `payable`.
         trust_start: The inheritance, TEH. Default 0.0 — a collective starting
             from subsistence has none.
+        capital_age_ratio: The stock's age over its service life — it sets the
+            infrastructure upkeep, so the human hours and the mint. None reads
+            `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
+        adult_share: Share of the population able to supply labour. None
+            derives it from the shipped age weights, and the result says so.
 
     Returns:
         dict with `labour`, `teh`, `stationary` (both sides) and the inputs.
@@ -267,8 +274,10 @@ def stationarity_at(
     base = standard_base if personal_base is None else personal_base
     at_standard = standard is not None and base == standard_base
     capital = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
+    age = CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None else capital_age_ratio
     p = eoh_to_teh_pipeline(
         epsilon=epsilon, population=population, capital_stock=capital,
+        capital_age_ratio=age,
         **({"personal_standard": standard} if at_standard
            else {"personal_base": base}),
     )
@@ -277,12 +286,14 @@ def stationarity_at(
     r_personal = p["registration_by_domain"]["personal"]
 
     # ---- LABOUR -----------------------------------------------------------
-    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr)
+    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr,
+                                     adult_share=adult_share)
     human_hours = p["human_eoh"] / population
     human_personal = human["personal"] / population
     compass = stability_at(
         epsilon, capital_stock_teh=capital, population=population,
         adult_capacity_h_yr=adult_capacity_h_yr, standard=standard,
+        capital_age_ratio=age, adult_share=adult_share,
     ) if at_standard and standard is not None else None
     labour = {
         "supply_per_capita":         supply,
@@ -300,6 +311,9 @@ def stationarity_at(
             compass["obligation_per_capita"] + compass["delivery_per_capita"]
             if compass else None),
         "delivery_pays":             compass["delivery_pays"] if compass else None,
+        # The compass's own supply, so the two readings are seen to stand on
+        # the same capacity (2026-10-07: they did not, on the frame's adult share).
+        "arc_stability_supply_per_capita": compass["supply_per_capita"] if compass else None,
     }
 
     # ---- TEH --------------------------------------------------------------
@@ -325,12 +339,11 @@ def stationarity_at(
     inflow = levy + guf
     deficit = max(0.0, owed - inflow)
 
-    # `capital_age_ratio` is INERT here: with `infra_eoh_override` supplied the
-    # allocation never recomputes infrastructure EOH, so the age ratio does not
-    # reach the result. Passed by keyword at the pipeline's own default so it
-    # reads as that, not as a domain figure.
+    # `capital_age_ratio` is INERT in this call: with `infra_eoh_override`
+    # supplied the allocation never recomputes infrastructure EOH. The age
+    # reaches the result through the pipeline above, which set that EOH.
     stew = stewardship_allocation(
-        capital_stock_teh=capital, capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT, epsilon=epsilon,
+        capital_stock_teh=capital, capital_age_ratio=age, epsilon=epsilon,
         available_teh=float("inf"),
         infra_eoh_override=by_domain["infrastructure"],
     )["teh_required"]
@@ -366,6 +379,20 @@ def stationarity_at(
         "labour":      labour,
         "teh":         teh,
         "stationary":  labour["stationary"] and teh["stationary"],
+        "capital_stock_teh":    capital,
+        "capital_supplied":     capital_stock_teh is not None,
+        "capital_source": (
+            "passed in by the caller" if capital_stock_teh is not None
+            else "NOT SUPPLIED — the canonical arc's stock at this ε and population"
+        ),
+        "capital_age_ratio":    age,
+        "capital_age_supplied": capital_age_ratio is not None,
+        "capital_age_source": (
+            "passed in by the caller" if capital_age_ratio is not None
+            else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"
+        ),
+        "adult_share_source": ("passed in by the caller" if adult_share is not None
+                               else "NOT SUPPLIED — the shipped age weights"),
         "doctrine":    "minted TEH is the wage (author decision, 2026-09-15)",
     }
 
@@ -627,6 +654,14 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             f"{'priced from a parcel sample' if here['teh']['guf'] > 0.0 else 'ABSENT'}"
             f" — the fee is what carries the TEH side at low ε, where almost "
             "nothing is registered to levy."
+            + ("" if here["capital_supplied"] else
+               " Capital was NOT supplied: every point reads the canonical arc's "
+               "stock at its own ε, not an economy's.")
+            + ("" if here["capital_age_supplied"] else
+               " Capital age was NOT supplied: upkeep reads "
+               "CAPITAL_AGE_RATIO_DEFAULT.")
+            + ("" if "NOT SUPPLIED" not in here["adult_share_source"] else
+               " Adult share was NOT supplied: supply reads the shipped age weights.")
         ),
         # WHAT WAS RUN, returned rather than left to be inferred. A band is only
         # meaningful against its configuration, and the fee's presence changes
@@ -658,6 +693,7 @@ def registered_work_access(
     epsilon: float,
     population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+    adult_share: float | None = None,
     **pipeline_kwargs: Any,
 ) -> dict:
     """
@@ -723,11 +759,13 @@ def registered_work_access(
     mint = float(p["teh_created"])
     m = float(p["mean_multiplier"])
 
-    adults = population * capacity_weighted_adult_share()
+    share = capacity_weighted_adult_share() if adult_share is None else adult_share
+    adults = population * share
     reg_per_adult = float(p["registered_eoh"]) / adults
     off_ledger = max(0.0, human_personal - reg_personal)
     time_left = max(0.0, adult_capacity_h_yr - off_ledger / adults)
-    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr)
+    supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr,
+                                     adult_share=share)
 
     return {
         "epsilon": epsilon,
