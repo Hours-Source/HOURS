@@ -883,7 +883,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             cc = overbuild_check(kpc * pop, pop, epsilon=epsilon, **state)
             rows.append({
                 "row": marks[kpc],
-                "K_per_capita": round(kpc, 1),
+                "K_per_capita": round(kpc),
                 "abatement": round(cc["abatement"], 4),
                 "obligation_pc": round(cc["obligation_with_apparatus"] / pop, 1),
                 "overhead_pc": round(cc["overhead"] / pop, 1),
@@ -891,7 +891,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                 "net_vs_autarky_pc": round(cc["net_vs_autarky"] / pop, 1),
                 "verdict": cc["verdict"],
             })
-        out["peak_K_per_capita"] = k_peak
+        out["peak_K_per_capita"] = round(k_peak)
         out["frame_vs_peak"] = ("past the peak" if k_pc > k_peak else
                                 "below the peak" if k_pc < k_peak else "at the peak")
 

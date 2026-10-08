@@ -1047,3 +1047,45 @@ class TestCompoundTakesACapitalLoss:
         assert _SEVERITY[fire["combined_outcome"]] >= max(
             _SEVERITY[o] for o in fire["individual_outcomes"].values())
         assert fire["capital_teh_destroyed"] >= 0.0 and fire["rebuild"] == "on"
+
+
+class TestTheBoundaryAndTheShortfallBefore:
+    """2026-10-08. `failure_boundary` returned `epsilon` itself whenever the
+    failure already deferred work there and searched only upward — the US
+    frame read 0.371 for a boundary at 0.05. And an obligation already past
+    the labour supply was deferred BEFORE the shock and reported nowhere:
+    `deferred_eoh` counts only what the shock adds."""
+
+    @pytest.mark.parametrize("supply", [1400.0, 1000.0, None])
+    def test_the_boundary_is_one_crossing_from_any_start(self, supply):
+        # From below, at and above the crossing: one boundary, within the
+        # tolerance — the 0.05 grid read 0.42 from 0.37 and 0.38 from 0.38.
+        from hours_eoh.data import FAILURE_BOUNDARY_TOLERANCE as tol
+        kw = {} if supply is None else {"labor_supply_per_capita": supply}
+        found = [automation_failure_shock(e, **kw)["failure_boundary"]
+                 for e in (0.10, 0.37, 0.38, 0.70)]
+        found = [b for b in found if b is not None]
+        assert len(found) >= 2
+        assert max(found) - min(found) <= tol
+        b = min(found)
+        assert automation_failure_shock(b, **kw)["deferred_eoh"] > 0.0
+        assert automation_failure_shock(max(0.0, b - tol), **kw)["deferred_eoh"] <= 0.0
+
+    def test_a_shortfall_before_the_shock_is_reported(self):
+        short = automation_failure_shock(0.30, labor_supply_per_capita=1000.0)
+        demand_before = short["total_eoh"] - short["machine_eoh_before"]
+        assert short["deferred_before_eoh"] == pytest.approx(
+            demand_before - short["labor_supply_eoh"], rel=1e-9)
+        assert short["deferred_before_eoh"] > 0.0
+        assert short["labour_outcome_before"] != "STABLE"
+        ample = automation_failure_shock(0.30, labor_supply_per_capita=1400.0)
+        assert ample["deferred_before_eoh"] == 0.0
+        assert ample["labour_outcome_before"] == "STABLE"
+
+    def test_every_cascade_shock_reports_it(self):
+        for r in (demographic_shock(0.40, "growth", 0.20),
+                  ecological_eoh_spike(0.40, 0.7, 0.5),
+                  compound_shock(0.40, automation_fraction_lost=1.0)):
+            assert "deferred_before_eoh" in r and "labour_outcome_before" in r
+        from hours_eoh.scenarios.shocks import capital_loss_shock
+        assert "deferred_before_eoh" in capital_loss_shock(0.40)

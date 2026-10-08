@@ -63,6 +63,7 @@ from hours_eoh.data import (
     MEANINGFUL_ACTIVITY_TEH_BASE,
     SHOCK_DEGRADED_TRUST_FRACTION,
     CAPITAL_LOSS_FRACTION_DEFAULT,
+    FAILURE_BOUNDARY_TOLERANCE,
 )
 from hours_eoh.core.eoh_generation import (
     resolve_capital_stock,
@@ -131,7 +132,9 @@ def _fiscal_change(f0: dict, f1: dict, trust_balance: float,
         note += (f"Retirement register on: {s0['retired_share'] * s0['population']:,.0f} → "
                  f"{s1['retired_share'] * s1['population']:,.0f} retirees "
                  f"(vested {s0['retiree_vested_fraction']:.0%}); guarantee "
-                 f"{f0['guarantee']:,.0f} → {f1['guarantee']:,.0f} TEH/yr. ")
+                 f"{f0['guarantee']:,.0f} → {f1['guarantee']:,.0f} TEH/yr "
+                 f"(read at machine capability ε {s0['capability']:.3f} → "
+                 f"{s1['capability']:.3f}, register held at ε {s0['capability']:.3f}). ")
     return {
         "fiscal_outcome_before":  _classify(f0["solvent"], sd0, trust_balance),
         "fiscal_outcome_after":   _classify(f1["solvent"], sd1, trust_balance),
@@ -417,21 +420,34 @@ def _cascade(before: dict, after: dict) -> dict:
 
     added = demand(after) - demand(before)
     newly_deferred = float(after["deferred_total"]) - float(before["deferred_total"])
+    # TAKEN UP IS THE HOURS SERVED that the shock added — algebraically
+    # `added − newly_deferred`, but read directly: when both states are capped
+    # at the same supply the difference of two ~5e11 sums left a 1e-15
+    # coverage where the served hours are exactly equal (2026-10-08).
+    taken_up = float(after["human_eoh"]) - float(before["human_eoh"])
     deferred_personal = float(after["deferred_personal"])
-    if deferred_personal > 0.0:
-        labour = "CRISIS"
-    elif newly_deferred > 0.0:
-        labour = "DEGRADED"
-    else:
-        labour = "STABLE"
+    deferred_before = float(before["deferred_total"])
+    deferred_personal_before = float(before["deferred_personal"])
+
+    def outcome(personal: float, deferred: float) -> str:
+        return "CRISIS" if personal > 0.0 else "DEGRADED" if deferred > 0.0 else "STABLE"
+
+    labour = outcome(deferred_personal, newly_deferred)
     return {
         "machine_eoh_before":    float(before["total_eoh"]) - demand(before),
         "machine_eoh_after":     float(after["total_eoh"]) - demand(after),
         "added_human_eoh":       added,
-        "taken_up_eoh":          added - newly_deferred,
+        "taken_up_eoh":          taken_up,
         "deferred_eoh":          newly_deferred,
         "deferred_personal_eoh": deferred_personal,
-        "coverage_ratio":        (added - newly_deferred) / added if added > 0.0 else 1.0,
+        # THE SHORTFALL BEFORE THE SHOCK (2026-10-08). `deferred_eoh` is what
+        # the shock ADDS; an obligation already past the labour supply was
+        # deferred before it and showed nowhere — on the US frame below
+        # ε≈0.15, ~49e9 EOH/yr at ε=0, while coverage read a full 1.0.
+        "deferred_before_eoh":          deferred_before,
+        "deferred_personal_before_eoh": deferred_personal_before,
+        "labour_outcome_before":        outcome(deferred_personal_before, deferred_before),
+        "coverage_ratio":        taken_up / added if added > 0.0 else 1.0,
         # EFFICIENCY (author, 2026-10-03): of the work people are asked for,
         # the share done — the labour side of "3 of 5 lines running". Paired
         # with a shock's CAPACITY (the machine stock that can run), so a stock
@@ -631,20 +647,39 @@ def automation_failure_shock(
                      _classify(f1["solvent"], f1["surplus_deficit"], trust_balance))
 
     # The lowest capability on the arc from which this failure can no longer
-    # be fully taken up, at this population and supply.
+    # be fully taken up, at this population and supply, to within
+    # FAILURE_BOUNDARY_TOLERANCE. Bracketed — (0, ε] when the failure already
+    # defers at ε (at capability 0 nothing is lost, so nothing defers), else by
+    # 0.05 steps upward — then BISECTED, so the answer no longer depends on the
+    # ε the run started from (2026-10-08: a 0.05 grid stepped from ε read 0.42
+    # from 0.37 and 0.38 from 0.38 for one economy). Assumes deferral, once it
+    # starts, persists upward; the bisection finds A crossing, the lowest only
+    # under that assumption.
+    def defers(eps: float) -> bool:
+        _, _, b, a = pair(eps, resolve_capital_stock(
+            supplied_capital, eps, population=population))
+        return float(a["deferred_total"]) > float(b["deferred_total"])
+
     failure_boundary = None
+    bracket: tuple[float, float] | None = None
     if c["deferred_eoh"] > 0.0:
-        failure_boundary = epsilon
+        bracket = (0.0, epsilon)
     else:
+        lo = epsilon
         for i in range(1, 20):
             test_eps = min(EPSILON_ARC_MAX, epsilon + i * 0.05)
-            _, _, b, a = pair(test_eps, resolve_capital_stock(
-                supplied_capital, test_eps, population=population))
-            if float(a["deferred_total"]) > float(b["deferred_total"]):
-                failure_boundary = test_eps
+            if defers(test_eps):
+                bracket = (lo, test_eps)
                 break
             if test_eps >= EPSILON_ARC_MAX:
                 break
+            lo = test_eps
+    if bracket is not None:
+        lo, hi = bracket
+        while hi - lo > FAILURE_BOUNDARY_TOLERANCE:
+            mid = 0.5 * (lo + hi)
+            lo, hi = (lo, mid) if defers(mid) else (mid, hi)
+        failure_boundary = hi
 
     lost = c["machine_eoh_before"] - c["machine_eoh_after"]
     rec = (
@@ -655,6 +690,10 @@ def automation_failure_shock(
         + (f", {c['deferred_personal_eoh']:,.0f} of it PERSONAL — the survival "
            "floor is unmet" if c["deferred_personal_eoh"] > 0.0 else ", none of it personal")
         + f". Trust {'solvent' if f1['solvent'] else 'INSOLVENT'} at the new mint. "
+        + (f"Before the failure the obligation already exceeded the labour supply: "
+           f"{c['deferred_before_eoh']:,.0f} EOH/yr deferred "
+           f"({c['labour_outcome_before']}), not counted above. "
+           if c["deferred_before_eoh"] > 0.0 else "")
         + (f"Certified capacity falls short in {comp['competency_short_created']}. "
            if comp["competency_short_created"] else "")
         + fc["fiscal_note"] + comp["competency_note"]
@@ -676,6 +715,8 @@ def automation_failure_shock(
         "taken_up_eoh":            c["taken_up_eoh"],
         "deferred_eoh":            c["deferred_eoh"],
         "deferred_personal_eoh":   c["deferred_personal_eoh"],
+        "deferred_before_eoh": c["deferred_before_eoh"],
+        "labour_outcome_before": c["labour_outcome_before"],
         "coverage_ratio":          c["coverage_ratio"],
         "covered":                 c["deferred_eoh"] <= 0.0,
         "mint_before":             float(before["teh_created"]),
@@ -684,6 +725,17 @@ def automation_failure_shock(
                                                 MEANINGFUL_ACTIVITY_TEH_BASE),
         "floor_price_after":       basket_price(float(after["epsilon_observable"]),
                                                 MEANINGFUL_ACTIVITY_TEH_BASE),
+        # WHICH ε EACH READS (2026-10-08): the floor price reads the OBSERVED
+        # machine share, the guarantee the machine CAPABILITY with the register
+        # held at the pre-shock ε — two instruments, so their ratios differ.
+        "floor_price_reads":       (f"observed machine share ε "
+                                    f"{float(before['epsilon_observable']):.3f} → "
+                                    f"{float(after['epsilon_observable']):.3f}"),
+        "guarantee_before":        f0["guarantee"],
+        "guarantee_after":         f1["guarantee"],
+        "guarantee_reads":         (f"machine capability ε {s0['capability']:.3f} → "
+                                    f"{s1['capability']:.3f}, register held at ε "
+                                    f"{epsilon:.3f}"),
         "trust_surplus_before":    f0["surplus_deficit"],
         "trust_surplus_after":     f1["surplus_deficit"],
         "trust_solvent_after":     f1["solvent"],
@@ -817,6 +869,8 @@ def demographic_shock(
         "taken_up_eoh":          c["taken_up_eoh"],
         "deferred_eoh":          c["deferred_eoh"],
         "deferred_personal_eoh": c["deferred_personal_eoh"],
+        "deferred_before_eoh": c["deferred_before_eoh"],
+        "labour_outcome_before": c["labour_outcome_before"],
         "guarantee_before":      f0["guarantee"],
         "guarantee_after":       f1["guarantee"],
         "trust_solvent_before":  f0["solvent"],
@@ -960,6 +1014,8 @@ def ecological_eoh_spike(
         "taken_up_eoh":          c["taken_up_eoh"],
         "deferred_eoh":          c["deferred_eoh"],
         "deferred_personal_eoh": c["deferred_personal_eoh"],
+        "deferred_before_eoh": c["deferred_before_eoh"],
+        "labour_outcome_before": c["labour_outcome_before"],
         "labor_income":          labor_income if labor_income is not None
                                  else float(after["teh_created"]),
         "trust_surplus_deficit": f1["surplus_deficit"],
@@ -1136,6 +1192,8 @@ def capital_loss_shock(
         "taken_up_eoh":            c["taken_up_eoh"],
         "deferred_eoh":            c["deferred_eoh"],
         "deferred_personal_eoh":   c["deferred_personal_eoh"],
+        "deferred_before_eoh": c["deferred_before_eoh"],
+        "labour_outcome_before": c["labour_outcome_before"],
         "mint_before":             float(before["teh_created"]),
         "mint_after":              float(after["teh_created"]),
         "trust_solvent_after":     f1["solvent"],
@@ -1411,6 +1469,8 @@ def compound_shock(
         "combined_eoh_delta":             c["added_human_eoh"],
         "combined_deferred_eoh":          c["deferred_eoh"],
         "combined_deferred_personal_eoh": c["deferred_personal_eoh"],
+        "deferred_before_eoh":            c["deferred_before_eoh"],
+        "labour_outcome_before":          c["labour_outcome_before"],
         "automation_deferred_eoh":        automation_deferred,
         "capital_teh_destroyed":          float(loss["writedown"]["teh_destroyed"]) if loss else 0.0,
         "rebuild":                        ("on" if rebuild_years is not None else "off") if loss else None,

@@ -4500,6 +4500,18 @@ SUBDIVISION_FP_TOLERANCE: float = 1e-12
 # decided_by: the four-point rule in CLAUDE.md, extended for legibility.
 ARC_REPORTING_POINTS: tuple[float, ...] = (0.0, 0.20, 0.40, 0.70, 0.90, 0.99)
 
+# tag: convention | units: dimensionless (automation level epsilon)
+# form: the precision to which `shocks.automation_failure_shock` locates its
+#   `failure_boundary` — bisection between the highest capability at which the
+#   failure is still fully taken up and the lowest at which it is not.
+# note: NUMERICS ONLY — it sets how finely a boundary is located, never where
+#   it is. It replaced a 0.05 grid stepped from the caller's ε (2026-10-08),
+#   under which the reported boundary depended on where the run STARTED: on the
+#   reference frame a run at 0.37 read 0.42 and one at 0.38 read 0.38, for a
+#   boundary between 0.37 and 0.38.
+# decided_by: chosen 2026-10-08 well below the third decimal the CLI prints ε to.
+FAILURE_BOUNDARY_TOLERANCE: float = 1e-4
+
 # tag: convention | units: labour-hours per hectare
 # form: the restoration cost the Phase-0 bounding exercise ASSUMED, retained as
 #   the declared comparison point for the derived figure that replaced it.
