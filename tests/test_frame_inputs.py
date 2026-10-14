@@ -342,6 +342,36 @@ class TestScenarioRunOnAFrame:
         assert c["teh_created"] == r["mint"] == a["mint_before"]
         assert r["guarantee_here"] == a["guarantee_before"]
 
+    @pytest.mark.parametrize("name", FRAME_AWARE)
+    def test_the_health_flags_are_refused_where_nothing_reads_them(self, name):
+        """`overbuild --frame us --ecosystem-health-before 0.4` printed the
+        same figures as without it (2026-10-14): neither health flag is a
+        frame input, so the unread-flag refusal could not see them."""
+        from utils.scenario_cmd import _HEALTH_AFTER_READERS
+        # On the US frame the fee carries the ecological work, so BEFORE
+        # reaches only the spike (and compound_shock with --ecology-collapse).
+        for flag, readers in (("--ecosystem-health-before", {"ecological_spike"}),
+                              ("--ecosystem-health-after", _HEALTH_AFTER_READERS)):
+            run = lambda: _scenario(name, "--frame", "us", flag, "0.4")  # noqa: E731
+            if name in readers:
+                assert run()
+            else:
+                with pytest.raises(SystemExit):
+                    run()
+
+    @pytest.mark.parametrize("name", ["automation_failure", "demographic_shock",
+                                      "capital_loss", "ecological_spike"])
+    def test_where_a_health_flag_is_accepted_it_moves_the_run(self, tmp_path: Path, name):
+        """The other half: accepted means applied — on a frame whose people
+        carry the ecological work, where the health reaches the labour."""
+        body = {**_frame_json("--frame", "us"), "ecological_carried_by_people": True}
+        f = tmp_path / "people.json"
+        f.write_text(json.dumps(body))
+        assert (_strip(_scenario(name, "--frame-file", str(f), "--ecosystem-health-before", "0.45"))
+                != _strip(_scenario(name, "--frame-file", str(f))))
+        if name == "ecological_spike":
+            assert (_strip(_scenario(name, "--frame", "us", "--ecosystem-health-after", "0.1"))
+                    != _strip(_scenario(name, "--frame", "us")))
 
     def test_without_a_frame_the_age_mix_resolves_to_the_shipped_branch(self):
         """Why passing the frame's mix unconditionally left every no-frame run

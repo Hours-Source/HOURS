@@ -424,7 +424,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="ecosystem_health_before",
                        help="Ecosystem health before shock (default: the frame's "
                             "ecosystem_health, else 0.70)")
-    run_p.add_argument("--ecosystem-health-after", type=float, default=0.30,
+    run_p.add_argument("--ecosystem-health-after", type=float, default=None,
                        dest="ecosystem_health_after",
                        help="Ecosystem health after shock (default: 0.30)")
     run_p.add_argument("--automation-fraction-lost", type=float, default=0.0,
@@ -723,6 +723,22 @@ def _collective_out(rep: dict) -> dict:
     return out
 
 
+#: The scenarios that read --ecosystem-health-before/after (2026-10-14): the
+#: five shocks. Every other scenario printed identical figures with and
+#: without them — `overbuild --frame us` among them — because neither flag is
+#: a frame input, so the unread-flag refusal could not see them.
+_HEALTH_FLAG_READERS = frozenset({"automation_failure", "demographic_shock",
+                                  "ecological_spike", "compound_shock", "capital_loss"})
+#: Read only by the two that model a collapse; the flag's documented default.
+_HEALTH_AFTER_READERS = frozenset({"ecological_spike", "compound_shock"})
+_HEALTH_AFTER_DEFAULT = 0.30
+
+
+def _health_after(args: argparse.Namespace) -> float:
+    return (_HEALTH_AFTER_DEFAULT if args.ecosystem_health_after is None
+            else args.ecosystem_health_after)
+
+
 def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, dict]:
     """Run one frame-aware scenario at `epsilon` on the resolved frame:
     (result, values, labels). A derived capital or Trust is passed as None so
@@ -742,6 +758,20 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         restoration_eoh=v["restoration_eoh"],
         ecological_response=v["ecological_response"],
     )
+    # INERT UNDER THE GUF PARTITION (2026-10-14): ecosystem health reaches a
+    # shock's labour only when the frame puts its ecological work on its
+    # people, or the shock collapses the ecosystem itself. Otherwise the fee
+    # carries that work and the flag moved no figure — `automation_failure
+    # --frame us --ecosystem-health-before 0.45` printed identical output.
+    if (args.ecosystem_health_before is not None and args.name != "ecological_spike"
+            and not v["ecological_carried_by_people"]
+            and not (args.name == "compound_shock" and args.ecology_collapse)):
+        raise SystemExit(
+            f"{args.name}: --ecosystem-health-before moves nothing on this frame — the "
+            "land fee carries its ecological work (ecological_carried_by_people is "
+            "off), so ecosystem health does not reach the labour. Use a frame file "
+            "that puts the work on its people"
+            + (", or --ecology-collapse" if args.name == "compound_shock" else ""))
     health = (v["ecosystem_health"] if args.ecosystem_health_before is None
               else args.ecosystem_health_before)
     # The frame's own land when it states one; None keeps the shocks' default
@@ -766,7 +796,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         from hours_eoh.scenarios.shocks import ecological_eoh_spike
         return ecological_eoh_spike(
             epsilon=epsilon, ecosystem_health_before=health,
-            ecosystem_health_after=args.ecosystem_health_after, land_hectares=land_ha,
+            ecosystem_health_after=_health_after(args), land_hectares=land_ha,
             **common), v, lab
     if name == "compound_shock":
         from hours_eoh.scenarios.shocks import compound_shock
@@ -775,7 +805,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         return compound_shock(
             epsilon=epsilon, ecology_collapse=args.ecology_collapse,
             ecosystem_health_before=health,
-            ecosystem_health_after=args.ecosystem_health_after, land_hectares=land_ha,
+            ecosystem_health_after=_health_after(args), land_hectares=land_ha,
             demographic_shock_spec=dem_spec,
             automation_fraction_lost=args.automation_fraction_lost,
             capital_fraction_lost=args.capital_fraction_lost or 0.0,
@@ -858,9 +888,6 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         if land_ha is None:
             raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
                              "the ecological obligation is keyed to area")
-        if args.ecosystem_health_before is not None:
-            raise SystemExit("collective reads the frame's ecosystem health; "
-                             "--ecosystem-health-before belongs to the shocks")
         from hours_eoh.core.simulation import make_economy_state
         from hours_eoh.scenarios.collective import collective_snapshot
         state = make_economy_state(
@@ -1178,6 +1205,12 @@ def _frame_run(args: argparse.Namespace) -> dict:
 
 def _dispatch(args: argparse.Namespace) -> object:
     name = args.name
+    for flag, attr, readers in (
+            ("--ecosystem-health-before", "ecosystem_health_before", _HEALTH_FLAG_READERS),
+            ("--ecosystem-health-after", "ecosystem_health_after", _HEALTH_AFTER_READERS)):
+        if getattr(args, attr, None) is not None and name not in readers:
+            raise SystemExit(f"{name} does not read {flag}: only "
+                             f"{', '.join(sorted(readers))} do")
     # `collective` runs on a frame only when one is NAMED: without one it is
     # the archetype, whose land is its parcels (2026-10-14).
     if name in FRAME_AWARE and not (name == "collective" and args.frame is None
