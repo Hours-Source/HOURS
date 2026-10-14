@@ -220,7 +220,9 @@ class TestScenarioRunOnAFrame:
         with pytest.raises(SystemExit):
             _dispatch(_args("scenario", "run", "sweep", "--frame", "us"))
         with pytest.raises(SystemExit):
-            _dispatch(_args("scenario", "run", "labor_income_shock", "--ages", "census"))
+            # (labor_income_shock read no age mix until 2026-10-14; recovery's
+            # backlog still does not depend on one.)
+            _dispatch(_args("scenario", "run", "recovery", "--ages", "census"))
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_a_frame_flag_the_scenario_does_not_read_is_refused(self, name):
@@ -339,7 +341,8 @@ class TestScenarioRunOnAFrame:
         c = _scenario("collective", "--frame", "us")
         r = _scenario("reserve_plan", "--frame", "us")
         a = _scenario("automation_failure", "--frame", "us")
-        assert c["teh_created"] == r["mint"] == a["mint_before"]
+        li = _scenario("labor_income_shock", "--frame", "us")
+        assert c["teh_created"] == r["mint"] == a["mint_before"] == li["baseline_income"]
         assert r["guarantee_here"] == a["guarantee_before"]
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
@@ -631,7 +634,9 @@ class TestOneAgePerFrame:
         assert a["net_vs_autarky"] == pytest.approx(b["overbuild_margin_before"])
         assert a["inputs"]["capital_age_ratio"]["value"] == b["inputs"]["capital_age_ratio"]["value"]
 
-    @pytest.mark.parametrize("name", ["arc_stability", "stationarity"])
+    @pytest.mark.parametrize("name", ["arc_stability", "stationarity", "labor_income_shock",
+                                      "trust_stress", "measured_sim", "canonical_arc",
+                                      "transition", "thermal_load"])
     def test_the_frames_age_reaches_the_arc_checks(self, tmp_path: Path, name):
         """2026-10-07: resolved, labelled, and passed to neither."""
         body = _frame_json("--frame", "us")

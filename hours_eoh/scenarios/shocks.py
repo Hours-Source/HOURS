@@ -174,10 +174,11 @@ def _mint_income(
     population: float,
     capital_stock_teh: float,
     capital_age_ratio: float,
+    age_distribution: dict[str, float] | None = None,
 ) -> float:
     """Labour income under the wage doctrine: the period's mint, one frame."""
-    return float(_pipeline(epsilon, population, capital_stock_teh,
-                           capital_age_ratio)["teh_created"])
+    return float(_pipeline(epsilon, population, capital_stock_teh, capital_age_ratio,
+                           age_distribution=age_distribution)["teh_created"])
 
 
 def _trust_position(
@@ -1220,6 +1221,7 @@ def labor_income_shock(
     suff_levy_rate: float = SUFF_LEVY_RATE,
     dep_rate: float = DEP_RATE,
     div_rate: float = DIV_RATE,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     Simulate a sudden collapse in labor income (TEH creation).
@@ -1241,6 +1243,8 @@ def labor_income_shock(
         suff_levy_rate:  Levy rate.
         dep_rate:        Trust depreciation rate.
         div_rate:        Trust dividend fraction.
+        age_fractions:   The population's age mix; reaches the mint and the
+                         guarantee (2026-10-14). None → the shipped mix.
 
     Returns:
         dict: {
@@ -1271,14 +1275,16 @@ def labor_income_shock(
     # reached zero income. The floor was retired on 2026-09-30
     # (record/fulfilment.md#floor-guard-and-shock-threshold); this copy
     # survived it. The mint is now read at the SAME capital the snapshot sizes.
-    baseline_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio)
+    # The age mix reaches the mint AND the guarantee (2026-10-14).
+    baseline_income = _mint_income(epsilon, population, capital_stock_teh, capital_age_ratio,
+                                   age_distribution=age_fractions)
     shocked_income  = baseline_income * income_fraction
 
     def _position(income: float) -> dict:
         return _trust_position(epsilon, population, trust_balance, income,
                                capital_stock_teh, capital_age_ratio,
                                meaningful_activity_teh, suff_levy_rate,
-                               dep_rate, div_rate)
+                               dep_rate, div_rate, age_fractions=age_fractions)
     snap_before = _position(baseline_income)
     snap_after  = _position(shocked_income)
 

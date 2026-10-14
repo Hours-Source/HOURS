@@ -22,6 +22,7 @@ from typing import Any
 from hours_eoh.data import (
     EPSILON_ARC_MAX,
     REFERENCE_FRAME_POPULATION,
+    CAPITAL_AGE_RATIO_DEFAULT,
     CAPITAL_STOCK_DEFAULT,
     ECOLOGICAL_THRESHOLD,
 )
@@ -45,6 +46,8 @@ def canonical_arc_trajectory(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -61,6 +64,10 @@ def canonical_arc_trajectory(
         population:    Initial population.
         trust_balance: Initial Trust fund balance (TEH).
         capital_stock_teh: Initial capital stock (TEH).
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
         **sim_kwargs:  Additional kwargs forwarded to run_simulation() /
                        simulate_period() (e.g., ecological_degradation_rate).
 
@@ -84,6 +91,9 @@ def canonical_arc_trajectory(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
     )
 
     raw = run_simulation(
@@ -170,6 +180,8 @@ def trust_depletion_stress(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
 ) -> dict:
     """
     Run a multi-stressor simulation and report when/whether the Trust breaks.
@@ -192,6 +204,10 @@ def trust_depletion_stress(
         population:       Initial population.
         trust_balance:    Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock.
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
 
     Returns:
         dict: {
@@ -217,6 +233,9 @@ def trust_depletion_stress(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
     )
 
     raw = run_simulation(initial_state, n_periods=n_periods, **profile)
@@ -281,6 +300,8 @@ def automation_transition_trajectory(
     population: float = REFERENCE_FRAME_POPULATION,
     trust_balance: float | None = None,
     capital_stock_teh: float | None = None,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float | None = None,
 ) -> dict:
     """
     Simulate a fixed-rate automation transition and track key economic indicators.
@@ -299,6 +320,10 @@ def automation_transition_trajectory(
         population:    Initial population.
         trust_balance: Initial Trust balance (TEH).
         capital_stock_teh: Initial capital stock.
+        age_fractions: The population's age mix, held as state for the run
+            (`make_economy_state`); None → the shipped mix (2026-10-14).
+        capital_age_ratio: The stock's age over its service life at the start;
+            None → `make_economy_state`'s default (2026-10-14).
 
     Returns:
         dict: {
@@ -317,6 +342,9 @@ def automation_transition_trajectory(
         population=population,
         trust_balance=trust_balance,
         capital_stock_teh=capital_stock_teh,
+        age_fractions=age_fractions,
+        capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
+                           else capital_age_ratio),
     )
 
     raw = run_simulation(

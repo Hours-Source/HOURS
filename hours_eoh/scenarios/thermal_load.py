@@ -86,6 +86,8 @@ def thermal_load_arc(
     trust_balance: float | None = None,
     capital_stock: float | None = None,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
+    age_fractions: dict[str, float] | None = None,
+    capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
 ) -> list[ThermalLoadRow]:
     """
     Carry a thermal obligation across the ε arc and report what it moves.
@@ -118,6 +120,11 @@ def thermal_load_arc(
         trust_balance: Trust corpus for the fiscal arm.
         capital_stock: Capital stock (TEH).
         ecosystem_health: Ecosystem state ∈ [0, 1].
+        age_fractions: The population's age mix, to every obligation call and
+            the fisc (2026-10-14); None → the shipped mix. It moves
+            `thermal_share_of_total` through the total, not the load ratio.
+        capital_age_ratio: The stock's age, to the same calls; the default is
+            the value all four already read, so omitting it is bit-identical.
 
     Returns:
         list[ThermalLoadRow], one per ε in `arc`.
@@ -157,18 +164,24 @@ def thermal_load_arc(
         base = total_eoh(epsilon=eps, population=population,
                          capital_stock=cap_at_eps,
                          ecosystem_health=ecosystem_health,
+                         age_distribution=age_fractions,
+                         capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         loaded = total_eoh(epsilon=eps, population=population,
                            capital_stock=cap_at_eps,
                            ecosystem_health=ecosystem_health,
                            thermal_obligation=thermal_obligation,
+                           age_distribution=age_fractions,
+                           capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
         pipeline = eoh_to_teh_pipeline(eps, population=population,
                                        capital_stock=cap_at_eps,
                                        ecosystem_health=ecosystem_health,
                                        thermal_obligation=thermal_obligation,
+                                       age_distribution=age_fractions,
+                                       capital_age_ratio=capital_age_ratio,
                                        ecological_standing_response="domain",
                          ecological_health_response="domain")
         teh_created = float(pipeline.get("teh_created", 0.0))
@@ -178,10 +191,11 @@ def thermal_load_arc(
             trust_balance=trust_balance,
             labor_income=teh_created,
             capital_stock_teh=cap_at_eps,
-            capital_age_ratio=CAPITAL_AGE_RATIO_DEFAULT,
+            capital_age_ratio=capital_age_ratio,
             ecosystem_health=ecosystem_health,
             thermal_obligation=thermal_obligation,
             eco_eoh_override=loaded["ecological"],
+            age_fractions=age_fractions,
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]

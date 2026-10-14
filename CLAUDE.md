@@ -429,8 +429,11 @@ someone remembering it, which is what this section is for.
    A FIFTH, 2026-10-14: the frame's AGE MIX — the compass family took the
    frame's adult share for supply and the shipped pyramid for demand, so one
    function read two populations. Found from a figure, not a search: two
-   scenarios on one frame minted different totals.
-   ([record](record/fulfilment.md#compass-reads-the-age-mix)).
+   scenarios on one frame minted different totals. The period engine had no
+   field for it at all; `make_economy_state(age_fractions=)` is state now, and
+   21 of 31 frame-aware scenarios read the frame's mix.
+   ([record](record/fulfilment.md#compass-reads-the-age-mix),
+   [engine](record/fulfilment.md#period-engine-carries-the-age-mix)).
    `gated by:` `TestASuppliedStockReachesTheAccounts`,
    `TestTheStockAgeReachesBothSides`, `TestTheAdultShareReachesTheSupply`,
    `TestTheAdultShareReachesBothFunctions`, and at the CLI
@@ -679,8 +682,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**5,877 tests passing (1 skipped), mypy clean on 108 source files** (verified
-2026-10-04). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
+**6,108 tests passing (1 skipped), mypy clean on 109 source files** (verified
+2026-10-14). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

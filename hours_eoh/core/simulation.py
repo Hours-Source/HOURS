@@ -75,6 +75,7 @@ def make_economy_state(
     deferred_infrastructure_eoh: float = 0.0,
     infra_deferred_years: float = 0.0,
     registration_epsilon: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     Construct a well-formed economy state dict for simulate_period().
@@ -132,6 +133,13 @@ def make_economy_state(
             capability"). None (default) → the register tracks `epsilon`, the
             canonical arc, bit-identical. Set it to hold the register while
             capability moves; `simulate_period` carries it forward unchanged.
+        age_fractions: The population's age mix over `AGE_GROUPS`, as state
+            (2026-10-14). None (default) → the shipped mix everywhere,
+            bit-identical. Set, `simulate_period` reads it in the pipeline's
+            personal obligation, the fiscal guarantee and the care stipend, and
+            carries it forward UNCHANGED — the engine has no demographic
+            dynamics, so a run holds its population's mix while the head count
+            grows.
 
     Returns:
         State dict with all the above keys plus derived "workforce_size".
@@ -189,6 +197,7 @@ def make_economy_state(
         "deferred_infrastructure_eoh":   deferred_infrastructure_eoh,
         "infra_deferred_years":          infra_deferred_years,
         "registration_epsilon":          registration_epsilon,
+        "age_fractions":                 None if age_fractions is None else dict(age_fractions),
     }
 
 
@@ -314,6 +323,8 @@ def simulate_period(
     # is held while the capability moves. `.get` so a state built before the
     # key existed still runs, as a register that tracks.
     reg_eps          = state.get("registration_epsilon")
+    # The age mix, as state (2026-10-14). `.get` for the same reason as above.
+    ages             = state.get("age_fractions")
     population       = state["population"]
     workforce_frac   = state["workforce_fraction"]
     trust_bal        = state["trust_balance"]
@@ -355,7 +366,7 @@ def simulate_period(
     # Auto-compute care stipend from demographics when caller does not supply one.
     if care_stipend_aggregate is None:
         from hours_eoh.core.fiscal import aggregate_care_stipend_from_demographics as _agg_care
-        care_stipend_aggregate = _agg_care(new_population, eps)
+        care_stipend_aggregate = _agg_care(new_population, eps, age_fractions=ages)
 
     # ---- 3. Capital and corpus dynamics ------------------------------------
     new_cap_age    = min(1.0, cap_age + capital_aging_rate)
@@ -419,6 +430,7 @@ def simulate_period(
         knowledge_complexity_per_unit=knowledge_complexity_per_unit,
         mean_multiplier=mean_multiplier,
         registration_epsilon=reg_eps,
+        age_distribution=ages,
     )
 
     # Condition III-B: credit compounding fulfillment against the deferred backlog.
@@ -511,6 +523,7 @@ def simulate_period(
         meaningful_activity_scale=meaningful_activity_scale,
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         care_stipend_aggregate=care_stipend_aggregate,
+        age_fractions=ages,
     )
     # Every inflow is inside this figure now — levy, GUF and the estate levy —
     # so nothing is added to the balance after the fiscal period closes.
@@ -627,6 +640,7 @@ def simulate_period(
         deferred_infrastructure_eoh=new_deferred_infra,
         infra_deferred_years=new_infra_def_years,
         registration_epsilon=reg_eps,   # the register is state: carried, not re-read
+        age_fractions=ages,             # held: the engine has no demographic dynamics
     )
 
     # derived_epsilon: architecture hook for when machine capacity is modeled endogenously.

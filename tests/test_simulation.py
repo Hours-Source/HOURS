@@ -1295,3 +1295,50 @@ class TestTheFloorReadsObservedEpsilon:
         assert pp_obs < pp_cap
         assert r["consumption_rate_effective"] == pytest.approx(
             base_rate / max(1.0, pp_obs), rel=1e-12)
+
+
+class TestTheAgeMixIsState:
+    """
+    THE PERIOD ENGINE READS THE POPULATION'S AGE MIX (2026-10-14). The long-run
+    family ran the shipped AGE_GROUPS pyramid whatever the frame's census said:
+    `make_economy_state` had no field for it. Now a state carries it and
+    `simulate_period` reads it in the pipeline, the fisc and the care stipend,
+    and holds it — the engine has no demographic dynamics. The default must
+    stay bit-identical. Checked against the pipeline called directly.
+    """
+
+    US = {"infant": 0.065, "child": 0.145, "working_age": 0.600, "elderly": 0.190}
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_mix_reaches_the_period_and_is_held(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        s0 = make_economy_state(epsilon=eps, population=1e6)
+        s1 = make_economy_state(epsilon=eps, population=1e6, age_fractions=self.US)
+        n0, r0 = simulate_period(s0)
+        n1, r1 = simulate_period(s1)
+        assert r1["eoh_by_domain"]["personal"] != r0["eoh_by_domain"]["personal"]
+        direct = eoh_to_teh_pipeline(epsilon=eps, population=n1["population"],
+                                     age_distribution=self.US)
+        assert r1["eoh_by_domain"]["personal"] == direct["eoh_by_domain"]["personal"]
+        assert (r1["fiscal"]["guarantee"] != r0["fiscal"]["guarantee"])
+        assert n1["age_fractions"] == self.US and n0["age_fractions"] is None
+        from hours_eoh.core.fiscal import aggregate_care_stipend_from_demographics as care
+        assert r1["fiscal"]["care_stipend"] == care(n1["population"], eps, age_fractions=self.US)
+
+    def test_the_default_is_unchanged(self):
+        s = make_economy_state()
+        _, a = simulate_period(s)
+        _, b = simulate_period({k: v for k, v in s.items() if k != "age_fractions"})
+        assert a["teh_created"] == b["teh_created"]
+        assert a["trust_end"] == b["trust_end"]
+
+    def test_the_entry_point_reads_a_state_carried_mix(self):
+        from hours_eoh.scenarios.collective import collective_snapshot
+        s = make_economy_state(age_fractions=self.US)
+        a = collective_snapshot(s, land_hectares=1.65e6)
+        b = collective_snapshot(make_economy_state(), land_hectares=1.65e6,
+                                age_fractions=self.US)
+        assert a["pipeline"] == b["pipeline"]
+        with pytest.raises(ValueError):
+            collective_snapshot(s, land_hectares=1.65e6,
+                                age_fractions={**self.US, "elderly": 0.18, "infant": 0.075})

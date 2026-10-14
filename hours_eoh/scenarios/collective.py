@@ -37,7 +37,8 @@ capital, trust balance, ecosystem health and ε, and which `fiscal_snapshot`
 learned to read on 2026-08-29. The only thing a state does not carry is LAND,
 because the ecological domain was keyed to area later than the state was
 written; land is therefore an extra argument — and so, since 2026-10-14, is
-the age mix (`age_fractions`), which no state carries either.
+the age mix (`age_fractions`) — which a state may also carry since the same
+day, in which case it need not be repeated.
 
 THE PRECEDENT THIS FOLLOWS, and the reason it is a single owned entry rather
 than another scenario: `scenarios/guf_stress.guf_fiscal_integration` was already
@@ -183,9 +184,10 @@ def collective_snapshot(
             `"pro_rata"`. Inert unless `available_labor_eoh` is supplied.
         age_fractions: The population's age mix, `{group: fraction}` over
             `AGE_GROUPS`. Reaches BOTH halves — the pipeline's personal
-            obligation (`age_distribution`) and the fiscal layer's guarantee —
-            because a state does not carry it (the same reason land is an
-            argument). Omitted, both read the shipped mix.
+            obligation (`age_distribution`) and the fiscal layer's guarantee.
+            A state built with `make_economy_state(age_fractions=…)` carries
+            it and need not repeat it; a DIFFERENT value beside it is refused.
+            Omitted from both, both halves read the shipped mix.
         **fiscal_kwargs: Forwarded to `fiscal_snapshot` — policy only (levy
             rates, dividend split). Frame and state quantities are refused; a
             quantity the pipeline also takes (`SHARED_WITH_PIPELINE`) is
@@ -247,6 +249,15 @@ def collective_snapshot(
             "compounds per period; a snapshot cannot apply it. Run "
             "core.simulation.simulate_period, or state the backlog at zero."
         )
+
+    # A STATE MAY CARRY THE AGE MIX (2026-10-14, `make_economy_state`'s
+    # `age_fractions`). Two answers to one question are refused unless equal.
+    state_ages = state.get("age_fractions")
+    if state_ages is not None:
+        if age_fractions is not None and dict(age_fractions) != dict(state_ages):
+            raise ValueError("the state carries an age mix and a different one was "
+                             "passed as age_fractions; build a different state")
+        age_fractions = state_ages
 
     # Exactly one of the pair was supplied — written so the type narrows past
     # it rather than asserting what the guards above already established.

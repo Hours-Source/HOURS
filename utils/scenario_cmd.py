@@ -163,7 +163,11 @@ _SHOCK_READS = frozenset({
     "years_in_collective", "retiree_vested_fraction", "trust_balance", "epsilon",
     "capital_age_ratio", "ecosystem_health", "ecological_carried_by_people"})
 _CAPITAL_READS = frozenset({"population", "capital_teh", "epsilon"})
-_SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "epsilon"})
+# The age mix and the stock's age (2026-10-14): the period engine carries both
+# as state, so the long-run family reads the frame's population and stock
+# rather than the shipped pyramid and the default age.
+_SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "age_fractions",
+                        "capital_age_ratio", "epsilon"})
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
                                  "ecological_spike", "compound_shock", "capital_loss")},
@@ -821,7 +825,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             rebuild_years=args.rebuild_years, ecosystem_health=health, **common), v, lab
     sim = dict(population=pop,
                trust_balance=None if v["trust_derived"] else v["trust_balance"],
-               capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
+               capital_stock_teh=None if v["capital_derived"] else v["capital_teh"],
+               age_fractions=v["age_fractions"], capital_age_ratio=v["capital_age_ratio"])
     periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
     if name == "labor_income_shock":
         from hours_eoh.scenarios.shocks import labor_income_shock
@@ -873,7 +878,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
                 "world drawdown", ("population", "default:THERMAL drawdown programme"))
         tv = thermal_load_verdict(
             thermal_obligation=v["thermal_obligation_eoh"], population=pop,
-            trust_balance=sim["trust_balance"], capital_stock=sim["capital_stock_teh"])
+            trust_balance=sim["trust_balance"], capital_stock=sim["capital_stock_teh"],
+            age_fractions=sim["age_fractions"], capital_age_ratio=sim["capital_age_ratio"])
         # Reshape at the CLI boundary: the display layer renders "summary_table"
         # as the period table with the scalars printed above it.
         tout: dict[str, Any] = {k: val for k, val in tv.items() if k != "rows"}
