@@ -56,6 +56,7 @@ _SCENARIO_FLAGS = {
     "reserve_plan": [],
     "registered_work": [],
     "mint_reach": [],
+    "collective": [],
 }
 
 
@@ -296,12 +297,39 @@ class TestScenarioRunOnAFrame:
             with pytest.raises(SystemExit):
                 _dispatch(_args("scenario", "run", *argv))
 
-    def test_collective_refuses_a_frame_and_keeps_an_explicit_population(self):
+    def test_collective_keeps_the_archetype_off_a_frame(self):
+        """Without a frame it is the urban archetype; a frame INPUT flag would
+        pair the archetype's parcels with another frame's people."""
         with pytest.raises(SystemExit):
-            _dispatch(_args("scenario", "run", "collective", "--frame", "us"))
+            _dispatch(_args("scenario", "run", "collective", "--ages", "census"))
         assert _dispatch(_args("scenario", "run", "collective"))["population"] == 30_000.0
         assert _dispatch(_args("scenario", "run", "collective",
                                "--population", "1000000"))["population"] == 1e6
+
+    def test_collective_on_a_frame_runs_on_the_frames_land_and_labour(self):
+        """Since 2026-10-14 the entry point runs on a frame: its land, not the
+        archetype's parcels (so no fee is assessed), its labour supply as the
+        hours the mint may pay, its age mix to both halves. Checked against
+        `collective_snapshot` called directly on the frame's own values."""
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.scenarios.collective import collective_snapshot
+        r = _scenario("collective", "--frame", "us")
+        inp = {k: row["value"] for k, row in r["inputs"].items()}
+        land_ha = inp["land_m2"] / 1e4
+        assert r["land_hectares"] == pytest.approx(land_ha)
+        assert r["parcel_count"] == 0 and r["guf_revenue"] == 0.0
+        assert r["labour_supplied"] is True
+        eps = r["epsilon_reading"]["value"]
+        direct = collective_snapshot(
+            make_economy_state(population=inp["population"], epsilon=eps,
+                               capital_stock_teh=inp["capital_teh"],
+                               trust_balance=inp["trust_balance"],
+                               capital_age_ratio=inp["capital_age_ratio"],
+                               ecosystem_health=inp["ecosystem_health"]),
+            land_hectares=land_ha, age_fractions=inp["age_fractions"],
+            available_labor_eoh=inp["labor_supply_per_capita"] * inp["population"])
+        assert r["teh_created"] == pytest.approx(direct["pipeline"]["teh_created"], rel=1e-12)
+        assert r["trust_end"] == pytest.approx(direct["fiscal"]["trust"]["trust_end"], rel=1e-12)
 
     def test_feasibility_still_reads_adult_capacity(self):
         r = _dispatch(_args("scenario", "run", "feasibility", "--adult-capacity", "2300"))

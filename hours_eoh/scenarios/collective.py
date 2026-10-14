@@ -36,7 +36,8 @@ already has — `core.simulation.make_economy_state()` — which carries populat
 capital, trust balance, ecosystem health and ε, and which `fiscal_snapshot`
 learned to read on 2026-08-29. The only thing a state does not carry is LAND,
 because the ecological domain was keyed to area later than the state was
-written; land is therefore the one extra argument.
+written; land is therefore an extra argument — and so, since 2026-10-14, is
+the age mix (`age_fractions`), which no state carries either.
 
 THE PRECEDENT THIS FOLLOWS, and the reason it is a single owned entry rather
 than another scenario: `scenarios/guf_stress.guf_fiscal_integration` was already
@@ -55,7 +56,39 @@ from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import fiscal_snapshot
 from hours_eoh.land.collective import compute_collective_guf
 
-__all__ = ["land_hectares_of", "collective_snapshot"]
+__all__ = ["land_hectares_of", "collective_snapshot", "SHARED_WITH_PIPELINE",
+           "STATE_FIELDS_TO_PIPELINE"]
+
+#: THE QUANTITIES BOTH HALVES TAKE, fiscal name → pipeline name (2026-10-14).
+#: A `fiscal_kwargs` entry naming one of these is passed to the pipeline too, so
+#: the two halves cannot run on different values of it. Until this table
+#: existed the guard below refused frame quantities BY NAME and forwarded
+#: everything else to the fiscal layer only: an institution passing its own age
+#: mix got fiscal expenditure on that mix and personal EOH on the shipped one.
+#: The two renames are the ones the signatures spell differently.
+#: `tests/scenarios/test_collective.py::TestBothHalvesSeeOneValue` derives the
+#: shared set from the two signatures and requires every member to be here or
+#: in the refused set — its own gap: a rename it is not told about is invisible.
+SHARED_WITH_PIPELINE: dict[str, str] = {
+    "mean_multiplier":    "mean_multiplier",
+    "thermal_obligation": "thermal_obligation",
+    "ecological_intensity": "ecological_intensity",
+    "health_response":    "ecological_health_response",
+    "standing_response":  "ecological_standing_response",
+}
+
+#: THE STATE'S FIELDS THE PIPELINE TAKES, state key → pipeline name — the ones
+#: `simulate_period` passes. The last three were dropped here until 2026-10-14
+#: while `fiscal_snapshot(state=…)` read the same state: a state carrying a
+#: register at ε 0.70 moved fiscal expenditure 3.96× and the mint not at all.
+STATE_FIELDS_TO_PIPELINE: dict[str, str] = {
+    "deferred_ecological":   "deferred_ecological",
+    "knowledge_complexity":  "knowledge_complexity",
+    "monitoring_capability": "monitoring_capability",
+    "registration_epsilon":  "registration_epsilon",
+    "capital_eoh_eliminated": "capital_eoh_eliminated",
+    "capital_personal_eoh_fulfilled": "capital_personal_eoh_fulfilled",
+}
 
 
 def land_hectares_of(parcels: list[dict]) -> float:
@@ -83,6 +116,7 @@ def collective_snapshot(
     psi_policy: str = "retired",
     available_labor_eoh: float | None = None,
     rationing: str = "survival_first",
+    age_fractions: dict[str, float] | None = None,
     **fiscal_kwargs: Any,
 ) -> dict:
     """
@@ -147,15 +181,24 @@ def collective_snapshot(
         rationing: Forwarded to the pipeline — which obligation a labour
             shortfall defers first. `"survival_first"` (default) or
             `"pro_rata"`. Inert unless `available_labor_eoh` is supplied.
+        age_fractions: The population's age mix, `{group: fraction}` over
+            `AGE_GROUPS`. Reaches BOTH halves — the pipeline's personal
+            obligation (`age_distribution`) and the fiscal layer's guarantee —
+            because a state does not carry it (the same reason land is an
+            argument). Omitted, both read the shipped mix.
         **fiscal_kwargs: Forwarded to `fiscal_snapshot` — policy only (levy
-            rates, dividend split). Frame quantities are refused.
+            rates, dividend split). Frame and state quantities are refused; a
+            quantity the pipeline also takes (`SHARED_WITH_PIPELINE`) is
+            forwarded to BOTH, never to one.
 
     Returns:
         dict with `pipeline`, `fiscal`, `guf`, `frame` and `verdict`.
 
     Raises:
         ValueError: If both `land_hectares` and `parcels` are given, if neither
-            is, or if `fiscal_kwargs` restates a frame quantity.
+            is, if `fiscal_kwargs` restates a frame or state quantity, or if
+            the state carries a deferred infrastructure backlog (compounding is
+            a period dynamic — run `simulate_period`).
     """
     # Written as one branch chain rather than two guards so the type narrows:
     # after this, `hectares` is a float and the caller supplied exactly one of
@@ -178,15 +221,31 @@ def collective_snapshot(
             "See scenarios/frame.py for what an undeclared pairing costs."
         )
 
+    # The frame's quantities, then the state's (the fiscal layer would refuse
+    # these only when the state carries the key; refused here whatever it
+    # carries, so the message names the entry point), then the age mix (an
+    # argument of its own) and the land per head (the land is stated).
     owned = {"population", "capital_stock_teh", "capital_age_ratio", "epsilon",
              "ecosystem_health", "trust_balance", "labor_income",
              "ecological_area_hectares", "eco_eoh_override", "guf_revenue",
-             "state"}
+             "state", "deferred_ecological", "capital_eoh_eliminated",
+             "registration_epsilon", "capital_personal_eoh_fulfilled_per_person",
+             "age_fractions", "ecological_hectares_per_capita"}
     clash = owned & set(fiscal_kwargs)
     if clash:
         raise ValueError(
             f"these are the frame's to state, not the caller's: {sorted(clash)}. "
             "Build a different state instead of overriding one."
+        )
+    # A deferred infrastructure backlog compounds PER PERIOD (`simulate_period`
+    # turns it into `infrastructure_compounding_eoh` from its age); a snapshot
+    # has no period to compound over, and reading it as zero would be the
+    # stranded field this function exists to forbid.
+    if float(state.get("deferred_infrastructure_eoh") or 0.0) > 0.0:
+        raise ValueError(
+            "the state carries a deferred infrastructure backlog, which "
+            "compounds per period; a snapshot cannot apply it. Run "
+            "core.simulation.simulate_period, or state the backlog at zero."
         )
 
     # Exactly one of the pair was supplied — written so the type narrows past
@@ -202,11 +261,14 @@ def collective_snapshot(
     # (all three resolve canonically from ε); it is a state carrying real values
     # that was being silently read as canonical. `.get` because any mapping
     # carrying the required keys is accepted.
+    # And until 2026-10-14 it dropped three more that `simulate_period` passes
+    # — `STATE_FIELDS_TO_PIPELINE` names all six.
     optional_physical = {
-        k: state[k] for k in
-        ("deferred_ecological", "knowledge_complexity", "monitoring_capability")
+        to: state[k] for k, to in STATE_FIELDS_TO_PIPELINE.items()
         if state.get(k) is not None
     }
+    shared = {to: fiscal_kwargs[k] for k, to in SHARED_WITH_PIPELINE.items()
+              if k in fiscal_kwargs}
     pipeline = eoh_to_teh_pipeline(
         epsilon=epsilon,
         population=float(state["population"]),
@@ -216,7 +278,9 @@ def collective_snapshot(
         ecological_area_hectares=hectares,
         available_labor_eoh=available_labor_eoh,
         rationing=rationing,
+        age_distribution=age_fractions,
         **optional_physical,
+        **shared,
     )
     # Two facts, not one: whether a supply was given, and whether it BOUND. The
     # pipeline's flag is the second — it is False both when no supply was given
@@ -244,6 +308,7 @@ def collective_snapshot(
         ecological_area_hectares=hectares,
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         guf_revenue=guf_revenue,
+        age_fractions=age_fractions,
         **fiscal_kwargs,
     )
 

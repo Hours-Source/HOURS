@@ -122,6 +122,111 @@ class TestLabourSupplyReachesTheMint:
         assert r["pipeline"]["teh_created"] == pytest.approx(direct["teh_created"])
 
 
+class TestBothHalvesSeeOneValue:
+    """
+    ONE VALUE, BOTH HALVES (2026-10-14). The guard refused frame quantities BY
+    NAME and forwarded every other keyword to the fiscal layer only, so a
+    quantity both halves take reached one of them: an age mix moved fiscal
+    expenditure and left personal EOH on the shipped mix, and a state's
+    register maturity moved expenditure 3.96x while the mint stayed put —
+    `simulate_period` passed it, this entry point did not. Each value is
+    checked against the pipeline called DIRECTLY with it, so a forwarded
+    value that the pipeline then ignores cannot pass.
+    """
+
+    #: The renames the two signatures spell differently. THE GAP: a rename not
+    #: listed here is invisible to the derivation below.
+    RENAMES = {"age_fractions": "age_distribution",
+               "health_response": "ecological_health_response",
+               "standing_response": "ecological_standing_response",
+               "capital_personal_eoh_fulfilled_per_person":
+                   "capital_personal_eoh_fulfilled"}
+
+    def test_every_shared_quantity_is_forwarded_or_refused(self):
+        """Derived from the two signatures, not from the table under test."""
+        import inspect
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import fiscal_snapshot
+        from hours_eoh.scenarios.collective import SHARED_WITH_PIPELINE
+        pipe = set(inspect.signature(eoh_to_teh_pipeline).parameters)
+        shared = {f for f in inspect.signature(fiscal_snapshot).parameters
+                  if self.RENAMES.get(f, f) in pipe}
+        assert "age_fractions" in shared and "mean_multiplier" in shared
+        own = set(inspect.signature(collective_snapshot).parameters)
+        assert "age_fractions" in own       # its own argument, sent to both
+        for f in sorted(shared - set(SHARED_WITH_PIPELINE) - own):
+            with pytest.raises(ValueError):
+                collective_snapshot(_state(), land_hectares=302.5, **{f: 1.0})
+        for f, to in SHARED_WITH_PIPELINE.items():
+            assert self.RENAMES.get(f, f) == to and to in pipe
+
+    @pytest.mark.parametrize("kw, pipe_kw", [
+        ({"age_fractions": {"infant": 0.065, "child": 0.145,
+                            "working_age": 0.600, "elderly": 0.190}},
+         {"age_distribution": {"infant": 0.065, "child": 0.145,
+                               "working_age": 0.600, "elderly": 0.190}}),
+        ({"mean_multiplier": 2.4}, {"mean_multiplier": 2.4}),
+        ({"thermal_obligation": 1e8}, {"thermal_obligation": 1e8}),
+        # Inert under the default GUF response (the fee carries the domain),
+        # so run where the domain carries it.
+        ({"ecological_intensity": 2e-3, "health_response": "domain",
+          "standing_response": "domain"},
+         {"ecological_intensity": 2e-3, "ecological_health_response": "domain",
+          "ecological_standing_response": "domain"}),
+        ({"health_response": "domain"}, {"ecological_health_response": "domain"}),
+        ({"standing_response": "domain"}, {"ecological_standing_response": "domain"}),
+    ])
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.90, 0.99))
+    def test_a_keyword_reaches_the_pipeline_as_the_direct_call(self, kw, pipe_kw, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        s = _state(eps=eps, ecosystem_health=0.4)
+        base = dict(epsilon=eps, population=s["population"],
+                    capital_stock=s["capital_stock_teh"],
+                    capital_age_ratio=s["capital_age_ratio"],
+                    ecosystem_health=s["ecosystem_health"],
+                    ecological_area_hectares=302.5)
+        r = collective_snapshot(s, land_hectares=302.5, **kw)
+        direct = eoh_to_teh_pipeline(**base, **pipe_kw)
+        # The WHOLE pipeline result: under the default GUF response the
+        # ecological intensity moves the relocated obligation, not the mint.
+        assert r["pipeline"] == direct
+        assert direct != eoh_to_teh_pipeline(**base)
+
+    def test_the_age_mix_reaches_the_fiscal_half_too(self):
+        mix = {"infant": 0.065, "child": 0.145, "working_age": 0.600, "elderly": 0.190}
+        a = collective_snapshot(_state(), land_hectares=302.5)
+        b = collective_snapshot(_state(), land_hectares=302.5, age_fractions=mix)
+        assert (b["fiscal"]["trust"]["total_expenditure"]
+                != a["fiscal"]["trust"]["total_expenditure"])
+
+    @pytest.mark.parametrize("field, value", [
+        ("registration_epsilon", 0.70),
+        ("capital_eoh_eliminated", 1e6),
+        ("capital_personal_eoh_fulfilled", 1e6),
+    ])
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.90, 0.99))
+    def test_a_state_field_reaches_the_pipeline_as_in_the_period_engine(
+            self, field, value, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        s = _state(eps=eps, **{field: value})
+        base = dict(epsilon=eps, population=s["population"],
+                    capital_stock=s["capital_stock_teh"],
+                    capital_age_ratio=s["capital_age_ratio"],
+                    ecosystem_health=s["ecosystem_health"],
+                    ecological_area_hectares=302.5)
+        r = collective_snapshot(s, land_hectares=302.5)
+        direct = eoh_to_teh_pipeline(**base, **{field: value})
+        # The whole result: the capital-fulfilled personal EOH is reported,
+        # not applied, so it moves a key and not the mint.
+        assert r["pipeline"] == direct
+        assert direct != eoh_to_teh_pipeline(**base)
+
+    def test_a_deferred_infrastructure_backlog_is_refused(self):
+        with pytest.raises(ValueError, match="compounds per period"):
+            collective_snapshot(_state(deferred_infrastructure_eoh=1e6),
+                                land_hectares=302.5)
+
+
 class TestTheFrameIsStatedOnce:
 
     def test_the_pipeline_and_the_fisc_see_ONE_ecological_obligation(self):

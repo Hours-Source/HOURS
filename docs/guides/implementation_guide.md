@@ -17,6 +17,7 @@ report = collective_snapshot(
     state,
     parcels=your_parcel_inventory,          # or land_hectares=... if you have no inventory
     available_labor_eoh=your_labour_hours,  # omit it and you are measuring DEMAND
+    age_fractions=your_age_mix,             # reaches the pipeline AND the fisc
 )
 report["frame"]["labour_supplied"]          # True: the mint is what was served, not demanded
 report["frame"]["labor_constrained"]        # True: your hours BOUND, and the shortfall is deferred
@@ -25,7 +26,16 @@ report["frame"]["labor_constrained"]        # True: your hours BOUND, and the sh
 `collective_snapshot()` runs the EOH→TEH pipeline, the Ground Use Fee and the
 fiscal snapshot on **one stated frame**, passing the three values between them
 that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
-it on the shipped urban archetype.
+it on the shipped urban archetype, or `eoh scenario run collective --frame us`
+(or `--frame-file` with your own) to run it on a frame's land and labour supply,
+every input labelled. A frame carries county parcel COUNTS, not parcels, so on a
+frame no fee is assessed and the run says so.
+
+**Pass your age mix as `age_fractions`, not to `fiscal_snapshot` by keyword.**
+It reaches the pipeline's personal obligation and the fiscal guarantee together.
+Until 2026-10-14 a keyword both halves take reached the fiscal half only, and a
+state's own register maturity reached the fiscal half only; a quantity both take
+is now forwarded to both or refused.
 
 **Pass `available_labor_eoh`.** Until 2026-09-12 this entry point could not
 accept it, so every snapshot minted from obligation *demanded* while this guide

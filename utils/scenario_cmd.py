@@ -106,11 +106,13 @@ from utils.frame_inputs import (
 #: A POPULATION IS HERE (2026-10-03, author: "fixing the frame gap lets the US
 #: frame run on all"); each reads only what `_READS` names, so the shocks take
 #: the age mix and labour supply while the long-run and industrial ones take
-#: population, capital and Trust. The ONE exception is `collective`: its frame
-#: is a parcel inventory (the urban archetype, 302.5 ha), and the US frame has
-#: county parcel COUNTS, not parcels — taking a population, capital and Trust
-#: while the land stays the archetype's is the mismatch that scenario exists to
-#: forbid. It refuses --frame and says so.
+#: population, capital and Trust. `collective` joined on 2026-10-14 with its
+#: OWN land: on --frame/--frame-file it takes the frame's hectares and labour
+#: supply instead of the urban archetype's parcels — the archetype's 302.5 ha
+#: under another frame's people and capital is the mismatch it exists to
+#: forbid, so the parcels do not travel. The US frame has county parcel COUNTS,
+#: not parcels, so the fee there is NOT ASSESSED (0.0) and the run says so.
+#: Without a frame it runs the archetype, as before.
 FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "compound_shock", "capital_loss", "labor_income_shock", "overbuild",
                "maintenance_crisis", "recovery", "trust_stress", "measured_sim",
@@ -118,7 +120,8 @@ FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "thermal_load", "arc_stability", "stationarity", "ecological_floor",
                "care_delay", "verification_band", "frame", "guf_magnitude",
                "guf_writedown", "guf_integration", "capacity_breakdown",
-               "stationarity_drawdown", "reserve_plan", "registered_work", "mint_reach")
+               "stationarity_drawdown", "reserve_plan", "registered_work", "mint_reach",
+               "collective")
 #: The key holding each scenario's verdict; None where it has none to read at
 #: the ends of the ε range (a swept arc, or two separate recovery flags).
 _OUTCOME_KEY: dict[str, str | None] = {
@@ -133,14 +136,15 @@ _OUTCOME_KEY: dict[str, str | None] = {
     "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome",
     "capacity_breakdown": "sufficiency_within_capacity",
     "stationarity_drawdown": None, "registered_work": None, "mint_reach": None,
-    "reserve_plan": "fills_at_shipped_rate"}
+    "reserve_plan": "fills_at_shipped_rate", "collective": "solvent"}
 #: A verdict that is a bool, as words.
 _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
                "measured_sim": ("solvent throughout", "insolvent in some period"),
                **{n: ("stationary", "NOT stationary") for n in ("arc_stability", "stationarity")},
                "capacity_breakdown": ("sufficiency within capacity",
                                       "sufficiency BEYOND capacity"),
-               "reserve_plan": ("fills at the shipped levy", "does NOT fill at the shipped levy")}
+               "reserve_plan": ("fills at the shipped levy", "does NOT fill at the shipped levy"),
+               "collective": ("solvent", "NOT solvent")}
 
 #: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
 #: all-or-nothing: `overbuild` accepted --ages and --retirement-age and printed
@@ -200,6 +204,16 @@ _READS: dict[str, frozenset[str]] = {
     # several frames side by side, so it has none to take.
     **{n: frozenset({"epsilon"}) for n in ("frame", "guf_magnitude", "guf_writedown",
                                            "guf_integration")},
+    # The institutional entry point on a frame (2026-10-14): ONE state, the
+    # frame's land, and its labour supply as the hours the mint may pay — so
+    # the snapshot is fulfilment, not demand. The age mix reaches the pipeline
+    # AND the fisc (collective_snapshot's `age_fractions`); the retirement
+    # register reaches the fisc, which is the only half that models it.
+    "collective": frozenset({"population", "capital_teh", "capital_age_ratio",
+                             "ecosystem_health", "trust_balance", "age_fractions",
+                             "adult_capacity_h_yr", "adult_share",
+                             "labor_supply_per_capita", "land_m2", "retired_share",
+                             "epsilon"}),
 }
 #: Inputs a scenario reads ONLY WHEN THE FRAME STATES THEM (2026-10-04): the
 #: spike and compound shocks price the frame's land only when it states one
@@ -287,7 +301,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
-    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point  [--epsilon, --population]",
+    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, no parcels (fee NOT ASSESSED)  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
     "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita, --frame, --frame-file]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
@@ -675,6 +689,36 @@ def _print_scalar_summary(result: dict) -> None:
         print()
 
 
+def _collective_out(rep: dict) -> dict:
+    """`collective_snapshot`'s report as the CLI prints it — one shape for the
+    archetype and the frame, so the two runs read alike."""
+    fr, gf, fi = rep["frame"], rep["guf"], rep["fiscal"]
+    out = {
+        "epsilon":                 fr["epsilon"],
+        "population":              fr["population"],
+        "land_hectares":           fr["land_hectares"],
+        "hectares_per_capita":     fr["hectares_per_capita"],
+        "parcel_count":            fr["parcel_count"],
+        "teh_created":             rep["pipeline"]["teh_created"],
+        "ecological_eoh":          rep["pipeline"]["eoh_by_domain"]["ecological"],
+        "guf_revenue":             gf["revenue"],
+        "guf_relocated_obligation": gf["obligation"],
+        "guf_over_levy":           fi["trust"]["guf_over_levy"],
+        "levy_total":              fi["levies"]["total_levied"],
+        "trust_end":               fi["trust"]["trust_end"],
+        "solvent":                 fi["solvent"],
+        "guf_verdict":             gf["verdict"],
+        "verdict":                 rep["verdict"],
+    }
+    if fr["labour_supplied"]:
+        # Only on a frame: the archetype is given no labour, and printing
+        # these as 0 would read as a supply that sufficed.
+        out = {**out, "labour_supplied": True,
+               "labor_constrained": fr["labor_constrained"],
+               "deferred_total": rep["pipeline"]["deferred_total"]}
+    return out
+
+
 def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, dict]:
     """Run one frame-aware scenario at `epsilon` on the resolved frame:
     (result, values, labels). A derived capital or Trust is passed as None so
@@ -802,6 +846,31 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         tout["coverage_below_one_at"] = str(tv["coverage_below_one_at"])
         tout["summary_table"] = tv["rows"]
         return tout, v, lab
+    if name == "collective":
+        # THE ENTRY POINT ON A FRAME (2026-10-14). The frame's land, never the
+        # archetype's parcels; its labour supply as the hours the mint may
+        # pay; its age mix to both halves. A frame that states no land has no
+        # ecological frame, and is refused rather than given 1.65 ha a head.
+        if land_ha is None:
+            raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
+                             "the ecological obligation is keyed to area")
+        if args.ecosystem_health_before is not None:
+            raise SystemExit("collective reads the frame's ecosystem health; "
+                             "--ecosystem-health-before belongs to the shocks")
+        from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.scenarios.collective import collective_snapshot
+        state = make_economy_state(
+            population=pop, epsilon=epsilon,
+            capital_stock_teh=(resolve_capital_stock(None, epsilon, population=pop)
+                               if v["capital_derived"] else v["capital_teh"]),
+            trust_balance=(resolve_trust_balance(None, pop) if v["trust_derived"]
+                           else v["trust_balance"]),
+            capital_age_ratio=v["capital_age_ratio"], ecosystem_health=v["ecosystem_health"])
+        return _collective_out(collective_snapshot(
+            state, land_hectares=land_ha, age_fractions=v["age_fractions"],
+            available_labor_eoh=v["labor_supply_per_capita"] * pop,
+            retired_share=v["retired_share"],
+            retiree_vested_fraction=v["retiree_vested_fraction"])), v, lab
     if name in _BRANCH_ON_FRAME:
         from utils.frame_inputs import label
         fs: dict[str, Any] = {}
@@ -1094,15 +1163,18 @@ def _frame_run(args: argparse.Namespace) -> dict:
 
 def _dispatch(args: argparse.Namespace) -> object:
     name = args.name
-    if name in FRAME_AWARE:
+    # `collective` runs on a frame only when one is NAMED: without one it is
+    # the archetype, whose land is its parcels (2026-10-14).
+    if name in FRAME_AWARE and not (name == "collective" and args.frame is None
+                                    and args.frame_file is None):
         return _frame_run(args)
     given = [f for f in frame_flags_given(args)
              if not (name == "feasibility" and f == "--adult-capacity")]
     if name == "collective" and given:
-        raise SystemExit("collective runs on its own parcel inventory (the urban archetype, "
-                         "302.5 ha); a --frame would pair that land with another frame's "
-                         "people and capital, the mismatch it exists to forbid. Pass "
-                         "--population to scale the archetype's people")
+        raise SystemExit(f"collective without --frame/--frame-file runs the urban archetype's "
+                         f"parcel inventory (302.5 ha), and {', '.join(given)} would pair "
+                         f"that land with another frame's inputs. Name a frame to run on "
+                         f"its land, or pass --population to scale the archetype's people")
     # Read by no scenario off the frame (2026-10-03): silently ignored before.
     given += [f for f, a in (("--capital-stock", "capital_stock"), ("--population", "population"))
               if getattr(args, a, None) is not None
@@ -1687,25 +1759,7 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             trust_balance=resolve_trust_balance(None, pop),
             epsilon=args.epsilon,
         )
-        rep = collective_snapshot(state, parcels=make_urban_collective())
-        fr, gf, fi = rep["frame"], rep["guf"], rep["fiscal"]
-        return {
-            "epsilon":                 fr["epsilon"],
-            "population":              fr["population"],
-            "land_hectares":           fr["land_hectares"],
-            "hectares_per_capita":     fr["hectares_per_capita"],
-            "parcel_count":            fr["parcel_count"],
-            "teh_created":             rep["pipeline"]["teh_created"],
-            "ecological_eoh":          rep["pipeline"]["eoh_by_domain"]["ecological"],
-            "guf_revenue":             gf["revenue"],
-            "guf_relocated_obligation": gf["obligation"],
-            "guf_over_levy":           fi["trust"]["guf_over_levy"],
-            "levy_total":              fi["levies"]["total_levied"],
-            "trust_end":               fi["trust"]["trust_end"],
-            "solvent":                 fi["solvent"],
-            "guf_verdict":             gf["verdict"],
-            "verdict":                 rep["verdict"],
-        }
+        return _collective_out(collective_snapshot(state, parcels=make_urban_collective()))
 
     if name == "frame":
         from hours_eoh.scenarios.frame import frame_report

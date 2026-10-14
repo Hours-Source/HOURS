@@ -518,6 +518,14 @@ someone remembering it, which is what this section is for.
    default health unless a collapse was modelled. *The tell, once more:* a
    default standing in for a quantity the frame states. `gated by:`
    `test_frame_inputs.py::TestTheFrameStateReachesTheRun`.
+   **And at the entry point itself, 2026-10-14:** `collective_snapshot`
+   refused frame quantities BY NAME and sent every other keyword to the fisc
+   only. Eleven quantities both halves take therefore reached one: an age mix
+   moved expenditure and not personal EOH, and a state's register at ε 0.70
+   moved expenditure 3.96× and the mint not at all. *The tell:* a guard listing
+   what is forbidden cannot see what is shared. `gated by:`
+   `test_collective.py::TestBothHalvesSeeOneValue`
+   ([record](record/fulfilment.md#entry-point-one-value-both-halves)).
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
