@@ -167,8 +167,9 @@ _SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "epsilon"}
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
                                  "ecological_spike", "compound_shock", "capital_loss")},
-    "overbuild": _CAPITAL_READS | {"capital_age_ratio", "ecosystem_health"},
-    **{n: _CAPITAL_READS | {"capital_age_ratio"} for n in ("maintenance_crisis", "recovery")},
+    "overbuild": _CAPITAL_READS | {"capital_age_ratio", "ecosystem_health", "age_fractions"},
+    "maintenance_crisis": _CAPITAL_READS | {"capital_age_ratio", "age_fractions"},
+    "recovery": _CAPITAL_READS | {"capital_age_ratio"},
     **{n: _SIM_READS for n in ("labor_income_shock", "trust_stress", "measured_sim")},
     **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
     **{n: _SIM_READS - {"epsilon"} for n in ("canonical_arc", "transition")},
@@ -180,22 +181,25 @@ _READS: dict[str, frozenset[str]] = {
     # (its figures are shares — reaching, and correctly moving nothing).
     # Both also read the stock's age and the frame's adult share (2026-10-07):
     # the age sets the upkeep, the share the labour supply.
+    # And the age mix (2026-10-14): the share set the supply while the
+    # obligation read the shipped pyramid — one function, two populations.
     **{n: frozenset({"population", "capital_teh", "adult_capacity_h_yr",
-                     "adult_share", "capital_age_ratio", "epsilon"})
+                     "adult_share", "age_fractions", "capital_age_ratio", "epsilon"})
        for n in ("arc_stability", "stationarity")},
     "ecological_floor": frozenset({"population", "hectares_per_capita", "epsilon"}),
     # Where the work goes, as hours of capacity (2026-10-07): the compass's
     # inputs plus the frame's own adult share, which sets the capacity.
     "capacity_breakdown": frozenset({"population", "capital_teh", "capital_age_ratio",
-                                     "adult_capacity_h_yr", "adult_share", "epsilon"}),
+                                     "adult_capacity_h_yr", "adult_share", "age_fractions",
+                                     "epsilon"}),
     # The stationarity extras and the mint's reach (2026-10-14): tested and
     # never reachable from the CLI until now. Same inputs as the compass; the
     # drawdown and the registered-work arc sweep ε themselves.
     **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
-                     "adult_capacity_h_yr", "adult_share", "epsilon"})
+                     "adult_capacity_h_yr", "adult_share", "age_fractions", "epsilon"})
        for n in ("reserve_plan", "mint_reach")},
     **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
-                     "adult_capacity_h_yr", "adult_share"})
+                     "adult_capacity_h_yr", "adult_share", "age_fractions"})
        for n in ("stationarity_drawdown", "registered_work")},
     **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
     # ε ONLY: their land is a PARCEL inventory or configuration (the urban
@@ -894,6 +898,11 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             fs["capital_age_ratio"] = v["capital_age_ratio"]
             age_label = f"{lab['capital_age_ratio']['kind']}: {lab['capital_age_ratio']['source']}"
             fs["adult_share"] = v["adult_share"]
+            # The age mix beside the adult share it derives (2026-10-14): the
+            # demand side read the shipped pyramid while the supply read the
+            # frame's. The pipeline-keyword functions call it `age_distribution`.
+            fs["age_distribution" if name in ("registered_work", "mint_reach")
+               else "age_fractions"] = v["age_fractions"]
         if name == "ecological_floor":
             land_kind = lab["land_m2"]["kind"]
             if args.hectares_per_capita is not None:
@@ -932,6 +941,9 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             epsilon=epsilon, annual_eoh=annual,
             fulfillment_fraction=args.fulfilment_fraction, years=years,
             population=pop, capital_stock_teh=k, **age,
+            # The overbuild reading's age mix, as `overbuild` reads it
+            # (2026-10-14); the backlog `recovery` takes does not depend on it.
+            age_distribution=v["age_fractions"],
             **({"degraded_compounding": args.degraded_compounding}
                if args.degraded_compounding is not None else {}))
         if name == "maintenance_crisis":
@@ -947,7 +959,9 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         # frame … default to the canonical .3 everywhere when not given but
         # stated clearly default was used"); the default is now the measured US
         # stock, CAPITAL_AGE_RATIO_DEFAULT, and the US frame reads its own).
-        state = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")}
+        state: dict[str, Any] = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")}
+        # And the frame's age mix (2026-10-14): B₀ and B(K) read one population.
+        state["age_distribution"] = v["age_fractions"]
         c = overbuild_check(k, pop, epsilon=epsilon, **state)
         pb = payback(k, pop, epsilon=epsilon, **state)
         out: dict = {kk: vv for kk, vv in c.items()}
@@ -1014,6 +1028,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         rep = capacity_report(
             epsilon, population=pop, adult_capacity_h_yr=v["adult_capacity_h_yr"],
             adult_share=v["adult_share"], capital_age_ratio=v["capital_age_ratio"],
+            age_fractions=v["age_fractions"],
             capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
         runs = rep["runs"]
         sv, sf = runs[("survival", "desk")], runs[("sufficiency", "desk")]
@@ -1048,7 +1063,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         end_rows = {e: breakdown_at(
             e, standard="sufficiency", population=pop,
             adult_capacity_h_yr=v["adult_capacity_h_yr"], adult_share=v["adult_share"],
-            capital_age_ratio=v["capital_age_ratio"],
+            capital_age_ratio=v["capital_age_ratio"], age_fractions=v["age_fractions"],
             capital_stock_teh=None if v["capital_derived"] else v["capital_teh"])
             for e in ends}
 

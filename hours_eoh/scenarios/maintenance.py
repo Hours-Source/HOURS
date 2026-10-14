@@ -39,6 +39,7 @@ def deferred_maintenance_crisis(
     capital_stock_teh: float | None = None,
     degraded_compounding: float = COMPOUNDING_WARN,
     capital_age_ratio: float | None = None,
+    age_distribution: dict[str, float] | None = None,
 ) -> dict:
     """
     Simulate sustained underinvestment in infrastructure EOH over multiple years.
@@ -59,6 +60,9 @@ def deferred_maintenance_crisis(
             row as `condition`), the upkeep intensity the rebuild crossover
             reads, and the overbuild reading. None → a new stock, and each
             function's own default age.
+        age_distribution: The population's age mix, read by the overbuild
+            reading only (its B₀ and B(K), 2026-10-14) — the upkeep does not
+            depend on it. None → the shipped mix.
 
     IRREVERSIBILITY IS ONE DERIVED CLOCK (2026-10-04, author). Two hand-set
     thresholds named the same crossover — rebuilding cheaper than catching up —
@@ -167,6 +171,8 @@ def deferred_maintenance_crisis(
     # Passed only when stated, so overbuild_check keeps its own default.
     ob_state: dict[str, Any] = ({} if capital_age_ratio is None
                                 else {"capital_age_ratio": capital_age_ratio})
+    if age_distribution is not None:
+        ob_state["age_distribution"] = age_distribution
     margin_before = (overbuild_check(k_frame, pop_frame, epsilon=epsilon, **ob_state)
                      ["net_vs_autarky"] if framed else None)
 

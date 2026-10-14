@@ -82,7 +82,7 @@ from hours_eoh.core.autarky import overbuild_check
 from hours_eoh.core.eoh_fulfillment import personal_human_fraction
 from hours_eoh.core.eoh_generation import personal_base_for, resolve_capital_stock
 from hours_eoh.data import MEASURED_CAPACITY_H_YR, ARC_REPORTING_POINTS, CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_STOCK_DEFAULT, REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
-from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share, labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
 __all__ = [
@@ -160,6 +160,7 @@ def stability_at(
     standard: str = "sufficiency",
     capital_age_ratio: float | None = None,
     adult_share: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     The three conditions at one ε. Can the system stop here?
@@ -203,8 +204,14 @@ def stability_at(
             infrastructure upkeep in the delivery account and in condition 2.
             None reads `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
         adult_share: Share of the population able to supply labour — sets the
-            supply. None derives it from the shipped age weights
-            (`labor_supply_per_capita`'s default), and the result says so.
+            supply. None derives it from `age_fractions` when those are
+            given, else from the shipped age weights (`labor_supply_per_capita`'s
+            default), and the result says which.
+        age_fractions: The population's age mix, `{group: fraction}`. Reaches
+            the obligation (`obligation_accounts`), condition 2
+            (`overbuild_check`'s B₀ and B(K)) and — unless `adult_share` is
+            given — the supply, so demand and supply read one population.
+            None → the shipped AGE_GROUPS mix, and the result says so.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
@@ -221,6 +228,15 @@ def stability_at(
         raise ValueError(f"standard must be one of {STANDARDS}, got {standard!r}")
 
     base = personal_base_for(standard)
+    # THE AGE MIX REACHES DEMAND AND SUPPLY (2026-10-14). The frame's adult
+    # share set the supply while the obligation read the shipped pyramid — one
+    # function, two populations. An age mix with no adult share derives the
+    # share from the mix, so neither side can read a population the other
+    # does not.
+    ages = {} if age_fractions is None else {"age_distribution": age_fractions}
+    share_from_ages = adult_share is None and age_fractions is not None
+    if share_from_ages:
+        adult_share = capacity_weighted_adult_share(age_fractions)
     # THE STOCK REACHES THE ACCOUNTS (2026-10-07). Until now only
     # `overbuild_check` saw a supplied stock; the obligation and delivery came
     # from `obligation_accounts` at the CANONICAL arc's capital, so `--frame us`
@@ -228,7 +244,7 @@ def stability_at(
     # bit-identical across the whole conversion band.
     acct = obligation_accounts(
         epsilon, population=population, personal_standard=standard,
-        capital_stock=capital_stock_teh, capital_age_ratio=age,
+        capital_stock=capital_stock_teh, capital_age_ratio=age, **ages,
     )
     # `labor_supply_per_capita` directly, NOT `feasibility_check`: the only
     # quantity needed here is the supply, which does not depend on
@@ -243,6 +259,7 @@ def stability_at(
         epsilon=epsilon,
         standard=standard,
         capital_age_ratio=age,
+        age_distribution=age_fractions,
     ))
 
     # THE ADOPTED SPLIT: the personal part carries its own human share (care and
@@ -312,8 +329,11 @@ def stability_at(
         ),
         "capital_age_ratio":  age,
         "capital_age_supplied": age_supplied,
-        "adult_share_source": ("passed in by the caller" if adult_share is not None
+        "adult_share_source": ("derived from the supplied age mix" if share_from_ages
+                               else "passed in by the caller" if adult_share is not None
                                else "NOT SUPPLIED — the shipped age weights"),
+        "age_fractions_source": ("passed in by the caller" if age_fractions is not None
+                                 else "NOT SUPPLIED — the shipped AGE_GROUPS mix"),
         "capital_age_source": (
             "passed in by the caller" if age_supplied
             else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"

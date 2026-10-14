@@ -331,6 +331,27 @@ class TestScenarioRunOnAFrame:
         assert r["teh_created"] == pytest.approx(direct["pipeline"]["teh_created"], rel=1e-12)
         assert r["trust_end"] == pytest.approx(direct["fiscal"]["trust"]["trust_end"], rel=1e-12)
 
+    def test_three_scenarios_mint_one_figure_on_the_us_frame(self):
+        """THE SHARED PATH, READ THREE WAYS (2026-10-14). `reserve_plan`
+        minted 156.46B where `collective` and `automation_failure` minted
+        155.78B on the same frame: its pipeline read the shipped pyramid. One
+        frame, one mint, one guarantee — by equality, not tolerance."""
+        c = _scenario("collective", "--frame", "us")
+        r = _scenario("reserve_plan", "--frame", "us")
+        a = _scenario("automation_failure", "--frame", "us")
+        assert c["teh_created"] == r["mint"] == a["mint_before"]
+        assert r["guarantee_here"] == a["guarantee_before"]
+
+
+    def test_without_a_frame_the_age_mix_resolves_to_the_shipped_branch(self):
+        """Why passing the frame's mix unconditionally left every no-frame run
+        byte-identical (checked by cmp on 19 scenarios, 2026-10-14): unstated,
+        it resolves to None — the shipped-mix branch in every function — not to
+        a dict equal to the shipped mix, which takes a recomputing branch."""
+        from utils.frame_inputs import resolve_inputs
+        v, lab = resolve_inputs(_args("scenario", "run", "arc_stability"), 0.4)
+        assert v["age_fractions"] is None and lab["age_fractions"]["kind"] == "default"
+
     def test_feasibility_still_reads_adult_capacity(self):
         r = _dispatch(_args("scenario", "run", "feasibility", "--adult-capacity", "2300"))
         assert r

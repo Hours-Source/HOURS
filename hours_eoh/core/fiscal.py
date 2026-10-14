@@ -1616,10 +1616,11 @@ def care_stipend(
 def aggregate_care_stipend_from_demographics(
     population: float,
     epsilon: float,
-    infant_fraction: float = 0.05,
-    child_fraction: float = 0.15,
+    infant_fraction: float | None = None,
+    child_fraction: float | None = None,
     avg_dependents_per_carer: float = 1.5,
     base_infant_stipend: float = 200.0,
+    age_fractions: dict[str, float] | None = None,
 ) -> float:
     """
     Approximate aggregate care stipend from population-level demographics.
@@ -1637,13 +1638,21 @@ def aggregate_care_stipend_from_demographics(
         population: Total population.
         epsilon: Automation level. Passed to care_stipend() for ε-adjustment.
         infant_fraction: Fraction of population in infant age group (0–2 yrs).
-            Default: 0.05 (canonical arc ε=0.40 value).
+            None → 0.05 (canonical arc ε=0.40 value).
         child_fraction: Fraction of population in child age group (3–17 yrs).
-            Default: 0.15.
+            None → 0.15.
         avg_dependents_per_carer: Average number of dependents per registered
             care provider. Drives the diminishing-returns computation.
             Default: 1.5 (one primary + partial-time second dependent).
         base_infant_stipend: Per-year TEH for a registered infant at ε=0.
+        age_fractions: The population's age mix over `AGE_GROUPS` (2026-10-14).
+            When given, the dependants are its infant + child fractions and
+            the two fraction arguments are not read — supplying both is
+            refused. Only their SUM enters (`child_count`), so the bins'
+            differing boundaries (0–2/3–17 here, 0–5/6–17 in AGE_GROUPS) do not
+            matter. The 0.05 + 0.15 = 0.20 defaults are NOT AGE_GROUPS'
+            0.07 + 0.16 = 0.23; that discrepancy is reported, not resolved
+            (record/fulfilment.md#compass-reads-the-age-mix).
 
     Returns:
         Total aggregate care stipend (TEH/year) across all care providers.
@@ -1652,7 +1661,14 @@ def aggregate_care_stipend_from_demographics(
     — aggregate wiring uses a representative-household approximation until
     full demographic simulation is implemented.
     """
-    child_count  = population * (infant_fraction + child_fraction)
+    if age_fractions is not None:
+        if infant_fraction is not None or child_fraction is not None:
+            raise ValueError("pass age_fractions OR infant/child fractions, not both")
+        dependants = float(age_fractions["infant"]) + float(age_fractions["child"])
+    else:
+        dependants = ((0.05 if infant_fraction is None else infant_fraction)
+                      + (0.15 if child_fraction is None else child_fraction))
+    child_count  = population * dependants
     carer_count  = child_count / max(avg_dependents_per_carer, 1.0)
     n_deps       = max(1, round(avg_dependents_per_carer))
     # Representative dependent ages: infants dominate at low n, mix at higher n

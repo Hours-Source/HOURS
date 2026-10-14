@@ -485,3 +485,95 @@ class TestTheAdultShareReachesTheSupply:
         assert hi["surplus_per_capita"] > lo["surplus_per_capita"]
         assert lo["adult_share_source"] == "passed in by the caller"
         assert "NOT SUPPLIED" in stability_at(eps)["adult_share_source"]
+
+
+class TestTheAgeMixReachesDemandAndSupply:
+    """
+    ONE POPULATION ON BOTH SIDES (2026-10-14). The frame's adult share set the
+    supply while the obligation read the shipped AGE_GROUPS pyramid — in
+    `stability_at`, `stationarity_at`, `breakdown_at` and `mint_floor_reach`,
+    and `overbuild_check` could not take an age mix at all. At the US
+    population and canonical capital the census mix flips `stability_at` from
+    not stationary to stationary. The mix used here is the census one the US
+    frame reads, so the two sides genuinely DIFFER from the shipped mix
+    (mode 3: a check run where the divided-out quantity is equal sees nothing).
+    """
+
+    @staticmethod
+    def _us():
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        return population_shares(AGE_GROUP_RANGES)
+
+    @staticmethod
+    def _run(fn: str, eps: float, **kw):
+        from hours_eoh.scenarios.capacity_breakdown import breakdown_at
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        from hours_eoh.scenarios.stationarity import stationarity_at
+        if fn == "stability_at":
+            r = stability_at(eps, population=335e6, **kw)
+            return r["obligation_per_capita"], r["supply_per_capita"], r
+        if fn == "stationarity_at":
+            r = stationarity_at(eps, population=335e6, **kw)
+            return r["teh"]["mint"], r["labour"]["supply_per_capita"], r
+        if fn == "breakdown_at":
+            r = breakdown_at(eps, population=335e6, **kw)
+            return r["total_hours_per_capita_yr"], r["capacity_per_capita_yr"], r
+        if "age_fractions" in kw:
+            kw["age_distribution"] = kw.pop("age_fractions")
+        r = mint_floor_reach(eps, population=335e6, **kw)
+        return r["human_obligation_hours_per_capita"], r["supply_per_capita"], r
+
+    @pytest.mark.parametrize("fn", ["stability_at", "stationarity_at", "breakdown_at",
+                                    "mint_floor_reach"])
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_mix_moves_demand_and_sets_the_supply(self, fn, eps):
+        from hours_eoh.scenarios.feasibility import (
+            capacity_weighted_adult_share, labor_supply_per_capita)
+        us = self._us()
+        d0, s0, r0 = self._run(fn, eps)
+        d1, s1, r1 = self._run(fn, eps, age_fractions=us)
+        assert d1 != d0                                     # demand read the mix
+        assert s1 == labor_supply_per_capita(adult_share=capacity_weighted_adult_share(us))
+        assert s1 != s0                                     # and so did supply
+        # an explicit share still wins, and the sources say which applied
+        d2, s2, r2 = self._run(fn, eps, age_fractions=us, adult_share=0.6)
+        assert d2 == d1 and s2 == labor_supply_per_capita(adult_share=0.6)
+        assert r1["adult_share_source"] == "derived from the supplied age mix"
+        assert r1["age_fractions_source"] == "passed in by the caller"
+        assert "NOT SUPPLIED" in r0["age_fractions_source"]
+        if fn == "stability_at":                            # condition 2 reads it too
+            from hours_eoh.core.autarky import autarky_reference
+            assert r1["autarky_reference"] == autarky_reference(
+                335e6, "sufficiency", age_distribution=us)["total"]
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_autarky_reference_and_the_apparatus_read_one_mix(self, eps):
+        from hours_eoh.core.autarky import autarky_reference, overbuild_check
+        us = self._us()
+        o = overbuild_check(2e9, population=1e6, epsilon=eps, age_distribution=us)
+        assert o["autarky_reference"] == autarky_reference(1e6, age_distribution=us)["total"]
+        assert o["autarky_reference"] != overbuild_check(2e9, population=1e6,
+                                                      epsilon=eps)["autarky_reference"]
+        # B(K) moves with B0: one mix scales both personal terms by the same factor
+        o0 = overbuild_check(2e9, population=1e6, epsilon=eps)
+        ref0 = autarky_reference(1e6)
+        ref1 = autarky_reference(1e6, age_distribution=us)
+        assert (o["obligation_with_apparatus"] - ref1["ecological"]) / ref1["personal"] == \
+            pytest.approx((o0["obligation_with_apparatus"] - ref0["ecological"]) / ref0["personal"],
+                          rel=1e-12)
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_the_care_stipend_reads_the_mix_in_stationarity(self, eps):
+        from hours_eoh.core.fiscal import aggregate_care_stipend_from_demographics as care
+        from hours_eoh.scenarios.stationarity import stationarity_at
+        us = self._us()
+        assert care(335e6, eps, age_fractions=us) == care(
+            335e6, eps, infant_fraction=us["infant"], child_fraction=us["child"])
+        with pytest.raises(ValueError):
+            care(335e6, eps, age_fractions=us, infant_fraction=0.05)
+        # and it reaches stationarity's paid-by-mint, which it did not
+        a = stationarity_at(eps, population=335e6)["teh"]["paid_by_mint"]
+        b = stationarity_at(eps, population=335e6, age_fractions=us)["teh"]["paid_by_mint"]
+        assert b - a == pytest.approx(care(335e6, eps, age_fractions=us) - care(335e6, eps),
+                                      rel=1e-9, abs=1e-6)

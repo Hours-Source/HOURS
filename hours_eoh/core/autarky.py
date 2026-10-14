@@ -174,6 +174,7 @@ def overbuild_check(
     half_capital: float = ABATEMENT_HALF_CAPITAL_TEH,
     added_upkeep_eoh: float = 0.0,
     abating_capital_teh: float | None = None,
+    age_distribution: dict[str, float] | None = None,
 ) -> OverbuildCheck:
     """
     Is this collective carrying its own weight, or is it overhead?
@@ -216,6 +217,9 @@ def overbuild_check(
             (machine work is TEH × condition, `civilization.machine_eoh_from_capital`).
             Upkeep I(K) stays on `capital_stock_teh`: a failing bridge is still
             owed its maintenance. None → `capital_stock_teh`, bit-identical.
+        age_distribution: The population's age mix, `{group: fraction}`.
+            Reaches B₀ AND B(K), which are one population's obligation. None
+            → the shipped AGE_GROUPS mix, bit-identical.
 
     Returns:
         OverbuildCheck.
@@ -241,7 +245,11 @@ def overbuild_check(
     if not 0.0 <= abating <= capital_stock_teh:
         raise ValueError(f"abating_capital_teh must be in [0, capital_stock_teh], got {abating}")
 
-    ref = autarky_reference(population, standard, ecosystem_health)
+    # THE AGE MIX REACHES BOTH SIDES (2026-10-14): B₀ and B(K) are one
+    # population's obligation with and without the apparatus, so they read one
+    # age mix. None is the shipped AGE_GROUPS mix on both, as before.
+    ref = autarky_reference(population, standard, ecosystem_health,
+                            age_distribution=age_distribution)
     b0 = ref["total"]
 
     # K FOR ABATEMENT IS PERSONAL-SERVING CAPITAL, NOT TOTAL. a(K) reduces the
@@ -254,7 +262,8 @@ def overbuild_check(
 
     # B(K): the abated personal obligation, plus the unabatable ecological one.
     abated_base = abated_personal_base(k_pc, standard, half_capital)
-    b_k = personal_eoh(population, base_rate=abated_base) + ref["ecological"]
+    b_k = (personal_eoh(population, age_distribution, base_rate=abated_base)
+           + ref["ecological"])
 
     # I(K): infrastructure, plus the APPARATUS share of knowledge (the
     # civilisational share is a standing obligation and belongs in B, not I).

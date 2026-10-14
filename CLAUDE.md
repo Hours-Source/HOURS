@@ -426,6 +426,11 @@ someone remembering it, which is what this section is for.
    A FOURTH, 2026-10-14: `mint_floor_reach`'s supply took no adult share —
    found by wiring the function to the CLI, which is the third way: a function
    no caller runs end to end holds its seam until someone does.
+   A FIFTH, 2026-10-14: the frame's AGE MIX — the compass family took the
+   frame's adult share for supply and the shipped pyramid for demand, so one
+   function read two populations. Found from a figure, not a search: two
+   scenarios on one frame minted different totals.
+   ([record](record/fulfilment.md#compass-reads-the-age-mix)).
    `gated by:` `TestASuppliedStockReachesTheAccounts`,
    `TestTheStockAgeReachesBothSides`, `TestTheAdultShareReachesTheSupply`,
    `TestTheAdultShareReachesBothFunctions`, and at the CLI

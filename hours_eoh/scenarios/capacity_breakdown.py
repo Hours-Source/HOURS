@@ -59,7 +59,7 @@ from hours_eoh.data import (
 )
 from hours_eoh.scenarios.arc_stability import STANDARDS
 from hours_eoh.scenarios.component_shares import observed_shares
-from hours_eoh.scenarios.feasibility import labor_supply_per_capita
+from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share, labor_supply_per_capita
 from hours_eoh.scenarios.obligation_accounts import obligation_accounts
 
 __all__ = ["SHARE_SOURCES", "COLLECTIVE_ROWS", "breakdown_at", "capacity_report"]
@@ -93,6 +93,7 @@ def breakdown_at(
     capital_age_ratio: float | None = None,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     The human hours of each obligation, as a share of labour capacity, at one ε
@@ -118,7 +119,9 @@ def breakdown_at(
             `CAPITAL_AGE_RATIO_DEFAULT`.
         adult_capacity_h_yr: Hours one adult can supply in a year.
         adult_share: Share of people able to supply it; None derives it from
-            the shipped age weights (`labor_supply_per_capita`'s default).
+            `age_fractions` when given, else the shipped age weights.
+        age_fractions: The population's age mix; reaches the obligation and —
+            unless `adult_share` is given — the capacity. None → shipped mix.
 
     Raises:
         ValueError: on an ε, standard or share source out of range.
@@ -131,9 +134,14 @@ def breakdown_at(
 
     capital = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     age = CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None else capital_age_ratio
+    # One population on both sides (2026-10-14): see arc_stability.stability_at.
+    share_from_ages = adult_share is None and age_fractions is not None
+    if share_from_ages:
+        adult_share = capacity_weighted_adult_share(age_fractions)
     acct = obligation_accounts(
         epsilon, population=population, personal_standard=standard,
         capital_stock=capital, capital_age_ratio=age,
+        **({} if age_fractions is None else {"age_distribution": age_fractions}),
     )
     supply = labor_supply_per_capita(adult_capacity_h_yr=adult_capacity_h_yr,
                                      adult_share=adult_share)
@@ -179,8 +187,11 @@ def breakdown_at(
         "capital_age_ratio": age,
         "capital_age_source": ("passed in by the caller" if capital_age_ratio is not None
                                else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"),
-        "adult_share_source": ("passed in by the caller" if adult_share is not None
+        "adult_share_source": ("derived from the supplied age mix" if share_from_ages
+                               else "passed in by the caller" if adult_share is not None
                                else "NOT SUPPLIED — the shipped age weights"),
+        "age_fractions_source": ("passed in by the caller" if age_fractions is not None
+                                 else "NOT SUPPLIED — the shipped AGE_GROUPS mix"),
         "units": "hours of work (paid or unpaid) as a share of labour capacity — no currency",
     }
 

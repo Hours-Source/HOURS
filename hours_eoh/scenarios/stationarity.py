@@ -153,6 +153,7 @@ def _guarantee_owed(
     epsilon: float,
     need_fraction: float | None,
     personal_eoh_base: float,
+    age_fractions: dict[str, float] | None = None,
 ) -> tuple[float, dict]:
     """The guarantee owed under a design — DELEGATED to core since 2026-09-16.
 
@@ -180,6 +181,7 @@ def _guarantee_owed(
         personal_eoh_base=personal_eoh_base,
         design=design,
         need_fraction=need,
+        age_fractions=age_fractions,
     )
     return g["total_cost_teh"], g
 
@@ -201,6 +203,7 @@ def stationarity_at(
     trust_start: float = 0.0,
     capital_age_ratio: float | None = None,
     adult_share: float | None = None,
+    age_fractions: dict[str, float] | None = None,
 ) -> dict:
     """
     Both sides at one ε. Can the collective stand still here?
@@ -247,7 +250,12 @@ def stationarity_at(
             infrastructure upkeep, so the human hours and the mint. None reads
             `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
         adult_share: Share of the population able to supply labour. None
-            derives it from the shipped age weights, and the result says so.
+            derives it from `age_fractions` when those are given, else from
+            the shipped age weights, and the result says which.
+        age_fractions: The population's age mix, `{group: fraction}`. Reaches
+            the pipeline (personal obligation, so the hours and the mint), the
+            guarantee's per-recipient obligation, the compass and — unless
+            `adult_share` is given — the supply. None → the shipped mix.
 
     Returns:
         dict with `labour`, `teh`, `stationary` (both sides) and the inputs.
@@ -275,9 +283,13 @@ def stationarity_at(
     at_standard = standard is not None and base == standard_base
     capital = resolve_capital_stock(capital_stock_teh, epsilon, population=population)
     age = CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None else capital_age_ratio
+    # One population on both sides (2026-10-14): see arc_stability.stability_at.
+    share_from_ages = adult_share is None and age_fractions is not None
+    if share_from_ages:
+        adult_share = capacity_weighted_adult_share(age_fractions)
     p = eoh_to_teh_pipeline(
         epsilon=epsilon, population=population, capital_stock=capital,
-        capital_age_ratio=age,
+        capital_age_ratio=age, age_distribution=age_fractions,
         **({"personal_standard": standard} if at_standard
            else {"personal_base": base}),
     )
@@ -293,7 +305,7 @@ def stationarity_at(
     compass = stability_at(
         epsilon, capital_stock_teh=capital, population=population,
         adult_capacity_h_yr=adult_capacity_h_yr, standard=standard,
-        capital_age_ratio=age, adult_share=adult_share,
+        capital_age_ratio=age, adult_share=adult_share, age_fractions=age_fractions,
     ) if at_standard and standard is not None else None
     labour = {
         "supply_per_capita":         supply,
@@ -335,7 +347,8 @@ def stationarity_at(
     else:
         guf = min(guf_uncapped, float(guf_cap) * mint)
 
-    owed, g = _guarantee_owed(guarantee, population, epsilon, need_fraction, base)
+    owed, g = _guarantee_owed(guarantee, population, epsilon, need_fraction, base,
+                              age_fractions)
     inflow = levy + guf
     deficit = max(0.0, owed - inflow)
 
@@ -347,7 +360,8 @@ def stationarity_at(
         available_teh=float("inf"),
         infra_eoh_override=by_domain["infrastructure"],
     )["teh_required"]
-    care = aggregate_care_stipend_from_demographics(population, epsilon)
+    care = aggregate_care_stipend_from_demographics(population, epsilon,
+                                                    age_fractions=age_fractions)
 
     teh = {
         "mint":                 mint,
@@ -391,8 +405,11 @@ def stationarity_at(
             "passed in by the caller" if capital_age_ratio is not None
             else "NOT SUPPLIED — CAPITAL_AGE_RATIO_DEFAULT"
         ),
-        "adult_share_source": ("passed in by the caller" if adult_share is not None
+        "adult_share_source": ("derived from the supplied age mix" if share_from_ages
+                               else "passed in by the caller" if adult_share is not None
                                else "NOT SUPPLIED — the shipped age weights"),
+        "age_fractions_source": ("passed in by the caller" if age_fractions is not None
+                                 else "NOT SUPPLIED — the shipped AGE_GROUPS mix"),
         "doctrine":    "minted TEH is the wage (author decision, 2026-09-15)",
     }
 
@@ -759,7 +776,10 @@ def registered_work_access(
     mint = float(p["teh_created"])
     m = float(p["mean_multiplier"])
 
-    share = capacity_weighted_adult_share() if adult_share is None else adult_share
+    # One population on both sides (2026-10-14): an age mix given to the
+    # pipeline sets the adult share too, unless one is given.
+    share = (capacity_weighted_adult_share(pipeline_kwargs.get("age_distribution"))
+             if adult_share is None else adult_share)
     adults = population * share
     reg_per_adult = float(p["registered_eoh"]) / adults
     off_ledger = max(0.0, human_personal - reg_personal)

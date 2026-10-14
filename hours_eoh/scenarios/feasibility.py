@@ -1023,6 +1023,12 @@ def mint_floor_reach(
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
     p = eoh_to_teh_pipeline(epsilon, population=population, **pipeline_kwargs)  # type: ignore[arg-type]
+    # One population on both sides (2026-10-14): an age mix given to the
+    # pipeline sets the adult share too, unless one is given.
+    ages = pipeline_kwargs.get("age_distribution")
+    share_from_ages = adult_share is None and ages is not None
+    if share_from_ages:
+        adult_share = capacity_weighted_adult_share(ages)  # type: ignore[arg-type]
     supply = labor_supply_per_capita(adult_capacity_h_yr, adult_share=adult_share)
     registered = float(p["registered_eoh"]) / population
     human = float(p["human_eoh"]) / population
@@ -1036,7 +1042,10 @@ def mint_floor_reach(
         "mint_per_capita": float(p["teh_created"]) / population,
         "capital_source": ("passed in by the caller" if pipeline_kwargs.get("capital_stock") is not None
                            else "NOT SUPPLIED — the canonical arc's stock at this ε and population"),
-        "adult_share_source": ("passed in by the caller" if adult_share is not None
+        "adult_share_source": ("derived from the supplied age mix" if share_from_ages
+                               else "passed in by the caller" if adult_share is not None
                                else "NOT SUPPLIED — the shipped age weights"),
+        "age_fractions_source": ("passed in by the caller" if ages is not None
+                                 else "NOT SUPPLIED — the shipped AGE_GROUPS mix"),
         "reporting_only": True,
     }
