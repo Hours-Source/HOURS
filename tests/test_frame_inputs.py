@@ -52,6 +52,10 @@ _SCENARIO_FLAGS = {
     "guf_writedown": [],
     "guf_integration": [],
     "capacity_breakdown": [],
+    "stationarity_drawdown": ["--periods", "3"],
+    "reserve_plan": [],
+    "registered_work": [],
+    "mint_reach": [],
 }
 
 

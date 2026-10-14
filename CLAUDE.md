@@ -102,7 +102,8 @@ hours_eoh/
     practitioners.py   Practitioner/demand histories for scarcity_score() (6 occupations, 5 periods each)
     workforce.py       Workforce composition snapshots for population_weighted_mean_multiplier() (5 snapshots)
     atus_time_use.py   Measured US time use 2003–2025 (BLS ATUS); ingest via utils/atus_ingest.py
-    mtus_time_use.py   Multinational time use — self-maintenance by age, 977,809 diaries; ingest via utils/mtus_ingest.py
+    mtus_time_use.py   Multinational time use — self-maintenance by age, 977,809 diaries; ingest via utils/mtus_ingest.py;
+                       capacity_in_band — measured capacity for any age band (utils/mtus_capacity_age_ingest.py)
     care_demand.py     ATUS care demand by age: care_by_age(), elderly_per_capita(), coverage()
     parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py
     onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
@@ -118,7 +119,8 @@ hours_eoh/
                        ASAE field capacity, the EQIP practice inventory — and what each cannot price
     capital_inventory.py  THE US CAPITAL STOCK MAPPED ONTO THE MACHINE PROFILES (BEA Fixed
                        Assets 1.1/2.1/7.1, 2024) — three scopes, BOTH valuation doctrines,
-                       measured ages. NO currency conversion: that is intake
+                       measured ages, and the depreciation series 1925–2024
+                       (utils/bea_depreciation_ingest.py). NO currency conversion: that is intake
     energy_use.py      US PRIMARY ENERGY, EIA SEDS 2024 — contiguous 48 by subtraction;
                        what the US frame's thermal utilization reads
     obligation_work.py WHICH PAID WORK DISCHARGES AN OBLIGATION — SOC major groups, two
@@ -155,7 +157,8 @@ hours_eoh/
     compensation.py    compensation_map, minimal_sufficient_sets — WHICH MECHANISMS COVER FOR EACH
                        OTHER, AND WHERE (review §15): knockouts on the shared path; REPORTING ONLY
     feasibility.py     labor_supply_per_capita, feasibility_check, over_determination_report, feasible_epsilon,
-                       mint_floor_reach — the share of labour supply the mint can pay
+                       mint_floor_reach — the share of labour supply the mint can pay;
+                       measured_capacity_weights — the age weights on MTUS by age, NOT adopted
     personal_floor.py  obligation_floor, identity_report, floor_vs_constants — normative floor vs measured hours
     food_conservation.py conservation_test, uncounted_headroom — did automation eliminate food labour, or relocate it?
     land_tenure.py     allocate_by_tenure, tenure_allocation — UNOWNED LAND IS FEDERATION;
@@ -194,7 +197,10 @@ hours_eoh/
                        rests on (doctrine 1.79x, convention 1.45x, scope ~2.5x).
                        `currency_per_teh` is REQUIRED; the band is not a default. And
                        `stock_age_ratio` — the stock's AGE over BEA's service lives,
-                       currency-free, what `--frame us` reads. REPORTING ONLY
+                       currency-free, what `--frame us` reads. And
+                       `depreciation_report` — BEA's measured depreciation by
+                       scope, 1926–2024, against DEP_RATE (below every scope).
+                       REPORTING ONLY
     labour_epsilon.py  ε READ OFF TIME USE — the SECOND instrument, currency-free. ONE
                        judgement against the capital route's three; reports OVERLAP/ADJACENT/
                        DIVERGENT and never asserts agreement. The obligation it divides by
@@ -417,6 +423,9 @@ someone remembering it, which is what this section is for.
    differently: a NEW report that took the input disagreed with the old one on
    the same frame. Functions now report `capital_source` / `capital_age_source` /
    `adult_share_source`, and say NOT SUPPLIED rather than default silently.
+   A FOURTH, 2026-10-14: `mint_floor_reach`'s supply took no adult share —
+   found by wiring the function to the CLI, which is the third way: a function
+   no caller runs end to end holds its seam until someone does.
    `gated by:` `TestASuppliedStockReachesTheAccounts`,
    `TestTheStockAgeReachesBothSides`, `TestTheAdultShareReachesTheSupply`,
    `TestTheAdultShareReachesBothFunctions`, and at the CLI

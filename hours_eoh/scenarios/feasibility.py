@@ -344,6 +344,118 @@ def capacity_band_alignment(
         "feasible_band_aligned": float(aligned["feasible"]),
     }
 
+def measured_capacity_weights(
+    country: str = "US",
+    sample: str | None = None,
+    year: int | None = None,
+    epsilon: float = 0.0,
+) -> dict:
+    """
+    REPORTING ONLY — the age groups' capacity weights MEASURED on the instrument
+    `MEASURED_CAPACITY_H_YR` is measured on, against the shipped ones.
+
+    `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work plus unpaid
+    domestic work plus childcare, the same three fields `measured_capacity`
+    counts, tabulated for under-18 and over-64 rather than pooled over 18-69".
+    `mtus_time_use.capacity_in_band` is that tabulation (it reproduces
+    `measured_capacity` over 18-69). Per group, each part of its age range is
+    weighted by its census population share:
+
+        inside CAPACITY_MEASUREMENT_BAND   1.0 — supplies at c by construction,
+                                           as `AGE_CAPACITY_WEIGHT_ELDERLY` does
+        outside it, ages the sample        measured: capacity_in_band / c
+          surveyed
+        outside it, ages not surveyed      0.0 — an admission, as shipped
+                                           (ages the sample did not survey;
+                                           US2024 starts at 15)
+
+    MTUS top-codes old ages (US2024 at 80), so the oldest surveyed code stands
+    for everyone above it.
+
+    THE OBJECTION THIS DOES NOT ANSWER, and why nothing is adopted. Raising the
+    supply side while `AGE_WEIGHT_ELDERLY` (1.48) is a documented LOWER bound
+    on the demand side is the one-sided fix `capacity_band_alignment` declined
+    (the author overrode it there for the 65-69 band). On US2024, 85% of the
+    over-69 hours measured here are unpaid domestic work — the household
+    activity the obligation counts on the demand side — so adopting them moves
+    both sides' reading of one population, and only one side is measured.
+
+    Args:
+        country: MTUS country prefix; the latest sample is used unless `sample`.
+        sample: an MTUS sample code (e.g. a country and year).
+        year: census year for the population shares; None → latest.
+        epsilon: where the feasibility ratio is read.
+    """
+    from hours_eoh.reference.care_demand import population_shares
+
+    if sample is None:
+        candidates = [str(r["sample"]) for r in mtus.domestic_by_sample()
+                      if str(r["sample"]).startswith(country)]
+        if not candidates:
+            raise KeyError(f"no MTUS sample for {country!r}")
+        sample = max(candidates)
+    lo_w, hi_w = CAPACITY_MEASUREMENT_BAND
+    c = mtus.capacity_in_band(sample, lo_w, hi_w)["h_yr"]
+
+    groups: dict[str, dict] = {}
+    for name, g in AGE_GROUPS.items():
+        lo, hi = g["range"]
+        parts: list[tuple[str, int, int, float, float]] = []   # label, lo, hi, ratio, diaries
+        inside = (max(lo, lo_w), min(hi, hi_w))
+        if inside[0] <= inside[1]:
+            parts.append(("in band", *inside, 1.0, 0.0))
+        for out_lo, out_hi in ((lo, min(hi, lo_w - 1)), (max(lo, hi_w + 1), hi)):
+            if out_lo > out_hi:
+                continue
+            try:
+                m = mtus.capacity_in_band(sample, out_lo, out_hi)
+            except ValueError:
+                parts.append(("not surveyed", out_lo, out_hi, 0.0, 0.0))
+                continue
+            a_lo = int(m["age_lo"])
+            # Below the band, ages under the youngest surveyed are unmeasured;
+            # above it, the top code stands for everyone older.
+            cov_lo, cov_hi = (a_lo, out_hi) if out_lo < lo_w else (out_lo, out_hi)
+            if cov_lo > out_lo:
+                parts.append(("not surveyed", out_lo, cov_lo - 1, 0.0, 0.0))
+            parts.append(("measured", cov_lo, cov_hi, m["h_yr"] / c, m["diaries"]))
+        share = population_shares({f"{p[1]}-{p[2]}": (p[1], p[2]) for p in parts}, year=year)
+        total = sum(share.values())
+        weight = (sum(share[f"{p[1]}-{p[2]}"] * p[3] for p in parts) / total
+                  if total > 0.0 else 0.0)
+        groups[name] = {
+            "shipped": g["capacity_weight"],
+            "measured": weight,
+            "parts": [{"ages": f"{p[1]}-{p[2]}", "kind": p[0],
+                       "ratio_to_c": p[3], "diaries": p[4],
+                       "share_of_group": share[f"{p[1]}-{p[2]}"] / total if total else 0.0}
+                      for p in parts],
+        }
+    fractions = population_shares({n: g["range"] for n, g in AGE_GROUPS.items()}, year=year)
+    a_shipped = sum(fractions[n] * groups[n]["shipped"] for n in groups)
+    a_measured = sum(fractions[n] * groups[n]["measured"] for n in groups)
+    # One instrument: the ratios run on THIS sample's c, the capacity printed
+    # beside them — not MEASURED_CAPACITY_H_YR, the all-frame median.
+    shipped = feasibility_check(adult_capacity_h_yr=c, epsilon=epsilon, adult_share=a_shipped)
+    measured = feasibility_check(adult_capacity_h_yr=c, epsilon=epsilon, adult_share=a_measured)
+    return {
+        "sample": sample,
+        "capacity_band_h_yr": c,
+        "groups": groups,
+        "census_fractions": fractions,
+        "adult_share_shipped": a_shipped,
+        "adult_share_measured": a_measured,
+        "supply_ratio": a_measured / a_shipped,
+        "ratio_shipped": shipped["demand_supply_ratio"],
+        "ratio_measured": measured["demand_supply_ratio"],
+        "feasible_shipped": shipped["feasible"],
+        "feasible_measured": measured["feasible"],
+        "epsilon": epsilon,
+        "adopted": False,
+        "reporting_only": True,
+    }
+
+
 def feasibility_check(
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
     adult_share: float | None = None,
@@ -872,6 +984,7 @@ def mint_floor_reach(
     epsilon: float,
     population: float = REFERENCE_FRAME_POPULATION,
     adult_capacity_h_yr: float = MEASURED_CAPACITY_H_YR,
+    adult_share: float | None = None,
     **pipeline_kwargs: object,
 ) -> dict:
     """
@@ -899,12 +1012,18 @@ def mint_floor_reach(
     admitted. Read it off the call, not off this docstring.
 
     Frame: per-capita throughout; `population` is passed to the pipeline so
-    every extensive quantity resolves in one frame.
+    every extensive quantity resolves in one frame. `adult_share` (2026-10-14)
+    is the frame's share of people able to supply the adult capacity; until
+    then the supply always read the shipped age weights, so a frame's measured
+    share could not reach the denominator — the stranded input closed in
+    `arc_stability` and `stationarity` on 2026-10-07, found here by wiring the
+    function to the CLI. `capital_stock` (a pipeline keyword) and the share
+    are reported as supplied or NOT SUPPLIED.
     """
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
     p = eoh_to_teh_pipeline(epsilon, population=population, **pipeline_kwargs)  # type: ignore[arg-type]
-    supply = labor_supply_per_capita(adult_capacity_h_yr)
+    supply = labor_supply_per_capita(adult_capacity_h_yr, adult_share=adult_share)
     registered = float(p["registered_eoh"]) / population
     human = float(p["human_eoh"]) / population
     return {
@@ -915,5 +1034,9 @@ def mint_floor_reach(
         "market_hours_per_capita": max(0.0, supply - human),
         "reach": registered / supply,
         "mint_per_capita": float(p["teh_created"]) / population,
+        "capital_source": ("passed in by the caller" if pipeline_kwargs.get("capital_stock") is not None
+                           else "NOT SUPPLIED — the canonical arc's stock at this ε and population"),
+        "adult_share_source": ("passed in by the caller" if adult_share is not None
+                               else "NOT SUPPLIED — the shipped age weights"),
         "reporting_only": True,
     }

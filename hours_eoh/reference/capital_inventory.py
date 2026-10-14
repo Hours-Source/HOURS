@@ -54,13 +54,16 @@ Layer: reference/ — pure data, imports nothing from the package.
 
 from __future__ import annotations
 
+import csv
+import pathlib
+from functools import lru_cache
 from typing import Mapping
 
 __all__ = [
     "BEA_YEAR", "BEA_UNITS", "BEA_POPULATION",
     "PROFILE_MAP", "EXCLUDED_LINES", "SCOPES",
     "DOCTRINE_RATIOS", "MEASURED_AGES", "UNALLOCATED", "UNALLOCATED_USD_B",
-    "AGE_ROWS",
+    "AGE_ROWS", "DEPRECIATION_FILE", "depreciation_series",
     "capital_by_profile", "scope_total", "what_this_cannot_settle",
 ]
 
@@ -670,3 +673,24 @@ def what_this_cannot_settle() -> tuple[str, ...]:
         "a calibration question on its own.",
         str(UNALLOCATED["why_it_does_not_need_closing"]),
     )
+
+
+#: BEA current-cost NET STOCK (yearend) and DEPRECIATION (over the year),
+#: 1925–2024, billions of current dollars, by the lines `SCOPES` is built from —
+#: derived by `utils/bea_depreciation_ingest.py` from Tables 1.1, 1.3, 7.1 and
+#: 7.3; the workbooks are gitignored. MEASURED, both columns.
+DEPRECIATION_FILE = pathlib.Path(__file__).with_name("data") / "bea_depreciation_1925_2024.csv"
+
+
+@lru_cache(maxsize=1)
+def depreciation_series() -> tuple[dict[str, float], ...]:
+    """
+    One row per year: `year`, then `<line>_stock` and `<line>_depreciation` for
+    `private_nonres`, `private_res`, `government`, `defense` and `fixed`.
+
+    BEA depreciates each asset type at its own measured rate and SUMS the
+    dollars, so a line's depreciation over its stock is the stock-weighted mean
+    of the asset-level rates — an aggregation MEASURED, not chosen.
+    """
+    with DEPRECIATION_FILE.open(newline="") as fh:
+        return tuple({k: float(v) for k, v in row.items()} for row in csv.DictReader(fh))

@@ -460,3 +460,39 @@ class TestTheConditionIsMeasured:
         base = CR.epsilon_from_inventory(20.0)["epsilon"]
         monkeypatch.setattr(CR, "AGE_EFFICIENCY_BETA_STRUCTURES", 0.0)
         assert CR.epsilon_from_inventory(20.0)["epsilon"] < base
+
+
+class TestTheMeasuredDepreciation:
+    """2026-10-08. BEA depreciation over the stock it is taken from — the
+    stock-weighted mean of asset-level rates, which ends the profiles'
+    aggregation dispute. Reporting only: no constant moves."""
+
+    def test_the_extract_carries_the_workbook_figures(self):
+        # Tables 1.1 / 1.3, 2024, $B. The stock is cross-pinned to BEA's own
+        # CSV export of Table 1.1 (rawdata, a separate file from the workbook
+        # the ingest parses): line 4 there is 35,899.9 and line 2 is 91,548.5.
+        row = next(r for r in CI.depreciation_series() if r["year"] == 2024)
+        assert row["private_nonres_stock"] == pytest.approx(35_899.9, abs=0.05)
+        assert row["fixed_stock"] == pytest.approx(91_548.5, abs=0.05)
+        assert row["private_nonres_depreciation"] == pytest.approx(3_194.090)
+        assert row["fixed_depreciation"] == pytest.approx(4_809.593)
+        assert row["defense_stock"] == pytest.approx(2_330.227)
+
+    def test_the_government_scope_is_nondefence(self):
+        row = {int(r["year"]): r for r in CI.depreciation_series()}
+        r0, r1 = row[2023], row[2024]
+        k = lambda r: r["private_nonres_stock"] + r["government_stock"] - r["defense_stock"]  # noqa: E731
+        d = r1["private_nonres_depreciation"] + r1["government_depreciation"] - r1["defense_depreciation"]
+        got = CR.measured_depreciation_rate("government", 2024)["rate"]
+        assert got == pytest.approx(d / (0.5 * (k(r0) + k(r1))), rel=1e-12)
+
+    def test_the_profile_aggregations_are_live(self):
+        p = CR.profile_depreciation_rates()
+        assert round(p["weighted_mean_of_rates"], 4) == 0.0428
+        assert round(p["reciprocal_of_weighted_life"], 4) == 0.0286
+        assert round(p["unweighted_mean_of_rates"], 4) == 0.0602
+
+    def test_the_below_verdict_can_fire_and_can_not(self, monkeypatch):
+        assert CR.depreciation_report()["below_measured"]["DEP_RATE"]
+        monkeypatch.setattr(CR, "DEP_RATE", 0.5)
+        assert CR.depreciation_report()["below_measured"]["DEP_RATE"] == []

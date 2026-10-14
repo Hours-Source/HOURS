@@ -117,7 +117,8 @@ FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "indust_baseline", "indust_recovery", "canonical_arc", "transition",
                "thermal_load", "arc_stability", "stationarity", "ecological_floor",
                "care_delay", "verification_band", "frame", "guf_magnitude",
-               "guf_writedown", "guf_integration", "capacity_breakdown")
+               "guf_writedown", "guf_integration", "capacity_breakdown",
+               "stationarity_drawdown", "reserve_plan", "registered_work", "mint_reach")
 #: The key holding each scenario's verdict; None where it has none to read at
 #: the ends of the ε range (a swept arc, or two separate recovery flags).
 _OUTCOME_KEY: dict[str, str | None] = {
@@ -130,13 +131,16 @@ _OUTCOME_KEY: dict[str, str | None] = {
     "arc_stability": "stationary", "stationarity": "stationary", "ecological_floor": None,
     "care_delay": "outcome", "verification_band": "verdict", "frame": None,
     "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome",
-    "capacity_breakdown": "sufficiency_within_capacity"}
+    "capacity_breakdown": "sufficiency_within_capacity",
+    "stationarity_drawdown": None, "registered_work": None, "mint_reach": None,
+    "reserve_plan": "fills_at_shipped_rate"}
 #: A verdict that is a bool, as words.
 _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
                "measured_sim": ("solvent throughout", "insolvent in some period"),
                **{n: ("stationary", "NOT stationary") for n in ("arc_stability", "stationarity")},
                "capacity_breakdown": ("sufficiency within capacity",
-                                      "sufficiency BEYOND capacity")}
+                                      "sufficiency BEYOND capacity"),
+               "reserve_plan": ("fills at the shipped levy", "does NOT fill at the shipped levy")}
 
 #: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
 #: all-or-nothing: `overbuild` accepted --ages and --retirement-age and printed
@@ -180,6 +184,15 @@ _READS: dict[str, frozenset[str]] = {
     # inputs plus the frame's own adult share, which sets the capacity.
     "capacity_breakdown": frozenset({"population", "capital_teh", "capital_age_ratio",
                                      "adult_capacity_h_yr", "adult_share", "epsilon"}),
+    # The stationarity extras and the mint's reach (2026-10-14): tested and
+    # never reachable from the CLI until now. Same inputs as the compass; the
+    # drawdown and the registered-work arc sweep ε themselves.
+    **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
+                     "adult_capacity_h_yr", "adult_share", "epsilon"})
+       for n in ("reserve_plan", "mint_reach")},
+    **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
+                     "adult_capacity_h_yr", "adult_share"})
+       for n in ("stationarity_drawdown", "registered_work")},
     **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
     # ε ONLY: their land is a PARCEL inventory or configuration (the urban
     # archetype; one parcel for guf_integration), and pairing it with a
@@ -221,7 +234,9 @@ def _flags_given(args: argparse.Namespace) -> list[str]:
 #: Frame-aware scenarios that run their ordinary branch on the frame's values.
 _BRANCH_ON_FRAME = frozenset({"arc_stability", "stationarity", "ecological_floor",
                               "care_delay", "verification_band", "frame",
-                              "guf_magnitude", "guf_writedown", "guf_integration"})
+                              "guf_magnitude", "guf_writedown", "guf_integration",
+                              "stationarity_drawdown", "reserve_plan", "registered_work",
+                              "mint_reach"})
 
 #: SCENARIOS WHOSE OUTPUT DOES NOT DEPEND ON ε (2026-10-04, author: option A).
 #: Each accepted --epsilon and printed the same report at every value — an arc
@@ -236,7 +251,7 @@ _EPSILON_FREE = frozenset({
     "food_conservation", "guf_sweep", "infra_floor", "knowledge_base",
     "labour_epsilon", "land_stewardship", "land_tenure", "multiplier_sensitivity",
     "personal_floor", "register_capture", "restoration_cost", "servicing_census",
-    "sweep", "use_split", "verification_cost"})
+    "sweep", "use_split", "verification_cost", "depreciation"})
 
 #: The trajectory horizon when --periods is unset (maintenance_crisis and
 #: recovery default to MAINTENANCE_CRISIS_YEARS instead).
@@ -298,6 +313,12 @@ _SCENARIOS: dict[str, str] = {
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
+    "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year, from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "registered_work":     "registered_work_arc() — can a member walk away to registered work, and does it cover the members, along the arc; where TEH need per member peaks; REPORTING ONLY  [--frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "mint_reach":          "mint_floor_reach() — the share of labour supply the MINT can pay: registered hours over supply, and the hours left for the market; REPORTING ONLY  [--epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "capacity_weights":    "measured_capacity_weights() — the age groups' capacity weights measured on MTUS by age (the instrument MEASURED_CAPACITY_H_YR is measured on) against the shipped ones, US census shares; NOT adopted; REPORTING ONLY  [--epsilon]",
+    "depreciation":        "depreciation_report() — BEA's measured depreciation over the stock it is taken from, by scope, 1926-2024, against DEP_RATE and FORMATION_DEPRECIATION_RATE; REPORTING ONLY",
     # -- the register: its own cost, and its capture exposure --
     "verification_cost":   "verification_report() + which_binds_across_the_arc() — what running the register costs, and WHICH of the three bounds actually binds; REPORTING ONLY  [--scope]",
     "verification_band":   "corridor_is_usable() + cadence_feasibility() — is the verification corridor closed as a usable band, and can the declared register cadence be afforded?  [--verification-scope, --cadence, --frame, --frame-file]",
@@ -361,6 +382,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        help="Ecological restoration rate/period (default: 0.05)")
 
     # Shock params
+    run_p.add_argument("--reserve-years", type=float, default=None,
+                       dest="reserve_years", metavar="N",
+                       help="reserve_plan: years of the high-ε guarantee to hold "
+                            "(no default — a charter choice; unset reports per ONE year)")
     run_p.add_argument("--income-fraction", type=float, default=1.0,
                        dest="income_fraction",
                        help="Labor income as fraction of baseline (default: 1.0)")
@@ -782,9 +807,14 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         fs: dict[str, Any] = {}
         capital_label: str | None = None
         age_label: str | None = None
-        if name in ("arc_stability", "stationarity"):
+        if name in ("arc_stability", "stationarity", "stationarity_drawdown", "reserve_plan",
+                    "registered_work", "mint_reach"):
             if not v["capital_derived"]:
-                fs["capital_stock_teh"] = v["capital_teh"]
+                # The pipeline's keyword is `capital_stock`; stationarity's is
+                # `capital_stock_teh`. Same quantity, two names.
+                key = ("capital_stock" if name in ("registered_work", "mint_reach")
+                       else "capital_stock_teh")
+                fs[key] = v["capital_teh"]
                 # The Inputs header's own label, so the two never disagree:
                 # passed in is not the same as SUPPLIED by the user.
                 from utils.frame_inputs import effective_kind
@@ -1469,6 +1499,46 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         cs["verdict"] = rep["verdict"]
         return cs
 
+    if name == "stationarity_drawdown":
+        from hours_eoh.scenarios.stationarity import drawdown
+        years = args.periods if args.periods is not None else _PERIODS_DEFAULT
+        r = drawdown(years, epsilon_start=args.epsilon_start, epsilon_end=args.epsilon_end,
+                     population=population, **frame_state)
+        dd: dict = {k: v for k, v in r.items() if k != "labour_short_epsilons"}
+        short = r["labour_short_epsilons"]
+        dd["labour_short_at"] = (f"{len(short)} of {years} years, ε {min(short):.3f}–{max(short):.3f}"
+                                 if short else "never")
+        return dd
+
+    if name == "reserve_plan":
+        from hours_eoh.scenarios.stationarity import reserve_plan
+        n = args.reserve_years
+        r = reserve_plan(epsilon, years_of_guarantee=1.0 if n is None else n,
+                         population=population, **frame_state)
+        rp: dict = {k: v for k, v in r.items() if k != "assessed"}
+        rp["years_of_guarantee"] = (f"{r['years_of_guarantee']:g}" if n is not None else
+                                    "1 — NOT SUPPLIED; a charter choice, so this is the "
+                                    "cost PER YEAR of guarantee. State it with --reserve-years")
+        return rp
+
+    if name == "registered_work":
+        from hours_eoh.scenarios.stationarity import registered_work_arc
+        r = registered_work_arc(population=population, **frame_state)
+        rw: dict = {k: v for k, v in r.items() if k != "rows"}
+        rw["summary_table"] = [
+            {"epsilon": row["epsilon"],
+             **{f"access {k}": val for k, val in row["access"].items()
+                if isinstance(val, (int, float)) and not isinstance(val, bool)},
+             **{f"coverage {k}": val for k, val in row["coverage"].items()
+                if isinstance(val, (int, float, bool))},
+             "min_market_wage": row["min_market_wage"]}
+            for row in r["rows"]]
+        return rw
+
+    if name == "mint_reach":
+        from hours_eoh.scenarios.feasibility import mint_floor_reach
+        return mint_floor_reach(epsilon, population=population, **frame_state)
+
     if name == "stationarity":
         from hours_eoh.scenarios.stationarity import stationarity_report
         rep = stationarity_report(
@@ -1951,6 +2021,51 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         else:
             out["summary_table"] = [dict(c) for c in r["subsistence_cases"]]
         return out
+
+    if name == "capacity_weights":
+        from hours_eoh.scenarios.feasibility import measured_capacity_weights
+        r = measured_capacity_weights(epsilon=epsilon)
+        cw: dict = {
+            "sample": r["sample"],
+            "capacity_18_69_h_yr": r["capacity_band_h_yr"],
+            "adult_share_shipped": r["adult_share_shipped"],
+            "adult_share_measured": r["adult_share_measured"],
+            "supply_ratio": r["supply_ratio"],
+            "demand_supply_ratio_shipped": r["ratio_shipped"],
+            "demand_supply_ratio_measured": r["ratio_measured"],
+            "feasible_shipped": r["feasible_shipped"],
+            "feasible_measured": r["feasible_measured"],
+            "adopted": r["adopted"],
+        }
+        cw["summary_table"] = [
+            {"group": n, "ages": "+".join(p["ages"] for p in g["parts"]),
+             "shipped": g["shipped"], "measured": round(g["measured"], 4),
+             "parts": "; ".join(f"{p['ages']} {p['kind']} ×{p['ratio_to_c']:.3f} "
+                                f"({p['share_of_group']:.0%} of group"
+                                + (f", {p['diaries']:,.0f} diaries" if p["diaries"] else "")
+                                + ")" for p in g["parts"])}
+            for n, g in r["groups"].items()]
+        return cw
+
+    if name == "depreciation":
+        from hours_eoh.scenarios.capital_retrodiction import depreciation_report
+        r = depreciation_report()
+        dp: dict = {"year": r["year"]}
+        dp.update({k: v for k, v in r["shipped"].items()})
+        dp.update({f"profiles {k}": v for k, v in r["profiles"].items()})
+        dp.update({f"{k} below": ", ".join(v) or "none" for k, v in r["below_measured"].items()})
+        dp["verdict"] = r["verdict"]
+        dp["summary_table"] = [
+            {"line": s_, "rate": round(v["rate"], 4),
+             "on_yearend_stock": round(v["rate_on_yearend_stock"], 4),
+             "implied_life_yr": round(v["implied_life_years"], 1),
+             "stock_usd_b": round(v["net_stock_usd_b"], 1),
+             "vs_inventory_scope": (round(v["stock_vs_inventory_scope"], 4)
+                                    if "stock_vs_inventory_scope" in v else "—"),
+             "series_low": f"{v['series_low']:.4f} ({v['series_low_year']})",
+             "series_high": f"{v['series_high']:.4f} ({v['series_high_year']})"}
+            for s_, v in r["by_scope"].items()]
+        return dp
 
     if name == "verification_cost":
         from hours_eoh.scenarios.verification_cost import (

@@ -57,6 +57,8 @@ __all__ = [
     "LABOUR_AGGREGATES",
     "measured_capacity",
     "capacity_frames",
+    "CAPACITY_BY_AGE_FILE",
+    "capacity_in_band",
     "NONSTANDARD_DAY_SAMPLES",
     "day_closes",
     "CODES_FILE",
@@ -346,6 +348,49 @@ def capacity_frames(extra: tuple[str, ...] = ()) -> dict[str, float]:
     return {
         str(r["sample"]): measured_capacity(str(r["sample"]), extra)
         for r in domestic_by_sample()
+    }
+
+
+#: The same three LABOUR_AGGREGATES as `measured_capacity`, by single year of
+#: age and sample — derived by `utils/mtus_capacity_age_ingest.py` from the same
+#: file and weight; the raw file is gitignored.
+CAPACITY_BY_AGE_FILE = pathlib.Path(__file__).with_name("data") / "mtus_capacity_by_age.csv"
+
+
+@lru_cache(maxsize=1)
+def _capacity_by_age() -> dict[str, dict[int, tuple[float, float, int]]]:
+    out: dict[str, dict[int, tuple[float, float, int]]] = {}
+    with CAPACITY_BY_AGE_FILE.open(newline="") as fh:
+        for row in csv.DictReader(fh):
+            minutes = sum(float(row[k]) for k in LABOUR_AGGREGATES)
+            out.setdefault(row["sample"], {})[int(row["age"])] = (
+                float(row["weight"]), minutes, int(row["diaries"]))
+    return out
+
+
+def capacity_in_band(sample: str, lo: int, hi: int) -> dict[str, float]:
+    """
+    Measured entropy-resistance labour over ages `lo`–`hi` inclusive, h/yr —
+    `measured_capacity`'s three fields, weighted the same way, for any band.
+    Over 18-69 it reproduces `measured_capacity(sample)`.
+
+    Only the ages the sample SURVEYED enter; `age_lo` / `age_hi` say which
+    those were, and a band the sample did not reach raises rather than read 0.
+    MTUS top-codes old ages in some samples, so `age_hi` is the code, not
+    necessarily the oldest respondent.
+    """
+    ages = _capacity_by_age().get(sample)
+    if ages is None:
+        raise KeyError(f"{sample} not in the by-age extract")
+    cells = {a: v for a, v in ages.items() if lo <= a <= hi}
+    if not cells:
+        raise ValueError(f"{sample} surveyed no one aged {lo}-{hi}")
+    weight = sum(w for w, _, _ in cells.values())
+    minutes = sum(w * m for w, m, _ in cells.values()) / weight
+    return {
+        "h_yr": minutes * _MIN_PER_DAY_TO_H_PER_YEAR,
+        "diaries": float(sum(n for _, _, n in cells.values())),
+        "age_lo": float(min(cells)), "age_hi": float(max(cells)),
     }
 
 

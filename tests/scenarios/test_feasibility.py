@@ -853,3 +853,44 @@ class TestTheDemographicMargin:
         a = capacity_weighted_adult_share(ages)
         d = total_eoh(epsilon=0.40, population=335e6, age_distribution=ages)["personal"] / 335e6
         assert m["margin_pp"] == pytest.approx((a - d / MEASURED_CAPACITY_H_YR) * 100.0)
+
+
+class TestMeasuredCapacityWeights:
+    """2026-10-08. The age groups' capacity weights measured on the instrument
+    `MEASURED_CAPACITY_H_YR` is measured on. Reporting only: nothing adopted."""
+
+    def test_the_by_age_extract_is_the_same_instrument(self):
+        from hours_eoh.reference.mtus_time_use import capacity_frames, capacity_in_band
+        for sample, c in capacity_frames().items():
+            assert capacity_in_band(sample, 18, 69)["h_yr"] == pytest.approx(c, rel=1e-5), sample
+
+    def test_each_group_is_its_parts_weighted_by_population(self):
+        from hours_eoh.scenarios.feasibility import measured_capacity_weights
+        r = measured_capacity_weights()
+        for name, g in r["groups"].items():
+            assert g["shipped"] == AGE_GROUPS[name]["capacity_weight"]
+            assert g["measured"] == pytest.approx(
+                sum(p["share_of_group"] * p["ratio_to_c"] for p in g["parts"]), rel=1e-12)
+            for p in g["parts"]:
+                assert p["ratio_to_c"] == {"in band": 1.0, "not surveyed": 0.0}.get(
+                    p["kind"], p["ratio_to_c"])
+        # The over-69 are measured, not zero, and supply rises with them.
+        elderly = r["groups"]["elderly"]
+        assert any(p["kind"] == "measured" and p["ratio_to_c"] > 0.0 for p in elderly["parts"])
+        assert r["adult_share_measured"] > r["adult_share_shipped"]
+        assert r["adopted"] is False
+
+
+class TestTheAdultShareReachesTheMintsReach:
+    """2026-10-14: `mint_floor_reach` read supply off the shipped age weights
+    whatever share a frame measured — found by wiring it to the CLI."""
+
+    def test_a_supplied_share_moves_supply_and_reach(self):
+        from hours_eoh.scenarios.feasibility import labor_supply_per_capita, mint_floor_reach
+        base = mint_floor_reach(0.40)
+        moved = mint_floor_reach(0.40, adult_share=0.70)
+        assert moved["supply_per_capita"] == pytest.approx(
+            labor_supply_per_capita(adult_share=0.70), rel=1e-12)
+        assert moved["reach"] < base["reach"]
+        assert base["adult_share_source"].startswith("NOT SUPPLIED")
+        assert moved["adult_share_source"] == "passed in by the caller"

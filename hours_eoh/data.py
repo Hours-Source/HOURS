@@ -277,9 +277,10 @@ CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
 #   nothing moves; what changes is that the assertion is now visible, and that
 #   a demographic shock moves supply and demand together instead of only one.
 # confidence: 15 — the ORDERING is defensible (an infant supplies nothing, a
-#   working-age adult is the numeraire) and the LEVELS for child and elderly are
-#   not measured at all. They are set to 0.0 to preserve the shipped arithmetic,
-#   not because zero was measured.
+#   working-age adult is the numeraire). The SHIPPED child and elderly levels
+#   are not the measured ones: they are set to preserve the shipped arithmetic,
+#   not because zero was measured. The measured levels exist since 2026-10-08
+#   (note below) and are not adopted; whether this figure moves is the author's.
 # errs: LOW — a zero here understates supply, which makes every feasibility test
 #   HARDER to pass. That is the safe direction: the failure to avoid is a model
 #   that reports a population as self-sustaining when it is not. A 12-year-old
@@ -311,12 +312,23 @@ CAPACITY_MEASUREMENT_BAND: tuple[int, int] = (18, 69)
 #   documented as a LOWER bound, so demand is understated too by an unmeasured
 #   amount. A one-sided fix that dissolves the finding is the outcome
 #   `tests/test_measured_capacity.py` warns against by name.
-# resolves_by: entropy-resistance labour BY AGE BAND — paid work plus unpaid
-#   domestic work plus childcare, the same three fields `measured_capacity`
-#   counts, tabulated for under-18 and over-64 rather than pooled over 18-69.
-#   MTUS carries the underlying diaries; the shipped extract does not carry that
-#   cut. Settling the elderly weight needs only the band split, which is a
-#   narrower ask than the child weight.
+# resolves_by: A DEMAND-SIDE MEASUREMENT OF THE OVER-69 OBLIGATION, or the
+#   author adopting the measured supply side alone. The supply-side cut this
+#   field asked for — the three `measured_capacity` fields by age band — ships
+#   since 2026-10-08 (note below); what holds the weights is the objection that
+#   AGE_WEIGHT_ELDERLY is a lower bound. Under-15s stay unmeasured: no US MTUS
+#   sample surveys them.
+# note: THE CUT NOW SHIPS, 2026-10-08 — `mtus_capacity_by_age.csv`, the same
+#   file, weight and three fields by single year of age (it reproduces
+#   `measured_capacity` over 18-69 for all 50 samples). On US2024 against the
+#   US census: over-69s supply 0.489 of c and 15-17s 0.264, which would make the
+#   child weight 0.070 and the elderly 0.647, and the adult share 0.733 against
+#   0.659. NOT ADOPTED: 85% of the over-69 hours are unpaid domestic work
+#   (159.1 of 186.5 min/day), the household activity the demand side counts with
+#   `AGE_WEIGHT_ELDERLY` still a lower bound —
+#   the one-sided fix the alignment declined. Call
+#   `feasibility.measured_capacity_weights()`; see
+#   record/personal.md#capacity-weights-measured.
 AGE_CAPACITY_WEIGHT_INFANT: float = 0.0
 AGE_CAPACITY_WEIGHT_CHILD: float = 0.0
 AGE_CAPACITY_WEIGHT_WORKING_AGE: float = 1.0
@@ -3671,11 +3683,13 @@ TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAM
 #   apart.
 # form: physics — the capital the Trust represents really does deteriorate, so
 #   a depreciation term must exist. The RATE is not structural.
-# resolves_by: a weighted mean design life over the actual capital inventory.
-#   FORMATION_DEPRECIATION_RATE (0.05) in this file derives exactly that from
-#   CAPITAL_MACHINE_PROFILES design lives — so the repo holds two aggregate
-#   depreciation rates, 0.045 and 0.05, on the same physical quantity. They
-#   should be reconciled to one derivation.
+# resolves_by: THE AUTHOR NAMING WHICH SCOPE THE TRUST'S CAPITAL IS. The
+#   measurement this field used to ask for — a weighted aggregate over the actual
+#   inventory — is run (2026-10-08, note below): BEA's depreciation over its
+#   stock, 0.052–0.090 in 2024 by scope. What remains is the choice of scope,
+#   and with it reconciling this and FORMATION_DEPRECIATION_RATE to one value.
+#   (Until 2026-10-08 this read "a weighted mean design life over the actual
+#   capital inventory", which the profiles could not settle — see below.)
 # note: THE RESOLVES_BY WAS RUN, 2026-09-17, AND THE STATED DERIVATION DOES NOT
 #   REPRODUCE. A depreciation rate aggregates as a mean of RATES, not as the
 #   reciprocal of a mean life: δ = Σ(wᵢ/lifeᵢ)/Σwᵢ weighted by TEH at the
@@ -3690,6 +3704,17 @@ TRUST_BASE_TEH:               float = TRUST_BASE_TEH_PER_CAPITA * REFERENCE_FRAM
 #   field above is the SAFE direction, and re-fitting a calibration constant to a
 #   freshly-run derivation is an author decision (§5). See
 #   record/provenance.md#depreciation-derivation-does-not-reproduce.
+# note: MEASURED 2026-10-08, AND THE "SAFE DIRECTION" ABOVE DOES NOT SURVIVE IT.
+#   BEA sums depreciation asset by asset, so its depreciation over the stock it
+#   is taken from IS the stock-weighted mean of rates — the aggregation above,
+#   measured rather than chosen. 2024: 0.0904 productive, 0.0704 government
+#   (nondefence), 0.0524 residential, 0.0534 all fixed assets; 0.034–0.091 over
+#   1926–2024, lowest in 1936 for every line. 0.045 is BELOW
+#   every line in 2024 — the UNSAFE direction by the errs field — and so are
+#   the profiles' 0.0428 and 0.0286. Not changed: which SCOPE the Trust's capital
+#   is decides between 0.05 and 0.09, and that is the author's. Call
+#   `capital_retrodiction.depreciation_report()`; see
+#   record/provenance.md#depreciation-measured.
 DEP_RATE:                     float = 0.045             # annual trust depreciation rate
 # tag: normative | units: fraction of annual depreciation
 # form: the dividend/renewal split. That a split exists is structural — pay
@@ -5183,6 +5208,9 @@ RECAL_ESCALATION_CAPACITY_FLOOR: float = 10.0
 #   formula, so this is a provenance defect rather than a caveat. Recorded and
 #   not repaired: retagging moves the verdict-ladder census and re-fitting is an
 #   author decision. See record/provenance.md#depreciation-derivation-does-not-reproduce.
+# note: MEASURED 2026-10-08: BEA's 2024 rate is 0.052–0.090 by scope, so 0.05
+#   sits below all four scopes — see DEP_RATE and
+#   `capital_retrodiction.depreciation_report()`. Not changed.
 FORMATION_DEPRECIATION_RATE: float = 0.05
                                          # aggregate annual depreciation of machine capital.
                                          # Derived from CAPITAL_MACHINE_PROFILES design lives

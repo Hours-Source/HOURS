@@ -48,11 +48,12 @@ from typing import Any
 from hours_eoh.reference.capital_inventory import (
     AGE_ROWS, BEA_POPULATION, BEA_YEAR, DOCTRINE_RATIOS, SCOPES,
     PROFILE_MAP, UNALLOCATED, UNALLOCATED_USD_B,
-    capital_by_profile, scope_total, what_this_cannot_settle,
+    capital_by_profile, depreciation_series, scope_total, what_this_cannot_settle,
 )
 from hours_eoh.data import (
     AGE_EFFICIENCY_BETA_EQUIPMENT, AGE_EFFICIENCY_BETA_STRUCTURES,
-    CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, EPSILON_ARC_MAX,
+    CAPITAL_AGE_RATIO_DEFAULT, CAPITAL_MACHINE_PROFILES, DEP_RATE, EPSILON_ARC_MAX,
+    FORMATION_DEPRECIATION_RATE,
 )
 from hours_eoh.core.civilization import age_efficiency, condition_from_age_ratio
 from hours_eoh.research.thermal_capital import epsilon_current_from_inventory
@@ -61,7 +62,8 @@ from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 __all__ = [
     "conversion_band", "epsilon_from_inventory", "retrodiction_grid",
     "doctrine_spread", "unallocated_sensitivity", "retrodiction_report",
-    "stock_age_ratio",
+    "stock_age_ratio", "DEPRECIATION_SCOPES", "measured_depreciation_rate",
+    "profile_depreciation_rates", "depreciation_report",
 ]
 
 _REGISTRY = Path(__file__).resolve().parents[1] / "reference" / "data" / "multiplier_registry_v5.csv"
@@ -526,4 +528,127 @@ def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -
         "share_past_life": sum(w for w, a, life in used if a > mid(life)) / covered,
         "coverage": covered / total,
         "excluded": excluded,
+    }
+
+
+#: THE AGGREGATE BEA LINES THAT BRACKET EACH SCOPE (2026-10-08). `SCOPES` admits
+#: detailed lines one by one (with exclusions and an unallocated remainder); the
+#: aggregate tables carry private nonresidential ("productive"), plus government
+#: NONDEFENCE (all government less national defence — government residential
+#: included), plus private residential. In 2024 these stocks run 0.8–2.1% above
+#: `scope_total` (`stock_vs_inventory_scope`). `fixed` is every fixed asset,
+#: defence included — a comparator line, not one of `SCOPES`.
+DEPRECIATION_SCOPES: dict[str, dict[str, tuple[str, ...]]] = {
+    "productive":  {"add": ("private_nonres",), "less": ()},
+    "government":  {"add": ("private_nonres", "government"), "less": ("defense",)},
+    "residential": {"add": ("private_nonres", "government", "private_res"),
+                    "less": ("defense",)},
+    "fixed":       {"add": ("fixed",), "less": ()},
+}
+
+
+def measured_depreciation_rate(scope: str = "government", year: int = BEA_YEAR) -> dict:
+    """
+    THE US STOCK'S DEPRECIATION RATE, MEASURED — BEA current-cost depreciation
+    over the year divided by the MEAN of the opening and closing net stock
+    (the stock the year's depreciation was taken from). Also returned on the
+    closing stock alone (`rate_on_yearend_stock`), which reads slightly lower
+    while the stock grows.
+
+    A RATIO OF TWO DOLLAR FIGURES IN ONE YEAR'S PRICES, so no currency-per-TEH
+    conversion enters. And it settles the AGGREGATION the profiles could not
+    (`profile_depreciation_rates`): BEA depreciates each asset type at its own
+    rate and sums the dollars, so this is the stock-weighted mean of rates.
+
+    NOT SETTLED HERE: which scope the Trust's capital is. `DEP_RATE` is "the
+    capital the Trust represents"; the scopes span 0.05–0.09 in 2024.
+
+    Args:
+        scope: one of `DEPRECIATION_SCOPES`.
+        year: 1926–2024 (1925 has no opening stock).
+    """
+    if scope not in DEPRECIATION_SCOPES:
+        raise ValueError(f"scope must be one of {sorted(DEPRECIATION_SCOPES)}, got {scope!r}")
+    rows = {int(r["year"]): r for r in depreciation_series()}
+    if year not in rows or year - 1 not in rows:
+        raise ValueError(f"year must be in {min(rows) + 1}–{max(rows)}, got {year}")
+    parts = DEPRECIATION_SCOPES[scope]
+
+    def total(r: Mapping[str, float], field: str) -> float:
+        return (sum(r[f"{line}_{field}"] for line in parts["add"])
+                - sum(r[f"{line}_{field}"] for line in parts["less"]))
+
+    opening, closing = total(rows[year - 1], "stock"), total(rows[year], "stock")
+    dep = total(rows[year], "depreciation")
+    return {
+        "scope": scope, "year": year,
+        "rate": dep / (0.5 * (opening + closing)),
+        "rate_on_yearend_stock": dep / closing,
+        "implied_life_years": 0.5 * (opening + closing) / dep,
+        "depreciation_usd_b": dep, "net_stock_usd_b": closing,
+    }
+
+
+def profile_depreciation_rates(tier: str = "standard") -> dict[str, float]:
+    """
+    The three aggregations of `CAPITAL_MACHINE_PROFILES` design lives that
+    `record/provenance.md#depreciation-derivation-does-not-reproduce` ran, live:
+    TEH-weighted mean of rates, the reciprocal of the TEH-weighted mean life,
+    and the unweighted mean of rates. A 2.1× spread from the method alone.
+    """
+    w = {k: float(v["tiers"][tier]["teh_per_capita"]) for k, v in CAPITAL_MACHINE_PROFILES.items()}
+    life = {k: float(v["design_life"]) for k, v in CAPITAL_MACHINE_PROFILES.items()}
+    total = sum(w.values())
+    return {
+        "weighted_mean_of_rates": sum(w[k] / life[k] for k in w) / total,
+        "reciprocal_of_weighted_life": total / sum(w[k] * life[k] for k in w),
+        "unweighted_mean_of_rates": sum(1.0 / life[k] for k in w) / len(w),
+    }
+
+
+def depreciation_report(year: int = BEA_YEAR) -> dict:
+    """
+    The shipped depreciation rates against BEA's measured ones — REPORTING
+    ONLY; no constant changes here (§5: re-fitting is an author decision).
+
+    `DEP_RATE`'s own `errs:` field calls UNDERSTATING depreciation the unsafe
+    direction (it flatters the Trust's durability and its dividend). This says,
+    per scope, whether each shipped value sits below BEA's figure for `year` —
+    and over the whole series, where the rate was lowest and highest.
+    """
+    years = [int(r["year"]) for r in depreciation_series()][1:]
+    by_scope: dict[str, dict] = {}
+    for scope in DEPRECIATION_SCOPES:
+        here = measured_depreciation_rate(scope, year)
+        if scope in SCOPES and year == BEA_YEAR:
+            here["stock_vs_inventory_scope"] = (
+                here["net_stock_usd_b"] / scope_total(scope))
+        series = [(y, measured_depreciation_rate(scope, y)["rate"]) for y in years]
+        lo, hi = min(series, key=lambda t: t[1]), max(series, key=lambda t: t[1])
+        by_scope[scope] = {**here, "series_low": lo[1], "series_low_year": lo[0],
+                           "series_high": hi[1], "series_high_year": hi[0]}
+    shipped = {"DEP_RATE": DEP_RATE, "FORMATION_DEPRECIATION_RATE": FORMATION_DEPRECIATION_RATE}
+    profiles = profile_depreciation_rates()
+    below = {name: [s for s, r in by_scope.items() if value < r["rate"]]
+             for name, value in {**shipped, **profiles}.items()}
+    lo_s = min(by_scope.values(), key=lambda r: r["rate"])
+    hi_s = max(by_scope.values(), key=lambda r: r["rate"])
+    return {
+        "year": year,
+        "by_scope": by_scope,
+        "shipped": shipped,
+        "profiles": profiles,
+        "below_measured": below,
+        "verdict": (
+            f"BEA {year}: depreciation runs {lo_s['rate']:.4f} ({lo_s['scope']}) to "
+            f"{hi_s['rate']:.4f} ({hi_s['scope']}) of the stock it is taken from. "
+            + "; ".join(f"{n} {v:.4f} is below {len(below[n])} of {len(by_scope)} lines "
+                        f"({len(SCOPES)} scopes and all fixed assets)"
+                        for n, v in shipped.items())
+            + f". The profiles' aggregations ({', '.join(f'{v:.4f}' for v in profiles.values())}) "
+            "are not the stock's — BEA sums asset-level rates, which ends the "
+            "aggregation dispute; which SCOPE is the Trust's capital is not settled here. "
+            "Understating depreciation is the unsafe direction by DEP_RATE's own errs field."
+        ),
+        "reporting_only": True,
     }
