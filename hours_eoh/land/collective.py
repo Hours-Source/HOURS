@@ -430,6 +430,36 @@ def sample_scaled_guf(
     return float(net) / len(sample) * parcel_count
 
 
+#: How a fee priced by `per_parcel_guf` is labelled wherever it is reported.
+PER_PARCEL_BASIS: str = ("per-parcel term × parcel count — the AREA part NOT SUPPLIED "
+                         "(needs a class→use mapping and a location value)")
+
+
+def per_parcel_guf(epsilon: float, parcel_count: float) -> float:
+    """
+    The land fee's MEASURED HALF over a parcel count: `per_parcel_term(ε) ×
+    parcel_count`, TEH per year (2026-10-15, author: "ship the per-parcel half
+    first").
+
+    What a frame that states its parcels and not their area can price. The
+    AREA part (private area by use class × rate × location value) is NOT
+    SUPPLIED: it needs an author-declared class→use mapping and a source for
+    location value, and accepting the ten ratios settles neither (record/guf.md
+    #land-use-mix-per-frame). So this is a LOWER bound on the fee, never the
+    fee — it replaces `sample_scaled_guf` on a frame, which priced every parcel
+    as an urban sample parcel and so tied the area part to the count.
+
+    ε-behaviour: α(ε) — positive and falling across [0, 0.99].
+
+    Raises:
+        ValueError: on a negative count.
+    """
+    if parcel_count < 0.0:
+        raise ValueError(f"parcel_count must be >= 0, got {parcel_count}")
+    from hours_eoh.land.guf import per_parcel_term
+    return per_parcel_term(epsilon) * parcel_count
+
+
 def default_parcel_count(population: float) -> float:
     """
     PRIVATE parcels for a frame that states none: the population's share of

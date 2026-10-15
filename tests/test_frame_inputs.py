@@ -312,11 +312,13 @@ class TestScenarioRunOnAFrame:
         """Since 2026-10-14 the entry point runs on a frame: its land, not the
         archetype's parcels; its labour supply as the hours the mint may pay;
         its age mix to both halves; and — the author's decision the same day —
-        a fee priced as stationarity prices it, the urban sample's mean over
-        the frame's own parcels. Checked against `collective_snapshot` called
+        a fee priced as stationarity prices it over the frame's own parcels.
+        Since 2026-10-15 (author: "ship the per-parcel half first") that fee is
+        P(ε) × the private parcels, the area part NOT SUPPLIED — no longer an
+        urban sample's mean. Checked against `collective_snapshot` called
         directly on the frame's own values."""
         from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.land.collective import make_urban_collective
+        from hours_eoh.land.collective import PER_PARCEL_BASIS, per_parcel_guf
         from hours_eoh.reference.parcels import contiguous_48_private_parcels
         from hours_eoh.scenarios.collective import collective_snapshot
         r = _scenario("collective", "--frame", "us")
@@ -325,9 +327,10 @@ class TestScenarioRunOnAFrame:
         assert r["land_hectares"] == pytest.approx(land_ha)
         # the PRIVATE parcels pay: the collective does not pay itself
         assert r["parcel_count"] == inp["parcel_count"] == contiguous_48_private_parcels()["central"]
-        assert r["guf_basis"] == "sample mean × parcel count" and r["guf_revenue"] > 0.0
+        assert r["guf_basis"] == PER_PARCEL_BASIS and "NOT SUPPLIED" in r["guf_basis"]
         assert r["labour_supplied"] is True
         eps = r["epsilon_reading"]["value"]
+        assert r["guf_assessed"] == per_parcel_guf(eps, inp["parcel_count"]) > 0.0
         direct = collective_snapshot(
             make_economy_state(population=inp["population"], epsilon=eps,
                                capital_stock_teh=inp["capital_teh"],
@@ -336,7 +339,7 @@ class TestScenarioRunOnAFrame:
                                ecosystem_health=inp["ecosystem_health"]),
             land_hectares=land_ha, age_fractions=inp["age_fractions"],
             available_labor_eoh=inp["labor_supply_per_capita"] * inp["population"],
-            guf_sample=make_urban_collective(10_000), guf_parcel_count=inp["parcel_count"])
+            guf_parcel_count=inp["parcel_count"])
         assert r["guf_revenue"] == direct["guf"]["revenue"]
         assert r["teh_created"] == pytest.approx(direct["pipeline"]["teh_created"], rel=1e-12)
         assert r["trust_end"] == pytest.approx(direct["fiscal"]["trust"]["trust_end"], rel=1e-12)
@@ -383,6 +386,10 @@ class TestScenarioRunOnAFrame:
         assert ca["guf_unpaid"] == 0.0 and ca["guf_revenue"] == ca["guf_assessed"]
         assert cb["guf_revenue"] == cb["guf_payable_ceiling"] < cb["teh_created"]
         assert cb["guf_unpaid"] == pytest.approx(cb["guf_assessed"] - cb["guf_revenue"], rel=1e-12)
+        # the measured per-parcel half on a NAMED frame only: with no frame,
+        # stationarity keeps its urban sample (2026-10-15)
+        assert "NOT SUPPLIED" in _scenario("stationarity", "--frame", "us")["verdict"]
+        assert "sample mean" in _scenario("stationarity")["verdict"]
         # and stationarity, on the same frame, collects the same fee
         sb = _scenario("stationarity", "--frame", "us", "--population", "1e6")
         assert sb["here | land fee"] == pytest.approx(cb["guf_revenue"], rel=1e-12)

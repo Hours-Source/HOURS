@@ -56,7 +56,8 @@ from hours_eoh.data import SLU_HECTARES
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.fiscal import PIPELINE_SHARED_PARAMS, fiscal_snapshot
 from hours_eoh.land.collective import (
-    compute_collective_guf, default_parcel_count, sample_scaled_guf)
+    PER_PARCEL_BASIS, compute_collective_guf, default_parcel_count, per_parcel_guf,
+    sample_scaled_guf)
 from hours_eoh.scenarios.stationarity import GUF_CAP_RULES, d3_consumption
 
 __all__ = ["land_hectares_of", "collective_snapshot", "SHARED_WITH_PIPELINE",
@@ -200,7 +201,9 @@ def collective_snapshot(
             beside `parcels`, which already carry both.
         guf_parcel_count: The parcels the sample's mean is scaled to. None →
             `land.collective.default_parcel_count(population)`, stationarity's
-            default. Refused without `guf_sample`.
+            default. WITHOUT a sample (2026-10-15, author) it prices the fee's
+            measured per-parcel half, `per_parcel_guf` — the area part NOT
+            SUPPLIED, so the fee is a lower bound. Refused beside `parcels`.
         guf_cap: What of the ASSESSED fee is COLLECTED (2026-10-15, author:
             "you can't pay what isn't minted"). `"payable"` (default) collects
             at most the mint less the levy and D3 consumption —
@@ -236,8 +239,9 @@ def collective_snapshot(
     if guf_sample is not None and parcels is not None:
         raise ValueError("pass parcels OR guf_sample, not both: an inventory "
                          "already prices its own fee")
-    if guf_parcel_count is not None and guf_sample is None:
-        raise ValueError("guf_parcel_count scales a guf_sample; none was given")
+    if guf_parcel_count is not None and parcels is not None:
+        raise ValueError("pass parcels OR guf_parcel_count, not both: an inventory "
+                         "already counts its own parcels")
     if isinstance(guf_cap, str) and guf_cap not in GUF_CAP_RULES:
         raise ValueError(f"guf_cap rule must be one of {GUF_CAP_RULES}, got {guf_cap!r}")
     if isinstance(guf_cap, float) and not 0.0 <= guf_cap:
@@ -357,6 +361,11 @@ def collective_snapshot(
         guf_count = (default_parcel_count(float(state["population"]))
                      if guf_parcel_count is None else float(guf_parcel_count))
         guf_revenue = sample_scaled_guf(guf_sample, epsilon, guf_count, psi_policy=psi_policy)
+    elif guf_parcel_count is not None:
+        # A COUNT AND NO SAMPLE: the fee's measured half (2026-10-15, author:
+        # "ship the per-parcel half first"); the area part is NOT SUPPLIED.
+        guf_count = float(guf_parcel_count)
+        guf_revenue = per_parcel_guf(epsilon, guf_count)
 
     # The state the fiscal layer sees: the caller's, with labour income replaced
     # by what the pipeline says was actually earned. Copied rather than mutated —
@@ -421,6 +430,7 @@ def collective_snapshot(
                                else guf_count if guf_count is not None else 0),
             "guf_basis":      ("parcel inventory" if parcels is not None
                                else "sample mean × parcel count" if guf_sample is not None
+                               else PER_PARCEL_BASIS if guf_count is not None
                                else "none"),
             # Which quantity `pipeline["teh_created"]` is. `labour_supplied`
             # False: minted from obligation DEMANDED. True: checked against
@@ -465,6 +475,11 @@ def collective_snapshot(
                 f"(`fiscal['trust']['guf_over_levy']` "
                 f"{fiscal['trust']['guf_over_levy']:.4f}). "
                 if guf_sample is not None else
+                f"GUF is assessed at {guf_revenue:,.0f} TEH/yr over {guf_count:,.0f} "
+                f"parcels — the per-parcel half only. The AREA part is NOT "
+                f"SUPPLIED: it needs a class→use mapping and a location value, "
+                f"so this is a LOWER bound on the fee. "
+                if guf_count is not None else
                 "No parcel inventory supplied, so GUF revenue is 0.0 — the "
                 "recurring obligation the partition moved to the fee is "
                 "reported by `fiscal['ecological']['relocated_to_guf']` and "

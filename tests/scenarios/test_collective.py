@@ -549,4 +549,38 @@ class TestTheFeeFollowsStationarityRefusals:
         with pytest.raises(ValueError):
             collective_snapshot(_state(), parcels=sample, guf_sample=sample)
         with pytest.raises(ValueError):
-            collective_snapshot(_state(), land_hectares=302.5, guf_parcel_count=1e4)
+            collective_snapshot(_state(), parcels=sample, guf_parcel_count=1e4)
+
+
+class TestThePerParcelHalf:
+    """Author, 2026-10-15: "ship the per-parcel half first". A parcel COUNT
+    with no sample prices the fee's measured half, P(ε) × count, in both entry
+    points, and says the area part is NOT SUPPLIED."""
+
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.90, 0.99))
+    def test_both_entry_points_price_the_measured_half(self, eps):
+        from hours_eoh.land.collective import PER_PARCEL_BASIS, per_parcel_guf
+        from hours_eoh.land.guf import ground_use_fee, per_parcel_term
+        from hours_eoh.scenarios.stationarity import stationarity_at
+        # the ONE term: what the fee charges a serviced parcel
+        assert per_parcel_term(eps) == ground_use_fee(2.5, 0.75, "residential_primary",
+                                                      eps)["parcel_term"] > 0.0
+        r = collective_snapshot(_state(pop=1e6, eps=eps), land_hectares=2.3e6,
+                                guf_parcel_count=4.6e5, guf_cap=None)
+        assert r["land_fee"]["assessed"] == per_parcel_guf(eps, 4.6e5) == per_parcel_term(eps) * 4.6e5
+        assert r["frame"]["guf_basis"] == PER_PARCEL_BASIS and r["frame"]["parcel_count"] == 4.6e5
+        st = stationarity_at(eps, population=1e6, guf_parcels=None, guf_parcel_count=4.6e5)["teh"]
+        assert st["guf_uncapped"] == r["land_fee"]["assessed"] and st["guf_basis"] == PER_PARCEL_BASIS
+        # an empty sample is no fee, whatever the count
+        assert stationarity_at(eps, population=1e6, guf_parcels=[],
+                               guf_parcel_count=4.6e5)["teh"]["guf_uncapped"] == 0.0
+
+    def test_the_half_falls_with_automation_and_never_vanishes(self):
+        from hours_eoh.land.guf import per_parcel_term
+        vals = [per_parcel_term(e) for e in (0.0, 0.40, 0.90, 0.99)]
+        assert all(a > b > 0.0 for a, b in zip(vals, vals[1:]))
+
+    def test_a_negative_count_is_refused(self):
+        from hours_eoh.land.collective import per_parcel_guf
+        with pytest.raises(ValueError):
+            per_parcel_guf(0.4, -1.0)

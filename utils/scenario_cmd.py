@@ -341,7 +341,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
-    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, the fee priced as stationarity prices it (urban sample × the frame's parcels)  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
+    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, the fee's measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED (a lower bound), as stationarity prices it  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
     "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita, --frame, --frame-file]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
@@ -351,7 +351,7 @@ _SCENARIOS: dict[str, str] = {
     "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock, --frame, --frame-file, --adult-capacity]",
-    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard, --frame, --frame-file, --capital-stock, --adult-capacity]",
+    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample (on a frame: its measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED) — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard, --frame, --frame-file, --capital-stock, --adult-capacity]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; on a frame, also the recurring land work the frame's own land needs in its own use mix (`land_use_fractions`; hours, a lower bound); REPORTING ONLY  [--epsilon, --scope, --population, --frame, --frame-file]",
@@ -937,7 +937,6 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
                              "the ecological obligation is keyed to area")
         from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.land.collective import make_urban_collective
         from hours_eoh.scenarios.collective import collective_snapshot
         state = make_economy_state(
             population=pop, epsilon=epsilon,
@@ -946,13 +945,16 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             trust_balance=(resolve_trust_balance(None, pop) if v["trust_derived"]
                            else v["trust_balance"]),
             capital_age_ratio=v["capital_age_ratio"], ecosystem_health=v["ecosystem_health"])
-        # THE FEE FOLLOWS STATIONARITY (author, 2026-10-14): the urban
-        # sample's mean over the frame's parcels — stationarity_report's own
-        # sample, `make_urban_collective()` at its default size in both, so the
-        # size is stated once — and the two report one fee on one frame.
+        # THE FEE'S MEASURED HALF (author, 2026-10-15: "ship the per-parcel
+        # half first"): P(ε) × the frame's private parcels, the area part NOT
+        # SUPPLIED. Until today the urban sample's mean over the count, which
+        # priced every parcel as an urban one. Stationarity prices the same.
+        from hours_eoh.land.collective import default_parcel_count
+        count = (v["parcel_count"] if v["parcel_count"] is not None
+                 else default_parcel_count(pop))
         return _collective_out(collective_snapshot(
             state, land_hectares=land_ha, age_fractions=v["age_fractions"],
-            guf_sample=make_urban_collective(), guf_parcel_count=v["parcel_count"],
+            guf_parcel_count=count,
             available_labor_eoh=v["labor_supply_per_capita"] * pop,
             retired_share=v["retired_share"],
             retiree_vested_fraction=v["retiree_vested_fraction"])), v, lab
@@ -987,10 +989,16 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         if name == "guf_magnitude":
             fs["land_hectares"] = v["land_m2"] / M2_PER_HECTARE
             fs["land_use_fractions"] = v["land_use_fractions"]
-        if name == "stationarity" and v["parcel_count"] is not None:
-            # The land's parcels, FIXED with the land (2026-10-14): the fee's
-            # count. Unstated, stationarity keeps its population-scaled default.
-            fs["guf_parcel_count"] = v["parcel_count"]
+        if name == "stationarity" and (args.frame is not None or args.frame_file is not None):
+            # The land's parcels, FIXED with the land (2026-10-14), priced at
+            # the fee's measured per-parcel half (2026-10-15) — no sample, so
+            # `collective` on this frame reports the same fee. Unstated, the
+            # labelled default count. With NO frame named, stationarity keeps
+            # its urban sample, as `collective` keeps its archetype.
+            from hours_eoh.land.collective import default_parcel_count
+            fs["guf_parcels"] = None
+            fs["guf_parcel_count"] = (v["parcel_count"] if v["parcel_count"] is not None
+                                      else default_parcel_count(pop))
         if name == "ecological_floor":
             land_kind = lab["land_m2"]["kind"]
             if args.hectares_per_capita is not None:

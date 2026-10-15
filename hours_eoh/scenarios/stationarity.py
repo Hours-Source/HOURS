@@ -95,7 +95,9 @@ from hours_eoh.data import (
     SUFF_LEVY_RATE,
     SUFF_NEED_FRACTION,
 )
-from hours_eoh.land.collective import default_parcel_count, make_urban_collective, sample_scaled_guf
+from hours_eoh.land.collective import (
+    PER_PARCEL_BASIS, default_parcel_count, make_urban_collective, per_parcel_guf,
+    sample_scaled_guf)
 from hours_eoh.scenarios.arc_stability import STANDARDS, band_from_flags, stability_at
 from hours_eoh.scenarios.feasibility import (
     capacity_weighted_adult_share,
@@ -239,7 +241,9 @@ def stationarity_at(
             liability — at 10% the required levy roughly doubles.
         levy_rate: Levy as a share of the mint.
         guf_parcels: A parcel SAMPLE that prices the fee. None → no land fee,
-            and `guf` is 0.0.
+            and `guf` is 0.0 — unless `guf_parcel_count` is given, when the
+            fee is its measured per-parcel half (`per_parcel_guf`, 2026-10-15)
+            with the area part NOT SUPPLIED. An empty list is no fee either way.
         guf_parcel_count: Parcels the collective holds. None → population × the
             measured national PRIVATE parcels per person (`default_parcel_count`).
         guf_cap: `payable` (default since 2026-10-15, author: "you can't pay
@@ -338,10 +342,16 @@ def stationarity_at(
     consumption = d3_consumption(by_domain["personal"], r_personal, human["personal"])
 
     guf_uncapped = 0.0
+    guf_basis = "none"
     if guf_parcels:
         count = (default_parcel_count(population)
                  if guf_parcel_count is None else guf_parcel_count)
         guf_uncapped = sample_scaled_guf(guf_parcels, epsilon, count)
+        guf_basis = "sample mean × parcel count"
+    elif guf_parcels is None and guf_parcel_count is not None:
+        # A COUNT AND NO SAMPLE: the fee's measured half (2026-10-15, author).
+        guf_uncapped = per_parcel_guf(epsilon, guf_parcel_count)
+        guf_basis = PER_PARCEL_BASIS
     payable = max(0.0, mint - levy - consumption)
     if guf_cap is None:
         guf = guf_uncapped
@@ -372,6 +382,7 @@ def stationarity_at(
         "guf_uncapped":         guf_uncapped,
         "guf":                  guf,
         "guf_unpaid":           guf_uncapped - guf,
+        "guf_basis":            guf_basis,
         "guf_share_of_mint":    guf_uncapped / mint if mint > 0.0 else 0.0,
         "guf_payable_ceiling":  payable,
         "d3_consumption":       consumption,
@@ -672,7 +683,7 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             "wage, the Trust owes only the guarantee. Configuration: "
             f"guarantee={here['teh']['guarantee_design']!r} at "
             f"need={SUFF_NEED_FRACTION:g}, levy={SUFF_LEVY_RATE:.3%}, land fee "
-            f"{'priced from a parcel sample' if here['teh']['guf'] > 0.0 else 'ABSENT'}"
+            f"{('priced as ' + here['teh']['guf_basis']) if here['teh']['guf'] > 0.0 else 'ABSENT'}"
             f" — the fee is what carries the TEH side at low ε, where almost "
             "nothing is registered to levy."
             + ("" if here["capital_supplied"] else
@@ -692,6 +703,7 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             "need_fraction":    SUFF_NEED_FRACTION,
             "levy_rate":        SUFF_LEVY_RATE,
             "land_fee_priced":  here["teh"]["guf"] > 0.0,
+            "land_fee_basis":   here["teh"]["guf_basis"],
             "personal_base":    here["personal_base"],
         },
         "reporting_only": True,

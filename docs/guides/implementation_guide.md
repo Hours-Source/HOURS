@@ -29,10 +29,11 @@ that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
 it on the shipped urban archetype, or `eoh scenario run collective --frame us`
 (or `--frame-file` with your own) to run it on a frame's land and labour supply,
 every input labelled. A frame carries county parcel COUNTS, not parcels, so on a
-frame the fee is priced as `stationarity` prices it: an urban parcel sample's
-mean fee over the frame's PRIVATE parcel count — the collective does not pay
-itself on parcels it holds (`guf_sample=` and `guf_parcel_count=`
-in the function). That assumes every parcel pays the sample's mean, and the
+frame the fee is its MEASURED per-parcel half, P(ε) × the frame's PRIVATE
+parcel count — the collective does not pay itself on parcels it holds
+(`guf_parcel_count=` with no sample, in the function; `stationarity` prices the
+same). The AREA part is NOT SUPPLIED: it needs a land-class→use mapping and a
+location value, neither of which ships, so the fee is a LOWER bound and the
 verdict says so. On a named frame the land and its parcels stay fixed when
 `--population` moves; state more land in a frame file. The fee ASSESSED is not
 the fee COLLECTED: holders can pay at most what the mint leaves them after the

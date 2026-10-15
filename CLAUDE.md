@@ -96,7 +96,8 @@ hours_eoh/
   land/                Ground Use Fee + stewardship lease mechanics
     guf.py             GUF framework (NLSA) — the fee, Ψ policies, ecosystem-service term, §9 write-down
     collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective();
-                       sample_scaled_guf() / default_parcel_count() — a fee as a sample's mean × a parcel count
+                       sample_scaled_guf() / default_parcel_count() — a fee as a sample's mean × a parcel count;
+                       per_parcel_guf() — the fee's measured half, P(ε) × a count (what a frame prices)
     calibration.py     Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
   reference/           Calibrated example data — pure data, no domain imports
@@ -705,7 +706,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,184 tests passing (1 skipped), mypy clean on 109 source files** (verified
+**6,190 tests passing (1 skipped), mypy clean on 109 source files** (verified
 2026-10-15). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
