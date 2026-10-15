@@ -243,7 +243,7 @@ def food_system_employment() -> dict[str, float]:
 
 def unpaid_food_hours(
     year: int | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> dict[str, float]:
     """
     Measured US unpaid food labour per capita, by stage.
@@ -267,7 +267,7 @@ def unpaid_food_hours(
 
 def conservation_test(
     year: int | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> ConservationReport:
     """
     THE TEST, stage by stage — the handoff's §3.3, done at the granularity the
@@ -293,7 +293,12 @@ def conservation_test(
     year = atus_time_use.latest_year() if year is None else year
     per_worker = hours_per_worker_year(year)
     employment = food_system_employment()
+    # Unpaid ATUS hours convert at the survey year's own Census share unless a
+    # population is supplied; paid BLS employment divides by the national
+    # figure (its 2024 vintage) — 2026-10-15, the vintage gap closed.
     unpaid = unpaid_food_hours(year, total_population)
+    if total_population is None:
+        total_population = REFERENCE_POPULATION_US
     lsms = {
         "production": LSMS_CROP_PRODUCTION_HOURS,
         "processing": LSMS_PROCESSING_HOURS,

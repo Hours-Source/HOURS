@@ -416,13 +416,13 @@ class TestATUSExtract:
 
 class TestObservedHours:
 
-    # 763.8 / 937.3 over the round 335M; 752.6 / 923.5 over the 2024 Census
-    # national figure (2026-10-15). The ATUS hours per person 15+ did not move.
+    # 763.8 / 937.3 over the round 335M; 761.9 / 934.9 at the survey year's own
+    # Census 15+ share (2026-10-15). The ATUS hours per person 15+ did not move.
     def test_unpaid_core_2025(self):
-        assert observed_hours(2025, "unpaid_core") == pytest.approx(752.6, abs=0.5)
+        assert observed_hours(2025, "unpaid_core") == pytest.approx(761.9, abs=0.5)
 
     def test_paid_2025(self):
-        assert observed_hours(2025, "paid") == pytest.approx(923.5, abs=0.5)
+        assert observed_hours(2025, "paid") == pytest.approx(934.9, abs=0.5)
 
     def test_conventions_are_ordered_by_breadth(self):
         core = observed_hours(2025, "unpaid_core")
@@ -464,7 +464,7 @@ class TestIdentityReport:
 
     def test_reports_current_values(self):
         report = identity_report(2025)
-        assert report["observed_hours"] == pytest.approx(752.6, abs=0.5)  # 763.8 at 335M
+        assert report["observed_hours"] == pytest.approx(761.9, abs=0.5)  # 763.8 at 335M
         assert report["floor_priced"] == pytest.approx(899.2, abs=0.5)
         assert report["coverage"] == pytest.approx(0.759, abs=0.001)
 

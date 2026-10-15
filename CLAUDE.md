@@ -711,8 +711,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,208 tests passing (1 skipped), mypy clean on 110 source files** (verified
-2026-10-15). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **129** of 147<!-- /census:state -->,
+**6,212 tests passing (1 skipped), mypy clean on 110 source files** (verified
+2026-10-15). <!-- census:state -->Provenance **373/373**, shadow ratchet **29**, confidence ratchet **129** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

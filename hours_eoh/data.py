@@ -1778,7 +1778,7 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 112.870662
 PERSONAL_EOH_BASE_CLIMATE_FRAME: str = "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)"
 
 # tag: bounded | units: hours/year per working-age-equivalent
-# band: 482–1148 h/yr per working-age-equivalent, from two instruments sharing
+# band: 482–1147 h/yr per working-age-equivalent, from two instruments sharing
 #   no assumption: the supply ceiling (L−R)/w across subsistence parameters, and
 #   the accounting identity B = (M+H−R)/w, whose M comes from a capital
 #   inventory and is B-FREE. RE-DERIVED 2026-09-04 from 390–1006, and with no
@@ -2730,10 +2730,15 @@ KNOWLEDGE_ANCHOR_YEAR: int = 2025  # ATUS year of the knowledge anchor's paid la
 #   rather than typed in five places, carries the rest, amplified by the fixed
 #   point. epsilon*
 #   0.507504 -> 0.518082, 297,779,308.10 -> 280,218,381.73.
+# note: RE-ANCHORED A TWELFTH TIME, +4.18% (2026-10-15, the same day), when
+#   ATUS hours stopped converting to per head over a FIXED national total and
+#   took the survey year's own Census 15+ share (`atus_time_use.hours_per_capita`,
+#   as the labour route already did): the anchor 923.47 -> 934.85 h/person yr,
+#   epsilon* 0.518082 -> 0.508651, 280,218,381.73 -> 291,930,848.76.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 280218381.7253237  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.518082 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 291930848.760496  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.508651 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -3240,6 +3245,12 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 #   Census re-derived KNOWLEDGE_EOH_BASE -5.90%, which trimmed the mint at
 #   epsilon 0.99 and moved the smallest standing-still rate 4.4923% -> 4.5026%;
 #   4.5% then reached 0.98, not 0.99. Rounded up to 4.6%.
+#   THE SAME DAY the ATUS vintage gap closed (hours per head at the survey
+#   year's own Census share), the knowledge base re-derived +4.18%, and the
+#   smallest standing-still rate is 4.4993%: the round-up rule alone would give
+#   4.5% again, with a 0.016% margin. 4.6% is KEPT — the author's decision was
+#   to cover 0.99, and it does, with 2.2% margin. Returning to 4.5% is the
+#   author's call, not this rule's.
 # note: SIZED TO A DESIGN THE REPORTING LAYER NOW RUNS, AND CORE STILL DOES NOT.
 #   Until 2026-09-16 this read "sized to a design the default does not run": V1
 #   was proposed and nothing defaulted to it. `scenarios/stationarity` now
@@ -4555,6 +4566,17 @@ GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.7702100549032265
 # decided_by: adopted 2026-08-31 after bit-exact equality passed on one machine
 #   and failed on another — the assertion was unsound, not the arithmetic.
 SUBDIVISION_FP_TOLERANCE: float = 1e-12
+# tag: convention | units: dimensionless (relative)
+# form: the relative tolerance within which `recovery.maintenance_recovery_schedule`
+#   counts a backlog EQUAL to one year's demand as recovered (backlog <= demand).
+# note: NUMERICS ONLY. On the US frame the backlog after year 1 equals one
+#   year's demand to the last digit (1.5x demand at 150% fulfilment), and the
+#   bare `<=` fell either side by rounding: recovery year 2 -> 1 -> 2 across two
+#   recalibrations that moved neither ratio (2026-10-15). A real miss of 1e-6
+#   still reads as a miss (tests/scenarios/test_recovery.py).
+# decided_by: the same reason as SUBDIVISION_FP_TOLERANCE — an equality decided
+#   by float rounding is unsound, not a finding.
+RECOVERY_FP_TOLERANCE: float = 1e-12
 
 # tag: convention | units: dimensionless (automation level epsilon)
 # form: the epsilon values arc TABLES are reported at. A superset of the four

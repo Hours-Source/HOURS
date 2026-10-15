@@ -134,9 +134,9 @@ class TestUnpaidFoodHours:
 
     def test_matches_the_worked_example(self):
         u = unpaid_food_hours(2025)
-        # 215.6 / 90.4 over the round 335M (2026-10-15: the 2024 Census).
-        assert u["processing"] == pytest.approx(212.5, abs=0.5)
-        assert u["service"] == pytest.approx(89.0, abs=0.5)
+        # 215.6 / 90.4 over the round 335M; at the survey year's Census 15+ share since 2026-10-15.
+        assert u["processing"] == pytest.approx(215.1, abs=0.5)
+        assert u["service"] == pytest.approx(90.1, abs=0.5)
 
 
 class TestConservationTest:

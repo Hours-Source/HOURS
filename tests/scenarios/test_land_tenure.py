@@ -256,9 +256,9 @@ class TestPartitionChangesNothing:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360272490.179342,
-            0.40: 1532131229.7729342,   # measured default age, 2026-10-04
-            0.99: 2316324495.930788,
+            0.0:  1360584822.633613,
+            0.40: 1535636849.239675,   # measured default age, 2026-10-04
+            0.99: 2346722289.210301,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
@@ -360,18 +360,18 @@ class TestPre4eIsReachableAndTheDefaultIsGuf:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360272490.179342,
-            0.40: 1532131229.7729342,   # measured default age, 2026-10-04
-            0.99: 2316324495.930788,
+            0.0:  1360584822.633613,
+            0.40: 1535636849.239675,   # measured default age, 2026-10-04
+            0.99: 2346722289.210301,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want
         # the pre-4f arc is still reachable, and is what every earlier figure used
         # (re-pinned 2026-10-15 with KNOWLEDGE_EOH_BASE's re-derivation)
         legacy = {
-            0.0:  1360274029.7988267,
-            0.40: 1532132769.3924189,   # measured default age, 2026-10-04
-            0.99: 2316326035.550273,
+            0.0:  1360586362.2530978,
+            0.40: 1535638388.8591597,   # measured default age, 2026-10-04
+            0.99: 2346723828.8297853,
         }
         for eps, want in legacy.items():
             got = total_eoh(epsilon=eps,

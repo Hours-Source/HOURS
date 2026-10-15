@@ -50,7 +50,7 @@ class TestTheStatesAreTheFramesLand:
 
 class TestTheMainlandPopulationIsTheCensus:
     """The US frame's people are the 48 + DC's (2026-10-15, author). The
-    national US_REFERENCE_POPULATION is held at 335M for its own change."""
+    national US_REFERENCE_POPULATION is the 2024 Census, below."""
 
     def test_the_constant_is_the_49_units_sum(self):
         from hours_eoh.data import JURISDICTION_FRAMES, US_MAINLAND_POPULATION

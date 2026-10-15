@@ -16,6 +16,7 @@ if deferred too long"; §"Regenerative offset reduces compounded backlog."
 from __future__ import annotations
 
 from hours_eoh.core.eoh_dynamics import eoh_compounding
+from hours_eoh.data import RECOVERY_FP_TOLERANCE
 
 
 def maintenance_recovery_schedule(
@@ -82,8 +83,10 @@ def maintenance_recovery_schedule(
             "compounding_ratio": compounding_ratio,
         })
 
-        # Recovered when backlog ≤ one year of demand (manageable steady state)
-        if deferred <= annual_eoh and recovery_year is None:
+        # Recovered when backlog ≤ one year of demand (manageable steady state),
+        # EQUAL within float rounding counting as ≤ (RECOVERY_FP_TOLERANCE).
+        if (deferred <= annual_eoh * (1.0 + RECOVERY_FP_TOLERANCE)
+                and recovery_year is None):
             recovery_year = year
             break
 

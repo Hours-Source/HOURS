@@ -105,9 +105,9 @@ def shipped_basket() -> list[dict]:
         CARE_CHILDCARE_HOURS_PER_PERSON_YEAR,
     )
 from hours_eoh.scenarios.feasibility import age_weight_mean, feasibility_check
+from hours_eoh.scenarios.knowledge_base import REFERENCE_POPULATION_US  # noqa: F401  (re-exported; tests read it)
 # The US population the ATUS 15+ frame is bridged onto. Imported, not restated:
 # two measured bridges onto the same denominator must be the same number.
-from hours_eoh.scenarios.knowledge_base import REFERENCE_POPULATION_US
 
 #: The counting conventions for "personal-domain labour", carried so the choice
 #: is visible rather than buried. Every one is reported; the default is
@@ -180,7 +180,7 @@ def floor_arc(
 def observed_hours(
     year: int | None = None,
     convention: str = "unpaid_core",
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> float:
     """
     Measured US hours per capita per year under a stated counting convention.
@@ -217,7 +217,7 @@ def identity_report(
     epsilon: float = 0.0,
     convention: str = "unpaid_core",
     basket: list[dict] | None = None,
-    total_population: float = REFERENCE_POPULATION_US,
+    total_population: float | None = None,
 ) -> IdentityReport:
     """
     The three-term identity, with the unidentified terms left unidentified.

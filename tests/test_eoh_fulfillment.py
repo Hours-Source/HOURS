@@ -387,7 +387,7 @@ class TestEohToTehPipeline:
         # MOVED 2026-09-09 by the capital-path decision (reading (e)): an unspecified
         # capital stock resolves along the canonical arc, so the infrastructure term
         # falls at low ε and every ratio computed against total EOH moves with it.
-        # → 0.38318: 2026-10-15: US_REFERENCE_POPULATION closed at the 2024 Census and KNOWLEDGE_EOH_BASE re-derived -5.90%.
+        # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
         assert mid == pytest.approx(0.38318, abs=0.01)
 
     def test_personal_registration_matches_standalone_function(self):
@@ -715,14 +715,14 @@ class TestPipelineScaleOverrides:
         # And 2026-10-04: the default stock age became the measured US one
         # (0.50 → 0.591). ε=0 holds no capital, so its total did not move.
         expected_total = {
-            0.0:  1360272490.179342,
-            0.40: 1532131229.7729342,
-            0.99: 2316324495.930788,
+            0.0:  1360584822.633613,
+            0.40: 1535636849.239675,
+            0.99: 2346722289.210301,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
-        # 2026-10-15: US_REFERENCE_POPULATION closed at the 2024 Census and KNOWLEDGE_EOH_BASE re-derived -5.90%.
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 342585587.52351034
+        # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 343198422.4047774
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """

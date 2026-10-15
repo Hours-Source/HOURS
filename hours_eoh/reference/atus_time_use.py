@@ -357,14 +357,20 @@ def per_capita_scale(year: int, total_population: float) -> float:
 def hours_per_capita(
     year: int,
     codes: tuple[str, ...],
-    total_population: float,
+    total_population: float | None = None,
 ) -> float:
     """
     Hours per capita (ALL ages) per year — the unit every EOH quantity uses.
 
     Governing equation:
 
+        h_capita = hours_per_person_15plus × census_adult_share(year)     (default)
         h_capita = hours_per_person_15plus × population_15_plus / total_population
+
+    The default converts at the SURVEY YEAR's own Census 15+ share — one
+    universe, one year (2026-10-15). A fixed total beside a survey year is the
+    vintage gap this closed: ATUS 2025 read against a 2024 national population.
+    A caller's own `total_population` keeps the explicit form.
 
     units: hours per capita per year.
 
@@ -372,4 +378,6 @@ def hours_per_capita(
     335e6 population → 763.8 h/person·yr. This is the figure comparable to
     `PERSONAL_EOH_BASE`, and limit 4 in the module docstring governs how.
     """
+    if total_population is None:
+        return hours_per_person_15plus(year, codes) * census_adult_share(year)
     return hours_per_person_15plus(year, codes) * per_capita_scale(year, total_population)

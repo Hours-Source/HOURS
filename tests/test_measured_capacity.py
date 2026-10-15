@@ -292,10 +292,10 @@ class TestTheDefaultIsTheMeasuredMedian:
         # adopted per-component split; the ONE test in the suite that moved).
         # Sixth move, fifth time the level pin made one visible.
         # → 0.384 (2026-10-04, the default stock age measured: 0.50 → 0.591).
-        # → 0.382 (2026-10-15, KNOWLEDGE_EOH_BASE re-derived -5.90% with the
+        # → 0.383 (2026-10-15, KNOWLEDGE_EOH_BASE re-derived net -1.96% with the
         # national population at the 2024 Census).
         assert stationary_band(standard="sufficiency")["lower"] == pytest.approx(
-            0.382, abs=5e-4
+            0.383, abs=5e-4
         )
         assert stationary_band(standard="survival")["lower"] == pytest.approx(
             0.0, abs=5e-4
