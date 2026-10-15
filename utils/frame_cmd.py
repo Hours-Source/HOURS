@@ -3,6 +3,7 @@ frame — show the inputs a frame resolves to, and write a frame file to start f
 
   eoh frame show [--frame us | --frame-file PATH|NAME] [overrides] [--format table|json|labels]
   eoh frame shipped [--write]      the shipped frame files (constructed scenarios among them)
+                                   and split files (how a frame divides into a federation)
 
 `table` prints every input with its kind (supplied · measured · derived ·
 default). `json` writes a FRAME FILE: only what the frame states (supplied and
@@ -36,9 +37,9 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     show.add_argument("--format", choices=["table", "json", "labels"], default="table",
                       dest="fmt")
     show.set_defaults(func=_show)
-    sh = sub2.add_parser("shipped", help="List the shipped frame files; --write regenerates them")
+    sh = sub2.add_parser("shipped", help="List the shipped frame and split files; --write regenerates them")
     sh.add_argument("--write", action="store_true",
-                    help="Regenerate every shipped frame from the module that owns it")
+                    help="Regenerate every shipped frame and split from the module that owns it")
     sh.set_defaults(func=_shipped)
 
 
@@ -52,6 +53,11 @@ def _shipped(args: argparse.Namespace) -> None:
         body = src()
         print(f"{name}  — {body.get('note', '')}")
         print(f"    run: --frame-file {name}")
+    from utils.frame_inputs import shipped_split_sources
+    for name, src in shipped_split_sources().items():
+        body = src()
+        print(f"{name}  (split, {len(body['collectives'])} collectives) — {body.get('note', '')}")
+        print(f"    run: coasean federation --frame {body.get('frame', 'NAME')} --split {name}")
 
 
 def rows_for(args: argparse.Namespace) -> tuple[dict, dict]:

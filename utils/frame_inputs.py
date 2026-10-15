@@ -279,13 +279,101 @@ def frame_file_path(name_or_path: str) -> Path:
 
 
 def write_shipped_frames() -> list[Path]:
-    """Regenerate every shipped frame file from its source."""
-    SHIPPED_FRAMES_DIR.mkdir(parents=True, exist_ok=True)
+    """Regenerate every shipped frame and split file from its source."""
     out = []
-    for name, src in shipped_frame_sources().items():
-        path = SHIPPED_FRAMES_DIR / f"{name}.json"
-        path.write_text(json.dumps(src(), indent=2) + "\n", encoding="utf-8")
-        out.append(path)
+    for d, sources in ((SHIPPED_FRAMES_DIR, shipped_frame_sources()),
+                       (SHIPPED_SPLITS_DIR, shipped_split_sources())):
+        d.mkdir(parents=True, exist_ok=True)
+        for name, src in sources.items():
+            path = d / f"{name}.json"
+            path.write_text(json.dumps(src(), indent=2) + "\n", encoding="utf-8")
+            out.append(path)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# splits — how a frame divides into a federation's collectives
+# ---------------------------------------------------------------------------
+
+#: SHIPPED SPLIT FILES (2026-10-15, author: a collectives file for the
+#: federation split, so it is not typed at the CLI). A split states how a
+#: frame DIVIDES — each collective's population, land and parcels as WEIGHTS —
+#: and the frame states how much there is, so the units always sum to the
+#: frame and a moved --population moves every unit's people, not its land.
+SHIPPED_SPLITS_DIR = SHIPPED_FRAMES_DIR.parent / "splits"
+
+#: The weights a split's collective states; `id` and `label` name it.
+SPLIT_WEIGHTS = ("population", "land_hectares", "parcel_count")
+
+
+def shipped_split_sources() -> dict[str, Any]:
+    """name → the function whose output IS that shipped split file."""
+    from hours_eoh.reference.states import us_state_split
+    return {"us_states": us_state_split}
+
+
+def load_split(name_or_path: str) -> dict[str, Any]:
+    """Read and validate a split file (a path, else a shipped split by name).
+    Refuses, never patches."""
+    p = Path(name_or_path)
+    if not p.exists():
+        p = SHIPPED_SPLITS_DIR / f"{name_or_path}.json"
+        if not p.exists():
+            raise SystemExit(f"{name_or_path}: no such file, and no shipped split by that "
+                             f"name (shipped: {', '.join(sorted(shipped_split_sources()))})")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    units = data.get("collectives") if isinstance(data, dict) else None
+    if not isinstance(units, list) or not units:
+        raise SystemExit(f"{p}: a split file is an object with a non-empty `collectives` list")
+    unknown = set(data) - {"name", "note", "frame", "collectives"}
+    if unknown:
+        raise SystemExit(f"{p}: unknown keys {sorted(unknown)}")
+    if "frame" in data and data["frame"] not in FRAMES:
+        raise SystemExit(f"{p}: frame must be one of {sorted(FRAMES)}")
+    for u in units:
+        if not isinstance(u, dict) or set(u) - {"id", "label", *SPLIT_WEIGHTS}:
+            raise SystemExit(f"{p}: a collective states id, label and {', '.join(SPLIT_WEIGHTS)}")
+        for k in SPLIT_WEIGHTS:
+            if not (isinstance(u.get(k), (int, float)) and u[k] > 0):
+                raise SystemExit(f"{p}: collective {u.get('id')!r}: {k} must be a positive number")
+    ids = [str(u.get("id")) for u in units]
+    if len(set(ids)) != len(ids):
+        raise SystemExit(f"{p}: collective ids must be unique")
+    return data
+
+
+def even_split(n: int) -> dict[str, Any]:
+    """N equal collectives — what `make_federation` divides, as a split."""
+    return {"name": f"even_{n}", "collectives": [
+        {"id": str(i), "label": f"1/{n}", **dict.fromkeys(SPLIT_WEIGHTS, 1.0)} for i in range(n)]}
+
+
+def split_frame(v: dict[str, Any], split: dict[str, Any]) -> list[dict[str, Any]]:
+    """
+    Each collective's frame values: the frame's `v` with its population, land
+    and parcels replaced by the collective's share of them, and its capital
+    and Trust by its POPULATION share (capital by population, author
+    2026-10-15: BEA publishes no state stock). Every other input — age mix,
+    labour capacity, stock age, health, retirement, ε — is the frame's.
+
+    A derived capital or Trust stays derived: both are per head × population,
+    so each unit re-derives its own at its own population.
+    """
+    from hours_eoh.land.collective import default_parcel_count
+    units = split["collectives"]
+    totals = {k: sum(float(u[k]) for u in units) for k in SPLIT_WEIGHTS}
+    frame_parcels = (v["parcel_count"] if v["parcel_count"] is not None
+                     else default_parcel_count(v["population"]))
+    out = []
+    for u in units:
+        s = {k: float(u[k]) / totals[k] for k in SPLIT_WEIGHTS}
+        out.append({**v, "id": str(u["id"]), "label": str(u.get("label", u["id"])),
+                    "shares": s,
+                    "population": v["population"] * s["population"],
+                    "land_m2": v["land_m2"] * s["land_hectares"],
+                    "parcel_count": frame_parcels * s["parcel_count"],
+                    "capital_teh": v["capital_teh"] * s["population"],
+                    "trust_balance": v["trust_balance"] * s["population"]})
     return out
 
 
@@ -514,7 +602,6 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
     # THE LAND'S USE MIX (2026-10-15, author: a land distribution per frame, as
     # the age mix is, and a default named when one is used). Shares, so they
     # apply to whatever land the frame states.
-    from hours_eoh.scenarios.guf_magnitude import land_use_shares
     if "land_use_fractions" in ff:
         v["land_use_fractions"] = {k: float(x) for k, x in ff["land_use_fractions"].items()}
         lab["land_use_fractions"] = label("supplied", src_ff)

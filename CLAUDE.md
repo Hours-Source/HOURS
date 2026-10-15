@@ -266,7 +266,9 @@ utils/                 Presentation layer — CLI and research helpers (see READ
                        so). --frame us reads the repo's US data; --frame-file is an
                        institution's own, or a SHIPPED frame by name (reference/data/frames/,
                        each generated from its owner — `indust_overbuilt`, a constructed
-                       bound-testing frame). Shared by `corridor band`, `scenario run`, `frame`
+                       bound-testing frame). Shared by `corridor band`, `scenario run`, `frame`.
+                       A SPLIT file (reference/data/splits/) divides a frame into a
+                       federation's collectives: `coasean federation --frame us --split us_states`
   explorers/           In-browser explorers published with the docs at tools/<name>/ — a
                        template + a builder that embeds the shipped data and data.py
                        constants, and REFUSES unless the repo's own functions reproduce
@@ -709,7 +711,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,193 tests passing (1 skipped), mypy clean on 109 source files** (verified
+**6,206 tests passing (1 skipped), mypy clean on 110 source files** (verified
 2026-10-15). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

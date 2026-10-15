@@ -769,6 +769,43 @@ def _collective_out(rep: dict) -> dict:
     return out
 
 
+def collective_on_frame(v: dict, epsilon: float, land_ha: float | None) -> dict:
+    """
+    `collective_snapshot` on a resolved frame `v` — THE ENTRY POINT ON A FRAME
+    (2026-10-14), and each member of a federation split (`coasean federation
+    --split`, 2026-10-15), so one collective and a federation's units run the
+    same path. The frame's land, never the archetype's parcels; its labour
+    supply as the hours the mint may pay; its age mix to both halves. A frame
+    that states no land has no ecological frame, and is refused rather than
+    given 1.65 ha a head.
+    """
+    if land_ha is None:
+        raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
+                         "the ecological obligation is keyed to area")
+    from hours_eoh.core.simulation import make_economy_state
+    from hours_eoh.land.collective import default_parcel_count
+    from hours_eoh.scenarios.collective import collective_snapshot
+    pop = v["population"]
+    state = make_economy_state(
+        population=pop, epsilon=epsilon,
+        capital_stock_teh=(resolve_capital_stock(None, epsilon, population=pop)
+                           if v["capital_derived"] else v["capital_teh"]),
+        trust_balance=(resolve_trust_balance(None, pop) if v["trust_derived"]
+                       else v["trust_balance"]),
+        capital_age_ratio=v["capital_age_ratio"], ecosystem_health=v["ecosystem_health"])
+    # THE FEE'S MEASURED HALF (author, 2026-10-15: "ship the per-parcel half
+    # first"): P(ε) × the frame's private parcels, the area part NOT SUPPLIED.
+    # Until then the urban sample's mean over the count, which priced every
+    # parcel as an urban one. Stationarity prices the same.
+    count = v["parcel_count"] if v["parcel_count"] is not None else default_parcel_count(pop)
+    return collective_snapshot(
+        state, land_hectares=land_ha, age_fractions=v["age_fractions"],
+        guf_parcel_count=count,
+        available_labor_eoh=v["labor_supply_per_capita"] * pop,
+        retired_share=v["retired_share"],
+        retiree_vested_fraction=v["retiree_vested_fraction"])
+
+
 #: The scenarios that read --ecosystem-health-before/after (2026-10-14): the
 #: five shocks. Every other scenario printed identical figures with and
 #: without them — `overbuild --frame us` among them — because neither flag is
@@ -933,35 +970,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         tout["summary_table"] = tv["rows"]
         return tout, v, lab
     if name == "collective":
-        # THE ENTRY POINT ON A FRAME (2026-10-14). The frame's land, never the
-        # archetype's parcels; its labour supply as the hours the mint may
-        # pay; its age mix to both halves. A frame that states no land has no
-        # ecological frame, and is refused rather than given 1.65 ha a head.
-        if land_ha is None:
-            raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
-                             "the ecological obligation is keyed to area")
-        from hours_eoh.core.simulation import make_economy_state
-        from hours_eoh.scenarios.collective import collective_snapshot
-        state = make_economy_state(
-            population=pop, epsilon=epsilon,
-            capital_stock_teh=(resolve_capital_stock(None, epsilon, population=pop)
-                               if v["capital_derived"] else v["capital_teh"]),
-            trust_balance=(resolve_trust_balance(None, pop) if v["trust_derived"]
-                           else v["trust_balance"]),
-            capital_age_ratio=v["capital_age_ratio"], ecosystem_health=v["ecosystem_health"])
-        # THE FEE'S MEASURED HALF (author, 2026-10-15: "ship the per-parcel
-        # half first"): P(ε) × the frame's private parcels, the area part NOT
-        # SUPPLIED. Until today the urban sample's mean over the count, which
-        # priced every parcel as an urban one. Stationarity prices the same.
-        from hours_eoh.land.collective import default_parcel_count
-        count = (v["parcel_count"] if v["parcel_count"] is not None
-                 else default_parcel_count(pop))
-        return _collective_out(collective_snapshot(
-            state, land_hectares=land_ha, age_fractions=v["age_fractions"],
-            guf_parcel_count=count,
-            available_labor_eoh=v["labor_supply_per_capita"] * pop,
-            retired_share=v["retired_share"],
-            retiree_vested_fraction=v["retiree_vested_fraction"])), v, lab
+        return _collective_out(collective_on_frame(v, epsilon, land_ha)), v, lab
     if name in _BRANCH_ON_FRAME:
         from utils.frame_inputs import label
         fs: dict[str, Any] = {}

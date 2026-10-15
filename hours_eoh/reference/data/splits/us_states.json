@@ -1,0 +1,350 @@
+{
+  "name": "us_states",
+  "frame": "us",
+  "note": "The contiguous 48 and DC, by state. population: Census Bureau, Population Division, SCPRC-EST2025-18+POP: resident population, July 1, 2025. land_hectares: USDA ERS Major Land Uses 2022, summary tables 1 and 5 (by state), total land. parcel_count: the county parcel census's PRIVATE parcels, unknown owner types split like each state's known ones. Each is a WEIGHT: a unit runs on its share of the frame's population, land and parcels, and on its population share of the frame's capital and Trust. Age mix, labour capacity, stock age, ecosystem health and epsilon are the frame's: none ships by state.",
+  "collectives": [
+    {
+      "id": "01",
+      "label": "Alabama",
+      "population": 5193088,
+      "land_hectares": 13117075.7,
+      "parcel_count": 3231630.2
+    },
+    {
+      "id": "04",
+      "label": "Arizona",
+      "population": 7623818,
+      "land_hectares": 29436024.2,
+      "parcel_count": 3426989.5
+    },
+    {
+      "id": "05",
+      "label": "Arkansas",
+      "population": 3114791,
+      "land_hectares": 13465510.1,
+      "parcel_count": 2067511.8
+    },
+    {
+      "id": "06",
+      "label": "California",
+      "population": 39355309,
+      "land_hectares": 40367392.8,
+      "parcel_count": 12961416.1
+    },
+    {
+      "id": "08",
+      "label": "Colorado",
+      "population": 6012561,
+      "land_hectares": 26841584.6,
+      "parcel_count": 2850243.1
+    },
+    {
+      "id": "09",
+      "label": "Connecticut",
+      "population": 3688496,
+      "land_hectares": 1254525.5,
+      "parcel_count": 1298673.6
+    },
+    {
+      "id": "10",
+      "label": "Delaware",
+      "population": 1059952,
+      "land_hectares": 504238.3,
+      "parcel_count": 478633.5
+    },
+    {
+      "id": "11",
+      "label": "District of Columbia",
+      "population": 693645,
+      "land_hectares": 15782.7,
+      "parcel_count": 226730.2
+    },
+    {
+      "id": "12",
+      "label": "Florida",
+      "population": 23462518,
+      "land_hectares": 13895690.9,
+      "parcel_count": 11047431.6
+    },
+    {
+      "id": "13",
+      "label": "Georgia",
+      "population": 11302748,
+      "land_hectares": 14948682.9,
+      "parcel_count": 4729372.3
+    },
+    {
+      "id": "16",
+      "label": "Idaho",
+      "population": 2029733,
+      "land_hectares": 21404633.0,
+      "parcel_count": 1080231.0
+    },
+    {
+      "id": "17",
+      "label": "Illinois",
+      "population": 12719141,
+      "land_hectares": 14378076.2,
+      "parcel_count": 5867635.2
+    },
+    {
+      "id": "18",
+      "label": "Indiana",
+      "population": 6973333,
+      "land_hectares": 9279037.1,
+      "parcel_count": 3661429.1
+    },
+    {
+      "id": "19",
+      "label": "Iowa",
+      "population": 3238387,
+      "land_hectares": 14465488.3,
+      "parcel_count": 2453894.9
+    },
+    {
+      "id": "20",
+      "label": "Kansas",
+      "population": 2977220,
+      "land_hectares": 21174771.5,
+      "parcel_count": 1666183.9
+    },
+    {
+      "id": "21",
+      "label": "Kentucky",
+      "population": 4606864,
+      "land_hectares": 10228429.6,
+      "parcel_count": 2301991.0
+    },
+    {
+      "id": "22",
+      "label": "Louisiana",
+      "population": 4618189,
+      "land_hectares": 11191176.8,
+      "parcel_count": 2785659.4
+    },
+    {
+      "id": "23",
+      "label": "Maine",
+      "population": 1414874,
+      "land_hectares": 7988899.3,
+      "parcel_count": 721828.2
+    },
+    {
+      "id": "24",
+      "label": "Maryland",
+      "population": 6265347,
+      "land_hectares": 2514716.6,
+      "parcel_count": 2461569.0
+    },
+    {
+      "id": "25",
+      "label": "Massachusetts",
+      "population": 7154084,
+      "land_hectares": 2020595.4,
+      "parcel_count": 2438562.3
+    },
+    {
+      "id": "26",
+      "label": "Michigan",
+      "population": 10127884,
+      "land_hectares": 14661356.1,
+      "parcel_count": 4518850.4
+    },
+    {
+      "id": "27",
+      "label": "Minnesota",
+      "population": 5830405,
+      "land_hectares": 20623185.0,
+      "parcel_count": 3073912.4
+    },
+    {
+      "id": "28",
+      "label": "Mississippi",
+      "population": 2954160,
+      "land_hectares": 12153519.2,
+      "parcel_count": 1951021.6
+    },
+    {
+      "id": "29",
+      "label": "Missouri",
+      "population": 6270541,
+      "land_hectares": 17805763.6,
+      "parcel_count": 3329553.7
+    },
+    {
+      "id": "30",
+      "label": "Montana",
+      "population": 1144694,
+      "land_hectares": 37697276.9,
+      "parcel_count": 835693.0
+    },
+    {
+      "id": "31",
+      "label": "Nebraska",
+      "population": 2018006,
+      "land_hectares": 19895964.9,
+      "parcel_count": 1123297.7
+    },
+    {
+      "id": "32",
+      "label": "Nevada",
+      "population": 3282188,
+      "land_hectares": 28453852.2,
+      "parcel_count": 1379505.1
+    },
+    {
+      "id": "33",
+      "label": "New Hampshire",
+      "population": 1415342,
+      "land_hectares": 2319253.4,
+      "parcel_count": 652917.9
+    },
+    {
+      "id": "34",
+      "label": "New Jersey",
+      "population": 9548215,
+      "land_hectares": 1904450.6,
+      "parcel_count": 3361273.0
+    },
+    {
+      "id": "35",
+      "label": "New Mexico",
+      "population": 2125498,
+      "land_hectares": 31420602.6,
+      "parcel_count": 1514544.2
+    },
+    {
+      "id": "36",
+      "label": "New York",
+      "population": 20002427,
+      "land_hectares": 12205319.0,
+      "parcel_count": 5584077.3
+    },
+    {
+      "id": "37",
+      "label": "North Carolina",
+      "population": 11197968,
+      "land_hectares": 12593007.8,
+      "parcel_count": 5780136.0
+    },
+    {
+      "id": "38",
+      "label": "North Dakota",
+      "population": 799358,
+      "land_hectares": 17869703.9,
+      "parcel_count": 708381.8
+    },
+    {
+      "id": "39",
+      "label": "Ohio",
+      "population": 11900510,
+      "land_hectares": 10582124.9,
+      "parcel_count": 6316108.9
+    },
+    {
+      "id": "40",
+      "label": "Oklahoma",
+      "population": 4123288,
+      "land_hectares": 17766509.1,
+      "parcel_count": 2355112.9
+    },
+    {
+      "id": "41",
+      "label": "Oregon",
+      "population": 4273586,
+      "land_hectares": 24863076.5,
+      "parcel_count": 1843898.2
+    },
+    {
+      "id": "42",
+      "label": "Pennsylvania",
+      "population": 13059432,
+      "land_hectares": 11588982.7,
+      "parcel_count": 5905103.4
+    },
+    {
+      "id": "44",
+      "label": "Rhode Island",
+      "population": 1114521,
+      "land_hectares": 267901.9,
+      "parcel_count": 407489.1
+    },
+    {
+      "id": "45",
+      "label": "South Carolina",
+      "population": 5570274,
+      "land_hectares": 7786556.4,
+      "parcel_count": 2917875.2
+    },
+    {
+      "id": "46",
+      "label": "South Dakota",
+      "population": 935094,
+      "land_hectares": 19634133.3,
+      "parcel_count": 727952.3
+    },
+    {
+      "id": "47",
+      "label": "Tennessee",
+      "population": 7315076,
+      "land_hectares": 10679249.4,
+      "parcel_count": 3501830.3
+    },
+    {
+      "id": "48",
+      "label": "Texas",
+      "population": 31709821,
+      "land_hectares": 67667890.9,
+      "parcel_count": 14080852.5
+    },
+    {
+      "id": "49",
+      "label": "Utah",
+      "population": 3538904,
+      "land_hectares": 21335431.7,
+      "parcel_count": 1525194.3
+    },
+    {
+      "id": "50",
+      "label": "Vermont",
+      "population": 644663,
+      "land_hectares": 2387645.3,
+      "parcel_count": 301527.7
+    },
+    {
+      "id": "51",
+      "label": "Virginia",
+      "population": 8880107,
+      "land_hectares": 10225596.8,
+      "parcel_count": 4222994.3
+    },
+    {
+      "id": "53",
+      "label": "Washington",
+      "population": 8001020,
+      "land_hectares": 17212089.7,
+      "parcel_count": 3186229.1
+    },
+    {
+      "id": "54",
+      "label": "West Virginia",
+      "population": 1766147,
+      "land_hectares": 6226493.3,
+      "parcel_count": 1378284.3
+    },
+    {
+      "id": "55",
+      "label": "Wisconsin",
+      "population": 5972787,
+      "land_hectares": 14028832.5,
+      "parcel_count": 3494190.9
+    },
+    {
+      "id": "56",
+      "label": "Wyoming",
+      "population": 588753,
+      "land_hectares": 25145951.8,
+      "parcel_count": 315650.4
+    }
+  ]
+}

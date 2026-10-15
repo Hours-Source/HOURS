@@ -517,8 +517,28 @@ Research-tier federation mechanics. `--format table|json` goes before the subcom
 python3 utils/eoh_cli.py coasean n1-check                  # N=1 regression anchor
 python3 utils/eoh_cli.py coasean count                     # emergent N(ε) across the arc
 python3 utils/eoh_cli.py coasean federation --epsilon 0.4  # per-collective snapshot
+python3 utils/eoh_cli.py coasean federation --frame us --split us_states  # the US frame by state
 python3 utils/eoh_cli.py coasean simulate --periods 10     # multi-period arc
 ```
+
+### coasean federation on a frame
+
+Without a frame, `federation` divides the reference economy into N(ε) equal
+collectives and charges no land fee. On `--frame` / `--frame-file` it divides
+the FRAME instead. Each collective runs the same path as `scenario run
+collective` on that frame: its land, its labour supply, and the per-parcel land
+fee, capped at what its own mint can pay. A total row and the whole frame run
+as one collective are printed beside the collectives.
+
+`--split NAME|PATH` names how the frame divides. `us_states` ships, holding the
+48 states and DC. Without `--split`, the frame divides into N(ε) equal shares,
+or `--n` of them. A split file is JSON. Each entry in its `collectives` list
+gives an `id`, an optional `label`, and positive `population`,
+`land_hectares` and `parcel_count`. Those three are WEIGHTS: each collective
+gets its share of the frame's totals, and its population share of the frame's
+capital and Trust. Every other input (age mix, labour capacity, stock age,
+ε) is the frame's. Because the fee cap applies collective by collective, the
+collected fees need not add up to the whole frame's.
 
 ### coasean simulate flags
 

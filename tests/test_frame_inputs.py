@@ -568,6 +568,60 @@ class TestTheRetirementRegisterByCLI:
         assert a["guarantee_before"] == pytest.approx(b["guarantee_before"])
 
 
+def _federation(*flags: str) -> dict:
+    buf = io.StringIO()
+    a = _args("coasean", "--format", "json", "federation", *flags)
+    with redirect_stdout(buf):
+        a.func(a)
+    return json.loads(buf.getvalue())
+
+
+class TestTheFrameDividesIntoItsCollectives:
+    """`coasean federation --frame us --split us_states` (2026-10-15): each
+    state at its share of the frame, through the frame's own path."""
+
+    _ADDS = ("population", "parcel_count", "teh_created", "guf_assessed",
+             "guf_relocated_obligation")
+
+    @pytest.mark.parametrize("eps", ["0", "0.40", "0.90", "0.99"])
+    def test_the_split_adds_up_to_the_frame_and_differs_within(self, eps, tmp_path: Path):
+        whole = _federation("--frame", "us", "--epsilon", eps, "--split", "us_states")
+        for k in self._ADDS:
+            assert whole["total"][k] == pytest.approx(whole["frame_as_one"][k], rel=1e-9), k
+        # A unit's own land and parcels reach its run: the fee per head differs.
+        per_head = [r["guf_assessed"] / r["population"] for r in whole["collectives"]]
+        assert max(per_head) > 1.5 * min(per_head) > 0.0
+        one = tmp_path / "one.json"
+        one.write_text(json.dumps({"collectives": [
+            {"id": "us", "population": 1, "land_hectares": 1, "parcel_count": 1}]}))
+        alone = _federation("--frame", "us", "--epsilon", eps, "--split", str(one))
+        assert ({k: v for k, v in alone["collectives"][0].items() if k not in ("id", "label")}
+                == {k: v for k, v in alone["frame_as_one"].items() if k not in ("id", "label")})
+
+    def test_the_cap_binds_per_collective(self):
+        """At 3M people on US land the land-rich states cannot pay their fee
+        while the whole frame can: a min does not add, so the split collects
+        less. Reported, not reconciled."""
+        r = _federation("--frame", "us", "--epsilon", "0.40", "--split", "us_states",
+                        "--population", "3000000")
+        assert r["frame_as_one"]["guf_unpaid"] == 0.0
+        assert any(c["guf_unpaid"] > 0.0 for c in r["collectives"])
+        assert r["total"]["guf_collected"] < r["frame_as_one"]["guf_collected"]
+
+    @pytest.mark.parametrize("flags", [
+        ("--split", "us_states"),                                  # no frame
+        ("--frame", "us", "--split", "us_states", "--n", "3"),     # two counts
+        ("--frame-file", "indust_overbuilt", "--split", "us_states"),  # another frame's
+        ("--frame", "us", "--split", "BAD"),                       # a bad file
+    ])
+    def test_refusals(self, flags, tmp_path: Path):
+        bad = tmp_path / "bad.json"
+        bad.write_text(json.dumps({"collectives": [{"id": "a", "population": 0,
+                                                    "land_hectares": 1, "parcel_count": 1}]}))
+        with pytest.raises(SystemExit):
+            _federation(*[str(bad) if f == "BAD" else f for f in flags])
+
+
 class TestShippedAndConstructedFrames:
     """Frame files are the one intake (author, 2026-10-04): any country's, or a
     constructed scenario's — fictitious on purpose, to test bounds and
@@ -576,9 +630,12 @@ class TestShippedAndConstructedFrames:
     def test_every_shipped_file_is_its_source(self):
         """The census pattern: the JSON is regenerated, never hand-typed, so the
         file cannot drift from the constants it states."""
-        from utils.frame_inputs import SHIPPED_FRAMES_DIR, shipped_frame_sources
-        for name, src in shipped_frame_sources().items():
-            assert json.loads((SHIPPED_FRAMES_DIR / f"{name}.json").read_text()) == src()
+        from utils.frame_inputs import (SHIPPED_FRAMES_DIR, SHIPPED_SPLITS_DIR,
+                                        shipped_frame_sources, shipped_split_sources)
+        for d, sources in ((SHIPPED_FRAMES_DIR, shipped_frame_sources()),
+                           (SHIPPED_SPLITS_DIR, shipped_split_sources())):
+            for name, src in sources.items():
+                assert json.loads((d / f"{name}.json").read_text()) == src(), name
 
     def test_a_shipped_frame_is_found_by_name_and_reads_supplied(self):
         lab = _labels("--frame-file", "indust_overbuilt")

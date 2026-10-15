@@ -18,6 +18,7 @@ import json
 import sys
 
 from utils.formatters import table, fmt_float, fmt_eps, green, yellow, red
+from utils.frame_inputs import add_frame_arguments, frame_flags_given
 
 
 def _banner(args: argparse.Namespace, text: str) -> None:
@@ -47,11 +48,26 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
     cnt.set_defaults(func=run_count)
 
     # federation
-    fed = csub.add_parser("federation", help="Per-collective snapshot at a given ε")
-    fed.add_argument("--epsilon", type=float, default=0.40)
-    fed.add_argument("--population", type=float, default=REFERENCE_FRAME_POPULATION)
+    fed = csub.add_parser(
+        "federation", help="Per-collective snapshot at a given ε",
+        description="Without a frame: N equal collectives of the reference economy "
+                    "(make_federation), no land fee charged. On --frame/--frame-file: "
+                    "the frame divided by --split (or N(ε) equal shares), each "
+                    "collective run as `scenario run collective` runs the frame — "
+                    "its land, labour supply and the per-parcel land fee, capped at "
+                    "what its mint can pay")
+    fed.add_argument("--epsilon", type=float, default=None,
+                     help="Default: the frame's reading on a frame, else 0.40")
+    fed.add_argument("--population", type=float, default=None,
+                     help="Default: the frame's, else REFERENCE_FRAME_POPULATION. On a "
+                          "frame it moves every collective's people, not its land")
     fed.add_argument("--n", type=int, default=None,
-                     help="Override collective count (default: emergent N(ε))")
+                     help="Override collective count (default: emergent N(ε)); "
+                          "refused with --split, which states its own")
+    fed.add_argument("--split", default=None, metavar="NAME|PATH",
+                     help="How the frame divides: a split file, or a shipped one by name "
+                          "(us_states = the contiguous 48 and DC). Needs a frame")
+    add_frame_arguments(fed)
     fed.set_defaults(func=run_federation)
 
     # simulate
@@ -268,7 +284,18 @@ def run_federation(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import make_federation, coasean_collective_count
     from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 
+    if args.frame is not None or args.frame_file is not None:
+        return _run_federation_on_frame(args)
+    if args.split is not None or frame_flags_given(args):
+        raise SystemExit("--split and the frame flags need --frame or --frame-file: "
+                         "a split divides a frame")
+    args.epsilon = 0.40 if args.epsilon is None else args.epsilon
+    args.population = (REFERENCE_FRAME_POPULATION if args.population is None
+                       else args.population)
+
     _banner(args, "EXPERIMENTAL — research/coasean.py\n")
+    _banner(args, "No land fee is charged on this path (make_federation); "
+                  "--frame runs each collective with it.\n")
 
     eps = args.epsilon
     n = args.n
@@ -313,3 +340,129 @@ def run_federation(args: argparse.Namespace) -> None:
             fmt_float(r["surplus"]),
         ])
     print(table(headers, rows))
+
+
+def _run_federation_on_frame(args: argparse.Namespace) -> None:
+    """
+    THE FRAME, DIVIDED (2026-10-15). Each collective is the frame's values at
+    its share (`frame_inputs.split_frame`) run through `collective_on_frame` —
+    the path `scenario run collective` takes for the whole frame, so the land
+    fee, its payable cap and the labour supply are the same mechanisms. The
+    whole frame is run once more beside them: what is created, owed and
+    assessed adds up across the split; what is COLLECTED need not, because the
+    cap binds per collective (a min does not add), and the difference is
+    reported, not reconciled.
+    """
+    from hours_eoh.data import M2_PER_HECTARE
+    from hours_eoh.research.coasean import coasean_collective_count
+    from hours_eoh.research.exchange import Collective, CollectiveFrame
+    from utils.frame_inputs import (even_split, labelled_inputs, load_split,
+                                    resolve_epsilon, resolve_inputs, split_frame)
+    from utils.scenario_cmd import collective_on_frame
+
+    if args.n is not None and args.n < 1:
+        raise SystemExit("--n must be at least 1")
+    if args.split is not None and args.n is not None:
+        raise SystemExit("--n and --split both set the collective count; a split "
+                         "states its own")
+    eps = resolve_epsilon(args)
+    e = eps["value"]
+    v, lab = resolve_inputs(args, e)
+    if lab["land_m2"]["kind"] not in ("supplied", "measured"):
+        raise SystemExit("a federation on a frame needs the frame's LAND: state "
+                         "land_hectares in the frame file")
+    split = (load_split(args.split) if args.split is not None
+             else even_split(args.n or coasean_collective_count(e)))
+    if split.get("frame") and split["frame"] != args.frame:
+        raise SystemExit(f"split {split.get('name')!r} divides --frame {split['frame']}; "
+                         f"this run is on {args.frame or 'a frame file'}")
+
+    def row(u: dict, rep: dict) -> dict:
+        c = Collective(
+            frame=CollectiveFrame(
+                collective_id=len(rows), population=u["population"],
+                land_hectares=u["land_m2"] / M2_PER_HECTARE,
+                capital_stock_teh=float(rep["frame"]["capital_stock_teh"]),
+                trust_balance=float(rep["fiscal"]["trust"]["trust_start"]),
+                capital_age_ratio=u["capital_age_ratio"],
+                ecosystem_health=u["ecosystem_health"], label=u.get("label", "")),
+            epsilon=e, pipeline=rep["pipeline"], fiscal=rep["fiscal"])
+        fee = rep["land_fee"]
+        return {"id": u.get("id", "frame"), "label": u.get("label", "the whole frame"),
+                "population": u["population"],
+                "hectares_per_capita": rep["frame"]["hectares_per_capita"],
+                "parcel_count": rep["frame"]["parcel_count"],
+                "teh_created": c.teh_created, "reserve": c.reserve,
+                "guf_assessed": fee["assessed"], "guf_collected": fee["collected"],
+                "guf_unpaid": fee["unpaid"],
+                # What the unit's LAND moves: the ecological work relocated to
+                # the fee. The fee's area part is NOT SUPPLIED, so land reaches
+                # no fee, mint or surplus figure yet.
+                "guf_relocated_obligation": rep["guf"]["obligation"],
+                "solvent": bool(rep["fiscal"]["solvent"]),
+                "surplus": rep["fiscal"]["trust"]["surplus_deficit"]}
+
+    rows: list[dict] = []
+
+    def run(fv: dict, at: float) -> tuple[list[dict], dict]:
+        rows.clear()
+        for u in split_frame(fv, split):
+            rows.append(row(u, collective_on_frame(u, at, u["land_m2"] / M2_PER_HECTARE)))
+        return list(rows), row(fv, collective_on_frame(fv, at, fv["land_m2"] / M2_PER_HECTARE))
+
+    def outcome(at: float, fv: dict) -> dict:
+        units, one = run(fv, at)
+        return {"solvent": sum(r["solvent"] for r in units),
+                "collectives_unpaid": sum(r["guf_unpaid"] > 0.0 for r in units),
+                "guf_collected": sum(r["guf_collected"] for r in units),
+                "frame_as_one_guf_collected": one["guf_collected"]}
+
+    # BOTH ENDS, AS `scenario run` DOES: the frame's ε reading and a derived
+    # capital rate are ranges, and the labels say their ends are re-run.
+    across_eps = ({f"{x:.3f}": outcome(x, v) for x in (eps["low"], eps["high"])}
+                  if eps["high"] > eps["low"] else None)
+    band = v.get("capital_rate_band")
+    across_cap = ({f"{r:.2f}": outcome(e, resolve_inputs(
+        argparse.Namespace(**{**vars(args), "_capital_rate": r}), e)[0])
+        for r in (band[0], band[2])} if band else None)
+    rows, whole = run(v, e)
+    summed = ("population", "parcel_count", "teh_created", "reserve", "guf_assessed",
+              "guf_collected", "guf_unpaid", "guf_relocated_obligation", "surplus")
+    total = {"id": "total", "label": f"{len(rows)} collectives",
+             **{k: sum(r[k] for r in rows) for k in summed},
+             "solvent": sum(r["solvent"] for r in rows)}
+    shared = {k: labelled_inputs(v, lab, eps)[k] for k in
+              ("age_fractions", "adult_capacity_h_yr", "capital_age_ratio",
+               "ecosystem_health", "capital_teh", "trust_balance") if k in lab}
+    out = {"epsilon": eps, "split": split.get("name"), "note": split.get("note"),
+           "collectives": rows, "total": total, "frame_as_one": whole,
+           "outcomes_across_epsilon": across_eps, "outcomes_across_capital": across_cap,
+           "frame_inputs": shared}
+    if args.fmt == "json":
+        print(json.dumps(out, indent=2, default=str))
+        return
+
+    _banner(args, "EXPERIMENTAL — research/coasean.py, each collective through "
+                  "collective_snapshot\n")
+    _banner(args, f"ε = {e:.3f} ({eps['kind']}: {eps['source']})")
+    _banner(args, f"split: {split.get('name')} — {len(rows)} collectives; population, land "
+                  "and parcels are each collective's share of the frame's, capital and "
+                  "Trust its population share; the rest is the frame's. Settlement "
+                  "rates are all 1.0: every collective mints at one multiplier\n")
+    headers = ["id", "label", "population", "ha/head", "parcels", "teh_created",
+               "fee assessed", "fee collected", "unpaid", "solvent", "surplus"]
+    body = [[str(r["id"]), str(r["label"]), fmt_float(r["population"]),
+             "" if "hectares_per_capita" not in r else f"{r['hectares_per_capita']:.2f}",
+             fmt_float(r["parcel_count"]), fmt_float(r["teh_created"]),
+             fmt_float(r["guf_assessed"]), fmt_float(r["guf_collected"]),
+             fmt_float(r["guf_unpaid"]),
+             ("Y" if r["solvent"] else "N") if isinstance(r["solvent"], bool)
+             else f"{r['solvent']}/{len(rows)}",
+             fmt_float(r["surplus"])] for r in (*rows, total, whole)]
+    print(table(headers, body))
+    for name, ends in (("ε", across_eps), ("capital rate", across_cap)):
+        if ends:
+            print(f"\nat the {name} ends: " + "; ".join(
+                f"{k}: {o['solvent']}/{len(rows)} solvent, {o['collectives_unpaid']} with "
+                f"an unpaid fee, collected {fmt_float(o['guf_collected'])}"
+                for k, o in ends.items()))
