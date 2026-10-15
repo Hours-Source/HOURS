@@ -74,8 +74,10 @@ class TestTheCausesPointTheRightWay:
         return stationarity_at(eps, guf_parcels=URBAN)["teh"]
 
     def test_the_guf_crosses_the_guarantee_at_the_redundant_edge(self):
-        assert self._teh(0.55)["guf"] >= self._teh(0.55)["guarantee_owed"]
-        assert self._teh(0.56)["guf"] < self._teh(0.56)["guarantee_owed"]
+        # 0.55/0.56 until 2026-10-15, when the default parcel count dropped
+        # Puerto Rico and the territories (author) and the fee fell 0.99%.
+        assert self._teh(0.54)["guf"] >= self._teh(0.54)["guarantee_owed"]
+        assert self._teh(0.55)["guf"] < self._teh(0.55)["guarantee_owed"]
         assert self._teh(0.0)["guf"] > self._teh(0.99)["guf"]
         assert self._teh(0.0)["guarantee_owed"] < self._teh(0.99)["guarantee_owed"]
 

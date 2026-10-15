@@ -397,7 +397,7 @@ class TestThePrivateParcelsPay:
     holds. Government parcels are the collective's; an unknown owner type is
     not a private owner, so the private count is a band."""
 
-    @pytest.mark.parametrize("scope", ["contiguous_48", "national"])
+    @pytest.mark.parametrize("scope", ["contiguous_48", "fifty_states", "national"])
     def test_the_band_and_its_definition(self, scope):
         from hours_eoh.reference import parcels as P
         p = getattr(P, f"{scope}_private_parcels")()
@@ -415,9 +415,14 @@ class TestThePrivateParcelsPay:
         PRIVATE count, not every parcel."""
         from hours_eoh.data import US_REFERENCE_POPULATION
         from hours_eoh.land.collective import default_parcel_count
-        from hours_eoh.reference.parcels import national_parcel_count, national_private_parcels
+        from hours_eoh.reference import parcels as P
         for pop in (1e4, 1e6, US_REFERENCE_POPULATION):
             got = default_parcel_count(pop)
             assert got == pytest.approx(
-                pop * national_private_parcels()["central"] / US_REFERENCE_POPULATION, rel=1e-12)
-            assert got < pop * national_parcel_count() / US_REFERENCE_POPULATION
+                pop * P.fifty_states_private_parcels()["central"] / US_REFERENCE_POPULATION,
+                rel=1e-12)
+            assert got < pop * P.fifty_states_parcel_count() / US_REFERENCE_POPULATION
+        # the territories are out (2026-10-15): the population's coverage
+        assert P.fifty_states_parcel_count() == P.national_parcel_count() - sum(
+            P.parcels_by_state().get(k, 0) for k in P.NOT_50_STATES_FIPS)
+        assert set(P.NOT_50_STATES_FIPS) == {"60", "66", "69", "72", "78"}

@@ -534,3 +534,24 @@ class TestTheAdultShareReachesBothFunctions:
         a = mod.registered_work_access(eps, adult_share=0.55)
         b = mod.registered_work_access(eps, adult_share=0.75)
         assert a != b
+
+
+class TestTheDrawdownCarriesTheStandardFee:
+    """2026-10-15 (author: apply the standard method to the drawdown). It
+    carried NO land fee, so its Trust ran on the levy alone while
+    stationarity's ran on levy and fee. It now defaults to the report's urban
+    sample, and a caller's own parcels are honoured."""
+
+    def test_the_default_is_the_reports_sample_and_moves_the_trust(self):
+        from hours_eoh.land.collective import make_urban_collective
+        from hours_eoh.scenarios.stationarity import drawdown
+        default = drawdown(20, population=1e6)
+        assert default == drawdown(20, population=1e6, guf_parcels=make_urban_collective())
+        assert default["trust_end"] > drawdown(20, population=1e6, guf_parcels=[])["trust_end"]
+
+    def test_the_per_parcel_half_reaches_it(self):
+        from hours_eoh.scenarios.stationarity import drawdown
+        a = drawdown(20, population=1e6, guf_parcels=None, guf_parcel_count=4.6e5)
+        b = drawdown(20, population=1e6, guf_parcels=None, guf_parcel_count=9.2e5)
+        assert b["trust_end"] > a["trust_end"] > drawdown(20, population=1e6,
+                                                          guf_parcels=[])["trust_end"]

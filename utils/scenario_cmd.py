@@ -217,9 +217,13 @@ _READS: dict[str, frozenset[str]] = {
     # reaches neither (measured 2026-10-14), so capacity is not shown as read.
     "reserve_plan": frozenset({"population", "capital_teh", "capital_age_ratio",
                                "age_fractions", "epsilon"}),
-    **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
-                     "adult_capacity_h_yr", "adult_share", "age_fractions"})
-       for n in ("stationarity_drawdown", "registered_work")},
+    "registered_work": frozenset({"population", "capital_teh", "capital_age_ratio",
+                                  "adult_capacity_h_yr", "adult_share", "age_fractions"}),
+    # The drawdown carries stationarity's land fee since 2026-10-15, so it
+    # reads the land's parcels as stationarity does.
+    "stationarity_drawdown": frozenset({"population", "capital_teh", "capital_age_ratio",
+                                        "adult_capacity_h_yr", "adult_share",
+                                        "age_fractions", "parcel_count"}),
     **{n: frozenset({"population", "epsilon"}) for n in ("care_delay", "verification_band")},
     # ε ONLY: their land is a PARCEL inventory or configuration (the urban
     # archetype; one parcel for guf_integration), and pairing it with a
@@ -367,7 +371,7 @@ _SCENARIOS: dict[str, str] = {
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
-    "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year, from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year (GUF as stationarity prices it: the urban sample, or on a frame its per-parcel half over the frame's private parcels), from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "registered_work":     "registered_work_arc() — can a member walk away to registered work, and does it cover the members, along the arc; where TEH need per member peaks; REPORTING ONLY  [--frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "mint_reach":          "mint_floor_reach() — the share of labour supply the MINT can pay: registered hours over supply, and the hours left for the market; REPORTING ONLY  [--epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
@@ -989,7 +993,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         if name == "guf_magnitude":
             fs["land_hectares"] = v["land_m2"] / M2_PER_HECTARE
             fs["land_use_fractions"] = v["land_use_fractions"]
-        if name == "stationarity" and (args.frame is not None or args.frame_file is not None):
+        if (name in ("stationarity", "stationarity_drawdown")
+                and (args.frame is not None or args.frame_file is not None)):
             # The land's parcels, FIXED with the land (2026-10-14), priced at
             # the fee's measured per-parcel half (2026-10-15) — no sample, so
             # `collective` on this frame reports the same fee. Unstated, the

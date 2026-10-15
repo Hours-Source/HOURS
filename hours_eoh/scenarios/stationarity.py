@@ -471,6 +471,8 @@ def drawdown(
 ) -> dict:
     """
     A Trust carried along an arc: T' = T + levy + GUF − guarantee each year.
+    GUF is `stationarity_at`'s, collected (the payable cap), on the same
+    parcels `stationarity_report` defaults to.
 
     THE PATH IS A SCENARIO CHOICE. ε moves linearly from `epsilon_start` to
     `epsilon_end` over `years`; how fast a real economy advances is unknown, so
@@ -487,6 +489,13 @@ def drawdown(
     """
     if years < 1:
         raise ValueError(f"years must be >= 1, got {years}")
+    # THE STANDARD METHOD (2026-10-15, author): the land fee as
+    # `stationarity_report` prices it — the urban sample unless the caller
+    # names its own parcels (an empty list for no land, or `guf_parcels=None`
+    # with a count for the per-parcel half). Until today a drawdown carried NO
+    # fee, so its Trust ran on the levy alone while stationarity's ran on both.
+    if "guf_parcels" not in kw:
+        kw = {**kw, "guf_parcels": make_urban_collective()}
     trust = float(kw.get("trust_start", 0.0))
     cache: dict[float, dict] = {}
     fail_year: int | None = None

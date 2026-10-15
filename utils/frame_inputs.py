@@ -510,7 +510,7 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
             "contiguous_48_private_parcels; unchanged by --population")
     else:
         v["parcel_count"], lab["parcel_count"] = None, label(
-            "default", "population × national PRIVATE parcels per head (stationarity's own)")
+            "default", "population × 50-state PRIVATE parcels per head (stationarity's own)")
     # THE LAND'S USE MIX (2026-10-15, author: a land distribution per frame, as
     # the age mix is, and a default named when one is used). Shares, so they
     # apply to whatever land the frame states.

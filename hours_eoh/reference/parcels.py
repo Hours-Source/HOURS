@@ -321,12 +321,38 @@ def contiguous_48_private_parcels() -> dict[str, float]:
                              if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS])
 
 
+#: The extract's state codes that are NOT one of the 50 states or DC: Puerto
+#: Rico and the four territories — `NOT_CONTIGUOUS_48_FIPS` less Alaska and
+#: Hawaii, derived so the two lists cannot disagree.
+NOT_50_STATES_FIPS: dict[str, str] = {
+    k: v for k, v in NOT_CONTIGUOUS_48_FIPS.items() if k not in ("02", "15")}
+
+
+def fifty_states_parcel_count() -> int:
+    """
+    Parcels in the 50 states + DC — the coverage of `US_REFERENCE_POPULATION`
+    (2026-10-15, author: the territories excluded from the parcel count).
+    `national_parcel_count()` also holds Puerto Rico and four territories,
+    whose people the reference population does not count.
+    """
+    return sum(int(r["parcels"]) for r in load_county_parcels()
+               if str(r["statefp"]) not in NOT_50_STATES_FIPS)
+
+
+def fifty_states_private_parcels() -> dict[str, float]:
+    """The PRIVATE-parcel band (`contiguous_48_private_parcels`' rule) over the
+    50 states + DC. What `land.collective.default_parcel_count` scales."""
+    return _private_parcels([r for r in load_county_parcels()
+                             if str(r["statefp"]) not in NOT_50_STATES_FIPS])
+
+
 def national_private_parcels() -> dict[str, float]:
     """
     The PRIVATE parcels over every state code in the extract — the same band as
     `contiguous_48_private_parcels`, on `national_parcel_count`'s coverage
     (2026-10-15, author: the collective-held parcels are excluded from the
-    default count too). What `land.collective.default_parcel_count` scales.
+    default count too). Includes Puerto Rico and the territories; the default
+    count reads `fifty_states_private_parcels` since the same day.
     """
     return _private_parcels(load_county_parcels())
 

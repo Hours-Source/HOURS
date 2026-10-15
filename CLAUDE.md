@@ -108,7 +108,8 @@ hours_eoh/
                        capacity_in_band — measured capacity for any age band (utils/mtus_capacity_age_ingest.py)
     care_demand.py     ATUS care demand by age: care_by_age(), elderly_per_capita(), coverage()
     parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py;
-                       contiguous_48_parcel_count() — 157,922,061, the US frame's land
+                       contiguous_48_parcel_count() — 157,922,061, the US frame's land;
+                       fifty_states_private_parcels() — the default count's coverage
     onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
     onet_knowledge.py  Knowledge/training axis inverted against the same frozen bounds
     personal_basket.py The personal obligation pinned to physical quantities; one component priced.
@@ -706,7 +707,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,190 tests passing (1 skipped), mypy clean on 109 source files** (verified
+**6,193 tests passing (1 skipped), mypy clean on 109 source files** (verified
 2026-10-15). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -782,7 +783,8 @@ this whole structure forbids.**
   → [`record/verification.md § Live state`](record/verification.md#live-state)
 - The compensating-mechanism audit is BUILT for the two TEH inflows
   (`scenarios/compensation.py`): the levy and GUF cover for each other only to
-  ε≈0.55; the levy alone carries 0.56–0.97. Dynamic stability is MEASURED
+  ε≈0.54 (0.55 until the territories left the default parcel count,
+  2026-10-15); the levy alone carries 0.55–0.97. Dynamic stability is MEASURED
   (`research/dynamic_stability.py`, 2026-10-01): one limit cycle, the formation
   loop's dividend-priority cobweb — bounded and decaying.
   → [`record/verification.md § Open`](record/verification.md#open)
