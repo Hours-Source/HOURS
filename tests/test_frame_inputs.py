@@ -291,7 +291,9 @@ class TestScenarioRunOnAFrame:
         """It was the 1M frame's flow beside a settable population (mode 6)."""
         from hours_eoh.research.thermal_solvency import solvency_at_epsilon
         r = _scenario("thermal_load", "--frame", "us")
-        assert r["thermal_obligation"] == solvency_at_epsilon(0.40, population=335e6)["thermal_flow_eoh"]
+        from hours_eoh.data import US_MAINLAND_POPULATION
+        assert r["thermal_obligation"] == solvency_at_epsilon(
+            0.40, population=US_MAINLAND_POPULATION)["thermal_flow_eoh"]
         assert r["inputs"]["thermal_obligation_eoh"]["kind"] != "supplied"
 
     def test_off_the_frame_unread_population_and_capital_are_refused(self):
@@ -374,7 +376,8 @@ class TestScenarioRunOnAFrame:
         fb = _scenario("ecological_floor", "--frame", "us", "--population", "1e6")
         ha = fa["inputs"]["hectares_per_capita"]["value"]
         hb = fb["inputs"]["hectares_per_capita"]["value"]
-        assert hb == pytest.approx(ha * 335e6 / 1e6, rel=1e-12)
+        from hours_eoh.data import US_MAINLAND_POPULATION
+        assert hb == pytest.approx(ha * US_MAINLAND_POPULATION / 1e6, rel=1e-12)
         # the fee is ASSESSED on the land's parcels, so it does not move; what
         # is COLLECTED is bounded by what the fewer people are minted, and the
         # rest is reported unpaid (2026-10-15, author: "you can't pay what
@@ -801,9 +804,15 @@ class TestTheUsStockIsBea:
     def test_the_stock_is_the_inventory_at_the_band_midpoint(self):
         from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
         b = conversion_band()
+        from hours_eoh.data import US_MAINLAND_POPULATION
+        from hours_eoh.reference.capital_inventory import BEA_POPULATION
         row = _labels("--frame", "us")["capital_teh"]
+        # Per head × the frame's people. BEA_POPULATION is still the 335M copy
+        # of the held national figure, so the mainland reads 1.38% above the
+        # national inventory until that closes (record/contestability.md).
         assert row["value"] == pytest.approx(
-            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"])
+            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"]
+            * US_MAINLAND_POPULATION / BEA_POPULATION)
         assert row["kind"].startswith("derived") and "default:conversion_band midpoint" in row["derived_from"]
 
     def test_both_ends_of_the_band_are_run(self):

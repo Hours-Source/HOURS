@@ -1,8 +1,8 @@
 {
   "confidence_soft": 148,
   "confidence_without": 130,
-  "provenance_tagged": 370,
-  "provenance_total": 370,
+  "provenance_tagged": 371,
+  "provenance_total": 371,
   "shadow_unbound": 29,
   "tags": {
     "baseline": 2,
@@ -11,15 +11,15 @@
     "derived": 23,
     "derived-then-FROZEN": 6,
     "instance": 29,
-    "measured": 29,
+    "measured": 30,
     "normative": 77,
     "physics": 3,
     "placeholder": 129
   },
-  "tier_total": 370,
+  "tier_total": 371,
   "tiers": {
     "CERTAIN": 32,
-    "INSTANCE": 111,
+    "INSTANCE": 112,
     "POSSIBLE": 227
   }
 }

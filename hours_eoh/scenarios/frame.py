@@ -13,7 +13,9 @@ Nothing in the code connects the two, so the ecological domain is divided by a
 millionth of the population that lives on the land it is keyed to.
 
 The consequence is that the reported ecological SHARE is frame-dependent by a
-factor of 335, and the shipped default is the flattering end of it:
+factor of the US population over 1M (339.6 since the mainland's own Census
+figure, 2026-10-15: `shipped_default_mismatch()`), and the shipped default is
+the flattering end of it. As first measured, at 335M:
 
     shipped pairing (1M people, whole-US land) : 0.0448 %
     honest US pairing (335M people, same land) : 0.000146 %
@@ -44,7 +46,7 @@ from hours_eoh.data import (
     JURISDICTION_FRAMES,
     REFERENCE_FRAME_POPULATION,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
 )
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 
@@ -122,12 +124,12 @@ def shipped_default_mismatch() -> dict:
     """
     shipped_pop = 1_000_000.0
     shipped = frame_check(shipped_pop, US_MAINLAND_HECTARES)
-    honest = frame_check(US_REFERENCE_POPULATION, US_MAINLAND_HECTARES)
+    honest = frame_check(US_MAINLAND_POPULATION, US_MAINLAND_HECTARES)
     return {
         "shipped_population":        shipped_pop,
         "shipped_hectares_per_capita": shipped["hectares_per_capita"],
         "honest_hectares_per_capita":  honest["hectares_per_capita"],
-        "population_mismatch_factor":  US_REFERENCE_POPULATION / shipped_pop,
+        "population_mismatch_factor":  US_MAINLAND_POPULATION / shipped_pop,
         "shipped_is_declared_frame":   shipped["consistent"],
         "honest_is_declared_frame":    honest["consistent"],
         "verdict": (
@@ -135,7 +137,7 @@ def shipped_default_mismatch() -> dict:
             f"({US_MAINLAND_HECTARES:,.0f} ha) by {shipped_pop:,.0f} people, giving "
             f"{shipped['hectares_per_capita']:,.1f} ha/person against the actual "
             f"{honest['hectares_per_capita']:.3f}. That is a factor of "
-            f"{US_REFERENCE_POPULATION / shipped_pop:,.0f}, and because the "
+            f"{US_MAINLAND_POPULATION / shipped_pop:,.0f}, and because the "
             f"ecological obligation does not scale with population while every "
             f"other domain does, it is the factor by which the shipped "
             f"ecological SHARE is flattered. No number here is wrong; the frame "

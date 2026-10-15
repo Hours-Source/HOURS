@@ -588,10 +588,13 @@ class TestTheEpsilonReading:
         e, inp = r["epsilon_reading"], r["inputs"]
         assert inp["capital_teh"] == pytest.approx(
             resolve_capital_stock(None, e["value"], population=inp["population"]))
+        from hours_eoh.data import US_MAINLAND_POPULATION
+        from hours_eoh.reference.capital_inventory import BEA_POPULATION
         us = self._band("--frame", "us")
         b = conversion_band()
         assert us["inputs"]["capital_teh"] == pytest.approx(
-            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"])
+            epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"]
+            * US_MAINLAND_POPULATION / BEA_POPULATION)
         assert us["verdict_holds_across_capital"] in (True, False)
 
 

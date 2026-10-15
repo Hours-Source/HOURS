@@ -115,6 +115,7 @@ from hours_eoh.data import (
     LAND_HECTARES_PER_CAPITA,
     PRACTICE_EQUIPMENT_WIDTHS_FT,
     US_MAINLAND_HECTARES,
+    US_MAINLAND_POPULATION,
     US_REFERENCE_POPULATION,
 )
 from hours_eoh.reference.land_stewardship import (
@@ -642,7 +643,7 @@ def frame_report() -> dict:
 
     Governing comparison:
 
-        ha_per_capita(US)  = US_MAINLAND_HECTARES / US_REFERENCE_POPULATION
+        ha_per_capita(US)  = US_MAINLAND_HECTARES / US_MAINLAND_POPULATION
         burden(h/person·yr) = ha_per_capita × measured intensity
 
     against the shipped `LAND_HECTARES_PER_CAPITA`, a planetary average whose own
@@ -657,21 +658,21 @@ def frame_report() -> dict:
 
     units: hectares per person; labour-hours per person per year.
 
-    Worked example: 765,495,267 ha ÷ 335M = 2.285 ha/person, against the global
-    default 1.65 — the contiguous US carries **38.5% more land per person** than
+    Worked example: 765,495,267 ha ÷ 339.6M = 2.254 ha/person, against the global
+    default 1.65 — the contiguous US carries **36.6% more land per person** than
     the planetary average. At the declared amenity weight the measured intensity
     is 0.585 h/ha·yr, so the burden is ~1.34 h/person·yr over priced land.
 
     Reports; changes nothing.
     """
-    us_ha_pc = US_MAINLAND_HECTARES / US_REFERENCE_POPULATION
+    us_ha_pc = US_MAINLAND_HECTARES / US_MAINLAND_POPULATION
     ratio = us_ha_pc / LAND_HECTARES_PER_CAPITA
     rep = census_report()
     intensity = rep["measured_hours_per_hectare"]
 
     return {
         "us_mainland_hectares": US_MAINLAND_HECTARES,
-        "us_population": US_REFERENCE_POPULATION,
+        "us_population": US_MAINLAND_POPULATION,
         "us_hectares_per_capita": us_ha_pc,
         "shipped_hectares_per_capita": LAND_HECTARES_PER_CAPITA,
         "ratio_to_shipped": ratio,

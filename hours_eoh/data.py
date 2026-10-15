@@ -2207,11 +2207,11 @@ ECOLOGICAL_BASE_RATE: float = 500_000.0 # hours/year at pristine ecosystem healt
 #   and a test frame needs one that is measured rather than assumed. The
 #   contiguous 48 is chosen over the 915,052,512 ha US total because Alaska's
 #   150 Mha is overwhelmingly unmanaged and would dilute every intensity by 16%
-#   for land no stewardship workforce reaches. Paired with US_POPULATION in
-#   reference/land_stewardship.py, it gives 2.285 ha/person against the shipped
-#   global LAND_HECTARES_PER_CAPITA of 1.65 — the US carries 38.5% MORE land
-#   per person than the planetary average, which is the direction that makes
-#   per-capita stewardship burden harder, not easier.
+#   for land no stewardship workforce reaches. Paired with
+#   US_MAINLAND_POPULATION (the people on this land), it gives 2.254 ha/person
+#   against the shipped global LAND_HECTARES_PER_CAPITA of 1.65 — the US
+#   carries 36.6% MORE land per person than the planetary average, which is
+#   the direction that makes per-capita stewardship burden harder, not easier.
 # resolves_by: nothing — this is a published measurement. It moves only when
 #   ERS revises the series (5-year cycle).
 US_MAINLAND_HECTARES: float = 765_495_267.0  # ha, contiguous 48, ERS MLU 2022
@@ -2338,10 +2338,25 @@ AGENCY_STEWARDSHIP_ROLE_MIX: float = 0.2263  # fraction of NPS+FWS on stewardshi
 #   mean-multiplier literal: a copy of a value whose source is elsewhere. Both
 #   names now bind here. Its epistemic status is UNCHANGED by the move — it was
 #   debt before and it is debt now, only visible.
+#   NATIONAL, NOT THE FRAME'S (2026-10-15): the US frame's people are
+#   US_MAINLAND_POPULATION. Closing this on the Census national figure moves the
+#   frozen KNOWLEDGE_EOH_BASE (+2.0% at 2025) and the ATUS-per-person readings
+#   (~2%, through BEA_POPULATION, a copy of this value), so it is held for its
+#   own change (author). The registry and BEA are 2024-vintage: 340,003,797.
 # resolves_by: Census Bureau national population estimate for the reference
 #   epoch. The shipped figure is round to three significant figures and the
 #   estimate is not, so this closes on contact with the source.
 US_REFERENCE_POPULATION: float = 335_000_000.0  # persons, registry reference epoch
+# tag: measured | units: persons | tier: A
+# form: Census Bureau resident population of the 48 contiguous states and DC,
+#   July 1, 2025 (SCPRC-EST2025): the sum of reference/states.load_states()'
+#   in_48_states rows, bound by test (TestTheMainlandPopulationIsTheCensus).
+# note: THE PEOPLE ON US_MAINLAND_HECTARES' LAND (author, 2026-10-15). The US
+#   frame had paired the national population with contiguous-48 land, parcels
+#   and energy (record/thermal.md#us-energy-eia, found not fixed). Alaska and
+#   Hawaii hold 2,170,090 people (0.63% of the national figure).
+# resolves_by: nothing — a published estimate; it moves with each vintage.
+US_MAINLAND_POPULATION: float = 339_614_767.0  # persons, 48 states + DC, Census July 2025
 # tag: instance | units: feet | family: PRACTICE_EQUIPMENT_WIDTHS_FT
 # supplied_by: the working width of the equipment YOUR collective actually
 #   operates. Field capacity is linear in width, so these values scale the
@@ -2419,7 +2434,7 @@ FRAME_CONSISTENCY_TOLERANCE: float = 0.10  # ±10% on ha/person to call a pairin
 # tag: convention | units: dict of frame name -> {population: persons, land_hectares: ha}
 # form: DECLARED PAIRINGS of a population with the land area it is responsible
 #   for. Every value is BOUND to the constant that already carries it —
-#   US_REFERENCE_POPULATION, US_MAINLAND_HECTARES, LAND_HECTARES_PER_CAPITA —
+#   US_MAINLAND_POPULATION, US_MAINLAND_HECTARES, LAND_HECTARES_PER_CAPITA —
 #   rather than restated. A frame that restated 335,000,000 would be the sixth
 #   copy-of-a-value-whose-source-is-elsewhere, after GUF_PSI_NORM,
 #   RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS, the mean_multiplier literal
@@ -2442,15 +2457,15 @@ FRAME_CONSISTENCY_TOLERANCE: float = 0.10  # ±10% on ha/person to call a pairin
 JURISDICTION_FRAMES: dict[str, dict[str, float]] = {
     # The honest US pairing: contiguous-48 land with the population living on it.
     "us_mainland": {
-        "population":     US_REFERENCE_POPULATION,
+        "population":     US_MAINLAND_POPULATION,
         "land_hectares":  US_MAINLAND_HECTARES,
     },
-    # A million people holding land at the US per-capita ratio (2.285 ha/person).
+    # A million people holding land at the US per-capita ratio (2.254 ha/person).
     # This is what the shipped 1M default SHOULD be paired with; it is not what
     # it is currently paired with, which is the whole contiguous US.
     "reference_1m": {
         "population":     1_000_000.0,
-        "land_hectares":  1_000_000.0 * (US_MAINLAND_HECTARES / US_REFERENCE_POPULATION),
+        "land_hectares":  1_000_000.0 * (US_MAINLAND_HECTARES / US_MAINLAND_POPULATION),
     },
     # The planetary average behind LAND_HECTARES_PER_CAPITA, at world population.
     "global": {

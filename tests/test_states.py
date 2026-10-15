@@ -46,3 +46,14 @@ class TestTheStatesAreTheFramesLand:
         total = sum(by_class.values())
         for k, ha in by_class.items():
             assert math.isclose(got[k], ha / total, rel_tol=1e-12), k
+
+
+class TestTheMainlandPopulationIsTheCensus:
+    """The US frame's people are the 48 + DC's (2026-10-15, author). The
+    national US_REFERENCE_POPULATION is held at 335M for its own change."""
+
+    def test_the_constant_is_the_49_units_sum(self):
+        from hours_eoh.data import JURISDICTION_FRAMES, US_MAINLAND_POPULATION
+        assert US_MAINLAND_POPULATION == sum(
+            s["population"] for s in load_states() if s["in_48_states"])
+        assert JURISDICTION_FRAMES["us_mainland"]["population"] == US_MAINLAND_POPULATION

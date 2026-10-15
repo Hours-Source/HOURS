@@ -10,8 +10,8 @@ revaluations and re-anchors, the dataset-governance gate.
 
 Counts below are generated, never hand-kept.
 
-- <!-- census:provenance -->**370 constants in `data.py`, all tagged** — `provenance 370/370`<!-- /census:provenance --> *(gated)*.
-  <!-- census:tags -->placeholder 129 (34.9%), normative 77 (20.8%), convention 53 (14.3%), instance 29 (7.8%), measured 29 (7.8%), derived 23 (6.2%), bounded 19 (5.1%), derived-then-FROZEN 6 (1.6%), physics 3 (0.8%), baseline 2 (0.5%)<!-- /census:tags -->. [Census](#census-one-source).
+- <!-- census:provenance -->**371 constants in `data.py`, all tagged** — `provenance 371/371`<!-- /census:provenance --> *(gated)*.
+  <!-- census:tags -->placeholder 129 (34.8%), normative 77 (20.8%), convention 53 (14.3%), measured 30 (8.1%), instance 29 (7.8%), derived 23 (6.2%), bounded 19 (5.1%), derived-then-FROZEN 6 (1.6%), physics 3 (0.8%), baseline 2 (0.5%)<!-- /census:tags -->. [Census](#census-one-source).
 - **Quote the debt as the placeholder figure, not "83% CHOSEN".** The normative
   constants are decisions, not data — forbidden a `resolves_by` by design.
 - **The shadow ratchet stands at 33** *(gated)* — named constants outside

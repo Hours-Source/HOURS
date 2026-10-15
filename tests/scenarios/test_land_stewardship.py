@@ -653,8 +653,8 @@ class TestTheFrameIsUsSized:
     def test_the_us_is_over_landed_relative_to_the_global_default(self):
         f = frame_report()
         assert f["over_landed"] is True
-        assert f["us_hectares_per_capita"] == pytest.approx(2.285, abs=0.01)
-        assert f["ratio_to_shipped"] == pytest.approx(1.385, abs=0.01)
+        assert f["us_hectares_per_capita"] == pytest.approx(2.254, abs=0.01)
+        assert f["ratio_to_shipped"] == pytest.approx(1.366, abs=0.01)
 
     def test_the_frame_uses_mainland_not_the_us_total(self):
         """Alaska's 150 Mha is unmanaged and would dilute every intensity 16%."""

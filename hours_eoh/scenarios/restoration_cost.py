@@ -36,7 +36,7 @@ from hours_eoh.data import (
     RESTORATION_BOUNDING_ASSUMPTION_H_PER_HA,
     GUF_SERVICE_PROFILE_DECLARED,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
 )
 from hours_eoh.reference.restoration import (
     RESTORATION_SEQUENCES,
@@ -82,7 +82,7 @@ def legacy_stock(
     that inventory does not exist here.
     """
     band = restoration_band()
-    pop = US_REFERENCE_POPULATION
+    pop = US_MAINLAND_POPULATION
     out = {
         "restorable_hectares": restorable_hectares,
         "amortization_years":  amortization_years,

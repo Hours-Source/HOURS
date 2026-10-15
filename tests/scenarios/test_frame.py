@@ -15,7 +15,7 @@ from hours_eoh.data import (
     JURISDICTION_FRAMES,
     LAND_HECTARES_PER_CAPITA,
     US_MAINLAND_HECTARES,
-    US_REFERENCE_POPULATION,
+    US_MAINLAND_POPULATION,
     WORLD_POPULATION,
 )
 from hours_eoh.scenarios.frame import (
@@ -41,7 +41,7 @@ class TestFramesAreBoundNotRestated:
 
     def test_us_frame_is_the_us_constants(self):
         f = frame_for("us_mainland")
-        assert f["population"] == US_REFERENCE_POPULATION
+        assert f["population"] == US_MAINLAND_POPULATION
         assert f["land_hectares"] == US_MAINLAND_HECTARES
 
     def test_global_frame_derives_from_the_per_capita_constant(self):
@@ -63,7 +63,7 @@ class TestFramesAreBoundNotRestated:
         f = frame_for("reference_1m")
         assert f["population"] == 1_000_000.0
         assert hectares_per_capita(**f) == pytest.approx(
-            US_MAINLAND_HECTARES / US_REFERENCE_POPULATION, rel=1e-12
+            US_MAINLAND_HECTARES / US_MAINLAND_POPULATION, rel=1e-12
         )
         assert f["land_hectares"] < US_MAINLAND_HECTARES / 100.0
 
@@ -79,9 +79,9 @@ class TestTheMismatchIsReported:
         m = shipped_default_mismatch()
         assert m["shipped_is_declared_frame"] is False
         assert m["honest_is_declared_frame"] is True
-        assert m["population_mismatch_factor"] == pytest.approx(335.0, rel=1e-9)
+        assert m["population_mismatch_factor"] == pytest.approx(339.614767, rel=1e-9)
         assert m["shipped_hectares_per_capita"] > 700.0
-        assert m["honest_hectares_per_capita"] == pytest.approx(2.285, abs=1e-3)
+        assert m["honest_hectares_per_capita"] == pytest.approx(2.254, abs=1e-3)
 
     def test_declared_frames_are_self_consistent(self):
         for name in JURISDICTION_FRAMES:
