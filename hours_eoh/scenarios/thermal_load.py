@@ -88,6 +88,7 @@ def thermal_load_arc(
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     age_fractions: dict[str, float] | None = None,
     capital_age_ratio: float = CAPITAL_AGE_RATIO_DEFAULT,
+    land_hectares: float | None = None,
 ) -> list[ThermalLoadRow]:
     """
     Carry a thermal obligation across the ε arc and report what it moves.
@@ -125,6 +126,9 @@ def thermal_load_arc(
             `thermal_share_of_total` through the total, not the load ratio.
         capital_age_ratio: The stock's age, to the same calls; the default is
             the value all four already read, so omitting it is bit-identical.
+        land_hectares: The frame's land, fixed, to the same calls (2026-10-14).
+            It moves the ecological domain the load ratio is read against.
+            None → population × LAND_HECTARES_PER_CAPITA, as before.
 
     Returns:
         list[ThermalLoadRow], one per ε in `arc`.
@@ -164,7 +168,7 @@ def thermal_load_arc(
         base = total_eoh(epsilon=eps, population=population,
                          capital_stock=cap_at_eps,
                          ecosystem_health=ecosystem_health,
-                         age_distribution=age_fractions,
+                         age_distribution=age_fractions, ecological_area_hectares=land_hectares,
                          capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
@@ -172,7 +176,7 @@ def thermal_load_arc(
                            capital_stock=cap_at_eps,
                            ecosystem_health=ecosystem_health,
                            thermal_obligation=thermal_obligation,
-                           age_distribution=age_fractions,
+                           age_distribution=age_fractions, ecological_area_hectares=land_hectares,
                            capital_age_ratio=capital_age_ratio,
                            ecological_standing_response="domain",
                            ecological_health_response="domain")
@@ -180,7 +184,7 @@ def thermal_load_arc(
                                        capital_stock=cap_at_eps,
                                        ecosystem_health=ecosystem_health,
                                        thermal_obligation=thermal_obligation,
-                                       age_distribution=age_fractions,
+                                       age_distribution=age_fractions, ecological_area_hectares=land_hectares,
                                        capital_age_ratio=capital_age_ratio,
                                        ecological_standing_response="domain",
                          ecological_health_response="domain")
@@ -196,6 +200,7 @@ def thermal_load_arc(
             thermal_obligation=thermal_obligation,
             eco_eoh_override=loaded["ecological"],
             age_fractions=age_fractions,
+            ecological_area_hectares=land_hectares,
         )
         eco_base = base["ecological"]
         eco_loaded = loaded["ecological"]

@@ -93,10 +93,8 @@ from hours_eoh.data import (
     PERSONAL_EOH_BASE,
     SUFF_LEVY_RATE,
     SUFF_NEED_FRACTION,
-    US_REFERENCE_POPULATION,
 )
-from hours_eoh.land.collective import compute_collective_guf, make_urban_collective
-from hours_eoh.reference.parcels import national_parcel_count
+from hours_eoh.land.collective import default_parcel_count, make_urban_collective, sample_scaled_guf
 from hours_eoh.scenarios.arc_stability import STANDARDS, band_from_flags, stability_at
 from hours_eoh.scenarios.feasibility import (
     capacity_weighted_adult_share,
@@ -199,7 +197,7 @@ def stationarity_at(
     levy_rate: float = SUFF_LEVY_RATE,
     guf_parcels: list[dict] | None = None,
     guf_parcel_count: float | None = None,
-    guf_cap: float | str | None = None,
+    guf_cap: float | str | None = "payable",
     trust_start: float = 0.0,
     capital_age_ratio: float | None = None,
     adult_share: float | None = None,
@@ -216,7 +214,7 @@ def stationarity_at(
 
     with `human_hours` the pipeline's human EOH under its own split, `levy` =
     `levy_rate × mint`, and GUF = a parcel sample's revenue per parcel ×
-    `guf_parcel_count`, optionally capped.
+    `guf_parcel_count`, capped by default at what the mint leaves to pay it.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -243,7 +241,12 @@ def stationarity_at(
             and `guf` is 0.0.
         guf_parcel_count: Parcels the collective holds. None → population × the
             measured national parcels per person.
-        guf_cap: None (uncapped), a float share of the mint, or `payable`.
+        guf_cap: `payable` (default since 2026-10-15, author: "you can't pay
+            what isn't minted") collects at most the mint less the levy and D3;
+            a float caps at that share of the mint; None collects the whole
+            assessed fee. The rest is `teh["guf_unpaid"]`, reported and never
+            counted as inflow. An UPPER bound on collection: only private
+            holders pay, and the ceiling is the whole collective's.
         trust_start: The inheritance, TEH. Default 0.0 — a collective starting
             from subsistence has none.
         capital_age_ratio: The stock's age over its service life — it sets the
@@ -335,10 +338,9 @@ def stationarity_at(
 
     guf_uncapped = 0.0
     if guf_parcels:
-        count = (population * national_parcel_count() / US_REFERENCE_POPULATION
+        count = (default_parcel_count(population)
                  if guf_parcel_count is None else guf_parcel_count)
-        sample = compute_collective_guf(guf_parcels, epsilon)
-        guf_uncapped = sample["guf_net_inflow"] / len(guf_parcels) * count
+        guf_uncapped = sample_scaled_guf(guf_parcels, epsilon, count)
     payable = max(0.0, mint - levy - consumption)
     if guf_cap is None:
         guf = guf_uncapped
@@ -368,6 +370,7 @@ def stationarity_at(
         "levy":                 levy,
         "guf_uncapped":         guf_uncapped,
         "guf":                  guf,
+        "guf_unpaid":           guf_uncapped - guf,
         "guf_share_of_mint":    guf_uncapped / mint if mint > 0.0 else 0.0,
         "guf_payable_ceiling":  payable,
         "d3_consumption":       consumption,
@@ -631,7 +634,7 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
     explicitly — including an empty list, for the no-land case — is honoured.
     """
     if "guf_parcels" not in kw:
-        kw = {**kw, "guf_parcels": make_urban_collective(10_000)}
+        kw = {**kw, "guf_parcels": make_urban_collective()}
     here = stationarity_at(epsilon, **kw)
     bands = stationary_bands(**kw)
     arc = stationarity_arc(**kw)

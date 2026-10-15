@@ -67,7 +67,7 @@ from hours_eoh.data import (
 from hours_eoh.core.conditions import condition_ii_check
 from hours_eoh.core.prices import floor_price
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-from hours_eoh.core.fiscal import fiscal_snapshot
+from hours_eoh.core.fiscal import PIPELINE_SHARED_PARAMS, fiscal_snapshot
 from hours_eoh.core.eoh_generation import resolve_capital_stock
 from hours_eoh.core.fiscal import resolve_trust_balance
 
@@ -325,15 +325,25 @@ def build_collective(
             this collective's unit. None → the earmark on this period's mint.
         **pipeline_kwargs: Forwarded to `eoh_to_teh_pipeline`. Anything that
             would restate a frame quantity is refused rather than silently
-            preferred — see Raises.
+            preferred — see Raises. A quantity `fiscal_snapshot` also takes
+            (`core.fiscal.PIPELINE_SHARED_PARAMS`, by its pipeline name) is
+            forwarded to the fisc too, under the fisc's name (2026-10-14):
+            until then an age mix reached the pipeline and not the guarantee,
+            and a register at ε 0.70 moved the mint 3.48× and the fisc not
+            at all.
 
     Raises:
-        ValueError: If `pipeline_kwargs` restates a quantity the frame owns.
-            A frame that can be overridden piecemeal is not a frame.
+        ValueError: If `pipeline_kwargs` restates a quantity the frame owns,
+            or names a shared parameter that is not one quantity across the
+            two functions (`PIPELINE_SHARED_NOT_ONE_QUANTITY`, by its pipeline
+            name). A frame that can be overridden piecemeal is not a frame.
     """
     owned = {
         "population", "capital_stock", "ecological_area_hectares",
         "ecological_base", "capital_age_ratio", "ecosystem_health",
+        # Shared names that are not one quantity: an aggregate here, per
+        # person in the fisc; and a land per head the frame's area supersedes.
+        "capital_personal_eoh_fulfilled", "ecological_hectares_per_capita",
     }
     clash = owned & set(pipeline_kwargs)
     if clash:
@@ -352,6 +362,10 @@ def build_collective(
         ecological_area_hectares=frame.land_hectares,
         **pipeline_kwargs,
     )
+    # ONE QUANTITY, BOTH HALVES (2026-10-14): the shared keywords, under the
+    # fisc's names. `mean_multiplier` is carried below as the APPLIED value.
+    to_fisc = {f: pipeline_kwargs[p] for f, p in PIPELINE_SHARED_PARAMS.items()
+               if p in pipeline_kwargs and f != "mean_multiplier"}
     fisc = fiscal_snapshot(
         trust_balance=frame.trust_balance,
         labor_income=pipe["teh_created"],
@@ -367,6 +381,7 @@ def build_collective(
         # here, so the snapshot sized stewardship at the reference rate — one
         # collective reporting two multipliers (mode 10).
         mean_multiplier=pipe["mean_multiplier"],
+        **to_fisc,
     )
     return Collective(frame=frame, epsilon=epsilon, pipeline=pipe, fiscal=fisc,
                       reserve_carried=reserve)

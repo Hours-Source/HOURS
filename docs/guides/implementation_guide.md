@@ -29,7 +29,16 @@ that otherwise have to be hand-carried. Run `eoh scenario run collective` to see
 it on the shipped urban archetype, or `eoh scenario run collective --frame us`
 (or `--frame-file` with your own) to run it on a frame's land and labour supply,
 every input labelled. A frame carries county parcel COUNTS, not parcels, so on a
-frame no fee is assessed and the run says so.
+frame the fee is priced as `stationarity` prices it: an urban parcel sample's
+mean fee over the frame's PRIVATE parcel count — the collective does not pay
+itself on parcels it holds (`guf_sample=` and `guf_parcel_count=`
+in the function). That assumes every parcel pays the sample's mean, and the
+verdict says so. On a named frame the land and its parcels stay fixed when
+`--population` moves; state more land in a frame file. The fee ASSESSED is not
+the fee COLLECTED: holders can pay at most what the mint leaves them after the
+levy and D3 consumption, and the rest is reported as `land_fee["unpaid"]`
+(`guf_unpaid` on the CLI), never booked to the Trust. Fewer people on the same
+land show up as an unpaid fee, not as revenue.
 
 **Pass your age mix as `age_fractions`, not to `fiscal_snapshot` by keyword.**
 It reaches the pipeline's personal obligation and the fiscal guarantee together.

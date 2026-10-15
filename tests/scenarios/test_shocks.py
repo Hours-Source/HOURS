@@ -1089,3 +1089,48 @@ class TestTheBoundaryAndTheShortfallBefore:
             assert "deferred_before_eoh" in r and "labour_outcome_before" in r
         from hours_eoh.scenarios.shocks import capital_loss_shock
         assert "deferred_before_eoh" in capital_loss_shock(0.40)
+
+
+class TestAShockMovesThePeopleNotTheLand:
+    """2026-10-14: `_run` re-derived the area from the SHOCKED population, so a
+    decline shrank the land. Live where the frame's people carry the
+    ecological work; the land is now the pre-shock frame's, carried."""
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_decline_keeps_the_land(self, eps):
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.scenarios.shocks import _base_state, _demographic_change, _run
+        from hours_eoh.core.eoh_generation import resolve_capital_stock
+        s0 = _base_state(eps, 1e6, 0.7, None, ecological_response="domain")
+        s1 = _demographic_change(s0, "decline", 0.2)
+        assert s1["land_hectares"] == s0["land_hectares"]
+        k = resolve_capital_stock(None, eps, population=1e6)
+        after = _run(s1, eps, k, 0.591, None)
+        on_moved_land = _run({**s1, "land_hectares": s1["population"] * 1.65}, eps, k, 0.591, None)
+        assert after["eoh_by_domain"]["ecological"] != on_moved_land["eoh_by_domain"]["ecological"]
+
+    def test_the_frames_land_reaches_every_shock(self):
+        from hours_eoh.scenarios.shocks import (
+            automation_failure_shock, capital_loss_shock, demographic_shock)
+        for f, kw in ((automation_failure_shock, {}),
+                      (demographic_shock, {"shock_type": "decline", "magnitude": 0.2}),
+                      (capital_loss_shock, {"fraction_lost": 0.3})):
+            a = f(epsilon=0.4, population=1e6, ecological_response="domain", **kw)
+            b = f(epsilon=0.4, population=1e6, ecological_response="domain",
+                  land_hectares=3.0e6, **kw)
+            assert a != b, f.__name__
+
+    def test_the_fisc_is_called_on_the_frames_land(self, monkeypatch):
+        """The fisc's area moves only reported obligations here, so this checks
+        the CALL (states its gap: wiring, not a figure)."""
+        import hours_eoh.scenarios.shocks as sh
+        seen = []
+        real = sh.fiscal_snapshot
+        monkeypatch.setattr(sh, "fiscal_snapshot",
+                            lambda *a, **k: seen.append(k.get("ecological_area_hectares"))
+                            or real(*a, **k))
+        sh.demographic_shock(epsilon=0.4, shock_type="decline", magnitude=0.2,
+                             population=1e6, land_hectares=3.0e6)
+        sh.labor_income_shock(epsilon=0.4, income_fraction=0.7, population=1e6,
+                              land_hectares=3.0e6)
+        assert seen and all(x == 3.0e6 for x in seen)

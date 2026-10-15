@@ -54,29 +54,30 @@ from typing import Any
 
 from hours_eoh.data import SLU_HECTARES
 from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
-from hours_eoh.core.fiscal import fiscal_snapshot
-from hours_eoh.land.collective import compute_collective_guf
+from hours_eoh.core.fiscal import PIPELINE_SHARED_PARAMS, fiscal_snapshot
+from hours_eoh.land.collective import (
+    compute_collective_guf, default_parcel_count, sample_scaled_guf)
+from hours_eoh.scenarios.stationarity import GUF_CAP_RULES, d3_consumption
 
 __all__ = ["land_hectares_of", "collective_snapshot", "SHARED_WITH_PIPELINE",
            "STATE_FIELDS_TO_PIPELINE"]
 
-#: THE QUANTITIES BOTH HALVES TAKE, fiscal name → pipeline name (2026-10-14).
-#: A `fiscal_kwargs` entry naming one of these is passed to the pipeline too, so
-#: the two halves cannot run on different values of it. Until this table
-#: existed the guard below refused frame quantities BY NAME and forwarded
-#: everything else to the fiscal layer only: an institution passing its own age
-#: mix got fiscal expenditure on that mix and personal EOH on the shipped one.
-#: The two renames are the ones the signatures spell differently.
+#: THE QUANTITIES BOTH HALVES TAKE BY KEYWORD, fiscal name → pipeline name
+#: (2026-10-14). A `fiscal_kwargs` entry naming one of these is passed to the
+#: pipeline too, so the two halves cannot run on different values of it. Until
+#: this table existed the guard below refused frame quantities BY NAME and
+#: forwarded everything else to the fiscal layer only: an institution passing
+#: its own age mix got fiscal expenditure on that mix and personal EOH on the
+#: shipped one. DERIVED from `core.fiscal.PIPELINE_SHARED_PARAMS` (the one
+#: table both assembly points read), less the four this function takes another
+#: way — the age mix as its own argument, the other three from the state.
 #: `tests/scenarios/test_collective.py::TestBothHalvesSeeOneValue` derives the
 #: shared set from the two signatures and requires every member to be here or
-#: in the refused set — its own gap: a rename it is not told about is invisible.
+#: refused — its own gap: a rename it is not told about is invisible.
+_TAKEN_OTHERWISE = frozenset({"age_fractions", "registration_epsilon",
+                              "deferred_ecological", "capital_eoh_eliminated"})
 SHARED_WITH_PIPELINE: dict[str, str] = {
-    "mean_multiplier":    "mean_multiplier",
-    "thermal_obligation": "thermal_obligation",
-    "ecological_intensity": "ecological_intensity",
-    "health_response":    "ecological_health_response",
-    "standing_response":  "ecological_standing_response",
-}
+    f: p for f, p in PIPELINE_SHARED_PARAMS.items() if f not in _TAKEN_OTHERWISE}
 
 #: THE STATE'S FIELDS THE PIPELINE TAKES, state key → pipeline name — the ones
 #: `simulate_period` passes. The last three were dropped here until 2026-10-14
@@ -118,6 +119,9 @@ def collective_snapshot(
     available_labor_eoh: float | None = None,
     rationing: str = "survival_first",
     age_fractions: dict[str, float] | None = None,
+    guf_sample: list[dict] | None = None,
+    guf_parcel_count: float | None = None,
+    guf_cap: float | str | None = "payable",
     **fiscal_kwargs: Any,
 ) -> dict:
     """
@@ -188,17 +192,40 @@ def collective_snapshot(
             A state built with `make_economy_state(age_fractions=…)` carries
             it and need not repeat it; a DIFFERENT value beside it is refused.
             Omitted from both, both halves read the shipped mix.
+        guf_sample: A parcel SAMPLE that prices the fee when the frame has no
+            parcel inventory, only a count (2026-10-14, author: the entry
+            point follows stationarity). The fee is the sample's mean times
+            `guf_parcel_count` (`land.collective.sample_scaled_guf`); the LAND
+            still comes from `land_hectares`, never from the sample. Refused
+            beside `parcels`, which already carry both.
+        guf_parcel_count: The parcels the sample's mean is scaled to. None →
+            `land.collective.default_parcel_count(population)`, stationarity's
+            default. Refused without `guf_sample`.
+        guf_cap: What of the ASSESSED fee is COLLECTED (2026-10-15, author:
+            "you can't pay what isn't minted"). `"payable"` (default) collects
+            at most the mint less the levy and D3 consumption —
+            `scenarios.stationarity`'s rule, so both read one ceiling; a float
+            caps at that share of the mint; None collects the whole assessed
+            fee, the pre-2026-10-15 arithmetic. The rest is REPORTED as
+            `land_fee["unpaid"]`, never booked: a fee no one can pay is a
+            shortfall on the land a collective claims, not Trust revenue.
+            The ceiling is an UPPER bound on collection — it is the whole
+            collective's disposable mint, and only private holders pay.
         **fiscal_kwargs: Forwarded to `fiscal_snapshot` — policy only (levy
             rates, dividend split). Frame and state quantities are refused; a
             quantity the pipeline also takes (`SHARED_WITH_PIPELINE`) is
             forwarded to BOTH, never to one.
 
     Returns:
-        dict with `pipeline`, `fiscal`, `guf`, `frame` and `verdict`.
+        dict with `pipeline`, `fiscal`, `guf`, `land_fee` (assessed /
+        collected / unpaid), `frame` and `verdict`. `guf["revenue"]` and the
+        Trust's `guf_inflow` are the COLLECTED fee.
 
     Raises:
         ValueError: If both `land_hectares` and `parcels` are given, if neither
-            is, if `fiscal_kwargs` restates a frame or state quantity, or if
+            is (and the state carries no land), if the state carries a land
+            the call contradicts, if `fiscal_kwargs` restates a frame or state
+            quantity, or if
             the state carries a deferred infrastructure backlog (compounding is
             a period dynamic — run `simulate_period`).
     """
@@ -206,6 +233,15 @@ def collective_snapshot(
     # after this, `hectares` is a float and the caller supplied exactly one of
     # the pair. Two answers to one question is how a frame comes apart, and a
     # missing answer is a collective with no frame at all.
+    if guf_sample is not None and parcels is not None:
+        raise ValueError("pass parcels OR guf_sample, not both: an inventory "
+                         "already prices its own fee")
+    if guf_parcel_count is not None and guf_sample is None:
+        raise ValueError("guf_parcel_count scales a guf_sample; none was given")
+    if isinstance(guf_cap, str) and guf_cap not in GUF_CAP_RULES:
+        raise ValueError(f"guf_cap rule must be one of {GUF_CAP_RULES}, got {guf_cap!r}")
+    if isinstance(guf_cap, float) and not 0.0 <= guf_cap:
+        raise ValueError(f"guf_cap share must be >= 0, got {guf_cap}")
     if parcels is not None:
         if land_hectares is not None:
             raise ValueError(
@@ -216,12 +252,22 @@ def collective_snapshot(
         hectares = land_hectares_of(parcels)
     elif land_hectares is not None:
         hectares = float(land_hectares)
+    elif state.get("land_hectares") is not None:
+        hectares = float(state["land_hectares"])
     else:
         raise ValueError(
             "supply land_hectares or parcels: the ecological obligation is "
             "keyed to AREA, and a collective that states no land has no frame. "
             "See scenarios/frame.py for what an undeclared pairing costs."
         )
+    # A STATE MAY CARRY THE LAND (2026-10-14, `make_economy_state`'s
+    # `land_hectares`): a third answer to the one question, refused unless equal.
+    state_land = state.get("land_hectares")
+    if state_land is not None and float(state_land) != hectares:
+        raise ValueError(
+            f"the state carries {float(state_land):,.1f} ha and the call states "
+            f"{hectares:,.1f} ha: land is one quantity. Build a state with the "
+            "collective's land, or leave the state's land unset")
 
     # The frame's quantities, then the state's (the fiscal layer would refuse
     # these only when the state carries the key; refused here whatever it
@@ -301,11 +347,16 @@ def collective_snapshot(
     labour_constrained = bool(pipeline["labor_constrained"])
 
     guf_revenue = 0.0
+    guf_count: float | None = None
     if parcels is not None:
         guf_revenue = float(
             compute_collective_guf(parcels, epsilon, psi_policy=psi_policy)
             ["guf_net_inflow"]
         )
+    elif guf_sample is not None:
+        guf_count = (default_parcel_count(float(state["population"]))
+                     if guf_parcel_count is None else float(guf_parcel_count))
+        guf_revenue = sample_scaled_guf(guf_sample, epsilon, guf_count, psi_policy=psi_policy)
 
     # The state the fiscal layer sees: the caller's, with labour income replaced
     # by what the pipeline says was actually earned. Copied rather than mutated —
@@ -314,14 +365,47 @@ def collective_snapshot(
     fiscal_state = dict(state)
     fiscal_state["labor_income_teh"] = float(pipeline["teh_created"])
 
-    fiscal = fiscal_snapshot(
-        state=fiscal_state,
-        ecological_area_hectares=hectares,
-        eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
-        guf_revenue=guf_revenue,
-        age_fractions=age_fractions,
-        **fiscal_kwargs,
-    )
+    def _fisc(guf: float) -> dict:
+        return fiscal_snapshot(
+            state=fiscal_state,
+            ecological_area_hectares=hectares,
+            eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
+            guf_revenue=guf,
+            age_fractions=age_fractions,
+            **fiscal_kwargs,
+        )
+
+    # THE FEE ASSESSED IS NOT THE FEE COLLECTED (2026-10-15, author: "you
+    # can't pay what isn't minted"). Holders pay from what they were paid, so
+    # collection is bounded by the mint less the levy and D3 consumption —
+    # stationarity's `payable` rule, on the fisc's OWN levy (the applied
+    # value, not a second rate). The levy does not read the fee, so the first
+    # call's levy is the second's; when the ceiling does not bind the first
+    # call is the answer and the figures are those of the uncapped fee.
+    mint = float(pipeline["teh_created"])
+    fiscal = _fisc(guf_revenue)
+    levy = float(fiscal["trust"]["levy_inflow"])
+    d3 = d3_consumption(pipeline["eoh_by_domain"]["personal"],
+                        pipeline["registration_by_domain"]["personal"],
+                        pipeline["human_eoh_by_domain"]["personal"])
+    payable = max(0.0, mint - levy - d3)
+    if guf_cap is None:
+        collected = guf_revenue
+    elif guf_cap == "payable":
+        collected = min(guf_revenue, payable)
+    else:
+        collected = min(guf_revenue, float(guf_cap) * mint)
+    if collected < guf_revenue:
+        fiscal = _fisc(collected)
+    unpaid = guf_revenue - collected
+    land_fee = {
+        "assessed":        guf_revenue,
+        "collected":       collected,
+        "unpaid":          unpaid,
+        "payable_ceiling": payable,
+        "cap":             guf_cap,
+        "ceiling_is_an_upper_bound": True,
+    }
 
     return {
         "scenario": "collective_snapshot",
@@ -331,7 +415,13 @@ def collective_snapshot(
             "capital_stock_teh": float(state["capital_stock_teh"]),
             "hectares_per_capita": hectares / max(float(state["population"]), 1.0),
             "epsilon":        epsilon,
-            "parcel_count":   0 if parcels is None else len(parcels),
+            # The parcels the fee was assessed on: the inventory's, or the
+            # count a sample was scaled to; 0 when no fee was assessed.
+            "parcel_count":   (len(parcels) if parcels is not None
+                               else guf_count if guf_count is not None else 0),
+            "guf_basis":      ("parcel inventory" if parcels is not None
+                               else "sample mean × parcel count" if guf_sample is not None
+                               else "none"),
             # Which quantity `pipeline["teh_created"]` is. `labour_supplied`
             # False: minted from obligation DEMANDED. True: checked against
             # the hours given, and `labor_constrained` says whether they BOUND.
@@ -341,6 +431,7 @@ def collective_snapshot(
         "pipeline": pipeline,
         "fiscal":   fiscal,
         "guf":      fiscal["guf"],
+        "land_fee": land_fee,
         "verdict": (
             f"one frame: {float(state['population']):,.0f} people on "
             f"{hectares:,.1f} ha at ε={epsilon:.2f}. The pipeline's ecological "
@@ -361,18 +452,31 @@ def collective_snapshot(
                 "fulfilment. Pass `available_labor_eoh` to verify it. "
             )
             + (
-                f"GUF raises {guf_revenue:,.0f} TEH/yr against a relocated "
+                f"GUF is assessed at {guf_revenue:,.0f} TEH/yr against a relocated "
                 f"obligation of {fiscal['guf']['obligation']:,.2f}; read "
                 f"`guf.coverage` with its own caveat, and "
                 f"`fiscal['trust']['guf_over_levy']` "
                 f"({fiscal['trust']['guf_over_levy']:.4f}) for whether the fee "
                 f"has overtaken the contracting labour levy."
                 if parcels is not None else
+                f"GUF is assessed at {guf_revenue:,.0f} TEH/yr, priced as a parcel "
+                f"sample's mean fee over {guf_count:,.0f} parcels — stationarity's "
+                f"convention, which ASSUMES every parcel pays the sample's mean "
+                f"(`fiscal['trust']['guf_over_levy']` "
+                f"{fiscal['trust']['guf_over_levy']:.4f}). "
+                if guf_sample is not None else
                 "No parcel inventory supplied, so GUF revenue is 0.0 — the "
                 "recurring obligation the partition moved to the fee is "
                 "reported by `fiscal['ecological']['relocated_to_guf']` and "
                 "funded by nothing. That is a frame with no assessed land, not "
                 "a collective that owes nothing."
+            )
+            + (
+                f" Of the {guf_revenue:,.0f} TEH/yr assessed, "
+                f"{unpaid:,.0f} goes UNPAID: it exceeds what the "
+                f"mint leaves holders ({payable:,.0f} TEH/yr after levy and D3), "
+                f"so it is a reported shortfall on the land claimed, not revenue."
+                if unpaid > 0.0 else ""
             )
         ),
     }

@@ -111,8 +111,9 @@ from utils.frame_inputs import (
 #: supply instead of the urban archetype's parcels — the archetype's 302.5 ha
 #: under another frame's people and capital is the mismatch it exists to
 #: forbid, so the parcels do not travel. The US frame has county parcel COUNTS,
-#: not parcels, so the fee there is NOT ASSESSED (0.0) and the run says so.
-#: Without a frame it runs the archetype, as before.
+#: not parcels, so the fee there is the urban sample's mean over the frame's
+#: count — stationarity's convention (author, 2026-10-14; until then it was
+#: reported NOT ASSESSED). Without a frame it runs the archetype, as before.
 FRAME_AWARE = ("automation_failure", "demographic_shock", "ecological_spike",
                "compound_shock", "capital_loss", "labor_income_shock", "overbuild",
                "maintenance_crisis", "recovery", "trust_stress", "measured_sim",
@@ -161,7 +162,7 @@ _SHOCK_READS = frozenset({
     "population", "age_fractions", "adult_capacity_h_yr", "adult_share",
     "labor_supply_per_capita", "capital_teh", "retirement_age", "retired_share",
     "years_in_collective", "retiree_vested_fraction", "trust_balance", "epsilon",
-    "capital_age_ratio", "ecosystem_health", "ecological_carried_by_people"})
+    "capital_age_ratio", "ecological_carried_by_people"})
 _CAPITAL_READS = frozenset({"population", "capital_teh", "epsilon"})
 # The age mix and the stock's age (2026-10-14): the period engine carries both
 # as state, so the long-run family reads the frame's population and stock
@@ -170,14 +171,21 @@ _SIM_READS = frozenset({"population", "capital_teh", "trust_balance", "age_fract
                         "capital_age_ratio", "epsilon"})
 _READS: dict[str, frozenset[str]] = {
     **{n: _SHOCK_READS for n in ("automation_failure", "demographic_shock",
-                                 "ecological_spike", "compound_shock", "capital_loss")},
-    "overbuild": _CAPITAL_READS | {"capital_age_ratio", "ecosystem_health", "age_fractions"},
+                                 "compound_shock", "capital_loss")},
+    # The spike prices restoration off the health it starts from: always read.
+    "ecological_spike": _SHOCK_READS | {"ecosystem_health"},
+    # overbuild_check takes ecosystem_health but B0's ecological term is on
+    # the fee partition, where health moves nothing at any configuration
+    # (2026-10-14, measured): not shown as read.
+    "overbuild": _CAPITAL_READS | {"capital_age_ratio", "age_fractions"},
     "maintenance_crisis": _CAPITAL_READS | {"capital_age_ratio", "age_fractions"},
     "recovery": _CAPITAL_READS | {"capital_age_ratio"},
     **{n: _SIM_READS for n in ("labor_income_shock", "trust_stress", "measured_sim")},
     **{n: frozenset({"population", "epsilon"}) for n in ("indust_baseline", "indust_recovery")},
     **{n: _SIM_READS - {"epsilon"} for n in ("canonical_arc", "transition")},
-    "thermal_load": (_SIM_READS - {"epsilon"}) | {"thermal_obligation_eoh"},
+    # The Trust reaches thermal_load's fisc and no figure it reports (measured
+    # 2026-10-14): not shown as read.
+    "thermal_load": (_SIM_READS - {"epsilon", "trust_balance"}) | {"thermal_obligation_eoh"},
     # The institutional-intake case study runs these on the US frame
     # (author, 2026-10-04). Each reads what its function takes: the arc and
     # stationarity checks the population, capital and adult capacity; the
@@ -187,9 +195,13 @@ _READS: dict[str, frozenset[str]] = {
     # the age sets the upkeep, the share the labour supply.
     # And the age mix (2026-10-14): the share set the supply while the
     # obligation read the shipped pyramid — one function, two populations.
-    **{n: frozenset({"population", "capital_teh", "adult_capacity_h_yr",
-                     "adult_share", "age_fractions", "capital_age_ratio", "epsilon"})
-       for n in ("arc_stability", "stationarity")},
+    "arc_stability": frozenset({"population", "capital_teh", "adult_capacity_h_yr",
+                                "adult_share", "age_fractions", "capital_age_ratio",
+                                "epsilon"}),
+    # stationarity prices the land fee, so it reads the land's parcels too.
+    "stationarity": frozenset({"population", "capital_teh", "adult_capacity_h_yr",
+                               "adult_share", "age_fractions", "capital_age_ratio",
+                               "parcel_count", "epsilon"}),
     "ecological_floor": frozenset({"population", "hectares_per_capita", "epsilon"}),
     # Where the work goes, as hours of capacity (2026-10-07): the compass's
     # inputs plus the frame's own adult share, which sets the capacity.
@@ -199,9 +211,12 @@ _READS: dict[str, frozenset[str]] = {
     # The stationarity extras and the mint's reach (2026-10-14): tested and
     # never reachable from the CLI until now. Same inputs as the compass; the
     # drawdown and the registered-work arc sweep ε themselves.
-    **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
-                     "adult_capacity_h_yr", "adult_share", "age_fractions", "epsilon"})
-       for n in ("reserve_plan", "mint_reach")},
+    "mint_reach": frozenset({"population", "capital_teh", "capital_age_ratio",
+                             "adult_capacity_h_yr", "adult_share", "age_fractions", "epsilon"}),
+    # reserve_plan prices the guarantee against the mint; the labour SUPPLY
+    # reaches neither (measured 2026-10-14), so capacity is not shown as read.
+    "reserve_plan": frozenset({"population", "capital_teh", "capital_age_ratio",
+                               "age_fractions", "epsilon"}),
     **{n: frozenset({"population", "capital_teh", "capital_age_ratio",
                      "adult_capacity_h_yr", "adult_share", "age_fractions"})
        for n in ("stationarity_drawdown", "registered_work")},
@@ -221,7 +236,7 @@ _READS: dict[str, frozenset[str]] = {
                              "ecosystem_health", "trust_balance", "age_fractions",
                              "adult_capacity_h_yr", "adult_share",
                              "labor_supply_per_capita", "land_m2", "retired_share",
-                             "epsilon"}),
+                             "parcel_count", "epsilon"}),
 }
 #: Inputs a scenario reads ONLY WHEN THE FRAME STATES THEM (2026-10-04): the
 #: spike and compound shocks price the frame's land only when it states one
@@ -231,9 +246,14 @@ _READS: dict[str, frozenset[str]] = {
 #: shown with its label, default included (author, 2026-10-04).
 _READS_IF_STATED: dict[str, tuple[str, ...]] = {
     **{n: ("ecological_carried_by_people",) for n in ("automation_failure",
-       "demographic_shock", "capital_loss")},
-    **{n: ("ecological_carried_by_people", "land_m2")
-       for n in ("ecological_spike", "compound_shock")},
+       "demographic_shock", "capital_loss", "compound_shock")},
+    "ecological_spike": ("ecological_carried_by_people", "land_m2"),
+    # The period engine holds the frame's land fixed when the frame states one
+    # (2026-10-14); unstated, the engine resolves it once from the population.
+    # labor_income_shock passes it too, but only to the fisc's reported
+    # relocated obligation, which it does not print: not shown.
+    **{n: ("land_m2",) for n in ("trust_stress", "measured_sim",
+                                 "canonical_arc", "transition", "thermal_load")},
 }
 
 #: The input each input-specific flag sets (--frame and --frame-file set the
@@ -252,6 +272,15 @@ def _flags_given(args: argparse.Namespace) -> list[str]:
                             ("--hectares-per-capita", "hectares_per_capita"))
              if getattr(args, a, None) is not None]
     return frame_flags_given(args) + extra
+
+#: INPUTS THAT MOVE A SHOCK ONLY WHERE ITS PEOPLE CARRY THE ECOLOGICAL WORK
+#: (2026-10-14, measured by editing each alone on the US frame): at the shipped
+#: partition the fee carries it, and the frame's health and land moved nothing
+#: in these four — yet were listed as read. `compound_shock` also reads them
+#: when it collapses the ecosystem itself.
+_READS_IF_PEOPLE_CARRY: dict[str, tuple[str, ...]] = {
+    n: ("ecosystem_health", "land_m2")
+    for n in ("automation_failure", "demographic_shock", "capital_loss", "compound_shock")}
 
 #: Frame-aware scenarios that run their ordinary branch on the frame's values.
 _BRANCH_ON_FRAME = frozenset({"arc_stability", "stationarity", "ecological_floor",
@@ -309,7 +338,7 @@ _SCENARIOS: dict[str, str] = {
     "measured_sim":        "run_measured_simulation() — simulation with Condition II from the O*NET/BLS registry  [--periods, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "multiplier_sensitivity": "sensitivity_report() — multiplier robustness under weight perturbation + Monte Carlo",
     "infra_floor":         "doctrine_floor_invariance() — currency-free statutory floor vs the monetized path",
-    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, no parcels (fee NOT ASSESSED)  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
+    "collective":          "collective_snapshot() — ONE collective end to end: pipeline + GUF + fisc on one stated frame. The documented institutional entry point. Without a frame: the urban archetype's parcels. On --frame/--frame-file: the frame's land and labour supply, the fee priced as stationarity prices it (urban sample × the frame's parcels)  [--epsilon, --population, --frame, --frame-file, --ages, --adult-capacity, --capital-stock, --bea-usd-per-teh, --retirement-age]",
     "frame":               "frame_report() — jurisdiction frames: the population/land/capital pairing, and the 424x the undeclared shipped default flatters the ecological share; REPORTING ONLY  [--epsilon, --frame, --frame-file]",
     "ecological_floor":    "domain_balance_report() — the ecological anchor inverted: what stewardship intensity a given EOH share demands  [--epsilon, --hectares-per-capita, --frame, --frame-file]",
     "land_tenure":         "tenure_allocation() — unowned land is FEDERATION: the reset obligation split by tenure, with nothing uncollected; REPORTING ONLY",
@@ -336,7 +365,7 @@ _SCENARIOS: dict[str, str] = {
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year, from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
-    "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "registered_work":     "registered_work_arc() — can a member walk away to registered work, and does it cover the members, along the arc; where TEH need per member peaks; REPORTING ONLY  [--frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "mint_reach":          "mint_floor_reach() — the share of labour supply the MINT can pay: registered hours over supply, and the hours left for the market; REPORTING ONLY  [--epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "capacity_weights":    "measured_capacity_weights() — the age groups' capacity weights measured on MTUS by age (the instrument MEASURED_CAPACITY_H_YR is measured on) against the shipped ones, US census shares; NOT adopted; REPORTING ONLY  [--epsilon]",
@@ -707,9 +736,15 @@ def _collective_out(rep: dict) -> dict:
         "land_hectares":           fr["land_hectares"],
         "hectares_per_capita":     fr["hectares_per_capita"],
         "parcel_count":            fr["parcel_count"],
+        "guf_basis":               fr["guf_basis"],
         "teh_created":             rep["pipeline"]["teh_created"],
         "ecological_eoh":          rep["pipeline"]["eoh_by_domain"]["ecological"],
+        # COLLECTED, which is what the Trust books; the assessed fee and what
+        # the mint could not pay beside it (2026-10-15).
         "guf_revenue":             gf["revenue"],
+        "guf_assessed":            rep["land_fee"]["assessed"],
+        "guf_unpaid":              rep["land_fee"]["unpaid"],
+        "guf_payable_ceiling":     rep["land_fee"]["payable_ceiling"],
         "guf_relocated_obligation": gf["obligation"],
         "guf_over_levy":           fi["trust"]["guf_over_levy"],
         "levy_total":              fi["levies"]["total_levied"],
@@ -788,12 +823,12 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         kw = ({"fraction_lost": args.automation_fraction_lost}
               if args.automation_fraction_lost else {})
         return automation_failure_shock(epsilon=epsilon, ecosystem_health=health,
-                                        **kw, **common), v, lab
+                                        land_hectares=land_ha, **kw, **common), v, lab
     if name == "demographic_shock":
         from hours_eoh.scenarios.shocks import demographic_shock
         return demographic_shock(epsilon=epsilon, shock_type=args.shock_type or "decline",
                                  magnitude=args.shock_magnitude, ecosystem_health=health,
-                                 **common), v, lab
+                                 land_hectares=land_ha, **common), v, lab
     if name == "ecological_spike":
         # Population was not passed until 2026-10-03: the spike ran at 1M
         # whatever --population said (mode 6).
@@ -822,11 +857,14 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             fraction_lost=(CAPITAL_LOSS_FRACTION_DEFAULT if args.capital_fraction_lost is None
                            else args.capital_fraction_lost),
             capability_fraction_lost=args.capability_fraction_lost,
-            rebuild_years=args.rebuild_years, ecosystem_health=health, **common), v, lab
+            rebuild_years=args.rebuild_years, ecosystem_health=health, land_hectares=land_ha, **common), v, lab
     sim = dict(population=pop,
                trust_balance=None if v["trust_derived"] else v["trust_balance"],
                capital_stock_teh=None if v["capital_derived"] else v["capital_teh"],
-               age_fractions=v["age_fractions"], capital_age_ratio=v["capital_age_ratio"])
+               age_fractions=v["age_fractions"], capital_age_ratio=v["capital_age_ratio"],
+               # The frame's land when it states one, fixed for the run
+               # (2026-10-14); unstated, each function resolves it once.
+               land_hectares=land_ha)
     periods = args.periods if args.periods is not None else _PERIODS_DEFAULT
     if name == "labor_income_shock":
         from hours_eoh.scenarios.shocks import labor_income_shock
@@ -879,7 +917,8 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         tv = thermal_load_verdict(
             thermal_obligation=v["thermal_obligation_eoh"], population=pop,
             trust_balance=sim["trust_balance"], capital_stock=sim["capital_stock_teh"],
-            age_fractions=sim["age_fractions"], capital_age_ratio=sim["capital_age_ratio"])
+            age_fractions=sim["age_fractions"], capital_age_ratio=sim["capital_age_ratio"],
+            land_hectares=sim["land_hectares"])
         # Reshape at the CLI boundary: the display layer renders "summary_table"
         # as the period table with the scalars printed above it.
         tout: dict[str, Any] = {k: val for k, val in tv.items() if k != "rows"}
@@ -895,6 +934,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             raise SystemExit("collective on a frame needs the frame's LAND (land_m2): "
                              "the ecological obligation is keyed to area")
         from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.land.collective import make_urban_collective
         from hours_eoh.scenarios.collective import collective_snapshot
         state = make_economy_state(
             population=pop, epsilon=epsilon,
@@ -903,8 +943,13 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             trust_balance=(resolve_trust_balance(None, pop) if v["trust_derived"]
                            else v["trust_balance"]),
             capital_age_ratio=v["capital_age_ratio"], ecosystem_health=v["ecosystem_health"])
+        # THE FEE FOLLOWS STATIONARITY (author, 2026-10-14): the urban
+        # sample's mean over the frame's parcels — stationarity_report's own
+        # sample, `make_urban_collective()` at its default size in both, so the
+        # size is stated once — and the two report one fee on one frame.
         return _collective_out(collective_snapshot(
             state, land_hectares=land_ha, age_fractions=v["age_fractions"],
+            guf_sample=make_urban_collective(), guf_parcel_count=v["parcel_count"],
             available_labor_eoh=v["labor_supply_per_capita"] * pop,
             retired_share=v["retired_share"],
             retiree_vested_fraction=v["retiree_vested_fraction"])), v, lab
@@ -936,6 +981,10 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             # frame's. The pipeline-keyword functions call it `age_distribution`.
             fs["age_distribution" if name in ("registered_work", "mint_reach")
                else "age_fractions"] = v["age_fractions"]
+        if name == "stationarity" and v["parcel_count"] is not None:
+            # The land's parcels, FIXED with the land (2026-10-14): the fee's
+            # count. Unstated, stationarity keeps its population-scaled default.
+            fs["guf_parcel_count"] = v["parcel_count"]
         if name == "ecological_floor":
             land_kind = lab["land_m2"]["kind"]
             if args.hectares_per_capita is not None:
@@ -995,6 +1044,10 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         state: dict[str, Any] = {key: v[key] for key in ("capital_age_ratio", "ecosystem_health")}
         # And the frame's age mix (2026-10-14): B₀ and B(K) read one population.
         state["age_distribution"] = v["age_fractions"]
+        # And its land when the frame states one (2026-10-14): B₀ on the
+        # frame's fixed land, not on population × 1.65 ha.
+        if land_ha is not None:
+            state["land_hectares"] = land_ha
         c = overbuild_check(k, pop, epsilon=epsilon, **state)
         pb = payback(k, pop, epsilon=epsilon, **state)
         out: dict = {kk: vv for kk, vv in c.items()}
@@ -1191,6 +1244,10 @@ def _frame_run(args: argparse.Namespace) -> dict:
               if k in lab and lab[k]["kind"] != "default"}
     if v.get("ecological_carried_by_people") and "ecological_carried_by_people" in stated:
         stated.add("restoration_eoh")
+    if v.get("ecological_carried_by_people") or (
+            args.name == "compound_shock" and args.ecology_collapse):
+        stated |= {k for k in _READS_IF_PEOPLE_CARRY.get(args.name, ())
+                   if k != "land_m2" or lab[k]["kind"] != "default"}
     reads = reads | stated
     rows = labelled_inputs(v, lab, eps)
     if swept and v.get("capital_derived"):
@@ -1681,6 +1738,14 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             sr[f"eps {e:.2f} | guarantee owed"] = r["teh"]["guarantee_owed"]
             sr[f"eps {e:.2f} | TEH stationary"] = r["teh"]["stationary"]
             sr[f"eps {e:.2f} | paid by the mint"] = r["teh"]["paid_by_mint"]
+        # THE POINT AT THE FRAME'S ε, whose fee `collective` must equal
+        # (2026-10-14): the arc rows above sit on a grid, not at the frame's ε.
+        here = rep["here"]["teh"]
+        for k, key in (("mint", "mint"), ("levy", "levy"), ("land fee", "guf"),
+                       ("land fee assessed", "guf_uncapped"),
+                       ("land fee unpaid", "guf_unpaid"),
+                       ("guarantee owed", "guarantee_owed")):
+            sr[f"here | {k}"] = here[key]
         for side in ("labour", "teh", "both"):
             b = rep["bands"][side]
             sr[f"band | {side}"] = (f"[{b['lower']:.2f}, {b['upper']:.2f}]"

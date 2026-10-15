@@ -23,6 +23,7 @@ from hours_eoh.data import (
     BASE_LIFETIME_EARNINGS_TEH,
     INFRA_MAINT_RATE,
     INFRA_AGE_FACTOR_MAX,
+    LAND_HECTARES_PER_CAPITA,
 )
 
 KEY_EPSILONS = [0.0, 0.40, 0.90, 0.99]
@@ -1342,3 +1343,57 @@ class TestTheAgeMixIsState:
         with pytest.raises(ValueError):
             collective_snapshot(s, land_hectares=1.65e6,
                                 age_fractions={**self.US, "elderly": 0.18, "infant": 0.075})
+
+
+class TestTheLandIsFixed:
+    """
+    LAND IS A FINITE RESOURCE (author, 2026-10-14): "land is fixed … the
+    parcel and population is not". The period engine re-derived the area from
+    each period's population, so the land's ecological obligation grew
+    exactly ×1.1 a period under 10% growth — land created by people arriving.
+    Now it is resolved once and carried.
+    """
+
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_population_moves_and_the_land_obligation_does_not(self, eps):
+        s = make_economy_state(epsilon=eps, population=1e6)
+        assert s["land_hectares"] is None                  # stated as given
+        seen = []
+        for _ in range(3):
+            s, r = simulate_period(s, population_growth_rate=0.10,
+                                   ecological_degradation_rate=0.0)
+            seen.append(r["fiscal"]["ecological"]["relocated_to_guf"])
+        assert s["population"] == pytest.approx(1e6 * 1.1 ** 3)
+        assert s["land_hectares"] == 1e6 * LAND_HECTARES_PER_CAPITA
+        assert seen[0] == seen[1] == seen[2]
+
+    def test_a_stated_land_is_the_land(self):
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        n, r = simulate_period(s)
+        assert n["land_hectares"] == 2.0e6
+        a = simulate_period(make_economy_state(population=1e6, land_hectares=4.0e6))[1]
+        assert (a["fiscal"]["ecological"]["relocated_to_guf"]
+                == pytest.approx(2 * r["fiscal"]["ecological"]["relocated_to_guf"], rel=1e-9))
+
+    def test_the_entry_point_reads_a_state_carried_land_and_refuses_another(self):
+        from hours_eoh.scenarios.collective import collective_snapshot
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        assert collective_snapshot(s)["frame"]["land_hectares"] == 2.0e6
+        with pytest.raises(ValueError, match="land is one quantity"):
+            collective_snapshot(s, land_hectares=3.0e6)
+
+    def test_the_pipeline_is_called_on_the_carried_land(self, monkeypatch):
+        """At the shipped partition (the fee carries the ecological work) the
+        pipeline's area moves none of its outputs, so a dropped pass-through is
+        invisible in the result — this checks the CALL. States its gap: it
+        pins the wiring, not a figure."""
+        import hours_eoh.core.eoh_fulfillment as ef
+        seen = []
+        real = ef.eoh_to_teh_pipeline
+        monkeypatch.setattr(ef, "eoh_to_teh_pipeline",
+                            lambda *a, **k: seen.append(k.get("ecological_area_hectares"))
+                            or real(*a, **k))
+        s = make_economy_state(population=1e6, land_hectares=2.0e6)
+        for _ in range(2):
+            s, _ = simulate_period(s, population_growth_rate=0.10)
+        assert seen == [2.0e6, 2.0e6]

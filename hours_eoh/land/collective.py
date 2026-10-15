@@ -394,3 +394,51 @@ def make_rural_collective(parcel_count: int = 1_000) -> list[dict]:
         })
 
     return parcels
+
+
+def sample_scaled_guf(
+    sample: list[dict],
+    epsilon: float,
+    parcel_count: float,
+    psi_policy: str = "retired",
+) -> float:
+    """
+    A land fee priced from a parcel SAMPLE and scaled to a parcel COUNT.
+
+    Governing equation:
+
+        guf = Σ_sample net_inflow / |sample| × parcel_count     [TEH / yr]
+
+    The convention `scenarios/stationarity` priced its fee with, made the ONE
+    implementation (2026-10-14, author: the entry point follows stationarity).
+    `collective_snapshot` on a frame calls it too, so the two report one fee
+    on one frame. The arithmetic order is stationarity's own, so its figures
+    are bit-identical. It ASSUMES every parcel in the count pays the sample's
+    mean fee — an urban archetype's mean over a whole jurisdiction's parcels —
+    and that assumption is the caller's to state.
+
+    ε-behaviour: inherits `compute_collective_guf`'s — the fee is
+    labour-independent under the shipped `psi_policy="retired"`, so it does
+    not vanish as ε → 0.99.
+
+    Raises:
+        ValueError: on an empty sample.
+    """
+    if not sample:
+        raise ValueError("an empty parcel sample prices no fee")
+    net = compute_collective_guf(sample, epsilon, psi_policy=psi_policy)["guf_net_inflow"]
+    return float(net) / len(sample) * parcel_count
+
+
+def default_parcel_count(population: float) -> float:
+    """
+    Parcels for a frame that states none: the population's share of the US
+    county parcel census, `population × national_parcel_count() /
+    US_REFERENCE_POPULATION` — stationarity's default, made the one copy
+    (2026-10-14). A frame that measures its parcels (the US frame: the
+    contiguous 48, `reference.parcels.contiguous_48_parcel_count`) states them
+    instead, and they stay fixed when the population moves.
+    """
+    from hours_eoh.data import US_REFERENCE_POPULATION
+    from hours_eoh.reference.parcels import national_parcel_count
+    return population * national_parcel_count() / US_REFERENCE_POPULATION

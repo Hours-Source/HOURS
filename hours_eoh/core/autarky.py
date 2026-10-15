@@ -81,6 +81,7 @@ def autarky_reference(
     standard: str = "sufficiency",
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
     age_distribution: dict[str, float] | None = None,
+    land_hectares: float | None = None,
 ) -> AutarkyReference:
     """
     B₀ — the obligation with no apparatus, discharged alone.
@@ -112,8 +113,13 @@ def autarky_reference(
     Raises:
         ValueError: on non-positive population or standard="collapsed".
 
-    Worked example (1M people, sufficiency, health 0.70):
-        personal 2,213M + ecological 0.71M → B₀ ≈ 2,213 h/person·yr.
+    Worked example (1M people, sufficiency, health 0.70): call it — the
+    figure this line quoted (personal 2,213M + ecological 0.71M) was stale by
+    2026-10-14, when the call returned personal 2,029.2M + ecological 0.0.
+    THE ECOLOGICAL TERM IS ZERO at the shipped partition: `ecological_eoh`
+    sends the recurring ecological work to the fee (Phases 4e/4f), so land and
+    health move B₀ nowhere. Whether autarky — no collective, so no fee — should
+    carry that work on its people is an open question, not answered here.
     """
     if population <= 0.0:
         raise ValueError(f"population must be positive, got {population}")
@@ -133,9 +139,15 @@ def autarky_reference(
     # domain is tiny; the FORM was wrong regardless, and a reference the
     # overbuild test is measured against should not depend on a frame nobody
     # declared.
+    #
+    # AND THE LAND IS THE FRAME'S WHEN STATED (2026-10-14, author: land is
+    # fixed): `population × LAND_HECTARES_PER_CAPITA` stays only as the
+    # default for a caller that states none, so a moved population on a
+    # stated frame no longer moves B₀'s land.
     e = ecological_eoh(
         ecosystem_health,
-        area_hectares=population * LAND_HECTARES_PER_CAPITA,
+        area_hectares=(population * LAND_HECTARES_PER_CAPITA if land_hectares is None
+                       else land_hectares),
     )
     return AutarkyReference(
         personal=p, ecological=e, total=p + e,
@@ -175,6 +187,7 @@ def overbuild_check(
     added_upkeep_eoh: float = 0.0,
     abating_capital_teh: float | None = None,
     age_distribution: dict[str, float] | None = None,
+    land_hectares: float | None = None,
 ) -> OverbuildCheck:
     """
     Is this collective carrying its own weight, or is it overhead?
@@ -220,6 +233,11 @@ def overbuild_check(
         age_distribution: The population's age mix, `{group: fraction}`.
             Reaches B₀ AND B(K), which are one population's obligation. None
             → the shipped AGE_GROUPS mix, bit-identical.
+        land_hectares: The frame's land (2026-10-14), to B₀'s ecological term,
+            which B(K) carries unabated. None → population ×
+            LAND_HECTARES_PER_CAPITA, bit-identical. `ecosystem_health` is
+            INERT here at every configuration — that term is on the fee
+            partition — and is kept for the signature, not as a lever.
 
     Returns:
         OverbuildCheck.
@@ -228,10 +246,10 @@ def overbuild_check(
         ValueError: on negative capital, non-positive population, or ε outside
             [0, 1).
 
-    Worked example (1M people, K = 1.9B TEH, ε = 0.40): a = 0.294, so the
-    obligation falls from 2,213 to 1,563 h/person·yr while overhead adds 47.5 —
-    total 1,610 against B₀ 2,213, so the apparatus removes far more than it
-    costs and the verdict is `pays`.
+    Worked example (1M people, K = 1.9B TEH, ε = 0.40): a = 0.294 and the
+    verdict is `pays` — the apparatus removes far more obligation than its
+    overhead adds. Call it for the levels: the hours this line quoted (2,213 /
+    1,563 / 47.5) were stale by 2026-10-14, after the personal repricing.
     """
     if capital_stock_teh < 0.0:
         raise ValueError(f"capital_stock_teh must be ≥ 0, got {capital_stock_teh}")
@@ -249,7 +267,7 @@ def overbuild_check(
     # population's obligation with and without the apparatus, so they read one
     # age mix. None is the shipped AGE_GROUPS mix on both, as before.
     ref = autarky_reference(population, standard, ecosystem_health,
-                            age_distribution=age_distribution)
+                            age_distribution=age_distribution, land_hectares=land_hectares)
     b0 = ref["total"]
 
     # K FOR ABATEMENT IS PERSONAL-SERVING CAPITAL, NOT TOTAL. a(K) reduces the

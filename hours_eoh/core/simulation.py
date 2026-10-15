@@ -43,6 +43,7 @@ from hours_eoh.data import (
     ESTATE_INHERITANCE_FRACTION, ESTATE_LEVY_FRACTION, ESTATE_PERSONAL_RESERVE_YEARS,
     ACCUMULATION_CEILING_MULTIPLIER,
     MEAN_MULTIPLIER_REFERENCE, M_FLOOR,
+    LAND_HECTARES_PER_CAPITA,
 )
 from hours_eoh.core.fiscal import resolve_trust_balance
 from hours_eoh.core.eoh_generation import resolve_capital_stock
@@ -76,6 +77,7 @@ def make_economy_state(
     infra_deferred_years: float = 0.0,
     registration_epsilon: float | None = None,
     age_fractions: dict[str, float] | None = None,
+    land_hectares: float | None = None,
 ) -> dict:
     """
     Construct a well-formed economy state dict for simulate_period().
@@ -140,6 +142,16 @@ def make_economy_state(
             carries it forward UNCHANGED — the engine has no demographic
             dynamics, so a run holds its population's mix while the head count
             grows.
+        land_hectares: The collective's LAND, ha, as state (2026-10-14,
+            author: "land is fixed as a finite resource"). None (default) →
+            the first `simulate_period` resolves it ONCE from the starting
+            population (× LAND_HECTARES_PER_CAPITA, the pipeline's own
+            default) and carries it fixed; until then each period re-derived
+            the area from that period's population, so a growing population
+            created land — the ecological obligation grew exactly with it.
+            Stored as given (None stays None here) so a caller stating land
+            another way — `collective_snapshot`'s parcels — is not
+            contradicted by a default it never chose.
 
     Returns:
         State dict with all the above keys plus derived "workforce_size".
@@ -198,6 +210,7 @@ def make_economy_state(
         "infra_deferred_years":          infra_deferred_years,
         "registration_epsilon":          registration_epsilon,
         "age_fractions":                 None if age_fractions is None else dict(age_fractions),
+        "land_hectares":                 None if land_hectares is None else float(land_hectares),
     }
 
 
@@ -326,6 +339,11 @@ def simulate_period(
     # The age mix, as state (2026-10-14). `.get` for the same reason as above.
     ages             = state.get("age_fractions")
     population       = state["population"]
+    # THE LAND IS FIXED (2026-10-14): resolved once, from the population the
+    # run STARTS with, and carried. Population moves; land does not.
+    land             = state.get("land_hectares")
+    if land is None:
+        land = population * LAND_HECTARES_PER_CAPITA
     workforce_frac   = state["workforce_fraction"]
     trust_bal        = state["trust_balance"]
     cap_stock        = state["capital_stock_teh"]
@@ -431,6 +449,7 @@ def simulate_period(
         mean_multiplier=mean_multiplier,
         registration_epsilon=reg_eps,
         age_distribution=ages,
+        ecological_area_hectares=land,
     )
 
     # Condition III-B: credit compounding fulfillment against the deferred backlog.
@@ -524,6 +543,7 @@ def simulate_period(
         eco_eoh_override=pipeline["eoh_by_domain"]["ecological"],
         care_stipend_aggregate=care_stipend_aggregate,
         age_fractions=ages,
+        ecological_area_hectares=land,
     )
     # Every inflow is inside this figure now — levy, GUF and the estate levy —
     # so nothing is added to the balance after the fiscal period closes.
@@ -641,6 +661,7 @@ def simulate_period(
         infra_deferred_years=new_infra_def_years,
         registration_epsilon=reg_eps,   # the register is state: carried, not re-read
         age_fractions=ages,             # held: the engine has no demographic dynamics
+        land_hectares=land,             # held: land is fixed, the people move
     )
 
     # derived_epsilon: architecture hook for when machine capacity is modeled endogenously.

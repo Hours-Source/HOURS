@@ -310,16 +310,22 @@ class TestScenarioRunOnAFrame:
 
     def test_collective_on_a_frame_runs_on_the_frames_land_and_labour(self):
         """Since 2026-10-14 the entry point runs on a frame: its land, not the
-        archetype's parcels (so no fee is assessed), its labour supply as the
-        hours the mint may pay, its age mix to both halves. Checked against
-        `collective_snapshot` called directly on the frame's own values."""
+        archetype's parcels; its labour supply as the hours the mint may pay;
+        its age mix to both halves; and — the author's decision the same day —
+        a fee priced as stationarity prices it, the urban sample's mean over
+        the frame's own parcels. Checked against `collective_snapshot` called
+        directly on the frame's own values."""
         from hours_eoh.core.simulation import make_economy_state
+        from hours_eoh.land.collective import make_urban_collective
+        from hours_eoh.reference.parcels import contiguous_48_private_parcels
         from hours_eoh.scenarios.collective import collective_snapshot
         r = _scenario("collective", "--frame", "us")
         inp = {k: row["value"] for k, row in r["inputs"].items()}
         land_ha = inp["land_m2"] / 1e4
         assert r["land_hectares"] == pytest.approx(land_ha)
-        assert r["parcel_count"] == 0 and r["guf_revenue"] == 0.0
+        # the PRIVATE parcels pay: the collective does not pay itself
+        assert r["parcel_count"] == inp["parcel_count"] == contiguous_48_private_parcels()["central"]
+        assert r["guf_basis"] == "sample mean × parcel count" and r["guf_revenue"] > 0.0
         assert r["labour_supplied"] is True
         eps = r["epsilon_reading"]["value"]
         direct = collective_snapshot(
@@ -329,12 +335,15 @@ class TestScenarioRunOnAFrame:
                                capital_age_ratio=inp["capital_age_ratio"],
                                ecosystem_health=inp["ecosystem_health"]),
             land_hectares=land_ha, age_fractions=inp["age_fractions"],
-            available_labor_eoh=inp["labor_supply_per_capita"] * inp["population"])
+            available_labor_eoh=inp["labor_supply_per_capita"] * inp["population"],
+            guf_sample=make_urban_collective(10_000), guf_parcel_count=inp["parcel_count"])
+        assert r["guf_revenue"] == direct["guf"]["revenue"]
         assert r["teh_created"] == pytest.approx(direct["pipeline"]["teh_created"], rel=1e-12)
         assert r["trust_end"] == pytest.approx(direct["fiscal"]["trust"]["trust_end"], rel=1e-12)
 
     def test_three_scenarios_mint_one_figure_on_the_us_frame(self):
-        """THE SHARED PATH, READ THREE WAYS (2026-10-14). `reserve_plan`
+        """THE SHARED PATH, READ SEVERAL WAYS (2026-10-14; the name is the
+        first version's — it grew to five mints, three guarantees, two fees). `reserve_plan`
         minted 156.46B where `collective` and `automation_failure` minted
         155.78B on the same frame: its pipeline read the shipped pyramid. One
         frame, one mint, one guarantee — by equality, not tolerance."""
@@ -342,8 +351,42 @@ class TestScenarioRunOnAFrame:
         r = _scenario("reserve_plan", "--frame", "us")
         a = _scenario("automation_failure", "--frame", "us")
         li = _scenario("labor_income_shock", "--frame", "us")
-        assert c["teh_created"] == r["mint"] == a["mint_before"] == li["baseline_income"]
-        assert r["guarantee_here"] == a["guarantee_before"]
+        s = _scenario("stationarity", "--frame", "us")
+        assert (c["teh_created"] == r["mint"] == a["mint_before"] == li["baseline_income"]
+                == s["here | mint"])
+        assert r["guarantee_here"] == a["guarantee_before"] == s["here | guarantee owed"]
+        # and ONE FEE (author, 2026-10-14: the entry point follows stationarity)
+        assert c["guf_revenue"] == s["here | land fee"]
+
+    def test_land_is_fixed_and_only_the_people_move(self):
+        """Author, 2026-10-14: on a named frame the land — and its parcels —
+        stay the jurisdiction's unless a frame file states more; --population
+        moves only the people. Land per head is the fixed land over them."""
+        a = _labels("--frame", "us")
+        b = _labels("--frame", "us", "--population", "1e6")
+        assert a["land_m2"]["value"] == b["land_m2"]["value"]
+        assert a["parcel_count"]["value"] == b["parcel_count"]["value"]
+        assert "FIXED under --population" in b["land_m2"]["source"]
+        fa = _scenario("ecological_floor", "--frame", "us")
+        fb = _scenario("ecological_floor", "--frame", "us", "--population", "1e6")
+        ha = fa["inputs"]["hectares_per_capita"]["value"]
+        hb = fb["inputs"]["hectares_per_capita"]["value"]
+        assert hb == pytest.approx(ha * 335e6 / 1e6, rel=1e-12)
+        # the fee is ASSESSED on the land's parcels, so it does not move; what
+        # is COLLECTED is bounded by what the fewer people are minted, and the
+        # rest is reported unpaid (2026-10-15, author: "you can't pay what
+        # isn't minted"). At 1M on US land the ceiling binds; at 335M it does not.
+        ca = _scenario("collective", "--frame", "us")
+        cb = _scenario("collective", "--frame", "us", "--population", "1e6")
+        assert ca["parcel_count"] == cb["parcel_count"]
+        assert ca["guf_assessed"] == cb["guf_assessed"]
+        assert ca["guf_unpaid"] == 0.0 and ca["guf_revenue"] == ca["guf_assessed"]
+        assert cb["guf_revenue"] == cb["guf_payable_ceiling"] < cb["teh_created"]
+        assert cb["guf_unpaid"] == pytest.approx(cb["guf_assessed"] - cb["guf_revenue"], rel=1e-12)
+        # and stationarity, on the same frame, collects the same fee
+        sb = _scenario("stationarity", "--frame", "us", "--population", "1e6")
+        assert sb["here | land fee"] == pytest.approx(cb["guf_revenue"], rel=1e-12)
+        assert sb["here | land fee unpaid"] == pytest.approx(cb["guf_unpaid"], rel=1e-12)
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_the_health_flags_are_refused_where_nothing_reads_them(self, name):
@@ -786,3 +829,70 @@ def _band_json(*flags: str) -> dict:
     with redirect_stdout(buf):
         a.func(a)
     return json.loads(buf.getvalue())
+
+
+class TestEveryClaimedInputMovesItsReader:
+    """
+    A SCENARIO MAY NOT LIST AN INPUT IT DOES NOT READ (2026-10-14). The Inputs
+    block is a claim: "this run read these". Edited ALONE in a frame file on the
+    US frame, each input must move every scenario that lists it — or the
+    listing is the reported-not-applied shape (mode 10) and the input may be
+    stranded (mode 5). The first run of this check found 15 pairs that did not
+    move: ecosystem health and land in four shocks (the fee carries that work),
+    the Trust in thermal_load, labour capacity in reserve_plan, land in
+    labor_income_shock, and B0's health in overbuild. Exempt by NAME, each with
+    its reason — never by pattern.
+    """
+
+    EDITS = {
+        "age_fractions": {"age_fractions": {"infant": 0.05, "child": 0.12,
+                                            "working_age": 0.55, "elderly": 0.28}},
+        "capital_age_ratio": {"capital_age_ratio": 0.1},
+        "trust_balance": {"trust_balance": 1.0e12},     # the frame file states none
+        "parcel_count": "half",
+        "adult_capacity_h_yr": {"adult_capacity_h_yr": 1500.0},
+        "ecosystem_health": {"ecosystem_health": 0.4},
+        "capital_teh": "half",
+        "population": "half",
+        "land_m2": "half",
+    }
+    #: Per-head or share reports: the population reaches them and, by design,
+    #: moves no figure ("reaching, and correctly moving nothing").
+    EXEMPT = {("population", "care_delay"), ("population", "verification_band"),
+              ("population", "recovery")}
+
+    @staticmethod
+    def _edited(tmp_path: Path, inp: str, edit, body: dict) -> str:
+        key = "land_hectares" if inp == "land_m2" else inp
+        new = ({key: body[key] * 0.5} if edit == "half" else edit)
+        f = tmp_path / f"{inp}.json"
+        f.write_text(json.dumps({**body, **new}))
+        return str(f)
+
+    @pytest.mark.parametrize("inp", list(EDITS))
+    def test_each_listed_input_moves_its_reader(self, tmp_path: Path, inp):
+        from utils.scenario_cmd import _READS_IF_STATED
+        body = _frame_json("--frame", "us")
+        f = self._edited(tmp_path, inp, self.EDITS[inp], body)
+        readers = [n for n in FRAME_AWARE
+                   if inp in set(_READS[n]) | set(_READS_IF_STATED.get(n, ()))
+                   and (inp, n) not in self.EXEMPT]
+        assert readers
+        still = [n for n in readers
+                 if _strip(_scenario(n, "--frame-file", f)) == _strip(_scenario(n, "--frame", "us"))]
+        assert not still, f"{inp} is listed as read but moves nothing in {still}"
+
+    @pytest.mark.parametrize("inp", ["ecosystem_health", "land_m2"])
+    def test_where_the_people_carry_the_work_health_and_land_move_the_shocks(
+            self, tmp_path: Path, inp):
+        from utils.scenario_cmd import _READS_IF_PEOPLE_CARRY
+        body = {**_frame_json("--frame", "us"), "ecological_carried_by_people": True}
+        base = tmp_path / "people.json"
+        base.write_text(json.dumps(body))
+        f = self._edited(tmp_path, inp, self.EDITS[inp], body)
+        for n in _READS_IF_PEOPLE_CARRY:
+            if n == "compound_shock":
+                continue      # needs a component enabled; its readers are the shocks'
+            a = _scenario(n, "--frame-file", str(base))
+            assert inp in a["inputs"], n                    # listed where it reads
+            assert _strip(_scenario(n, "--frame-file", f)) != _strip(a), n

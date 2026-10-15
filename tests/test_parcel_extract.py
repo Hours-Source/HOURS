@@ -374,3 +374,36 @@ class TestExclusionCleansTheTailAndNotTheNumerator:
         v = service_point_denominator_verdict()
         assert v["buildable"] is False
         assert "LOWER BOUND" in str(v["verdict"])
+
+
+class TestTheContiguous48MatchesTheFramesLand:
+    """The US frame's land is the contiguous 48 (ERS MLU); the national count
+    sums 56 state codes, AK, HI, PR and four territories among them
+    (2026-10-14). The frame's parcels are its land's."""
+
+    def test_it_is_the_national_count_less_the_named_codes(self):
+        from hours_eoh.reference.parcels import (
+            NOT_CONTIGUOUS_48_FIPS, contiguous_48_parcel_count, parcels_by_state)
+        by = parcels_by_state()
+        assert contiguous_48_parcel_count() == national_parcel_count() - sum(
+            by.get(f, 0) for f in NOT_CONTIGUOUS_48_FIPS)
+        kept = [f for f in by if f not in NOT_CONTIGUOUS_48_FIPS]
+        assert len(kept) == 49                       # 48 states + DC
+        assert {"02", "15", "72"} <= set(by)         # the excluded codes are really there
+
+
+class TestThePrivateParcelsPay:
+    """2026-10-14 (author): the collective does not pay itself on parcels it
+    holds. Government parcels are the collective's; an unknown owner type is
+    not a private owner, so the private count is a band."""
+
+    def test_the_band_and_its_definition(self):
+        from hours_eoh.reference.parcels import (
+            contiguous_48_parcel_count, contiguous_48_private_parcels)
+        p = contiguous_48_private_parcels()
+        assert p["total"] == contiguous_48_parcel_count()
+        assert p["low"] < p["central"] < p["high"] == p["total"] - p["government"]
+        known = p["owner_known_share"] * p["total"]
+        assert p["low"] == pytest.approx(known - p["government"], rel=1e-12)
+        assert p["central"] == pytest.approx(
+            p["total"] * (1 - p["government"] / known), rel=1e-12)

@@ -77,7 +77,10 @@ FRAMES: dict[str, dict[str, str]] = {
            "capital": "bea",
            # its energy off EIA SEDS, contiguous 48 (2026-10-04), not the
            # unverified Path C record
-           "energy": "eia_seds"},
+           "energy": "eia_seds",
+           # its parcels off the county parcel census, contiguous 48 + DC
+           # (2026-10-14) — the same land as its hectares
+           "parcels": "county_census"},
 }
 
 #: What a --frame-file may state.
@@ -88,6 +91,8 @@ FRAME_FILE_KEYS = frozenset({
     # 2026-10-04: the physical state a constructed (or measured) frame states,
     # and whether its people, rather than the GUF, carry its ecological work.
     "ecosystem_health", "capital_age_ratio", "ecological_carried_by_people",
+    # 2026-10-14: the parcels its land is divided into — the land fee's count.
+    "parcel_count",
 })
 
 
@@ -455,12 +460,44 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["land_m2"], lab["land_m2"] = float(ff["land_hectares"]) * M2_PER_HECTARE, label(
             "supplied", src_ff)
     elif jur:
+        # LAND IS FIXED; ONLY THE PEOPLE MOVE (author, 2026-10-14). A moved
+        # --population changes who lives on the jurisdiction's land, not how
+        # much of it there is; more land is stated in a frame file, or at
+        # review. Said in the label, because capital DOES rescale per head.
+        moved = lab["population"]["kind"] == "supplied"
         v["land_m2"], lab["land_m2"] = jur["land_hectares"] * M2_PER_HECTARE, label(
-            "measured", f"JURISDICTION_FRAMES['{frame['jurisdiction']}']")  # type: ignore[index]
+            "measured", f"JURISDICTION_FRAMES['{frame['jurisdiction']}']"  # type: ignore[index]
+            + (" — the jurisdiction's land, FIXED under --population; state more "
+               "in a frame file" if moved else ""))
     else:
         v["land_m2"], lab["land_m2"] = A_LAND_CLAIMED_M2 * share, label(
             "derived", "equal per-head share of A_LAND_CLAIMED_M2",
             ("population", "default:equal per-head share"))
+    # THE PARCELS THAT PAY THE FEE (2026-10-14): a count the land is divided
+    # into, which can change by subdivision or joining but not by a moved
+    # population. Unstated, it is None and each function keeps its own default
+    # (stationarity's population × national parcels per head), so a run on no
+    # frame is byte-identical.
+    if "parcel_count" in ff:
+        if float(ff["parcel_count"]) < 0.0:
+            raise SystemExit(f"{src_ff}: parcel_count must be >= 0")
+        v["parcel_count"], lab["parcel_count"] = float(ff["parcel_count"]), label("supplied", src_ff)
+    elif frame and frame.get("parcels") == "county_census":
+        # THE PARCELS THAT PAY (2026-10-14): private ones — the collective
+        # does not pay itself on the parcels it holds. Unknown owner types are
+        # split like the known (the band is in the label). Parcels can divide
+        # and join; a moved --population does neither, so the count holds.
+        from hours_eoh.reference.parcels import contiguous_48_private_parcels
+        pp = contiguous_48_private_parcels()
+        v["parcel_count"], lab["parcel_count"] = pp["central"], label(
+            "measured", "county parcel census, contiguous 48 + DC, PRIVATE parcels "
+            f"(the fee's payers; {pp['government']:,.0f} government parcels excluded; "
+            f"owner type known for {pp['owner_known_share']:.1%}, so the band is "
+            f"{pp['low']:,.0f}–{pp['high']:,.0f}) — reference.parcels."
+            "contiguous_48_private_parcels; unchanged by --population")
+    else:
+        v["parcel_count"], lab["parcel_count"] = None, label(
+            "default", "population × national parcels per head (stationarity's own)")
     if getattr(args, "phi_other", None) is not None:
         v["phi_other_w"], lab["phi_other_w"] = float(args.phi_other), label("supplied", "--phi-other")
     else:
@@ -790,6 +827,9 @@ def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
             out[fk] = r["value"]
     if "land_m2" in rows and rows["land_m2"]["kind"] in ("supplied", "measured"):
         out["land_hectares"] = rows["land_m2"]["value"] / M2_PER_HECTARE
+    pc = rows.get("parcel_count")
+    if pc and pc["kind"] in ("supplied", "measured") and pc["value"] is not None:
+        out["parcel_count"] = pc["value"]
     e = rows.get("epsilon")
     if e and e["kind"] in ("supplied", "measured"):
         out["epsilon"] = ({"low": e["range"][0], "high": e["range"][1]} if "range" in e

@@ -55,6 +55,9 @@ __all__ = [
     "load_county_parcels",
     "county_count",
     "national_parcel_count",
+    "NOT_CONTIGUOUS_48_FIPS",
+    "contiguous_48_parcel_count",
+    "contiguous_48_private_parcels",
     "parcels_by_state",
     "land_area_validation",
 ]
@@ -269,6 +272,64 @@ def national_parcel_count() -> int:
     repo has found five times.
     """
     return sum(int(r["parcels"]) for r in load_county_parcels())
+
+
+#: State FIPS codes in the extract that are NOT the contiguous 48 + DC
+#: (Census state FIPS). The US frame's land is the contiguous 48 (ERS MLU,
+#: `US_MAINLAND_HECTARES`); its energy is the contiguous 48 by subtraction
+#: (`energy_use`). Its parcels must be the same land.
+NOT_CONTIGUOUS_48_FIPS: dict[str, str] = {
+    "02": "Alaska", "15": "Hawaii", "60": "American Samoa", "66": "Guam",
+    "69": "Northern Mariana Islands", "72": "Puerto Rico", "78": "U.S. Virgin Islands",
+}
+
+
+def contiguous_48_parcel_count() -> int:
+    """
+    Parcels on the contiguous 48 + DC — the denominator that matches the US
+    frame's LAND (2026-10-14).
+
+    `national_parcel_count()` sums all 56 state codes in the extract, so it
+    includes Alaska, Hawaii, Puerto Rico and four territories, none of which
+    the frame's 765,495,267 ha covers: 1.7% more parcels than the frame's land
+    holds. Summed from the rows, not stored, for the same reason as the
+    national count.
+    """
+    return sum(int(r["parcels"]) for r in load_county_parcels()
+               if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS)
+
+
+def contiguous_48_private_parcels() -> dict[str, float]:
+    """
+    The contiguous 48's PRIVATE parcels — the ones that pay the land fee
+    (2026-10-14, author: "the collective doesn't pay itself on parcels it
+    holds"). Government parcels are the collective's own holding.
+
+    Owner type is known for ~82% of parcels, and an unknown owner type is not
+    a private owner (`TestOwnershipIsAPairNotAFraction`), so the count is a
+    BAND, not a number:
+
+        low     = known − government            unknowns all non-private
+        high    = total − government            unknowns all private
+        central = total × (1 − government/known)  unknowns split like the known
+
+    The census gives government parcel COUNTS, not their AREA: federal land is
+    a few percent of parcels and far more of the land, so this corrects the
+    fee's per-parcel count and says nothing about the area the collective holds.
+    """
+    rows = [r for r in load_county_parcels()
+            if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS]
+    total = sum(int(r["parcels"]) for r in rows)
+    known = sum(int(r["ownertype_known"]) for r in rows)
+    gov = sum(int(r["government_parcels"]) for r in rows)
+    return {
+        "central": total * (1.0 - gov / known),
+        "low": float(known - gov),
+        "high": float(total - gov),
+        "government": float(gov),
+        "total": float(total),
+        "owner_known_share": known / total,
+    }
 
 
 def parcels_by_state() -> dict[str, int]:

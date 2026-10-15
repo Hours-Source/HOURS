@@ -55,6 +55,7 @@ GUF's own magnitude is still fitted rather than derived.
 
 ## Open
 
+- **Autarky's ecological term** *(person)* — author, 2026-10-15: the cost is only what was disrupted. B₀'s 0.0 is undisturbed land; autarky's own disruption awaits a form. [fulfilment.md](fulfilment.md#land-is-fixed-population-moves)
 - **The pristine-gap condition inventory.** *(gap)* `pristine_gap_obligation` has no
   default inventory and a test pins that. Phase 3 gives cost per hectare
   restored; this needs hectares needing restoration. *Settles by:* USDA NRI, the

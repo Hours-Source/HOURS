@@ -48,6 +48,7 @@ def canonical_arc_trajectory(
     capital_stock_teh: float | None = None,
     age_fractions: dict[str, float] | None = None,
     capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
     **sim_kwargs: Any,
 ) -> dict:
     """
@@ -68,6 +69,8 @@ def canonical_arc_trajectory(
             (`make_economy_state`); None → the shipped mix (2026-10-14).
         capital_age_ratio: The stock's age over its service life at the start;
             None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
         **sim_kwargs:  Additional kwargs forwarded to run_simulation() /
                        simulate_period() (e.g., ecological_degradation_rate).
 
@@ -94,6 +97,7 @@ def canonical_arc_trajectory(
         age_fractions=age_fractions,
         capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
                            else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
     raw = run_simulation(
@@ -182,6 +186,7 @@ def trust_depletion_stress(
     capital_stock_teh: float | None = None,
     age_fractions: dict[str, float] | None = None,
     capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
 ) -> dict:
     """
     Run a multi-stressor simulation and report when/whether the Trust breaks.
@@ -208,6 +213,8 @@ def trust_depletion_stress(
             (`make_economy_state`); None → the shipped mix (2026-10-14).
         capital_age_ratio: The stock's age over its service life at the start;
             None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
 
     Returns:
         dict: {
@@ -236,6 +243,7 @@ def trust_depletion_stress(
         age_fractions=age_fractions,
         capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
                            else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
     raw = run_simulation(initial_state, n_periods=n_periods, **profile)
@@ -302,6 +310,7 @@ def automation_transition_trajectory(
     capital_stock_teh: float | None = None,
     age_fractions: dict[str, float] | None = None,
     capital_age_ratio: float | None = None,
+    land_hectares: float | None = None,
 ) -> dict:
     """
     Simulate a fixed-rate automation transition and track key economic indicators.
@@ -324,6 +333,8 @@ def automation_transition_trajectory(
             (`make_economy_state`); None → the shipped mix (2026-10-14).
         capital_age_ratio: The stock's age over its service life at the start;
             None → `make_economy_state`'s default (2026-10-14).
+        land_hectares: The collective's land, fixed for the run (2026-10-14);
+            None → resolved once from the starting population.
 
     Returns:
         dict: {
@@ -345,6 +356,7 @@ def automation_transition_trajectory(
         age_fractions=age_fractions,
         capital_age_ratio=(CAPITAL_AGE_RATIO_DEFAULT if capital_age_ratio is None
                            else capital_age_ratio),
+        land_hectares=land_hectares,
     )
 
     raw = run_simulation(

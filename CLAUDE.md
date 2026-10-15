@@ -95,7 +95,8 @@ hours_eoh/
 
   land/                Ground Use Fee + stewardship lease mechanics
     guf.py             GUF framework (NLSA) — the fee, Ψ policies, ecosystem-service term, §9 write-down
-    collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective()
+    collective.py      Collective land inventory: compute_collective_guf(), make_urban_collective(), make_rural_collective();
+                       sample_scaled_guf() / default_parcel_count() — a fee as a sample's mean × a parcel count
     calibration.py     Rate/weight calibration: guf_rate_calibration(), guf_lvi_weight_sensitivity()
 
   reference/           Calibrated example data — pure data, no domain imports
@@ -105,7 +106,8 @@ hours_eoh/
     mtus_time_use.py   Multinational time use — self-maintenance by age, 977,809 diaries; ingest via utils/mtus_ingest.py;
                        capacity_in_band — measured capacity for any age band (utils/mtus_capacity_age_ingest.py)
     care_demand.py     ATUS care demand by age: care_by_age(), elderly_per_capita(), coverage()
-    parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py
+    parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py;
+                       contiguous_48_parcel_count() — 157,922,061, the US frame's land
     onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
     onet_knowledge.py  Knowledge/training axis inverted against the same frozen bounds
     personal_basket.py The personal obligation pinned to physical quantities; one component priced.
@@ -533,7 +535,22 @@ someone remembering it, which is what this section is for.
    moved expenditure 3.96× and the mint not at all. *The tell:* a guard listing
    what is forbidden cannot see what is shared. `gated by:`
    `test_collective.py::TestBothHalvesSeeOneValue`
-   ([record](record/fulfilment.md#entry-point-one-value-both-halves)).
+   ([record](record/fulfilment.md#entry-point-one-value-both-halves)). The
+   federation's `build_collective` had the mirror (keywords to the pipeline
+   only); both now read `core.fiscal.PIPELINE_SHARED_PARAMS`.
+   **And a SCOPE, the same day:** the US frame's land is the contiguous 48,
+   its fee's parcel count was the national 56-code census (+1.68%: AK, HI, PR,
+   territories). *The tell:* two "US" figures of different coverage meeting in
+   one ratio. `gated by:` `TestTheContiguous48MatchesTheFramesLand`
+   ([record](record/fulfilment.md#fee-follows-stationarity)).
+   **And LAND MADE OUT OF PEOPLE, the same day** (author: land is fixed, the
+   people move): the period engine, the shocks and `autarky_reference` each
+   derived area as population × 1.65 ha at the call, so growth created land.
+   *The tell:* a quantity the frame states, re-derived from a quantity that
+   moves. Land is state now. `gated by:` `TestTheLandIsFixed`,
+   `TestAShockMovesThePeopleNotTheLand`, and — for the Inputs block that
+   listed 15 inputs moving nothing — `TestEveryClaimedInputMovesItsReader`
+   ([record](record/fulfilment.md#land-is-fixed-population-moves)).
 
 7. **THE STATUS NOTE OUTLIVING ITS DECISION** *(corpus F-009)* — nine instances. `land_stewardship`
    printed a retracted reading for eleven days; five retracted claims were still
@@ -578,6 +595,11 @@ someone remembering it, which is what this section is for.
     said it meant the human share — 5.8× understated at the documented entry
     point. *Do:* when a computation gains a mode parameter, audit every value it
     REPORTS against every value it USES; ship the raw form under a different key.
+    **And a fee, 2026-10-15:** the land fee ASSESSED was booked to the Trust as
+    COLLECTED — 6.31B TEH/yr against a 0.465B mint at 1M people on US land
+    (author: "you can't pay what isn't minted"). `gated by:`
+    `TestTheFeeCollectedIsWhatTheMintCanPay`
+    ([record](record/guf.md#fee-collected-is-payable)).
 
 11. **THE DOUBLE APPLICATION** *(corpus F-024)* — two terms, one mechanism, composed. `U`'s
     `labor_content_scaling` and `Ψ` both encoded "labour costs collapse";
@@ -682,8 +704,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,108 tests passing (1 skipped), mypy clean on 109 source files** (verified
-2026-10-14). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
+**6,175 tests passing (1 skipped), mypy clean on 109 source files** (verified
+2026-10-15). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 

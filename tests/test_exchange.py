@@ -634,3 +634,57 @@ class TestAdoptedSettlement:
         t = settlement_terms(a, b)
         assert t["floor_rate_supplied"] == pytest.approx(
             settlement_rate(a, b, "floor"), rel=1e-12)
+
+
+
+class TestTheBuilderSendsOneValueToBothHalves:
+    """
+    THE MIRROR OF THE ENTRY POINT'S LEAK (2026-10-14). `build_collective`
+    forwarded its keywords to the pipeline only, so a shared quantity reached
+    one half: an age mix moved personal EOH 1,352.8M -> 1,340.1M and fiscal
+    expenditure not at all; `registration_epsilon=0.70` moved the mint 3.48x
+    and the fisc not at all. Each shared keyword must now move BOTH halves,
+    and the fisc must equal `fiscal_snapshot` called with the value directly.
+    """
+
+    US = {"infant": 0.065, "child": 0.145, "working_age": 0.600, "elderly": 0.190}
+
+    @staticmethod
+    def _frame():
+        from hours_eoh.research.exchange import CollectiveFrame
+        return CollectiveFrame(collective_id=1, population=1e6, land_hectares=1.65e6,
+                               capital_stock_teh=2e9, trust_balance=8.76e9)
+
+    @pytest.mark.parametrize("pipe_kw", [
+        {"age_distribution": US},
+        {"registration_epsilon": 0.70},
+        {"thermal_obligation": 1e8},
+        {"deferred_ecological": 1e6},
+        {"capital_eoh_eliminated": 1e7},
+        {"ecological_intensity": 2e-3, "ecological_health_response": "domain",
+         "ecological_standing_response": "domain"},
+    ])
+    @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
+    def test_a_shared_keyword_reaches_both_halves(self, pipe_kw, eps):
+        from hours_eoh.core.fiscal import PIPELINE_SHARED_PARAMS, fiscal_snapshot
+        from hours_eoh.research.exchange import build_collective
+        f = self._frame()
+        a = build_collective(f, eps)
+        b = build_collective(f, eps, **pipe_kw)
+        assert b.pipeline != a.pipeline
+        to_fisc = {fn: pipe_kw[pn] for fn, pn in PIPELINE_SHARED_PARAMS.items() if pn in pipe_kw}
+        direct = fiscal_snapshot(
+            trust_balance=f.trust_balance, labor_income=b.pipeline["teh_created"],
+            capital_stock_teh=f.capital_stock_teh, capital_age_ratio=f.capital_age_ratio,
+            population=f.population, epsilon=eps, ecosystem_health=f.ecosystem_health,
+            eco_eoh_override=b.pipeline["eoh_by_domain"]["ecological"],
+            ecological_area_hectares=f.land_hectares,
+            mean_multiplier=b.pipeline["mean_multiplier"], **to_fisc)
+        assert b.fiscal == direct
+
+    @pytest.mark.parametrize("kw", ["capital_personal_eoh_fulfilled",
+                                    "ecological_hectares_per_capita"])
+    def test_a_shared_name_that_is_not_one_quantity_is_refused(self, kw):
+        from hours_eoh.research.exchange import build_collective
+        with pytest.raises(ValueError):
+            build_collective(self._frame(), 0.4, **{kw: 1.0})

@@ -1081,6 +1081,34 @@ _STATE_TO_PARAM: dict[str, str] = {
     # state key (make_economy_state) into a PER-PERSON parameter.
 }
 
+#: ONE QUANTITY, TWO FUNCTIONS — every `fiscal_snapshot` parameter that
+#: `eoh_to_teh_pipeline` also takes, fiscal name → pipeline name (2026-10-14).
+#: An assembly point that runs both (`scenarios/collective.collective_snapshot`,
+#: `research/exchange.build_collective`) must send each of these to BOTH or
+#: refuse it: both assembly points sent such keywords to one half only, so one
+#: collective reported a guarantee on one age mix and a mint on another.
+#: Strings only, so this module still imports nothing new.
+#:
+#: Two shared NAMES are deliberately absent, because they are not one quantity:
+#: `capital_personal_eoh_fulfilled_per_person` is per person here and the
+#: pipeline's `capital_personal_eoh_fulfilled` is an aggregate, and
+#: `ecological_hectares_per_capita` is superseded wherever an assembly point
+#: states its land. Assembly points refuse both.
+PIPELINE_SHARED_PARAMS: dict[str, str] = {
+    "mean_multiplier":        "mean_multiplier",
+    "thermal_obligation":     "thermal_obligation",
+    "ecological_intensity":   "ecological_intensity",
+    "health_response":        "ecological_health_response",
+    "standing_response":      "ecological_standing_response",
+    "age_fractions":          "age_distribution",
+    "registration_epsilon":   "registration_epsilon",
+    "deferred_ecological":    "deferred_ecological",
+    "capital_eoh_eliminated": "capital_eoh_eliminated",
+}
+#: The shared names that are NOT one quantity (see above) — refused, never forwarded.
+PIPELINE_SHARED_NOT_ONE_QUANTITY: frozenset[str] = frozenset({
+    "capital_personal_eoh_fulfilled_per_person", "ecological_hectares_per_capita"})
+
 
 def fiscal_snapshot(
     trust_balance: float | None = None,

@@ -160,6 +160,24 @@ class TestBothHalvesSeeOneValue:
         for f, to in SHARED_WITH_PIPELINE.items():
             assert self.RENAMES.get(f, f) == to and to in pipe
 
+    def test_the_core_table_is_every_shared_quantity(self):
+        """`core.fiscal.PIPELINE_SHARED_PARAMS` is the ONE table both assembly
+        points read (2026-10-14). Derived from the signatures: every shared
+        name is in it or declared not-one-quantity — so a parameter added to
+        both functions fails here until an assembly point is told."""
+        import inspect
+        from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
+        from hours_eoh.core.fiscal import (
+            PIPELINE_SHARED_NOT_ONE_QUANTITY, PIPELINE_SHARED_PARAMS, fiscal_snapshot)
+        pipe = set(inspect.signature(eoh_to_teh_pipeline).parameters)
+        shared = {f for f in inspect.signature(fiscal_snapshot).parameters
+                  if self.RENAMES.get(f, f) in pipe} - {"population", "epsilon",
+                                                         "capital_age_ratio",
+                                                         "ecosystem_health",
+                                                         "ecological_area_hectares"}
+        assert shared == set(PIPELINE_SHARED_PARAMS) | PIPELINE_SHARED_NOT_ONE_QUANTITY
+        assert all(self.RENAMES.get(f, f) == p for f, p in PIPELINE_SHARED_PARAMS.items())
+
     @pytest.mark.parametrize("kw, pipe_kw", [
         ({"age_fractions": {"infant": 0.065, "child": 0.145,
                             "working_age": 0.600, "elderly": 0.190}},
@@ -466,3 +484,69 @@ class TestArcCoherence:
         for e in (0.0, 0.40, 0.99):
             r = collective_snapshot(_state(eps=e), parcels=make_urban_collective())
             assert r["guf"]["revenue"] > 0.0
+
+
+
+class TestTheFeeFollowsStationarity:
+    """Author, 2026-10-14: on a frame with a parcel COUNT and no inventory the
+    fee is a sample's mean over the count, as `stationarity_at` prices it —
+    one implementation (`land.collective.sample_scaled_guf`)."""
+
+    def test_it_is_stationaritys_fee(self):
+        from hours_eoh.land.collective import make_urban_collective
+        from hours_eoh.scenarios.stationarity import stationarity_at
+        sample = make_urban_collective(10_000)
+        for count in (None, 1.2e6):
+            r = collective_snapshot(_state(pop=1e6), land_hectares=2.3e6,
+                                    guf_sample=sample, guf_parcel_count=count)
+            st = stationarity_at(0.40, population=1e6, guf_parcels=sample,
+                                 **({} if count is None else {"guf_parcel_count": count}))
+            assert r["guf"]["revenue"] == st["teh"]["guf"]
+            assert r["frame"]["land_hectares"] == 2.3e6     # the land is never the sample's
+
+class TestTheFeeCollectedIsWhatTheMintCanPay:
+    """Author, 2026-10-15: "you can't pay what isn't minted". A fee beyond what
+    the mint leaves holders is REPORTED unpaid, never booked as Trust revenue —
+    the over-expanded claim, carried on the books and not carried in fact."""
+
+    @pytest.mark.parametrize("eps", (0.0, 0.40, 0.90, 0.99))
+    def test_the_unpaid_fee_is_reported_and_not_booked(self, eps):
+        from hours_eoh.scenarios.stationarity import stationarity_at
+        sample = make_urban_collective(1_000)
+        # 1M people holding 1.5e8 parcels: a fee far beyond their mint
+        kw = dict(land_hectares=7.6e8, guf_sample=sample, guf_parcel_count=1.5e8)
+        capped = collective_snapshot(_state(pop=1e6, eps=eps), **kw)
+        whole = collective_snapshot(_state(pop=1e6, eps=eps), guf_cap=None, **kw)
+        lf = capped["land_fee"]
+        assert lf["assessed"] == whole["land_fee"]["assessed"] == whole["guf"]["revenue"]
+        assert lf["collected"] == capped["guf"]["revenue"] == capped["fiscal"]["trust"]["guf_inflow"]
+        assert lf["collected"] == min(lf["assessed"], lf["payable_ceiling"])
+        assert lf["unpaid"] > 0.0
+        assert lf["payable_ceiling"] <= capped["pipeline"]["teh_created"]
+        # the Trust holds exactly the unpaid fee less than the uncapped book
+        assert (whole["fiscal"]["trust"]["trust_end"] - capped["fiscal"]["trust"]["trust_end"]
+                == pytest.approx(lf["unpaid"], rel=1e-9))
+        # one ceiling with stationarity, whose levy is the fisc's at the default
+        st = stationarity_at(eps, population=1e6, capital_stock_teh=2000.0 * 1e6,
+                             guf_parcels=sample, guf_parcel_count=1.5e8)["teh"]
+        assert st["guf"] == pytest.approx(lf["collected"], rel=1e-9)
+        assert st["guf_unpaid"] == pytest.approx(lf["unpaid"], rel=1e-9)
+
+    def test_a_fee_within_the_mint_is_collected_whole(self):
+        r = collective_snapshot(_state(), parcels=make_urban_collective(1_000))
+        assert r["land_fee"]["unpaid"] == 0.0
+        assert r["land_fee"]["collected"] == r["land_fee"]["assessed"]
+
+    def test_an_unknown_cap_is_refused(self):
+        with pytest.raises(ValueError):
+            collective_snapshot(_state(), parcels=make_urban_collective(10), guf_cap="half")
+
+
+class TestTheFeeFollowsStationarityRefusals:
+    def test_a_half_stated_fee_is_refused(self):
+        from hours_eoh.land.collective import make_urban_collective
+        sample = make_urban_collective(100)
+        with pytest.raises(ValueError):
+            collective_snapshot(_state(), parcels=sample, guf_sample=sample)
+        with pytest.raises(ValueError):
+            collective_snapshot(_state(), land_hectares=302.5, guf_parcel_count=1e4)
