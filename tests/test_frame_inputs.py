@@ -360,8 +360,12 @@ class TestScenarioRunOnAFrame:
         assert (c["teh_created"] == r["mint"] == a["mint_before"] == li["baseline_income"]
                 == s["here | mint"])
         assert r["guarantee_here"] == a["guarantee_before"] == s["here | guarantee owed"]
-        # and ONE FEE (author, 2026-10-14: the entry point follows stationarity)
-        assert c["guf_revenue"] == s["here | land fee"]
+        # and ONE FEE (author, 2026-10-14: the entry point follows stationarity;
+        # reserve_plan priced none until 2026-10-15), whose surplus is the
+        # levy and that fee less the guarantee — under both names
+        assert c["guf_revenue"] == s["here | land fee"] == r["land_fee"]
+        assert r["flat_surplus"] == r["shipped_surplus"] == pytest.approx(
+            s["here | levy"] + s["here | land fee"] - s["here | guarantee owed"], rel=1e-12)
 
     def test_land_is_fixed_and_only_the_people_move(self):
         """Author, 2026-10-14: on a named frame the land — and its parcels —
@@ -415,11 +419,11 @@ class TestScenarioRunOnAFrame:
                 with pytest.raises(SystemExit):
                     run()
 
-    @pytest.mark.parametrize("name", ["stationarity", "stationarity_drawdown", "reserve_plan"])
+    @pytest.mark.parametrize("name", ["stationarity", "stationarity_drawdown", "reserve_plan",
+                                      "collective"])
     def test_the_levy_flag_moves_its_readers_and_is_refused_elsewhere(self, name):
         """--levy-rate (2026-10-15) runs the rate stationarity reports as closing
-        the gap. `reserve_plan` reads a levy but names it the SHIPPED rate's in
-        its keys, so it refuses the flag rather than mislabel it."""
+        the gap; a scenario that reads no flat levy refuses it."""
         from utils.scenario_cmd import _LEVY_READERS
         run = lambda *f: _strip(_scenario(name, "--frame", "us", *f))  # noqa: E731
         if name in _LEVY_READERS:

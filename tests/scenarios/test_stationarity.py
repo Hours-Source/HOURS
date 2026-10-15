@@ -311,7 +311,8 @@ class TestTheReserveRuleAndTheAssessedLevy:
         # is no surplus at all; with it there is a sliver — 1,353 years to bank
         # five years of cover at 4.5%, 249 at 4.6% (2026-10-15, the levy raised
         # to keep 0.99), which is still "never" for a reserve.
-        top_no_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05)
+        top_no_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05,
+                                      guf_parcels=[])   # the fee is the default since 2026-10-15
         assert top_no_fee["fills_at_shipped_rate"] is False
         assert top_no_fee["years_to_fill_at_shipped_rate"] is None
         assert "NEVER fills" in top_no_fee["verdict"]

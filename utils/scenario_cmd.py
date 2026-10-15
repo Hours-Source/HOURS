@@ -68,7 +68,8 @@ Key options (not all apply to every scenario):
   --adult-capacity H           Adult annual labour capacity (feasibility)
   --adult-share F              Adult share of population (feasibility)
   --levy-rate R                Flat levy as a share of the mint (stationarity,
-                               stationarity_drawdown; default: SUFF_LEVY_RATE)
+                               stationarity_drawdown, reserve_plan; default:
+                               SUFF_LEVY_RATE)
   --epsilon-ref ε              Anchoring ε for the measured O*NET workforce
                                (knowledge_base; default: 0.40)
 """
@@ -139,14 +140,14 @@ _OUTCOME_KEY: dict[str, str | None] = {
     "guf_magnitude": None, "guf_writedown": None, "guf_integration": "outcome",
     "capacity_breakdown": "sufficiency_within_capacity",
     "stationarity_drawdown": None, "registered_work": None, "mint_reach": None,
-    "reserve_plan": "fills_at_shipped_rate", "collective": "solvent"}
+    "reserve_plan": "fills_at_flat_rate", "collective": "solvent"}
 #: A verdict that is a bool, as words.
 _BOOL_WORDS = {"recovery": ("recovers", "does not recover"),
                "measured_sim": ("solvent throughout", "insolvent in some period"),
                **{n: ("stationary", "NOT stationary") for n in ("arc_stability", "stationarity")},
                "capacity_breakdown": ("sufficiency within capacity",
                                       "sufficiency BEYOND capacity"),
-               "reserve_plan": ("fills at the shipped levy", "does NOT fill at the shipped levy"),
+               "reserve_plan": ("fills at the flat levy", "does NOT fill at the flat levy"),
                "collective": ("solvent", "NOT solvent")}
 
 #: WHICH FRAME INPUTS EACH SCENARIO READS (2026-10-03). Joining FRAME_AWARE was
@@ -217,8 +218,9 @@ _READS: dict[str, frozenset[str]] = {
                              "adult_capacity_h_yr", "adult_share", "age_fractions", "epsilon"}),
     # reserve_plan prices the guarantee against the mint; the labour SUPPLY
     # reaches neither (measured 2026-10-14), so capacity is not shown as read.
+    # It carries stationarity's land fee since 2026-10-15, so it reads parcels.
     "reserve_plan": frozenset({"population", "capital_teh", "capital_age_ratio",
-                               "age_fractions", "epsilon"}),
+                               "age_fractions", "parcel_count", "epsilon"}),
     "registered_work": frozenset({"population", "capital_teh", "capital_age_ratio",
                                   "adult_capacity_h_yr", "adult_share", "age_fractions"}),
     # The drawdown carries stationarity's land fee since 2026-10-15, so it
@@ -374,7 +376,7 @@ _SCENARIOS: dict[str, str] = {
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
     "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year (GUF as stationarity prices it: the urban sample, or on a frame its per-parcel half over the frame's private parcels), from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --levy-rate, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
-    "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
+    "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the flat levy fills it (with the land fee as stationarity prices it); without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --levy-rate, --epsilon, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "registered_work":     "registered_work_arc() — can a member walk away to registered work, and does it cover the members, along the arc; where TEH need per member peaks; REPORTING ONLY  [--frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "mint_reach":          "mint_floor_reach() — the share of labour supply the MINT can pay: registered hours over supply, and the hours left for the market; REPORTING ONLY  [--epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "capacity_weights":    "measured_capacity_weights() — the age groups' capacity weights measured on MTUS by age (the instrument MEASURED_CAPACITY_H_YR is measured on) against the shipped ones, US census shares; NOT adopted; REPORTING ONLY  [--epsilon]",
@@ -548,7 +550,8 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     run_p.add_argument("--levy-rate", type=float, default=None,
                        dest="levy_rate", metavar="R",
                        help="Flat levy as a share of the mint, in [0, 1] "
-                            "(stationarity, stationarity_drawdown; default: SUFF_LEVY_RATE)")
+                            "(stationarity, stationarity_drawdown, reserve_plan; "
+                            "default: SUFF_LEVY_RATE)")
 
     # Thermal obligation
     run_p.add_argument("--thermal-obligation", type=float,
@@ -824,9 +827,7 @@ _HEALTH_FLAG_READERS = frozenset({"automation_failure", "demographic_shock",
                                   "ecological_spike", "compound_shock", "capital_loss"})
 #: Read only by the two that model a collapse; the flag's documented default.
 _HEALTH_AFTER_READERS = frozenset({"ecological_spike", "compound_shock"})
-#: `reserve_plan` reads a levy too, but reports it as the SHIPPED rate's
-#: (`shipped_surplus`, `fills_at_shipped_rate`), so it refuses the flag.
-_LEVY_READERS = frozenset({"stationarity", "stationarity_drawdown"})
+_LEVY_READERS = frozenset({"stationarity", "stationarity_drawdown", "reserve_plan"})
 _HEALTH_AFTER_DEFAULT = 0.30
 
 
@@ -1015,7 +1016,7 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
         if name == "guf_magnitude":
             fs["land_hectares"] = v["land_m2"] / M2_PER_HECTARE
             fs["land_use_fractions"] = v["land_use_fractions"]
-        if (name in ("stationarity", "stationarity_drawdown")
+        if (name in ("stationarity", "stationarity_drawdown", "reserve_plan")
                 and (args.frame is not None or args.frame_file is not None)):
             # The land's parcels, FIXED with the land (2026-10-14), priced at
             # the fee's measured per-parcel half (2026-10-15) — no sample, so
@@ -1763,7 +1764,7 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         from hours_eoh.scenarios.stationarity import reserve_plan
         n = args.reserve_years
         r = reserve_plan(epsilon, years_of_guarantee=1.0 if n is None else n,
-                         population=population, **frame_state)
+                         population=population, **frame_state, **_levy_kw(args))
         rp: dict = {k: v for k, v in r.items() if k != "assessed"}
         rp["years_of_guarantee"] = (f"{r['years_of_guarantee']:g}" if n is not None else
                                     "1 — NOT SUPPLIED; a charter choice, so this is the "

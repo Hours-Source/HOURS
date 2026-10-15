@@ -577,8 +577,15 @@ def reserve_plan(
     **kw: Any,
 ) -> dict:
     """
-    What a reserve of N years of guarantee costs, and whether the shipped levy
-    would ever build one. REPORTING ONLY.
+    What a reserve of N years of guarantee costs, and whether a flat levy (the
+    shipped one unless `levy_rate=` is passed) would ever build one. REPORTING
+    ONLY.
+
+    THE LAND FEE IS PRICED AS `stationarity_report` PRICES IT (2026-10-15): the
+    urban sample unless the caller names parcels (an empty list for no land,
+    `guf_parcels=None` with a count for the per-parcel half). Until then this
+    ran with no fee at all, so its surplus was the levy's alone while
+    stationarity's and the drawdown's carried both.
 
     THE RULE (author, 2026-09-16): hold the Trust's slack as a DECLARED reserve
     with a ceiling — "N years of the guarantee, held against an arc that may
@@ -610,9 +617,12 @@ def reserve_plan(
 
     Returns:
         dict with `target_teh`, `increment_rate` (share of the mint),
-        `increment_per_capita`, `shipped_surplus`, `years_to_fill_at_shipped_rate`
-        (None when the shipped rate never fills it), `fills_at_shipped_rate`,
-        the `assessed` rate including the increment, and a verdict.
+        `increment_per_capita`, `levy_rate` (applied), `land_fee`,
+        `flat_surplus`, `years_to_fill_at_flat_rate` (None when the flat rate
+        never fills it), `fills_at_flat_rate`, the `assessed` rate including
+        the increment, and a verdict. The `shipped_*` / `*_at_shipped_rate`
+        keys are ALIASES of the `flat_*` ones, kept for existing readers: they
+        are the shipped rate's only when no `levy_rate` is passed.
 
     Raises:
         ValueError: on a non-positive N or build horizon, or an ε out of range.
@@ -625,13 +635,16 @@ def reserve_plan(
         raise ValueError(
             f"insure_at_epsilon must be in [0.0, 0.99], got {insure_at_epsilon}")
 
+    if "guf_parcels" not in kw:
+        kw = {**kw, "guf_parcels": make_urban_collective()}
+    levy_rate = kw.get("levy_rate", SUFF_LEVY_RATE)
     population = float(kw.get("population", REFERENCE_FRAME_POPULATION))
     here = stationarity_at(epsilon, **kw)["teh"]
     insured = stationarity_at(insure_at_epsilon, **kw)["teh"]
 
     target = years_of_guarantee * insured["guarantee_owed"]
     increment = target / (build_years * here["mint"]) if here["mint"] > 0.0 else float("inf")
-    # The shipped levy's surplus over what is owed here — what a flat rate
+    # The flat levy's surplus over what is owed here — what a flat rate
     # banks per year, which is the quantity the reserve rule replaces.
     surplus = here["levy"] + here["guf"] - here["guarantee_owed"]
     fills = surplus > 0.0
@@ -639,7 +652,7 @@ def reserve_plan(
         here["guarantee_owed"], here["mint"],
         guf_revenue=here["guf"], reserve_increment=increment,
     )
-    return {
+    out: dict[str, Any] = {
         "epsilon":                       epsilon,
         "years_of_guarantee":            years_of_guarantee,
         "insure_at_epsilon":             insure_at_epsilon,
@@ -650,10 +663,12 @@ def reserve_plan(
         "mint":                          here["mint"],
         "increment_rate":                increment,
         "increment_per_capita":          increment * here["mint"] / population,
-        "shipped_surplus":               surplus,
-        "shipped_surplus_in_years_here": surplus / here["guarantee_owed"] if here["guarantee_owed"] > 0.0 else None,
-        "years_to_fill_at_shipped_rate": (target / surplus) if fills else None,
-        "fills_at_shipped_rate":         fills,
+        "levy_rate":                     levy_rate,
+        "land_fee":                      here["guf"],
+        "flat_surplus":                  surplus,
+        "flat_surplus_in_years_here":    surplus / here["guarantee_owed"] if here["guarantee_owed"] > 0.0 else None,
+        "years_to_fill_at_flat_rate":    (target / surplus) if fills else None,
+        "fills_at_flat_rate":            fills,
         "assessed":                      assessed,
         "reporting_only":                True,
         "verdict": (
@@ -663,13 +678,20 @@ def reserve_plan(
             f"({increment * here['mint'] / population:,.3f} TEH per person per year) "
             f"on top of a pay-as-you-go rate of "
             f"{assessed['pay_as_you_go_rate'] * 100:.3f}%. "
-            + (f"The shipped flat levy banks it in "
+            + (f"The flat levy ({levy_rate:.3%}) banks it in "
                f"{target / surplus:,.1f} years."
                if fills else
-               "The shipped flat levy NEVER fills it here — at this ε the rate "
-               "is the requirement and there is no surplus.")
+               f"The flat levy ({levy_rate:.3%}) NEVER fills it here — at this ε "
+               "the rate is the requirement and there is no surplus.")
         ),
     }
+    # The pre-2026-10-15 names, which said "shipped" whatever rate ran.
+    for old, new in (("shipped_surplus", "flat_surplus"),
+                     ("shipped_surplus_in_years_here", "flat_surplus_in_years_here"),
+                     ("years_to_fill_at_shipped_rate", "years_to_fill_at_flat_rate"),
+                     ("fills_at_shipped_rate", "fills_at_flat_rate")):
+        out[old] = out[new]
+    return out
 
 
 def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
