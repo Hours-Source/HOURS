@@ -184,10 +184,9 @@ def recurring_target_by_class(
 def land_use_shares() -> dict[str, float]:
     """
     The ERS Major Land Uses 2022 class shares — each class's hectares over the
-    nine classes' sum. ALL 50 STATES: the repo ships no state-level table, so a
-    contiguous-48 frame applying these shares carries Alaska's mix in them
-    (mostly forest, parks and miscellaneous land), which overstates those classes
-    and understates cropland and urban land on the mainland.
+    nine classes' sum. ALL 50 STATES, Alaska's forest, parks and miscellaneous
+    land in them: the default for a frame that states no mix. The US frame
+    reads the 48 States and DC's own (`reference.states`, 2026-10-15).
     """
     by_class = land_hectares_by_class()
     total = sum(by_class.values())

@@ -110,6 +110,8 @@ hours_eoh/
     parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py;
                        contiguous_48_parcel_count() — 157,922,061, the US frame's land;
                        fifty_states_private_parcels() — the default count's coverage
+    states.py          The US by state: ERS land use 2022 + Census population 2025 (utils/state_ingest.py);
+                       us_state_split() — the 48 + DC as a federation split file
     onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
     onet_knowledge.py  Knowledge/training axis inverted against the same frozen bounds
     personal_basket.py The personal obligation pinned to physical quantities; one component priced.

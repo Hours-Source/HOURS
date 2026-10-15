@@ -1150,6 +1150,7 @@ _INNOCUOUS: frozenset[float] = frozenset(
 _INNOCUOUS_NAMES: frozenset[str] = frozenset({
     "MINUTES_PER_HOUR",          # 60, definitional
     "_EMPLOYMENT_UNITS",         # 1000, thousands -> units
+    "ACRES_PER_KACRE",           # 1000, ERS's thousand acres -> acres
     "SANITATION_SERVICE_YEARS",  # 1.0, one person one year — an identity
     "CARE_PERSON_YEARS",         # 1.0, everyone alive, for as long as they are
     "_SEVERITY",                 # ordinal map

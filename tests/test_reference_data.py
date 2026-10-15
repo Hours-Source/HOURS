@@ -187,6 +187,7 @@ REFERENCE_MODULES = [
     "hours_eoh.reference.capital_inventory",
     "hours_eoh.reference.energy_use",
     "hours_eoh.reference.obligation_work",
+    "hours_eoh.reference.states",
 ]
 
 

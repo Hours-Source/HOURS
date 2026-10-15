@@ -81,8 +81,8 @@ FRAMES: dict[str, dict[str, str]] = {
            # its parcels off the county parcel census, contiguous 48 + DC
            # (2026-10-14) — the same land as its hectares
            "parcels": "county_census",
-           # its land-use mix off ERS Major Land Uses (2026-10-15) — 50-state
-           # shares, applied to its contiguous-48 land; said in the label
+           # its land-use mix off ERS Major Land Uses (2026-10-15) — the 48
+           # States and DC's own, summed from the state table
            "land_use": "ers_mlu"},
 }
 
@@ -519,12 +519,16 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
         v["land_use_fractions"] = {k: float(x) for k, x in ff["land_use_fractions"].items()}
         lab["land_use_fractions"] = label("supplied", src_ff)
     elif frame and frame.get("land_use") == "ers_mlu":
-        v["land_use_fractions"] = land_use_shares()
+        # THE MAINLAND'S OWN MIX (2026-10-15): the 50-state shares carried
+        # Alaska's forest, parks and miscellaneous land onto contiguous-48
+        # land until the state table shipped (parks 11.8% → 6.4%).
+        from hours_eoh.reference.states import contiguous_48_land_hectares_by_class
+        by_class = contiguous_48_land_hectares_by_class()
+        v["land_use_fractions"] = {k: ha / sum(by_class.values()) for k, ha in by_class.items()}
         lab["land_use_fractions"] = label(
-            "measured", "ERS Major Land Uses 2022 class shares, ALL 50 STATES, applied "
-            "to the frame's contiguous-48 land (no state-level table ships; Alaska's "
-            "forest, parks and miscellaneous land is in the shares) — "
-            "guf_magnitude.land_use_shares")
+            "measured", "ERS Major Land Uses 2022 class shares, the 48 States and DC "
+            "(by state, summed) — the frame's own land — "
+            "states.contiguous_48_land_hectares_by_class")
     else:
         v["land_use_fractions"] = None
         lab["land_use_fractions"] = label(

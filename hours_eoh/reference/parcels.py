@@ -58,6 +58,7 @@ __all__ = [
     "NOT_CONTIGUOUS_48_FIPS",
     "contiguous_48_parcel_count",
     "contiguous_48_private_parcels",
+    "private_parcels_by_state",
     "parcels_by_state",
     "land_area_validation",
 ]
@@ -370,6 +371,20 @@ def _private_parcels(rows: list[dict[str, float | str]]) -> dict[str, float]:
         "total": float(total),
         "owner_known_share": known / total,
     }
+
+
+def private_parcels_by_state() -> dict[str, dict[str, float]]:
+    """
+    The PRIVATE-parcel band per state FIPS — `_private_parcels` on each state's
+    own rows (2026-10-15, the federation of the US frame's states). Unknown
+    owner types split like the state's known ones, so the centrals do not sum
+    to `contiguous_48_private_parcels()["central"]`, which splits them like
+    the whole scope's; the low and high ends do sum exactly.
+    """
+    by: dict[str, list[dict[str, float | str]]] = {}
+    for r in load_county_parcels():
+        by.setdefault(str(r["statefp"]), []).append(r)
+    return {fp: _private_parcels(rows) for fp, rows in by.items()}
 
 
 def parcels_by_state() -> dict[str, int]:
