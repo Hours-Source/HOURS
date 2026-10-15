@@ -226,12 +226,14 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
         assert bottom / middle == pytest.approx(1.327, rel=0.02)
         assert top / bottom == pytest.approx(1.806, rel=0.02)
 
-    def test_the_uncapped_fee_exceeds_the_whole_mint_at_subsistence(self):
+    def test_the_uncapped_fee_is_about_the_whole_mint_at_subsistence(self):
         """Why "the fee covers the bottom" is a SYMPTOM. record/guf.md already
         records the fee's level as structurally mis-set; this is that defect
-        seen from the fiscal side, and the payable cap is the honest figure."""
+        seen from the fiscal side, and the payable cap is the honest figure.
+        It EXCEEDED the mint (102.4%) until the default count dropped the
+        government parcels (2026-10-15, author); it is 99.9% now."""
         r = self._teh(0.0, guf_parcels=URBAN)
-        assert r["guf_uncapped"] / r["mint"] > 1.0
+        assert r["guf_uncapped"] / r["mint"] > 0.95
         capped = self._teh(0.0, guf_parcels=URBAN, guf_cap="payable")
         assert capped["guf"] / capped["mint"] < 0.5
 

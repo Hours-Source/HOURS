@@ -170,7 +170,8 @@ hours_eoh/
     restoration_cost.py restoration_band, legacy_stock, implied_kappa, pristine_gap_obligation — the derived reset cost,
                        and the 12–69× biological-vs-engineered κ ratio; REPORTING ONLY
     guf_magnitude.py   recurring_target_by_class, target_vs_realised, scaling_basis_shares,
-                       two_part_rates, subdivision_invariance, conservation_credit_check —
+                       two_part_rates, subdivision_invariance, conservation_credit_check,
+                       frame_land_target (a frame's land in its own ERS use mix, hours) —
                        GUF's magnitude: the DERIVED target (servicing + stewardship) and the
                        two-part tariff; REPORTING ONLY, and the fee is area-only while the
                        cost has THREE scaling bases
@@ -704,7 +705,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,175 tests passing (1 skipped), mypy clean on 109 source files** (verified
+**6,184 tests passing (1 skipped), mypy clean on 109 source files** (verified
 2026-10-15). <!-- census:state -->Provenance **370/370**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

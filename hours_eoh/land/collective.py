@@ -432,13 +432,21 @@ def sample_scaled_guf(
 
 def default_parcel_count(population: float) -> float:
     """
-    Parcels for a frame that states none: the population's share of the US
-    county parcel census, `population × national_parcel_count() /
-    US_REFERENCE_POPULATION` — stationarity's default, made the one copy
-    (2026-10-14). A frame that measures its parcels (the US frame: the
-    contiguous 48, `reference.parcels.contiguous_48_parcel_count`) states them
-    instead, and they stay fixed when the population moves.
+    PRIVATE parcels for a frame that states none: the population's share of
+    the US county parcel census's private parcels, `population ×
+    national_private_parcels()["central"] / US_REFERENCE_POPULATION` —
+    stationarity's default, made the one copy (2026-10-14).
+
+    Government parcels are EXCLUDED (2026-10-15, author): they are the
+    collective's own holding, and the collective does not pay itself. Until
+    then this scaled every parcel, 2.5% more than pay. The coverage is still
+    the extract's 56 state codes over a 50-state population — Puerto Rico and
+    the territories hold 1.6M parcels the denominator's people do not.
+
+    A frame that measures its parcels (the US frame: the contiguous 48's
+    private parcels, `reference.parcels.contiguous_48_private_parcels`)
+    states them instead, and they stay fixed when the population moves.
     """
     from hours_eoh.data import US_REFERENCE_POPULATION
-    from hours_eoh.reference.parcels import national_parcel_count
-    return population * national_parcel_count() / US_REFERENCE_POPULATION
+    from hours_eoh.reference.parcels import national_private_parcels
+    return population * national_private_parcels()["central"] / US_REFERENCE_POPULATION

@@ -397,13 +397,27 @@ class TestThePrivateParcelsPay:
     holds. Government parcels are the collective's; an unknown owner type is
     not a private owner, so the private count is a band."""
 
-    def test_the_band_and_its_definition(self):
-        from hours_eoh.reference.parcels import (
-            contiguous_48_parcel_count, contiguous_48_private_parcels)
-        p = contiguous_48_private_parcels()
-        assert p["total"] == contiguous_48_parcel_count()
+    @pytest.mark.parametrize("scope", ["contiguous_48", "national"])
+    def test_the_band_and_its_definition(self, scope):
+        from hours_eoh.reference import parcels as P
+        p = getattr(P, f"{scope}_private_parcels")()
+        assert p["total"] == getattr(P, f"{scope}_parcel_count")()
+        assert p["government"] > 0.0
         assert p["low"] < p["central"] < p["high"] == p["total"] - p["government"]
         known = p["owner_known_share"] * p["total"]
         assert p["low"] == pytest.approx(known - p["government"], rel=1e-12)
         assert p["central"] == pytest.approx(
             p["total"] * (1 - p["government"] / known), rel=1e-12)
+
+
+    def test_the_default_count_excludes_the_collectives_parcels(self):
+        """2026-10-15 (author): a frame that states no parcels scales the
+        PRIVATE count, not every parcel."""
+        from hours_eoh.data import US_REFERENCE_POPULATION
+        from hours_eoh.land.collective import default_parcel_count
+        from hours_eoh.reference.parcels import national_parcel_count, national_private_parcels
+        for pop in (1e4, 1e6, US_REFERENCE_POPULATION):
+            got = default_parcel_count(pop)
+            assert got == pytest.approx(
+                pop * national_private_parcels()["central"] / US_REFERENCE_POPULATION, rel=1e-12)
+            assert got < pop * national_parcel_count() / US_REFERENCE_POPULATION

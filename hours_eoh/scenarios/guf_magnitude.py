@@ -73,6 +73,9 @@ Layer: scenarios/ — imports core/, land/ and reference/; imported by neither.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
+
 from hours_eoh.data import SLU_HECTARES, SUBDIVISION_FP_TOLERANCE, EPSILON_ARC_MAX
 from hours_eoh.land.collective import (
     compute_collective_guf,
@@ -89,9 +92,11 @@ from hours_eoh.land.guf import (
     psi_application,
 )
 from hours_eoh.reference import servicing
+from hours_eoh.reference.land_stewardship import land_hectares_by_class
 from hours_eoh.reference.parcels import national_parcel_count
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 from hours_eoh.scenarios.land_stewardship import ADOPTED_SCOPE, stewardship_intensities
+from hours_eoh.reference.land_stewardship import PARKS_CLASS, PARKS_FEDERAL, PARKS_OTHER
 from hours_eoh.scenarios.servicing_census import census
 
 #: The instrument that would turn measured parcel-scaling HOURS into a
@@ -174,6 +179,108 @@ def recurring_target_by_class(
             "stewardship_reason":  r["reason"],
         })
     return rows
+
+
+def land_use_shares() -> dict[str, float]:
+    """
+    The ERS Major Land Uses 2022 class shares — each class's hectares over the
+    nine classes' sum. ALL 50 STATES: the repo ships no state-level table, so a
+    contiguous-48 frame applying these shares carries Alaska's mix in them
+    (mostly forest, parks and miscellaneous land), which overstates those classes
+    and understates cropland and urban land on the mainland.
+    """
+    by_class = land_hectares_by_class()
+    total = sum(by_class.values())
+    return {k: v / total for k, v in by_class.items()}
+
+
+def validate_land_use_fractions(fractions: Mapping[str, float]) -> None:
+    """Shares over exactly `land_hectares_by_class()`'s nine classes,
+    non-negative, summing to 1. Raises ValueError otherwise."""
+    classes = set(land_hectares_by_class())
+    if set(fractions) != classes:
+        raise ValueError(f"land_use_fractions must name exactly {sorted(classes)}")
+    if any(not isinstance(x, (int, float)) or x < 0.0 for x in fractions.values()):
+        raise ValueError("land_use_fractions must be non-negative")
+    if not math.isclose(sum(fractions.values()), 1.0, rel_tol=1e-6):
+        raise ValueError(f"land_use_fractions must sum to 1, got {sum(fractions.values())}")
+
+
+def frame_land_target(
+    land_hectares: float,
+    population: float,
+    land_use_fractions: Mapping[str, float] | None = None,
+    servicing_scope: str = "core",
+    stewardship_scope: str = ADOPTED_SCOPE,
+) -> dict:
+    """
+    The recurring land work a FRAME's land needs, by use class — the
+    per-hectare target of `recurring_target_by_class` applied to the frame's
+    own land in the frame's own use mix (2026-10-15, author: a land
+    DISTRIBUTION per frame, as the age mix is, and a default stated when used).
+
+    Governing sum:
+
+        hours(c) = land_hectares × share(c) × target(c)       [h / yr]
+        total    = Σ_c over classes with a target            (a LOWER bound)
+
+    `target(c)` is servicing + stewardship where known; a class missing a half
+    contributes its known half, and a class with neither contributes nothing.
+    Excluded is not zero, so the sum is a LOWER bound, and the land with a
+    complete target is reported beside it.
+
+    units: labour-hours per year; per person per year.
+
+    ε-behaviour: NONE — both rates are censuses of a present-day economy (see
+    `recurring_target_by_class`). No automation response, no TEH, no fee: the
+    class→use-category mapping the fee table would need is the open ten-ratios
+    gap, and this does not touch it.
+
+    Raises:
+        ValueError: on non-positive land or population, or shares that are not
+            exactly the nine ERS classes, non-negative and summing to 1.
+    """
+    if land_hectares <= 0.0 or population <= 0.0:
+        raise ValueError("land_hectares and population must be > 0")
+    supplied = land_use_fractions is not None
+    shares = dict(land_use_fractions) if land_use_fractions is not None else land_use_shares()
+    validate_land_use_fractions(shares)
+    # The target splits the parks class federal / state-and-other
+    # (`parks_split`); a frame's share of the class is divided as the measured
+    # US split divides it, since no frame states its parks' tenure.
+    parent = {PARKS_FEDERAL: PARKS_CLASS, PARKS_OTHER: PARKS_CLASS}
+    targets = recurring_target_by_class(servicing_scope, stewardship_scope)
+    parent_area: dict[str, float] = {}
+    for r in targets:
+        c = parent.get(r["land_use"], r["land_use"])
+        parent_area[c] = parent_area.get(c, 0.0) + float(r["area_hectares"])
+    rows = []
+    for r in targets:
+        c = parent.get(r["land_use"], r["land_use"])
+        share = shares[c] * float(r["area_hectares"]) / parent_area[c]
+        ha = land_hectares * share
+        rate = r["target_h_per_ha"]
+        rows.append({
+            "land_use":      r["land_use"],
+            "share":         share,
+            "hectares":      ha,
+            "target_h_per_ha": rate,
+            "hours":         ha * rate if rate is not None else None,
+            "complete":      r["complete"],
+        })
+    total = sum(r["hours"] for r in rows if r["hours"] is not None)
+    return {
+        "land_hectares":         land_hectares,
+        "population":            population,
+        "shares_source":         ("supplied" if supplied else
+                                  "ERS MLU 2022 shares, ALL 50 STATES (land_use_shares)"),
+        "by_class":              rows,
+        "hours_lower_bound":     total,
+        "hours_per_capita_lower_bound": total / population,
+        "share_of_land_complete": sum(r["share"] for r in rows if r["complete"]),
+        "share_of_land_with_any_target": sum(r["share"] for r in rows if r["hours"] is not None),
+        "is_lower_bound":        True,
+    }
 
 
 def target_vs_realised(

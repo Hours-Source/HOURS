@@ -769,3 +769,61 @@ class TestTheUseCoefficientPointerMatchesTheMeasurement:
         assert GUF_USE_SCALE_FACTOR == 100.0
         assert USE_CATEGORIES["residential_primary"] == 10.0
         assert USE_CATEGORIES["industrial_heavy"] == 37.5
+
+
+class TestTheFramesLandInItsOwnMix:
+    """2026-10-15 (author): a land DISTRIBUTION per frame, as the age mix is.
+    `frame_land_target` applies the per-hectare target to a frame's own land
+    in its own use mix, in hours, as a lower bound."""
+
+    def test_the_default_shares_are_the_ers_classes(self):
+        from hours_eoh.reference.land_stewardship import land_hectares_by_class
+        from hours_eoh.scenarios.guf_magnitude import land_use_shares
+        sh = land_use_shares()
+        assert set(sh) == set(land_hectares_by_class())
+        assert sum(sh.values()) == pytest.approx(1.0, rel=1e-12)
+
+    def test_it_is_land_times_share_times_target(self):
+        from hours_eoh.scenarios.guf_magnitude import frame_land_target, recurring_target_by_class
+        r = frame_land_target(1.0e6, 2.0e5)
+        rates = {t["land_use"]: t["target_h_per_ha"] for t in recurring_target_by_class()}
+        assert sum(row["share"] for row in r["by_class"]) == pytest.approx(1.0, rel=1e-12)
+        for row in r["by_class"]:
+            assert row["hectares"] == pytest.approx(1.0e6 * row["share"], rel=1e-12)
+            rate = rates[row["land_use"]]
+            assert row["hours"] == (None if rate is None else pytest.approx(row["hectares"] * rate))
+        assert r["hours_lower_bound"] == pytest.approx(
+            sum(row["hours"] for row in r["by_class"] if row["hours"] is not None))
+        assert r["hours_per_capita_lower_bound"] == pytest.approx(r["hours_lower_bound"] / 2.0e5)
+        assert 0.0 < r["share_of_land_complete"] <= r["share_of_land_with_any_target"] < 1.0
+
+    def test_the_mix_moves_the_hours_and_the_land_does_too(self):
+        """Shares between classes with DIFFERENT targets, or the check
+        cannot fail (mode 3)."""
+        from hours_eoh.scenarios.guf_magnitude import frame_land_target, land_use_shares
+        base = frame_land_target(7.65e8, 3.35e8)
+        lu = land_use_shares()
+        lu["Total cropland"] -= 0.02
+        lu["Land in urban areas"] += 0.02
+        moved = frame_land_target(7.65e8, 3.35e8, lu)
+        assert moved["hours_lower_bound"] > base["hours_lower_bound"]
+        assert moved["shares_source"] == "supplied"
+        assert frame_land_target(2 * 7.65e8, 3.35e8)["hours_lower_bound"] == pytest.approx(
+            2 * base["hours_lower_bound"], rel=1e-12)
+
+    @pytest.mark.parametrize("bad", [
+        {"Land in urban areas": 1.0},
+        "negative",
+        "sum",
+    ])
+    def test_a_malformed_mix_is_refused(self, bad):
+        from hours_eoh.scenarios.guf_magnitude import frame_land_target, land_use_shares
+        lu = land_use_shares()
+        if bad == "negative":
+            lu["Total cropland"] = -lu["Total cropland"]
+        elif bad == "sum":
+            lu["Total cropland"] += 0.1
+        else:
+            lu = bad
+        with pytest.raises(ValueError):
+            frame_land_target(1.0e6, 1.0e5, lu)

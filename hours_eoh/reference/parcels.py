@@ -317,8 +317,22 @@ def contiguous_48_private_parcels() -> dict[str, float]:
     a few percent of parcels and far more of the land, so this corrects the
     fee's per-parcel count and says nothing about the area the collective holds.
     """
-    rows = [r for r in load_county_parcels()
-            if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS]
+    return _private_parcels([r for r in load_county_parcels()
+                             if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS])
+
+
+def national_private_parcels() -> dict[str, float]:
+    """
+    The PRIVATE parcels over every state code in the extract — the same band as
+    `contiguous_48_private_parcels`, on `national_parcel_count`'s coverage
+    (2026-10-15, author: the collective-held parcels are excluded from the
+    default count too). What `land.collective.default_parcel_count` scales.
+    """
+    return _private_parcels(load_county_parcels())
+
+
+def _private_parcels(rows: list[dict[str, float | str]]) -> dict[str, float]:
+    """The private-parcel band over `rows` — ONE rule for every coverage."""
     total = sum(int(r["parcels"]) for r in rows)
     known = sum(int(r["ownertype_known"]) for r in rows)
     gov = sum(int(r["government_parcels"]) for r in rows)

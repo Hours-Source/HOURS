@@ -855,6 +855,8 @@ class TestEveryClaimedInputMovesItsReader:
         "capital_teh": "half",
         "population": "half",
         "land_m2": "half",
+        # 2% of the land moved from cropland (no target) to urban (the highest)
+        "land_use_fractions": "shift",
     }
     #: Per-head or share reports: the population reaches them and, by design,
     #: moves no figure ("reaching, and correctly moving nothing").
@@ -864,7 +866,13 @@ class TestEveryClaimedInputMovesItsReader:
     @staticmethod
     def _edited(tmp_path: Path, inp: str, edit, body: dict) -> str:
         key = "land_hectares" if inp == "land_m2" else inp
-        new = ({key: body[key] * 0.5} if edit == "half" else edit)
+        if edit == "shift":
+            lu = dict(body[key])
+            lu["Total cropland"] -= 0.02
+            lu["Land in urban areas"] += 0.02
+            new = {key: lu}
+        else:
+            new = ({key: body[key] * 0.5} if edit == "half" else edit)
         f = tmp_path / f"{inp}.json"
         f.write_text(json.dumps({**body, **new}))
         return str(f)

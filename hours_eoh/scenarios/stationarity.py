@@ -51,7 +51,8 @@ STATED LIMITS
     reported so the choice is visible.
   * THE LAND FEE'S FRAME IS DECLARED. A parcel SAMPLE prices the fee; the
     collective's parcel COUNT scales it, defaulting to population × the measured
-    national parcels per person. The shipped archetypes are synthetic, and
+    national PRIVATE parcels per person (government parcels excluded,
+    2026-10-15). The shipped archetypes are synthetic, and
     `record/guf.md` records the fee's level as structurally mis-set.
   * `v1` IS THE DEFAULT DESIGN HERE (author, 2026-09-16: "assume we adopt V1"),
     and this module is REPORTING ONLY — `core.fiscal.sufficiency_guarantee`
@@ -240,7 +241,7 @@ def stationarity_at(
         guf_parcels: A parcel SAMPLE that prices the fee. None → no land fee,
             and `guf` is 0.0.
         guf_parcel_count: Parcels the collective holds. None → population × the
-            measured national parcels per person.
+            measured national PRIVATE parcels per person (`default_parcel_count`).
         guf_cap: `payable` (default since 2026-10-15, author: "you can't pay
             what isn't minted") collects at most the mint less the levy and D3;
             a float caps at that share of the mint; None collects the whole

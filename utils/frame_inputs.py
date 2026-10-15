@@ -80,7 +80,10 @@ FRAMES: dict[str, dict[str, str]] = {
            "energy": "eia_seds",
            # its parcels off the county parcel census, contiguous 48 + DC
            # (2026-10-14) — the same land as its hectares
-           "parcels": "county_census"},
+           "parcels": "county_census",
+           # its land-use mix off ERS Major Land Uses (2026-10-15) — 50-state
+           # shares, applied to its contiguous-48 land; said in the label
+           "land_use": "ers_mlu"},
 }
 
 #: What a --frame-file may state.
@@ -93,6 +96,8 @@ FRAME_FILE_KEYS = frozenset({
     "ecosystem_health", "capital_age_ratio", "ecological_carried_by_people",
     # 2026-10-14: the parcels its land is divided into — the land fee's count.
     "parcel_count",
+    # 2026-10-15: how its land divides among the ERS use classes, as shares.
+    "land_use_fractions",
 })
 
 
@@ -171,6 +176,14 @@ def load_frame_file(path: str | Path) -> dict[str, Any]:
         if any(not isinstance(v, (int, float)) or v < 0 for v in a.values()) or not math.isclose(
                 sum(a.values()), 1.0, rel_tol=1e-6):
             raise SystemExit(f"{path}: age_fractions must be non-negative and sum to 1")
+    if "land_use_fractions" in data:
+        from hours_eoh.scenarios.guf_magnitude import validate_land_use_fractions
+        if not isinstance(data["land_use_fractions"], dict):
+            raise SystemExit(f"{path}: land_use_fractions must be a mapping of class to share")
+        try:
+            validate_land_use_fractions(data["land_use_fractions"])
+        except ValueError as exc:
+            raise SystemExit(f"{path}: {exc}") from None
     if "epsilon" in data:
         e = data["epsilon"]
         ok = (isinstance(e, (int, float)) and 0.0 <= e <= 1.0) or (
@@ -497,7 +510,25 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
             "contiguous_48_private_parcels; unchanged by --population")
     else:
         v["parcel_count"], lab["parcel_count"] = None, label(
-            "default", "population × national parcels per head (stationarity's own)")
+            "default", "population × national PRIVATE parcels per head (stationarity's own)")
+    # THE LAND'S USE MIX (2026-10-15, author: a land distribution per frame, as
+    # the age mix is, and a default named when one is used). Shares, so they
+    # apply to whatever land the frame states.
+    from hours_eoh.scenarios.guf_magnitude import land_use_shares
+    if "land_use_fractions" in ff:
+        v["land_use_fractions"] = {k: float(x) for k, x in ff["land_use_fractions"].items()}
+        lab["land_use_fractions"] = label("supplied", src_ff)
+    elif frame and frame.get("land_use") == "ers_mlu":
+        v["land_use_fractions"] = land_use_shares()
+        lab["land_use_fractions"] = label(
+            "measured", "ERS Major Land Uses 2022 class shares, ALL 50 STATES, applied "
+            "to the frame's contiguous-48 land (no state-level table ships; Alaska's "
+            "forest, parks and miscellaneous land is in the shares) — "
+            "guf_magnitude.land_use_shares")
+    else:
+        v["land_use_fractions"] = None
+        lab["land_use_fractions"] = label(
+            "default", "ERS Major Land Uses 2022 US class shares (land_use_shares)")
     if getattr(args, "phi_other", None) is not None:
         v["phi_other_w"], lab["phi_other_w"] = float(args.phi_other), label("supplied", "--phi-other")
     else:
@@ -783,7 +814,8 @@ def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None =
         if isinstance(val, dict):
             shown = ", ".join(f"{g} {x:.3f}" for g, x in val.items())
         elif val is None:
-            shown = "shipped AGE_GROUPS mix" if k == "age_fractions" else "—"
+            shown = ("shipped AGE_GROUPS mix" if k == "age_fractions"
+                     else "ERS US class shares" if k == "land_use_fractions" else "—")
         elif isinstance(val, float) and math.isinf(val):
             shown = "∞"
         elif isinstance(val, float) and abs(val) >= 1e6:
@@ -827,6 +859,9 @@ def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
             out[fk] = r["value"]
     if "land_m2" in rows and rows["land_m2"]["kind"] in ("supplied", "measured"):
         out["land_hectares"] = rows["land_m2"]["value"] / M2_PER_HECTARE
+    lu = rows.get("land_use_fractions")
+    if lu and lu["kind"] in ("supplied", "measured") and lu["value"] is not None:
+        out["land_use_fractions"] = lu["value"]
     pc = rows.get("parcel_count")
     if pc and pc["kind"] in ("supplied", "measured") and pc["value"] is not None:
         out["parcel_count"] = pc["value"]

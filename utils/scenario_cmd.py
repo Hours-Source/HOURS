@@ -225,8 +225,11 @@ _READS: dict[str, frozenset[str]] = {
     # archetype; one parcel for guf_integration), and pairing it with a
     # frame's people and capital is `collective`'s objection. `frame` reports
     # several frames side by side, so it has none to take.
-    **{n: frozenset({"epsilon"}) for n in ("frame", "guf_magnitude", "guf_writedown",
-                                           "guf_integration")},
+    **{n: frozenset({"epsilon"}) for n in ("frame", "guf_writedown", "guf_integration")},
+    # guf_magnitude's archetype rows stay ε-only, as above; on a frame it adds
+    # the land work the frame's OWN land needs, in its own use mix
+    # (2026-10-15) — so it reads the land, the mix and the people.
+    "guf_magnitude": frozenset({"epsilon", "population", "land_m2", "land_use_fractions"}),
     # The institutional entry point on a frame (2026-10-14): ONE state, the
     # frame's land, and its labour supply as the hours the mint may pay — so
     # the snapshot is fulfilment, not demand. The age mix reaches the pipeline
@@ -351,7 +354,7 @@ _SCENARIOS: dict[str, str] = {
     "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard, --frame, --frame-file, --capital-stock, --adult-capacity]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
-    "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; REPORTING ONLY  [--epsilon, --scope, --frame, --frame-file (ε only)]",
+    "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; on a frame, also the recurring land work the frame's own land needs in its own use mix (`land_use_fractions`; hours, a lower bound); REPORTING ONLY  [--epsilon, --scope, --population, --frame, --frame-file]",
     "land_stewardship":    "census_report() + scope_comparison() — the US stewardship-hours census (ERS land use × BLS employment) against the anchor; REPORTING ONLY  [--scope]",
     "knowledge_base":      "knowledge_base_band() + epsilon_ref_fixed_point() — KNOWLEDGE_EOH_BASE from the measured O*NET training stock  [--epsilon-ref, --observed-hours]",
     "personal_floor":      "identity_report() — task-normative personal floor vs measured ATUS hours; REPORTING ONLY  [--epsilon, --convention, --atus-year]",
@@ -981,6 +984,9 @@ def _frame_call(args: argparse.Namespace, epsilon: float) -> tuple[dict, dict, d
             # frame's. The pipeline-keyword functions call it `age_distribution`.
             fs["age_distribution" if name in ("registered_work", "mint_reach")
                else "age_fractions"] = v["age_fractions"]
+        if name == "guf_magnitude":
+            fs["land_hectares"] = v["land_m2"] / M2_PER_HECTARE
+            fs["land_use_fractions"] = v["land_use_fractions"]
         if name == "stationarity" and v["parcel_count"] is not None:
             # The land's parcels, FIXED with the land (2026-10-14): the fee's
             # count. Unstated, stationarity keeps its population-scaled default.
@@ -1528,6 +1534,21 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
             )
         gm_out["psi_policy | flow_only == bell"] = pp["flow_only_equals_bell"]
         gm_out["psi_policy | verdict"] = pp["verdict"]
+        if frame_state.get("land_hectares") is not None:
+            # THE FRAME'S OWN LAND, IN ITS OWN USE MIX (2026-10-15): the
+            # per-hectare target applied to the frame, in HOURS and as a LOWER
+            # bound. Not compared with any fee — the class→use mapping is open.
+            from hours_eoh.scenarios.guf_magnitude import frame_land_target
+            ft = frame_land_target(frame_state["land_hectares"], population,
+                                   frame_state.get("land_use_fractions"),
+                                   servicing_scope=gm_scope)
+            for row in ft["by_class"]:
+                gm_out[f"frame | {row['land_use']} | hectares"] = row["hectares"]
+                gm_out[f"frame | {row['land_use']} | hours"] = row["hours"]
+            gm_out["frame | land work hours (lower bound)"] = ft["hours_lower_bound"]
+            gm_out["frame | per capita (lower bound)"] = ft["hours_per_capita_lower_bound"]
+            gm_out["frame | share of land with a complete target"] = ft["share_of_land_complete"]
+            gm_out["frame | share of land with any target"] = ft["share_of_land_with_any_target"]
         gm_out["what_this_does_not_settle"] = rep["what_this_does_not_settle"]
         return gm_out
 
