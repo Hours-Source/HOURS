@@ -15,7 +15,15 @@ from hours_eoh.data import REFERENCE_FRAME_POPULATION, EPSILON_ARC_MAX
 import argparse
 import json
 
+import sys
+
 from utils.formatters import table, fmt_float, fmt_eps, green, yellow, red
+
+
+def _banner(args: argparse.Namespace, text: str) -> None:
+    """A header line: to stderr under --format json, so stdout stays one JSON
+    document (2026-10-14 — all four subcommands printed it into the JSON)."""
+    print(text, file=sys.stderr if getattr(args, "fmt", None) == "json" else sys.stdout)
 from hours_eoh.research.coasean import RATE_BASES
 
 
@@ -90,7 +98,7 @@ def build_parser(sub: argparse.Action) -> None:  # type: ignore[type-arg]
 def run_n1_check(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import n1_regression_anchor
 
-    print("EXPERIMENTAL — research/coasean.py (Workstream D Phase 1)\n")
+    _banner(args, "EXPERIMENTAL — research/coasean.py (Workstream D Phase 1)\n")
 
     eps_list = [0.0, 0.40, 0.99]
     rows_data = []
@@ -134,7 +142,7 @@ def run_n1_check(args: argparse.Namespace) -> None:
 def run_count(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import coasean_collective_count
 
-    print("EXPERIMENTAL — research/coasean.py\n")
+    _banner(args, "EXPERIMENTAL — research/coasean.py\n")
 
     n_points = args.points
     rows_data = []
@@ -156,14 +164,15 @@ def run_simulate(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import simulate_federation
     from hours_eoh.data import COASEAN_COMMONS_TITHE, CONTESTABILITY_CHI_CRIT, CONTESTABILITY_CHI_WARN
 
-    print("EXPERIMENTAL — research/coasean.py (three-regime inflation, §7; commons, §8.7)\n")
+    _banner(args, "EXPERIMENTAL — research/coasean.py (three-regime inflation, §7; commons, §8.7)\n")
     tithe = COASEAN_COMMONS_TITHE if args.commons_tithe is None else args.commons_tithe
     extras = ""
     if args.dynamics:
         extras += f"  dynamics: levy={args.levy_rate:.2f} g_priv={args.g_priv:.3f}"
     if args.commons:
         extras += f"  commons: tithe={tithe:.3f} regime={args.regime}"
-    print(
+    _banner(
+        args,
         f"Simulating {args.periods} periods  "
         f"ε: {args.eps_start:.3f} → {args.eps_end:.3f}  "
         f"heterogeneity={args.heterogeneity:.2f}  seed={args.seed}{extras}\n"
@@ -259,20 +268,22 @@ def run_federation(args: argparse.Namespace) -> None:
     from hours_eoh.research.coasean import make_federation, coasean_collective_count
     from hours_eoh.data import CAPITAL_STOCK_DEFAULT
 
-    print("EXPERIMENTAL — research/coasean.py\n")
+    _banner(args, "EXPERIMENTAL — research/coasean.py\n")
 
     eps = args.epsilon
     n = args.n
     if n is None:
         n = coasean_collective_count(eps)
 
-    print(f"ε = {eps:.3f}  |  N = {n} collectives  |  population = {args.population:,.0f}\n")
+    _banner(args, f"ε = {eps:.3f}  |  N = {n} collectives  |  population = {args.population:,.0f}\n")
 
     fed = make_federation(
         epsilon=eps,
         n=n,
         population=args.population,
-        capital_stock_teh=CAPITAL_STOCK_DEFAULT,
+        # THE 1M STOCK, SCALED TO --population (2026-10-14): passed unscaled,
+        # per-capita mint read 332.2 at 1e6 and 281.5 at 1e7 for one economy.
+        capital_stock_teh=CAPITAL_STOCK_DEFAULT * (args.population / REFERENCE_FRAME_POPULATION),
     )
 
     rows_data = []

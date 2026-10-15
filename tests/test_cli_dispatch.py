@@ -138,3 +138,33 @@ class TestAnAcceptedEpsilonMovesTheOutput:
                 run("0.2")
         else:
             assert run("0.2") != run("0.7"), f"{name} accepts --epsilon and ignores it"
+
+
+class TestCoaseanJsonIsOneDocument:
+    """`coasean --format json` printed its EXPERIMENTAL banner (and the
+    federation's ε/N header) into stdout, so no subcommand's output parsed
+    (2026-10-14). The banner goes to stderr under json; the table form is
+    byte-identical."""
+
+    @pytest.mark.parametrize("sub", ["n1-check", "count", "federation", "simulate"])
+    def test_stdout_parses_and_the_banner_is_on_stderr(self, capsys, sub):
+        import json
+        from utils.eoh_cli import build_parser
+        a = build_parser().parse_args(["coasean", "--format", "json", sub])
+        a.func(a)
+        out = capsys.readouterr()
+        json.loads(out.out)
+        assert "EXPERIMENTAL" in out.err
+
+    def test_the_federation_is_frame_invariant_per_capita(self, capsys):
+        """It passed the 1M-reference stock beside --population."""
+        import json
+        from utils.eoh_cli import build_parser
+        per = []
+        for pop in ("1000000", "10000000"):
+            a = build_parser().parse_args(["coasean", "--format", "json", "federation",
+                                           "--population", pop])
+            a.func(a)
+            rows = json.loads(capsys.readouterr().out)
+            per.append(sum(r["teh"] for r in rows) / float(pop))
+        assert per[0] == pytest.approx(per[1], rel=1e-12)

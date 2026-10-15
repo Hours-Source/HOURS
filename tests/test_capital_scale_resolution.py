@@ -452,13 +452,19 @@ def _unscaled_capital_constant_reads() -> list[tuple[str, int, str]]:
                 params = {a.arg for a in fn.args.args + fn.args.kwonlyargs}
                 stores = {n.id for n in ast.walk(fn)
                           if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)}
-                pops = (params | stores) & _POPULATION_PARAMS
+                # A population read as an ATTRIBUTE (`args.population`) is in
+                # scope too (2026-10-14): the `coasean federation` CLI passed
+                # the 1M stock beside `--population` and this scan, keyed on
+                # names, could not see it.
+                attrs = {n.attr for n in ast.walk(fn) if isinstance(n, ast.Attribute)}
+                pops = (params | stores | attrs) & _POPULATION_PARAMS
                 if not pops:
                     continue
                 scaled: set[int] = set()
                 for node in ast.walk(fn):
                     if isinstance(node, ast.BinOp):
                         names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
+                        names |= {n.attr for n in ast.walk(node) if isinstance(n, ast.Attribute)}
                         if names & pops:
                             scaled |= {id(n) for n in ast.walk(node)
                                        if isinstance(n, ast.Name) and n.id == "CAPITAL_STOCK_DEFAULT"}
