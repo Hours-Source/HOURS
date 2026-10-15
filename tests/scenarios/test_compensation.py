@@ -52,9 +52,11 @@ class TestTheInflowMap:
         assert edges["sole:levy"][1] == pytest.approx(0.97, abs=0.015)
         assert edges["joint"][1] == 0.99
 
-    def test_rural_fails_at_the_top(self):
+    def test_rural_holds_at_the_top_at_the_adopted_levy(self):
+        """It FAILED at 0.99 under 4.5%; the levy raised to 4.6% to keep the
+        urban arc (2026-10-15) carries the rural one too, jointly with the fee."""
         runs = compensation_map(inflow_mechanisms(make_rural_collective(1000)))["runs"]
-        assert runs[-1][0] == "fails" and runs[-1][1] == 0.99
+        assert runs[-1][0] == "joint" and runs[-1][2] == 0.99
 
     def test_the_map_is_frame_invariant(self, urban):
         for pop in (1.0e5, 1.0e7):

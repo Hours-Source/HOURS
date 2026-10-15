@@ -57,3 +57,18 @@ class TestTheMainlandPopulationIsTheCensus:
         assert US_MAINLAND_POPULATION == sum(
             s["population"] for s in load_states() if s["in_48_states"])
         assert JURISDICTION_FRAMES["us_mainland"]["population"] == US_MAINLAND_POPULATION
+
+
+class TestThePopulationsAreTheCensus:
+    """The national population, closed at the 2024 Census (author, 2026-10-15):
+    the registry's and BEA's vintage. BEA_POPULATION is its copy in `reference/`,
+    which cannot import data.py, so the binding is here."""
+
+    def test_the_national_constant_and_its_copy_are_the_2024_row(self):
+        import csv
+        from hours_eoh.data import US_REFERENCE_POPULATION
+        from hours_eoh.reference.capital_inventory import BEA_POPULATION, BEA_YEAR
+        from hours_eoh.reference.states import DATA_FILE
+        with (DATA_FILE.parent / "census_adults_2000_2025.csv").open() as fh:
+            national = {int(r["year"]): float(r["total"]) for r in csv.DictReader(fh)}
+        assert US_REFERENCE_POPULATION == BEA_POPULATION == national[BEA_YEAR] == national[2024]

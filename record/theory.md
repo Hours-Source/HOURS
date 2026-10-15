@@ -77,8 +77,8 @@ labelled PR for AWol to approve, and are never silently rewritten in docstrings.
 - **The supply claim's capital axis is weaker than argued** *(pointer)* — a
   destroyed stock books no rebuild, so the response is pro-cyclical.
   [fulfilment.md](fulfilment.md#capital-reconstruction-gap).
-- **Levy incidence at ε=0 is uncomputed.** *(person)* 4.5% is sized to the
-  ε=0.99 corner; the bottom needs 1.33× the cheapest point. *Settles by:* a
+- **Levy incidence at ε=0 is uncomputed.** *(person)* 4.6% is sized to the
+  ε=0.99 corner; without the fee the bottom needs 1.35× the cheapest point. *Settles by:* a
   flat vs ε-varying rate. [fulfilment.md](fulfilment.md#guarantee-priced-in-hours).
 - **Anchor comparison Phases 1–3 are HELD DELIBERATELY.** *(held)* Phase 0 may
   be sufficient; further is monetary economics, not entropy accounting, and is

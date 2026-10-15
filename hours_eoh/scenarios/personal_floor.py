@@ -59,6 +59,7 @@ from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import PersonalFloor, personal_statutory_floor
 from hours_eoh.data import (
+    KNOWLEDGE_ANCHOR_YEAR,
     BASKET_WATER_CARRIED_FRACTION,
     BASKET_WATER_CARRY_LITRES,
     BASKET_WATER_DISTANCE_M,
@@ -199,6 +200,16 @@ def observed_hours(
     return atus_time_use.hours_per_capita(
         year, OBSERVED_CONVENTIONS[convention], total_population
     )
+
+
+def paid_labour_anchor() -> float:
+    """
+    The knowledge fixed point's anchor: US PAID labour per capita, ATUS
+    `KNOWLEDGE_ANCHOR_YEAR`, over the national population (2026-10-15: it was
+    typed as 937.3 in five places, and moved to 923.47 when
+    `US_REFERENCE_POPULATION` closed at the 2024 Census).
+    """
+    return observed_hours(KNOWLEDGE_ANCHOR_YEAR, "paid")
 
 
 def identity_report(

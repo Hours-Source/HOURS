@@ -437,7 +437,7 @@ def formation_levy_rate(
     drifted — the sunset now sits near ε≈0.245.
 
     ε-behavior: largest near the start of the arc, falling to 0 at the sunset,
-    0 thereafter. Compare SUFF_LEVY_RATE (4.5% since 2026-09-15; 1.25% when
+    0 thereafter. Compare SUFF_LEVY_RATE (4.6% since 2026-10-15, 4.5% from 2026-09-15; 1.25% when
     this was written): the bridge is smaller than the sufficiency levy and
     temporary.
 

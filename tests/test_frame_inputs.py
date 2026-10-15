@@ -807,9 +807,9 @@ class TestTheUsStockIsBea:
         from hours_eoh.data import US_MAINLAND_POPULATION
         from hours_eoh.reference.capital_inventory import BEA_POPULATION
         row = _labels("--frame", "us")["capital_teh"]
-        # Per head × the frame's people. BEA_POPULATION is still the 335M copy
-        # of the held national figure, so the mainland reads 1.38% above the
-        # national inventory until that closes (record/contestability.md).
+        # Per head × the frame's people: the national inventory over
+        # BEA_POPULATION (the 2024 Census) × the mainland's 339.6M, 2.742T —
+        # 0.11% under the national stock (2026-10-15).
         assert row["value"] == pytest.approx(
             epsilon_from_inventory(0.5 * (b["low"] + b["high"]))["capital_teh"]
             * US_MAINLAND_POPULATION / BEA_POPULATION)

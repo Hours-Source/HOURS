@@ -1778,7 +1778,7 @@ ABATEMENT_HALF_CAPITAL_TEH: float = 112.870662
 PERSONAL_EOH_BASE_CLIMATE_FRAME: str = "SSA rainfed tropical/sub-tropical (LSMS-ISA stratum)"
 
 # tag: bounded | units: hours/year per working-age-equivalent
-# band: 482–1147 h/yr per working-age-equivalent, from two instruments sharing
+# band: 482–1148 h/yr per working-age-equivalent, from two instruments sharing
 #   no assumption: the supply ceiling (L−R)/w across subsistence parameters, and
 #   the accounting identity B = (M+H−R)/w, whose M comes from a capital
 #   inventory and is B-FREE. RE-DERIVED 2026-09-04 from 390–1006, and with no
@@ -2327,26 +2327,26 @@ AMENITY_STEWARDSHIP_WEIGHT: float = 0.0468  # fraction of amenity labour counted
 #   (Resource Stewardship vs Visitor Services vs Facility Operations) and are
 #   the direct instrument; they would replace this band with a measured split.
 AGENCY_STEWARDSHIP_ROLE_MIX: float = 0.2263  # fraction of NPS+FWS on stewardship
-# tag: placeholder | units: persons | tier: C
-# form: the population the frozen O*NET/BLS registry's employment is drawn
-#   against (reference epoch 2026-07-29 -> 2024 vintage weights), stated round.
+# tag: measured | units: persons | tier: A
+# form: Census Bureau resident population, United States (50 states + DC),
+#   July 1, 2024 (Vintage 2025): reference/data/census_adults_2000_2025.csv's
+#   2024 row, bound by test (TestThePopulationsAreTheCensus). 2024 because the
+#   frozen O*NET/BLS registry's employment is 2024-vintage (reference epoch
+#   2026-07-29) and BEA's stock is yearend 2024: the NATIONAL population those
+#   are drawn against. The US frame's people are US_MAINLAND_POPULATION.
 # note: MIGRATED FROM TWO PLACES AT ONCE (2026-08-16). The same value lived as
 #   `REFERENCE_POPULATION_US` in scenarios/knowledge_base.py and as
 #   `US_POPULATION` in reference/land_stewardship.py — one value, two names, two
-#   files, neither under the gate. That is the fifth instance of the pattern
-#   behind GUF_PSI_NORM, RECAL_FOUNDING_LABOR_HOURS, DEFAULT_SEGMENTS and the
-#   mean-multiplier literal: a copy of a value whose source is elsewhere. Both
-#   names now bind here. Its epistemic status is UNCHANGED by the move — it was
-#   debt before and it is debt now, only visible.
-#   NATIONAL, NOT THE FRAME'S (2026-10-15): the US frame's people are
-#   US_MAINLAND_POPULATION. Closing this on the Census national figure moves the
-#   frozen KNOWLEDGE_EOH_BASE (+2.0% at 2025) and the ATUS-per-person readings
-#   (~2%, through BEA_POPULATION, a copy of this value), so it is held for its
-#   own change (author). The registry and BEA are 2024-vintage: 340,003,797.
-# resolves_by: Census Bureau national population estimate for the reference
-#   epoch. The shipped figure is round to three significant figures and the
-#   estimate is not, so this closes on contact with the source.
-US_REFERENCE_POPULATION: float = 335_000_000.0  # persons, registry reference epoch
+#   files, neither under the gate; both names bind here.
+#   CLOSED 2026-10-15 (author: "close the national constant at the 2024 census
+#   and re-derive"): 335,000,000 (round) -> 340,003,797 (+1.49%). It sits
+#   inside the KNOWLEDGE_EOH_BASE fixed point twice — the registry's employment
+#   per head and the ATUS paid-labour anchor — so that constant was re-derived
+#   in the same change. ATUS is 2025 data read against this 2024 total: a
+#   0.52% vintage gap, stated, not split into a second constant.
+# resolves_by: nothing — a published estimate. It moves with the registry's
+#   vintage: a registry refresh brings a new year with it.
+US_REFERENCE_POPULATION: float = 340_003_797.0  # persons, US (50 states + DC), Census July 2024
 # tag: measured | units: persons | tier: A
 # form: Census Bureau resident population of the 48 contiguous states and DC,
 #   July 1, 2025 (SCPRC-EST2025): the sum of reference/states.load_states()'
@@ -2642,7 +2642,8 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # it, and both should.
 #
 # WHAT THIS DOES NOT FIX, stated plainly: the fixed point is still anchored on
-# 937.3 h/person·yr of US PAID labour (ATUS 2025, `scenarios/personal_floor`).
+# US PAID labour (ATUS 2025, `personal_floor.paid_labour_anchor()`: 923.47
+# h/person·yr since 2026-10-15, 937.3 at the round 335M).
 # It removes the self-inconsistency, not the US-specificity or the paid-labour
 # convention. The convention is at least coherent with
 # `personal_eoh_registration_share(0)` being near-zero — subsistence labour is
@@ -2654,6 +2655,14 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # it mechanically; the ANCHOR now resolves by whatever settles Finding B — the
 # capital-inventory route remains unusable (Finding A).
 # provenance-block: EOH generation — knowledge domain
+# tag: convention | units: year
+# form: the ATUS survey year whose US PAID labour per capita anchors the
+#   knowledge fixed point (`personal_floor.paid_labour_anchor`).
+# decided_by: the anchor KNOWLEDGE_EOH_BASE was frozen at; named 2026-10-15,
+#   when its hours (typed as 937.3 in five places) moved with the population.
+#   Moving the year is a re-derivation of KNOWLEDGE_EOH_BASE, which its own
+#   test detects.
+KNOWLEDGE_ANCHOR_YEAR: int = 2025  # ATUS year of the knowledge anchor's paid labour
 # tag: derived-then-FROZEN | units: embodied knowledge-hours (STOCK) at the ε=0 reference, at KNOWLEDGE_REFERENCE_POPULATION
 # form: recovered from the O*NET 30.3 / BLS spine already shipped in
 #   reference/data/ by inverting the documented log-minmax normalization of
@@ -2690,7 +2699,7 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # note: THE ANCHORING ASSUMPTION IS THE UNCERTAINTY, NOT THE MEASUREMENT.
 #   Across ε_ref ∈ [0.2, 0.6] the constant moves 7.13×, against only 1.20×
 #   from the per-capita route. What the fixed point does NOT fix: the anchor
-#   is still 937.3 h/person·yr of US PAID labour, so it removes the
+#   is still US PAID labour (`paid_labour_anchor()`), so it removes the
 #   self-inconsistency, not the US-specificity or the paid-labour convention —
 #   and the full-labour reading has no solution at all (supply exceeds the
 #   whole obligation; Finding B). tests/test_knowledge_base.py asserts the
@@ -2712,10 +2721,19 @@ REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 #   (elderly 1.48), so its stated direction was never its arithmetic — which
 #   raises total EOH and lowers the labour residual this anchor is solved
 #   against. The smallest of the ten moves, and mechanical.
+# note: RE-ANCHORED AN ELEVENTH TIME, -5.90% (2026-10-15), when
+#   US_REFERENCE_POPULATION closed at the 2024 Census (335M -> 340,003,797). The
+#   population enters the fixed point TWICE, both the same direction. Through
+#   registry employment per head alone (anchor held at 937.3) the base moves
+#   -1.09%; the ATUS paid-labour anchor, now read live from
+#   `personal_floor.paid_labour_anchor()` (937.3 -> 923.47 h/person yr, -1.47%)
+#   rather than typed in five places, carries the rest, amplified by the fixed
+#   point. epsilon*
+#   0.507504 -> 0.518082, 297,779,308.10 -> 280,218,381.73.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 297779308.09991723  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.507504 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 280218381.7253237  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.518082 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -2871,7 +2889,7 @@ SKILL_DECAY_RATE: float = 0.10  # RETIRED (pre-K-IV default) — kept as the ref
 #   needs, published annually. EU 2025: 37.5 years overall, 39.5 men, 35.4
 #   women. The EU aggregate is adopted rather than either sex-specific figure.
 # note: TIER B, NOT A, FOR A NAMED REASON: the series is EU-27, while the
-#   knowledge domain's ε_ref anchor is US paid labour (937.3 h/person·yr). No
+#   knowledge domain's ε_ref anchor is US paid labour (`paid_labour_anchor()`). No
 #   current US equivalent exists to reconcile it against — BLS ceased
 #   publishing worklife tables, and the last (Smith 1986) rests on 1979–80
 #   labour-force behaviour, which is older than the gap it would close. The
@@ -3211,11 +3229,17 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 # provenance-block: Fiscal architecture
 # tag: normative | units: fraction of labor income
 # decided_by: author, 2026-09-15 — raised 1.25% → 4.5% with the wage doctrine
-#   (minted TEH is the wage; the Trust owes only the guarantee).
+#   (minted TEH is the wage; the Trust owes only the guarantee); 2026-10-15 —
+#   4.5% → 4.6% to keep the end of the arc (see form).
 # form: scenarios/stationarity.py swept levy × base: the smallest rate at which
 #   the Trust stands still on the TEH side from ε=0 to 0.99 is 4.48%, with the
 #   V1 guarantee at 5% need, base PERSONAL_EOH_BASE (1,000 h), the urban land
 #   fee and no inheritance. Rounded up to 4.5%.
+#   RE-SIZED 2026-10-15 (author: "raise the levy to cover 0.99"), by the same
+#   sweep and the same rounding: the national population closing at the 2024
+#   Census re-derived KNOWLEDGE_EOH_BASE -5.90%, which trimmed the mint at
+#   epsilon 0.99 and moved the smallest standing-still rate 4.4923% -> 4.5026%;
+#   4.5% then reached 0.98, not 0.99. Rounded up to 4.6%.
 # note: SIZED TO A DESIGN THE REPORTING LAYER NOW RUNS, AND CORE STILL DOES NOT.
 #   Until 2026-09-16 this read "sized to a design the default does not run": V1
 #   was proposed and nothing defaulted to it. `scenarios/stationarity` now
@@ -3224,13 +3248,13 @@ BASE_LIFETIME_EARNINGS_TEH:      float = float(H_REF) * BASE_CAREER_YEARS
 #   `sufficiency_guarantee`'s shipped aggregation**, which at ε=0 demands a levy
 #   of 812% of the mint — unfundable by construction, since nothing mints that
 #   was not registered — against V1's 8.07%. That gap is the open item, not this
-#   constant. Under the shipped guarantee 4.5% does not reach the end of the arc
+#   constant. Under the shipped guarantee 4.6% does not reach the end of the arc
 #   (record/fulfilment.md). The 2026-08-09 rationale — "the dividend alone runs
 #   a surplus, so the required rate is zero" — held only while the Trust was
 #   charged for minted hours and a large dividend was assumed; it no longer
 #   describes this constant. Incidence on labour income at low ε, where labour
 #   income is nearly all income, remains the charter's question.
-SUFF_LEVY_RATE:               float = 0.045             # sufficiency levy rate on labor income
+SUFF_LEVY_RATE:               float = 0.046             # sufficiency levy rate on labor income
 # tag: normative | units: fraction of on-ledger people receiving the guarantee
 # decided_by: author, 2026-09-15 (V1 proposed) and 2026-09-16 (adopted as the
 #   reporting default, and named here). It is a charter decision about WHO the

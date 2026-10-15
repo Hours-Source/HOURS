@@ -23,8 +23,9 @@ conservation credit, NLSA boundary conditions.
   and was never owed an equality with any of them. Nothing is re-fitted on the
   withdrawal: the ratios are now unjustified rather than justified by a goal the
   framework no longer holds, and the unrun servicing census still settles the
-  level. Measured against the 4.5% levy the fee runs 9.19× it at ε=0 and 0.058×
-  at 0.99, so no single ratio was ever going to hold across the arc.
+  level. Against the 4.6% levy the urban fee runs 8.23× it at ε=0 and 0.057×
+  at 0.99 (`scenario run collective`, 2026-10-15), so no single ratio was ever
+  going to hold across the arc.
 - **`GUF_USE_SCALE_FACTOR` is still 100.0 and the ten ratios are untouched.**
   Phase 2 measured how far the fee sits from a servicing census and deliberately
   did not move it: a census settles a LEVEL and the defect is structural.

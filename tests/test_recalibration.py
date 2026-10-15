@@ -717,7 +717,8 @@ class TestRecalibratedArc:
         # capital stock resolves along the canonical arc, so the infrastructure term
         # falls at low ε and every ratio computed against total EOH moves with it.
         # → 1641.4553 on 2026-10-04: the default stock age became the measured US one (0.50 → 0.591).
-        assert last["dividend_per_capita"] == pytest.approx(1641.4553, rel=1e-4)
+        # → 1614.7051 on 2026-10-15: KNOWLEDGE_EOH_BASE re-derived -5.90%, so total EOH at the top fell.
+        assert last["dividend_per_capita"] == pytest.approx(1614.7051, rel=1e-4)
         channels = [r["channel"] for r in rows]
         first_self = channels.index("self")
         # 0.693 → 0.7425 with the 2026-08-10 elderly revalue. The self-financing

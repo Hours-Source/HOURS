@@ -556,11 +556,12 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                             "0.40). THE DOMINANT UNCERTAINTY — 7.13x across "
                             "[0.2, 0.6]; the band is reported regardless")
 
-    run_p.add_argument("--observed-hours", type=float, default=937.3,
+    run_p.add_argument("--observed-hours", type=float, default=None,
                        dest="observed_hours", metavar="H",
                        help="Measured human labour per capita per year, for the "
-                            "ε_ref fixed point (knowledge_base; default: 937.3 — "
-                            "US 2025 PAID labour. The full-labour reading, 1701.1, "
+                            "ε_ref fixed point (knowledge_base; default: "
+                            "personal_floor.paid_labour_anchor() — US 2025 PAID "
+                            "labour. The full-labour reading, 1701.1 at 335M, "
                             "has no solution: Finding B)")
     run_p.add_argument("--convention", default="unpaid_core",
                        choices=sorted(OBSERVED_CONVENTIONS),
@@ -2085,8 +2086,10 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
                 row["knowledge_share"]
         kb_out["projection_note"] = proj["note"]
         # Finding E: the anchor and the base solved together, not one then the other.
-        fp = epsilon_ref_fixed_point(args.observed_hours)
-        kb_out["fixed_point_observed_h"] = args.observed_hours
+        from hours_eoh.scenarios.personal_floor import paid_labour_anchor
+        obs = paid_labour_anchor() if args.observed_hours is None else args.observed_hours
+        fp = epsilon_ref_fixed_point(obs)
+        kb_out["fixed_point_observed_h"] = obs
         kb_out["fixed_point_epsilon_ref"] = fp["epsilon_fixed_point"]
         kb_out["fixed_point_base_rate"] = fp["base_rate"]
         kb_out["fixed_point_converged"] = fp["converged"]

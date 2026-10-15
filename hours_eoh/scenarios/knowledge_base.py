@@ -629,8 +629,8 @@ def labour_residual_epsilon(
     when the supplied labour exceeds the entire obligation at ε = 0, because
     "no ε explains this" is a finding and zero is a different claim.
 
-    Worked example: 937.3 h/person·yr of paid US labour against the shipped
-    calibration → ε ≈ 0.470. The same solver on 1,701.1 (paid + unpaid) returns
+    Worked example (as first run, at the round 335M): 937.3 h/person·yr of paid
+    US labour against the then-shipped calibration → ε ≈ 0.470. The same solver on 1,701.1 (paid + unpaid) returns
     None: supply exceeds the whole obligation by 14% (Finding B).
 
     Raises:
@@ -749,7 +749,7 @@ def epsilon_ref_fixed_point(
         `epsilon_shipped_anchor`, `ratio_to_shipped`, `converged`, `iterations`,
         `path`, and a `note`.
 
-    Worked example: at 937.3 h/person·yr (US paid labour, 2025) the loop settles
+    Worked example: at `personal_floor.paid_labour_anchor()` (US paid labour, 2025) the loop settles
     away from the shipped 0.40 anchor — the distance IS Finding E, and the base
     that comes with it is what a self-consistent derivation gives.
     """

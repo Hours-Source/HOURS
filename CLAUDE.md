@@ -711,8 +711,8 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,207 tests passing (1 skipped), mypy clean on 110 source files** (verified
-2026-10-15). <!-- census:state -->Provenance **371/371**, shadow ratchet **29**, confidence ratchet **130** of 148<!-- /census:state -->,
+**6,208 tests passing (1 skipped), mypy clean on 110 source files** (verified
+2026-10-15). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **129** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
 
@@ -761,7 +761,7 @@ this whole structure forbids.**
   See [`record/ecological.md`](record/ecological.md#live-state).
 
 **The standing measurement debt**
-- <!-- census:confidence -->**130 of 148**<!-- /census:confidence --> placeholder/bounded constants carry no confidence figure;
+- <!-- census:confidence -->**129 of 147**<!-- /census:confidence --> placeholder/bounded constants carry no confidence figure;
   ratcheted, may not rise. **Leverage runs OPPOSITE to confidence** and that
   ordering is pinned. → [`record/provenance.md § Open`](record/provenance.md#open)
 - **Two of four** personal automation floors carry a value at all — care and
@@ -788,7 +788,9 @@ this whole structure forbids.**
 - The compensating-mechanism audit is BUILT for the two TEH inflows
   (`scenarios/compensation.py`): the levy and GUF cover for each other only to
   ε≈0.54 (0.55 until the territories left the default parcel count,
-  2026-10-15); the levy alone carries 0.55–0.97. Dynamic stability is MEASURED
+  2026-10-15); the levy alone carries 0.55–0.97, and the two jointly 0.98–0.99
+  for both archetypes since the levy went to 4.6% (2026-10-15; rural failed at
+  0.99 under 4.5%). Dynamic stability is MEASURED
   (`research/dynamic_stability.py`, 2026-10-01): one limit cycle, the formation
   loop's dividend-priority cobweb — bounded and decaying.
   → [`record/verification.md § Open`](record/verification.md#open)

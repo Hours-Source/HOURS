@@ -72,7 +72,11 @@ BEA_YEAR: int = 2024
 BEA_UNITS: str = "billions of current US dollars, yearend net stock"
 #: The population the inventory is counted over. Extensive figures mean nothing
 #: away from it — the frame seam this repo has found in seven subsystems.
-BEA_POPULATION: float = 335_000_000.0
+#: Census resident population, US (50 states + DC), July 1 of BEA_YEAR — the
+#: same figure as data.US_REFERENCE_POPULATION, bound by test (2026-10-15; it
+#: was a 335M copy of that constant's round value). `reference/` imports
+#: nothing from the package, so the binding is a test, not an expression.
+BEA_POPULATION: float = 340_003_797.0
 
 
 #: BEA line → machine profile, with the basis for each assignment.

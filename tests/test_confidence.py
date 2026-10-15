@@ -89,7 +89,9 @@ from utils.provenance import SOFT_TAGS  # noqa: E402 — one definition, shared 
 #: LOWERED 131 -> 130 on 2026-10-04: COND_DECAY_SLOPE (placeholder, no
 #: confidence) was RETIRED, replaced by BLS's age-efficiency curve, whose two
 #: β are `convention` with a cited source — a placeholder replaced by a method.
-BASELINE_WITHOUT = 130
+#: LOWERED 130 -> 129 on 2026-10-15: US_REFERENCE_POPULATION (placeholder, no
+#: confidence) closed at the 2024 Census and is `measured`.
+BASELINE_WITHOUT = 129
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

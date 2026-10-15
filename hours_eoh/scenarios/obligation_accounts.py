@@ -347,7 +347,7 @@ def automation_uniformity_check(epsilon: float = 0.99) -> dict:
 
 
 def anchor_sensitivity(
-    observed_hours_per_capita: float = 937.3,
+    observed_hours_per_capita: float | None = None,
     shipped_base: float | None = None,
 ) -> dict:
     """
@@ -383,7 +383,9 @@ def anchor_sensitivity(
     would be the first move against the 91–97% domain, and the question is
     whether "small" still holds. It does not: the base moves **−16.4%**.
 
-    Worked example (937.3 h/person·yr, US paid labour): ε* 0.386618 → 0.423227,
+    `observed_hours_per_capita` None reads `personal_floor.paid_labour_anchor()`.
+
+    Worked example (937.3 h/person·yr, US paid labour, at 335M): ε* 0.386618 → 0.423227,
     base 523,614,562.88 → 437,917,083.98. Human labour at ε=0.99 goes 28.8 →
     148.8 h/person·yr, a factor of **5.16** — the difference between "labour has
     effectively ended" and "most of a month of care work per person per year".
@@ -403,6 +405,9 @@ def anchor_sensitivity(
     REPORTING ONLY. Nothing is written back; this exists so Phase 2 is committed
     to on a measured blast radius rather than an estimate.
     """
+    if observed_hours_per_capita is None:
+        from hours_eoh.scenarios.personal_floor import paid_labour_anchor
+        observed_hours_per_capita = paid_labour_anchor()
     from hours_eoh.core.trajectory import canonical_physical_state
     from hours_eoh.data import KNOWLEDGE_EOH_BASE, SKILL_TRANSMISSION_RATE
 

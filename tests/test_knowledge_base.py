@@ -12,6 +12,8 @@ import math
 
 import pytest
 
+from hours_eoh.scenarios.personal_floor import paid_labour_anchor
+
 from hours_eoh.core.eoh_generation import knowledge_eoh, skill_renewal_rate
 from hours_eoh.data import (
     KNOWLEDGE_EOH_BASE,
@@ -148,7 +150,7 @@ class TestPerCapitaRoutes:
 
     def test_measured_flow_matches_the_worked_example(self):
         flow = measured_knowledge_flow_per_capita("registry")
-        assert flow["flow_per_capita_h_yr"] == pytest.approx(146.7, rel=1e-2)
+        assert flow["flow_per_capita_h_yr"] == pytest.approx(144.53, rel=1e-2)  # 2026-10-15: US_REFERENCE_POPULATION 335M -> 340,003,797 (-1.47% per head)
         assert measured_knowledge_flow_per_capita("repo")["flow_per_capita_h_yr"] \
             == pytest.approx(176.0, rel=1e-2)
 
@@ -209,20 +211,22 @@ class TestBackDerivation:
         def arc(rate: float, eps: float) -> float:
             return base * _complexity(eps) * rate / KNOWLEDGE_REFERENCE_POPULATION
 
-        assert arc(SKILL_TRANSMISSION_RATE, 0.0) == pytest.approx(13.07, rel=2e-2)
-        assert arc(SKILL_TRANSMISSION_RATE, 0.40) == pytest.approx(146.7, rel=1e-2)
-        assert arc(SKILL_TRANSMISSION_RATE, 0.99) == pytest.approx(1272.0, rel=1e-2)
+        # 2026-10-15: 13.07 / 146.7 / 1272.0 at the round 335M.
+        assert arc(SKILL_TRANSMISSION_RATE, 0.0) == pytest.approx(12.88, rel=2e-2)
+        assert arc(SKILL_TRANSMISSION_RATE, 0.40) == pytest.approx(144.53, rel=1e-2)
+        assert arc(SKILL_TRANSMISSION_RATE, 0.99) == pytest.approx(1253.3, rel=1e-2)
 
         # The default now IS the transmission doctrine.
         k = d["knowledge_h_per_capita"]
-        assert k[0.0] == pytest.approx(13.07, rel=2e-2)
-        assert k[0.40] == pytest.approx(146.7, rel=1e-2)
-        assert k[0.99] == pytest.approx(1272.0, rel=1e-2)
+        # 2026-10-15: 13.07 / 146.7 / 1272.0 at the round 335M.
+        assert k[0.0] == pytest.approx(12.88, rel=2e-2)
+        assert k[0.40] == pytest.approx(144.53, rel=1e-2)
+        assert k[0.99] == pytest.approx(1253.3, rel=1e-2)
 
         # The refuted doctrine, reachable only by asking for it. 3.75x the
         # transmission arc, which is 0.10 / 0.02667 — the gap Block K-III found.
         refuted = knowledge_base_from_registry(0.40, decay=SKILL_DECAY_RATE)
-        assert refuted["knowledge_h_per_capita"][0.40] == pytest.approx(550.1, rel=1e-2)
+        assert refuted["knowledge_h_per_capita"][0.40] == pytest.approx(542.0, rel=1e-2)  # 550.1 at 335M
         assert refuted["base_rate"] == pytest.approx(base, rel=1e-12), (
             "base_rate is decay-free; only the reported arc level moves"
         )
@@ -272,7 +276,7 @@ class TestBand:
         AGE_GROUPS elderly revalue.
         """
         live = knowledge_base_from_registry(
-            0.5075036859512329, route="registry", decay=SKILL_TRANSMISSION_RATE
+            0.5180818033218383, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -302,7 +306,9 @@ class TestDomainShareProjection:
         # 0.489 → 0.457 with the elderly revalue, → 0.445 once the working life
         # was measured. Personal has not moved in either case: the renewal rate
         # rose 6.7%, so KNOWLEDGE grew and took share from everything else.
-        assert rows[0.99]["personal_share"] == pytest.approx(0.445, abs=0.01)
+        # → 0.4556 when the national population closed (2026-10-15): a smaller
+        # knowledge base, so personal took share back.
+        assert rows[0.99]["personal_share"] == pytest.approx(0.4556, abs=0.01)
         # 0.437 → 0.464 → 0.479, the same mechanism from the other side. Note
         # the two re-anchors act in OPPOSITE directions on the total: the
         # elderly revalue shrank the total knowledge is a share of, while the
@@ -413,9 +419,10 @@ class TestRenewalDoctrineComparison:
         decay-free base fix must leave it exactly where it was.
         """
         k = renewal_doctrine_comparison()["doctrines"]["transmission"]["knowledge_h_per_capita"]
-        assert k[0.0] == pytest.approx(13.07, rel=2e-2)
-        assert k[0.40] == pytest.approx(146.7, rel=1e-2)
-        assert k[0.99] == pytest.approx(1272.0, rel=1e-2)
+        # 2026-10-15: 13.07 / 146.7 / 1272.0 at the round 335M.
+        assert k[0.0] == pytest.approx(12.88, rel=2e-2)
+        assert k[0.40] == pytest.approx(144.53, rel=1e-2)
+        assert k[0.99] == pytest.approx(1253.3, rel=1e-2)
 
     def test_arc_is_linear_in_the_renewal_rate(self):
         """base_rate is now the STOCK, so the arc scales with d exactly."""
@@ -449,7 +456,7 @@ class TestBaseRateIsTheEmbodiedStock:
             assert recovered == pytest.approx(d["embodied_stock_per_capita"], rel=1e-9)
 
     def test_embodied_stock_matches_the_registry(self):
-        assert embodied_stock_per_capita("registry") == pytest.approx(5500.7, rel=1e-3)
+        assert embodied_stock_per_capita("registry") == pytest.approx(5420.0, rel=1e-3)  # 2026-10-15: US_REFERENCE_POPULATION 335M -> 340,003,797 (-1.47% per head)
         assert embodied_stock_per_capita("repo") == pytest.approx(6600.8, rel=1e-3)
 
 
@@ -467,7 +474,9 @@ class TestKIVAdoption:
         # 1.089×, back above the K-IV figure; the 2026-09-01 child-weight
         # measurement moved the fixed point a SEVENTH time and it now sits at
         # 0.962× — the largest re-anchor of the seven by an order of magnitude.
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.977793081e8, rel=1e-6)
+        # 2026-10-15: 2.977793081e8 -> 2.802183817e8 (-5.90%), the national
+        # population closing at the 2024 Census.
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.802183817e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """
@@ -514,14 +523,15 @@ def _complexity(epsilon: float) -> float:
 class TestLabourResidual:
 
     def test_paid_labour_gives_the_documented_residual(self):
-        """US 2025 paid labour, 937.3 h/person·yr, against the shipped base.
+        """US 2025 paid labour (`paid_labour_anchor()`) against the shipped base.
 
         0.4522 → 0.50682 after the 2026-08-10 elderly revalue and the knowledge
         re-anchor that followed it. At the fixed point this equals ε*, which is
         what makes it a fixed point.
         """
-        eps = labour_residual_epsilon(937.3, KNOWLEDGE_EOH_BASE)
-        assert eps == pytest.approx(0.50682, abs=0.005)
+        eps = labour_residual_epsilon(paid_labour_anchor(), KNOWLEDGE_EOH_BASE)
+        # → 0.51806 with the national population closed (2026-10-15).
+        assert eps == pytest.approx(0.51806, abs=0.005)
 
     def test_full_labour_has_no_solution(self):
         """
@@ -547,10 +557,11 @@ class TestLabourResidual:
 class TestEpsilonRefFixedPoint:
 
     def test_converges_to_the_adopted_anchor(self):
-        r = epsilon_ref_fixed_point(937.3)
+        r = epsilon_ref_fixed_point(paid_labour_anchor())
         assert r["converged"] is True
         # 0.4522 → 0.50682 with the 2026-08-10 elderly revalue.
-        assert r["epsilon_fixed_point"] == pytest.approx(0.507504, abs=0.001)
+        # → 0.518082 with the national population closed (2026-10-15).
+        assert r["epsilon_fixed_point"] == pytest.approx(0.518082, abs=0.001)
 
     def test_the_fixed_point_reproduces_the_shipped_constant(self):
         """
@@ -570,15 +581,15 @@ class TestEpsilonRefFixedPoint:
         balance is fixed and when abatement becomes the default generation
         path. Both should trip it; neither should be worked around.
         """
-        r = epsilon_ref_fixed_point(937.3)
+        r = epsilon_ref_fixed_point(paid_labour_anchor())
         assert r["base_rate"] == pytest.approx(KNOWLEDGE_EOH_BASE, rel=1e-6)
         assert r["is_shipped_anchor"] is True
 
     def test_it_is_actually_a_fixed_point(self):
         """The defining property: the anchor it derives AT equals the anchor the
         labour residual IMPLIES given the base that derivation produces."""
-        r = epsilon_ref_fixed_point(937.3)
-        implied = labour_residual_epsilon(937.3, r["base_rate"])
+        r = epsilon_ref_fixed_point(paid_labour_anchor())
+        implied = labour_residual_epsilon(paid_labour_anchor(), r["base_rate"])
         assert implied == pytest.approx(r["epsilon_fixed_point"], abs=1e-3)
 
     def test_the_k4_anchor_was_not_one(self):
@@ -595,13 +606,15 @@ class TestEpsilonRefFixedPoint:
         # measured. The ARGUMENT is unchanged and is reinforced each time: the
         # anchor has now moved for a FOURTH reason, none of them a knowledge-
         # domain decision.
-        assert labour_residual_epsilon(937.3, k4_base) == pytest.approx(0.564060, abs=0.005)
-        assert k4_base == pytest.approx(4.9010742e8, rel=1e-6)
+        # → 0.578932 and a K-IV base of 4.828946e8 (was 4.9010742e8) when the
+        # national population closed (2026-10-15).
+        assert labour_residual_epsilon(paid_labour_anchor(), k4_base) == pytest.approx(0.578932, abs=0.005)
+        assert k4_base == pytest.approx(4.828946e8, rel=1e-6)
 
     def test_independent_of_the_starting_anchor(self):
         """A fixed point is a property of the map, not of where you start."""
         results = [
-            epsilon_ref_fixed_point(937.3, epsilon_start=start)["epsilon_fixed_point"]
+            epsilon_ref_fixed_point(paid_labour_anchor(), epsilon_start=start)["epsilon_fixed_point"]
             for start in (0.20, 0.40, 0.70)
         ]
         for value in results:
@@ -618,9 +631,11 @@ class TestEpsilonRefFixedPoint:
         one-time correction, and none of the three moves originated in the
         knowledge domain.
         """
-        r = epsilon_ref_fixed_point(937.3)
-        assert r["base_rate"] / 4.9010742e8 == pytest.approx(0.609410, abs=0.005)
-        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(0.609410, abs=0.005)
+        r = epsilon_ref_fixed_point(paid_labour_anchor())
+        # Against the historical K-IV figure 4.9010742e8: 0.609410 → 0.571749
+        # when the national population closed (2026-10-15).
+        assert r["base_rate"] / 4.9010742e8 == pytest.approx(0.571749, abs=0.005)
+        assert KNOWLEDGE_EOH_BASE / 4.9010742e8 == pytest.approx(0.571749, abs=0.005)
 
     def test_flags_when_the_shipped_constant_stops_being_the_fixed_point(self):
         """

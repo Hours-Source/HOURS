@@ -2065,7 +2065,7 @@ def assessed_levy_rate(
     DISTRIBUTION (`record/theory.md`), so it should not also be given a price.
     This rule needs no ε: it reads quantities the register already produces.
 
-    WHY THE SHIPPED FLAT RATE IS NOT THIS. `SUFF_LEVY_RATE` (4.5%) is sized to
+    WHY THE SHIPPED FLAT RATE IS NOT THIS. `SUFF_LEVY_RATE` (4.6%) is sized to
     the ε=0.99 corner, so it over-collects everywhere else — 8.80× the
     requirement at ε=0.60 — and banks 17.8 years of guarantee per year at
     subsistence while banking none at all at the top, where a reserve would

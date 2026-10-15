@@ -309,14 +309,15 @@ class TestTheReserveRuleAndTheAssessedLevy:
 
         # At the corner the flat rate IS the requirement. Without the fee there
         # is no surplus at all; with it there is a sliver — 1,353 years to bank
-        # five years of cover, which is "never" in every sense but the sign.
+        # five years of cover at 4.5%, 249 at 4.6% (2026-10-15, the levy raised
+        # to keep 0.99), which is still "never" for a reserve.
         top_no_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05)
         assert top_no_fee["fills_at_shipped_rate"] is False
         assert top_no_fee["years_to_fill_at_shipped_rate"] is None
         assert "NEVER fills" in top_no_fee["verdict"]
         top_fee = mod.reserve_plan(0.99, years_of_guarantee=5.0, need_fraction=0.05,
                                    guf_parcels=URBAN)
-        assert top_fee["years_to_fill_at_shipped_rate"] > 1000.0
+        assert top_fee["years_to_fill_at_shipped_rate"] > 200.0
 
     def test_the_report_carries_the_assessed_rate_beside_the_shipped_one(self):
         rep = stationarity_report(0.40, need_fraction=0.05, guf_parcels=URBAN)
@@ -337,7 +338,7 @@ class TestBandsAndDrawdown:
         assert b["teh"]["upper"] < b["labour"]["upper"]
 
     def test_the_adopted_levy_and_base_reach_the_end_of_the_arc_under_v1(self):
-        """THE DECISION'S PIN (2026-09-15): levy 4.5%, base 1,000 h, V1 at 5%
+        """THE DECISION'S PIN (2026-09-15; 4.5% → 4.6% on 2026-10-15): levy, base 1,000 h, V1 at 5%
         need, urban fee, no inheritance — both sides stand still on [0, 0.99].
         4.4% stops the TEH side short of 0.99, so this can fail. The shipped
         guarantee design does not stand still at any ε under the same inputs."""

@@ -224,9 +224,10 @@ class TestKnowledgePopulationScaling:
         assert knowledge_eoh(1.0, epsilon=0.40) != pytest.approx(
             knowledge_eoh(None, epsilon=0.40), rel=1e-6)
 
-        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.9407815493e6, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.9127332110e7, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.7283750924e8, rel=1e-6)
+        # 2026-10-15: US_REFERENCE_POPULATION closed at the 2024 Census and KNOWLEDGE_EOH_BASE re-derived -5.90%.
+        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.4724901793e6, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.3871229773e7, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.2726099593e8, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoption rescales; it does not reshape. Guards against a base
@@ -235,7 +236,7 @@ class TestKnowledgePopulationScaling:
         post-Finding-E, 1,225.27× at the K-IV anchor); that it stays UNIFORM
         across the arc is what this test is for."""
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(794.07820, rel=1e-3)
+            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(747.24902, rel=1e-3)  # 794.07820 before 2026-10-15
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(None, epsilon=0.40)
@@ -805,7 +806,8 @@ def test_domain_balance_knowledge_is_no_longer_a_rounding_error():
     # itself grew. The claim being tested — knowledge stops being a rounding
     # error at the top of the arc — is unaffected by which way it happened,
     # which is why the share is pinned and the cause is recorded in prose.
-    assert top["knowledge"] / top["total"] == pytest.approx(0.32989, abs=0.01)
+    # → 0.31397: 2026-10-15: US_REFERENCE_POPULATION closed at the 2024 Census and KNOWLEDGE_EOH_BASE re-derived -5.90%.
+    assert top["knowledge"] / top["total"] == pytest.approx(0.31397, abs=0.01)
 
 
 def test_domain_balance_ecological_is_still_the_open_defect():
@@ -1043,8 +1045,9 @@ class TestAccountingBasis:
 
         # +6.1% → +9.0%: the final basis excludes apparatus knowledge but keeps the
         # CIVILISATIONAL corpus, which the re-anchor grew 1.397× along with the rest.
-        assert final_drift == pytest.approx(0.055060, abs=0.005)
-        assert gross_drift > 0.05506
+        # → +4.89%: 2026-10-15: US_REFERENCE_POPULATION closed at the 2024 Census and KNOWLEDGE_EOH_BASE re-derived -5.90%.
+        assert final_drift == pytest.approx(0.048946, abs=0.005)
+        assert gross_drift > 0.048946
         assert final_drift < gross_drift / 5.0
 
     def test_civilisational_knowledge_is_not_epsilon_invariant(self):

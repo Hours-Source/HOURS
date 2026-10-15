@@ -84,7 +84,7 @@ population for a quantity that should not depend on population.
 
 CONSEQUENCE FOR THE COMPARISON. `floor_from_census(census, population=...)`
 divides that fixed anchor by whatever denominator it is handed:
-`population=US_REFERENCE_POPULATION` would deflate it 335× and report a ratio of ~8,600×
+`population=US_REFERENCE_POPULATION` would deflate it ~340× and report a ratio of ~8,600×
 that means nothing.
 
 The comparable quantity is INTENSITY (h/ha·yr), which is population-free. This

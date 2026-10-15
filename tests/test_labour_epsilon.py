@@ -179,7 +179,8 @@ class TestTheComparisonCanDisagree:
             f"the instruments moved to {c['verdict']} (gap {c['gap']:.4f}) — the "
             "page's statement has to change with it"
         )
-        assert c["capital"]["low"] == pytest.approx(0.3875, abs=5e-4)
+        # → 0.3828: BEA_POPULATION closed at the 2024 Census (2026-10-15).
+        assert c["capital"]["low"] == pytest.approx(0.3828, abs=5e-4)
         assert c["capital"]["low"] < c["labour"]["high"]
 
     def test_it_reports_divergent_when_the_instruments_disagree(self):

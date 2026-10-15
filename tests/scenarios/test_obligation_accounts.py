@@ -113,7 +113,9 @@ class TestTheShapeTheFourWaySumHides:
         c = delivery_crossover()
         assert c["crossover_epsilon"] is None
         assert c["ratio_at_zero"] < 0.10
-        assert 0.64 < c["ratio_at_top"] < 1.0
+        # 0.64 → 0.60 lower edge (2026-10-15): the knowledge base re-derived
+        # -5.90%, cutting the apparatus term again; the top reads 0.623.
+        assert 0.60 < c["ratio_at_top"] < 1.0
 
     def test_the_crossover_is_not_reported_as_a_failure(self):
         """
