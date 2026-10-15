@@ -4469,10 +4469,13 @@ GUF_SERVICE_RETENTION_BY_USE: dict[str, float] = {
 GUF_USE_SCALE_FACTOR: float = 100.0
 
 # tag: measured | units: TEH per parcel per year | tier: B
-# form: hours(parcel) / national_parcel_count, both halves measured —
+# form: hours(parcel) / fifty_states_parcel_count, both halves measured —
 #   758,393,730 h/yr from the servicing census (404,600 workers on a per-parcel
-#   basis × the derived 1,874.4 h/worker·yr) over 160,573,137 assessor parcels
-#   from `reference/parcels`. Bound by TEST to
+#   basis × the derived 1,874.4 h/worker·yr) over 158,985,395 assessor parcels
+#   in the 50 states + DC from `reference/parcels`. The territories left the
+#   denominator 2026-10-15 (author): BLS national employment covers none of
+#   them, so their 1,587,742 parcels had no hours in the numerator (4.723 →
+#   4.770, +1.0%). Bound by TEST to
 #   `scenarios.guf_magnitude.two_part_rates()`, never by expression: data.py sits
 #   below reference/ and scenarios/ and cannot import them — the same constraint
 #   MEAN_MULTIPLIER_REFERENCE and GUF_ECO_KAPPA_CARBON are bound under.
@@ -4497,7 +4500,7 @@ GUF_USE_SCALE_FACTOR: float = 100.0
 #   across 3,230 independent county systems, a normalisation project rather than
 #   a lookup. Census county housing-unit estimates would separately settle
 #   P_service's residential share.
-GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
+GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.7702100549032265
 
 # tag: convention | units: dimensionless relative tolerance
 # form: the relative tolerance for `guf_magnitude.subdivision_invariance`, which
@@ -4505,7 +4508,7 @@ GUF_PARCEL_RATE_TEH_PER_PARCEL_YR: float = 4.723042371724737
 #   halved ones. Floating-point addition is NOT associative, so the two
 #   accumulations may differ in the last ulp.
 # note: NUMERICS ONLY. It must not move any reported result, and the effect it
-#   has to distinguish — a parcel-blind ratio of 1.0 against a per-parcel 1.1194
+#   has to distinguish — a parcel-blind ratio of 1.0 against a per-parcel ~1.12
 #   — is eleven orders of magnitude larger, which
 #   `test_the_tolerance_cannot_hide_the_effect_it_must_distinguish` pins. A
 #   tolerance wide enough to absorb the finding is worse than none, which is the

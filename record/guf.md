@@ -117,7 +117,15 @@ Lines without *(gated)* can go stale; check the code.
 
   No run fails in either version; the drawdown now lists `parcel_count` as read.
 - **One recorded edge moves** from the territories' −0.99%: in the compensation audit ([verification.md](verification.md#compensation-audited)), the urban fee now crosses the guarantee between ε 0.54 and 0.55, not 0.55 and 0.56. The levy and the fee are redundant on **0–0.54**, and the levy alone carries **0.55–0.97**. Rural is unchanged. Gated by `TestTheDrawdownCarriesTheStandardFee` and the inputs gate's `parcel_count` edit, both of which fail when the change is removed.
-- **Open, a constant:** `GUF_PARCEL_RATE_TEH_PER_PARCEL_YR` (4.723) divides 50-state servicing hours by all 160,573,137 parcels, territories included. Over the 50 states + DC it would read **4.770 (+1.0%)**, and every fee's per-parcel term would move with it. Not changed: it is a measured constant, and changing it is the author's call.
+- ~~**Open, a constant:** `GUF_PARCEL_RATE_TEH_PER_PARCEL_YR` divides 50-state servicing hours by all parcels~~ **— CLOSED the same day (author: exclude the territories from the rate too).** `two_part_rates` divides by `fifty_states_parcel_count()` (158,985,395), and the constant moves **4.723 → 4.770 TEH/parcel·yr (+1.0%)**. It is still bound by `TestParcelRateIsBoundToTheCensus`, and the tag block says why the territories left. **Blast radius: zero tests failed** beyond the binding, which moved with it, because no test pins a fee level (mode 1, reported rather than pinned: the binding IS the pin). What moved:
+  - US frame fee: 0.754B → **0.761B**
+  - 1M people on US land: unpaid 0.422B → **0.429B**
+  - urban archetype fee: +0.12%
+  - subdivision premium: ×1.1194 → **×1.1205**
+  - 20-year drawdowns' `trust_end`: +0.07% (no frame), +0.13% (US), +0.37% (US at 1M)
+  - the single-parcel GUF scenarios: +0.18%
+
+  No band, edge or verdict moved; the compensation edges stay at 0.54 (urban) and 0.53 (rural).
 
 <a id="per-parcel-half-shipped"></a>
 

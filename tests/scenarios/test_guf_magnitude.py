@@ -260,7 +260,7 @@ class TestSubdivisionInvariance:
         # ones, and floating-point addition is not associative — asserting
         # bit-exact equality passed on one machine and failed on another. The
         # claim survives intact: 1.0 to 1e-12 against a per-parcel effect of
-        # 1.1194.
+        # ~1.12 (1.1205 at the 50-state rate, 2026-10-15).
         assert r["ratio_area_only"] == pytest.approx(1.0, rel=1e-12)
         assert r["h_per_ha_after_area_only"] == pytest.approx(
             r["h_per_ha_before_area_only"], rel=1e-12
@@ -271,7 +271,7 @@ class TestSubdivisionInvariance:
         A tolerance wide enough to absorb the finding is worse than none — the
         `GOODS_PRICE_FLOOR` lesson, where `abs=0.02` on a floor of 0.05 let a
         40% move pass. Here the tolerance must separate a parcel-blind 1.0 from
-        a per-parcel 1.1194, and it sits eleven orders of magnitude below it.
+        a per-parcel ~1.12, and it sits eleven orders of magnitude below it.
         """
         from hours_eoh.data import SUBDIVISION_FP_TOLERANCE as _FP_TOL
         r = subdivision_invariance(0.40)

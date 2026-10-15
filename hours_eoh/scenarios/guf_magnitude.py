@@ -93,7 +93,7 @@ from hours_eoh.land.guf import (
 )
 from hours_eoh.reference import servicing
 from hours_eoh.reference.land_stewardship import land_hectares_by_class
-from hours_eoh.reference.parcels import national_parcel_count
+from hours_eoh.reference.parcels import fifty_states_parcel_count
 from hours_eoh.scenarios.food_conservation import hours_per_worker_year
 from hours_eoh.scenarios.land_stewardship import ADOPTED_SCOPE, stewardship_intensities
 from hours_eoh.reference.land_stewardship import PARKS_CLASS, PARKS_FEDERAL, PARKS_OTHER
@@ -647,7 +647,9 @@ def two_part_rates(scope: str = "core") -> dict:
     basis = scaling_basis_shares(scope)
     hectares = servicing.serviced_hectares(scope)
     u_area = basis["hours_by_basis"]["area"] / hectares
-    parcels = national_parcel_count()
+    # The 50 states + DC (2026-10-15, author): the servicing census is BLS's
+    # national employment, which covers no territory, so its parcels must not.
+    parcels = fifty_states_parcel_count()
     u_parcel = basis["hours_by_basis"]["parcel"] / parcels
     template_mean = (
         sum(v for v in USE_CATEGORIES.values() if v > 0.0)
@@ -769,7 +771,7 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
         # differ in the last ulp. Bit-exact equality held on the machine this
         # was written on and failed on another, which is how it was found. The
         # CLAIM is undamaged: the parcel-blind ratio must be 1.0 to 1e-12 while
-        # the per-parcel term moves it to 1.1194, eleven orders of magnitude
+        # the per-parcel term moves it to ~1.12 (1.1205 at the 50-state rate), eleven orders of magnitude
         # away, so no real effect can hide inside the tolerance.
         "invariant":          abs(after - before) <= SUBDIVISION_FP_TOLERANCE * max(abs(before), 1.0),
         "h_per_ha_before_area_only": before_area,
