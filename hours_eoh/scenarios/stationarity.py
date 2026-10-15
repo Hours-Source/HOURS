@@ -459,8 +459,41 @@ def stationary_bands(step: float = 0.01, **kw: Any) -> dict:
         "labour": band_from_flags([(r["epsilon"], r["labour"]["stationary"]) for r in rows]),
         "teh":    band_from_flags([(r["epsilon"], r["teh"]["stationary"]) for r in rows]),
         "both":   band_from_flags([(r["epsilon"], r["stationary"]) for r in rows]),
+        # WHAT THE FEE ADDS, read off the same rows (2026-10-15): the levy does
+        # not depend on the fee, so without one the inflow is the levy alone.
+        # The verdict used to state that the fee carried the LOW end; on both
+        # the reference and the US frame it carries the top.
+        "teh_without_fee": band_from_flags(
+            [(r["epsilon"], r["teh"]["levy"] >= r["teh"]["guarantee_owed"]) for r in rows]),
+        "levy_to_cover": _levy_to_cover(rows, kw.get("guf_cap", "payable")),
         "step":   step,
     }
+
+
+def _levy_to_cover(rows: list[dict], guf_cap: float | str | None) -> dict:
+    """
+    The smallest flat levy that holds the TEH side still at every scanned ε —
+    what closes a gap at the top, REPORTED and never applied (the shipped rate
+    is a decision, `SUFF_LEVY_RATE`).
+
+    Per point it is `assessed_levy_rate` against the fee the cap would let in.
+    Under `payable` the inflow is min(levy + fee, mint − D3), so no levy covers
+    a point where mint − D3 < owed, and the result says `feasible: False`
+    rather than return a rate that does not close it. An extremum on the
+    band's grid, to its step.
+    """
+    rate, at, feasible = 0.0, None, True
+    for r in rows:
+        t = r["teh"]
+        fee = (min(t["guf_uncapped"], guf_cap * t["mint"])
+               if isinstance(guf_cap, float) else t["guf_uncapped"])
+        if guf_cap == "payable" and t["mint"] - t["d3_consumption"] < t["guarantee_owed"]:
+            feasible = False
+        need = assessed_levy_rate(t["guarantee_owed"], t["mint"],
+                                  guf_revenue=fee)["pay_as_you_go_rate"]
+        if at is None or need > rate:
+            rate, at = need, r["epsilon"]
+    return {"rate": rate, "binding_epsilon": at, "feasible": feasible}
 
 
 def drawdown(
@@ -675,6 +708,15 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
         here["teh"]["guarantee_owed"], here["teh"]["mint"],
         guf_revenue=here["teh"]["guf"],
     )
+    # The rates APPLIED, not the shipped ones: a caller's levy_rate= or
+    # need_fraction= was run and the verdict printed SUFF_* beside it.
+    levy_rate = kw.get("levy_rate", SUFF_LEVY_RATE)
+    need = kw.get("need_fraction")
+    need = SUFF_NEED_FRACTION if need is None else need
+    fee_priced = here["teh"]["guf"] > 0.0
+    cover = bands["levy_to_cover"]
+    whole_arc = bands["teh"]["lower"] == 0.0 and bands["teh"]["upper"] == EPSILON_ARC_MAX \
+        and bands["teh"]["contiguous"]
     return {
         "epsilon":  epsilon,
         "here":     here,
@@ -691,10 +733,16 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
             f"(to ±{bands['step']}). Under the doctrine that minted TEH is the "
             "wage, the Trust owes only the guarantee. Configuration: "
             f"guarantee={here['teh']['guarantee_design']!r} at "
-            f"need={SUFF_NEED_FRACTION:g}, levy={SUFF_LEVY_RATE:.3%}, land fee "
-            f"{('priced as ' + here['teh']['guf_basis']) if here['teh']['guf'] > 0.0 else 'ABSENT'}"
-            f" — the fee is what carries the TEH side at low ε, where almost "
-            "nothing is registered to levy."
+            f"need={need:g}, levy={levy_rate:.3%}, land fee "
+            f"{('priced as ' + here['teh']['guf_basis']) if fee_priced else 'ABSENT'}"
+            + (f"; without the fee TEH stands still on {_band(bands['teh_without_fee'])}."
+               if fee_priced else ".")
+            + (" No flat levy holds TEH on the whole arc: somewhere the mint less D3 "
+               "is below the guarantee." if not cover["feasible"] else
+               f" The smallest flat levy that holds TEH on the whole arc is "
+               f"{cover['rate']:.4%} (binding at ε {cover['binding_epsilon']:.2f})"
+               + ("." if whole_arc else
+                  f" — that closes the gap; {levy_rate:.3%} is applied."))
             + ("" if here["capital_supplied"] else
                " Capital was NOT supplied: every point reads the canonical arc's "
                "stock at its own ε, not an economy's.")
@@ -709,9 +757,9 @@ def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
         # the TEH side from "nowhere" to the whole arc.
         "configuration": {
             "guarantee_design": here["teh"]["guarantee_design"],
-            "need_fraction":    SUFF_NEED_FRACTION,
-            "levy_rate":        SUFF_LEVY_RATE,
-            "land_fee_priced":  here["teh"]["guf"] > 0.0,
+            "need_fraction":    need,
+            "levy_rate":        levy_rate,
+            "land_fee_priced":  fee_priced,
             "land_fee_basis":   here["teh"]["guf_basis"],
             "personal_base":    here["personal_base"],
         },

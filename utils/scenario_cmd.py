@@ -67,6 +67,8 @@ Key options (not all apply to every scenario):
   --capital-stock TEH          Capital stock (frame-aware scenarios)
   --adult-capacity H           Adult annual labour capacity (feasibility)
   --adult-share F              Adult share of population (feasibility)
+  --levy-rate R                Flat levy as a share of the mint (stationarity,
+                               stationarity_drawdown; default: SUFF_LEVY_RATE)
   --epsilon-ref ε              Anchoring ε for the measured O*NET workforce
                                (knowledge_base; default: 0.40)
 """
@@ -355,7 +357,7 @@ _SCENARIOS: dict[str, str] = {
     "automation_floors":   "report() — can ATUS measure the personal automation floors? Measured: no. The window is saturated and marketisation is inseparable from automation; a RISE is informative and a fall is not; REPORTING ONLY, produces no floor value",
     "component_shares":    "shares_report() — the desk component shares measured against observed ATUS time use; a BOUND not a closure (care is marketised out of unpaid time); REPORTING ONLY",
     "arc_stability":       "stability_report() — the COMPASS: can the system STOP at this epsilon? obligation met / delivery pays / stock stationary, and the stationary band; REPORTING ONLY  [--epsilon, --standard, --capital-stock, --frame, --frame-file, --adult-capacity]",
-    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample (on a frame: its measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED) — the fee carries the TOP of the arc (TEH band [0.00, 0.97] without it, [0.00, 0.99] with it), so the report states the configuration it ran. REPORTING ONLY  [--epsilon, --standard, --frame, --frame-file, --capital-stock, --adult-capacity]",
+    "stationarity":        "stationarity_report() — can the collective STAND STILL, in labour hours AND in TEH? Under the doctrine that minted TEH is the wage the Trust owes only the guarantee; labour and TEH bands, and what the mint pays. Guarantee design V1 at SUFF_NEED_FRACTION (5%), base 1,000 h, and the land fee priced from an urban parcel sample (on a frame: its measured per-parcel half over the frame's private parcels, the area part NOT SUPPLIED) — the report states the configuration it ran, the TEH band without the fee, and the smallest flat levy that holds TEH on the whole arc (reported, never applied; --levy-rate runs one). REPORTING ONLY  [--epsilon, --standard, --levy-rate, --frame, --frame-file, --capital-stock, --adult-capacity]",
     "obligation_accounts": "accounts_report() — the THREE ACCOUNTS: what is owed, what delivering it costs, what is owed from the past. Phase 0 of the reframe; REPORTING ONLY  [--epsilon]",
     "use_split":           "split_report() — the ten GUF_USE_* ratios decomposed into servicing + stewardship + policy; rho is indexed by USE CATEGORY, which is the bridge the land-class censuses could not provide; REPORTING ONLY",
     "guf_magnitude":       "magnitude_report() — GUF's magnitude: the DERIVED revenue target (servicing + stewardship, per the Phase 4 partition) and the two-part tariff the measured cost implies; on a frame, also the recurring land work the frame's own land needs in its own use mix (`land_use_fractions`; hours, a lower bound); REPORTING ONLY  [--epsilon, --scope, --population, --frame, --frame-file]",
@@ -371,7 +373,7 @@ _SCENARIOS: dict[str, str] = {
     "overbuild":           "overbuild_check() — is the collective carrying its own weight, or is it overhead?  [--capital-stock, --epsilon, --frame, --frame-file, --bea-usd-per-teh]",
     # -- feasibility --
     "feasibility":         "over_determination_report() — is PERSONAL_EOH_BASE compatible with the labor supply?  [--adult-capacity, --adult-share]",
-    "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year (GUF as stationarity prices it: the urban sample, or on a frame its per-parcel half over the frame's private parcels), from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
+    "stationarity_drawdown": "drawdown() — the Trust carried along an arc, T' = T + levy + GUF − guarantee each year (GUF as stationarity prices it: the urban sample, or on a frame its per-parcel half over the frame's private parcels), from --epsilon-start to --epsilon-end over --periods years; where it fails and where labour falls short; REPORTING ONLY  [--periods, --epsilon-start, --epsilon-end, --levy-rate, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "reserve_plan":        "reserve_plan() — what a reserve of N years of the high-ε guarantee costs as a share of the mint, and whether the shipped levy fills it; without --reserve-years, per ONE year of guarantee; REPORTING ONLY  [--reserve-years, --epsilon, --frame, --frame-file, --capital-stock, --bea-usd-per-teh]",
     "registered_work":     "registered_work_arc() — can a member walk away to registered work, and does it cover the members, along the arc; where TEH need per member peaks; REPORTING ONLY  [--frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
     "mint_reach":          "mint_floor_reach() — the share of labour supply the MINT can pay: registered hours over supply, and the hours left for the market; REPORTING ONLY  [--epsilon, --frame, --frame-file, --capital-stock, --adult-capacity, --bea-usd-per-teh]",
@@ -540,6 +542,13 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
                        dest="adult_share", metavar="F",
                        help="Adult share of population (feasibility; default: the "
                             "AGE_GROUPS working_age fraction, 0.60)")
+
+    # The levy the TEH side is tested at (2026-10-15): the report says what
+    # rate would close a gap; this runs it. Default: the shipped SUFF_LEVY_RATE.
+    run_p.add_argument("--levy-rate", type=float, default=None,
+                       dest="levy_rate", metavar="R",
+                       help="Flat levy as a share of the mint, in [0, 1] "
+                            "(stationarity, stationarity_drawdown; default: SUFF_LEVY_RATE)")
 
     # Thermal obligation
     run_p.add_argument("--thermal-obligation", type=float,
@@ -815,6 +824,9 @@ _HEALTH_FLAG_READERS = frozenset({"automation_failure", "demographic_shock",
                                   "ecological_spike", "compound_shock", "capital_loss"})
 #: Read only by the two that model a collapse; the flag's documented default.
 _HEALTH_AFTER_READERS = frozenset({"ecological_spike", "compound_shock"})
+#: `reserve_plan` reads a levy too, but reports it as the SHIPPED rate's
+#: (`shipped_surplus`, `fills_at_shipped_rate`), so it refuses the flag.
+_LEVY_READERS = frozenset({"stationarity", "stationarity_drawdown"})
 _HEALTH_AFTER_DEFAULT = 0.30
 
 
@@ -1295,14 +1307,24 @@ def _frame_run(args: argparse.Namespace) -> dict:
     return result
 
 
+def _levy_kw(args: argparse.Namespace) -> dict[str, float]:
+    """--levy-rate as the keyword, or nothing, so the default stays the function's."""
+    levy = getattr(args, "levy_rate", None)
+    return {} if levy is None else {"levy_rate": levy}
+
+
 def _dispatch(args: argparse.Namespace) -> object:
     name = args.name
     for flag, attr, readers in (
             ("--ecosystem-health-before", "ecosystem_health_before", _HEALTH_FLAG_READERS),
-            ("--ecosystem-health-after", "ecosystem_health_after", _HEALTH_AFTER_READERS)):
+            ("--ecosystem-health-after", "ecosystem_health_after", _HEALTH_AFTER_READERS),
+            ("--levy-rate", "levy_rate", _LEVY_READERS)):
         if getattr(args, attr, None) is not None and name not in readers:
             raise SystemExit(f"{name} does not read {flag}: only "
                              f"{', '.join(sorted(readers))} do")
+    levy = getattr(args, "levy_rate", None)
+    if levy is not None and not 0.0 <= levy <= 1.0:
+        raise SystemExit(f"--levy-rate must be in [0, 1], got {levy}")
     # `collective` runs on a frame only when one is NAMED: without one it is
     # the archetype, whose land is its parcels (2026-10-14).
     if name in FRAME_AWARE and not (name == "collective" and args.frame is None
@@ -1730,7 +1752,7 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         from hours_eoh.scenarios.stationarity import drawdown
         years = args.periods if args.periods is not None else _PERIODS_DEFAULT
         r = drawdown(years, epsilon_start=args.epsilon_start, epsilon_end=args.epsilon_end,
-                     population=population, **frame_state)
+                     population=population, **frame_state, **_levy_kw(args))
         dd: dict = {k: v for k, v in r.items() if k != "labour_short_epsilons"}
         short = r["labour_short_epsilons"]
         dd["labour_short_at"] = (f"{len(short)} of {years} years, ε {min(short):.3f}–{max(short):.3f}"
@@ -1770,7 +1792,7 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
         from hours_eoh.scenarios.stationarity import stationarity_report
         rep = stationarity_report(
             epsilon, standard=getattr(args, "standard", None),
-            population=population, **frame_state,
+            population=population, **frame_state, **_levy_kw(args),
         )
         sr: dict = {}
         for r in rep["arc"]:
@@ -1790,10 +1812,12 @@ def _branch(args: argparse.Namespace, population_given: float | None = None) -> 
                        ("land fee unpaid", "guf_unpaid"),
                        ("guarantee owed", "guarantee_owed")):
             sr[f"here | {k}"] = here[key]
-        for side in ("labour", "teh", "both"):
+        for side in ("labour", "teh", "both", "teh_without_fee"):
             b = rep["bands"][side]
             sr[f"band | {side}"] = (f"[{b['lower']:.2f}, {b['upper']:.2f}]"
                                     if b["any_stationary"] else "none")
+        cover = rep["bands"]["levy_to_cover"]
+        sr["levy to cover the arc"] = cover["rate"] if cover["feasible"] else "none"
         h = rep["here"]
         sr["stationary"] = h["stationary"]   # both sides; re-read at the range ends
         sr["capital_source"] = (getattr(args, "capital_label", None)

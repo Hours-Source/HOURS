@@ -349,6 +349,19 @@ class TestBandsAndDrawdown:
         assert short["teh"]["upper"] < 0.99
         assert stationary_bands(guf_parcels=URBAN, guarantee="shipped")["teh"]["upper"] is None
 
+    def test_the_reported_closing_levy_and_feeless_band_are_what_a_rerun_gives(self):
+        """`levy_to_cover` is the smallest flat rate holding TEH on the whole
+        arc — applied it holds, a hair under it does not — and the without-fee
+        band is a run with no fee. The verdict said the fee carried the LOW end;
+        it carries the top, so read both off the scan rather than state them."""
+        b = stationary_bands(step=0.11, guf_parcels=URBAN)
+        rate = b["levy_to_cover"]["rate"]
+        held = stationary_bands(step=0.11, guf_parcels=URBAN, levy_rate=rate * (1 + 1e-9))["teh"]
+        short = stationary_bands(step=0.11, guf_parcels=URBAN, levy_rate=rate * (1 - 1e-6))["teh"]
+        assert (held["lower"], held["upper"], held["contiguous"]) == (0.0, 0.99, True)
+        assert short["upper"] < 0.99
+        assert b["teh_without_fee"] == stationary_bands(step=0.11, guf_parcels=[])["teh"]
+
     def test_the_report_runs_the_adopted_configuration_and_says_so(self):
         """THE PUBLISHED VERDICT WAS AN ARTEFACT OF AN UNSUPPLIED INPUT.
 

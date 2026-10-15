@@ -415,6 +415,21 @@ class TestScenarioRunOnAFrame:
                 with pytest.raises(SystemExit):
                     run()
 
+    @pytest.mark.parametrize("name", ["stationarity", "stationarity_drawdown", "reserve_plan"])
+    def test_the_levy_flag_moves_its_readers_and_is_refused_elsewhere(self, name):
+        """--levy-rate (2026-10-15) runs the rate stationarity reports as closing
+        the gap. `reserve_plan` reads a levy but names it the SHIPPED rate's in
+        its keys, so it refuses the flag rather than mislabel it."""
+        from utils.scenario_cmd import _LEVY_READERS
+        run = lambda *f: _strip(_scenario(name, "--frame", "us", *f))  # noqa: E731
+        if name in _LEVY_READERS:
+            assert run("--levy-rate", "0.03") != run()
+            with pytest.raises(SystemExit):
+                run("--levy-rate", "1.5")
+        else:
+            with pytest.raises(SystemExit):
+                run("--levy-rate", "0.03")
+
     @pytest.mark.parametrize("name", ["automation_failure", "demographic_shock",
                                       "capital_loss", "ecological_spike"])
     def test_where_a_health_flag_is_accepted_it_moves_the_run(self, tmp_path: Path, name):
