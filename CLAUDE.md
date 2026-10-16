@@ -787,11 +787,12 @@ this whole structure forbids.**
   which is the safe holding state.
   → [`record/verification.md § Live state`](record/verification.md#live-state)
 - The compensating-mechanism audit is BUILT for the two TEH inflows
-  (`scenarios/compensation.py`): the levy and GUF cover for each other only to
-  ε≈0.54 (0.55 until the territories left the default parcel count,
-  2026-10-15); the levy alone carries 0.55–0.97, and the two jointly 0.98–0.99
-  for both archetypes since the levy went to 4.6% (2026-10-15; rural failed at
-  0.99 under 4.5%). Dynamic stability is MEASURED
+  (`scenarios/compensation.py`): the levy and GUF cover for each other only
+  on the low arc (to ε 0.54 urban, 0.52 rural, read 2026-10-16 from
+  `compensation_map(inflow_mechanisms(make_*_collective()))`); the levy alone
+  carries the middle to 0.97, and the two jointly 0.98–0.99 for both
+  archetypes since the levy went to 4.6% (2026-10-15; rural failed at 0.99
+  under 4.5%). Dynamic stability is MEASURED
   (`research/dynamic_stability.py`, 2026-10-01): one limit cycle, the formation
   loop's dividend-priority cobweb — bounded and decaying.
   → [`record/verification.md § Open`](record/verification.md#open)

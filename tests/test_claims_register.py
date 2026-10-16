@@ -1046,6 +1046,83 @@ def _predicate_coverage_is_incomplete() -> bool:
     return covered < typed
 
 
+def _prov(name: str):
+    from utils import provenance as pv
+    return pv.load().by_name[name]
+
+
+def _states_share_capacity_and_stock() -> bool:
+    """Closure = the state split states a stock or a capacity per unit; the
+    loader admits only the weights and an age mix (2026-10-16)."""
+    from utils.frame_inputs import SPLIT_WEIGHTS, load_split
+    keys = {k for u in load_split("us_states")["collectives"] for k in u}
+    return keys <= {"id", "label", "age_fractions", *SPLIT_WEIGHTS}
+
+
+def _pristine_gap_has_no_default_inventory() -> bool:
+    import inspect
+    from hours_eoh.scenarios.restoration_cost import pristine_gap_obligation
+    p = inspect.signature(pristine_gap_obligation).parameters["condition_inventory"]
+    return p.default is inspect.Parameter.empty
+
+
+def _no_measured_service_profile_ships() -> bool:
+    """Closure = a per-hectare service profile ships as data or as a default."""
+    import inspect
+    from hours_eoh.land.guf import ecosystem_services_for_area
+    p = inspect.signature(ecosystem_services_for_area).parameters["per_hectare_volumes"]
+    data = REPO_ROOT / "hours_eoh" / "reference" / "data"
+    shipped = any(k in f.name.lower() for f in data.iterdir() for k in ("itree", "fia_", "service_volume"))
+    return p.default is inspect.Parameter.empty and not shipped
+
+
+def _retention_is_an_ordering() -> bool:
+    return _prov("GUF_SERVICE_RETENTION_BY_USE").tag not in {"measured", "bounded"}
+
+
+def _no_tenure_split_ships() -> bool:
+    data = REPO_ROOT / "hours_eoh" / "reference" / "data"
+    return not any(k in f.name.lower() for f in data.iterdir() for k in ("tenure", "blm"))
+
+
+def _parcel_count_unrestricted_to_serviced_classes() -> bool:
+    """Closure = the parcel extract reads SERVICED_LAND_CLASSES (the usedesc
+    normalisation); today it only explains why it cannot."""
+    src = (REPO_ROOT / "hours_eoh" / "reference" / "parcels.py").read_text(encoding="utf-8")
+    return "SERVICED_LAND_CLASSES" not in src
+
+
+def _abatement_pace_is_still_a_placeholder() -> bool:
+    return _prov("ABATEMENT_HALF_CAPITAL_TEH").tag == "placeholder"
+
+
+def _component_shares_are_still_desk_terms() -> bool:
+    return _prov("PERSONAL_EOH_COMPONENTS").tag == "placeholder"
+
+
+def _cdr_labour_is_still_tier_d_at_0_6() -> bool:
+    r = _prov("CDR_LABOR_HOURS_PER_TONNE")
+    return r.tier == "D" and r.value == "0.6"
+
+
+def _capital_thermal_profiles_are_placeholders() -> bool:
+    return _prov("CAPITAL_THERMAL_PROFILES").tag == "placeholder"
+
+
+def _shipped_federation_is_at_mutual_recognition() -> bool:
+    """The caveat's figure: one multiplier, every settlement rate 1.0, at all
+    four arc points."""
+    from hours_eoh.research.coasean import make_federation
+    from hours_eoh.research.exchange import registered_rate
+    for e in (0.0, 0.40, 0.90, 0.99):
+        fs = make_federation(e)
+        if len({c.pipeline["mean_multiplier"] for c in fs}) != 1:
+            return False
+        if any(registered_rate(a, b) != 1.0 for a in fs for b in fs):
+            return False
+    return True
+
+
 @dataclass(frozen=True)
 class OpenItemPredicate:
     """One open item, its kind, and the observable that would contradict it."""
@@ -1089,6 +1166,25 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       "person", _desire_is_still_a_stub),
     OpenItemPredicate('`ASSET_TYPES["generic_infra"]["maint_rate"]` duplicates',
                       "person", _maint_rate_still_unbound),
+    OpenItemPredicate("States share capacity, stock age, multiplier", "gap",
+                      _states_share_capacity_and_stock),
+    OpenItemPredicate("The pristine-gap condition inventory", "gap",
+                      _pristine_gap_has_no_default_inventory),
+    OpenItemPredicate("The service volumes V_s", "gap", _no_measured_service_profile_ships),
+    OpenItemPredicate("ρ by use category", "gap", _retention_is_an_ordering),
+    OpenItemPredicate("The tenure split", "gap", _no_tenure_split_ships),
+    OpenItemPredicate("`u_parcel`'s `resolves_by` is half satisfied", "gap",
+                      _parcel_count_unrestricted_to_serviced_classes),
+    OpenItemPredicate("`ABATEMENT_HALF_CAPITAL_TEH`", "gap",
+                      _abatement_pace_is_still_a_placeholder),
+    OpenItemPredicate("`PERSONAL_EOH_COMPONENTS` shares", "gap",
+                      _component_shares_are_still_desk_terms),
+    OpenItemPredicate("`CDR_LABOR_HOURS_PER_TONNE` (0.6, Tier D)", "gap",
+                      _cdr_labour_is_still_tier_d_at_0_6),
+    OpenItemPredicate("Capital thermal intensities are Path-D placeholders", "gap",
+                      _capital_thermal_profiles_are_placeholders),
+    OpenItemPredicate("On the shipped constructor the federation is at mutual recognition",
+                      "caveat", _shipped_federation_is_at_mutual_recognition),
     OpenItemPredicate("The claims register checks only some of the open items", "gap",
                       _predicate_coverage_is_incomplete),
     OpenItemPredicate("Dashboard PP and ecological pillars cannot fire", "gap",
@@ -1149,7 +1245,7 @@ class TestTheOpenItemPredicates:
     #: May not FALL. Rises when an item gains an observable; falls only when an
     #: item CLOSES, and a closing item is struck rather than deleted — so a fall
     #: means a predicate was dropped, which is the move this ratchet forbids.
-    PREDICATE_FLOOR = 18
+    PREDICATE_FLOOR = 29
 
     def _by_marker(self) -> dict[str, str]:
         """`{bullet text: kind}` for every typed `## Open` item."""
