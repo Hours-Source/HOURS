@@ -44,7 +44,6 @@ is their **evidence**: the sessions in which each was found, with the numbers.
 ## Open
 
 - **~~Hand-assembled scenario paths~~ — CLOSED 2026-09-30** *(pointer)* [verification.md](verification.md#shocks-on-the-shared-path)
-- **Compass demand reads the shipped age mix** *(gap)* [entry](#unhooked-functions)
 - **Compensation audited for the inflows** *(gap)* (review §15). Open: the labour side, the Trust. [entry](#compensation-audited)
 - **Dynamic stability — one cycle found** *(gap)* (review §6): a decaying cobweb in
   formation. Open: combined-field cycles; is it acceptable? [entry](#limit-cycles-measured)

@@ -607,7 +607,16 @@ class TestTheFrameDividesIntoItsCollectives:
 
     @pytest.mark.parametrize("eps", ["0", "0.40", "0.90", "0.99"])
     def test_the_split_adds_up_to_the_frame_and_differs_within(self, eps, tmp_path: Path):
-        whole = _federation("--frame", "us", "--epsilon", eps, "--split", "us_states")
+        """Additive on the frame's age mix. With each state's own mix the
+        created and owed totals need not add (the ε 0 labour ration is a min),
+        so the shipped split is run here with its ages taken out."""
+        from utils.frame_inputs import load_split
+        same = load_split("us_states")
+        for u in same["collectives"]:
+            del u["age_fractions"]
+        (tmp_path / "same.json").write_text(json.dumps(same))
+        whole = _federation("--frame", "us", "--epsilon", eps, "--split",
+                            str(tmp_path / "same.json"))
         for k in self._ADDS:
             assert whole["total"][k] == pytest.approx(whole["frame_as_one"][k], rel=1e-9), k
         # A unit's own land and parcels reach its run: the fee per head differs.
@@ -619,6 +628,26 @@ class TestTheFrameDividesIntoItsCollectives:
         alone = _federation("--frame", "us", "--epsilon", eps, "--split", str(one))
         assert ({k: v for k, v in alone["collectives"][0].items() if k not in ("id", "label")}
                 == {k: v for k, v in alone["frame_as_one"].items() if k not in ("id", "label")})
+
+    @pytest.mark.parametrize("retire", [(), ("--retirement-age", "67")])
+    @pytest.mark.parametrize("eps", ["0", "0.40", "0.90", "0.99"])
+    def test_a_units_own_age_mix_reaches_demand_and_supply(self, eps, retire, tmp_path: Path):
+        """A unit stating the shipped mix on the census-aged US frame runs as
+        the frame does under `--ages shipped`. At ε 0 labour binds, so a unit
+        whose adult share or supply kept the frame's would mint differently;
+        with the retirement register on, so would one keeping its retired share."""
+        from hours_eoh.data import AGE_GROUPS
+        one = tmp_path / "one.json"
+        one.write_text(json.dumps({"collectives": [
+            {"id": "us", "population": 1, "land_hectares": 1, "parcel_count": 1,
+             "age_fractions": {g: d["fraction"] for g, d in AGE_GROUPS.items()}}]}))
+        unit = _federation("--frame", "us", "--epsilon", eps, *retire, "--split", str(one))
+        shipped = _federation("--frame", "us", "--epsilon", eps, *retire, "--ages", "shipped",
+                              "--n", "1")["frame_as_one"]
+        drop = ("id", "label", "age_fractions")
+        assert ({k: v for k, v in unit["collectives"][0].items() if k not in drop}
+                == {k: v for k, v in shipped.items() if k not in drop})
+        assert unit["collectives"][0]["teh_created"] != unit["frame_as_one"]["teh_created"]
 
     def test_the_cap_binds_per_collective(self):
         """At 3M people on US land the land-rich states cannot pay their fee
@@ -635,13 +664,19 @@ class TestTheFrameDividesIntoItsCollectives:
         ("--frame", "us", "--split", "us_states", "--n", "3"),     # two counts
         ("--frame-file", "indust_overbuilt", "--split", "us_states"),  # another frame's
         ("--frame", "us", "--split", "BAD"),                       # a bad file
+        ("--frame", "us", "--split", "BADAGE"),                    # a bad age mix
     ])
     def test_refusals(self, flags, tmp_path: Path):
         bad = tmp_path / "bad.json"
         bad.write_text(json.dumps({"collectives": [{"id": "a", "population": 0,
                                                     "land_hectares": 1, "parcel_count": 1}]}))
+        badage = tmp_path / "badage.json"
+        badage.write_text(json.dumps({"collectives": [{
+            "id": "a", "population": 1, "land_hectares": 1, "parcel_count": 1,
+            "age_fractions": {"infant": 0.5, "child": 0.5, "working_age": 0.5,
+                              "elderly": 0.0}}]}))
         with pytest.raises(SystemExit):
-            _federation(*[str(bad) if f == "BAD" else f for f in flags])
+            _federation(*[{"BAD": str(bad), "BADAGE": str(badage)}.get(f, f) for f in flags])
 
 
 class TestShippedAndConstructedFrames:

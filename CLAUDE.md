@@ -110,8 +110,9 @@ hours_eoh/
     parcels.py         County parcel counts (160,573,137 parcels / 3,230 counties); ingest via utils/parcel_ingest.py;
                        contiguous_48_parcel_count() — 157,922,061, the US frame's land;
                        fifty_states_private_parcels() — the default count's coverage
-    states.py          The US by state: ERS land use 2022 + Census population 2025 (utils/state_ingest.py);
-                       us_state_split() — the 48 + DC as a federation split file
+    states.py          The US by state: ERS land use 2022 + Census population 2025 (utils/state_ingest.py)
+                       and single-year ages 2025 (utils/state_age_ingest.py);
+                       us_state_split(age_bands) — the 48 + DC as a federation split file, each state on its own ages
     onet_multipliers.py  The measured O*NET 30.3/BLS multiplier registry and its FROZEN bounds
     onet_knowledge.py  Knowledge/training axis inverted against the same frozen bounds
     personal_basket.py The personal obligation pinned to physical quantities; one component priced.
@@ -711,7 +712,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,217 tests passing (1 skipped), mypy clean on 110 source files** (verified
+**6,228 tests passing (1 skipped), mypy clean on 110 source files** (verified
 2026-10-15). <!-- census:state -->Provenance **373/373**, shadow ratchet **29**, confidence ratchet **129** of 147<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.

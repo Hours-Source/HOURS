@@ -139,6 +139,15 @@ def effective_kind(labels: dict[str, dict], key: str) -> str:
 # the frame file
 # ---------------------------------------------------------------------------
 
+def _check_age_fractions(a: Any, where: str) -> None:
+    """Refuse an age mix that is not AGE_GROUPS' bands, non-negative, summing to 1."""
+    if not isinstance(a, dict) or set(a) != set(AGE_GROUPS):
+        raise SystemExit(f"{where}: age_fractions must name exactly {sorted(AGE_GROUPS)}")
+    if any(not isinstance(v, (int, float)) or v < 0 for v in a.values()) or not math.isclose(
+            sum(a.values()), 1.0, rel_tol=1e-6):
+        raise SystemExit(f"{where}: age_fractions must be non-negative and sum to 1")
+
+
 def load_frame_file(path: str | Path) -> dict[str, Any]:
     """Read and validate a frame file. Refuses, never patches."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -170,12 +179,7 @@ def load_frame_file(path: str | Path) -> dict[str, Any]:
         if k in data and not isinstance(data[k], str):
             raise SystemExit(f"{path}: {k} must be text")
     if "age_fractions" in data:
-        a = data["age_fractions"]
-        if not isinstance(a, dict) or set(a) != set(AGE_GROUPS):
-            raise SystemExit(f"{path}: age_fractions must name exactly {sorted(AGE_GROUPS)}")
-        if any(not isinstance(v, (int, float)) or v < 0 for v in a.values()) or not math.isclose(
-                sum(a.values()), 1.0, rel_tol=1e-6):
-            raise SystemExit(f"{path}: age_fractions must be non-negative and sum to 1")
+        _check_age_fractions(data["age_fractions"], str(path))
     if "land_use_fractions" in data:
         from hours_eoh.scenarios.guf_magnitude import validate_land_use_fractions
         if not isinstance(data["land_use_fractions"], dict):
@@ -308,8 +312,9 @@ SPLIT_WEIGHTS = ("population", "land_hectares", "parcel_count")
 
 def shipped_split_sources() -> dict[str, Any]:
     """name → the function whose output IS that shipped split file."""
+    from functools import partial
     from hours_eoh.reference.states import us_state_split
-    return {"us_states": us_state_split}
+    return {"us_states": partial(us_state_split, AGE_GROUP_RANGES)}
 
 
 def load_split(name_or_path: str) -> dict[str, Any]:
@@ -331,11 +336,14 @@ def load_split(name_or_path: str) -> dict[str, Any]:
     if "frame" in data and data["frame"] not in FRAMES:
         raise SystemExit(f"{p}: frame must be one of {sorted(FRAMES)}")
     for u in units:
-        if not isinstance(u, dict) or set(u) - {"id", "label", *SPLIT_WEIGHTS}:
-            raise SystemExit(f"{p}: a collective states id, label and {', '.join(SPLIT_WEIGHTS)}")
+        if not isinstance(u, dict) or set(u) - {"id", "label", "age_fractions", *SPLIT_WEIGHTS}:
+            raise SystemExit(f"{p}: a collective states id, label and "
+                             f"{', '.join(SPLIT_WEIGHTS)}, and may state age_fractions")
         for k in SPLIT_WEIGHTS:
             if not (isinstance(u.get(k), (int, float)) and u[k] > 0):
                 raise SystemExit(f"{p}: collective {u.get('id')!r}: {k} must be a positive number")
+        if "age_fractions" in u:
+            _check_age_fractions(u["age_fractions"], f"{p}: collective {u.get('id')!r}")
     ids = [str(u.get("id")) for u in units]
     if len(set(ids)) != len(ids):
         raise SystemExit(f"{p}: collective ids must be unique")
@@ -353,13 +361,21 @@ def split_frame(v: dict[str, Any], split: dict[str, Any]) -> list[dict[str, Any]
     Each collective's frame values: the frame's `v` with its population, land
     and parcels replaced by the collective's share of them, and its capital
     and Trust by its POPULATION share (capital by population, author
-    2026-10-15: BEA publishes no state stock). Every other input — age mix,
-    labour capacity, stock age, health, retirement, ε — is the frame's.
+    2026-10-15: BEA publishes no state stock). Every other input — labour
+    capacity, stock age, health, retirement age, ε — is the frame's.
+
+    A unit that states `age_fractions` runs on its OWN mix (2026-10-15): a
+    composition replaces the frame's, it is not a share of it. Everything the
+    mix sets is re-derived with it, so the unit's demand and supply read one
+    population: the capacity-weighted adult share, the labour supply per head,
+    and — with the retirement register on — the retired share, scaled from the
+    frame's by the unit's elderly share over the frame's.
 
     A derived capital or Trust stays derived: both are per head × population,
     so each unit re-derives its own at its own population.
     """
     from hours_eoh.land.collective import default_parcel_count
+    from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
     units = split["collectives"]
     totals = {k: sum(float(u[k]) for u in units) for k in SPLIT_WEIGHTS}
     frame_parcels = (v["parcel_count"] if v["parcel_count"] is not None
@@ -374,6 +390,18 @@ def split_frame(v: dict[str, Any], split: dict[str, Any]) -> list[dict[str, Any]
                     "parcel_count": frame_parcels * s["parcel_count"],
                     "capital_teh": v["capital_teh"] * s["population"],
                     "trust_balance": v["trust_balance"] * s["population"]})
+        if "age_fractions" in u:
+            ages = {g: float(x) for g, x in u["age_fractions"].items()}
+            frame_elderly = (AGE_GROUPS["elderly"]["fraction"] if v["age_fractions"] is None
+                             else v["age_fractions"]["elderly"])
+            if v["retired_share"] > 0.0 and frame_elderly == 0.0:
+                raise SystemExit("the frame states retirees and no elderly; a unit's "
+                                 "retired share cannot be scaled from it")
+            adult = capacity_weighted_adult_share(ages)
+            out[-1].update(age_fractions=ages, ages="split", adult_share=adult,
+                           labor_supply_per_capita=v["adult_capacity_h_yr"] * adult,
+                           retired_share=(v["retired_share"] * ages["elderly"] / frame_elderly
+                                          if v["retired_share"] > 0.0 else 0.0))
     return out
 
 

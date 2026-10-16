@@ -72,3 +72,38 @@ class TestThePopulationsAreTheCensus:
         with (DATA_FILE.parent / "census_adults_2000_2025.csv").open() as fh:
             national = {int(r["year"]): float(r["total"]) for r in csv.DictReader(fh)}
         assert US_REFERENCE_POPULATION == BEA_POPULATION == national[BEA_YEAR] == national[2024]
+
+
+class TestTheStateAgesAreTheCensus:
+    """Each state's own age mix (2026-10-15), the federation's split input."""
+
+    def test_the_states_pool_to_the_national_ages(self):
+        """The 51 states' resident ages, summed, are the national extract's at
+        every age (85 and over pooled): one vintage, one universe."""
+        import csv
+        from hours_eoh.reference.states import AGE_FILE, AGE_TOP
+        pooled: dict[int, int] = {}
+        with AGE_FILE.open() as fh:
+            for r in csv.DictReader(fh):
+                pooled[int(r["age"])] = pooled.get(int(r["age"]), 0) + int(r["population"])
+        with (AGE_FILE.parent / "census_age_2020_2025.csv").open() as fh:
+            national = {int(r["age"]): int(r["population"]) for r in csv.DictReader(fh)
+                        if r["year"] == "2025"}
+        top = sum(n for a, n in national.items() if a >= AGE_TOP)
+        assert pooled == {**{a: national[a] for a in range(AGE_TOP)}, AGE_TOP: top}
+
+    def test_the_mainland_mix_is_the_49_units_pooled(self):
+        """The 48 and DC's mix — the frame's people — is their ages pooled, not
+        the states' shares averaged; it differs from the national mix."""
+        from hours_eoh.data import AGE_GROUP_RANGES
+        from hours_eoh.reference.care_demand import population_shares
+        from hours_eoh.reference.states import (
+            contiguous_48_population_shares, state_population_shares)
+        shares = state_population_shares(AGE_GROUP_RANGES)
+        mainland = [s for s in load_states() if s["in_48_states"]]
+        people = sum(s["population"] for s in mainland)
+        got = contiguous_48_population_shares(AGE_GROUP_RANGES)
+        for g in AGE_GROUP_RANGES:
+            assert math.isclose(got[g], sum(shares[s["statefp"]][g] * s["population"]
+                                            for s in mainland) / people, rel_tol=1e-12)
+        assert got != population_shares(AGE_GROUP_RANGES)

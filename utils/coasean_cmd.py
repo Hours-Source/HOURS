@@ -348,10 +348,14 @@ def _run_federation_on_frame(args: argparse.Namespace) -> None:
     its share (`frame_inputs.split_frame`) run through `collective_on_frame` —
     the path `scenario run collective` takes for the whole frame, so the land
     fee, its payable cap and the labour supply are the same mechanisms. The
-    whole frame is run once more beside them: what is created, owed and
-    assessed adds up across the split; what is COLLECTED need not, because the
-    cap binds per collective (a min does not add), and the difference is
-    reported, not reconciled.
+    whole frame is run once more beside them: on the frame's age mix, what is
+    created, owed and assessed adds up across the split; what is COLLECTED
+    need not, because the cap binds per collective (a min does not add), and
+    the difference is reported, not reconciled. A split that states each
+    unit's own age mix (`us_states` does) adds up in people, land, parcels and
+    the fee assessed; what is created and owed need not, because the units'
+    mixes pool to the national one rather than the frame's, and where labour
+    binds (ε 0 on the US frame) the ration is a min too.
     """
     from hours_eoh.data import M2_PER_HECTARE
     from hours_eoh.research.coasean import coasean_collective_count
@@ -399,6 +403,7 @@ def _run_federation_on_frame(args: argparse.Namespace) -> None:
                 # the fee. The fee's area part is NOT SUPPLIED, so land reaches
                 # no fee, mint or surplus figure yet.
                 "guf_relocated_obligation": rep["guf"]["obligation"],
+                "age_fractions": u["age_fractions"],
                 "solvent": bool(rep["fiscal"]["solvent"]),
                 "surplus": rep["fiscal"]["trust"]["surplus_deficit"]}
 
@@ -431,9 +436,11 @@ def _run_federation_on_frame(args: argparse.Namespace) -> None:
     total = {"id": "total", "label": f"{len(rows)} collectives",
              **{k: sum(r[k] for r in rows) for k in summed},
              "solvent": sum(r["solvent"] for r in rows)}
+    own_ages = any("age_fractions" in u for u in split["collectives"])
     shared = {k: labelled_inputs(v, lab, eps)[k] for k in
               ("age_fractions", "adult_capacity_h_yr", "capital_age_ratio",
-               "ecosystem_health", "capital_teh", "trust_balance") if k in lab}
+               "ecosystem_health", "capital_teh", "trust_balance")
+              if k in lab and not (k == "age_fractions" and own_ages)}
     out = {"epsilon": eps, "split": split.get("name"), "note": split.get("note"),
            "collectives": rows, "total": total, "frame_as_one": whole,
            "outcomes_across_epsilon": across_eps, "outcomes_across_capital": across_cap,
@@ -447,7 +454,9 @@ def _run_federation_on_frame(args: argparse.Namespace) -> None:
     _banner(args, f"ε = {e:.3f} ({eps['kind']}: {eps['source']})")
     _banner(args, f"split: {split.get('name')} — {len(rows)} collectives; population, land "
                   "and parcels are each collective's share of the frame's, capital and "
-                  "Trust its population share; the rest is the frame's. Settlement "
+                  "Trust its population share"
+                  + ("; the age mix is each collective's own" if own_ages else "")
+                  + "; the rest is the frame's. Settlement "
                   "rates are all 1.0: every collective mints at one multiplier\n")
     headers = ["id", "label", "population", "ha/head", "parcels", "teh_created",
                "fee assessed", "fee collected", "unpaid", "solvent", "surplus"]
