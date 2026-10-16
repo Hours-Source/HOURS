@@ -945,6 +945,38 @@ def test_ancestry_terminates_on_a_cycle():
     assert pv.unanchored_ancestors("A", scanned) == []
 
 
+class TestTheExpressionIsAnEdge:
+    """The right-hand side of an assignment states a dependency whether or not
+    `band_from:` declares it (2026-10-16; record/provenance.md#expression-edges)."""
+
+    def test_an_undeclared_edge_is_walked_and_a_derived_on_placeholder_reported(self):
+        src = (
+            "# tag: placeholder | units: fraction\n"
+            "# resolves_by: a measurement\n"
+            "BOTTOM: float = 3.0\n"
+            "# tag: derived | units: fraction\n"
+            "MID: float = BOTTOM * 2\n"
+            "# tag: derived | units: fraction\n"
+            "TOP: float = MID + 1\n"
+        )
+        scanned = pv.scan(src, {"BOTTOM": 3.0, "MID": 6.0, "TOP": 7.0})
+        assert scanned.expr_parents == {"MID": {"BOTTOM"}, "TOP": {"MID"}}
+        assert pv.derived_on_placeholder(scanned) == {
+            "MID": ["MID -> BOTTOM"], "TOP": ["TOP -> MID -> BOTTOM"]}
+
+    #: The `derived` constants of data.py that bottom out on a placeholder,
+    #: measured 2026-10-16. EQUALITY, not a bound: a retag (the author's call)
+    #: or a new composite of placeholders has to change this set visibly.
+    DERIVED_ON_PLACEHOLDER = frozenset({
+        "AGE_GROUPS", "CARE_SIGMOID_DEFAULTS", "ESSENTIAL_BRIDGE_PERSONAL",
+        "GUF_ECOSYSTEM_SERVICES", "GUF_PSI_NORM", "KNOWLEDGE_SIGMOID_DEFAULTS",
+        "PERSONAL_SIGMOID_DEFAULTS", "PRODUCTION_SIGMOID_DEFAULTS",
+        "RECAL_FOUNDING_LABOR_HOURS", "STEWARDSHIP_SIGMOID_DEFAULTS"})
+
+    def test_the_live_derived_on_placeholder_set_is_declared(self):
+        assert set(pv.derived_on_placeholder(pv.load())) == self.DERIVED_ON_PLACEHOLDER
+
+
 # --- the `baseline` tag: a refuted value kept RUNNABLE as a comparison -------
 #
 # `placeholder` means "no measurement stands behind it". For a refuted baseline

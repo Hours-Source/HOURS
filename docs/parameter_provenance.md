@@ -100,6 +100,13 @@ ECOLOGICAL_BASE_RATE  ← the thermal drawdown chain
 A one-level check passes both. Hand-tracing caught them, and the gate is that
 trace in code.
 
+**The walk also follows each assignment's own expression** (2026-10-16): a
+constant computed from other constants depends on them whether or not
+`band_from:` says so (`utils/provenance.expression_parents`). The same walk
+lists every `derived` constant that bottoms out on a placeholder
+(`derived_on_placeholder`). That list is reported and pinned, not refused,
+because the tag a composite should carry is the author's call.
+
 **`band_from:` is opt-in, and its absence is not a gap.** It means *"I claim this
 derivation is anchored."* A constant genuinely derived from a placeholder should
 say so in `form:`/`resolves_by:` and omit the field — which is what

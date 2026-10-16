@@ -339,6 +339,13 @@ def _check(args: argparse.Namespace) -> None:
         "what you supply and what the shipped default is; and every retired one "
         "points at a replacement that exists."
     ))
+    resting = pv.derived_on_placeholder(scanned)
+    if resting:
+        print(yellow(
+            f"Reported, not refused: {len(resting)} `derived` constants rest on a "
+            f"placeholder through their own expression ({', '.join(sorted(resting))}). "
+            "The tag a composite should carry is the author's call; "
+            "record/provenance.md#expression-edges."))
 
 
 def _csv(args: argparse.Namespace) -> None:

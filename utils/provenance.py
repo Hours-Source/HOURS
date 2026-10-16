@@ -337,6 +337,10 @@ class Scan:
     #: Tag blocks that attached to nothing (a deleted constant, or a `family:`
     #: glob that matches no following run).
     orphans: list[TagBlock] = field(default_factory=list)
+    #: Each tagged constant's EXPRESSION parents: the other tagged constants its
+    #: assignment reads (`expression_parents`). Derived from the code, so a
+    #: dependency nobody declared is still an edge.
+    expr_parents: dict[str, frozenset[str]] = field(default_factory=dict)
 
     @property
     def by_name(self) -> dict[str, Record]:
@@ -544,6 +548,38 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
     if pending is not None:
         out.orphans.append(pending)
     _retire_family(family, out)
+    out.expr_parents = expression_parents(source, {r.name for r in out.records})
+    return out
+
+
+def expression_parents(source: str, names: Iterable[str]) -> dict[str, frozenset[str]]:
+    """{constant: the other constants in ``names`` its module-level assignment
+    reads} — the dependency the right-hand side STATES, whether or not a
+    ``band_from:`` declares it (2026-10-16; record/provenance.md#expression-edges).
+
+    Annotated assignments only, which is the scan's own definition of a
+    constant (``_ASSIGN``); a bare alias (``X: float = Y``) is an edge.
+    Constants with no such parent are left out. A source that does not
+    parse yields no edges rather than an error: the tag scan reads lines, and a
+    fragment that only the line scanner understands still scans.
+    """
+    known = set(names)
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return {}
+    out: dict[str, frozenset[str]] = {}
+    for node in tree.body:
+        if not (isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name)
+                and node.value is not None):
+            continue
+        target, value = node.target.id, node.value
+        if target not in known:
+            continue
+        reads = frozenset(n.id for n in ast.walk(value)
+                          if isinstance(n, ast.Name) and n.id in known and n.id != target)
+        if reads:
+            out[target] = reads
     return out
 
 
@@ -611,7 +647,9 @@ UNANCHORED_TAGS: frozenset[str] = frozenset({"placeholder"})
 def unanchored_ancestors(
     name: str, scanned: "Scan", _seen: frozenset[str] | None = None
 ) -> list[str]:
-    """Placeholder ancestors of ``name``, following ``band_from`` TRANSITIVELY.
+    """Placeholder ancestors of ``name``, following ``band_from`` TRANSITIVELY —
+    and, since 2026-10-16, the assignment's own expression (``Scan.expr_parents``),
+    so an edge nobody declared is walked too.
 
     THE ONE-LEVEL CHECK IS NOT ENOUGH, and this is not hypothetical. ``derived``
     is defined as inheriting "its authority from the measurements beneath it",
@@ -643,9 +681,34 @@ def unanchored_ancestors(
         return [name]
 
     out: list[str] = []
-    for parent in (a.strip() for a in rec.band_from.split(",") if a.strip()):
+    declared = {a.strip() for a in rec.band_from.split(",") if a.strip()}
+    for parent in sorted(declared | scanned.expr_parents.get(name, frozenset())):
         for chain in unanchored_ancestors(parent, scanned, seen | {name}):
             out.append(f"{name} -> {chain}")
+    return out
+
+
+#: The tags that claim authority from what lies beneath: "computed from
+#: measured inputs by a stated formula" (docs/parameter_provenance.md).
+DERIVED_TAGS: frozenset[str] = frozenset({"derived", "derived-then-FROZEN"})
+
+
+def derived_on_placeholder(scanned: "Scan") -> dict[str, list[str]]:
+    """{constant: its placeholder chains} for every ``derived`` constant that
+    bottoms out on a placeholder through its expression or its ``band_from``.
+
+    REPORTED, NOT REFUSED. The tag says "computed from measured inputs"; these
+    are computed from unmeasured ones, and the composite rule says such a tag
+    reads its weakest element. Retagging moves the census and the confidence
+    ratchet, which is the author's call, so the list is pinned by equality in
+    tests/test_provenance.py and a retag has to change it visibly.
+    """
+    out = {}
+    for rec in scanned.records:
+        if rec.tag in DERIVED_TAGS:
+            chains = unanchored_ancestors(rec.name, scanned)
+            if chains:
+                out[rec.name] = chains
     return out
 
 

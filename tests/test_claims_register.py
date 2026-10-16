@@ -860,11 +860,11 @@ def _ten_ratios_unmeasured() -> bool:
     return not any(t in {"measured", "derived"} for t in tags.values())
 
 
-def _form_edges_not_derived() -> bool:
-    """Closure = `band_from:` stops being the only source of edges. It is
-    declared ONCE today against 12 expression-derivable assignments."""
-    src = (REPO_ROOT / "hours_eoh" / "data.py").read_text(encoding="utf-8")
-    return src.count("# band_from:") <= 1
+def _composites_still_read_stronger_than_their_parts() -> bool:
+    """Closure = the pass over the composites lands: no `derived` constant
+    bottoms out on a placeholder through its expression (2026-10-16)."""
+    from utils import provenance as pv
+    return bool(pv.derived_on_placeholder(pv.load()))
 
 
 def _two_floors_and_both_unsettled() -> bool:
@@ -1063,8 +1063,8 @@ class OpenItemPredicate:
 #:   pointer no predicate — the dangling check already covers it
 OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
     OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
-    OpenItemPredicate("derive `form:` edges from the expressions", "gap",
-                      _form_edges_not_derived),
+    OpenItemPredicate("30 dict/tuple constants carry ONE tag over several fields", "gap",
+                      _composites_still_read_stronger_than_their_parts),
     OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
     OpenItemPredicate("Compensation audited for the inflows", "gap",
