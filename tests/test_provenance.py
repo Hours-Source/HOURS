@@ -964,17 +964,47 @@ class TestTheExpressionIsAnEdge:
         assert pv.derived_on_placeholder(scanned) == {
             "MID": ["MID -> BOTTOM"], "TOP": ["TOP -> MID -> BOTTOM"]}
 
-    #: The `derived` constants of data.py that bottom out on a placeholder,
-    #: measured 2026-10-16. EQUALITY, not a bound: a retag (the author's call)
-    #: or a new composite of placeholders has to change this set visibly.
-    DERIVED_ON_PLACEHOLDER = frozenset({
-        "AGE_GROUPS", "CARE_SIGMOID_DEFAULTS", "ESSENTIAL_BRIDGE_PERSONAL",
-        "GUF_ECOSYSTEM_SERVICES", "GUF_PSI_NORM", "KNOWLEDGE_SIGMOID_DEFAULTS",
-        "PERSONAL_SIGMOID_DEFAULTS", "PRODUCTION_SIGMOID_DEFAULTS",
-        "RECAL_FOUNDING_LABOR_HOURS", "STEWARDSHIP_SIGMOID_DEFAULTS"})
+    def test_a_derived_on_placeholder_must_say_it_inherits(self):
+        """Not a placeholder itself — its debt is counted on the parent — but
+        the scheme requires it to SAY so, naming the parent or its family."""
+        base = (
+            "# tag: placeholder | units: fraction\n"
+            "# resolves_by: a measurement\n"
+            "PART_RATE: float = 3.0\n"
+            "# tag: derived | units: fraction\n"
+        )
+        silent = base + "WHOLE: float = PART_RATE * 2\n"
+        named = base + "# resolves_by: n/a — it inherits PART_RATE's standing\nWHOLE: float = PART_RATE * 2\n"
+        family = base + "# resolves_by: n/a — it inherits the PART_* constants'\nWHOLE: float = PART_RATE * 2\n"
+        unnamed = base + "# note: inheritance is a charter matter\nWHOLE: float = PART_RATE * 2\n"
+        vals = {"PART_RATE": 3.0, "WHOLE": 6.0}
+        refused = lambda src: any(i.startswith("WHOLE: derived") for i in pv.problems(pv.scan(src, vals)))
+        assert refused(silent) and refused(unnamed)
+        assert not refused(named) and not refused(family)
 
-    def test_the_live_derived_on_placeholder_set_is_declared(self):
-        assert set(pv.derived_on_placeholder(pv.load())) == self.DERIVED_ON_PLACEHOLDER
+
+class TestTheTagBlockIsReadWhole:
+    """Three ways the block parser dropped what a block said (2026-10-16;
+    record/provenance.md#derived-is-not-placeholder): prose beginning "band:"
+    opened a field and overwrote the measured band, a repeated `note:`
+    replaced the one before, and a bare '#' ended the block."""
+
+    def test_indents_repeats_and_paragraph_breaks(self):
+        src = (
+            "# tag: bounded | units: fraction\n"
+            "# band: [0.1, 0.2] — measured\n"
+            "#   band: a sentence that merely begins with the word\n"
+            "# note: first\n"
+            "# note: second\n"
+            "# form: one\n"
+            "#\n"
+            "#   two\n"
+            "X: float = 0.1\n"
+        )
+        r = pv.scan(src, {"X": 0.1}).by_name["X"]
+        assert r.band.startswith("[0.1, 0.2]") and "band: a sentence" in r.band
+        assert r.note == "first second"
+        assert r.form == "one two"
 
 
 # --- the `baseline` tag: a refuted value kept RUNNABLE as a comparison -------

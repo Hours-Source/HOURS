@@ -371,6 +371,8 @@ AGE_CAPACITY_WEIGHT_ELDERLY: float = 0.3083
 #   actually needs — a caller wanting the population split should read
 #   AGE_GROUP_FRACTIONS and see the `instance` tag telling them to supply
 #   their own.
+# resolves_by: n/a — it inherits the standing of each AGE_* constant it assembles —
+#   AGE_CAPACITY_WEIGHT_* placeholders among them — and the debt is counted there.
 AGE_GROUPS: dict[str, dict] = {
     name: {
         "range": AGE_GROUP_RANGES[name],
@@ -1232,6 +1234,8 @@ CARE_REG_SATURATION: float = 0.95
 # note: docs/parameter_provenance.md's Registration table once listed
 #   start_share 0.30 and inflection 0.55 against the 0.05 and 0.45 shipped here;
 #   caught by the 2026-08 migration and corrected in the generated table.
+# resolves_by: n/a — it inherits the CARE_REG_* constants' standing; the debt
+#   is counted on each of them, not again here.
 CARE_SIGMOID_DEFAULTS: dict[str, float] = {
     "start_share":  CARE_REG_START_SHARE,
     "inflection":   CARE_REG_INFLECTION,
@@ -1286,6 +1290,8 @@ PRODUCTION_REG_RATE: float = 20.0
 PRODUCTION_REG_INFLECTION: float = 0.10
 # tag: derived | units: composite of the PRODUCTION_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the PRODUCTION_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 PRODUCTION_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        PRODUCTION_REG_BASE,
     "growth":      PRODUCTION_REG_GROWTH,
@@ -1324,6 +1330,8 @@ STEWARDSHIP_REG_RATE: float = 10.0
 STEWARDSHIP_REG_INFLECTION: float = 0.40
 # tag: derived | units: composite of the STEWARDSHIP_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the STEWARDSHIP_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 STEWARDSHIP_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        STEWARDSHIP_REG_BASE,
     "growth":      STEWARDSHIP_REG_GROWTH,
@@ -1363,6 +1371,8 @@ PERSONAL_REG_RATE: float = 7.0
 PERSONAL_REG_INFLECTION: float = 0.65
 # tag: derived | units: composite of the PERSONAL_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the PERSONAL_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 PERSONAL_SIGMOID_DEFAULTS: dict[str, float] = {
     "start_share":  PERSONAL_REG_START_SHARE,
     "saturation":   PERSONAL_REG_SATURATION,
@@ -1403,6 +1413,8 @@ KNOWLEDGE_REG_RATE: float = 5.0
 KNOWLEDGE_REG_INFLECTION: float = 0.70
 # tag: derived | units: composite of the KNOWLEDGE_REG_* constants
 # form: assembled from the four above; identical to the dict it replaces.
+# resolves_by: n/a — it inherits the KNOWLEDGE_REG_* constants' standing;
+#   the debt is counted on each of them, not again here.
 KNOWLEDGE_SIGMOID_DEFAULTS: dict[str, float] = {
     "base":        KNOWLEDGE_REG_BASE,
     "saturation":  KNOWLEDGE_REG_SATURATION,
@@ -4366,6 +4378,8 @@ GUF_ECO_KAPPA_FLOOR_FRACTION: float = 0.10
 #   argument the framework makes and the magnitudes are unconstrained. Naming
 #   the services does not ground them — it makes them reachable, which is the
 #   precondition for grounding them.
+# resolves_by: n/a — it inherits the standing of the GUF_ECO_KAPPA_* and
+#   GUF_ECO_BETA_* constants it pairs; the debt is counted on each of them.
 GUF_ECOSYSTEM_SERVICES: dict[str, dict[str, object]] = {
     "water_filtration": {
         "kappa_ref": GUF_ECO_KAPPA_WATER_FILTRATION,

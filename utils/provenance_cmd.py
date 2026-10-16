@@ -341,11 +341,11 @@ def _check(args: argparse.Namespace) -> None:
     ))
     resting = pv.derived_on_placeholder(scanned)
     if resting:
-        print(yellow(
-            f"Reported, not refused: {len(resting)} `derived` constants rest on a "
-            f"placeholder through their own expression ({', '.join(sorted(resting))}). "
-            "The tag a composite should carry is the author's call; "
-            "record/provenance.md#expression-edges."))
+        print(dim(
+            f"{len(resting)} `derived` constants rest on a placeholder through their "
+            f"own expression ({', '.join(sorted(resting))}); each says it inherits "
+            "that standing, and its debt is counted on the placeholder. "
+            "record/provenance.md#derived-is-not-placeholder."))
 
 
 def _csv(args: argparse.Namespace) -> None:

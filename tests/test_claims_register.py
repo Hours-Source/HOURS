@@ -860,9 +860,10 @@ def _ten_ratios_unmeasured() -> bool:
     return not any(t in {"measured", "derived"} for t in tags.values())
 
 
-def _composites_still_read_stronger_than_their_parts() -> bool:
+def _composites_still_rest_on_placeholders() -> bool:
     """Closure = the pass over the composites lands: no `derived` constant
-    bottoms out on a placeholder through its expression (2026-10-16)."""
+    bottoms out on a placeholder through its expression — their parts measured
+    or split (2026-10-16). Each now SAYS it inherits, which `problems()` gates."""
     from utils import provenance as pv
     return bool(pv.derived_on_placeholder(pv.load()))
 
@@ -1064,7 +1065,7 @@ class OpenItemPredicate:
 OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
     OpenItemPredicate("The ten `GUF_USE_*` ratios", "gap", _ten_ratios_unmeasured),
     OpenItemPredicate("30 dict/tuple constants carry ONE tag over several fields", "gap",
-                      _composites_still_read_stronger_than_their_parts),
+                      _composites_still_rest_on_placeholders),
     OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
     OpenItemPredicate("Compensation audited for the inflows", "gap",

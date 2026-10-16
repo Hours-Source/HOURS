@@ -208,10 +208,13 @@ UNSECTIONED = "(unsectioned)"
 # Module-level annotated assignment at column 0. Everything in data.py is
 # annotated, which is what makes a text scan reliable here.
 _ASSIGN = re.compile(r"^(_?[A-Z][A-Z0-9_]*)\s*:\s*[^=]+=")
-_TAG_OPEN = re.compile(r"^# *tag:", re.I)
+_TAG_OPEN = re.compile(r"^# ?tag:", re.I)  # flush, as _FIELD_LINE
 _BLOCK_DIRECTIVE = re.compile(r"^# *provenance-block: *(.+?) *$")
 _COMMENT = re.compile(r"^#")
-_FIELD_LINE = re.compile(r"^# *(" + "|".join(sorted(FIELDS)) + r"): *(.*)$")
+#: ONE space at most after the '#': a field opens flush. Any indent is a
+#: continuation, so prose that happens to begin "band:" cannot open a field
+#: (it overwrote AMENITY_STEWARDSHIP_WEIGHT's measured band until 2026-10-16).
+_FIELD_LINE = re.compile(r"^# ?(" + "|".join(sorted(FIELDS)) + r"): *(.*)$")
 # A continuation is INDENTED (three or more spaces after the '#'). Un-indented
 # prose therefore closes the block instead of being silently absorbed into
 # whichever field came last — a wrong pointer in the audit CSV is worse than a
@@ -394,9 +397,14 @@ def _parse_tag_block(lines: Sequence[str], start: int) -> tuple[TagBlock, int]:
         m = _FIELD_LINE.match(lines[i])
         if m:
             key = m.group(1).lower()
-            fields[key] = m.group(2).strip()
+            # A repeated field ADDS to the first (34 blocks carry several
+            # `note:` lines; each used to overwrite the one before).
+            fields[key] = f"{fields.get(key, '')} {m.group(2).strip()}".strip()
             last = key
             i += 1
+            continue
+        if lines[i].strip() == "#" and last is not None:
+            i += 1      # a paragraph break inside the field, not the block's end
             continue
         cont = _CONTINUATION.match(lines[i])
         if cont is None or last is None:
@@ -693,15 +701,31 @@ def unanchored_ancestors(
 DERIVED_TAGS: frozenset[str] = frozenset({"derived", "derived-then-FROZEN"})
 
 
+_FAMILY_GLOB = re.compile(r"\b([A-Z][A-Z0-9_]*_)\*")
+
+
+def declares_inheritance(rec: "Record", placeholders: Iterable[str]) -> bool:
+    """Does ``rec``'s block say it inherits a placeholder's standing, naming one
+    of ``placeholders`` or its family (``CARE_REG_*``)? The scheme's own rule
+    for a constant "genuinely derived from a placeholder": say so in
+    ``form:``/``resolves_by:`` (docs/parameter_provenance.md § band_from)."""
+    text = " ".join((rec.form, rec.note, rec.resolves_by))
+    if "inherit" not in text.lower():
+        return False
+    families = _FAMILY_GLOB.findall(text)
+    return any(p in text or any(p.startswith(f) for f in families) for p in placeholders)
+
+
 def derived_on_placeholder(scanned: "Scan") -> dict[str, list[str]]:
     """{constant: its placeholder chains} for every ``derived`` constant that
     bottoms out on a placeholder through its expression or its ``band_from``.
 
-    REPORTED, NOT REFUSED. The tag says "computed from measured inputs"; these
-    are computed from unmeasured ones, and the composite rule says such a tag
-    reads its weakest element. Retagging moves the census and the confidence
-    ratchet, which is the author's call, so the list is pinned by equality in
-    tests/test_provenance.py and a retag has to change it visibly.
+    NOT A PLACEHOLDER BY THAT FACT (determined 2026-10-16,
+    record/provenance.md#derived-is-not-placeholder): each holds no unmeasured
+    content of its own — the debt is in a parent already tagged and counted,
+    and tagging the child too would count it twice. What the scheme requires is
+    that it SAYS so; `problems()` refuses one that does not
+    (`declares_inheritance`).
     """
     out = {}
     for rec in scanned.records:
@@ -1543,6 +1567,15 @@ def problems(scanned: Scan) -> list[str]:
                 f"placeholder. A band resting on unmeasured input launders a "
                 f"guess; state the dependency in `form:` instead of claiming a "
                 f"band."
+            )
+
+    for name, chains in derived_on_placeholder(scanned).items():
+        bottoms = {c.rsplit(" -> ", 1)[-1] for c in chains}
+        if not declares_inheritance(scanned.by_name[name], bottoms):
+            found.append(
+                f"{name}: derived, and rests on placeholder(s) {sorted(bottoms)} "
+                f"through its expression — say so: `resolves_by: n/a — it "
+                f"inherits <name or FAMILY_*>'s standing`."
             )
 
     # `baseline` — the tag for a value kept RUNNABLE as a comparison. Four
