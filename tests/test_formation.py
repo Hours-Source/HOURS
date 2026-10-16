@@ -16,6 +16,7 @@ from hours_eoh.data import (
     RECAL_CAPITAL_OUTPUT_RATIO,
 )
 from hours_eoh.research.formation import (
+    epsilon_rate_fixed_point,
     formation_feedback_simulation,
     formation_verdict,
     incentive_compatible_share,
@@ -132,6 +133,30 @@ class TestNullAnchor:
             n_years=60, charter_share_override=0.0)
         assert all(r["supply_fraction"] == 1.0 for r in rows)
         assert all(r["commons_funded"] == 0.0 for r in rows[1:])
+
+
+class TestTheRateSolvedAgainstItsPace:
+    """RECAL_EPSILON_RATE_PER_YEAR's pointer, run (2026-10-16): under the null
+    anchor the realised pace is the rate times a fixed shape factor, so the
+    damped solve finds no interior rate and leaves the range; under the
+    endogenous charter it crosses where formation stops keeping up, and that
+    crossing is a true fixed point. record/provenance.md#rate-fixed-point."""
+
+    def test_null_anchor_selects_no_rate_and_the_charter_crossing_is_a_fixed_point(self):
+        null = epsilon_rate_fixed_point(charter_share_override=0.0)
+        assert null["exit"] == "left_range"
+        assert null["ratio_at_start"] > 1.0
+        # The pace scales with the rate wherever the arc is long against the
+        # yearly step (a decade or more); shorter arcs read the step's noise.
+        ratios = [p["ratio"] for p in null["path"] if p["years_to_cap"] >= 10]
+        assert len(ratios) > 5 and max(ratios) - min(ratios) < 0.02
+        assert min(ratios) > 1.0                   # never crosses: no interior rate
+
+        charter = epsilon_rate_fixed_point(charter_share_override=None)
+        assert charter["converged"]
+        last = charter["path"][-1]
+        assert last["pace"] == pytest.approx(last["rate"], rel=1e-3)
+        assert last["rate"] > charter["rate_start"]   # a ceiling above the shipped rate
 
 
 # ---------------------------------------------------------------------------

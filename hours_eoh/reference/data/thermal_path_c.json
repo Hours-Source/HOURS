@@ -70,6 +70,14 @@
    "tier": "A",
    "note": "IGCC 2025a well-mixed GHG alone at 2025. Forward-looking basis as aerosol cooling declines; over-estimates the decarbonization gain because it ignores the aerosol cooling lost alongside"
   },
+  "F_land_use_erf": {
+   "value": -0.192,
+   "unit": "W m-2",
+   "tier": "A",
+   "p05": -0.300,
+   "p95": -0.053,
+   "note": "IGCC 2025a land_use at 2025 (ERF_best / ERF_p05 / ERF_p95, time 2025.5; added 2026-10-16). The albedo term THERMAL_F_ALB carries for the P0 chain. ALREADY INSIDE F_total_erf and F_anthropogenic_erf, so a net or anthro basis must not add it again"
+  },
   "F_natural_erf": {
    "value": 0.262,
    "unit": "W m-2",

@@ -142,6 +142,14 @@ REVIEWED: dict[str, dict] = {
             "as above, for tier D ('assumption or placeholder, not measured')."
         ),
     },
+    "thermal_path_c.json::climate_parameters.F_land_use_erf.note": {
+        "fingerprint": "1e9577a9b96a",
+        "constants": ["THERMAL_F_ALB"],
+        "outcome": "CONSISTENT",
+        "note": (
+            "'must not add it again' on a net or anthro basis. VERIFIED 2026-10-16: research.thermal_path_c passes f_alb=0 on every basis, and only the P0 chain (f_ghg = THERMAL_F_GHG, GHG-only) reads THERMAL_F_ALB; the two net-ERF tests in test_thermal.py pass f_alb=0."
+        ),
+    },
     "thermal_path_c.json::climate_parameters.lambda_feedback.note": {
         "fingerprint": "e0d343128c21",
         "constants": ["THERMAL_LAMBDA_FEEDBACK"],

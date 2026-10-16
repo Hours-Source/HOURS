@@ -2038,16 +2038,18 @@ CARE_CHILDCARE_HOURS_PER_PERSON_YEAR: float = 168.07344
 #   `hours_per_unit=None`, so this multiplies into nothing today and is excluded
 #   rather than costed at zero.
 BASKET_SHELTER_M2_PER_PERSON: float = 12.0
-# tag: placeholder | units: degree-days per person per year | tier: D
-# form: a temperate baseline, carried so the thermal component appears in the
-#   basket with its unit. It is never costed.
+# tag: instance | units: degree-days per person per year
+# supplied_by: the collective — heating and cooling degree-days for its own
+#   jurisdiction against a set-point it states. Both depend on the institution:
+#   the climate it sits in and the indoor standard it adopts. Retagged from
+#   placeholder 2026-10-16 (author: "degree as instanced as it does depend on
+#   institutions"), record/provenance.md#placeholders-audited.
+# default: 2500, a temperate baseline carried so the thermal component appears
+#   in the basket with its unit. It is never costed.
 # note: LATITUDE-DEPENDENT BY CONSTRUCTION, and that is the finding rather than
 #   a caveat: thermal is the one basket component where climate is the QUANTITY
 #   and not merely the delivery cost, so costing it makes the floor
 #   climate-indexed and PERSONAL_EOH_BASE cannot remain a single global scalar.
-# resolves_by: heating and cooling degree-days for the jurisdiction being
-#   modelled, against a stated indoor set-point. This is an instance quantity
-#   wearing a placeholder's clothes until the framework indexes by climate.
 BASKET_THERMAL_DEGREE_DAYS_PER_YEAR: float = 2500.0
 # tag: normative | units: automation level ε ∈ [0, 1]
 # form: NOT a quantity like the three above — a CLASSIFICATION GATE. Below it,
@@ -2579,9 +2581,10 @@ PRE_THRESHOLD_COMPOUND_RATE: float = 0.10
 #   one quantity or two is unresolved; they are at least not independent
 #   evidence for each other.
 # resolves_by: restoration-project outcomes with and without machine assistance.
-#   FIELD: hectares restored per labour-hour by equipment level, which is the
-#   same instrument reference/restoration.py already uses for ASAE field
-#   capacity — so this is reachable from data the repo can already read.
+#   FIELD: hectares restored per labour-hour by equipment level. NOT
+#   reachable from the shipped ASAE table (audit 2026-10-16): its 17 rows are
+#   all machine implements, so it has no unassisted leg to compare against and
+#   no automation index to read a slope on.
 REGEN_AUTOMATION_LEVERAGE_MAX: float = 0.30
 # --- KNOWLEDGE_EOH_BASE — ADOPTED FROM MEASUREMENT (Block K-IV, 2026-08-08) ---
 #
@@ -3146,9 +3149,12 @@ SHOCK_DEGRADED_TRUST_FRACTION:     float = 0.10  # deficit ≤ this × Trust →
 #   direction — full automation still needs someone, which Condition IV
 #   asserts as distributed competency — and asserted in level.
 # resolves_by: the minimum staffing that holds ESSENTIAL_DOMAINS above
-#   COMPETENCY_THRESHOLD; that makes it derivable from two other constants in
-#   this file rather than independent, and it is currently set independently
-#   of both.
+#   COMPETENCY_THRESHOLD — but NOT derivable from those two alone (audit
+#   2026-10-16): the threshold is a per-domain FRACTION of the workforce, so it
+#   implies no minimum workforce size. CONTESTABILITY_MIN_VIABLE_POPULATION
+#   retracted the same derivation for the same reason. What would settle it
+#   is that constant's pointer too: a minimum certified count per domain (an
+#   absolute) plus a multi-certification rate.
 WORKFORCE_FRACTION_MIN:            float = 0.05           # minimum workforce fraction retained at any automation level
 
 # ---------------------------------------------------------------------------
@@ -4713,13 +4719,20 @@ COLLECTIVE_LAND_RESERVE_FACTOR: float = 4.0
 GUF_SOIL_CREDIT_RATE: float = 0.05  # TEH/SLU per unit improvement in Soil Health Index
 
 # Ecological write-down parameters (NLSA §9)
-# tag: placeholder | units: years
+# tag: bounded | units: years
 # form: NLSA Eq. 28 — Y_r, the design life over which replacement
 #   infrastructure is amortized.
+# band: 40–60 years, BEA service lives for the replacement classes a
+#   write-down buys (reference/capital_inventory.py): 40 for water supply,
+#   sewage and conservation structures, 60 for government sewer, water and
+#   conservation structures. 50 sits inside. Retagged from placeholder
+#   2026-10-16 (author: "let guf be a bound"),
+#   record/provenance.md#placeholders-audited.
+# errs: neither way by construction — the midpoint. A shorter life raises the
+#   annual surcharge (Eq. 28 divides by Y_r), so 40 is the end that charges
+#   the holder more, 60 the end that charges less.
 # resolves_by: engineering design lives for the specific replacement asset
-#   class. ASSET_TYPES in this file already carries measured-order threshold
-#   ages for comparable classes, so this one is reconcilable against a table
-#   we ship.
+#   class a given write-down funds, which picks a point in the band.
 GUF_WRITEDOWN_AMORTIZATION_YEARS: float = 50.0  # Y_r: replacement infra design life (Eq. 28)
 # tag: placeholder | units: fraction of ecological EOH left unfulfilled
 # form: NLSA §9.8 — the preventive monitoring trigger.
@@ -4979,20 +4992,25 @@ COASEAN_N_MAX: int = 20            # collective count at ε=0 (maximally fragmen
 # resolves_by: as for COASEAN_N_MAX — the same study settles both, and neither
 #   is independently identifiable without it.
 COASEAN_BOUNDARY_EXPONENT: float = 1.0   # exponent in N(ε) = max(1, round(N_max×(1−ε)^exp))
-# tag: placeholder | units: fraction of period TEH creation
+# tag: normative | units: fraction of period TEH creation
 # form: each collective's inter-collective reserve, consumed by
 #   settlement_check() for imbalance settlement. Analogous to a central-bank
 #   FX reserve ratio.
-# resolves_by: observed reserve ratios in monetary unions and clearing
-#   systems, which is a real and well-documented comparator.
+# precedent: reserve ratios in monetary unions and clearing systems — an
+#   analogue that informs the choice and does not settle it.
+# decided_by: the author, 2026-10-16 ("no data will settle the union and
+#   changed to normative"). A clearing union's design, set by its charter.
+#   Was a placeholder; record/provenance.md#placeholders-audited.
 COASEAN_RESERVE_FRACTION: float = 0.10  # fraction of TEH created held in inter-collective reserve
-# tag: placeholder | units: fraction of the debtor collective's reserve
+# tag: normative | units: fraction of the debtor collective's reserve
 # form: the bilateral net-flow credit ceiling (the paper's
 #   bilateral-imbalance-ceiling sketch, reconciliation §9-item-4). Within it
 #   trade continues on credit; beyond it settlement from reserve is required.
-# resolves_by: observed bilateral credit limits in real clearing unions — the
-#   European Payments Union and regional ACUs set exactly this parameter, so
-#   the precedent is concrete.
+# precedent: the European Payments Union and regional Asian Clearing Unions
+#   set exactly this parameter, by charter.
+# decided_by: the author, 2026-10-16 ("no data will settle the union and
+#   changed to normative"). Was a placeholder;
+#   record/provenance.md#placeholders-audited.
 COASEAN_IMBALANCE_CEILING: float = 0.50  # bilateral net-flow ceiling as fraction of the deficit
                                          # collective's reserve; beyond it settlement is required
                                          # (paper's bilateral-imbalance-ceiling sketch, recon. §9-item-4)
@@ -5129,16 +5147,19 @@ RECAL_CAPITAL_OUTPUT_RATIO: float = 4.0  # ν: capital stock required per unit o
 #   Converts per-ε acquisition needs into per-year flows, and faster arcs
 #   tighten acquisition feasibility LINEARLY, so this is a real lever on every
 #   §8.9 result.
-# resolves_by: UNCALIBRATED placeholder, and the obvious derivation is
-#   CIRCULAR — formation_feedback_simulation() takes epsilon_rate_per_year as
-#   an INPUT to build the target arc it then chases, so reading the realized
-#   pace back out is not independent of the constant being set. Measured
-#   2026-08-09: the null anchor (s≡0) reaches ε=0.99 in 39 yr, implying
-#   0.0254/yr against this 0.02 — a 27% disagreement that the circularity
-#   makes uninterpretable as it stands. What would settle it: a damped
-#   fixed-point solve over (rate, realized pace), the same shape as
-#   scenarios/knowledge_base.epsilon_ref_fixed_point(), which closed exactly
-#   this defect for the ε_ref anchor.
+# note: THE FIXED-POINT ROUTE WAS BUILT AND SETTLES NOTHING (2026-10-16,
+#   record/provenance.md#rate-fixed-point). research.formation.
+#   epsilon_rate_fixed_point solves (rate, realised pace) with damping. Under
+#   the null anchor the realised pace is the rate times a near-constant shape
+#   factor (`ratio_at_start`), so the solve finds no interior rate and leaves
+#   the range: the 2026-08-09 "27% disagreement" is that factor, not a
+#   calibration signal. Under the endogenous charter it converges where
+#   formation stops keeping up — a CEILING on the rate, not a reading of it.
+# resolves_by: an observed pace of automation transition — the rate at which
+#   a real economy's machine share of obligation has risen, read off the
+#   capital or labour route (scenarios.capital_retrodiction,
+#   scenarios.labour_epsilon) at two dates. External; no rearrangement of the
+#   model's own loop can supply it.
 RECAL_EPSILON_RATE_PER_YEAR: float = 0.02
                                          # arc speed dε/dt: a ~50-year subsistence→post-scarcity
                                          # transition. UNCALIBRATED placeholder — converts per-ε
@@ -5509,17 +5530,21 @@ THERMAL_LAMBDA_FEEDBACK: float = 1.2   # W·m⁻²·K⁻¹ EQUILIBRIUM climate f
 #   block.
 THERMAL_F_GHG: float = 3.0             # W·m⁻² anthropogenic well-mixed GHG forcing (order of AR6).
                                        # Epistemic pointer: greenhouse forcing assessment.
-# tag: placeholder | tier: D | units: W·m⁻²
-# form: net anthropogenic albedo forcing. Defaults to ZERO, which is a
-#   placeholder standing in for a quantity that is not zero — land-use albedo
-#   change is a real forcing term (IGCC assesses it at roughly −0.2 W·m⁻²).
-# note: the default understates the budget rather than overstating it, so it
-#   errs toward a larger obligation, which is the framework's preferred
-#   direction of error.
-# resolves_by: the land-use albedo term from the same IGCC synthesis already
-#   shipped in reference/data/ for the other forcing constants — reachable
-#   from data in hand.
-THERMAL_F_ALB: float = 0.0             # W·m⁻² net anthropogenic albedo forcing; 0 default.
+# tag: measured | tier: A | units: W·m⁻²
+# form: net anthropogenic albedo forcing — the land-use term of IGCC 2025a
+#   (`land_use` in ERF_best / ERF_p05 / ERF_p95, time 2025.5): −0.192
+#   [−0.300, −0.053] W·m⁻². Negative, so it COOLS: subtracting it in
+#   residual_thermal_forcing RAISES the residual, from −0.600 to −0.408 W·m⁻²
+#   on the P0 defaults — still an overage at both percentiles.
+# note: was a 0.0 placeholder until 2026-10-16 (author: "Thermal takes the
+#   measurement"); record/provenance.md#placeholders-audited. The 0 erred toward
+#   a larger obligation; the measured value is less conservative, by design.
+# note: ONLY THE P0 CHAIN READS IT. Path C passes f_alb=0 because its net and
+#   anthro bases already contain land use (IGCC's anthro_nonwmghg sums it);
+#   adding this there would count it twice. Path C's wmghg basis omits it,
+#   as that basis omits every non-GHG term.
+# resolves_by: an annual IGCC refresh.
+THERMAL_F_ALB: float = -0.192          # W·m⁻² net anthropogenic albedo forcing (IGCC 2025a land use).
 # tag: placeholder | tier: D | units: K
 # form: the assessed habitability threshold.
 # note: THE SINGLE MOST LEVERAGED INPUT IN THE WHOLE THERMAL LAYER. It sets

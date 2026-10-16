@@ -91,7 +91,12 @@ from utils.provenance import SOFT_TAGS  # noqa: E402 — one definition, shared 
 #: β are `convention` with a cited source — a placeholder replaced by a method.
 #: LOWERED 130 -> 129 on 2026-10-15: US_REFERENCE_POPULATION (placeholder, no
 #: confidence) closed at the 2024 Census and is `measured`.
-BASELINE_WITHOUT = 129
+#: LOWERED 129 -> 125 on 2026-10-16, four leaving the pool by the author's
+#: retags (record/provenance.md#placeholders-audited): THERMAL_F_ALB measured at
+#: IGCC 2025a, BASKET_THERMAL_DEGREE_DAYS_PER_YEAR `instance`, and
+#: COASEAN_RESERVE_FRACTION / COASEAN_IMBALANCE_CEILING `normative`. The fifth
+#: retag, GUF_WRITEDOWN_AMORTIZATION_YEARS to `bounded`, stays in the pool.
+BASELINE_WITHOUT = 125
 
 _LEAD = re.compile(r"^\s*(\d{1,3})\b")
 

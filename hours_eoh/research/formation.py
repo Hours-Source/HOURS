@@ -498,3 +498,145 @@ def formation_verdict(
         "terminal_dividend": rows[-1]["dividend_per_capita"],
         "n_years": rows[-1]["year"],
     }
+
+
+# ---------------------------------------------------------------------------
+# The arc speed solved against the pace it produces — RECAL_EPSILON_RATE_PER_YEAR
+# ---------------------------------------------------------------------------
+
+# Numerics only. The horizon is a multiple of the schedule's own length, so a
+# run that stalls below the cap is seen as stalled rather than cut short.
+_PACE_HORIZON_FACTOR: float = 3.0
+_PACE_DAMPING: float = 0.5
+_PACE_REL_TOL: float = 1e-4
+_PACE_MAX_ITER: int = 60
+# A schedule shorter than this many yearly steps is paced by the step, not the
+# dynamics: at r → EPSILON_ARC_MAX every run reaches the cap in one period, so
+# pace(r) = r there for any model. The solve leaves the range before it.
+_PACE_MIN_PERIODS: float = 2.0
+
+
+def realised_pace(
+    epsilon_rate_per_year: float = RECAL_EPSILON_RATE_PER_YEAR,
+    charter_share_override: float | None = 0.0,
+    **simulation_kwargs: object,
+) -> dict:
+    """
+    The mean arc pace a formation run REALISES at a given schedule rate.
+
+        pace = EPSILON_ARC_MAX / T,   T = first year ε_actual reaches the cap
+
+    T is read between years: the last unclamped step's slope extends the arc
+    to the cap, so the pace does not jump by a whole year when the run crosses
+    a year boundary. A run that never reaches the cap within
+    `_PACE_HORIZON_FACTOR` × the schedule's own length reports
+    `reached=False` and pace = ε_final / n_years.
+
+    units: ε per year. ε-behaviour: the run covers the whole arc [0, 0.99].
+
+    Args:
+        epsilon_rate_per_year: the schedule rate dε/dt the run chases (> 0).
+        charter_share_override: as in formation_feedback_simulation; 0.0 (the
+            default here) is the NULL ANCHOR, None the endogenous charter.
+        **simulation_kwargs: passed to formation_feedback_simulation.
+
+    Returns:
+        dict with `rate`, `pace`, `ratio` (pace / rate), `years_to_cap`
+        (fractional, None if not reached), `reached`, `n_years`.
+    """
+    if epsilon_rate_per_year <= 0.0:
+        raise ValueError(
+            f"epsilon_rate_per_year must be > 0, got {epsilon_rate_per_year}"
+        )
+    n_years = int(_PACE_HORIZON_FACTOR * _EPS_MAX / epsilon_rate_per_year) + 1
+    rows = formation_feedback_simulation(
+        n_years=n_years,
+        epsilon_rate_per_year=epsilon_rate_per_year,
+        charter_share_override=charter_share_override,
+        **simulation_kwargs,  # type: ignore[arg-type]
+    )
+    eps = [r["eps_actual"] for r in rows]
+    hit = next((i for i, e in enumerate(eps) if e >= _EPS_MAX), None)
+    if hit is None:
+        pace = eps[-1] / n_years
+        years: float | None = None
+    else:
+        prev = eps[hit - 1]
+        step = prev - eps[hit - 2] if hit >= 2 else prev
+        years = (hit - 1) + ((_EPS_MAX - prev) / step if step > 0.0 else 1.0)
+        pace = _EPS_MAX / years
+    return {
+        "rate": epsilon_rate_per_year,
+        "pace": pace,
+        "ratio": pace / epsilon_rate_per_year,
+        "years_to_cap": years,
+        "reached": hit is not None,
+        "n_years": n_years,
+    }
+
+
+def epsilon_rate_fixed_point(
+    charter_share_override: float | None = 0.0,
+    rate_start: float = RECAL_EPSILON_RATE_PER_YEAR,
+    **simulation_kwargs: object,
+) -> dict:
+    """
+    Solve the schedule rate and the pace it realises together — the pointer
+    RECAL_EPSILON_RATE_PER_YEAR named, and what it finds.
+
+        r_{k+1} = r_k + d · (pace(r_k) − r_k)          (d = _PACE_DAMPING)
+
+    stopped when |pace − r| < _PACE_REL_TOL · r, or reported unconverged when
+    r leaves the range — at or below 0, or a schedule shorter than
+    _PACE_MIN_PERIODS yearly steps, where the step sets the pace and every
+    model has the trivial fixed point at the cap — or the budget runs out. Same damped shape as
+    scenarios/knowledge_base.epsilon_ref_fixed_point.
+
+    WHAT A FIXED POINT WOULD MEAN is the caller's to read from `ratio_at_start`
+    and `path`, not this docstring's: a pace that scales with the rate returns
+    the input times the arc's shape and selects no rate, and a crossing that
+    appears only where formation cannot keep up is a ceiling on the rate, not
+    a reading of it. Both are reported; neither is asserted here.
+
+    units: ε per year. ε-behaviour: each evaluation runs the whole arc.
+
+    Args:
+        charter_share_override: 0.0 (default) the null anchor, None the
+            endogenous charter, or a pinned share.
+        rate_start: the first iterate; the shipped constant by default.
+        **simulation_kwargs: passed to formation_feedback_simulation.
+
+    Returns:
+        dict with `converged`, `epsilon_rate_fixed_point` (None unless
+        converged), `rate_start`, `pace_at_start`, `ratio_at_start`,
+        `iterations`, `path` (one realised_pace dict per iterate) and `exit`
+        ("converged" / "left_range" / "max_iter").
+    """
+    if not 0.0 < rate_start or _EPS_MAX / rate_start < _PACE_MIN_PERIODS:
+        raise ValueError(
+            f"rate_start must be in (0, {_EPS_MAX / _PACE_MIN_PERIODS}], got {rate_start}"
+        )
+    rate = float(rate_start)
+    path: list[dict] = []
+    exit_ = "max_iter"
+    for _ in range(_PACE_MAX_ITER):
+        if not 0.0 < rate or _EPS_MAX / rate < _PACE_MIN_PERIODS:
+            exit_ = "left_range"
+            break
+        point = realised_pace(rate, charter_share_override, **simulation_kwargs)
+        path.append(point)
+        gap = point["pace"] - rate
+        if abs(gap) < _PACE_REL_TOL * rate:
+            exit_ = "converged"
+            break
+        rate = rate + _PACE_DAMPING * gap
+    return {
+        "converged": exit_ == "converged",
+        "epsilon_rate_fixed_point": path[-1]["rate"] if exit_ == "converged" else None,
+        "rate_start": rate_start,
+        "pace_at_start": path[0]["pace"],
+        "ratio_at_start": path[0]["ratio"],
+        "iterations": len(path),
+        "path": path,
+        "exit": exit_,
+    }

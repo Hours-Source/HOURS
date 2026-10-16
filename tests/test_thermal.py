@@ -103,8 +103,10 @@ def test_allocated_density_rejects_nonpositive_area():
 # ---------------------------------------------------------------------------
 
 def test_decarbonization_headroom_reproduces_measured():
-    # net-ERF forcing 2.72 at ΔT_lo=3.0 K → ~1110 TW freed (Path C)
-    h = decarbonization_headroom(delta_t_lo=3.0, f_ghg=2.72)
+    # net-ERF forcing 2.72 at ΔT_lo=3.0 K → ~1110 TW freed (Path C). Net ERF
+    # already contains land-use albedo, so f_alb is 0 here, as in Path C —
+    # the measured THERMAL_F_ALB would count it twice.
+    h = decarbonization_headroom(delta_t_lo=3.0, f_ghg=2.72, f_alb=0.0)
     assert h["gain_w"] / 1e12 == pytest.approx(1110, abs=5)
     assert h["binds_now"] is True
 
@@ -112,10 +114,27 @@ def test_decarbonization_headroom_reproduces_measured():
 def test_decarbonization_headroom_sharp_form_no_budget_now():
     # at ΔT_lo=2.0 K the current budget is 0 (GHG has consumed it) yet the gain
     # is large — F3 in its sharpest form
-    h = decarbonization_headroom(delta_t_lo=2.0, f_ghg=2.72)
+    h = decarbonization_headroom(delta_t_lo=2.0, f_ghg=2.72, f_alb=0.0)
     assert h["allocated_now_w"] == 0.0
     assert h["binds_now"] is False
     assert h["gain_w"] / 1e12 == pytest.approx(979, abs=5)
+
+
+def test_the_albedo_term_is_the_shipped_igcc_land_use():
+    # THERMAL_F_ALB was a 0.0 placeholder until 2026-10-16; nothing at the
+    # shipped threshold reads it (the budget floors at 0 there), so it is held
+    # to the extract here or not at all. record/provenance.md#placeholders-audited
+    import json
+    from pathlib import Path
+
+    from hours_eoh.data import THERMAL_F_ALB
+    src = json.loads((Path(__file__).resolve().parents[1] / "hours_eoh" / "reference"
+                      / "data" / "thermal_path_c.json").read_text())
+    land = src["climate_parameters"]["F_land_use_erf"]
+    assert THERMAL_F_ALB == land["value"]
+    assert land["p05"] < THERMAL_F_ALB < land["p95"] < 0.0
+    assert residual_thermal_forcing() - residual_thermal_forcing(f_alb=0.0) == pytest.approx(
+        -THERMAL_F_ALB)
 
 
 def test_decarbonization_gain_nonnegative():
