@@ -18,7 +18,8 @@ that audit, as a knockout study on the shared path.
       joint       only sets of two or more pass — they are needed together
       mixed       anything else (both singletons and larger sets)
 
-The verdict is `stationarity.stationarity_at`'s "stands still", read through its
+The verdict is `stationarity.stationarity_at`'s TEH-side "stands still" (until
+2026-10-16 it read both sides, which no shipped frame told apart), read through its
 own arguments, so a mechanism is a pair of keyword overrides — what it is ON and
 OFF. `inflow_mechanisms()` ships the two TEH inflows: the levy and the GUF.
 
@@ -55,7 +56,9 @@ def inflow_mechanisms(guf_parcels: list[dict]) -> dict[str, Mechanism]:
 
 
 def _teh_stands_still(epsilon: float, **kw: Any) -> bool:
-    return bool(stationarity_at(epsilon, **kw)["stationary"])
+    # The TEH side alone: the mechanisms here are TEH inflows, and a labour
+    # shortfall (which no inflow covers) must not read as their failure.
+    return bool(stationarity_at(epsilon, **kw)["teh"]["stationary"])
 
 
 def minimal_sufficient_sets(

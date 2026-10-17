@@ -795,9 +795,6 @@ def epsilon_ref_fixed_point(
     base = knowledge_base_from_registry(
         epsilon, route=route, decay=SKILL_TRANSMISSION_RATE
     )["base_rate"]
-    base = knowledge_base_from_registry(
-        epsilon, route=route, decay=SKILL_TRANSMISSION_RATE
-    )["base_rate"]
     ratio = base / KNOWLEDGE_EOH_BASE
     # The shipped constant WAS re-anchored to this fixed point on 2026-08-09, so
     # at the default inputs `is_shipped_anchor` is True. It stops being true if

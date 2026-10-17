@@ -62,6 +62,15 @@ class TestTheInflowMap:
         for pop in (1.0e5, 1.0e7):
             assert compensation_map(inflow_mechanisms(URBAN), population=pop)["runs"] == urban["runs"]
 
+    def test_a_labour_shortfall_is_not_read_as_an_inflow_failure(self):
+        # The inflows cover TEH; no inflow covers hours. Under a labour-short
+        # frame the redundant point stays redundant (it read `fails` while the
+        # verdict took both sides, 2026-10-16).
+        short = {"adult_capacity_h_yr": 10.0}
+        assert not stationarity_at(0.20, guf_parcels=URBAN, **short)["labour"]["stationary"]
+        sets = minimal_sufficient_sets(0.20, inflow_mechanisms(URBAN), **short)
+        assert classify(sets) == "redundant"
+
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_without_either_inflow_nothing_stands_still(self, eps):
         assert not stationarity_at(eps, levy_rate=0.0)["stationary"]

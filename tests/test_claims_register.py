@@ -943,9 +943,9 @@ def _kappa_ratio_is_12_to_69() -> bool:
 
 
 def _compensation_audits_only_the_inflows() -> bool:
-    """The audit is built for the TEH inflows alone (2026-10-02). It goes stale
-    when a second mechanism family — the labour side, the Trust — is added and
-    nobody narrows the open item."""
+    """The audit is built for the TEH inflows alone (2026-10-02), and the caveat
+    (2026-10-16) says nothing else on the shared path is switchable. It drifts
+    when a second mechanism family is added and nobody revises the item."""
     import hours_eoh.scenarios.compensation as C
     families = [n for n in vars(C) if n.endswith("_mechanisms") and callable(getattr(C, n))]
     return families == ["inflow_mechanisms"]
@@ -1145,7 +1145,7 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       _composites_still_rest_on_placeholders),
     OpenItemPredicate("Two of four automation floors carry a value", "gap",
                       _two_floors_and_both_unsettled),
-    OpenItemPredicate("Compensation audited for the inflows", "gap",
+    OpenItemPredicate("Compensation audited for the inflows", "caveat",
                       _compensation_audits_only_the_inflows),
     OpenItemPredicate("`teh_supply` is pinned, not decided", "held",
                       _teh_supply_has_no_caller),

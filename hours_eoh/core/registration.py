@@ -80,6 +80,12 @@ _LABOR_CARE_MAX:        float = LABOR_CATEGORY_DEFAULTS["care_max"]
 _LABOR_MIN_FLOOR:       float = LABOR_CATEGORY_DEFAULTS["min_floor"]
 
 
+def _logistic(epsilon: float, inflection: float, rate: float) -> float:
+    """The unit logistic every registration curve here scales: 0 → 1, steepest
+    at `inflection`. One copy, so a curve cannot drift from the others' form."""
+    return 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
+
+
 # ---------------------------------------------------------------------------
 # Care Registration (sigmoid)
 # ---------------------------------------------------------------------------
@@ -124,7 +130,7 @@ def care_registration_share(
     points of this sigmoid require further modeling, but the shape is clear."
     """
     # Logistic sigmoid centered at inflection point
-    sigmoid = 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
+    sigmoid = _logistic(epsilon, inflection, rate)
     # Scale from start_share to saturation
     return start_share + (saturation - start_share) * sigmoid
 
@@ -151,7 +157,7 @@ def production_registration_share(epsilon: float) -> float:
     Reference: Mission Statement §"The production economy was the first layer
     admitted to the ledger because production labor is the easiest to verify."
     """
-    sigmoid = 1.0 / (1.0 + math.exp(-_PROD_REG_SIGMOID_RATE * (epsilon - _PROD_REG_INFLECTION)))
+    sigmoid = _logistic(epsilon, _PROD_REG_INFLECTION, _PROD_REG_SIGMOID_RATE)
     return _PROD_REG_BASE + _PROD_REG_GROWTH * sigmoid
 
 
@@ -178,7 +184,7 @@ def stewardship_registration_share(epsilon: float) -> float:
     Reference: Mission Statement §"Stewardship labor becomes countable as
     monitoring and assessment systems develop."
     """
-    sigmoid = 1.0 / (1.0 + math.exp(-_STEW_REG_SIGMOID_RATE * (epsilon - _STEW_REG_INFLECTION)))
+    sigmoid = _logistic(epsilon, _STEW_REG_INFLECTION, _STEW_REG_SIGMOID_RATE)
     return _STEW_REG_BASE + _STEW_REG_GROWTH * sigmoid
 
 
@@ -233,7 +239,7 @@ def personal_eoh_registration_share(
     Mission Statement §"at ε=0, all personal EOH is off-ledger; at ε=1,
     all personal EOH is on-ledger."
     """
-    sigmoid = 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
+    sigmoid = _logistic(epsilon, inflection, rate)
     return start_share + (saturation - start_share) * sigmoid
 
 
@@ -274,7 +280,7 @@ def knowledge_eoh_registration_share(epsilon: float) -> float:
     human domain."
     """
     epsilon = max(0.0, min(1.0, epsilon))
-    sigmoid = 1.0 / (1.0 + math.exp(-_KNOW_REG_RATE * (epsilon - _KNOW_REG_INFLECTION)))
+    sigmoid = _logistic(epsilon, _KNOW_REG_INFLECTION, _KNOW_REG_RATE)
     return _KNOW_REG_BASE + (_KNOW_REG_SATURATION - _KNOW_REG_BASE) * sigmoid
 
 
@@ -517,7 +523,7 @@ def collective_land_registration(
     and land-based EOH may be registered to the collective ledger, zeroing out
     all remaining private EOH obligations."
     """
-    sigmoid = 1.0 / (1.0 + math.exp(-rate * (epsilon - inflection)))
+    sigmoid = _logistic(epsilon, inflection, rate)
     return saturation * sigmoid
 
 

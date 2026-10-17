@@ -44,7 +44,7 @@ is their **evidence**: the sessions in which each was found, with the numbers.
 ## Open
 
 - **~~Hand-assembled scenario paths~~ — CLOSED 2026-09-30** *(pointer)* [verification.md](verification.md#shocks-on-the-shared-path)
-- **Compensation audited for the inflows** *(gap)* (review §15). Open: the labour side, the Trust. [entry](#compensation-audited)
+- **Compensation audited for the inflows; nothing else is switchable** *(caveat)* (review §15). Labour is state, not a mechanism; the Trust buys years (`years_covered`). [entry](#simplify-pass)
 - **Dynamic stability — one cycle found** *(gap)* (review §6): a decaying cobweb in
   formation. Open: combined-field cycles; is it acceptable? [entry](#limit-cycles-measured)
 - **No channel from held TEH to formation** *(gap)* — levy and Trust balance
@@ -91,6 +91,25 @@ for the two gates filed there.
 ---
 
 ## History
+<a id="simplify-pass"></a>
+
+**A SIMPLIFICATION PASS: TWO DUPLICATES REMOVED BIT-IDENTICALLY, ONE VERDICT THAT READ BOTH SIDES, AND THE DEBT THE SCANS DO NOT COUNT** (2026-10-16, author: "look for duplicates/redundant features that overcomplicate. Simplify where possible"). Instruments: an AST hash of function bodies, public names defined twice, callers per public function (`.py` only, so this record cannot make a dead function look alive), deprecation markers, bare aliases in `data.py`, and numeric literal defaults.
+- **REMOVED, BIT-IDENTICAL.** `core/registration.py` carried the unit logistic six times; one private `_logistic` now serves all six curves, so the one-register gate's stated gap ("a formula copied inline would pass") has one copy to watch rather than six. Seven curves are equal under `==` at 2,000 points on [0, 0.99] before and after. `knowledge_base.epsilon_ref_fixed_point` made the same registry call twice in a row; one is gone.
+- **A VERDICT NAMED FOR ONE SIDE THAT READ BOTH (mode 10).** `compensation._teh_stands_still` read `stationarity_at(...)["stationary"]`, which is labour AND TEH. The labour side passes everywhere at the defaults, so the published map does not move. But on a labour-short frame the inflows' redundant points read `fails`, blaming the levy and GUF for hours no inflow can supply. It now reads `["teh"]`. Gated by `test_a_labour_shortfall_is_not_read_as_an_inflow_failure`, which fails under the old read.
+- **THE COMPENSATION ITEM RE-KINDED `gap` → `caveat`.** Its open half ("the labour side, the Trust") is not buildable as a knockout. The labour inequality carries no institutional mechanism on `stationarity_at`'s keyword surface, only state (capacity, adult share, capital). The Trust buys years, which `years_covered`, `drawdown` and `reserve_plan` already report. A new module would have duplicated them.
+- **DEAD SINCE THE 09-11 AUDIT.** `reference/parcels.national_private_parcels` has no caller anywhere since `fifty_states_private_parcels` replaced it on 2026-10-15. `care_demand.elderly_by_age` is still unreferenced, as reported then. Neither is deleted; wire-or-retire stays a decision.
+- **THE DEPRECATED LAYER, PRESENTED FOR ONE POLICY DECISION, NOT DELETED** (§3: deprecate, don't delete). `stewardship_dividend_needed`, `effective_capital_from_stock`, `tier_multiplier` / `epoch_alpha_weights` (additive form; the `multiplier` CLI still calls the second, `utils/multiplier_cmd.py:285`), `domain_eoh_coverage`, the `capital_personal_eoh_fulfilled_per_person` parameter, and `LABOR_INCOME_MIN_TEH`, which is named only in a comment and has no reader. Those with a docs example would break `test_doc_examples` on deletion.
+- **THE DEBT NO SCAN COUNTS: SINGLE-SITE LITERAL DEFAULTS.** `shadow_constants` reads module-level names and `repeated_default_literals` needs three sites, so a literal default written once escapes both. 164 non-innocuous numeric defaults on public functions in the operative layers: 65 in `core/`, 4 in `land/`, 95 in `scenarios/`. Most are ε = 0.40, tolerances, grid sizes or horizons. About 18 in `core/` are domain values:
+  - `collective_land_registration`'s 0.85 / 22.0 / 0.90 — the only registration curve whose parameters are not a `data.py` dict.
+  - `care_stipend`'s `base_infant_stipend = 200.0`, at two sites.
+  - `avg_dependents_per_carer = 1.5`.
+  - `payback`'s `design_life_years = 40.0`.
+  - `population_lifecycle_snapshot`'s 1,200.
+  - five `simulate_period` rates.
+  - Defaults on deprecated or uncalled functions, left alone.
+  No `data.py` constant of the same name holds any of them. Moving them in tags about 13 as placeholders, which RAISES the confidence ratchet (125 → about 138): honest, but the reverse of the ratchet's direction, so it is the author's call.
+- **LATENT, NOT LIVE: `make_economy_state(labor_income_teh=5e9)`.** A fixed aggregate beside a `population` (mode 6). It is inert today: a five-period run is identical at 5e9 and at 1. `fiscal_snapshot` maps the field onto its levy base, and its one state-passing caller (`scenarios/collective.py`) overwrites it from the pipeline first. A future caller passing the state straight through would levy a 1M-frame proxy at any population.
+
 <a id="eleven-more-predicates"></a>
 
 **ELEVEN MORE OPEN ITEMS GET A PREDICATE — COVERAGE 18 → 29 PREDICATES OF 76 TYPED ITEMS** (2026-10-16, autonomous: "The claims register checks only some of the open items"). `tests/test_claims_register.py`, `PREDICATE_FLOOR` 18 → 29 (one item carries `why_none`, which the floor does not count). Of the 36 typed items with neither a predicate nor a `why_none` (pointers aside), the eleven whose closure leaves a trace in the tree were picked:
@@ -196,8 +215,9 @@ for the two gates filed there.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 41 entries, newest first | |
+| 42 entries, newest first | |
 |---|---|
+| [simplify-pass](#simplify-pass) | A SIMPLIFICATION PASS: TWO DUPLICATES REMOVED BIT-IDENTICALLY, ONE VERDICT THAT READ BOTH SIDES… |
 | [eleven-more-predicates](#eleven-more-predicates) | ELEVEN MORE OPEN ITEMS GET A PREDICATE — COVERAGE 18 → 29 PREDICATES OF 76 TYPED ITEMS |
 | [dashboard-stand-ins-retired](#dashboard-stand-ins-retired) | THE DASHBOARD'S CONDITIONS I AND III PASSED BY CONSTRUCTION, AND REMOVING THE STAND-INS CHANGED… |
 | [doc-examples-gate](#doc-examples-gate) | THE PUBLISHED SURFACE WAS UNGATED, AND 34 OF ITS 54 EXAMPLES NO LONGER RAN |
