@@ -1,58 +1,25 @@
-"""
-The capital scale-resolution gate.
+"""The capital scale-resolution gate.
 
-WHY THIS EXISTS. `CAPITAL_STOCK_DEFAULT` is declared "at the 1M reference
-population" and `resolve_capital_stock` had no way to hear about any other one:
-it returned the same ABSOLUTE stock whatever population the caller was
-modelling. 25 of the 32 functions that call it have a `population` in scope, and
-exactly one of them scaled — `land/calibration.py`, fixed by hand a day earlier,
-whose own comment says "THE SEAM ITSELF IS UPSTREAM AND IS NOT FIXED HERE".
+`CAPITAL_STOCK_DEFAULT` is declared "at the 1M reference population", and
+`resolve_capital_stock` returned the same ABSOLUTE stock whatever population the caller
+modelled. At the documented entry point that gave a 3.24× spread in per-capita TEH for
+identical capital intensity, and infrastructure EOH per capita inverse to population.
+The 2026-09-16 repair resolves at ε FIRST, then scales by the frame, because a callee
+never rescales a supplied stock ([record](record/fulfilment.md#capital-frame-closed)).
+This is mode 6; the ecological chain's gate is the precedent.
 
-WHAT IT COST, measured at the documented entry point (`eoh_to_teh_pipeline`,
-ε=0.40, no capital supplied) before the 2026-09-16 repair:
+WHAT THE GATE CHECKS. Any function with a `population` in scope that calls into the
+capital chain must SAY which frame it means: pass `population`, or supply a
+`capital_stock`. Calling with neither is the defect. `_CHAIN_CALLS` names the wrappers
+too (`total_eoh`, `eoh_to_teh_pipeline`), because the ecological gate, keyed to the
+bottom of its chain, missed callers one wrapper up.
 
-    population    per-capita TEH    infrastructure EOH per capita
-      1e5              913.65                 900.00
-      1e6              339.64                  90.00
-      1e7              282.23                   9.00
-
-A 3.24x spread for identical capital INTENSITY, and infrastructure EOH per
-capita exactly inverse-proportional to population — the fixed reference stock
-divided among whoever was named. A collective of 100,000 was told it owed ten
-times the stewardship labour per person that the reference frame did. At
-`min_levy_for_solvency` the same defect read 1,078.07 / 107.81 / 10.78 TEH per
-capita while the guarantee per capita stayed flat at 139.85: one domain
-travelling with the frame and the other not, summed as though they agreed.
-
-THIS IS FAILURE MODE 6, and the ecological chain's gate is the precedent — same
-defect, one domain over, found four times by hand there before a gate caught it.
-The repair is the same shape too: resolve at ε FIRST, then scale by the frame,
-because a supplied stock is never rescaled by the callee.
-
-WHAT THE GATE CHECKS. Any function with a `population` in scope that calls into
-the capital chain must SAY which frame it means: pass `population`, or supply a
-`capital_stock`. Calling with neither is the defect.
-
-**THE GATE STATES ITS OWN GAP** (the F-013 rule). Crediting a supplied stock is
-STATIC: this scan sees that a capital argument was passed, never whether it is
-`None` at runtime. A caller that passes `capital_stock=None` alongside a
-population defeats it, and only a runtime probe would see that. The gap is
-narrow because the value of naming the argument is that the caller has decided
-the stock is theirs to supply — but it is a gap, not a guarantee.
-
-A SECOND FACE OF THE SAME GAP, and it was live (2026-09-30): a supplied stock
-that was itself read at the reference frame — `capital_stock=state[
-"capital_stock_teh"]` where `state = canonical_physical_state(ε)` — is credited
-here as the caller naming their stock. Five callers did exactly that beside a
-caller-supplied population. `TestCanonicalStateCapitalCarriesTheFrame` below
-closes that face for one assignment step; deeper indirection is still unseen.
-
-THE WRAPPER LESSON, inherited rather than re-learned: the ecological gate was
-keyed to the names at the BOTTOM of its chain and did not see callers entering
-one wrapper up, so `fiscal_snapshot` reached the US anchor while the gate looked
-straight past. `_CHAIN_CALLS` therefore names the wrappers too — `total_eoh` and
-`eoh_to_teh_pipeline`, both of which take a `population` that defaults to the
-reference frame, which is the same seam one level up.
+**THE GATE STATES ITS OWN GAP** (F-013). Crediting a supplied stock is STATIC: the scan
+sees that a capital argument was passed, never whether it is `None` at runtime, so
+`capital_stock=None` beside a population defeats it. A second face of the same gap was
+live on 2026-09-30: a supplied stock that was itself read at the reference frame.
+`TestCanonicalStateCapitalCarriesTheFrame` closes that face for one assignment step;
+deeper indirection is still unseen.
 """
 
 from __future__ import annotations
@@ -155,10 +122,9 @@ def _unframed_chain_calls(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[st
 class TestEveryPopulationScaledCallerStatesItsFrame:
 
     def test_no_unframed_capital_call_alongside_a_population(self) -> None:
-        """
-        THE GATE. A function that scales with population and resolves a capital
-        stock without saying which frame it means is the defect the 2026-09-16
-        repair closed at 24 call sites.
+        """THE GATE. A function that scales with population and resolves a capital stock
+        must say which frame it means; the 2026-09-16 repair closed 24 call sites that
+        did not.
         """
         offenders = []
         for path, fn in _iter_functions():
@@ -220,19 +186,15 @@ class TestTheGateItselfIsHonest:
 
 
 class TestTheFrameHoldsAtRuntime:
-    """
-    The structural gate says every caller STATES a frame; these say the frame
-    actually TRAVELS. Both are needed — a caller can pass `population` into a
-    resolver that ignores it, which is the shape of failure mode 10.
+    """The structural gate says every caller STATES a frame; these tests say the frame
+    TRAVELS. Both are needed, because a resolver can ignore the `population` it is
+    passed (mode 10).
     """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_per_capita_output_is_frame_invariant(self, eps) -> None:
-        """
-        Across the arc, not at 0.40 alone — a ratio checked at one point is the
-        trap failure mode 3 names, and this one is a ratio.
-
-        Before the repair, ε=0.40 read 913.65 / 339.64 / 282.23 TEH per capita
+        """The check runs across the arc, not at 0.40 alone, because this is a ratio
+        (mode 3). Before the repair ε=0.40 read 913.65 / 339.64 / 282.23 TEH per capita
         at populations 1e5 / 1e6 / 1e7.
         """
         per_capita = [
@@ -298,14 +260,10 @@ _CPS_NAMES = {"canonical_physical_state", "_cps"}
 
 
 def _cps_capital_reads_without_frame() -> list[tuple[str, int, str]]:
-    """
-    Calls to `canonical_physical_state` in a function with a population in
-    scope, WITHOUT `population=`, whose `capital_stock_teh` is then read —
-    directly off the call, or off a name the call was assigned to.
-
-    Reading only intensive keys (age mix, monitoring, knowledge) is frame-free
-    and not flagged. Scans `hours_eoh/` AND `utils/`, because `arc_cmd` exposes
-    `--population` on the CLI.
+    """Calls to `canonical_physical_state` without `population=`, in a function with a
+    population in scope, whose `capital_stock_teh` is then read (off the call or off the
+    name it was assigned to). Intensive keys are frame-free and not flagged. The scan
+    covers `hours_eoh/` AND `utils/`, because `arc_cmd` exposes `--population`.
     """
     out: list[tuple[str, int, str]] = []
     for root in (PKG, _REPO / "utils"):
@@ -348,18 +306,15 @@ def _cps_capital_reads_without_frame() -> list[tuple[str, int, str]]:
 
 
 class TestCanonicalStateCapitalCarriesTheFrame:
-    """
-    `canonical_physical_state` states capital at the 1M reference frame. Four
-    callers with a caller-supplied population took that stock into `total_eoh`,
-    and `make_economy_state` took it as the state's actual stock — found
-    2026-09-30 when the floor moved to the OBSERVED ε and two populations with
-    identical intensity reported different ε. The gate above credits any
-    supplied `capital_stock` as a statement of frame, so it could not see a
-    stock that was itself the reference frame's.
+    """`canonical_physical_state` states capital at the 1M reference frame. Four callers
+    with their own population passed that stock to `total_eoh`, and `make_economy_state`
+    took it as the state's stock (found 2026-09-30, when two populations of one
+    intensity reported different observed ε). The gate above credits any supplied stock,
+    so it could not see this
+    ([record](record/fulfilment.md#floor-reads-observed-epsilon)).
 
-    **STATES ITS OWN GAP:** static and name-based. It follows one assignment
-    (`state = canonical_physical_state(...)`; `state["capital_stock_teh"]`),
-    not a stock passed through a second variable, a dict merge, or a helper.
+    **STATES ITS OWN GAP:** static and name-based. It follows one assignment, not a
+    stock passed through a second variable, a dict merge or a helper.
     """
 
     def test_no_unframed_canonical_capital_where_a_population_is_in_scope(self):
@@ -427,15 +382,13 @@ _CONSTANT_ALLOWED = {
 
 
 def _unscaled_capital_constant_reads() -> list[tuple[str, int, str]]:
-    """
-    `CAPITAL_STOCK_DEFAULT` read in a function with a population in scope,
-    OUTSIDE any expression that also names that population. The constant is
-    declared at the 1M reference frame; beside a population it must be scaled.
+    """`CAPITAL_STOCK_DEFAULT` read beside a population, outside any expression that
+    also names that population. The constant is declared at the 1M frame, so beside a
+    population it must be scaled.
 
-    **STATES ITS OWN GAP:** "an expression that names the population" is
-    presence, not correctness — `CAPITAL_STOCK_DEFAULT + population * 0` passes.
-    It catches the realistic shape (the constant used as though it were the
-    caller's stock), not arithmetic that names the frame and gets it wrong.
+    **STATES ITS OWN GAP:** naming the population is presence, not correctness, so
+    `CAPITAL_STOCK_DEFAULT + population * 0` passes. It catches the constant used as the
+    caller's stock, not wrong arithmetic that names the frame.
     """
     out: list[tuple[str, int, str]] = []
     for root in (PKG, _REPO / "utils"):
@@ -476,14 +429,10 @@ def _unscaled_capital_constant_reads() -> list[tuple[str, int, str]]:
 
 
 class TestTheReferenceConstantIsScaledBesideAPopulation:
-    """
-    Found 2026-09-30 by a literal sweep after the ×2200 CLI defect:
-    `recalibration.capital_stock_epsilon` added the 1M constant to ν·Y, which
-    scales with population (K₀ per person 20,000 / 2,000 / 200 TEH at
-    1e5 / 1e6 / 1e7, live via `contestability recal --population`);
-    `formation_feedback_simulation` compared against it; and
-    `anchor_determinacy.hours_shock_response` retyped it as `2.0e9` beside a
-    population its docstring calls THE FRAME.
+    """A literal sweep after the ×2200 CLI defect found three more sites (2026-09-30):
+    `recalibration.capital_stock_epsilon`, `formation_feedback_simulation`, and
+    `anchor_determinacy.hours_shock_response`, which retyped the constant as `2.0e9`
+    ([record](record/fulfilment.md#proxy-income-retired)).
     """
 
     def test_no_unscaled_reads(self):
@@ -543,13 +492,14 @@ class TestTheReferenceConstantIsScaledBesideAPopulation:
 
 
 class TestTheStockAgeHasNamedDefaults:
-    """The stock's age (2026-10-04). A bare 0.50 sat at 18 sites from the first
-    commit with no source; it is now `CAPITAL_AGE_RATIO_DEFAULT`, beside the
-    canonical arc's `CANONICAL_CAPITAL_AGE_BASE` and the US reading off BEA.
-    A literal age as a parameter default or a keyword argument in the package
-    is the copy (mode 4) this replaced. **States its own gap:** static, and
-    the package only — an age computed inline, passed positionally, held in a
-    dict literal (EohParams' shape) or set in `utils/` is not seen."""
+    """A bare 0.50 stock age sat at 18 sites from the first commit with no source. It is
+    now `CAPITAL_AGE_RATIO_DEFAULT` (2026-10-04), and a literal age as a default or
+    keyword in the package is the copy (mode 4) it replaced
+    ([record](record/fulfilment.md#stock-age-measured)).
+
+    **States its own gap:** static, and the package only. An age computed inline, passed
+    positionally, held in a dict literal or set in `utils/` is not seen.
+    """
 
     _KEY = "capital_age_ratio"
 

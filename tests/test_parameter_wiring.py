@@ -1,89 +1,50 @@
-"""
-The wiring gate: a parameter that is accepted, changes nothing, and that no test
+"""The wiring gate: a parameter that is accepted, changes nothing, and that no test
 exercises.
 
-WHAT PROMPTED IT. Three times in one session the suite passed while the module it
-covered had a real defect, and all three were the same shape — **the tests
-pinned the shape of the OUTPUT and never the WIRING behind it**:
+Three defects in one session prompted it, and in each the tests pinned the shape of the
+OUTPUT and never the WIRING behind it:
 
     2026-08-30  arc_stability ran conditions 1 and 3 at `collapsed` and
-                condition 2 at `sufficiency` — one verdict, two standards
+                condition 2 at `sufficiency`: one verdict, two standards
     2026-08-30  its `capital_stock_teh` default was 2,000 TOTAL over 1e6 people,
-                so `delivery_pays` could not bind: there was no apparatus
+                so `delivery_pays` could not bind
     2026-08-30  it passed `personal_base` into `feasibility_check` and read only
                 `supply_per_capita`, which ignores it
 
-**THIS GATE CATCHES NONE OF THOSE THREE, AND SAYING SO IS THE POINT.** Verified
-by reintroducing them: the ratchet stays green on all three. The scope is
-narrower than the motivation, and a gate that reads as covering more than it
-does is the failure this repo already names — an undocumented gap makes a
-checker look stronger than it is.
+THIS GATE CATCHES NONE OF THOSE THREE, AND SAYING SO IS THE POINT. With all three
+reintroduced the ratchet stays green. A gate that reads as covering more than it does
+looks stronger than it is ([record](record/verification.md#the-wiring-gate)).
 
-WHAT IT CATCHES: a parameter that exists, is inert at every configuration tried,
-and is never passed by name anywhere in the suite. That is real — it found
-`hours_per_worker_year(total_population=)`, whose value structurally CANCELLED
-(fixed 2026-08-31; the ratchet dropped 11 → 10), and two detectors nothing had
-ever exercised.
+WHAT IT CATCHES: a parameter that exists, is inert at every configuration tried, and is
+never passed by name in the suite. It found `hours_per_worker_year(total_population=)`,
+whose value cancelled ([record](record/verification.md#wiring-gate-defect-fixed)).
 
 WHAT IT CANNOT CATCH, stated so nobody relies on it:
-  * **a wrong default.** `capital_stock_teh=2000` moves the output — the
-    parameter is live and the VALUE is wrong. No inertness probe reaches that.
-  * **a parameter that should exist and does not.** The mixed-standard defect
-    was two callees using two different defaults with no parameter at all.
-  * **a parameter a test names but under-pins.** Stage 2 filters anything the
-    suite passes by name, so once a test mentions it this gate goes quiet even
-    if the wiring behind it is broken.
-  * **any function with a REQUIRED argument.** Stage 1 skips anything not
-    callable with no arguments, so `simulate_period(state, …)` — the period
-    engine — and everything else taking a required parameter is invisible here.
-    This is the same coverage hole that hid `eoh_to_teh_pipeline` until its
-    `epsilon` gained a default, and it is not closed.
 
-    **THE LIVE INSTANCE, FOUND 2026-09-08:** `simulate_period`'s
-    `deferred_eco_growth_rate` (default 0.05) is inert on every shipped path.
-    The accumulator is `deferred_eco * (1 + rate * stress * 2)` — purely
-    multiplicative — and `deferred_ecological` is an INTAKE field that ships at
-    0.0 by the Phase 4e/4f partition, so zero times any rate is zero. Sweeping
-    it 0.0 → 5.0 over 30 periods moves nothing while ecosystem health falls to
-    0.10; seeded at 1e6 it is live (1.0M → 41.3M at rate 0.5).
+  * **a wrong default.** `capital_stock_teh=2000` moves the output: the parameter
+    is live and the VALUE is wrong.
+  * **a parameter that should exist and does not.** The mixed standards were two
+    callees with two defaults and no parameter at all.
+  * **a parameter a test names but under-pins.** Stage 2 drops anything the suite
+    passes by name, so a test that mentions it silences this gate.
+  * **any function with a REQUIRED argument.** Stage 1 skips it, so
+    `simulate_period` is invisible here. Its `deferred_eco_growth_rate` was inert
+    on every shipped path and survived both blind spots (2026-09-08). A test in
+    test_simulation pins it; it is not declared here
+    ([record](record/fulfilment.md#five-figures-and-the-instrument)).
+  * **its own ratchet being loosened.** The bound here passes if someone raises
+    it. Since 2026-10-17 the claims register reads the bound from the assertion
+    and fails if it moves (`_wiring_bound_still_12`). Raising both is still
+    possible, and is visible in a diff of two files.
 
-    **BOTH BLIND SPOTS FIRED AT ONCE, WHICH IS WHY IT SURVIVED.** Stage 1 could
-    not see the function, and stage 2 would have been satisfied anyway: the one
-    place in the suite that named the parameter,
-    `test_long_run.test_high_degradation_worsens_outcome`, passed it into a
-    `>=` comparison that held by EQUALITY — and through `trust_depletion_stress`
-    the stock is never seeded, so the parameter could not have moved the result
-    at any value. It is NOT declared in `_DECLARED`: a masking entry for
-    something this gate never flags would make the gate read as covering it.
-    It is pinned instead, by `test_simulation.TestTheDeferredEcologicalRate`.
-  * **its own ratchet being loosened.** `len(_DECLARED) <= 8` passes if the
-    bound is simply raised, exactly as the shadow ratchet does. Verified: that
-    mutation does not bite. Raising it is a visible act in a diff, which is the
-    standard this repo holds ratchets to, and a meta-ratchet would only move the
-    same problem up one level.
+The probe is dynamic because static analysis misses even this class: `personal_base` WAS
+referenced, forwarded into a call that ignored it. It tries several configurations,
+because a no-argument call runs `total_eoh` at ε=0, where `knowledge_exponent` cannot
+bite. Stage 2 keeps it usable: "inert at defaults" is not "unpinned", and
+`planetary_budget`'s parameters are inert only on its P0 clamp.
 
-STATIC ANALYSIS DOES NOT REACH EVEN THE NARROW CLASS. `personal_base` WAS
-referenced in the body — it was forwarded into a call that ignored it. Only
-perturbing the value and watching the output catches that, so this is dynamic.
-
-THE TWO-STAGE FILTER, and the second stage is what makes it usable.
-"Inert at defaults" is NOT "unpinned": `planetary_budget`'s defaults sit on a
-clamp (λ·ΔT = 2.4 against F_ghg = 3.0, so P0 = 0), which makes every one of its
-five physics parameters inert THERE — and `test_thermal` correctly exercises
-them above the clamp. A gate that flagged those would be suppressed within a
-week.
-
-THE FIRST VERSION OF THIS SWEEP FELL INTO THE TRAP IT WAS BUILT TO FIND. It
-called every function with no arguments — which for `total_eoh` is
-`epsilon=None`, the ε=0 branch, where `knowledge_exponent` is raised to the
-zeroth power and CANNOT bite. It reported a live parameter as inert. That is the
-ε=0.40 trap inside the tool for finding it, and it is why several
-configurations are tried rather than one.
-
-IT IS A RATCHET, NOT A BLANKET RULE. The findings below pre-date it and each
-is declared with its reason; the count may not RISE. Declaring an entry is a
-visible act in a diff — the `_INNOCUOUS_NAMES` discipline: masking must be
-DECLARED, never inferred.
+IT IS A RATCHET: each pre-existing finding is declared with its reason, the count may
+not rise, and masking must be DECLARED, never inferred.
 """
 
 from __future__ import annotations
@@ -188,15 +149,10 @@ def _modules():
 
 
 def _perturb(v, mod=None):
-    """
-    An alternative value for a parameter.
-
-    STRINGS ARE PROBED VIA THEIR DECLARED ENUM, and that is not decoration: the
-    defect that motivated this gate was a `standard: str` that stopped threading
-    through, and the first version returned None for every string, so it caught
-    nothing. If the defining module holds a tuple/list/set containing the
-    default — `STANDARDS`, `AUTOMATION_RESPONSES`, `PSI_POLICIES` — another
-    member of it is the right alternative to try.
+    """An alternative value for a parameter. For a string, it tries another member of
+    the declared enum that holds the default (a tuple, list or set in the defining
+    module). The first version returned None for every string and missed the `standard:
+    str` defect.
     """
     if isinstance(v, bool):
         return not v
@@ -348,22 +304,12 @@ class TestNoUndeclaredInertParameter:
         )
 
     def test_the_count_does_not_grow(self) -> None:
-        """
-        A ratchet, not a blanket rule: 11 pre-date the gate. Lowering the count
-        means wiring or exercising one, which is a real fix.
-
-        RAISED 10 → 12 ON 2026-09-01, AND THE REASON IS COVERAGE, NOT DEBT.
-        The probe only reaches functions callable with no arguments, so
-        `eoh_to_teh_pipeline` — the one function the implementation guide tells an
-        institution to run — was never probed at all: it required `epsilon`.
-        Giving that parameter a default, for the capability/observable rename,
-        made the entry point visible for the first time, and the two ecological
-        intake fields already declared on `total_eoh` appeared again one layer up.
-
-        Nothing became inert. The gate started looking somewhere it had never
-        looked. A rise from honesty is not the failure this counter guards
-        against — a rise from a fresh copy is — and the difference cannot be
-        detected automatically, which is exactly why it is written here.
+        """A ratchet, not a blanket rule: lowering the count means wiring or exercising
+        a parameter. The bound rose 10 → 12 on 2026-09-01 for COVERAGE, not debt. A
+        default on `eoh_to_teh_pipeline`'s `epsilon` let the probe reach the documented
+        entry point
+        ([record](record/fulfilment.md#epsilon-split-capability-vs-observable)). A rise
+        from honesty and a rise from a fresh copy look the same to a counter.
         """
         assert len(_DECLARED) <= 12
 
@@ -375,10 +321,8 @@ class TestTheGateItselfIsHonest:
             assert len(reason) > 30, f"{key} is declared without a reason"
 
     def test_every_declaration_names_something_still_inert(self) -> None:
-        """
-        A declaration for a parameter that is no longer inert is a permission
-        nobody exercises — the `unused_innocuous_names` failure, which went stale
-        within an hour of shipping the first time.
+        """A declaration for a parameter that is no longer inert is a permission nobody
+        uses (the `unused_innocuous_names` failure).
         """
         inert = set(_inert_parameters())
         stale = sorted(k for k in _DECLARED if k not in inert)
@@ -396,11 +340,9 @@ class TestTheGateItselfIsHonest:
         assert len(_inert_parameters()) >= 20, "the probe has gone blind"
 
     def test_stage_two_actually_filters(self) -> None:
-        """
-        The second stage is what makes this usable. Without it the gate would
-        flag `planetary_budget`'s physics parameters, which `test_thermal`
-        correctly exercises above the P0 clamp — and a gate that fires on
-        well-tested code gets suppressed.
+        """Without the second stage the gate would flag `planetary_budget`'s physics
+        parameters, which `test_thermal` exercises above the P0 clamp. A gate that fires
+        on well-tested code gets suppressed.
         """
         inert = _inert_parameters()
         assert len(_unexercised(inert)) < len(inert), (
@@ -430,10 +372,8 @@ class TestTheGateItselfIsHonest:
 
 
 class TestTheGateStatesItsOwnLimits:
-    """
-    The admission is load-bearing. This gate was built after three defects and
-    catches none of them; if that sentence is edited out, the gate starts
-    reading as coverage it does not provide.
+    """The admission carries weight. This gate catches none of the three defects that
+    prompted it; without that sentence it reads as coverage it does not give.
     """
 
     def test_the_docstring_names_what_it_cannot_catch(self) -> None:

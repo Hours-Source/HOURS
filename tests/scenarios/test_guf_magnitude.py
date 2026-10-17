@@ -1,15 +1,11 @@
-"""
-Tests for scenarios/guf_magnitude.py — GUF's derived revenue target (Option 1)
-and the two-part tariff the measured cost implies (Option 2).
+"""Tests for scenarios/guf_magnitude.py: GUF's derived revenue target (Option 1) and the
+two-part tariff the measured cost implies (Option 2).
 
-Discipline, following the two censuses this module sits on top of:
-  * the ASSUMED input (what each occupation's cost scales with) is tested for
-    completeness and for naming only occupations that exist — the
-    `unused_innocuous_names` lesson;
-  * findings are asserted as ORDERINGS and SIGNS wherever the level is
-    calibration that will move;
-  * the falsification is RUN, not asserted in prose;
-  * `TestMagnitudeChangesNothing` pins that this is reporting only.
+Discipline, following the two censuses this module sits on: * the ASSUMED input (what
+each occupation's cost scales with) is tested for completeness, and it names only
+occupations that exist (the `unused_innocuous_names` lesson); * findings are ORDERINGS
+and SIGNS wherever the level is calibration; * the falsification is RUN, not asserted in
+prose; * `TestMagnitudeChangesNothing` pins that this is reporting only.
 """
 
 from __future__ import annotations
@@ -103,10 +99,9 @@ class TestScalingBasisShares:
         assert sum(s["shares"].values()) == pytest.approx(1.0)
 
     def test_the_fee_tracks_a_minority_of_the_cost_structure(self):
-        """
-        THE OPTION 2 FINDING, as a sign rather than a level: the Ground Use Fee
-        scales with area alone, and area-scaling work is less than half the
-        measured cost. Levels are calibration; the inequality is the claim.
+        """The Option 2 finding as a sign: the Ground Use Fee scales with area alone,
+        and area-scaling work is less than half the measured cost. The inequality is the
+        claim; the levels are calibration.
         """
         s = scaling_basis_shares("core")
         assert s["area_share"] < 0.5
@@ -133,12 +128,9 @@ class TestScalingBasisShares:
 class TestTwoPartRates:
 
     def test_the_parcel_rate_is_measured_now_that_the_divisor_exists(self):
-        """
-        THE EXCLUSION IS RETIRED (2026-08-30). It read "no national parcel count
-        is carried in this repo"; `reference/parcels` carries one. An exclusion
-        whose stated blocker has been removed and is left standing is the
-        status-note-outliving-its-decision failure this repo has caught eight
-        times, so the retirement is pinned rather than merely performed.
+        """THE EXCLUSION IS RETIRED (2026-08-30). It read "no national parcel count is
+        carried in this repo", and `reference/parcels` now carries one. An exclusion
+        that outlives its blocker is mode 7, so the test pins the retirement.
         """
         r = two_part_rates("core")
         assert r["u_area_h_per_ha_yr"] > 0.0
@@ -153,16 +145,11 @@ class TestTwoPartRates:
         )
 
     def test_the_parcel_rate_is_declared_a_lower_bound_and_says_why(self):
-        """
-        THE HALF THAT DID NOT CLOSE, and it must not be quoted as a point. The
-        numerator is restricted to SERVICED_LAND_CLASSES; the denominator is
-        every parcel in the country. Restricting the denominator can only remove
-        parcels, so it can only RAISE the rate — hence errs LOW.
-
-        The gap is deliberately not quantified. Parcels concentrate in developed
-        land so the bound is probably close, but "probably close" is not a
-        measurement, and guessing it would be the fitting this module exists to
-        refuse.
+        """The parcel rate is a lower bound and must not be quoted as a point. The
+        numerator covers SERVICED_LAND_CLASSES and the denominator every parcel in the
+        country, so restricting the denominator could only RAISE the rate. The gap is
+        not quantified, because a guess would be the fitting this module refuses
+        ([record](record/guf.md#u-parcel-measured)).
         """
         r = two_part_rates("core")
         assert r["u_parcel_is_lower_bound"] is True
@@ -205,10 +192,9 @@ class TestTwoPartRates:
         )
 
     def test_area_only_scale_factor_is_below_the_aggregate_and_far_below_shipped(self):
-        """
-        ORDERING, not level: dividing only the area-scaling hours by area must
-        give a smaller factor than dividing all of them, and both must sit far
-        below the shipped ×100.
+        """An ordering, not a level. The area-scaling hours over area must give a
+        smaller factor than all the hours over area, and both must sit far below the
+        shipped ×100.
         """
         r = two_part_rates("core")
         from hours_eoh.scenarios.servicing_census import shipped_vs_measured
@@ -219,18 +205,11 @@ class TestTwoPartRates:
 
 
 class TestSubdivisionInvariance:
-    """
-    THE TEST THAT INVERTED, and both readings are pinned so neither can be
-    quoted alone.
-
-    It began as the FALSIFICATION of Phase 2's recorded mechanism for the urban
-    overshoot — "the fee is per-SLU, so packing a hectare with more parcels
-    multiplies the charge" — which was false, because parcel count did not enter
-    the fee at all. Since the per-parcel term was adopted (2026-08-30) it is the
-    REGRESSION ANCHOR for the term that fixed it.
-
-    The area product must STILL be parcel-blind, which is what keeps the original
-    falsification alive as evidence rather than deleting it.
+    """This test inverted, and both readings stay pinned. It began as the FALSIFICATION
+    of Phase 2's mechanism for the urban overshoot ("packing a hectare with more parcels
+    multiplies the charge"), false because parcel count did not enter the fee. Since the
+    per-parcel term (2026-08-30) it anchors that term, and the area product must STILL
+    be parcel-blind ([record](record/guf.md#per-parcel-term-adopted)).
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
@@ -248,11 +227,9 @@ class TestSubdivisionInvariance:
 
     @pytest.mark.parametrize("epsilon", ARC)
     def test_the_area_product_is_still_exactly_parcel_blind(self, epsilon):
-        """
-        THE ORIGINAL FALSIFICATION, kept. With the per-parcel term switched off
-        the split returns the fee to floating-point equality — so the urban
-        overshoot's driver is still the L·U·D product and not density, and
-        adopting the term did not quietly redefine that finding.
+        """With the per-parcel term off, the split returns the fee to floating-point
+        equality. So the L·U·D product drives the urban overshoot, not density, and the
+        adopted term did not redefine that finding.
         """
         r = subdivision_invariance(epsilon)
         assert r["area_only_invariant"] is True
@@ -267,11 +244,10 @@ class TestSubdivisionInvariance:
         )
 
     def test_the_tolerance_cannot_hide_the_effect_it_must_distinguish(self):
-        """
-        A tolerance wide enough to absorb the finding is worse than none — the
-        `GOODS_PRICE_FLOOR` lesson, where `abs=0.02` on a floor of 0.05 let a
-        40% move pass. Here the tolerance must separate a parcel-blind 1.0 from
-        a per-parcel ~1.12, and it sits eleven orders of magnitude below it.
+        """A tolerance wide enough to absorb the finding is worse than none: `abs=0.02`
+        on the 0.05 `GOODS_PRICE_FLOOR` let a 40% move pass. Here the tolerance must
+        separate a parcel-blind 1.0 from a per-parcel ~1.12, and it sits eleven orders
+        of magnitude below the effect.
         """
         from hours_eoh.data import SUBDIVISION_FP_TOLERANCE as _FP_TOL
         r = subdivision_invariance(0.40)
@@ -283,11 +259,9 @@ class TestSubdivisionInvariance:
         )
 
     def test_the_fragmentation_premium_is_epsilon_invariant(self):
-        """
-        A property I did not expect and the run produced: the ratio is the same
-        at every ε, because the per-parcel term and the area product both carry
-        α(ε), so it cancels. The fee prices fragmentation by the same factor at
-        subsistence and at post-scarcity.
+        """The run produced an unexpected property: the ratio is the same at every ε.
+        The per-parcel term and the area product both carry α(ε), so it cancels, and the
+        fee prices fragmentation by one factor across the arc.
         """
         ratios = [subdivision_invariance(e)["ratio"] for e in ARC]
         assert max(ratios) - min(ratios) < 1e-9
@@ -354,11 +328,10 @@ class TestTargetVsRealised:
         assert target_vs_realised(0.40)["urban_ratio"] > 1.0
 
     def test_the_rural_comparison_is_withdrawn_not_repeated(self):
-        """
-        The rural archetype is 70% agricultural, and agricultural land is in no
-        serviced class and unpriced by the stewardship census. Both halves of
-        its target are missing, so no ratio may be reported — Phase 2's figure
-        survives only under its own name, flagged.
+        """The rural archetype is 70% agricultural land, which is in no serviced class
+        and unpriced by the stewardship census. Both halves of its target are missing,
+        so no ratio may be reported; Phase 2's figure survives only under its own name,
+        flagged.
         """
         rows = {x["archetype"]: x for x in target_vs_realised(0.40)["rows"]}
         rural = rows["rural"]
@@ -383,10 +356,9 @@ class TestTargetVsRealised:
 class TestAmenitySensitivity:
 
     def test_the_sign_is_robust_and_the_magnitude_is_not(self):
-        """
-        The amenity weight is worth 41× in the stewardship census. Here it is
-        worth about 2.5× — enough that a single quoted figure would overstate
-        how well determined this is, and not enough to reverse the finding.
+        """The amenity weight is worth ~41× in the stewardship census and ~2.5× here.
+        That is enough that a single figure would overstate how well determined this is,
+        and not enough to reverse the finding.
         """
         r = amenity_sensitivity(0.40)
         assert r["sign_robust"] is True
@@ -416,11 +388,10 @@ class TestConservationCredit:
 
     @pytest.mark.parametrize("epsilon", ARC)
     def test_the_credit_is_clipped_by_the_fee_floor_and_never_pays_out(self, epsilon):
-        """
-        THE FINDING, and it is the fee floor rather than the coefficient: the
-        credit is notionally large and negative, and `ground_use_fee` clamps at
-        `guf_floor`, so conservation land realises exactly zero. Neither side of
-        the notional exchange happens.
+        """The fee floor decides this, not the coefficient. The credit is notionally
+        large and negative, and `ground_use_fee` clamps at `guf_floor`, so conservation
+        land realises exactly zero
+        ([record](record/guf.md#conservation-credit-decided)).
         """
         r = conservation_credit_check(epsilon)
         assert r["notional_h_per_ha"] < 0.0
@@ -490,9 +461,8 @@ class TestTermBasisRegistry:
         assert "benefit" not in FEE_BASES
 
     def test_I_is_stock_not_benefit_and_is_sign_aligned(self):
-        """
-        THE AUDIT'S OWN FINDING, pinned. Scoring the terms is what forced
-        cost_teh/(design_life × beneficiary_count) to be read as an annuity.
+        """The audit's own finding: scoring the terms forced cost_teh/(design_life ×
+        beneficiary_count) to read as an annuity.
         """
         assert TERM_BASIS["I"]["basis"] == "cost_stock"
         assert TERM_BASIS["I"]["spec_direction"] == "aligned"
@@ -505,12 +475,10 @@ class TestTermBasisRegistry:
         assert TERM_BASIS["Psi"]["basis"] == "unresolved"
 
     def test_five_terms_carry_their_own_epsilon_response(self):
-        """
-        The double application, as a property of the declaration. `P` joined
-        2026-08-30 carrying alpha — the same response as U, because it is the
-        same KIND of term, a recurring flow. It deliberately does NOT carry Psi:
-        Psi was retired for duplicating alpha, and adding it here would repeat
-        exactly the defect that retired it.
+        """The double application, as a property of the declaration. `P` (2026-08-30)
+        carries α, like U, because both are recurring flows. It does NOT carry Ψ: Ψ was
+        retired for duplicating α, and adding it here would repeat that defect
+        ([record](record/guf.md#term-basis-audit-psi-retired)).
         """
         assert set(basis_table()["carries_own_epsilon_response"]) == {
             "U", "E", "I", "Psi", "P"
@@ -626,11 +594,9 @@ class TestPsiPolicies:
         assert rows["bell"]["monotone_falling"] is False
 
     def test_flow_only_equals_bell_because_the_stock_leg_is_inert(self):
-        """
-        HONEST STATE, pinned so it fails loudly when the asset inventory lands:
-        no shipped path supplies ecosystem_services or infrastructure_assets, so
-        E = I = 0 and sparing them changes nothing. When that stops being true
-        this test should fail and be replaced, not deleted.
+        """No shipped path supplies ecosystem_services or infrastructure_assets, so E =
+        I = 0 and sparing them changes nothing. When the asset inventory lands this test
+        fails; replace it then, do not delete it.
         """
         assert psi_policy_comparison()["flow_only_equals_bell"] is True
         fee = ground_use_fee(
@@ -672,11 +638,8 @@ class TestMagnitudeChangesNothing:
 
 
 class TestParcelRateIsBoundToTheCensus:
-    """
-    `GUF_PARCEL_RATE_TEH_PER_PARCEL_YR` is bound by TEST, not by expression:
-    data.py sits below reference/ and scenarios/ and cannot import them — the
-    same constraint MEAN_MULTIPLIER_REFERENCE and GUF_ECO_KAPPA_CARBON are bound
-    under. This fails whichever side moves alone.
+    """A test binds `GUF_PARCEL_RATE_TEH_PER_PARCEL_YR` to the census, because data.py
+    cannot import reference/ or scenarios/. It fails if either side moves alone.
     """
 
     def test_the_constant_equals_the_measured_rate(self):
@@ -686,10 +649,8 @@ class TestParcelRateIsBoundToTheCensus:
         )
 
     def test_it_is_the_fee_s_default_and_not_merely_declared(self):
-        """
-        The author decision was to ship it LIVE, not at 0.0. A constant that is
-        declared and not wired is the stranded-parameter failure this repo has
-        found four times.
+        """The author decision was to ship it LIVE, not at 0.0. A constant declared and
+        not wired is the stranded parameter (mode 5).
         """
         import inspect
         from hours_eoh.data import GUF_PARCEL_RATE_TEH_PER_PARCEL_YR
@@ -697,7 +658,7 @@ class TestParcelRateIsBoundToTheCensus:
         assert default == GUF_PARCEL_RATE_TEH_PER_PARCEL_YR
 
     def test_the_term_actually_moves_the_fee(self):
-        """A wired parameter that changes nothing is wired in name only."""
+        """A parameter that changes nothing is wired in name only."""
         on = ground_use_fee(10.0, 0.5, "residential_primary", 0.40)["guf_applied"]
         off = ground_use_fee(10.0, 0.5, "residential_primary", 0.40,
                              parcel_rate=0.0)["guf_applied"]
@@ -705,16 +666,11 @@ class TestParcelRateIsBoundToTheCensus:
 
 
 class TestTheUseCoefficientPointerMatchesTheMeasurement:
-    """
-    The ten `GUF_USE_*` `resolves_by` used to promise that a per-area servicing
-    census would settle "the levels and the ratios in one instrument". Two
-    things overtook it (corrected 2026-08-31): `use_split` measured that area
-    accounts for 41.9% of servicing hours, and the fee acquired a second basis
-    on 2026-08-30.
-
-    The corrected pointer QUOTES that 41.9%, so it is pinned against the live
-    measurement — a derived figure restated in prose is how this repo's claims
-    have gone stale five times.
+    """The ten `GUF_USE_*` `resolves_by` promised that a per-area servicing census would
+    settle "the levels and the ratios in one instrument". `use_split` then measured that
+    area carries 41.9% of servicing hours, and the fee gained a second basis (corrected
+    2026-08-31). The pointer quotes that 41.9%, so this test pins it to the live
+    measurement ([record](record/guf.md#ten-ratios-decomposed)).
     """
 
     def _pointer(self) -> str:
@@ -742,22 +698,18 @@ class TestTheUseCoefficientPointerMatchesTheMeasurement:
         assert "per-parcel" in p
 
     def test_it_still_names_the_indexing_obstacle(self):
-        """
-        The real blocker is unchanged and must not be lost in the correction:
-        the censuses aggregate over LAND CLASSES, the table is indexed by USE
-        CATEGORY.
+        """The real blocker stays named: the censuses aggregate over LAND CLASSES, and
+        the table is indexed by USE CATEGORY.
         """
         p = self._pointer()
         assert "LAND CLASSES" in p
         assert "USE CATEGORY" in p
 
     def test_the_whole_pointer_is_machine_visible(self):
-        """
-        A BLANK COMMENT LINE ENDS A CONTINUATION, so the first draft of this
-        correction had only its opening paragraph inside `resolves_by` and the
-        rest sitting as ordinary comment — invisible to the provenance gate and
-        to `eoh provenance csv`. Detail that a reader can see and a checker
-        cannot is exactly the gap this scheme exists to close.
+        """A blank comment line ends a continuation. The first draft had only its
+        opening paragraph inside `resolves_by`, and the rest was invisible to the
+        provenance gate and to `eoh provenance csv`. A checker must see what a reader
+        sees.
         """
         p = self._pointer()
         assert len(p) > 900, "the pointer has been truncated by a blank line again"

@@ -1,20 +1,14 @@
-"""
-The second instrument on ε — `reference/obligation_work` + `scenarios/labour_epsilon`.
+"""The second instrument on ε: `reference/obligation_work` + `scenarios/labour_epsilon`.
 
-WHAT IS AT STAKE. Until 2026-09-09 the framework had exactly one reading of ε
-against a real economy, off the BEA asset inventory, and that reading is the
-page's most exposed empirical claim. This is the independent one: ATUS time
-diaries instead of asset valuations, and no currency anywhere in the chain.
+Until 2026-09-09 the framework had one reading of ε against a real economy, from the BEA
+asset inventory, and that reading is its most exposed empirical claim. This one is
+independent: ATUS time diaries instead of asset valuations, with no currency in the
+chain.
 
-WHAT THESE TESTS PIN. Not the level. They pin that the comparison **can report
-disagreement** — a cross-check that can only conclude "they agree" is not a
-cross-check — that the labour route stays currency-free, that the frame is
-carried correctly, and that `reconciling_rate` never becomes a recommendation.
-
-THE FRAME TEST EXISTS BECAUSE THE BUG HAPPENED. The first working version passed
-the US population into `total_eoh`, which is stated at the 1M reference frame for
-its extensive constants, and the fixed point collapsed to exactly zero. The
-module's own docstring had claimed the frame was declared at every step.
+These tests do not pin the level. They pin that the comparison **can report
+disagreement**, that the labour route stays currency-free, that the frame is carried
+correctly, and that `reconciling_rate` never becomes a recommendation. The frame test
+exists because the first working version collapsed the fixed point to zero.
 """
 
 from __future__ import annotations
@@ -64,16 +58,16 @@ class TestTheAttributionIsTheOneJudgement:
             OW.obligation_share("everything")
 
     def test_the_hours_assumption_is_declared(self):
-        """The share is measured in HEADS and used as HOURS. That has a
-        direction and the module has to say which."""
+        """The share is measured in HEADS and used as HOURS. That has a direction, and
+        the module must say which.
+        """
         assert "over-counting" in OW.obligation_share("core")["hours_assumption"]
 
 
 class TestTheFrameIsCarriedNotAssumed:
-    """
-    RECURRING FAILURE MODE 6, and it bit this module during construction. ATUS
-    measures per person 15+; the package's extensive constants are stated at the
-    1M reference population. Two different frames in one calculation.
+    """Mode 6, and it bit this module during construction. ATUS measures per person 15+,
+    and the package states its extensive constants at the 1M reference population: two
+    frames in one calculation.
     """
 
     def test_the_atus_conversion_is_applied(self):
@@ -85,23 +79,11 @@ class TestTheFrameIsCarriedNotAssumed:
         assert m["unpaid_per_capita"] < m["unpaid_per_15plus"], "per capita must be the smaller"
 
     def test_the_obligation_is_computed_at_the_reference_frame(self):
-        """
-        THE BUG THIS TEST EXISTS FOR — and its stated CAUSE is retracted.
-
-        It read: "`CAPITAL_STOCK_DEFAULT` is stated at the 1M reference
-        population and does not scale, so computing the obligation at the US
-        population gives 335M people the capital of 1M and the fixed point
-        collapses to zero." That was true when written; the 2026-09-16 capital
-        frame repair falsified it — `resolve_capital_stock` now scales the stock
-        with the population it is given. MEASURED 2026-09-18: per-capita
-        `total_eoh` is frame-invariant to the last bit, ratio 1.0000000000
-        between the 1M and 335M frames.
-
-        THE ASSERTION IS UNCHANGED AND STILL EARNS ITS PLACE, because it is
-        pinned by the ANSWER rather than by the mechanism: ε collapsing to zero
-        is the symptom of ANY frame error here, whatever causes it. Only the
-        explanation moved, and the same retraction was made in the source on
-        2026-09-18.
+        """ε collapsing to zero is the symptom of ANY frame error here, so the test pins
+        the answer, not the mechanism. Its first stated cause (an unscaled
+        `CAPITAL_STOCK_DEFAULT`) was retracted on 2026-09-18: per-capita `total_eoh` is
+        frame-invariant to the last bit
+        ([record](record/fulfilment.md#capital-instrument-takes-its-data)).
         """
         assert LE.labour_epsilon("core")["epsilon"] > 0.05, (
             "ε collapsed — the obligation is being computed at the wrong frame"
@@ -119,9 +101,10 @@ class TestTheFrameIsCarriedNotAssumed:
             LE.labour_epsilon("core", population=200e6)
 
     def test_a_larger_population_lowers_the_adult_share_and_raises_epsilon(self):
-        """The direction, so the pairing is checked rather than merely guarded —
-        on SUPPLIED hours, where `population` is the adult share's denominator.
-        The shipped US hours take Census's share for their year (2026-10-04)."""
+        """The direction, so the pairing is checked and not only guarded, on SUPPLIED
+        hours where `population` is the adult share's denominator. Since 2026-10-04 the
+        shipped US hours take Census's share for their year.
+        """
         m = LE.measured_hours()
         own = dict(population_15_plus_supplied=m["population_15_plus"],
                    unpaid_per_15plus=m["unpaid_per_15plus"],
@@ -169,11 +152,11 @@ class TestTheComparisonCanDisagree:
     """MODE 9. A cross-check that cannot report disagreement is not one."""
 
     def test_the_shipped_comparison_overlaps(self):
-        """ADJACENT (gap 0.046) until 2026-10-04. The capital arm then read its
-        stock at BEA's measured ages (one class age had put the whole stock
-        1.15 lives old) — DIVERGENT, gap 0.0597 — and at its measured
-        condition on BLS's age-efficiency curve instead of a flat 0.85:
-        OVERLAP. Pinned at its level, because the page's statement turns on it."""
+        """The shipped comparison reads OVERLAP, pinned at its level because the page's
+        statement turns on it. It read ADJACENT until 2026-10-04, then DIVERGENT on
+        BEA's measured ages, then OVERLAP on the measured condition
+        ([record](record/fulfilment.md#condition-measured)).
+        """
         c = LE.instrument_comparison()
         assert c["verdict"] == "OVERLAP", (
             f"the instruments moved to {c['verdict']} (gap {c['gap']:.4f}) — the "
@@ -252,25 +235,21 @@ class TestLabourEpsilonChangesNothing:
             assert not offenders, f"{offenders} import {name}"
 
 class TestTheLabourArmTakesItsDataToo:
-    """
-    STEP 2 OF MAKING A CASE STUDY REPRODUCIBLE BY SOMEONE ELSE (2026-09-18).
+    """Step 2 of making a case study reproducible by someone else (2026-09-18). With
+    only the capital arm open to supplied data, a foreign user would compare their
+    capital with AMERICA's time use and get a confident verdict about no economy. This
+    class pins the labour half and the gate that refuses the mixed case
+    ([record](record/fulfilment.md#labour-instrument-takes-its-data)).
 
-    Step 1 let the CAPITAL instrument take an inventory. On its own that is
-    worse than useless for a foreign user: it lets them compare their capital
-    against AMERICA's time use and receive a confident ADJACENT verdict about no
-    economy. This class pins the half that closes it, and the gate that makes
-    the mixed case inexpressible rather than merely discouraged.
-
-    ALL THREE SCALARS OR NONE. A partial supply would divide one jurisdiction's
-    unpaid hours by another's adult count. Refused, because a blend returns a
-    number and no error.
+    ALL THREE SCALARS OR NONE. A partial supply would divide one jurisdiction's unpaid
+    hours by another's adult count, and a blend returns a number, not an error.
     """
 
     def _shipped_inputs(self):
-        """The shipped reading, handed back. Since 2026-10-04 the shipped adult
-        share is Census's for the survey year, so the 15+ count that reproduces
-        it over the default population is that share × the population — the
-        ATUS count itself would bring back the series trap."""
+        """The shipped reading, handed back. The 15+ count that reproduces the shipped
+        adult share is that share × the population; the ATUS count itself would bring
+        back the series trap ([record](record/fulfilment.md#labour-series-trap)).
+        """
         m = LE.measured_hours()
         return dict(population_15_plus_supplied=m["share_15_plus"] * LE.BEA_POPULATION,
                     unpaid_per_15plus=m["unpaid_per_15plus"],
@@ -278,9 +257,10 @@ class TestTheLabourArmTakesItsDataToo:
 
     @staticmethod
     def _shipped_state():
-        """The shipped table's ages and conditions travel with it when it is
-        handed back as a supplied inventory (2026-10-04) — without them it
-        reads the default age and the condition derived from it."""
+        """The shipped table's ages and conditions travel with it when handed back as a
+        supplied inventory. Without them it reads the default age and the condition
+        derived from it.
+        """
         from hours_eoh.scenarios.capital_retrodiction import epsilon_from_inventory
         r = epsilon_from_inventory(20.0)
         return {"age_ratios": r["age_ratio_by_profile"],
@@ -304,11 +284,9 @@ class TestTheLabourArmTakesItsDataToo:
             LE.measured_hours(unpaid_per_15plus=100.0)
 
     def test_the_adults_guard_fires_on_a_SUPPLIED_count(self):
-        """
-        THE PIN MOST AT RISK. `population` is paired data, guarded by comparing
-        it against the survey's 15+ count. A sentinel that took the supplied
-        count and skipped the guard would defeat the check for exactly the
-        caller most likely to trip it — someone porting the instrument.
+        """The pin most at risk. `population` is paired data, guarded against the
+        survey's 15+ count. A path that skipped the guard for a supplied count would
+        fail exactly the caller most likely to trip it: someone porting the instrument.
         """
         with pytest.raises(ValueError, match="more adults than people"):
             LE.measured_hours(population=200e6, population_15_plus_supplied=270e6,
@@ -362,22 +340,16 @@ class TestTheLabourArmTakesItsDataToo:
         assert a == pytest.approx(b, rel=1e-9)
 
 class TestTheVerdictIsAChoiceAndSaysSo:
-    """
-    THE PUBLISHED ADJACENT WAS ONE CELL OF A GRID (2026-09-18).
+    """The published verdict was one cell of a grid (2026-09-18).
+    `instrument_comparison` read one corner of the capital grid, government scope at
+    current cost, and reported it as a property of the instruments. The capital route
+    returns 18 cells because its three judgements are undeclared
+    ([record](record/fulfilment.md#the-adjacent-verdict-was-one-cell)).
 
-    `instrument_comparison` hard-coded `scope="government"` and inherited
-    `doctrine="current_cost"`, so it read ONE corner of the capital grid and
-    reported the result as a property of the instruments. The capital route
-    returns 18 cells precisely BECAUSE its three judgements are undeclared.
-
-    Measured at the US frame (DIVERGENT at 0.0597 since 2026-10-04, when the
-    capital arm took its measured ages): the corner gave ADJACENT at gap 0.046, while 8 of
-    the 18 declared cells fall inside the labour band and the full grid
-    (0.200-0.757) OVERLAPS it. The corner stays the headline — government /
-    current_cost is the most defensible single reading, and switching the
-    headline to the framing that AGREES would be calibrating to the answer, the
-    failure `reconciling_rate` names in its own docstring. What changes is that
-    the grid verdict is reported beside it and the choice is explicit.
+    The corner stays the headline, as the most defensible single reading; switching to
+    the framing that agrees would be calibrating to the answer. The grid verdict is
+    reported beside it: today the corner and the grid both OVERLAP, with 10 of 18 cells
+    inside the labour band.
     """
 
     def test_the_corner_is_still_the_headline(self):
@@ -400,11 +372,10 @@ class TestTheVerdictIsAChoiceAndSaysSo:
         )
 
     def test_one_declared_judgement_flips_the_verdict(self):
-        """
-        THE POINT, AS A TEST RATHER THAN A SENTENCE. Doctrine alone moves it:
-        every government/historical_cost cell sits inside the labour band, every
-        current_cost one sits above it. A comparison whose answer turns on an
-        undeclared default was reporting a choice as a finding.
+        """Doctrine alone flips the verdict, as a test rather than a sentence. At
+        residential scope current cost reads DIVERGENT and historical cost OVERLAP; at
+        government scope both overlap since 2026-10-04. A verdict that turns on an
+        undeclared default reports a choice as a finding.
         """
         # At government scope both doctrines OVERLAP since 2026-10-04; the
         # flip now shows at residential scope.

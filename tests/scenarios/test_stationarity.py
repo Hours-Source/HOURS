@@ -66,9 +66,10 @@ class TestTheLabourSideReadsThePipelineSplit:
 
     @pytest.mark.parametrize("eps", ARC)
     def test_it_agrees_with_arc_stability_now_both_use_the_adopted_split(self, eps):
-        """Until 2026-09-15 arc_stability read a uniform 1 − ε and understated
-        human hours 21 against 458 per capita at 0.99. The agreement is checked
-        at the top, where the two splits differ most, not only near 0."""
+        """Until 2026-09-15 arc_stability read a uniform 1 − ε and understated human
+        hours at 0.99 (21 against 458 per capita). The test checks agreement at the top,
+        where the two splits differ most.
+        """
         r = stationarity_at(eps, standard="sufficiency")["labour"]
         assert r["arc_stability_human_per_capita"] == pytest.approx(
             r["human_hours_per_capita"], rel=1e-9)
@@ -179,9 +180,11 @@ class TestD3IsTheSimulationsQuantity:
 
 
 class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
-    """The author's question, 2026-09-16: is standing still at every ε a design
-    success or an oversized levy, and is there a threshold below which it fails
-    that reads as the friction of first organising resources?"""
+    """The author's question (2026-09-16): is standing still at every ε a design success
+    or an oversized levy? And is there a threshold below which it fails, read as the
+    friction of first organising resources
+    ([record](record/fulfilment.md#guarantee-priced-in-hours))?
+    """
 
     def _teh(self, eps, **kw):
         return stationarity_at(eps, need_fraction=0.05, **kw)["teh"]
@@ -191,9 +194,10 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
 
     @pytest.mark.parametrize("eps", (0.0, 0.40, 0.99))
     def test_the_required_levy_is_the_closed_form_and_the_verdict_agrees(self, eps):
-        """r*(ε) = max(0, (owed − GUF) / mint), and the verdict turns there.
-        The fee is uncapped here, so it does not move with the levy and the
-        form is exact rather than a fixed point."""
+        """r*(ε) = max(0, (owed − GUF) / mint), and the verdict turns there. The fee is
+        uncapped here and does not move with the levy, so the form is exact, not a fixed
+        point.
+        """
         r = self._teh(eps, guf_parcels=URBAN)
         r_star = max(0.0, (r["guarantee_owed"] - r["guf"]) / r["mint"])
         assert self._teh(eps, guf_parcels=URBAN,
@@ -203,20 +207,16 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
                              levy_rate=r_star - 1e-3)["stationary"] is False
 
     def test_the_bottom_of_the_arc_costs_more_than_the_middle_but_the_top_binds(self):
-        """THE FRICTION, MEASURED — and its mechanism DECOMPOSED rather than
-        asserted (corrected 2026-09-16; the first version said "registration is
-        near zero so the mint is small", which cannot be the cause because
-        under V1 registration scales the guarantee AND the mint).
+        """The friction, measured: the no-fee levy ratio (owed ÷ mint) is dearer at ε=0
+        than at 0.19, and dearer still at 0.99 (1.35× and 1.80× today).
 
             r*_nofee = r_personal × need × per_person ÷ mint_per_capita
 
-        ε=0 → 0.19: registration ×3.69, guarantee per person ×0.87, mint per
-        capita ×4.23 — the mint OUTRUNS registration, so the ratio falls.
-        0.19 → 0.99: registration ×23.8 against mint per capita ×4.63 while the
-        guarantee per person only halves — registration SATURATES (0.87 of
-        people on ledger) and the mint plateaus, so the ratio rises. The bump
-        is real and it is not what binds: the ε=0.99 corner needs 2.4× the
-        bottom, which is what the shipped 4.5% is sized to."""
+        From 0 to 0.19 the mint per capita outruns registration, so the ratio falls.
+        Above it registration saturates and the mint plateaus while the guarantee per
+        person only halves, so the ratio rises. The bump is real, but the ε=0.99 corner
+        binds, and the shipped 4.6% levy is sized to it.
+        """
         def r_nofee(e):
             r = self._teh(e)
             return r["guarantee_owed"] / r["mint"]
@@ -227,11 +227,10 @@ class TestWhatTheLevyHasToBeAndWhereTheArcIsExpensive:
         assert top / bottom == pytest.approx(1.806, rel=0.02)
 
     def test_the_uncapped_fee_is_about_the_whole_mint_at_subsistence(self):
-        """Why "the fee covers the bottom" is a SYMPTOM. record/guf.md already
-        records the fee's level as structurally mis-set; this is that defect
-        seen from the fiscal side, and the payable cap is the honest figure.
-        It EXCEEDED the mint (102.4%) until the default count dropped the
-        government parcels (2026-10-15, author); it is 99.9% now."""
+        """"The fee covers the bottom" is a SYMPTOM. The uncapped fee is about the whole
+        mint at ε=0 (97.6% today), the fee-level defect record/guf.md already records,
+        seen from the fiscal side. The payable cap is the honest figure.
+        """
         r = self._teh(0.0, guf_parcels=URBAN)
         assert r["guf_uncapped"] / r["mint"] > 0.95
         capped = self._teh(0.0, guf_parcels=URBAN, guf_cap="payable")
@@ -254,10 +253,10 @@ class TestTheReserveRuleAndTheAssessedLevy:
 
     def test_a_reserve_increment_is_what_makes_the_trust_grow(self):
         """Pay-as-you-go holds the balance still; only the declared increment
-        accumulates. BOTH BRANCHES of the rule are pinned, because the fee can
-        already over-cover: at ε=0.40 the uncapped urban fee is 2.51× the V1
-        guarantee, so the assessed rate is correctly ZERO there and equality
-        cannot hold — it holds where the levy is the only inflow."""
+        accumulates. Both branches are pinned, because the fee can already over-cover:
+        at ε=0.40 the urban fee is 2.39× the V1 guarantee today, so the assessed rate is
+        ZERO there.
+        """
         from hours_eoh.core.fiscal import assessed_levy_rate
         # Branch 1: the levy is the only inflow, so the assessed rate lands
         # exactly on what is owed.
@@ -289,8 +288,9 @@ class TestTheReserveRuleAndTheAssessedLevy:
             mod.reserve_plan(0.40, years_of_guarantee=10.0, insure_at_epsilon=1.5)
 
     def test_the_reserve_is_pegged_to_the_epsilon_it_insures_against(self):
-        """35x between the ends, so N sized at the bottom buys almost nothing
-        at the top — the choice is declared, not defaulted."""
+        """The target differs ~35× between the ends, so a reserve sized at the bottom
+        buys almost nothing at the top. The choice is declared, not defaulted.
+        """
         at_top = mod.reserve_plan(0.0, years_of_guarantee=10.0, insure_at_epsilon=0.99,
                                   need_fraction=0.05, guf_parcels=URBAN)
         at_here = mod.reserve_plan(0.0, years_of_guarantee=10.0, insure_at_epsilon=0.0,
@@ -351,10 +351,10 @@ class TestBandsAndDrawdown:
         assert stationary_bands(guf_parcels=URBAN, guarantee="shipped")["teh"]["upper"] is None
 
     def test_the_reported_closing_levy_and_feeless_band_are_what_a_rerun_gives(self):
-        """`levy_to_cover` is the smallest flat rate holding TEH on the whole
-        arc — applied it holds, a hair under it does not — and the without-fee
-        band is a run with no fee. The verdict said the fee carried the LOW end;
-        it carries the top, so read both off the scan rather than state them."""
+        """`levy_to_cover` is the smallest flat rate that holds TEH on the whole arc,
+        and the no-fee band is a run with no fee. The verdict once said the fee carried
+        the LOW end; it carries the top, so both are read off the scan.
+        """
         b = stationary_bands(step=0.11, guf_parcels=URBAN)
         rate = b["levy_to_cover"]["rate"]
         held = stationary_bands(step=0.11, guf_parcels=URBAN, levy_rate=rate * (1 + 1e-9))["teh"]
@@ -364,18 +364,11 @@ class TestBandsAndDrawdown:
         assert b["teh_without_fee"] == stationary_bands(step=0.11, guf_parcels=[])["teh"]
 
     def test_the_report_runs_the_adopted_configuration_and_says_so(self):
-        """THE PUBLISHED VERDICT WAS AN ARTEFACT OF AN UNSUPPLIED INPUT.
-
-        Until 2026-09-16 the CLI called `stationarity_report(epsilon, standard=)`
-        and nothing else, so the report priced no land fee and resolved
-        `need_fraction` to the guarantee's own `floor_fraction` (~0.15, three
-        times the adopted 0.05). It published "TEH stands still nowhere" at
-        every ε — true for a collective holding no land, and presented as the
-        framework's answer while the adopted configuration stands still across
-        the whole arc.
-
-        Both halves are pinned here: the band is real, and the configuration
-        that produced it is RETURNED rather than left to be inferred.
+        """Until 2026-09-16 the CLI priced no land fee and resolved `need_fraction` to
+        ~0.15, three times the adopted 0.05. It published "TEH stands still nowhere",
+        while the adopted configuration stands still across the arc. The test pins the
+        band and that the report RETURNS its configuration
+        ([record](record/fulfilment.md#v1-adopted-and-the-report-that-ran-no-fee)).
         """
         from hours_eoh.scenarios.stationarity import stationarity_report
         from hours_eoh.data import SUFF_LEVY_RATE, SUFF_NEED_FRACTION
@@ -390,23 +383,11 @@ class TestBandsAndDrawdown:
         assert rep["bands"]["both"]["any_stationary"] is True
 
     def test_a_caller_naming_no_land_loses_the_top_of_the_arc_not_the_band(self):
-        """WHAT THE FEE ACTUALLY DOES, decomposed rather than assumed.
-
-        The first version of this test asserted the band went EMPTY without
-        land, because the CLI's published verdict said "nowhere" and the fee
-        looked like the cause. It is not. Measured over both factors:
-
-            parcels   need                TEH band
-            none      0.05 (adopted)      [0.00, 0.97]
-            none      ~0.15 (old default) nowhere
-            urban     0.05 (adopted)      [0.00, 0.99]
-            urban     ~0.15 (old default) [0.00, 0.53]
-
-        "Nowhere" was the CONJUNCTION of a missing fee and a need fraction three
-        times the adopted one, and the need fraction did more of the work —
-        either fix alone removes it. What the fee does on its own is carry the
-        TOP of the arc, where registration has saturated and the mint has
-        plateaued while the guarantee has not.
+        """Without land the band is shorter, not absent: [0.00, 0.97] against [0.00,
+        0.99] with the urban sample at the adopted need. The old "nowhere" needed BOTH a
+        missing fee and the ~0.15 need fraction, and either fix alone removes it. On its
+        own the fee carries the TOP of the arc, where registration has saturated and the
+        guarantee has not.
         """
         from hours_eoh.scenarios.stationarity import stationarity_report
 
@@ -437,9 +418,10 @@ class TestBandsAndDrawdown:
 
 
 class TestRegisteredWorkAccess:
-    """Author, 2026-09-30: watch whether someone can walk away to registered
-    work, and whether it covers its members; minimum market wage is a charter
-    choice and the model proceeds with none."""
+    """Author, 2026-09-30: watch whether a member can walk away to registered work, and
+    whether it covers its members. A minimum market wage is a charter choice, and the
+    model proceeds with none ([record](record/fulfilment.md#registered-work-access)).
+    """
 
     KEY = (0.0, 0.40, 0.90, 0.99)
 
@@ -453,8 +435,9 @@ class TestRegisteredWorkAccess:
 
     @pytest.mark.parametrize("eps", KEY)
     def test_need_is_the_registered_personal_hours_at_the_floor(self, eps):
-        """The 1:1 base: members' TEH need is registered human personal hours
-        × M_FLOOR, bound to D3 by `d3_consumption`."""
+        """The 1:1 base: members' TEH need is registered human personal hours × M_FLOOR,
+        bound to D3 by `d3_consumption`.
+        """
         from hours_eoh.data import M_FLOOR
         from hours_eoh.scenarios.stationarity import registered_work_access
         r = registered_work_access(eps)
@@ -469,7 +452,7 @@ class TestRegisteredWorkAccess:
         assert c["cover"] >= c["cover_structural_minimum"] * (1.0 - 1e-12)
 
     def test_a_lower_multiplier_lowers_the_structural_minimum(self):
-        """The minimum is read from the mint's multiplier, not restated."""
+        """The minimum comes from the mint's multiplier and is not restated."""
         from hours_eoh.scenarios.stationarity import registered_work_access
         lo = registered_work_access(0.40, mean_multiplier=1.5)["coverage"]
         assert lo["cover_structural_minimum"] == pytest.approx(1.5, rel=1e-12)
@@ -509,10 +492,8 @@ class TestRegisteredWorkAccess:
 
 
 class TestTheStockAgeReachesBothSides:
-    """
-    The frame's measured stock age was resolved and never passed: the pipeline
-    and the compass both read `CAPITAL_AGE_RATIO_DEFAULT` (2026-10-07). Mode 5,
-    the stranded parameter.
+    """The frame's measured stock age was resolved and never passed, so the pipeline and
+    the compass both read `CAPITAL_AGE_RATIO_DEFAULT` (2026-10-07; mode 5).
     """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -552,10 +533,10 @@ class TestTheAdultShareReachesBothFunctions:
 
 
 class TestTheDrawdownCarriesTheStandardFee:
-    """2026-10-15 (author: apply the standard method to the drawdown). It
-    carried NO land fee, so its Trust ran on the levy alone while
-    stationarity's ran on levy and fee. It now defaults to the report's urban
-    sample, and a caller's own parcels are honoured."""
+    """The drawdown carried NO land fee, so its Trust ran on the levy alone while
+    stationarity's ran on levy and fee (author, 2026-10-15). It now defaults to the
+    report's urban sample and honours a caller's own parcels.
+    """
 
     def test_the_default_is_the_reports_sample_and_moves_the_trust(self):
         from hours_eoh.land.collective import make_urban_collective

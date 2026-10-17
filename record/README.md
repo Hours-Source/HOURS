@@ -119,10 +119,10 @@ fails if it is raised far enough to stop guarding.
      applied to open items.
    - **A `gap` retyped `held` must gain its reason in the same edit.** This is
      the silencing move — the one transition that makes work disappear without
-     anything landing — so the cost of making it is writing down why. All four
-     `held` items today do state it ("Do not build without a reason to";
-     "declared limits, not gaps to close opportunistically"; "Recorded rather
-     than papered over").
+     anything landing — so the cost of making it is writing down why. The four
+     `held` items today state it ("Do not build without a reason to"; "a test
+     fails if it acquires a caller"; "declared limits, not gaps to close
+     opportunistically"; "conflict may be beyond scope").
    - **A `held` retyped `gap` needs the decision recorded**, because something
      the repo decided against is being reopened. A history entry with an
      anchor, cited from the item.

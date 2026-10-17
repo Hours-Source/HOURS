@@ -62,10 +62,11 @@ is their **evidence**: the sessions in which each was found, with the numbers.
   because an audit changes no shape in the tree and a hold on a value being
   unassessable is not contradicted by the module that says so. Coverage is
   ratcheted by `PREDICATE_FLOOR` and may not fall.
-- **The shadow ratchet cannot catch its own bound being loosened.** *(held)* `len(_DECLARED)
-  <= 8` passes if the bound is simply raised — verified, that mutation does not
-  bite. Recorded rather than papered over: raising it is a visible act in a diff,
-  and a meta-ratchet moves the same problem up one level.
+- **The wiring ratchet's bound is pinned one level up.** *(caveat)* Retyped from
+  `held` 2026-10-17 (author: keep the check;
+  [ste-docstrings](#ste-docstrings)). `_wiring_bound_still_12` reads the bound from
+  the assertion and fails if it moves. Raising both is still possible, in a diff of
+  two files.
 - **~~`utils/corridor_cmd.py --available-labor` defaults to 1.0e9~~ — SETTLED
   2026-09-04** *(gap)* (bound to the feasibility frame; the literal was a second
   account of L). `--available-labor` now defaults to `labor_supply_per_capita()
@@ -91,6 +92,129 @@ for the two gates filed there.
 ---
 
 ## History
+<a id="verdict-ladder-census-history"></a>
+
+**THE TIER-CENSUS LOG THAT `tests/test_verdict_ladder.py` CARRIED IN A DOCSTRING, MOVED HERE VERBATIM** (2026-10-17, test docstring batch 4; [ste-docstrings](#ste-docstrings)). Since 2026-10-03 the acknowledged shares live in `tests/census_snapshot.json` (`utils/census.py`) and a move's reason goes in the commit message, so this log stopped growing then. **LIVE (`tier_census()`, 2026-10-17): 372 = 32 CERTAIN / 116 INSTANCE / 224 POSSIBLE; POSSIBLE is 60.2%** (the class docstring said 65%). The walk finds 21 dependencies for `total_eoh` (the docstring said 18; the test asserts at least 15). The log as it stood, entries in the order written:
+
+```text
+**THIS RATCHET FIRED THE DAY AFTER IT WAS WRITTEN, AND THAT IS THE
+POINT.** Adding `REGISTER_CADENCE` as an `instance` moved the census
+342 -> 343 and INSTANCE 89 -> 90. Nothing was wrong; a constant landed.
+The ratchet exists so that a share which moves is an EVENT someone
+acknowledges in a diff, rather than a drift nobody sees — so the fix
+is to update these numbers deliberately, with the reason, never to
+loosen the assertion into a range.
+
+history: 342 = 31/89/222 at adoption (2026-09-11)
+         343 = 31/90/222 after REGISTER_CADENCE (2026-09-11)
+         346 = 31/93/222 after the three water constants (2026-09-11)
+         345 = 31/93/221 after LEVY_SUFFICIENCY_WARN was RETIRED
+               (2026-09-16)
+         345 = 31/93/221 after SUFF_NEED_FRACTION was NAMED
+               (2026-09-16) — the V1 need fraction the levy was sized
+               against, which had existed only as a bare 0.05 in test
+               lines and record prose. POSSIBLE rose because it is
+               `normative`: a charter decision about who the guarantee
+               reaches, which no dataset settles. Naming a number that
+               was already governing output does not make the framework
+               less certain; it makes the uncertainty countable.
+         344 = 31/93/220 after ELDERLY_EOH_EPSILON_FACTOR was DELETED
+               (2026-09-16) — retired 2026-09-04 with zero readers for
+               twelve days, so it was neither debt nor a `baseline`
+               (nothing live to compare against); the reasoning moved to
+               record/personal.md, which a test now requires to exist
+         346 = 31/94/221 after TRUST_BASE_TEH_PER_CAPITA was NAMED
+               (2026-09-17) — the inheritance repriced to 8,760
+               TEH/person. INSTANCE rose because the per-capita figure
+               is what an institution supplies. TRUST_BASE_TEH was KEPT
+               `instance` rather than retagged `derived`, which its
+               value now is: `derived` moved it to CERTAIN (31 -> 32),
+               because the ladder reads that tag without following
+               through to what the value bottoms out on. Its
+               COMPUTATION became derived; its STANDING did not.
+         347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+         348 = 31/96/221 after
+               LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA was NAMED
+               (2026-09-21) — the capital grid swept by the low-ε floor
+               diagnostic. INSTANCE rose for the same reason the entry
+               below gives: `convention` lands there. **It is a probe
+               grid for a REPORTING-ONLY table and governs no shipped
+               output**, which is why the ladder's shares moved while
+               every ε, obligation and verdict in the suite stayed
+               bit-identical. The constant exists because the canonical
+               arc's zero capital at ε=0 floors the labour instrument
+               for 9 of 65 MTUS samples at `broad`; naming the grid
+               makes the floor examinable without editing the arc.
+         347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
+               (2026-09-18) — the arc's EVALUATION bound, which had
+               existed only as a bare 0.99 at ~56 operative sites.
+               INSTANCE rose because `convention` lands there, the
+               same tier REFERENCE_FRAME_POPULATION sits in: the
+               framework got one more thing it asks you to DECLARE,
+               and CERTAIN did not move. It is deliberately NOT the
+               achievable ceiling, which is derived and moves —
+               observable_epsilon_ceiling() reads 0.788-0.877 under
+               per_component, and the two are gated apart.
+         357 = 32/100/225 after RETIREMENT_REGISTER_AGE (normative,
+               the charter's age for the register event) and
+               RETIREMENT_YEARS_IN_COLLECTIVE (instance, the
+               collective's own record) were NAMED (2026-10-03) for
+               the opt-in retirement register. One judgement the
+               collective makes, one input it supplies.
+         355 = 32/99/224 after SUFF_GUARANTEE_FLOOR_FRACTION was
+               NAMED (2026-10-02) — the shipped guarantee design's
+               recipient share, a bare 0.15 at three defaults beside
+               its two named companions. POSSIBLE rose: normative.
+         354 = 32/99/223 after CANONICAL_CAPITAL_AGE_BASE was
+               NAMED (2026-10-02) — the canonical arc's ε=0 capital
+               age, a bare 0.30 in trajectory.py beside its named
+               drift, and retyped as a default at ten sites.
+         353 = 32/98/223 after ECOSYSTEM_HEALTH_DEFAULT was NAMED
+               (2026-10-02) — `instance`, the 0.70 retyped at 24 sites
+               with no source. INSTANCE rose: naming an input the
+               caller supplies makes it explicit, not more certain.
+         352 = 32/97/223 after COLLECTIVE_LAND_RESERVE_FACTOR
+               (normative, the author's ×4, 2026-10-01) and
+               M2_PER_HECTARE (convention, the SI unit) were NAMED
+               for the reserved land floor in research/parcel_condition
+               — one new judgement, one unit identity; neither is a
+               placeholder.
+         350 = 32/96/222 after ESSENTIAL_BRIDGE_PERSONAL was
+               DERIVED (2026-10-01) — the personal column of the
+               essential-domain bridge, computed from the obligation's
+               components and frozen because core/ cannot import the
+               scenarios that measure its splits. CERTAIN rose because
+               the census ranks a constant by its own tag; it rests on
+               PERSONAL_EOH_COMPONENTS (placeholder), stated in its
+               `form:` as the scheme requires — the same shape as
+               CAPITAL_PERSONAL_SERVING_SHARE. It replaced one column
+               of an untagged table outside data.py; the shadow count
+               did NOT move, because that table still supplies the
+               other three columns.
+         349 = 31/96/222 after SHOCK_DEGRADED_TRUST_FRACTION was
+               NAMED (2026-09-30) — the DEGRADED/CRISIS boundary that
+               had lived as three unnamed copies with two values
+               (0.05 in one shock, 0.10 in two). POSSIBLE rose because
+               it is `normative`, as SUFF_NEED_FRACTION's did: naming a
+               number already governing output makes the uncertainty
+               countable, not larger.
+
+**The 2026-09-16 move is the first DOWNWARD one, and it is the good
+direction for a reason worth stating.** POSSIBLE fell because a
+constant left `data.py` entirely: the levy-sufficiency threshold was
+calibrated to the value it watched, so the pillar it drove could only
+ever report GREEN. It was replaced by an identity — do inflows cover
+the guarantee — which needs no constant at all. The framework got no
+more measured; it got one less thing to have to measure, which is the
+only kind of count reduction this ratchet should ever see.
+
+**Note what the three water constants did to the SHARES**: INSTANCE rose
+and POSSIBLE did not move, because declaring a component resolves it
+without measuring anything. That is the verdict ladder's INSTANCE tier
+working as designed — the framework got no more certain, it got more
+explicit about what it is asking you to supply.
+```
+
 <a id="claims-register-test-history"></a>
 
 **THE HISTORY THAT `tests/test_claims_register.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-16, author: "use (b) create record and link to"). The gate's stated gaps stay in its docstrings, with every marker phrase its self-checks read; only history moved. Dated findings, quoted as the docstrings stated them.
@@ -113,6 +237,12 @@ for the two gates filed there.
 - **STALE DOCSTRINGS FOUND IN BATCH 2 (mode 7), each now matching its code.** `test_eoh_generation`: Phase 4f called "default-off" and Phase 4e "unadopted" (4f adopted 2026-08-28, 4e 2026-08-29; the class's own first test asserts the default); the knowledge factor 1,394.45× (778.48× live); the final-basis drift +6.1% (+5.10% live); knowledge ~8% at ε=0.40 (5.69% live); ecological "~0.04%, the open defect" (0.0%, settled; the test, `test_domain_balance_ecological_is_still_the_open_defect`, is renamed `test_domain_balance_ecological_is_below_a_tenth_of_a_percent`). `test_verification_cost`: peak ε ≈0.765 (0.762 live), core crossing ~87× (88.8× live). `test_land_stewardship`: 222× (~223× live), 9.433 and 22.5% (9.323 and 21.6% live). In each case the assertion beside the docstring had been updated and the prose had not.
 - **BATCH 3, SIX MORE TEST FILES (2026-10-17, held for review).** Before → after: `test_measured_capacity` 62.0 → 89.7%, `scenarios/test_component_shares` 64.6 → 86.3%, `test_personal_floor` 65.4 → 86.5%, `test_multipliers` 65.5 → 85.4%, `test_exchange` 71.4 → 90.4%, `test_care_demand` 72.1 → 91.7%; all test docstrings together 80.4% of 4,618 sentences, 158 over 60 words. Six stay over 60 words: four module docstrings (author, 2026-10-17: "module docstring can be longer, avoid prolixity"), `TestEpochAlphaWeightsShape` (it quotes the two lines that enforce its old invariant), and `TestTheBaseDeclaresItsClimate`, whose self-check reads "does not\n    make the base right": a LINE BREAK, not only a phrase, so the rewrap moved it and it was set back by hand. History moved to [measured-capacity-test-history](personal.md#measured-capacity-test-history), [personal-floor-test-history](personal.md#personal-floor-test-history), [care-demand-test-history](personal.md#care-demand-test-history) and [exchange-test-history](contestability.md#exchange-test-history). Two smaller facts with no entry: `test_component_shares`' codes `0399` and `0499` report zero time in 17 and 18 of 22 survey years, and `test_multipliers`' α finding counted eight of the then 57 shadow constants (the ratchet is 29 today).
 - **STALE IN BATCH 3, each now matching its code.** `test_personal_floor`: coverage "6.9%", "one component of seven" and care "unpriced" (75.9%, 3 of 7, care priced as a lower bound since 2026-09-09), and the base's band 427–1092 (482–1147). `test_measured_capacity`: 43/50 frames (45/50), and a class docstring saying the band correction is "DELIBERATELY NOT FIXED" above a test asserting its adoption. `test_care_demand`: an infant on care alone ~25 adults (56.4), the child weight 1.5 (1.82), and "exactly one weight moved" (two). `test_multipliers`: "eleven core functions" default to the reference multiplier (nine defaults in core today). `test_component_shares`: excluded time "roughly a third of what is mapped" (43% of mapped, 30% of all). **And one test that cannot fail:** `test_exchange`'s land-area test compares 0.0 with 2 × 0.0 since Phase 4e ([exchange-test-history](contestability.md#exchange-test-history)); left for the author. The stale names `test_only_nutrition_production_is_priced` and `TestOnlyTheElderlyWeightWasAdopted` are renamed `test_only_the_measured_components_are_priced` and `TestTheAgeWeightRevaluations` (author, 2026-10-17), and `core/conditions.py` drops the `MEAN_MULTIPLIER_REFERENCE` import `97bbc51` left unused.
+- **BATCH 4, SIX MORE TEST FILES (2026-10-17, held for review).** Before → after: `test_automation_floors` 72.9 → 91.5%, `scenarios/test_guf_magnitude` 65.6 → 87.5%, `test_parameter_wiring` 55.6 → 84.1%, `test_verdict_ladder` 62.1 → 88.9%, `test_knowledge_base` 67.6 → 93.0%, `test_one_mint_path` 58.0 → 80.0%; all test docstrings together 82.8% of 4,557 sentences, 144 over 60 words. The five still over 60 words are four module docstrings and `test_one_mint_path`'s `TestFulfilmentIsAssumedUnlessLabourIsSupplied`. `test_parameter_wiring`'s module docstring went 755 → about 380 words, keeping every stated gap and the four phrases its self-check reads. `test_verdict_ladder`'s 929-word census log moved verbatim to [verdict-ladder-census-history](#verdict-ladder-census-history), and the code comment that called it "the log above" now points there.
+- **A CLAIMS-REGISTER PREDICATE WAS READING PROSE (mode 12, found by the batch-4 rewrite).** `_shadow_bound_still_8` regex-searched `tests/test_parameter_wiring.py` for `_DECLARED) <= N` and took the FIRST match, which was the module docstring's "`len(_DECLARED) <= 8`". The assertion has read `<= 12` since 2026-09-01 (commit `d1c14f1`, 2026-09-02), before the predicate was written on 2026-09-04, so the held item's predicate checked stale prose. Mutation: with the assertion raised to 13, the old regex still read 8 and passed. It is now `_wiring_bound_still_12`, anchored on the `assert` line; raised to 13 it fails `test_a_held_item_has_not_been_built`. The held item's text in § Open now says `<= 12`. The item was titled "the shadow ratchet" while its text and predicate concern the WIRING ratchet's `_DECLARED`; it is retitled "The wiring ratchet …" in § Open and in the predicate's key (author, 2026-10-17).
+- **STALE IN BATCH 4, each now matching its code.** `test_automation_floors`: `PERSONAL_AUTOMATION_FLOORS` "carries one entry" (two: care and nutrition, both 0.2808). `test_verdict_ladder`: 65% in the weakest tier (60.2%), 18 dependencies for `total_eoh` (21). `test_knowledge_base`: "re-anchored four times, most recently 2026-08-17" and "twice" (the constant's tag block lists twelve, the last 2026-10-15), the factor against K-IV 0.609410× (0.5956×); ε* is 0.5087 today. The freeze epoch (2026-07-29) left the docstring and stays on the constant's line in data.py. Dropped from that file as a forecast rather than a fact: the fixed-point test "should fire again when domain balance is fixed and when abatement becomes the default generation path".
+- **BATCH 5, SIX MORE TEST FILES (2026-10-17, held for review).** Before → after: `test_labour_epsilon` 72.0 → 84.4%, `scenarios/test_stationarity` 58.3 → 82.2%, `test_stock_is_bounded` 63.0 → 82.9%, `test_capital_scale_resolution` 69.4 → 84.0%, `test_contestability` 68.4 → 81.6%, `test_capability_vs_observable` 69.1 → 83.7%; all test docstrings together 84.1% of 4,504 sentences, 135 over 60 words; every file landed in the low 80s. Twelve stay over 60 words: four module docstrings; four gate classes with stated gaps (`TestCanonicalStateCapitalCarriesTheFrame`, `_unscaled_capital_constant_reads`, `TestTheStockAgeHasNamedDefaults`, `TestNoFigureIsRestatedInProse`); and four two-paragraph class docstrings kept long by choice, not as gates (`TestTheLabourArmTakesItsDataToo`, `TestTheVerdictIsAChoiceAndSaysSo`, `TestTheEndowmentTurnsOverInTheLongRun`, `TestPriorWorkEntersThroughSavings`). The history links to existing entries. Dated figures that left the docstrings and are not elsewhere in the record: stationarity's pre-2026-09-15 understatement (21 against 458 human hours per capita at ε=0.99); labour_epsilon's one class age that put the whole stock 1.15 lives old; contestability's machine-output ratio of 8.5× "after the PERSONAL_EOH_BASE reprice"; stationarity's "0.87 of people on ledger" at ε=0.99; and capital-scale's "25 of the 32 functions" that call `resolve_capital_stock` with a population in scope, of which only `land/calibration.py` scaled, its comment reading "THE SEAM ITSELF IS UPSTREAM AND IS NOT FIXED HERE".
+- **STALE IN BATCH 5, each now matching its code.** `test_labour_epsilon`: the corner verdict "DIVERGENT at 0.0597", "8 of the 18 cells" and a grid of 0.200–0.757 (OVERLAP, 10 of 18, 0.160–0.680), and a doctrine-flip docstring describing government scope where the code tests residential. `test_stationarity`: top over bottom "2.4×" sized to "the shipped 4.5%" (1.80×; the levy is 4.6%), the fee "99.9%" of the mint (97.6%), and the fee 2.51× the guarantee (2.39×). The 99.9% was written on 2026-10-15; what moved it and the 2.51× since was not traced, so read the earlier figures as dated, not as wrong when written. `test_stock_is_bounded`: its module docstring said `teh_supply` "raises on the shipped model's canonical trajectory" and restated the retirement mechanism, both withdrawn on 2026-09-17 by the class beneath it. `test_contestability`: the machine-output ratio 8.5× (11.7×).
+- **THE WIRING RATCHET'S OPEN ITEM, RETYPED `held` → `caveat` (author, 2026-10-17: keep the check, update the text).** Batch 4's predicate fix made `_wiring_bound_still_12` read the bound from the assertion, so the claims register now fails if the bound moves — the meta-ratchet the `held` item had declined. The item now states that, and its residual: raising both bounds passes, in a diff of two files. `test_parameter_wiring`'s stated gap and `record/README.md`'s list of held items were updated with it; the earlier entries that name the hold stay as written.
 
 <a id="deprecated-layer-retired"></a>
 
@@ -248,8 +378,9 @@ for the two gates filed there.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 45 entries, newest first | |
+| 46 entries, newest first | |
 |---|---|
+| [verdict-ladder-census-history](#verdict-ladder-census-history) | THE TIER-CENSUS LOG THAT `tests/test_verdict_ladder.py` CARRIED IN A DOCSTRING, MOVED HERE VERB… |
 | [claims-register-test-history](#claims-register-test-history) | THE HISTORY THAT `tests/test_claims_register.py` DOCSTRINGS CARRIED, MOVED HERE |
 | [ste-docstrings](#ste-docstrings) | DOCSTRINGS TO ABOUT 80% ASD-STE100: THE CHECKER, AND TEST BATCH 1 |
 | [deprecated-layer-retired](#deprecated-layer-retired) | THE DEPRECATED LAYER RETIRED — DELETED, NOT KEPT; GIT HISTORY HOLDS IT |

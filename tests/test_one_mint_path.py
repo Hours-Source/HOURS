@@ -1,28 +1,21 @@
-"""
-One mint path — the register is what disqualifies the hole-digger.
+"""One mint path: the register is what disqualifies the hole-digger.
 
-WHY THIS EXISTS. The value-anchor argument's whole defence against labour
-vouchers and energy certificates is that an hour mints nothing unless a
-registered obligation existed and was met. Person A digs a hole for eight hours,
-Person B fills it in for eight hours, and the civilization gains nothing —
-because no obligation was registered, not because someone judged the work
-useless. The same test kills energy accounting, which is as physically grounded
-as this framework and still counts the joules spent on the hole.
+The value-anchor argument's defence against labour vouchers and energy certificates is
+that an hour mints nothing unless a registered obligation existed and was met. Person A
+digs a hole for eight hours, Person B fills it in, and the civilization gains nothing:
+no obligation was registered, and nobody had to judge the work useless. The same test
+kills energy accounting, which still counts the joules spent on the hole. The claim was
+stated in prose and checked nowhere
+([record](record/verification.md#one-mint-path-gated)).
 
-That claim was stated in prose in several places and checked nowhere.
+STRUCTURAL AND MEASURED. `teh_created` is `registered_eoh × multiplier`, so "zero
+registration mints nothing" and "linear in registered" are IDENTITIES of the formula.
+They are pinned because the formula is the claim, and a future floor or bonus term would
+break them. The other three classes are not identities: registration binds hard in
+practice, surplus labour mints nothing, and no fiscal or land lever reaches the mint.
 
-WHAT IS STRUCTURAL AND WHAT IS MEASURED — stated, because a test that the
-implementation enforces unconditionally proves nothing. `teh_created` is
-`registered_eoh × multiplier`, so zero-registration-mints-nothing and
-linear-in-registered are IDENTITIES of that formula. They are pinned anyway,
-because the formula is the claim and a future floor or bonus term would break
-them. The load-bearing tests are the other three classes, which are not
-identities: that registration is heavily binding in practice, that surplus labour
-mints nothing, and that no fiscal or land lever reaches the mint.
-
-WHAT THIS DOES NOT CLAIM. See `TestFulfilmentIsAssumedUnlessLabourIsSupplied`.
-On the default path the pipeline mints from human EOH that is DEMANDED, not
-SERVED. That gap is real, is the module's own documented behaviour, and bounds
+WHAT THIS DOES NOT CLAIM: on the default path the pipeline mints from human EOH that is
+DEMANDED, not SERVED (`TestFulfilmentIsAssumedUnlessLabourIsSupplied`). That gap bounds
 what the anchor argument may say.
 """
 
@@ -92,11 +85,9 @@ class TestRegistrationIsBindingNotAFormality:
 
 
 class TestSurplusLabourMintsNothing:
-    """
-    THE HOLE-DIGGER, RUN. Supplying labour beyond the registered obligation must
-    not create TEH — the mint saturates on the obligation, not on the hours
-    offered. NOT an identity: it depends on the rationing path only ever
-    REDUCING what is served.
+    """THE HOLE-DIGGER, RUN. Labour beyond the registered obligation must not create
+    TEH, because the mint saturates on the obligation, not on the hours offered. Not an
+    identity: it depends on the rationing path only ever REDUCING what is served.
     """
 
     def test_the_mint_saturates_on_the_obligation(self):
@@ -163,13 +154,10 @@ class TestOneMintPath:
             setattr(D, constant, original)
 
     def test_converting_eoh_to_teh_units_is_not_minting(self):
-        """
-        `fiscal.stewardship_allocation` computes `human_eoh × mean_multiplier`,
-        which looks exactly like the mint and is not one: it is a REQUIREMENT
-        expressed in TEH so it can be compared against the Trust. The
-        distinction is that it does not enter `teh_created`, and this pins it —
-        otherwise the AST gate above could be satisfied while the arithmetic
-        happened somewhere else under another name.
+        """`fiscal.stewardship_allocation` computes `human_eoh × mean_multiplier`, which
+        looks like the mint and is not: it is a REQUIREMENT in TEH, for comparison with
+        the Trust. The test pins that it stays out of `teh_created`, or the AST gate
+        could pass while the arithmetic ran elsewhere under another name.
         """
         from hours_eoh.core.fiscal import stewardship_allocation
         alloc = stewardship_allocation(
@@ -192,13 +180,10 @@ class TestOneMintPath:
 class TestTheTrustDrawsDownRatherThanCreates:
 
     def test_the_guarantee_leaves_the_balance(self):
-        """
-        `trust_end = start − guarantee + inflows`. What the Trust owes is a
-        DRAWDOWN of a held stock, not income: with no inflows the balance must
-        fall by exactly the guarantee, so nothing is created on the way out.
-
-        Until 2026-09-15 the DIVIDEND left the balance instead, whether or not
-        anything was owed, and the guarantee never appeared in it.
+        """`trust_end = start − guarantee + inflows`. The guarantee is a DRAWDOWN of a
+        held stock, so with no inflows the balance falls by exactly the guarantee. Until
+        2026-09-15 the dividend left the balance instead, whether or not anything was
+        owed.
         """
         from hours_eoh.core.fiscal import trust_management
         t = trust_management(trust_balance=1.0e10, levy_revenue=0.0,
@@ -218,39 +203,20 @@ class TestTheTrustDrawsDownRatherThanCreates:
 
 
 class TestFulfilmentIsAssumedUnlessLabourIsSupplied:
-    """
-    THE HONEST GAP, and it bounds what the anchor argument may claim.
+    """THE HONEST GAP, and it bounds what the anchor argument may claim. The chain is
+    "obligation → VERIFIED fulfilment → claim", and on the default path the middle step
+    is assumed: `available_labor_eoh` defaults to None, so the pipeline mints from
+    DEMANDED human EOH, as its own docstring says.
 
-    The chain is "physical obligation → VERIFIED fulfilment → monetary claim".
-    On the default path the second step is assumed: `available_labor_eoh`
-    defaults to None and the pipeline mints from human EOH that is DEMANDED. The
-    module's own docstring says so — "without it the pipeline assumes every hour
-    of human-carried EOH gets worked — a demand figure reported as fulfillment".
+    At its sharpest: supply an apparatus and NO population, and the default path still
+    mints, because an infrastructure obligation needs the apparatus, not people. Supply
+    the labour constraint and it mints nothing. An institution must run that path to
+    make the verification real.
 
-    Measured here at its sharpest: with NO POPULATION AT ALL but an APPARATUS
-    supplied, the default path still mints, because an infrastructure obligation
-    depends on the apparatus existing, not on anyone existing. Supply the
-    constraint and it mints exactly nothing.
-
-    This is not a defect in the constraint — it is a statement about which path
-    an institution must run to make the verification real, and the implementation
-    guide should say so.
-
-    **RESTATED 2026-09-16, WHEN THE CAPITAL FRAME WAS CLOSED.** These cases used
-    to pass `population=0.0` and NO capital stock, and relied on the resolver
-    returning the 1M-reference stock whatever the population — the frame seam
-    itself was supplying the apparatus. Now a resolved stock scales with
-    population, so zero people means zero apparatus and zero obligation, and the
-    device stops working. The CLAIM is unchanged and is now stated the way it
-    always meant: supply the apparatus, remove every person, and the obligation
-    is still there.
-
-    The old wording also said "infrastructure AND KNOWLEDGE obligations do not
-    depend on anyone existing". The knowledge half was already false before this
-    change — `test_eoh_generation.py` has long pinned
-    `knowledge_eoh(None, epsilon=0.40, population=0.0) == 0.0`, because the
-    knowledge obligation scales with the people who carry the corpus. Only the
-    infrastructure half was ever true, and only because capital was unframed.
+    Restated 2026-09-16, when the capital frame closed: the cases now supply the
+    apparatus explicitly, because a resolved stock scales with population
+    ([record](record/fulfilment.md#capital-frame-closed)). Only the infrastructure
+    obligation outlives its people; knowledge scales with them.
     """
 
     #: The apparatus the arc resolves at ε=0.40 in the reference frame. Supplied
@@ -294,16 +260,11 @@ class TestFulfilmentIsAssumedUnlessLabourIsSupplied:
         assert assumed > verified == 0.0
 
     def test_with_no_apparatus_and_no_population_nothing_is_resolved(self):
-        """THE FRAME CHANGE ITSELF, pinned rather than left as an absence.
-
-        Before 2026-09-16 this minted 3.3964e8 TEH: `population=0.0` with no
-        capital stock still resolved the 1M-reference apparatus, so a collective
-        of nobody carried the reference frame's entire maintenance burden. The
-        frame holds capital INTENSITY fixed, so zero people is zero apparatus.
-
-        Pinned in BOTH directions — the test above shows a named apparatus still
-        generates its obligation at zero population, so this zero is the frame
-        resolving correctly and not the pipeline going silent.
+        """The frame change itself. Before 2026-09-16 this minted 3.3964e8 TEH, because
+        zero people still resolved the 1M-reference apparatus. The frame holds capital
+        INTENSITY fixed, so zero people is zero apparatus; the test above shows a named
+        apparatus still generates its obligation, so this zero is the frame, not a
+        silent pipeline.
         """
         r = eoh_to_teh_pipeline(epsilon=0.40, population=0.0)
         assert r["teh_created"] == 0.0

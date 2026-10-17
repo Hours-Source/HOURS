@@ -795,10 +795,14 @@ def _anchor_comparison_unbuilt() -> bool:
     return not list((REPO_ROOT / "hours_eoh").rglob("*anchor_comparison*"))
 
 
-def _shadow_bound_still_8() -> bool:
+def _wiring_bound_still_12() -> bool:
+    """The bound in the ratchet's ASSERTION, not in prose. Until 2026-10-17 the search
+    matched the module docstring's stale `<= 8` first, while the assertion read 12
+    ([record](record/verification.md#ste-docstrings)).
+    """
     src = (REPO_ROOT / "tests" / "test_parameter_wiring.py").read_text(encoding="utf-8")
-    m = re.search(r"_DECLARED\)\s*<=\s*(\d+)", src)
-    return m is not None and int(m.group(1)) == 8
+    m = re.search(r"^\s*assert len\(_DECLARED\)\s*<=\s*(\d+)", src, re.M)
+    return m is not None and int(m.group(1)) == 12
 
 
 def _confidence_debt_is_acknowledged() -> bool:
@@ -1052,8 +1056,8 @@ OPEN_ITEM_PREDICATES: tuple[OpenItemPredicate, ...] = (
                       _teh_supply_has_no_caller),
     OpenItemPredicate("Anchor comparison Phases 1–3 are HELD DELIBERATELY", "held",
                       _anchor_comparison_unbuilt),
-    OpenItemPredicate("The shadow ratchet cannot catch its own bound being loosened",
-                      "held", _shadow_bound_still_8),
+    OpenItemPredicate("The wiring ratchet's bound is pinned one level up",
+                      "caveat", _wiring_bound_still_12),
     OpenItemPredicate("λ_equilibrium is not assessable from this data", "held", None,
                       why_none="the hold is on a VALUE being unassessable from the "
                                "data, not on a module; `thermal_lambda.py` exists and "

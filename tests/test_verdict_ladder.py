@@ -1,17 +1,14 @@
-"""
-The verdict ladder as a gate — a verdict may not outrank its weakest input.
+"""The verdict ladder as a gate: a verdict may not outrank its weakest input.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Adopted 2026-09-11 (author decision, `record/theory.md#the-verdict-ladder`).
-Before this existed the rule was prose, and this repo's measured drift interval
-on an ungated commitment is two days.
+Adopted 2026-09-11 (author decision, `record/theory.md#the-verdict-ladder`). Before this
+the rule was prose, and an ungated commitment here drifts in about two days.
 
-WHAT THIS GATE IS FOR, and it is not what it first looks like. It does not stop
-anyone writing an overclaim in a docstring — nothing static can. What it pins is
-that **the ladder stays COMPUTABLE and stays HONEST**: the graph resolves, the
-census cannot drift silently, the tier of the framework's central results cannot
-strengthen without someone noticing, and the safe error direction stays safe.
+It does not stop anyone writing an overclaim in a docstring; nothing static can. It pins
+that **the ladder stays COMPUTABLE and stays HONEST**: the graph resolves, the census
+cannot drift silently, the tier of the central results cannot strengthen unnoticed, and
+the safe error direction stays safe.
 """
 
 from __future__ import annotations
@@ -32,7 +29,7 @@ def records():
 
 
 class TestTheLadderIsComputable:
-    """It was adopted as prose. This is what makes it a check."""
+    """The ladder was adopted as prose. This class makes it a check."""
 
     def test_the_graph_builds_and_is_not_trivial(self, graph):
         assert len(graph) > 400, (
@@ -71,134 +68,22 @@ class TestTheLadderIsComputable:
 
 
 class TestTheCensusCannotDriftSilently:
-    """
-    THE NUMBER THE LADDER MAKES LOAD-BEARING. 65% of constants sit in the
-    weakest tier. If that share moves, either measurement landed or a tag was
-    weakened, and both are events someone should have to acknowledge.
+    """The ladder makes this number carry weight: most constants (60.2% today) sit in
+    the weakest tier. A move means measurement landed or a tag was weakened, and someone
+    must acknowledge either.
     """
 
     def test_the_shares_are_where_the_last_acknowledged_change_left_them(self):
-        """
-        **THIS RATCHET FIRED THE DAY AFTER IT WAS WRITTEN, AND THAT IS THE
-        POINT.** Adding `REGISTER_CADENCE` as an `instance` moved the census
-        342 -> 343 and INSTANCE 89 -> 90. Nothing was wrong; a constant landed.
-        The ratchet exists so that a share which moves is an EVENT someone
-        acknowledges in a diff, rather than a drift nobody sees — so the fix
-        is to update these numbers deliberately, with the reason, never to
-        loosen the assertion into a range.
-
-        history: 342 = 31/89/222 at adoption (2026-09-11)
-                 343 = 31/90/222 after REGISTER_CADENCE (2026-09-11)
-                 346 = 31/93/222 after the three water constants (2026-09-11)
-                 345 = 31/93/221 after LEVY_SUFFICIENCY_WARN was RETIRED
-                       (2026-09-16)
-                 345 = 31/93/221 after SUFF_NEED_FRACTION was NAMED
-                       (2026-09-16) — the V1 need fraction the levy was sized
-                       against, which had existed only as a bare 0.05 in test
-                       lines and record prose. POSSIBLE rose because it is
-                       `normative`: a charter decision about who the guarantee
-                       reaches, which no dataset settles. Naming a number that
-                       was already governing output does not make the framework
-                       less certain; it makes the uncertainty countable.
-                 344 = 31/93/220 after ELDERLY_EOH_EPSILON_FACTOR was DELETED
-                       (2026-09-16) — retired 2026-09-04 with zero readers for
-                       twelve days, so it was neither debt nor a `baseline`
-                       (nothing live to compare against); the reasoning moved to
-                       record/personal.md, which a test now requires to exist
-                 346 = 31/94/221 after TRUST_BASE_TEH_PER_CAPITA was NAMED
-                       (2026-09-17) — the inheritance repriced to 8,760
-                       TEH/person. INSTANCE rose because the per-capita figure
-                       is what an institution supplies. TRUST_BASE_TEH was KEPT
-                       `instance` rather than retagged `derived`, which its
-                       value now is: `derived` moved it to CERTAIN (31 -> 32),
-                       because the ladder reads that tag without following
-                       through to what the value bottoms out on. Its
-                       COMPUTATION became derived; its STANDING did not.
-                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
-                 348 = 31/96/221 after
-                       LOW_EPSILON_CAPITAL_PROBE_TEH_PER_CAPITA was NAMED
-                       (2026-09-21) — the capital grid swept by the low-ε floor
-                       diagnostic. INSTANCE rose for the same reason the entry
-                       below gives: `convention` lands there. **It is a probe
-                       grid for a REPORTING-ONLY table and governs no shipped
-                       output**, which is why the ladder's shares moved while
-                       every ε, obligation and verdict in the suite stayed
-                       bit-identical. The constant exists because the canonical
-                       arc's zero capital at ε=0 floors the labour instrument
-                       for 9 of 65 MTUS samples at `broad`; naming the grid
-                       makes the floor examinable without editing the arc.
-                 347 = 31/95/221 after EPSILON_ARC_MAX was NAMED
-                       (2026-09-18) — the arc's EVALUATION bound, which had
-                       existed only as a bare 0.99 at ~56 operative sites.
-                       INSTANCE rose because `convention` lands there, the
-                       same tier REFERENCE_FRAME_POPULATION sits in: the
-                       framework got one more thing it asks you to DECLARE,
-                       and CERTAIN did not move. It is deliberately NOT the
-                       achievable ceiling, which is derived and moves —
-                       observable_epsilon_ceiling() reads 0.788-0.877 under
-                       per_component, and the two are gated apart.
-                 357 = 32/100/225 after RETIREMENT_REGISTER_AGE (normative,
-                       the charter's age for the register event) and
-                       RETIREMENT_YEARS_IN_COLLECTIVE (instance, the
-                       collective's own record) were NAMED (2026-10-03) for
-                       the opt-in retirement register. One judgement the
-                       collective makes, one input it supplies.
-                 355 = 32/99/224 after SUFF_GUARANTEE_FLOOR_FRACTION was
-                       NAMED (2026-10-02) — the shipped guarantee design's
-                       recipient share, a bare 0.15 at three defaults beside
-                       its two named companions. POSSIBLE rose: normative.
-                 354 = 32/99/223 after CANONICAL_CAPITAL_AGE_BASE was
-                       NAMED (2026-10-02) — the canonical arc's ε=0 capital
-                       age, a bare 0.30 in trajectory.py beside its named
-                       drift, and retyped as a default at ten sites.
-                 353 = 32/98/223 after ECOSYSTEM_HEALTH_DEFAULT was NAMED
-                       (2026-10-02) — `instance`, the 0.70 retyped at 24 sites
-                       with no source. INSTANCE rose: naming an input the
-                       caller supplies makes it explicit, not more certain.
-                 352 = 32/97/223 after COLLECTIVE_LAND_RESERVE_FACTOR
-                       (normative, the author's ×4, 2026-10-01) and
-                       M2_PER_HECTARE (convention, the SI unit) were NAMED
-                       for the reserved land floor in research/parcel_condition
-                       — one new judgement, one unit identity; neither is a
-                       placeholder.
-                 350 = 32/96/222 after ESSENTIAL_BRIDGE_PERSONAL was
-                       DERIVED (2026-10-01) — the personal column of the
-                       essential-domain bridge, computed from the obligation's
-                       components and frozen because core/ cannot import the
-                       scenarios that measure its splits. CERTAIN rose because
-                       the census ranks a constant by its own tag; it rests on
-                       PERSONAL_EOH_COMPONENTS (placeholder), stated in its
-                       `form:` as the scheme requires — the same shape as
-                       CAPITAL_PERSONAL_SERVING_SHARE. It replaced one column
-                       of an untagged table outside data.py; the shadow count
-                       did NOT move, because that table still supplies the
-                       other three columns.
-                 349 = 31/96/222 after SHOCK_DEGRADED_TRUST_FRACTION was
-                       NAMED (2026-09-30) — the DEGRADED/CRISIS boundary that
-                       had lived as three unnamed copies with two values
-                       (0.05 in one shock, 0.10 in two). POSSIBLE rose because
-                       it is `normative`, as SUFF_NEED_FRACTION's did: naming a
-                       number already governing output makes the uncertainty
-                       countable, not larger.
-
-        **The 2026-09-16 move is the first DOWNWARD one, and it is the good
-        direction for a reason worth stating.** POSSIBLE fell because a
-        constant left `data.py` entirely: the levy-sufficiency threshold was
-        calibrated to the value it watched, so the pillar it drove could only
-        ever report GREEN. It was replaced by an identity — do inflows cover
-        the guarantee — which needs no constant at all. The framework got no
-        more measured; it got one less thing to have to measure, which is the
-        only kind of count reduction this ratchet should ever see.
-
-        **Note what the three water constants did to the SHARES**: INSTANCE rose
-        and POSSIBLE did not move, because declaring a component resolves it
-        without measuring anything. That is the verdict ladder's INSTANCE tier
-        working as designed — the framework got no more certain, it got more
-        explicit about what it is asking you to supply.
+        """The tier census must equal the acknowledged snapshot in
+        `tests/census_snapshot.json`. A move is an EVENT: regenerate the snapshot and
+        give the reason in the commit, never widen the assertion to a range. The log of
+        earlier moves is in the record
+        ([record](record/verification.md#verdict-ladder-census-history)).
         """
         # FROM 2026-10-03 THE ACKNOWLEDGED SHARES LIVE IN ONE PLACE —
         # tests/census_snapshot.json, written by `eoh provenance census --write`
-        # (utils/census.py). The log above is kept as history; a new move is
+        # (utils/census.py). For the earlier log see
+        # record/verification.md#verdict-ladder-census-history. A new move is
         # acknowledged by regenerating, and its WHY goes in the commit message.
         from utils import census
         c = VL.tier_census()
@@ -229,15 +114,10 @@ class TestTheVerdictsThemselves:
     def test_no_central_result_claims_better_than_possible(
         self, fn, graph, records
     ):
-        """
-        **THE LADDER'S CENTRAL FINDING, AND IT IS AGAINST THE FRAMEWORK.**
-        Every one of the framework's headline results rests on at least one
-        placeholder, so none of them is entitled to more than "possible". That
-        is not a hedge the page chose — it is computed from the tags.
-
-        If one of these ever comes back CERTAIN or INSTANCE it is a real event:
-        someone measured the constants underneath it, and the page may then
-        make a stronger claim than it currently does. Until then it may not.
+        """**THE LADDER'S CENTRAL FINDING, AND IT IS AGAINST THE FRAMEWORK.** Every
+        headline result rests on at least one placeholder, so none may claim more than
+        "possible", as computed from the tags. A result that comes back CERTAIN or
+        INSTANCE is a real event: someone measured what lies under it.
         """
         assert VL.verdict_for(fn, graph, records)["verdict"] == "POSSIBLE"
 
@@ -279,10 +159,9 @@ class TestTheErrorDirectionStaysSafe:
     """
 
     def test_dependencies_grow_with_the_call_closure(self, graph, records):
-        """
-        A caller must inherit at least its callee's dependencies. If it does
-        not, the closure is not being walked and verdicts will read stronger
-        than they are — the exact failure the runtime spike had.
+        """A caller must inherit at least its callee's dependencies. If not, the walk
+        misses the closure and verdicts read stronger than they are, as with the runtime
+        spike.
         """
         caller = VL.dependencies("obligation_accounts", graph)
         callee = VL.dependencies("total_eoh", graph)
@@ -292,12 +171,10 @@ class TestTheErrorDirectionStaysSafe:
         )
 
     def test_default_arguments_are_seen(self, graph):
-        """
-        THE SPIKE RESULT, PINNED. Most constants reach their consumers as
-        default arguments, which Python binds at definition time — invisible to
-        runtime perturbation, which found 4 dependencies for `total_eoh` where
-        this finds 18. If this number collapses toward 4, the module has
-        regressed onto the instrument that fails in the dangerous direction.
+        """Most constants reach their consumers as default arguments, bound at
+        definition time and invisible to runtime perturbation. That instrument found 4
+        dependencies for `total_eoh`; this walk finds 21 today. A count near 4 means the
+        module has regressed onto the instrument that fails in the dangerous direction.
         """
         assert "PERSONAL_EOH_BASE" in VL.dependencies("personal_eoh", graph), (
             "PERSONAL_EOH_BASE reaches `personal_eoh` only as the default of "
