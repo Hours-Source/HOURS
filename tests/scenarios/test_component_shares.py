@@ -1,15 +1,11 @@
-"""
-Tests for scenarios/component_shares.py — the desk shares measured against
-observed time use, and why it is a BOUND.
+"""Tests for scenarios/component_shares.py: the desk shares measured against observed
+time use, and why the result is a BOUND.
 
-Discipline:
-  * the ASSUMED mapping is tested for completeness and for naming only codes
-    the extract has — the `unused_innocuous_names` lesson;
-  * findings are asserted as SIGNS and ORDERINGS; the levels move with the ATUS
-    vintage;
-  * every figure the module quotes in prose is pinned live, because a derived
-    number restated in a docstring is how this repo's claims have gone stale;
-  * `TestComponentSharesChangeNothing` pins that this is reporting only.
+Discipline: * the ASSUMED mapping is tested for completeness, and it names only codes
+the extract has (the `unused_innocuous_names` lesson); * findings are asserted as SIGNS
+and ORDERINGS, because the levels move with the ATUS vintage; * every figure the module
+quotes in prose is pinned live; * `TestComponentSharesChangeNothing` pins that this is
+reporting only.
 """
 
 from __future__ import annotations
@@ -42,14 +38,9 @@ class TestTheMappingIsDeclaredAndHonest:
         assert set(COMPONENT_CODES) == set(PERSONAL_EOH_COMPONENTS)
 
     def test_every_mapped_code_exists_in_the_extract(self):
-        """
-        A mapping that names a code nobody has is a mapping nobody reviews —
-        and it would silently contribute zero hours.
-
-        Checked across ALL survey years, not the latest. `0399` and `0499` are
-        ATUS residual "other" categories with genuinely zero reported time in
-        some years (17/22 and 18/22), so a latest-year check rejects two real
-        codes — which is how this test first failed.
+        """A code nobody has would add zero hours silently, so every mapped code must
+        exist in some survey year. The check spans ALL years: `0399` and `0499` report
+        zero time in some years, and a latest-year check rejected them.
         """
         present = set()
         for row in atus.survey_years():
@@ -74,10 +65,8 @@ class TestTheMappingIsDeclaredAndHonest:
             assert len(reason) > 20, f"{code} is excluded without a reason"
 
     def test_excluded_is_not_zero_and_is_material(self):
-        """
-        EXCLUDED IS NOT ZERO. The excluded time is large — roughly a third of
-        what is mapped — so hiding it would make the mapped total look like the
-        whole personal obligation.
+        """EXCLUDED IS NOT ZERO. The excluded time is about 30% of all observed time, so
+        hiding it would make the mapped total look like the whole personal obligation.
         """
         o = observed_shares()
         assert o["excluded_hours"] > 0.0
@@ -124,11 +113,9 @@ class TestTheDisagreementWithTheDeskEstimate:
         assert "LOWER bound" in c["bound_reason"]
 
     def test_the_bound_is_two_sided_and_the_lower_side_survives(self):
-        """
-        ADOPTED 2026-09-22 (author). The module reported only the lower side.
-        Adding the paid care back at face value OVERSHOOTS, so the true share
-        is bracketed — but this is an ADDITION, not a retraction: some care is
-        bought, so unpaid still understates, and the lower side stands.
+        """ADOPTED 2026-09-22 (author). Paid care added back at face value OVERSHOOTS,
+        so the true share is bracketed. That adds an upper side and retracts nothing:
+        some care is bought, so the unpaid reading still understates.
         """
         c = share_comparison()
         assert c["bound_is_two_sided"] is True
@@ -136,22 +123,18 @@ class TestTheDisagreementWithTheDeskEstimate:
         assert "LOWER bound" in c["bound_reason"]
 
     def test_the_upper_side_is_declared_unquantified_and_says_why(self):
-        """
-        The honest state: `obligation_work` measures an EMPLOYMENT share and
-        uses it as an hours share — its own words — with part-time
-        concentrated in exactly the personal-care groups that would carry the
-        bracket. A number from that conversion would be a known-biased upper
-        side wearing a measurement's clothes.
+        """`obligation_work` uses an EMPLOYMENT share as an hours share, in its own
+        words. Part-time work concentrates in the personal-care groups that would carry
+        the bracket, so a number from that conversion would be a known-biased upper
+        side.
         """
         c = share_comparison()
         assert c["upper_bound_quantified"] is False
         assert "EMPLOYMENT" in c["why_upper_not_quantified"]
 
     def test_quantifying_the_upper_side_must_flip_the_flag(self):
-        """
-        THE GATE THAT BITES. If someone later derives a numeric upper share,
-        this fails until `upper_bound_quantified` is set True — so the claim
-        and the number cannot drift apart, which is failure mode 10.
+        """A numeric upper share fails this test until `upper_bound_quantified` is True.
+        So the claim and the number cannot drift apart (mode 10).
         """
         c = share_comparison()
         numeric_upper = any(
@@ -190,9 +173,8 @@ class TestTheAbatabilityDirection:
         )
 
     def test_the_desk_anti_correlation_is_perfect_by_construction(self):
-        """
-        −1.000 exactly, because the table was BUILT to encode the prediction.
-        Pinned so nobody reads it as independent evidence for it.
+        """The correlation is −1.000 exactly, because the table was BUILT to encode the
+        prediction. The pin stops anyone reading it as independent evidence.
         """
         d = abatability_direction()
         assert d["spearman_abatability_vs_desk_share"] == pytest.approx(-1.0)
@@ -202,11 +184,9 @@ class TestTheAbatabilityDirection:
         assert d["spearman_abatability_vs_observed_share"] > 0.0
 
     def test_it_refuses_to_call_this_a_refutation(self):
-        """
-        The mapped total barely moved, which is consistent with a(K) being
-        SATURATED in a rich economy — so the total is not evidence against it.
-        The composition is, and the named alternative reaches that too. The
-        module must report the anomaly without claiming the stronger conclusion.
+        """The mapped total barely moved, which fits a(K) being SATURATED in a rich
+        economy. The composition is the anomaly, and the named alternative explains it
+        too. The module must report the anomaly without the stronger conclusion.
         """
         d = abatability_direction()
         assert d["refutes_abatement"] is False
@@ -222,9 +202,8 @@ class TestWhatItIsWorthToPhase2:
         assert s["factor_at_observed"] > 4.0
 
     def test_but_the_level_does_not(self):
-        """
-        The reason this had to be measured before the Phase 2 sign-off: the
-        headline roughly halves on a placeholder nothing measures.
+        """This had to be measured before the Phase 2 sign-off, because the headline
+        roughly halves on a placeholder nothing measures.
         """
         s = phase_2_sensitivity(0.99)
         assert s["factor_at_observed"] < 0.7 * s["factor_at_desk"]
@@ -246,10 +225,8 @@ class TestWhatItIsWorthToPhase2:
 
 
 class TestTheQuotedFiguresAreStillTrue:
-    """
-    The module's docstrings quote derived figures. This repo has been caught
-    five times by a derived number restated in prose and left behind when its
-    source moved, so each is pinned against its live value.
+    """The module's docstrings quote derived figures. Each is pinned against its live
+    value, because prose left behind by its source is how this repo's claims go stale.
     """
 
     def test_the_care_share_and_ratio(self):
@@ -276,7 +253,7 @@ class TestTheQuotedFiguresAreStillTrue:
 
 
 class TestComponentSharesChangeNothing:
-    """REPORTING ONLY. `PERSONAL_EOH_COMPONENTS` is untouched."""
+    """REPORTING ONLY: `PERSONAL_EOH_COMPONENTS` stays as it is."""
 
     def test_the_desk_table_is_not_modified(self):
         before = {k: dict(v) for k, v in PERSONAL_EOH_COMPONENTS.items()}
@@ -299,19 +276,15 @@ class TestComponentSharesChangeNothing:
 
 
 class TestShelterDecomposition:
-    """
-    The table a shelter boundary decision cites, so the boundary is informed
-    rather than arbitrary. These pin the DISCIPLINE — every code placed, a closed
-    vocabulary, the judgement isolated and the frame declared — not the shares,
-    which move with the survey year.
+    """The table that a shelter boundary decision cites. These tests pin the DISCIPLINE
+    (every code placed, a closed vocabulary, the judgement isolated, the frame
+    declared), not the shares, which move with the survey year
+    ([record](record/personal.md#shelter-decomposed)).
     """
 
     def test_every_code_in_the_shelter_groups_is_placed(self) -> None:
-        """
-        A 6-digit code inside the shelter groups that nobody classified would be
-        silently dropped from the component without anyone having argued for it —
-        the same failure the obligation-work registry and the basket's own
-        COMPONENT_STATUS guard against.
+        """An unclassified 6-digit code in the shelter groups would drop out of the
+        component with no argument made for it.
         """
         r = shelter_decomposition()
         assert r["unclassified"] == [], (
@@ -325,18 +298,17 @@ class TestShelterDecomposition:
         assert set(SHELTER_DESTINATION_VOCAB) == set(shelter_decomposition()["by_destination"])
 
     def test_the_classification_only_covers_the_shelter_groups(self) -> None:
-        """The judgement is isolated to shelter. A code from another component
-        appearing here would be a second, hidden attribution."""
+        """The judgement stays inside shelter. A code from another component here would
+        be a second, hidden attribution.
+        """
         groups = set(COMPONENT_CODES["shelter"])
         stray = {c for c in SHELTER_DESTINATIONS if c[:4] not in groups}
         assert not stray, f"non-shelter codes classified: {sorted(stray)}"
 
     def test_the_overlap_and_the_thermal_share_are_reported_separately(self) -> None:
-        """
-        The two numbers a boundary decision turns on, and they must not be
-        collapsed: `structure` is the part another domain already charges, and
-        `thermal` is the part the degree-days intensity governs. They are
-        different questions with different answers.
+        """A boundary decision turns on two numbers that must stay apart. `structure` is
+        the part another domain already charges; `thermal` is the part the degree-days
+        intensity governs.
         """
         r = shelter_decomposition()
         assert r["overlaps_infrastructure"] == r["by_destination"]["structure"]
@@ -355,12 +327,10 @@ class TestShelterDecomposition:
         )
 
     def test_upkeep_dominates_and_that_is_the_finding(self) -> None:
-        """
-        THE REASON THE COMPONENT NEEDS RE-SCOPING. Most of what the shelter code
-        set measures is cleaning and laundry, which scale with area and occupancy
-        rather than with degree-days — so the component's quantity (m² AND
-        degree-days) does not match its measured delivery. Asserted as an
-        ordering, since the levels move with the survey year.
+        """Most of the shelter code set is cleaning and laundry, which scale with area
+        and occupancy, not degree-days. So the component's quantity does not match its
+        measured delivery, which is why it needs re-scoping. The test asserts an
+        ordering.
         """
         d = shelter_decomposition()["by_destination"]
         assert d["upkeep"] > d["structure"] + d["not_shelter"] + d["thermal"], (
@@ -373,9 +343,9 @@ class TestShelterDecomposition:
         )
 
     def test_the_frame_is_declared_as_the_wrong_one(self) -> None:
-        """ATUS is US and high-capital. The floor is an unassisted construction,
-        so this composition is evidence about the wrong end of the arc and must
-        say so — the thermal share is the one that would rise at the other end."""
+        """ATUS is US and high-capital, and the floor is an unassisted construction. So
+        this composition is evidence about the wrong end of the arc, and it must say so.
+        """
         frame = shelter_decomposition()["frame"].lower()
         assert "atus" in frame and "high-capital" in frame
         assert "mtus" in frame and "unchecked" in frame
@@ -397,10 +367,10 @@ class TestShelterFrameCheck:
     """
 
     def test_the_control_reproduces_the_known_aggregate(self) -> None:
-        """THIS RUNS FIRST OR NOTHING BELOW MEANS ANYTHING. The aggregate mapping
-        is independently known to reproduce ATUS at 0.9757 / 0.0677. If this
-        function cannot recover that, a per-code failure is a bug in the
-        comparison rather than a fact about MTUS."""
+        """This runs first. The aggregate mapping is known to reproduce ATUS at 0.9757 /
+        0.0677; if the function cannot recover that, a per-code failure is a bug in the
+        comparison, not a fact about MTUS.
+        """
         r = shelter_frame_check()
         assert r["aggregate_reproduces"], (
             f"the control gives {r['aggregate']['mean_ratio']:.4f}, not 0.9757 — "
@@ -409,13 +379,9 @@ class TestShelterFrameCheck:
         assert r["aggregate"]["within_tolerance"]
 
     def test_the_labels_were_read_and_are_cited(self) -> None:
-        """
-        The first run of this check scored seven mappings whose `why` strings
-        named what each MTUS code MEANS — and every one of those labels was
-        supplied from the ATUS side and never read. `utils/mtus_ingest.py` says
-        no codebook ships with the DATA, which is true, and was wrongly taken to
-        mean the labels were unobtainable; they are published in the MTUS User
-        Guide. This fails if a label ever ships without its source.
+        """Every MTUS label must ship with its source. The first run scored seven labels
+        supplied from the ATUS side and never read; the MTUS User Guide publishes them
+        ([record](record/personal.md#shelter-frame-check-mtus)).
         """
         r = shelter_frame_check()
         assert set(r["code_labels"]) == set(COMPONENT_CODES_MTUS["shelter"])
@@ -425,9 +391,9 @@ class TestShelterFrameCheck:
             assert g["identification"].startswith("VOID"), g
 
     def test_one_mapping_per_code_picked_from_the_label(self) -> None:
-        """Not a sweep. The label decides the target, so there is one candidate
-        per code and no room to keep trying until something clears — which is
-        what an exhaustive search over the code space would be."""
+        """Not a sweep. The label decides the target, so each code has one candidate and
+        no room to keep trying until something clears.
+        """
         assert len(SHELTER_MTUS_HYPOTHESES) == len(COMPONENT_CODES_MTUS["shelter"])
         assert {c for c, _g, _w in SHELTER_MTUS_HYPOTHESES} == set(
             COMPONENT_CODES_MTUS["shelter"]
@@ -445,19 +411,11 @@ class TestShelterFrameCheck:
         assert 21 in r["identified_codes"]
 
     def test_the_remainder_is_forced_and_the_module_says_so(self) -> None:
-        """
-        AN EARLIER VERSION OF THIS TEST ASSERTED A PREDICTION THAT COULD NOT
-        FAIL. It read the opposite-direction misses of 20 and 22 as a falsifiable
-        seam hypothesis and their pair reconciling as its confirmation. But once
-        the aggregate identifies and 21 identifies, m20+m22 is fixed by
-        subtraction — so the pair's ratio is determined, `pair_misses_are_opposite`
-        cannot fail while the first two hold, and asserting either was the
-        implementation enforcing its own invariant.
-
-        Verified by reconstruction below: the aggregate and the 21 result alone
-        reproduce the measured pair value. What survives is the RESOLUTION —
-        MTUS speaks about {21} and about the remainder — and the module must say
-        the value is forced rather than sell it as a second measurement.
+        """Once the aggregate and code 21 identify, m20 + m22 is fixed by subtraction,
+        so a prediction about the pair cannot fail. An earlier version asserted one. The
+        test rebuilds the pair from the other two, and the module must call the value
+        forced, not a second measurement
+        ([record](record/personal.md#shelter-frame-check-mtus)).
         """
         r = shelter_frame_check()
         assert r["pair_is_forced_by_the_aggregate"] is True
@@ -496,13 +454,10 @@ class TestShelterFrameCheck:
         )
 
     def test_the_composition_transfers_at_the_resolution_mtus_identifies(self) -> None:
-        """
-        THE FINDING, AND IT REVERSES WHAT THIS CLASS ASSERTED BEFORE THE LABELS
-        WERE READ. Per code the shares look like they move — c22 by ~+60%. Per
-        identified BLOCK they do not, because the whole of that move lies inside
-        the {20,22} seam the pair test shows is unstable between
-        classifications. A label-free test on an unidentified partition cannot
-        tell a real reallocation from a boundary moving.
+        """Per code the shares seem to move; per identified BLOCK they do not, because
+        the move lies inside the {20, 22} seam. A label-free test on an unidentified
+        partition cannot tell a real reallocation from a moving boundary
+        ([record](record/personal.md#shelter-frame-check-mtus)).
         """
         r = shelter_frame_check()
         assert not r["composition_transfers_by_code"]

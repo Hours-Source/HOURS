@@ -92,6 +92,35 @@ Filed here on primary subject; each also bears on another area.
 ---
 
 ## History
+<a id="measured-capacity-test-history"></a>
+
+**THE HISTORY THAT `tests/test_measured_capacity.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `feasibility_check`, `measured_capacity_frames`, `capacity_band_alignment` and `stationary_band` on 2026-10-17; the rest are dated, quoted as the docstrings stated them.
+- **The class was renamed and its assertion reversed.** `TestTheFindingDidNotSurviveTheBandCorrection` was `TestTheFindingSurvivesTheCorrection` and asserted fewer than half the frames clearing at ε=0, US2024 among those that did not. The band alignment ([band-alignment-adopted](#band-alignment-adopted)) moved the count 17/50 → 43/50 (dated) and flipped US2024 to clearing. **LIVE: 45/50 frames clear**; the docstring still said 43/50.
+- **The retrodiction went with it.** The model used to say a society working 1965 hours meets its personal obligation unaided and one working 2024 hours does not. That was the framework's sharpest empirical claim about modern time use, and the file's own module docstring had warned that "a fix that made the finding vanish would be the more suspicious outcome".
+- **A second one-sided loosening, 2026-09-09.** The capital-path decision (reading (e)) holds no apparatus at ε=0, so the infrastructure term leaves the subsistence demand. Under the pre-adoption share (a=0.60) the count went 17/50 → 39/50 and US2024 cleared too. **LIVE: 39 under a=0.60; US2024 reads 0.9773 there (0.8988 at the shipped share), US1965 0.8052 (0.7405).** The comparison is no longer runnable from the file: it needs the capital path as well as the band, and only the band was a parameter.
+- **The ε=0 ratio, three states.** Under H_REF it was 1.1525 (dated); measured capacity took it to ~1.026 and the band alignment to ~0.942. **LIVE: 1.0026 at H_REF, 0.9708 for capacity alone at a=0.60, 0.8928 shipped.** So "only the second correction closed it" is history: capacity alone clears today.
+- **The sufficiency band's floor.** 0.491 under the stale 2000.0 literal, 0.382 under the measured median, 0.374 after the per-component default, 0.309 band-aligned, 0.290 after the capital path, 0.382 when arc_stability took the per-component split, 0.384 when the stock age was measured. **LIVE: 0.383.** The test's comments keep the sequence.
+- **The capacity band.** `MEASURED_CAPACITY_H_YR` is measured over 18-69 while the working-age band is 18-64. **LIVE: the 65-69 gap is 5.83 points of adult share; the shipped share leaves 0.61 points** (0.6524 used against 0.6585 band-aligned). The class docstring still said "AND IT IS DELIBERATELY NOT FIXED" and quoted the pre-adoption 1.0245 → 0.9338 ([capacity-band-mismatch](#capacity-band-mismatch)), while its own last test asserted the adoption; it now states the adopted state.
+
+<a id="personal-floor-test-history"></a>
+
+**THE HISTORY THAT `tests/test_personal_floor.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here or to the entries named below ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `floor_vs_constants` on 2026-10-17.
+- **The coverage figure was stale in five docstrings.** They said the floor prices "one component of seven" at "6.9% coverage", and that care, "62.1% of the basket by share", is unpriced. Care was priced as a declared lower bound on 2026-09-09 ([care-priced-as-a-bound](#care-priced-as-a-bound)), which moved coverage tenfold. **LIVE: 3 of 7 components, 75.9% of the share; the gap to `PERSONAL_EOH_BASE` per capita is 453.6 h; the unpriced 24.1% must deliver 1.59× the hours per unit share the priced part did.** The verdict text is computed, and the code comments beside each assertion already held the moves.
+- **The base's band.** `TestTheBaseDeclaresItsClimate` said 1,000 is CHOSEN "at the top of a 427–1092 band". The band moved to **482–1147** with the capital-path decision (data.py), so 1,000 now sits inside it, not at the top.
+- **The climate argument, in full.** `PERSONAL_EOH_BASE` was a single global float while its only priced component, nutrition production, is measured in rainfed tropical and sub-tropical Sub-Saharan Africa and "does not transfer without restratification by agro-ecological zone". The check was stratified and the checked was global. The earlier reading that costing thermal would break the global scalar had the wrong culprit: nutrition already had. See [thermal-merged-base-framed](#thermal-merged-base-framed).
+- **The thermal merge.** A village of 100 and a city of a million in one climate both face 2,500 degree-days, so degree-days is not a per-person quantity. As an intensity on shelter's quantity, insulation (shelter capital) and heating (thermal flow) can trade off; two additive lines could only add one point from each curve.
+- **Water.** `test_the_place_properties_are_named_and_set_the_indexing_grain` asserted `== {"shelter"}` until water became a second place property on 2026-09-09; two collectives in one climate, one beside a spring and one 3 km away, share a climate and not a floor ([water-is-site-indexed](#water-is-site-indexed)). The round-trip miss is at [water-declared-not-acquired](#water-declared-not-acquired).
+- **A stale test name, renamed.** `test_only_nutrition_production_is_priced` asserts three priced components (nutrition production, nutrition processing, care); it is now `test_only_the_measured_components_are_priced` (author, 2026-10-17: "fix the stale names"). Its assert message said the 453.6 gap is "quoted … in this test's docstring"; it now points here.
+
+<a id="care-demand-test-history"></a>
+
+**THE HISTORY THAT `tests/test_care_demand.py` DOCSTRINGS CARRIED, MOVED HERE** (2026-10-17, test docstring batch 3). The docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures marked LIVE were read from `care_curve.implied_weights` and `care_demand.personal_profile` on 2026-10-17.
+- **Care alone overstates the infant (LIVE).** On care received alone an infant reads as **56.4** working-age adults; the docstring said ~25. The composed ratio is 2.99. The test asserts > 15 and < 4, so it held while the prose drifted.
+- **The child weight moved, and two docstrings did not.** `TestOnlyTheElderlyWeightWasAdopted` said "exactly one weight moved, and the other three did not" and quoted child "against shipped 1.5". `AGE_WEIGHT_CHILD` took the MTUS measurement on 2026-09-01 (1.5 → 1.82, [child-weight-measured](#child-weight-measured)). **LIVE: infant 2.55 against shipped 3.0, child 1.35 (ATUS only) against 1.82, elderly 1.468 against 1.48.** The class is renamed `TestTheAgeWeightRevaluations` (author, 2026-10-17: "fix the stale names").
+- **The 2026-08-10 decision.** Elderly 2.5 → 1.48 from this measurement (the test's docstring called the constant "the rounded measurement"; read with the 80 cell binned it is 1.4680 → 1.47 and re-adoption is pending, [eighty-cell-binned](#eighty-cell-binned)); infant and child held because their bands contain ages ATUS does not survey, so their totals are lower bounds that can only rise, and adopting a lower bound as a point estimate would revise them DOWN on a measurement missing a term. `AGE_GROUPS` was split the same day: one `placeholder` tag had covered a chosen partition, jurisdiction data, a numeraire and two grades of measurement.
+- **The infant check (2026-09-01).** 92% of MTUS infant-band diaries are ages 3-5, and an infant's maintenance is the caregiver's work, already counted as care received, so extrapolating to 0-2 would double count. Ages 3-5 applied to the band gives 3.21; 0-2 at ~0 gives 2.85.
+- **The top-code artefacts.** Before the 85 cell matched its denominator it read 932 min per person-day, over 15 hours for an average. ATUS: "TEAGE_EC is topcoded to 85. All those age 80 through 84 have TEAGE_EC = 80." (2024 ATUS Interview Data Dictionary); see [eighty-cell-binned](#eighty-cell-binned).
+
 <a id="feasibility-test-history"></a>
 
 **THE HISTORY THAT THE FEASIBILITY TEST DOCSTRINGS CARRIED, MOVED HERE** (2026-10-16, author: "use (b) create record and link to"). `tests/scenarios/test_feasibility.py` docstrings are now short STE and link here ([ste-docstrings](verification.md#ste-docstrings)). Figures read from the functions on 2026-10-16.
@@ -274,8 +303,11 @@ Filed here on primary subject; each also bears on another area.
 
 <!-- record-index: generated by utils/record_index.py, do not hand-edit -->
 
-| 47 entries, newest first | |
+| 50 entries, newest first | |
 |---|---|
+| [measured-capacity-test-history](#measured-capacity-test-history) | THE HISTORY THAT `tests/test_measured_capacity.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [personal-floor-test-history](#personal-floor-test-history) | THE HISTORY THAT `tests/test_personal_floor.py` DOCSTRINGS CARRIED, MOVED HERE |
+| [care-demand-test-history](#care-demand-test-history) | THE HISTORY THAT `tests/test_care_demand.py` DOCSTRINGS CARRIED, MOVED HERE |
 | [feasibility-test-history](#feasibility-test-history) | THE HISTORY THAT THE FEASIBILITY TEST DOCSTRINGS CARRIED, MOVED HERE |
 | [eighty-cell-binned](#eighty-cell-binned) | ATUS CODES AGES 80–84 AS 80, AND THE 80 CELL WAS DIVIDED BY THE AGE-80 POPULATION — THE ELDERLY… |
 | [acquisition-does-not-settle-the-shares](#acquisition-does-not-settle-the-shares) | THE ACQUISITION HAPPENED AND IT DOES NOT SETTLE THE SHARES — THE POINTER IS REFUTED, NOT PENDING |

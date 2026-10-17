@@ -1,17 +1,12 @@
-"""
-Measured labour capacity, and the default that stands in for it.
+"""Measured labour capacity, and the default that stands in for it.
 
-WHY THIS EXISTS. `feasibility.labor_supply_per_capita` asks for "hours per year
-one adult can devote to entropy-resistance labor" and defaults to `H_REF` —
-whose own tag block says that read "as a measurement of hours actually worked it
-would be wrong in most jurisdictions... which is precisely why it is tagged as
-the denominator it is." A paid-work calendar year is standing in for all the
-labour a person supplies, most of which is unpaid.
+`feasibility.labor_supply_per_capita` asks for the hours one adult can give to
+entropy-resistance labour. Its default was `H_REF`, a paid-work calendar year whose own
+tag block warns against reading it as hours worked; most of the labour a person supplies
+is unpaid.
 
-These tests pin the measurement, the direction of the error, and — the part
-that matters most — that correcting it does NOT dissolve the over-determination
-the repo has carried since August. A fix that made the finding vanish would be
-the more suspicious outcome.
+These tests pin the measurement, the direction of the error, and what closed the
+over-determination ([record](record/personal.md#measured-capacity-test-history)).
 """
 
 from __future__ import annotations
@@ -35,9 +30,8 @@ class TestTheMeasurement:
         assert all(1000.0 < v < 5000.0 for v in frames.values())
 
     def test_it_is_the_three_core_aggregates_and_no_others(self) -> None:
-        """
-        Travel and education are SHIPPED but not summed. Folding either in
-        would raise every figure by a judgement nobody has made.
+        """Travel and education are SHIPPED but not summed. Adding either would raise
+        every figure by a judgement nobody has made.
         """
         assert mtus.LABOUR_AGGREGATES == (
             "work_minutes_per_day", "undom_minutes_per_day", "chcare_minutes_per_day",
@@ -81,58 +75,20 @@ class TestTheDefaultUnderstatesCapacity:
         assert all(s.startswith("NL") for s in below)
 
     def test_the_error_runs_one_way(self) -> None:
-        """
-        Observed hours are a FLOOR on capacity — people could work more than
-        they did — so using them understates capacity, which makes clearing
-        harder rather than easier.
+        """Observed hours are a FLOOR on capacity, because people could work more than
+        they did. Using them understates capacity, so clearing gets harder, not easier.
         """
         frames = mtus.capacity_frames()
         assert sum(v > float(H_REF) for v in frames.values()) > len(frames) / 2
 
 
 class TestTheFindingDidNotSurviveTheBandCorrection:
-    """
-    THE OVER-DETERMINATION IS GONE, AND WHAT REMOVED IT IS RECORDED HERE.
-
-    This class was `TestTheFindingSurvivesTheCorrection` and it asserted the
-    opposite: fewer than half the frames clearing at ε=0, and US2024 among
-    those that do not. Aligning the supply band to the band its capacity is
-    measured on (`AGE_CAPACITY_WEIGHT_ELDERLY` 0.0 → 0.3083, adopted
-    2026-09-04, author decision) moved the count **17/50 → 43/50** and flipped
-    **US2024 from not-clearing to clearing**.
-
-    WHAT THAT COST, STATED PLAINLY. The retrodiction went with it. The model
-    used to say a society working 1965 hours meets its personal obligation
-    unaided and one working 2024 hours does not; it no longer says that. That
-    was the framework's sharpest empirical claim about modern time use.
-
-    AND THE OBJECTION IS NOT WITHDRAWN. This file's own docstring warned that
-    "a fix that made the finding vanish would be the more suspicious outcome",
-    and the correction is ONE-SIDED: supply rose by a measured 5.83pp of adult
-    share while `AGE_WEIGHT_ELDERLY` = 1.48 remains a documented LOWER bound,
-    because the institutionalised elderly are outside the ATUS frame. So the
-    surplus these tests now pin is an UPPER bound on the true one, and a
-    symmetric correction — measuring the elderly obligation against the
-    institutional population — could restore some or all of the finding.
-    Nobody knows, because only one side has been measured.
-
-    These tests therefore pin the NEW state and the REASON, so that the day the
-    demand side is measured, the comparison is available rather than lost.
-
-    AND ON 2026-09-09 THE COMPARISON WAS LOST ANYWAY, TO A SECOND CHANGE. The
-    capital-path decision (reading (e)) resolves an unspecified capital stock
-    along the canonical arc, which holds NO apparatus at ε=0, so the whole
-    infrastructure term leaves the subsistence demand. Under the pre-adoption
-    share the frame count went 17/50 → 39/50 and **US2024 now clears too**
-    (ratio 0.9774): the retrodiction no longer reproduces under EITHER band, so
-    the "kept runnable" comparison above is no longer runnable.
-
-    That is a second one-sided loosening — it moves demand down without anyone
-    measuring the demand side — and it lands on the axis this class was written
-    to protect. The numbers are pinned below in both states so the loss is a
-    visible number rather than a remembered one, but the comparison itself
-    cannot be recovered from this file: it needs the capital path as well as the
-    band, and only the band was ever a parameter.
+    """The over-determination is gone; these tests pin the new state and what removed
+    it. Two one-sided loosenings removed it: the band alignment (2026-09-04) raised
+    supply, and the capital path (2026-09-09) lowered demand. Neither measured the
+    demand side, and `AGE_WEIGHT_ELDERLY` stays a documented LOWER bound, so the surplus
+    pinned here is an UPPER bound
+    ([record](record/personal.md#measured-capacity-test-history)).
     """
 
     #: 39/50 under the pre-adoption share of 0.60, since the 2026-09-09
@@ -188,12 +144,9 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
             assert row["feasible_at_zero"] is (row["capacity_h_yr"] >= need), sample
 
     def test_the_retrodiction_held_only_under_the_unaligned_band(self) -> None:
-        """
-        THE CLAIM THAT WAS LOST, KEPT RUNNABLE. Under the pre-adoption share
-        both halves held: 1965 clears, 2024 does not. Under the adopted share
-        both clear. Asserting BOTH states is the only way a reader can see what
-        the adoption changed without re-deriving it, and it is the comparison
-        the symmetric correction will need.
+        """The retrodiction was 1965 clears and 2024 does not. Since the capital path
+        both clear under either share, so the test pins the ORDERING that remains: 1965
+        sits further below the line than 2024.
         """
         c65 = mtus.measured_capacity("US1965")
         c24 = mtus.measured_capacity("US2024")
@@ -214,10 +167,8 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
 
 
 class TestTheDefaultIsTheMeasuredMedian:
-    """
-    ADOPTED 2026-09-03 (author decision). The default was H_REF — a paid-work
-    calendar year whose own tag block warns against being read as hours
-    actually worked. It is now the median of 50 measured frames.
+    """ADOPTED 2026-09-03 (author decision). The default is the median of 50 measured
+    frames, not H_REF.
     """
 
     def test_every_capacity_default_is_the_measured_median(self) -> None:
@@ -247,16 +198,10 @@ class TestTheDefaultIsTheMeasuredMedian:
             assert "adult_capacity_h_yr: float = 2080" not in source
 
     def test_the_capacity_fix_narrowed_the_deficit_and_the_band_fix_closed_it(self) -> None:
-        """
-        TWO CORRECTIONS, AND ONLY THE SECOND CLOSED IT — which is the honest
-        account of a result that used to read as one number.
-
-        Under H_REF the ε=0 ratio was 1.1525. Measuring capacity (2026-09-03)
-        took it to ~1.026: narrowed, not closed, and this file was written to
-        say so. Aligning the supply band to the capacity band (2026-09-04) took
-        it to ~0.942: closed. The capacity fix is symmetric — it corrects a
-        quantity measured on its own terms. The band fix is NOT: supply moved
-        by a measured 5.83pp while demand stays a documented lower bound.
+        """The shipped ε=0 ratio sits below 1, and below the ratio at H_REF. Capacity
+        alone, on the pre-adoption share, also clears now, so "only the band fix closed
+        it" is history, not a state this test reproduces
+        ([record](record/personal.md#measured-capacity-test-history)).
         """
         check = feasibility_check(epsilon=0.0)
         assert check["feasible"] is True
@@ -277,14 +222,9 @@ class TestTheDefaultIsTheMeasuredMedian:
         assert capacity_only["feasible"] is True
 
     def test_the_stationary_band_is_pinned_at_its_level(self) -> None:
-        """
-        PINNED BECAUSE IT MOVED, AND IT HAS MOVED AGAIN. The sufficiency band's
-        floor was 0.491 under the stale 2000.0 literal, 0.382 under the measured
-        median, 0.374 after the per-component automation default, and is 0.309
-        with the supply band aligned (2026-09-04). Each move was invisible to
-        the arc_stability tests, which assert shape (`lower > 0`) and never
-        level — pinning the level is what makes the next one visible, and this
-        is the third time that has paid.
+        """The sufficiency band's floor is pinned at its level, because the
+        arc_stability tests assert only its shape. Each move of the level shows here
+        first; the comments list the moves.
         """
         from hours_eoh.scenarios.arc_stability import stationary_band
         # 0.491 → 0.382 → 0.374 → 0.309 → 0.290 (2026-09-09, capital path)
@@ -344,23 +284,10 @@ class TestCapacityHasAPhysicalCeiling:
 
 
 class TestTheCapacityBandIsNotTheSupplyBand:
-    """
-    c is measured over 18-69; a selects 18-64. Reported, not corrected.
-
-    THE DEFECT IS ARITHMETIC, NOT EPISTEMIC. `MEASURED_CAPACITY_H_YR` is hours
-    per adult per year over ages 18-69 — 65-69 are in its denominator. The adult
-    share it is multiplied by gives `elderly` a capacity weight of 0.0, so the
-    same people are outside a's numerator. L = c·a therefore understates hours
-    per capita by the 65-69 share, which is 5.83 percentage points on US 2025
-    single-year ages.
-
-    AND IT IS DELIBERATELY NOT FIXED. Correcting supply alone takes the ε=0
-    feasibility ratio from 1.0245 to 0.9338 — the over-determination this file's
-    own docstring says must not vanish. It would vanish for a one-sided reason:
-    `AGE_WEIGHT_ELDERLY` = 1.48 is documented as a LOWER bound, because the
-    institutionalised elderly are outside the ATUS frame, so demand is
-    understated too by an amount nobody has measured. These tests pin the gap,
-    its direction, and the fact that the shipped path does NOT take it.
+    """Capacity is measured over ages 18-69, and the working-age band is 18-64. The
+    65-69 share was 5.83 points of adult share on US 2025 ages. Since 2026-09-04 the
+    elderly capacity weight carries it, and these tests pin the gap and that the shipped
+    path takes it ([record](record/personal.md#band-alignment-adopted)).
     """
 
     def test_the_two_bands_disagree(self) -> None:
@@ -382,11 +309,9 @@ class TestTheCapacityBandIsNotTheSupplyBand:
         assert r["share_measured"] > r["share_selected"]
 
     def test_the_bands_now_agree_and_the_report_measures_nothing(self) -> None:
-        """
-        ADOPTED 2026-09-04. The report was written to hold a correction the
-        shipped path did not take; the path now takes it, so the gap it
-        measures must be zero. A reporting function whose finding has been
-        adopted and which still reports a gap is two accounts of one quantity.
+        """ADOPTED 2026-09-04: the shipped path now takes the correction, so the
+        residual gap must be under one point. A report that still showed the full gap
+        would be a second account of one quantity.
         """
         from hours_eoh.scenarios.feasibility import capacity_band_alignment
         r = capacity_band_alignment()

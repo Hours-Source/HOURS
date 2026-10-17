@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from hours_eoh.data import (
     M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD,
-    MEAN_MULTIPLIER_REFERENCE, MEASURED_CAPACITY_H_YR,
+    MEASURED_CAPACITY_H_YR,
 )
 from hours_eoh.core.multipliers import multiplier_band_check
 
