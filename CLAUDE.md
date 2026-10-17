@@ -333,6 +333,26 @@ Physical state (tracked by simulation, or derived via `canonical_physical_state(
   - Have ONE arc test per mechanism, parametrised over the four key ε values, plus monotonicity where expected — not a test per function (see the test rule under §3)
   - Be in `dashboard.py` or carry an explicit comment explaining why it is research-only
 - **Placement**: applied scenarios → `scenarios/`; experimental functions → `research/`; neither is imported by `core/`
+
+### Docstrings — about 80% ASD-STE100 (author, 2026-10-16)
+
+The default for every docstring, so the code stays readable to institutional users:
+
+- **About 80% ASD-STE100.** At least 80% of each file's docstring sentences meet the
+  STE writing rules: 25 words or fewer (20 for an instruction), active voice, one
+  topic per sentence, and a plain approved word where one exists. The other 20% may
+  be longer, for a "because" chain or a caveat that loses its meaning when split.
+  Technical names (EOH, TEH, ε, constant and function names) count as STE technical names.
+- **Test docstrings are short STE:** one to three sentences that say what the test
+  checks and how it can fail, with a link to the `record/` entry instead of the history.
+  A test file's module docstring may be longer, to introduce the file; avoid prolixity
+  (author, 2026-10-17).
+- **Change the form, never the claim.** Keep every number, direction, scope, caveat and
+  marker a test reads; search the file for `__doc__` and `in doc` first. If simplifying would change a theory
+  claim, flag it for the author (§3).
+- **Measured by `utils/ste_check.py`. It reports and does not gate** (§3: no tests of
+  wording). It checks sentence length and passive voice. It cannot check word choice
+  (the STE dictionary is licensed) or meaning, so read the diff.
 - **A CLI scenario that takes a population** runs on a frame: add it to `FRAME_AWARE` in `utils/scenario_cmd.py` and take its inputs from `utils/frame_inputs.py`, so every input is labelled and frame flags are refused where nothing reads them. A fixed reference value beside a settable `--population` is the frame seam (mode 6) this replaced.
 
 ---
@@ -712,7 +732,7 @@ requires every `record/` file to be linked from `record/README.md`.
 
 ### The state
 
-**6,226 tests passing (1 skipped), mypy clean on 110 source files** (verified
+**6,230 tests passing (1 skipped), mypy clean on 110 source files** (verified
 2026-10-16). <!-- census:state -->Provenance **372/372**, shadow ratchet **29**, confidence ratchet **125** of 143<!-- /census:state -->,
 wiring ratchet **12**. Workstreams A–F merged to main, including
 the contestability closure and Coasean Phase 3.
@@ -839,13 +859,13 @@ citing this one through `anchor:` + `repo: HOURS`. Validate with
 
 ## Test file index
 
-**121 test files. The name rule covers 81 of them:** `tests/test_<module>.py`
+**123 test files. The name rule covers 82 of them:** `tests/test_<module>.py`
 covers `hours_eoh/**/<module>.py`, and `tests/scenarios/`, `tests/land/` mirror
 the package. Those are deliberately not listed — the mapping *is* the filename,
 and a list of function names restated here is a list that goes stale. (The
 previous version of this table listed 50 of 88 files and read as complete.)
 
-The 40 files the rule does not cover are all listed below, plus two that do
+The 41 files the rule does not cover are all listed below, plus two that do
 follow it (`test_corridor.py`, `test_personal_floor.py`) because they carry a
 superseded form and a cross-layer floor respectively. Most are **gates**: they check a
 property of the repo rather than a module's behaviour, which is exactly what a
@@ -890,6 +910,7 @@ are the ones worth knowing by name.
 | `test_coasean_phase2.py`, `test_coasean_phase3.py`, `test_coasean_phase4.py` | `research/coasean.py`, phases 2–4 |
 | `test_eta_land.py` | The shipped η table and its loader (`reference/data/eta_land.json`) |
 | `test_grib_scan.py` | `utils/grib_scan.py` — the header-only GRIB locator |
+| `test_ste_check.py` | `utils/ste_check.py` — the share of docstring sentences that meet the STE writing rules (reports, does not gate) |
 | `test_land_guf.py` | `land/guf.py` — all functions across the arc, boundary verification, worked example |
 | `test_maintain_vs_replace.py` | B3 — maintain vs replace with the embodied-energy pulse (`research/thermal_capital.py`) |
 | `test_measured_capacity.py` | The measured labour capacity behind `feasibility.labor_supply_per_capita`, the DIRECTION of `H_REF`'s error as its stand-in, and — since the 2026-09-04 band alignment — that the over-determination is CLOSED, what closed it, and the retrodiction that went with it, both states kept runnable |

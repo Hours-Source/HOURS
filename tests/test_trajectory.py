@@ -61,13 +61,11 @@ class TestCanonicalAgeDistribution:
         assert "infant" in dist
 
     def test_the_distribution_is_independent_of_epsilon(self):
-        """
-        RETIRED 2026-09-04. These two tests asserted the opposite — elderly
-        growing and child shrinking with ε — on the argument that automation
-        lengthens lives. That asserted an answer to the morbidity
-        compression/expansion question, which is unsettled and is the pivotal
-        variable for care load. Demography is an intake, not a function of
-        automation. See `tests/test_care_keys.py`.
+        """The canonical age distribution does not change with ε: demography is an
+        intake, not a function of automation (2026-09-04). The two retired tests
+        asserted the opposite, that automation lengthens lives. That answered the
+        morbidity question, which is unsettled and decides the care load. See
+        `tests/test_care_keys.py`.
         """
         base = canonical_age_distribution(0.0)
         for eps in (0.40, 0.90, 0.99):
@@ -109,14 +107,13 @@ class TestCanonicalPhysicalState:
         assert s.keys() == self.KEYS
 
     def test_eps0_capital_is_zero(self):
-        """Block III (2026-08-06): subsistence has NO collective apparatus.
+        """At ε=0 the canonical capital is zero, because subsistence has NO collective
+        apparatus (Block III, 2026-08-06).
 
-        The path was 2.0B × (1 + 2ε), which asserted 2,000 TEH/capita of built
-        infrastructure at ε=0 — a collective with an apparatus and no automation
-        to justify it. That contradicted ε's own definition (zero machine capital
-        ⇒ ε = 0, which civilization_epsilon already honoured) and made the autarky
-        comparison report the canonical arc as overbuilt at the origin for a
-        reason that was an artifact of this line.
+        The old path, 2.0B × (1 + 2ε), put 2,000 TEH/capita of built infrastructure at
+        ε=0. That contradicted ε's own definition (zero machine capital ⇒ ε = 0), which
+        civilization_epsilon already followed. It also made the autarky comparison read
+        the canonical arc as overbuilt at the origin, an artefact of this line.
         """
         s = self._state(0.0)
         assert s["capital_stock_teh"] == 0.0
@@ -231,14 +228,13 @@ class TestEffectiveCapitalFromEpsilon:
         assert effective_capital_from_epsilon(1_000_000.0, 0.0) == pytest.approx(1_000_000.0)
 
     def test_deliberately_differs_from_canonical_physical_state(self):
-        """The two answer different questions, and since Block III they diverge.
+        """The two functions answer different questions, and since Block III they
+        diverge. The test keeps the divergence deliberate, so it does not look like
+        drift.
 
-        `canonical_physical_state(ε)` is the ARC's capital AT ε — zero at the
-        origin, because subsistence has no apparatus. This function scales a
-        CALLER-SUPPLIED ε=0 baseline; the caller is asserting that stock exists,
-        so zeroing it would destroy their input rather than model anything.
-
-        Pinned so the divergence stays deliberate rather than looking like drift.
+        `canonical_physical_state(ε)` gives the ARC's capital AT ε, zero at the origin.
+        This function scales a CALLER-SUPPLIED ε=0 baseline. The caller asserts that the
+        stock exists, so zeroing it would destroy their input.
         """
         for eps in [0.0, 0.40, 0.90]:
             state = canonical_physical_state(eps)
@@ -278,11 +274,9 @@ class TestPhysicalStateAPI:
         assert result > 0.0
 
     def test_ecological_eoh_explicit_monitoring(self):
-        """
-        INVERTED 2026-09-08 (author-approved layer fix): `monitoring_capability`
-        still overrides the epsilon default, but it no longer moves the
-        OBLIGATION. What is owed is owed whether or not it has been seen;
-        legibility gates registration instead.
+        """`monitoring_capability` still overrides the ε default, but it does not move
+        the OBLIGATION (author-approved, 2026-09-08). What is owed stays owed, seen or
+        not; legibility gates registration instead.
         """
         r_low  = ecological_eoh(0.70, monitoring_capability=0.20, deferred=1_000_000.0)
         r_high = ecological_eoh(0.70, monitoring_capability=0.90, deferred=1_000_000.0)
@@ -361,16 +355,9 @@ class TestBackwardCompat:
             assert p_new == pytest.approx(p_old, rel=1e-9), f"ε={eps}"
 
     def test_infrastructure_eoh_compat(self):
-        """The two paths AGREE (2026-09-09, author decision — reading (e)).
-
-        Until this decision the ε path treated a supplied stock as an ε=0
-        baseline and scaled it by (1 + 2ε), while `canonical_physical_state`
-        said the arc's capital is 3ε × base. They diverged everywhere but ε=1 —
-        1.50× at ε=0.40 — and this test PINNED the divergence as deliberate.
-
-        ε now FILLS an unspecified stock rather than rescaling a supplied one,
-        so the arc reference and the entry point read the same capital at every
-        ε. That equality is the point of the change, and it is what is asserted.
+        """The ε path and the arc reference read the same capital at every ε: ε fills an
+        unspecified stock and never rescales a supplied one (author decision 2026-09-09,
+        reading (e); [record](record/fulfilment.md#test-docstring-history)).
         """
         for eps in self.EPS_VALUES:
             state = canonical_physical_state(eps)
@@ -391,13 +378,9 @@ class TestBackwardCompat:
             capital_age_ratio=0.3) == 0.0
 
     def test_a_supplied_stock_is_never_rescaled(self):
-        """The half of reading (e) that the equality test above cannot see.
-
-        `test_infrastructure_eoh_compat` passes capital as None, so it would
-        still pass if a supplied stock were scaled by anything at all. This
-        pins the other half: the SAME supplied stock returns the SAME EOH at
-        every ε, which is what makes `simulate_period`'s tracked stock safe to
-        hand to the pipeline.
+        """The same supplied stock returns the same EOH at every ε. That makes
+        `simulate_period`'s tracked stock safe to hand to the pipeline. The test above
+        passes capital as None, so it cannot see this half.
         """
         levels = [infrastructure_eoh(self.CAPITAL, capital_age_ratio=0.40,
                                      epsilon=eps) for eps in self.EPS_VALUES]
@@ -422,14 +405,12 @@ class TestBackwardCompat:
             assert e_new == pytest.approx(e_old, rel=1e-9), f"ε={eps}"
 
     def test_knowledge_eoh_compat(self):
-        """The arc path and the ε path agree, as they did before — but the ε
-        path now asks with None rather than with 1.0.
+        """The arc path and the ε path agree; the ε path now asks with None, not with
+        1.0.
 
-        These two AGREED under the old reading too, because knowledge's default
-        size is 1.0 and `1.0 × (1 + 9ε)` is exactly the arc. That coincidence is
-        why the rescaling defect was invisible here for the whole time it was
-        live in `simulate_period`: this test could not have caught it, and the
-        one below is the one that can.
+        They agreed under the old reading too, because the default size is 1.0 and `1.0
+        × (1 + 9ε)` is exactly the arc. That coincidence hid the rescaling defect in
+        `simulate_period`, so this test could not catch it. The test below can.
         """
         for eps in self.EPS_VALUES:
             state = canonical_physical_state(eps)
@@ -441,13 +422,9 @@ class TestBackwardCompat:
             assert k_new == pytest.approx(k_eps, rel=1e-9), f"ε={eps}"
 
     def test_a_supplied_corpus_size_is_never_rescaled(self):
-        """The half the agreement test above cannot see, for knowledge.
-
-        `knowledge_eoh(None, epsilon=ε)` would still agree with the arc if a
-        SUPPLIED size were scaled by anything at all. This pins the other half:
-        the same supplied corpus returns the same EOH at every ε once
-        `complexity_per_unit` is held fixed, which is what makes
-        `simulate_period`'s tracked corpus safe to hand to the pipeline.
+        """The same supplied corpus returns the same EOH at every ε, with
+        `complexity_per_unit` held fixed. That makes `simulate_period`'s tracked corpus
+        safe to hand to the pipeline. The agreement test above cannot see this half.
         """
         levels = [
             knowledge_eoh(3.5, epsilon=eps, complexity_per_unit=1.0)
