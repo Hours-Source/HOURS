@@ -1,34 +1,25 @@
-"""
-The confidence field: how much of a value is MEASURED rather than chosen.
+"""The confidence field: how much of a value is MEASURED rather than chosen.
 
-WHY IT EXISTS (author decision, 2026-09-01). A placeholder is not a failure —
-the arithmetic needs a number to run at all, and a number picked for a stated
-reason is better than none. But `placeholder` is one word covering everything
-from a bare guess to a value that has absorbed most of a measurement, and a
-reader cannot tell those apart. `confidence: 0–100` does:
+WHY IT EXISTS (author decision, 2026-09-01). A placeholder is not a failure: the
+arithmetic needs a number, and a number picked for a stated reason is better than none.
+But `placeholder` covers everything from a bare guess to a value that holds most of a
+measurement. `confidence: 0–100` tells them apart:
 
     0    picked so the arithmetic can run; nothing measured
     100  fully data-backed
 
-**IT NEVER LICENSES A STRONGER TAG.** A constant at 70 is still a placeholder —
-just a better-picked one. The guard is exactly that it cannot claim to be done.
+**IT NEVER LICENSES A STRONGER TAG.** A constant at 70 is still a placeholder, only a
+better-picked one.
 
-WHY A LOW NUMBER IS STILL WORTH STATING. Everything downstream is fitted against
-these constants, so a value that moves from 0% to 3% measured moves whatever is
-fitted to it fractionally closer to something real, and a value at 70% moves it a
-long way. An undocumented guess is a 0 that does not say so.
+Every value must say what is measured and what is not; otherwise the figure is a second
+guess on top of the first. `AGE_WEIGHT_CHILD` at 70 names both terms of its ratio as
+measured and the bridge between them as chosen. `ABATEMENT_HALF_CAPITAL_TEH` at 5 says
+only the order of magnitude is bounded.
 
-EVERY VALUE MUST SAY WHAT IS MEASURED AND WHAT IS NOT, or the figure is a second
-guess layered on the first. `AGE_WEIGHT_CHILD` at 70 names both terms of its
-ratio as measured and the definitional bridge as chosen; `ABATEMENT_HALF_CAPITAL_TEH`
-at 5 says the order of magnitude is bounded and nothing else is.
-
-IT IS A RATCHET, NOT A BLANKET RULE. 147 constants carry `placeholder` or
-`bounded` and backfilling all of them at once would be inventing 131 more
-numbers — the exact failure the field exists to expose. So the count WITHOUT a
-confidence may not rise, and it falls as constants are revisited. The first pass
-annotated the nine highest-leverage, measured by perturbation rather than
-chosen: everything above 0.14 elasticity on the model's headline outputs.
+IT IS A RATCHET, NOT A BLANKET RULE. A backfill of every placeholder at once would
+invent numbers, which is the failure the field exists to expose. So the count WITHOUT a
+confidence may not rise, and it falls as constants are revisited
+([record](record/provenance.md#confidence-test-history)).
 """
 
 from __future__ import annotations
@@ -188,31 +179,25 @@ class TestTheRatchet:
         assert len(_annotated()) >= 4
 
     def test_lowering_it_requires_real_work(self) -> None:
-        """
-        Documented rather than enforced, because it cannot be enforced: the
-        ratchet cannot tell a considered figure from a typed one. What it can do
-        is make adding one a visible act in a diff, which is the
-        `_INNOCUOUS_NAMES` discipline — masking must be DECLARED.
+        """This rule is documented, not enforced: the ratchet cannot tell a considered
+        figure from a typed one. It makes each new figure a visible act in a diff, as
+        `_INNOCUOUS_NAMES` does.
         """
         import tests.test_confidence as mod
         assert "RATCHET, NOT A BLANKET RULE" in (mod.__doc__ or "")
 
 
 class TestTheFiguresThatShipped:
-    """
-    Pinned as ORDERINGS, not levels. What matters is the RANKING by how much of
-    each is actually measured — and that it runs against leverage, which is the
-    finding: the model's biggest levers are its least-measured constants.
+    """These tests pin ORDERINGS, not levels. The finding is that confidence runs
+    against leverage: the model's biggest levers are its least-measured constants.
     """
 
     def test_leverage_and_confidence_run_OPPOSITE(self):
-        """
-        THE HEADLINE OF THE FIRST LEVERAGE REVIEW. PERSONAL_EOH_BASE has the
-        highest elasticity in the model (0.94) at confidence 40; the GUF alpha
-        pair are next (0.73, 0.59) at 10; SERVICES_PRICE_DECLINE_EXPONENT is
-        fourth (0.54) at 5. The best-measured constant of the nine,
-        AGE_WEIGHT_CHILD at 70, ranks SIXTH by leverage. Anything fitted in this
-        repo is fitted hardest against what is known least.
+        """The most leveraged constants carry the lowest confidence. PERSONAL_EOH_BASE
+        (elasticity 0.94) is at 40, the GUF alpha pair (0.73, 0.59) at 10, and
+        SERVICES_PRICE_DECLINE_EXPONENT (0.54) at 5. AGE_WEIGHT_CHILD, the best measured
+        at 70, ranked sixth by leverage in the first review
+        ([record](record/provenance.md#confidence-test-history)).
         """
         assert self._value("AGE_WEIGHT_CHILD") > self._value("PERSONAL_EOH_BASE")
         assert self._value("PERSONAL_EOH_BASE") > self._value("GUF_ALPHA_ZETA")
@@ -229,10 +214,8 @@ class TestTheFiguresThatShipped:
         assert self._value("AGE_WEIGHT_CHILD") > self._value("AGE_WEIGHT_INFANT")
 
     def test_the_infant_weight_ranks_below_it_and_the_reason_is_structural(self) -> None:
-        """
-        Its self-maintenance term is not merely unmeasured — for ages 0–2 it is
-        already counted on the care-received side, so a survey of under-3s would
-        not on its own close it.
+        """For ages 0–2 the self-maintenance term is already counted as care received. A
+        survey of under-3s would therefore not close the gap by itself.
         """
         record = next(r for r in _soft_records() if r.name == "AGE_WEIGHT_INFANT")
         assert "double-counted" in record.confidence or "double" in record.confidence

@@ -198,9 +198,10 @@ class TestCompoundShock:
         assert compound_shock(0.40)["scenario"] == "compound_shock"
 
     def test_no_shocks_tests_nothing(self):
-        """All shocks disabled → NO_SHOCK, and the Trust question is unasked.
-        It read STABLE / True until 2026-10-03 — a verdict from a run that
-        applied no shock (mode 9)."""
+        """With all shocks disabled the verdict is NO_SHOCK, and the run does not ask
+        the Trust question. Until 2026-10-03 it read STABLE / True, a verdict from a run
+        with no shock (mode 9).
+        """
         result = compound_shock(0.40, ecology_collapse=False,
                                 demographic_shock_spec=None,
                                 automation_fraction_lost=0.0)
@@ -283,20 +284,12 @@ class TestCompoundShock:
 
 
 class TestLaborIncomeAutomationSlope:
-    """
-    `_LABOR_INCOME_AUTO_SLOPE`, pinned (2026-08-28) — after making it
-    observable at all.
-
-    It is a shadow constant that a +7% move left undetected, and the reason was
-    structural: `demographic_shock` computed `labor_income` from it and then
-    DISCARDED it. ε drives the guarantee, the EOH total and the income
-    together, so the income's own response cannot be recovered from any
-    downstream figure — I tried, and the implied ratio came back 2.17 against an
-    expected 0.60 because the other ε effects swamp it.
-
-    The fix is the same one applied to `scenarios/maintenance.py` the same day:
-    report the quantity the code already computes. A term that reaches the
-    caller only through other terms is a term no test can hold.
+    """`_LABOR_INCOME_AUTO_SLOPE` is pinned (2026-08-28) and now observable. It is a
+    shadow constant that a +7% move left undetected: `demographic_shock` computed
+    `labor_income` from it and then discarded it. ε moves the guarantee, the EOH total
+    and the income together, so no downstream figure isolates the income's response. The
+    fix reports the quantity the code already computes
+    ([record](record/fulfilment.md#obligation-accounts-test-history)).
     """
 
     # SINCE 2026-09-30 THIS IS THE LEGACY PATH. The default income is the mint
@@ -340,10 +333,10 @@ class TestLaborIncomeAutomationSlope:
 
 
 class TestShocksPayFromTheMint:
-    """
-    2026-09-30: three shocks levied the Trust from the 2.2e9 proxy — ~81× the
-    mint at ε=0, unscaled by population — and `compound_shock` applied the
-    proxy's automation slope twice (mode 11). The default is now the mint.
+    """Shocks levy from the mint (2026-09-30). Three shocks had levied the Trust from
+    the 2.2e9 proxy, unscaled by population, and `compound_shock` applied the proxy's
+    automation slope twice (mode 11)
+    ([record](record/fulfilment.md#proxy-income-retired)).
     """
 
     KEY = (0.0, 0.40, 0.90, 0.99)
@@ -561,10 +554,11 @@ class TestShocksRunOnTheSharedPath:
 
 
 class TestAutomationFailureCascade:
-    """2026-09-30: an automation failure is the shared pipeline's own cascade —
-    the OBSERVED machine load falls to people, is taken up within the measured
-    labour supply L, and the rest is DEFERRED survival-first. Nothing is
-    charged to the Trust: a balance cannot supply an hour of labour."""
+    """An automation failure runs the shared pipeline's own cascade (2026-09-30). The
+    OBSERVED machine load falls to people and is taken up within the measured labour
+    supply L; the rest is DEFERRED, survival first. The cascade charges nothing to the
+    Trust, because a balance cannot supply an hour of labour.
+    """
 
     ARC = (0.0, 0.40, 0.90, 0.99)
 
@@ -656,9 +650,10 @@ class TestAutomationFailureCascade:
 
 
 class TestOneStateOneCascade:
-    """2026-10-01, author: "lets proceed with your recommendations". Every
-    shock is a change to one state run through one cascade; nothing is charged
-    to the Trust; supply moves with the age mix; a collapse leaves restoration."""
+    """Every shock changes one state and runs it through one cascade (author,
+    2026-10-01). Nothing is charged to the Trust, supply moves with the age mix, and a
+    collapse leaves restoration.
+    """
 
     ARC = (0.0, 0.40, 0.90, 0.99)
 
@@ -728,10 +723,10 @@ class TestOneStateOneCascade:
 
 
 class TestCompetencyInTheShocks:
-    """2026-10-01: Condition IV in hours (`condition_iv_coverage`) is read in
-    every shock, for a collective certified at the Condition IV minimum of its
-    OWN working-age headcount; a shock is charged only with shortfalls it
-    CREATES. Until this date competency was declared untested."""
+    """Every shock reads Condition IV in hours (`condition_iv_coverage`), for a
+    collective certified at the minimum for its OWN working-age headcount (2026-10-01).
+    The verdict charges a shock only with the shortfalls it CREATES.
+    """
 
     def test_every_shock_tests_competency(self):
         for r in (automation_failure_shock(0.40), demographic_shock(0.40, "aging", 0.1),
@@ -790,10 +785,10 @@ class TestCompetencyInTheShocks:
 
 
 class TestTheSurvivalTier:
-    """2026-10-01, author: "the people (agent needs) should be what needs to be
-    covered, the rest can build back over time as the arc climbs again". A
-    shortfall the shock creates in the PERSONAL tier is CRISIS; elsewhere,
-    DEGRADED."""
+    """A shortfall the shock creates in the PERSONAL tier is CRISIS; elsewhere it is
+    DEGRADED. Author, 2026-10-01: "the people (agent needs) should be what needs to be
+    covered, the rest can build back over time as the arc climbs again".
+    """
 
     def test_a_personal_tier_shortfall_is_crisis(self):
         r = automation_failure_shock(0.99)
@@ -818,9 +813,10 @@ class TestTheSurvivalTier:
 
 
 class TestADeepenedShortfallIsCharged:
-    """Author, 2026-10-03 (option 1): a shock is charged with the shortfalls it
-    DEEPENS, not only those it creates. A 50% automation loss read CRISIS at
-    ε 0.70 and 0.85 and STABLE between, where care was marginally short before."""
+    """A shock is charged with the shortfalls it DEEPENS, not only those it creates
+    (author, 2026-10-03, option 1). Before, a 50% automation loss read CRISIS at ε 0.70
+    and 0.85 and STABLE between them, where care was already marginally short.
+    """
 
     def test_the_verdict_no_longer_dips_over_the_care_window(self):
         eps = [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90]
@@ -925,9 +921,10 @@ class TestRetirementInTheShocks:
 
 
 class TestTheFiscalChangeIsReported:
-    """The fiscal verdict reads the Trust AFTER the shock; an already-insolvent
-    Trust read DEGRADED whether the shock barely moved the deficit or
-    quadrupled it. Before/after are now reported; the verdict is unchanged."""
+    """The fiscal verdict reads the Trust AFTER the shock, so an already-insolvent Trust
+    read DEGRADED whatever the shock did to the deficit. The report now gives before and
+    after; the verdict is unchanged.
+    """
 
     def test_a_shock_that_breaks_solvency_says_so(self):
         r = demographic_shock(0.40, "aging", 0.04, retired_share=0.12)
@@ -967,9 +964,10 @@ class TestTheFiscalChangeIsReported:
 
 
 class TestCapitalLoss:
-    """A disaster destroys capital (2026-10-03): the stock and its upkeep fall,
-    machine work falls to people, the loss is written down (D1) and reported,
-    and a rebuild is opt-in demand."""
+    """A disaster destroys capital (2026-10-03). The stock and its upkeep fall, machine
+    work falls to people, the D1 write-down records and reports the loss, and a rebuild
+    is opt-in demand.
+    """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_across_the_arc(self, eps):
@@ -1050,11 +1048,12 @@ class TestCompoundTakesACapitalLoss:
 
 
 class TestTheBoundaryAndTheShortfallBefore:
-    """2026-10-08. `failure_boundary` returned `epsilon` itself whenever the
-    failure already deferred work there and searched only upward — the US
-    frame read 0.371 for a boundary at 0.05. And an obligation already past
-    the labour supply was deferred BEFORE the shock and reported nowhere:
-    `deferred_eoh` counts only what the shock adds."""
+    """`failure_boundary` finds one crossing from any starting ε (2026-10-08). It
+    returned ε itself whenever the failure already deferred work there, so the US frame
+    read 0.371 for a boundary at 0.05. A shortfall that exists before the shock is now
+    reported as `deferred_before_eoh`, because `deferred_eoh` counts only what the shock
+    adds.
+    """
 
     @pytest.mark.parametrize("supply", [1400.0, 1000.0, None])
     def test_the_boundary_is_one_crossing_from_any_start(self, supply):

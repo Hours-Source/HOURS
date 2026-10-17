@@ -212,10 +212,12 @@ AGE_CARE_SHARE_ELDERLY: float = 0.128292
 #   an adult: an adult receiving care is doing so because of impairment, and the
 #   load tracks morbidity — which is where an actuarial table plugs in and where
 #   the compression/expansion question lives.
-# note: THE SPLIT IS 83/12 BY VOLUME, NOT 50/50. Weighted by population share,
-#   dependant care is ~83% of measured care and frailty care ~12% (the balance
-#   is working-age care, itself frailty-keyed). An LTC actuarial table therefore
-#   settles about an eighth of care; it does not settle care.
+# note: THE SPLIT IS 89/11 BY VOLUME, NOT 50/50. Weighted by population share,
+#   dependant care is ~89% of measured care and frailty care ~11%: elderly ~5%
+#   and working-age ~6%, both frailty-keyed (re-read 2026-10-17). It read 83/12
+#   when written on 2026-09-04, a figure the tree at that commit does not
+#   reproduce (both routes read ~88/12 there). An LTC actuarial table therefore
+#   settles about a ninth of care; it does not settle care.
 # decided_by: AWol 2026-09-04 — a classification, not a measurement. No dataset
 #   says which driver a band belongs to; the age ranges do.
 AGE_CARE_KEY_INFANT: str = "dependant"

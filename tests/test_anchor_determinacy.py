@@ -1,21 +1,17 @@
-"""
-The anchor comparison, and the guards that stop it being rigged.
+"""The anchor comparison, and the guards that stop it being rigged.
 
-WHY THESE TESTS ARE SHAPED THIS WAY. A comparison against rivals you model
-yourself is the easiest thing in this repository to fake: pick a weak version of
-each alternative and the conclusion writes itself. That is the calibrated-to-
-target failure at the scale of a module, and it would be undetectable from the
-output.
+A comparison against rivals you model yourself is easy to fake: pick a weak version of
+each alternative and the conclusion writes itself. That is the calibrated-to-target
+failure at the scale of a module, and the output would not show it.
 
-So the tests are mostly about METHOD rather than result — that no rival is
-simulated, that each carries its own strongest reading, that an indeterminate
-anchor is recorded as indeterminate rather than as unresponsive, and that the
-headline claim is COMPUTED from the classification rather than restated beside
-it.
+So most tests check METHOD, not result. The module simulates no rival, and each rival
+carries its own strongest reading. The module records an indeterminate anchor as
+indeterminate, not as unresponsive. It COMPUTES the headline claim from the
+classification and does not restate it.
 
-THE RESULT ITSELF IS PINNED AS NOT-UNIQUE, deliberately. Mutual credit holds the
-same three properties HOURS does. A later edit that quietly makes HOURS the sole
-holder is exactly the drift this file exists to catch.
+THE TESTS PIN THE RESULT AS NOT-UNIQUE, deliberately. Mutual credit holds the same three
+properties HOURS does. This file exists to catch a later edit that quietly makes HOURS
+the sole holder.
 """
 
 from __future__ import annotations
@@ -38,17 +34,15 @@ MODULE = (pathlib.Path(__file__).resolve().parent.parent
 
 
 class TestNoRivalIsSimulated:
-    """
-    The central design guard. The moment this module grows a model of gold or
-    fiat, the comparison stops being a classification and starts being a
-    conclusion fitted to whatever that model does.
+    """The central design guard. If this module grows a model of gold or fiat, the
+    comparison stops being a classification and becomes a conclusion fitted to that
+    model.
     """
 
     def test_it_measures_only_this_framework(self):
-        """
-        The guard is "no RIVAL is modelled", not "one import". Reading HOURS'
-        own machinery is the point; anything outside `core/` would mean a rival
-        had acquired a model.
+        """The guard is "no RIVAL is modelled", not "one import". Reading HOURS' own
+        machinery is the point; an import from outside `core/` would mean a rival has a
+        model.
         """
         tree = ast.parse(MODULE.read_text(encoding="utf-8"))
         imported = sorted({
@@ -66,9 +60,8 @@ class TestNoRivalIsSimulated:
         )
 
     def test_no_rival_carries_a_numeric_parameter(self):
-        """
-        A mining rate or an issuance schedule appearing here means a rival is
-        being modelled. The classification needs no number from any of them.
+        """A mining rate or an issuance schedule here would mean the module models a
+        rival. The classification needs no number from any rival.
         """
         for a in ANCHORS:
             assert not any(ch.isdigit() for ch in a.supply_is), (
@@ -87,10 +80,9 @@ class TestEveryRivalGetsItsStrongestReading:
             )
 
     def test_the_indifferent_anchors_are_given_their_actual_argument(self):
-        """
-        Gold and bitcoin are not accidentally unresponsive — indifference is the
-        property being bought. If their entries ever read as a deficiency, the
-        comparison has been tilted.
+        """Gold and bitcoin are unresponsive on purpose: indifference is the property
+        their holders buy. If their entries read as a deficiency, someone tilted the
+        comparison.
         """
         for name in ("gold", "bitcoin"):
             a = next(x for x in ANCHORS if x.name == name)
@@ -102,11 +94,9 @@ class TestEveryRivalGetsItsStrongestReading:
 
 
 class TestIndeterminateIsNotUnresponsive:
-    """
-    The distinction that lets this run without modelling monetary policy. An
-    anchor whose issuance is discretionary has no response that follows from
-    what it IS — recording that as `responsive=False` would be a claim about
-    policy that nobody here is entitled to make.
+    """This distinction lets the comparison run without modelling monetary policy. An
+    anchor with discretionary issuance has no response that follows from what it IS.
+    `responsive=False` would be a claim about policy that nobody here may make.
     """
 
     @pytest.mark.parametrize("name", ("fiat", "debt money"))
@@ -134,9 +124,8 @@ class TestTheClaimIsComputedNotRestated:
             assert name in c["claim"]
 
     def test_moving_an_anchor_moves_the_claim(self):
-        """
-        The restated-figure guard: if the prose were written beside the table
-        rather than from it, this would pass while the two disagreed.
+        """The restated-figure guard. If someone wrote the prose beside the table, not
+        from it, this test would pass while the two disagreed.
         """
         import hours_eoh.research.anchor_determinacy as m
         before = the_defensible_claim()["determinate_responsive_registered"]
@@ -150,14 +139,10 @@ class TestTheClaimIsComputedNotRestated:
 
 
 class TestHoursIsNotAlone:
-    """
-    PINNED AS NOT-UNIQUE. Mutual credit registers obligation bilaterally at the
-    moment it is incurred, and its base moves with activity — the same three
-    properties. The honest differentiator is SCALE, which is stated in its own
-    row, not structure.
-
-    A future edit that makes HOURS the sole holder of all three is the drift
-    this test exists to catch.
+    """PINNED AS NOT-UNIQUE. Mutual credit registers obligation bilaterally when it is
+    incurred, and its base moves with activity: the same three properties. The honest
+    difference is SCALE, stated in its own row, not structure. This test catches an edit
+    that makes HOURS the sole holder of all three.
     """
 
     def test_two_anchors_hold_all_three_properties(self):
@@ -208,10 +193,9 @@ class TestTheMeasuredRowIsMeasured:
 
 
 class TestTheThreeLimitsThatWereNarrowed:
-    """
-    Three of the five stated limits turned out to be cheap to narrow. None is
-    closed — each is now a SCOPED statement with its caveat attached, which is
-    the difference between a limit and an excuse.
+    """Three of the five stated limits were cheap to narrow. None is closed: each is now
+    a SCOPED statement with its caveat, which is the difference between a limit and an
+    excuse.
     """
 
     def test_the_ecological_zero_is_one_path_not_the_system(self):

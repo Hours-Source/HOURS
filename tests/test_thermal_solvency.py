@@ -1,10 +1,9 @@
-"""
-Tests for the fiscal solvency gate (research/thermal_solvency.py).
+"""Tests for the fiscal solvency gate (research/thermal_solvency.py).
 
-The gate decides whether the thermal overage may ever reach the ledger, so these
-tests pin the pass conditions themselves as much as the verdict — including the
-null-load attribution check, which exists because two earlier drafts reported
-failures that had nothing to do with the thermal obligation.
+The gate decides whether the thermal overage may ever reach the ledger. So these tests
+pin the pass conditions as well as the verdict, including the null-load attribution
+check: two earlier drafts reported failures that had nothing to do with the thermal
+obligation.
 """
 
 from __future__ import annotations
@@ -48,29 +47,11 @@ def test_reference_matches_the_repo_sweep_calibration():
 # ---------------------------------------------------------------------------
 
 def test_flow_more_than_triples_the_ecological_domain():
-    """
-    THE DRAWDOWN OBLIGATION SWAMPS THE ECOLOGICAL DOMAIN — it does not triple it.
-
-    This test recorded a load ratio of 3.5, i.e. "~2.5 ecological baselines, so
-    the domain more than triples". That was computed against an ecological
-    baseline inflated 464x by the frame mismatch: `solvency_at_epsilon` called
-    `ecological_eoh_breakdown` with no area while scaling everything else with
-    its own population, so the baseline was the WHOLE contiguous US against a
-    one-million-person fisc.
-
-    Framed consistently the ratio is ~1,162x. It is computed at the
-    PRE-PARTITION policy and stays there: Phases 4e/4f (adopted 2026-08-28/29)
-    empty the ecological domain by default, and this comparison presupposes a
-    baseline — so `solvency_at_epsilon` evaluates the whole verdict where one
-    exists rather than dividing by zero. The thermal obligation is three orders
-    of magnitude larger than the standing ecological obligation, which sharpens
-    rather than contradicts the note that the "38x margin" verdict passes
-    because the obligation is negligible: the obligation being compared against
-    was itself the negligible one.
-
-    Found by the scale-resolution gate on its first run (2026-08-17), the fifth
-    instance of the defect and the one four manual passes missed. Asserted as an
-    ORDER OF MAGNITUDE, not a level: it moves with every constant in the chain.
+    """The drawdown obligation is about three orders of magnitude larger than the
+    ecological domain, at the PRE-PARTITION policy. The test asserts an order of
+    magnitude, not a level. An earlier reading of 3.5 ("more than triples") divided by a
+    baseline inflated 464× by the frame mismatch
+    ([record](record/thermal.md#thermal-solvency-test-history)).
     """
     flow = thermal_flow_eoh(2.0)
     assert flow == pytest.approx(1_789_175, rel=0.01)
@@ -95,8 +76,9 @@ def test_flow_scales_inversely_with_horizon():
 
 
 def test_delta_t_default_comes_from_the_chosen_constant():
-    """ΔT_max is CHOSEN and dominates everything — it must not be hardcoded in
-    the gate, so that revising it moves every downstream figure at once."""
+    """ΔT_max is CHOSEN and dominates everything. The gate must read the constant, not a
+    hard-coded copy, so that revising it moves every downstream figure at once.
+    """
     from hours_eoh.data import THERMAL_DT_LO
     import inspect
     from hours_eoh.research.thermal_solvency import solvency_at_epsilon as f
@@ -137,26 +119,12 @@ def test_gate_passes_at_every_epsilon():
 
 
 def test_the_coequality_condition_is_retired_and_stays_retired():
-    """RETIRED 2026-09-16 (author decision), asserted rather than merely absent.
-
-    This file used to hold `test_coequality_holds_under_load`, pinning
-    `eco_coverage >= stew_coverage - 0.25`. The condition compared two Trust
-    FUNDING coverages — `min(required, trust_balance) / required` — against a
-    balance that, since the wage doctrine (2026-09-15), funds neither ecological
-    nor stewardship labour. Measured across trust balances 1e6–3.5e10 and
-    ε ∈ {0, 0.40, 0.90} it passed 9 of 9, and at its most extreme cell
-    (trust 1e6, ε=0) stewardship coverage was 0.0056 against ecological 0.7013 —
-    a 69-point gap in the safe direction. It could not fail.
-
-    It was retired rather than restated against requirements, because that would
-    assert "ecological must not be much smaller than stewardship", which nothing
-    in the theory claims: Phases 4e/4f moved both recurring ecological terms to
-    GUF on purpose. A check that manufactures a requirement the framework does
-    not hold shapes later work around a demand nobody made.
-
-    The DOCTRINE is untouched — the two allocations remain co-equal requirements,
-    both paid at the mint. This test exists so the retirement cannot be undone by
-    accident, and so a reader who greps for the old keys finds the reason.
+    """The co-equality condition stays retired (2026-09-16, author decision). It
+    compared two Trust FUNDING coverages against a balance that, since the wage
+    doctrine, funds neither, so it could not fail. The DOCTRINE is untouched: both
+    allocations remain co-equal requirements, paid at the mint. A reader who searches
+    for the old keys finds the reason here
+    ([record](record/thermal.md#thermal-solvency-test-history)).
     """
     for r in solvency_gate()["verdicts"]:
         for gone in ("coequal", "eco_coverage", "stew_coverage"):
@@ -215,11 +183,10 @@ def test_backward_query_finds_a_finite_breaking_point():
 
 
 def test_labour_is_now_the_binding_condition():
-    """Until 2026-09-15 the Trust gave way first (`trust_insolvent` at 100
-    h/t). Under the wage doctrine the Trust owes only the guarantee, so a
-    thermal overage carried as ecological labour cannot make it insolvent; the
-    gate now breaks when that labour cannot be worked. 100 h/t passes and 400
-    fails, on labour alone."""
+    """Labour, not the Trust, now breaks the gate. Under the wage doctrine (2026-09-15)
+    the Trust owes only the guarantee, so a thermal overage carried as ecological labour
+    cannot make it insolvent. 100 h/t passes and 400 fails, on labour alone.
+    """
     assert solvency_gate(labor_hours_per_tonne=100.0)["passes"] is True
     g = solvency_gate(labor_hours_per_tonne=400.0)
     assert g["passes"] is False
@@ -233,9 +200,10 @@ def test_monotone_in_labour_intensity():
 
 
 def test_verdict_survives_the_policy_knobs():
-    """Horizon and threshold are CHOSEN, so the verdict must not depend on a
-    generous setting of either. The worst combination — a 25-year crash
-    programme at a 1.5 K threshold — still clears by 16×."""
+    """Horizon and threshold are CHOSEN, so the verdict must not depend on a generous
+    setting of either. The worst combination, a 25-year crash programme at a 1.5 K
+    threshold, still clears with a margin above 10×.
+    """
     worst = breaking_labor_intensity(programme_years=25.0, delta_t_max=1.5)
     assert solvency_gate(programme_years=25.0, delta_t_max=1.5)["passes"] is True
     assert worst["margin"] > 10.0

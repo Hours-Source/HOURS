@@ -1,34 +1,32 @@
-"""
-Care has two drivers, and until 2026-09-04 they shared one number.
+"""Care has two drivers, and until 2026-09-04 they shared one number.
 
-`AGE_GROUPS[band]["eoh_weight"]` bundled self-maintenance with care received,
-and the care part bundled two obligations that move on entirely different
-drivers: **dependant care tracks fertility and household composition; frailty
-care tracks longevity and morbidity.** Bundled, neither could be measured
-against its own source, and `ELDERLY_EOH_EPSILON_FACTOR` asserted one answer
-for both at once.
+`AGE_GROUPS[band]["eoh_weight"]` bundled self-maintenance with care received. The care
+part bundled two obligations with different drivers: **dependant care tracks fertility
+and household composition; frailty care tracks longevity and morbidity.** Bundled,
+neither had its own source to measure against
+([record](record/personal.md#care-keys-split)).
 
-THE SPLIT IS ADDITIVE. `self_weight + care_weight == eoh_weight` exactly, and
-no shipped number moves — the same discipline the AGE_GROUPS split used.
+THE SPLIT IS ADDITIVE. `self_weight + care_weight == eoh_weight` exactly, and no shipped
+number moves.
 
 THE SHARES ARE MEASURED, THE LEVELS ARE NOT. `AGE_CARE_SHARE_*` is the ATUS
-care/(self+care) ratio per band; it is applied to the SHIPPED weight, not to
-the measured one, because the measured levels are lower bounds and differ.
-The ratio transfers, the level does not — `mtus_time_use.band_ratio`'s rule.
+care/(self+care) ratio per band. The model applies it to the SHIPPED weight, because the
+measured levels are lower bounds. The ratio transfers and the level does not
+(`mtus_time_use.band_ratio`'s rule).
 
 STATED GAPS:
 
-  * THE SPLIT IS 83/12 BY VOLUME. Weighted by population share, dependant care
-    is ~83% of measured care and frailty care ~12%. An actuarial table settles
-    the frailty key and therefore about an eighth of care; the dominant term
-    needs a different instrument entirely.
-  * THE ELDERLY SHARE IS A LOWER BOUND AND ITS TWO ROUTES DISAGREE 7.1x.
-    30.5 min/day is a mean over 35 years of age and excludes the institutional
-    population by construction — the two errors that make an age key the wrong
-    key. Splitting the key does not fix either; it makes them addressable.
+  * THE SPLIT IS 89/11 BY VOLUME. Weighted by population share, dependant care
+    is ~89% of measured care and frailty care ~11%. An actuarial table settles
+    the frailty key, so about a ninth of care; the dominant term needs a
+    different instrument.
+  * THE ELDERLY SHARE IS A LOWER BOUND, AND ITS TWO ROUTES DISAGREE (5.46× on
+    2026-10-17, `elderly_route_disagreement`). It is a mean over 35 years of age and
+    excludes the institutional population by construction. Splitting the key
+    fixes neither; it makes them addressable.
   * NOTHING IS KEYED ON FRAILTY YET. `care_key` says WHICH driver a band's
-    care belongs to. It does not supply a morbidity trajectory, and no
-    frailty socket exists — that is the open item, not this file.
+    care belongs to. The frailty socket (`scenarios/frailty.py`) ships with no
+    default, and nothing supplies a morbidity trajectory.
 """
 
 from __future__ import annotations
@@ -60,10 +58,8 @@ class TestTheKeysAreDistinct:
             assert g["care_key"] in KEYS, f"{name}: {g['care_key']!r}"
 
     def test_minors_are_dependant_and_adults_are_frailty(self) -> None:
-        """
-        The classification, asserted rather than left to the reader: a minor
-        receiving care is not impaired, they are young. An adult receiving care
-        is doing so because of impairment.
+        """A minor who receives care is not impaired, only young. An adult who receives
+        care does so because of impairment.
         """
         for name, g in AGE_GROUPS.items():
             lo, hi = g["range"]
@@ -79,17 +75,15 @@ class TestTheKeysAreDistinct:
         # and the asymmetry is the finding, so it is pinned
         assert vol["dependant"] > 4.0 * vol["frailty"], (
             "dependant care is no longer the dominant term. If that is real, "
-            "the 'an actuarial table settles an eighth of care' claim in "
+            "the 'an actuarial table settles a ninth of care' claim in "
             "record/personal.md needs re-deriving."
         )
 
 
 class TestTheSharesAreBoundToTheirSource:
-    """
-    `data.py` is the base layer and cannot import a scenario, so the constants
-    are bound to their source BY TEST — the remedy failure mode 4 names for
-    exactly this case. Without this, `AGE_CARE_SHARE_*` is a copy of a value
-    computed elsewhere and free to drift from it.
+    """`data.py` is the base layer and cannot import a scenario, so a test binds the
+    constants to their source (the remedy failure mode 4 names). Without it,
+    `AGE_CARE_SHARE_*` is a copy of a value computed elsewhere, free to drift.
     """
 
     def test_each_share_matches_the_live_atus_measurement(self) -> None:
@@ -172,21 +166,10 @@ class TestTheEpsilonDriftIsRetired:
             )
 
     def test_the_constant_is_deleted_and_the_reason_is_recorded(self) -> None:
-        """DELETED 2026-09-16 (author decision). This test is the inversion of
-        the one it replaces, and the reversal is the point.
-
-        It used to assert the value and argue that retention was necessary:
-        "the scheme has no `retired` tag, and the tag block is where the reason
-        lives. Deleting it would remove the only record of what was assumed for
-        how long." Both halves stopped being true. The scheme gained a
-        `baseline` tag on 2026-09-16 — which this constant does NOT qualify for,
-        because a baseline is kept to be COMPARED against something live and
-        this one has zero readers anywhere, nothing to compare. And the reason
-        no longer depends on the tag block: it is in `record/personal.md`, which
-        is where a retired rationale belongs once no code reaches the value.
-
-        So the assertion becomes: the assignment is gone, and the reasoning is
-        somewhere a reader will actually find it.
+        """The repo deleted the constant (2026-09-16, author decision), and
+        `record/personal.md` holds its reasoning. It does not qualify for the `baseline`
+        tag: a baseline is kept for comparison with something live, and this constant
+        had no readers ([record](record/personal.md#elderly-epsilon-factor-deleted)).
         """
         import pathlib
         repo = pathlib.Path(__file__).resolve().parent.parent
@@ -207,5 +190,5 @@ class TestTheEpsilonDriftIsRetired:
     def test_the_stated_gaps_are_still_stated(self) -> None:
         doc = __doc__ or ""
         assert "STATED GAPS" in doc
-        assert "83/12 BY VOLUME" in doc
+        assert "89/11 BY VOLUME" in doc
         assert "NOTHING IS KEYED ON FRAILTY YET" in doc

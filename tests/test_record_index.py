@@ -1,39 +1,27 @@
-"""
-The `record/` index, kept honest.
+"""The `record/` index, kept honest.
 
-The status log was split by subject area on 2026-09-03: CLAUDE.md had reached
-304.5k chars against a 150k context limit, and 92% of it was an append-only
-journal that is almost never consulted chronologically. State and evidence now
-route by area under `record/`; the recurring failure modes stay in CLAUDE.md,
-because they do not belong to an area.
+The status log was split by subject area on 2026-09-03, when CLAUDE.md had reached
+304.5k characters against a 150k context limit
+([record](record/verification.md#the-record-split)). State and evidence now route by
+area under `record/`. The recurring failure modes stay in CLAUDE.md, because they do not
+belong to an area.
 
-WHAT THIS GUARDS. An index that has fallen behind the directory it indexes is
-the `unused_innocuous_names` failure — the one this repo learned when two
-allowlist entries stopped exempting anything within an hour of shipping, and
-again when the reference-layer isolation list silently missed two modules
-because it was hand-maintained instead of globbed from disk. So this globs from
-disk.
+WHAT THIS GUARDS:
 
-It also refuses the specific lie that makes the migration checklist worthless:
-a README row saying an area is migrated while the file is still a stub, or the
-reverse. Either direction sends a reader to the wrong place.
+  * The index globs the directory from disk. A hand-kept index falls behind
+    the directory it indexes (the `unused_innocuous_names` failure).
+  * A README row may not call an area migrated while its file is a stub, or the
+    reverse. Either direction sends a reader to the wrong place.
+  * Every cross-area link must resolve. An entry is filed once and linked from
+    other areas, so a dangling `#slug` sends a reader nowhere.
+  * The LIVE SURFACE has a budget, and history has none. History is the
+    evidence that stops a defect being rediscovered; what degrades as it grows
+    is NAVIGABILITY, which `utils/record_index.py` answers with a generated
+    index, not a deletion.
 
-It also resolves every cross-area link. Entries are filed once, on primary
-subject, and pointed at from the other area — so a dangling `#slug` silently
-sends a reader nowhere, and is the same class as a `resolves_by` naming a source
-that does not carry the quantity.
-
-It also holds the LIVE SURFACE to a budget while leaving history unbounded.
-That asymmetry is the whole design: history is the evidence that stops a defect
-being rediscovered, so capping it would trade a known cost (a large read) for an
-unknown one (a lesson nobody can reach). What degrades as a file grows is
-NAVIGABILITY, and `utils/record_index.py` answers that with a generated index
-rather than a deletion.
-
-STATED GAPS. This does not check that an area file's *content* belongs to its
-area, and it does not check that every entry left in CLAUDE.md has an area to
-go to. The migration is manual and the README row is the record of it. It also
-does not check links pointing OUT of `record/` — only links INTO it.
+STATED GAPS. This does not check that an area file's *content* belongs to its area, or
+that every entry left in CLAUDE.md has an area to go to; the migration is manual. It
+checks links INTO `record/`, not links out of it.
 """
 
 from __future__ import annotations
@@ -99,11 +87,8 @@ class TestTheIndexMatchesTheDirectory:
 
 
 class TestTheMigrationStatusIsTrue:
-    """
-    The README row and the file itself are two accounts of one status. This
-    repo has been bitten by exactly that shape before — `psi` reported one
-    value while another was applied — so the two are held equal here rather
-    than left to agree by habit.
+    """The README row and the file are two accounts of one status, so the test holds
+    them equal. `psi` once reported one value while another was applied.
     """
 
     @pytest.mark.parametrize("path", _area_files(), ids=lambda p: p.name)
@@ -134,11 +119,8 @@ class TestTheMigrationStatusIsTrue:
 
 
 class TestTheClaimsRegisterStillSeesTheRecord:
-    """
-    The split is only safe because the register reads both homes. If this ever
-    stops being true, six anchors and three closed open items go unchecked
-    while every test still passes — the silent-blindness failure the register
-    was built to prevent.
+    """The split is safe only while the claims register reads both homes. If it stopped,
+    the claims that moved to `record/` would go unchecked while every test passed.
     """
 
     def test_the_register_corpus_includes_the_record_directory(self) -> None:
@@ -168,15 +150,11 @@ def _targets(path: pathlib.Path) -> set[str]:
 
 
 def _links_into_record() -> list[tuple[pathlib.Path, pathlib.Path, str]]:
-    """
-    `(source, target file, fragment)` for every markdown link into `record/`.
+    """`(source, target file, fragment)` for every markdown link into `record/`.
 
-    THE FIRST VERSION MATCHED ONLY `](file.md#frag)` AND THEREFORE MISSED
-    SAME-FILE LINKS — `](#frag)`, which is most of what an area file's own
-    cross-reference table uses. Breaking an anchor that four such links pointed
-    at left this gate GREEN. That is failure mode 12 inside the gate written to
-    catch dangling pointers, so the empty-path case is now explicit rather than
-    implied by the regex.
+    Same-file links (`](#frag)`) are matched explicitly. The first version matched only
+    `](file.md#frag)`, and breaking an anchor that four same-file links used left the
+    gate GREEN (mode 12).
     """
     sources = [*RECORD_DIR.glob("*.md"), REPO_ROOT / "CLAUDE.md"]
     found = []
@@ -194,11 +172,9 @@ def _links_into_record() -> list[tuple[pathlib.Path, pathlib.Path, str]]:
 
 
 class TestEveryCrossLinkResolves:
-    """
-    Cross-area entries are filed once and linked, never duplicated — two copies
-    of one entry is two accounts of one quantity, the shape that let `psi`
-    diverge from `psi_applied`. Linking instead of copying is only safe while
-    the links resolve.
+    """An entry is filed once and linked, never duplicated: two copies are two accounts
+    of one quantity (`psi` against `psi_applied`). Linking is safe only while the links
+    resolve.
     """
 
     def test_there_are_cross_links_to_check(self) -> None:
@@ -244,11 +220,9 @@ class TestAnEntryIsFiledOnce:
 
 
 class TestEveryFileCanBeNavigated:
-    """
-    85 entries across nine files, 89% of `record/` by bytes. An index is what
-    lets a reader jump to one instead of scanning 50k of prose — and it is
-    GENERATED, so unlike the hand-kept index that went stale within an hour in
-    this repo's own history, it cannot drift from what it indexes.
+    """Each area file carries an index that lets a reader jump to one entry instead of
+    scanning the history. The index is GENERATED, so it cannot drift from what it
+    indexes.
     """
 
     def test_every_migrated_file_carries_a_current_index(self) -> None:
@@ -284,13 +258,10 @@ class TestEveryFileCanBeNavigated:
 
 
 class TestTheLiveSurfaceStaysASummary:
-    """
-    Nine files written independently landed between 4,058 and 4,996 chars of
-    live surface, with no coordination and regardless of whether the area has 3
-    entries or 18. The budget codifies that regularity; it binds on nothing
-    today, which is the point. It catches the regression where an area file
-    grows a SECOND history inside its own summary — which is precisely how
-    CLAUDE.md reached 304,500 chars.
+    """The budget catches an area file that grows a SECOND history inside its summary,
+    which is how CLAUDE.md reached 304,500 characters. When set, it codified a
+    regularity and bound nothing. On 2026-10-17 several files sit within 100 characters
+    of it ([record](record/verification.md#ste-docstrings)).
     """
 
     def test_each_live_surface_is_within_budget(self) -> None:
@@ -326,17 +297,14 @@ class TestTheLiveSurfaceStaysASummary:
 
 
 class TestTheFailureModesCiteTheCorpus:
-    """
-    CLAUDE.md's failure modes and the portable corpus are the same knowledge at
-    two altitudes; the `*(corpus F-0NN)*` markers are the join. This checks the
-    FORM only — resolution needs the corpus, which lives outside every repo, so
+    """CLAUDE.md's failure modes and the portable corpus hold the same knowledge at two
+    altitudes, joined by the `*(corpus F-0NN)*` markers. This test checks the FORM only.
+    Resolution needs the corpus, which lives outside every repo, so
     `~/.claude/corpus/check.py` checks that half.
 
-    IT EXISTS BECAUSE THE CITATIONS WENT IN WRONG AND NOTHING NOTICED. The first
-    pass inserted them by string index, and for the two-digit modes the index
-    found the OPENING `**` rather than the closing one — so modes 10-13 rendered
-    as an empty bold followed by stray italics, and the markers were present,
-    countable, and malformed. Counting them found 13; parsing them found 9.
+    The first insertion of the markers went in malformed for modes 10–13, and nothing
+    noticed: counting them found 13, parsing them found 9
+    ([record](record/verification.md#the-record-split)).
     """
 
     _MODE = re.compile(r"^\s*(\d+)\. \*\*(.+?)\*\* \*\(corpus ((?:F-\d{3}(?:, )?)+)\)\*",

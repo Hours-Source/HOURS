@@ -1,12 +1,12 @@
-"""
-Tests for scenarios/arc_stability.py — Phase 1, the compass made checkable.
+"""Tests for scenarios/arc_stability.py: Phase 1, the compass made checkable.
 
 Discipline:
-  * conditions asserted as ORDERINGS and SIGNS, never as levels — every level
-    here moves with the capital path and the knowledge anchor, and the anchor
-    has been re-derived six times;
-  * the structural implication (3 ⇒ 1) is pinned as algebra, not observed;
-  * `TestStabilityChangesNothing` pins that this is reporting only.
+
+  * The tests assert conditions as ORDERINGS and SIGNS, never as levels. Every
+    level here moves with the capital path and the knowledge anchor, and the
+    anchor is re-derived often (see `KNOWLEDGE_EOH_BASE`'s tag block).
+  * The structural implication (3 ⇒ 1) is pinned as algebra, not observed.
+  * `TestStabilityChangesNothing` pins that this module is reporting only.
 """
 
 from __future__ import annotations
@@ -55,13 +55,14 @@ class TestTheConditionsAreDeclared:
 
 
 class TestTheStructuralImplication:
-    """
-    Condition 3 implies condition 1 by construction:
+    """Condition 3 implies condition 1 by construction:
+
         surplus = supply − obligation − delivery ≥ 0
         and delivery ≥ 0
         ⇒ supply ≥ obligation.
-    Pinned as algebra rather than observed on a grid, because an implication
-    that only holds where it was sampled is not an implication.
+
+    The test pins this as algebra, not on a grid. An implication that holds only where
+    someone sampled it is not an implication.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
@@ -125,13 +126,10 @@ class TestWhatTheArcActuallyShows:
         assert s == sorted(s)
 
     def test_the_human_delivery_cost_peaks_in_the_INTERIOR(self):
-        """
-        A shape I did not predict and the run produced. The human share of the
-        delivery cost is (1 − ε)·delivery: delivery grows with the capital stock
-        while (1 − ε) collapses faster, so the product peaks mid-arc rather than
-        rising monotonically. Pinned because an arc test assuming monotonicity
-        here would fail on a correct implementation — the Ψ-bell trap in a new
-        place.
+        """The human share of the delivery cost, (1 − ε)·delivery, peaks mid-arc.
+        Delivery grows with the capital stock while (1 − ε) falls faster. An arc test
+        that assumed monotonicity here would fail a correct implementation
+        ([record](record/fulfilment.md#arc-stability-test-history)).
         """
         d = [r["delivery_per_capita"] for r in stability_arc()]
         assert d.index(max(d)) not in (0, len(d) - 1), (
@@ -160,12 +158,10 @@ class TestTheStationaryBand:
         assert b["contiguous"] is (b["gaps"] == [])
 
     def test_the_non_contiguous_branch_is_REACHABLE(self):
-        """
-        THE BITE THAT WAS MISSING. On the shipped calibration the band is
-        contiguous, so a test driving only the model cannot tell "contiguous
-        because it was checked" from "contiguous because it was hard-coded" —
-        hard-coding `contiguous = True` passed every test in this file. The pure
-        logic is now separable and both branches are exercised.
+        """On the shipped calibration the band is contiguous, so a test that drives only
+        the model cannot tell a checked result from a hard-coded one. This test drives
+        the pure logic, so both branches run
+        ([record](record/fulfilment.md#arc-stability-test-history)).
         """
         good = band_from_flags([(0.0, False), (0.1, True), (0.2, True)])
         assert good["contiguous"] is True and good["gaps"] == []
@@ -228,15 +224,9 @@ class TestStabilityChangesNothing:
 
 
 class TestTheStandardIsDeclaredAndSingular:
-    """
-    THE DEFECT THIS MODULE SHIPPED WITH FOR ONE COMMIT, and the tests that would
-    have caught it.
-
-    Conditions 1 and 3 ran at `collapsed` (feasibility's own default) while
-    condition 2 ran at `sufficiency` (overbuild's own default) — one verdict, two
-    standards, undeclared. Every test in this file passed. It was found by
-    checking whether the neighbouring `corridor` entry point was reachable, not
-    by the suite.
+    """All three conditions must run at one declared standard. For one commit,
+    conditions 1 and 3 ran at `collapsed` and condition 2 at `sufficiency`, and every
+    test here passed ([record](record/fulfilment.md#arc-stability-test-history)).
     """
 
     def test_the_result_states_which_standard_it_is_at(self):
@@ -245,12 +235,9 @@ class TestTheStandardIsDeclaredAndSingular:
         assert r["personal_base"] > 0.0
 
     def test_all_three_conditions_move_together_with_the_standard(self):
-        """
-        THE BITE, and the first version of it did NOT bite. It asserted the
-        band moves with the standard — but the band is driven by conditions 1
-        and 3, so condition 2 could stay stuck on its own default undetected.
-        Condition 2 is now pinned through `autarky_reference`, the one field of
-        the overbuild test that moves with the standard.
+        """Condition 2 must move with the standard too. The band follows conditions 1
+        and 3 only, so the test pins condition 2 through `autarky_reference`, the
+        overbuild field that moves with the standard.
         """
         from hours_eoh.core.eoh_generation import personal_base_for
         lo = stability_at(0.40, standard="survival")
@@ -327,12 +314,9 @@ class TestTheStandardIsDeclaredAndSingular:
 
 
 class TestConditionTwoIsReachableInBothDirections:
-    """
-    A condition that cannot fail is not a condition. `delivery_pays` was True
-    everywhere for one commit — not because the apparatus always paid, but
-    because the default `capital_stock_teh` was 2,000 TOTAL over 1e6 people,
-    i.e. 0.002 per capita. There was no apparatus to fail to pay for, and every
-    test in this file passed.
+    """`delivery_pays` must be able to read True and False. For one commit it read True
+    everywhere, because the default capital was 2,000 TEH in total over 1e6 people
+    ([record](record/fulfilment.md#arc-stability-test-history)).
     """
 
     def test_capital_stock_teh_is_TOTAL_not_per_capita(self):
@@ -390,10 +374,8 @@ class TestConditionTwoIsReachableInBothDirections:
 
 
 class TestItIsComparableToTheNeighbouringQuestions:
-    """
-    The module docstring names `corridor` and `canonical_arc_trajectory` as the
-    neighbouring questions. A pointer a reader cannot follow is worse than none —
-    the `resolves_by`-naming-a-source-not-a-field lesson — so both are exercised.
+    """The module docstring names `corridor` and `canonical_arc_trajectory` as the
+    neighbouring questions. These tests run both, so a reader can follow each pointer.
     """
 
     def test_both_neighbours_are_importable_and_runnable(self):
@@ -403,13 +385,9 @@ class TestItIsComparableToTheNeighbouringQuestions:
         assert r["n_periods"] == 3
 
     def test_stability_is_strictly_stronger_than_survivability(self):
-        """
-        THE RELATIONSHIP, and it is the reason the two bands may differ without
-        contradicting. Corridor asks which ε are SURVIVABLE; this asks where the
-        system could STAND STILL, which additionally requires the delivery cost
-        to be covered. So the stationary band must start at or above corridor's
-        floor at the same standard — and stating the standard is what makes that
-        legible instead of looking like a disagreement.
+        """The stationary band starts at or above corridor's floor at the same standard.
+        Corridor asks which ε are SURVIVABLE. This module asks where the system can
+        STAND STILL, which also requires that the delivery cost is paid.
         """
         from hours_eoh.core.eoh_generation import total_eoh
         from hours_eoh.research.corridor import survival_floor
@@ -437,17 +415,16 @@ class TestItIsComparableToTheNeighbouringQuestions:
             )
 
     def test_the_band_is_reported_at_every_admissible_standard(self):
-        """Both corners survive rather than one being picked — SCOPES precedent."""
+        """The report keeps both corners and does not pick one (the SCOPES precedent).
+        """
         by = band_by_standard()
         assert set(by) == set(STANDARDS)
 
 
 class TestASuppliedStockReachesTheAccounts:
-    """
-    A supplied stock moved only `delivery_pays`: obligation and delivery read
-    the canonical arc's capital, so `--frame us` gave bit-identical figures
-    across the whole BEA conversion band (2026-10-07). Mode 5, the stranded
-    parameter.
+    """A supplied stock must reach the obligation and the delivery, not only
+    `delivery_pays`. Before 2026-10-07 `--frame us` gave identical figures across the
+    whole BEA band (mode 5).
     """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
@@ -474,8 +451,9 @@ class TestASuppliedStockReachesTheAccounts:
 
 
 class TestTheAdultShareReachesTheSupply:
-    """The frame's adult share was resolved and labelled while supply read the
-    shipped age weights (2026-10-07) — mode 5 again."""
+    """The frame's adult share must reach the supply. Before 2026-10-07 supply read the
+    shipped age weights (mode 5).
+    """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_a_larger_adult_share_supplies_more_and_unsupplied_is_declared(self, eps):
@@ -488,15 +466,11 @@ class TestTheAdultShareReachesTheSupply:
 
 
 class TestTheAgeMixReachesDemandAndSupply:
-    """
-    ONE POPULATION ON BOTH SIDES (2026-10-14). The frame's adult share set the
-    supply while the obligation read the shipped AGE_GROUPS pyramid — in
-    `stability_at`, `stationarity_at`, `breakdown_at` and `mint_floor_reach`,
-    and `overbuild_check` could not take an age mix at all. At the US
-    population and canonical capital the census mix flips `stability_at` from
-    not stationary to stationary. The mix used here is the census one the US
-    frame reads, so the two sides genuinely DIFFER from the shipped mix
-    (mode 3: a check run where the divided-out quantity is equal sees nothing).
+    """One age mix must reach both demand and supply in `stability_at`,
+    `stationarity_at`, `breakdown_at` and `mint_floor_reach`. The test uses the census
+    mix, which differs from the shipped one (mode 3). At the US population and canonical
+    capital it moves `stability_at` from not stationary to stationary at ε 0.37–0.38
+    ([record](record/fulfilment.md#compass-reads-the-age-mix)).
     """
 
     @staticmethod

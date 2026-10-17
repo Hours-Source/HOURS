@@ -239,9 +239,10 @@ def delivery_crossover(tol: float = 1e-4, **state: Any) -> dict:
     both non-linear in ε.
 
     THERE IS NO CROSSOVER AT THE CURRENT CALIBRATION — this returns None, and
-    that is a result rather than a gap. Delivery peaks at 0.90 of the
-    obligation. The function is kept because the crossover DID exist before
-    `AGE_WEIGHT_CHILD` took its measurement on 2026-09-01, and a search that
+    that is a result rather than a gap. Delivery stays below the
+    obligation; `ratio_at_top` reports how close it ends. The function is
+    kept because the crossover DID exist before `AGE_WEIGHT_CHILD` took its
+    measurement on 2026-09-01, and a search that
     can only report "yes" is not a search.
 
     THE CROSSOVER WOULD NOT BE A FAILURE, and this function does not call it

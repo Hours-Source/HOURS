@@ -1,21 +1,18 @@
-"""
-Reading ε off a real economy — `reference/capital_inventory` + `scenarios/capital_retrodiction`.
+"""Reading ε off a real economy: `reference/capital_inventory` +
+`scenarios/capital_retrodiction`.
 
-WHAT IS AT STAKE. The anchor comparison ("What would change our mind") carries a
-live falsifier — *if a
-retrodiction produces an implausible ε, the endogenous-supply property is not
-reading the world it says it reads* — and it HAD FIRED. The only run against a
-real economy gave ε = 0.777–1.000, saturated, for a US where 158M people work,
-and `record/thermal.md` concluded the machine profiles were miscalibrated by ~3×.
+WHAT IS AT STAKE. The anchor comparison carries a live falsifier: if a retrodiction
+produces an implausible ε, the endogenous-supply property does not read the world it
+claims to read. It HAD FIRED. The only run against a real economy gave a saturated ε for
+the US ([record](record/thermal.md#capital-scale-retracted)).
 
-These tests pin the retraction and, more importantly, the reason for it: the
-saturated reading is one corner of a grid spanned by three judgements nobody had
-declared. What must not move without someone noticing is that all three stay
-DECLARED, that the conversion rate stays an intake field with no default, and
-that the saturation check can still fire.
+These tests pin the retraction and its reason. The saturated reading is one corner of a
+grid spanned by three judgements nobody had declared. All three must stay DECLARED, the
+conversion rate must stay an intake field with no default, and the saturation check must
+still be able to fire.
 
-THE LAST OF THOSE IS THE ONE THAT MATTERS. "No cell saturates" is worthless if
-saturation is unreachable. `test_the_saturation_check_can_fire` forces it.
+The last matters most. "No cell saturates" is worthless if saturation cannot happen, so
+`test_the_saturation_check_can_fire` forces it.
 """
 
 from __future__ import annotations
@@ -72,8 +69,9 @@ class TestTheJudgementsStayDeclared:
         assert len(row["reason"]) > 60
 
     def test_defence_is_excluded_by_name(self):
-        """Military capital discharges no obligation in any of the four domains.
-        A judgement, so it is named rather than filtered."""
+        """Military capital discharges no obligation in any of the four domains. That is
+        a judgement, so the exclusion names it and does not filter it.
+        """
         assert any(e["line"] == "National defense" for e in CI.EXCLUDED_LINES)
 
     def test_nothing_excluded_is_also_mapped(self):
@@ -207,10 +205,9 @@ class TestTheDoctrineSpreadIsEvidenceForSection2:
 
 
 class TestTheUnallocatedLineIsBoundedNotIgnored:
-    """
-    Government equipment carries no by-type breakdown outside defence in ANY BEA
-    Fixed Assets table — 7.1 and 7.5 both single-line it. So it is placed, and
-    the placement is bounded rather than defended.
+    """Outside defence, government equipment has no by-type breakdown in ANY BEA Fixed
+    Assets table; 7.1 and 7.5 both give it one line. So the module places it, and bounds
+    the placement instead of defending it.
     """
 
     def test_moving_it_anywhere_barely_moves_epsilon(self):
@@ -262,24 +259,18 @@ class TestRetrodictionChangesNothing:
             assert not offenders, f"{offenders} import {name}"
 
 class TestTheInventoryCanBeSupplied:
-    """
-    STEP 1 OF MAKING THIS INSTRUMENT PORTABLE (2026-09-18).
+    """Step 1 of making this instrument portable (2026-09-18). The shipped BEA table
+    stays the default, and every US figure is bit-identical. A non-US institution
+    supplies its own inventory, keyed by machine profile.
 
-    The shipped BEA table stays the default and every US figure is bit-identical;
-    a non-US institution supplies its own inventory keyed by machine profile.
+    THE HALF A NAIVE BRANCH DROPS. `capital_by_profile` validates scope and doctrine, so
+    the call is unconditional, and its result is discarded on the supplied path.
+    Skipping it would stop the validation for the caller most likely to get them wrong.
 
-    WHAT THIS CLASS EXISTS TO PROTECT is the half a naive branch drops. Scope and
-    doctrine are validated INSIDE `capital_by_profile`, so an implementation that
-    skips that call when an inventory is supplied would stop validating them for
-    exactly the caller most likely to get them wrong — someone porting the
-    instrument to another jurisdiction. The call is therefore unconditional and
-    its result discarded on the supplied path, which looks wasteful and is not.
-
-    AND THE SUPPLIED TABLE ARRIVES UNDECLARED. The shipped one is 37 rows each
-    carrying a `basis` (see TestTheJudgementsStayDeclared); a supplied mapping has
-    none, because mapping national accounts onto machine profiles is the user's
-    judgement. `inventory_source` reports which table produced a figure so the two
-    can never be read as the same kind of thing.
+    A SUPPLIED TABLE ARRIVES UNDECLARED. Each of the shipped table's 37 rows carries a
+    `basis`; a supplied mapping carries none, because the mapping is the user's
+    judgement. `inventory_source` reports which table produced a figure, so nobody reads
+    the two as one kind of thing.
     """
 
     def test_the_default_reads_the_shipped_table(self):
@@ -333,10 +324,8 @@ class TestTheInventoryCanBeSupplied:
         assert CR.epsilon_from_inventory(20.0)["saturated"] is False
 
     def test_a_supplied_inventory_can_saturate_and_says_so(self):
-        """
-        THE GAP SUPPLYING AN INVENTORY OPENED. The shipped grid has both a
-        no-saturation test and a can-fire test; a supplied inventory had neither,
-        so ε pinned at the arc endpoint by a too-low rate would read as a finding.
+        """A supplied inventory needs a saturation check too. Without one, an ε pinned
+        at the arc endpoint by a rate that is too low would read as a finding.
         """
         hot = CR.epsilon_from_inventory(0.5, inventory={"power_grid": 10_000.0})
         assert hot["saturated"] is True
@@ -366,9 +355,10 @@ class TestTheInventoryCanBeSupplied:
 
 
 class TestTheStockAgeRatio:
-    """`stock_age_ratio` — the stock's age over its life, off BEA (2026-10-04).
-    The rows are the inventory rebuilt from BEA's finest lines, so a row that
-    drifts from `PROFILE_MAP` fails here unless it is named with the reason."""
+    """`stock_age_ratio` is the stock's age over its life, from BEA (2026-10-04). The
+    rows rebuild the inventory from BEA's finest lines, so a row that drifts from
+    `PROFILE_MAP` fails here unless it is named with its reason.
+    """
 
     def test_the_rows_rebuild_every_line(self):
         """Rebuilding the lines from BEA's rows found four inventory errors
@@ -463,9 +453,10 @@ class TestTheConditionIsMeasured:
 
 
 class TestTheMeasuredDepreciation:
-    """2026-10-08. BEA depreciation over the stock it is taken from — the
-    stock-weighted mean of asset-level rates, which ends the profiles'
-    aggregation dispute. Reporting only: no constant moves."""
+    """BEA depreciation over the stock it is taken from (2026-10-08): the stock-weighted
+    mean of asset-level rates, which settles the profiles' aggregation dispute.
+    Reporting only; no constant moves.
+    """
 
     def test_the_extract_carries_the_workbook_figures(self):
         # Tables 1.1 / 1.3, 2024, $B. The stock is cross-pinned to BEA's own

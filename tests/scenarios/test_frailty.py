@@ -63,7 +63,7 @@ class TestItReportsItsOwnScope:
         assert 0.05 < r["share_of_care"] < 0.20, (
             f"frailty care is {r['share_of_care']:.1%} of the model's care "
             "obligation. If it has become the dominant term the care keys have "
-            "moved, and record/personal.md's 'an eighth of care' needs redoing."
+            "moved, and record/personal.md's 'a ninth of care' needs redoing."
         )
 
     def test_the_product_is_what_the_model_consumes(self) -> None:

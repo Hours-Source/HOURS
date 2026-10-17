@@ -1,13 +1,12 @@
-"""
-`utils/frame_inputs.py` — the inputs a frame-aware command runs on, each
-labelled supplied / measured / derived / default, shared by `corridor band`,
-`scenario run` and `frame show` (2026-10-03).
+"""`utils/frame_inputs.py`: the inputs a frame-aware command runs on. Each input carries
+a label (supplied, measured, derived or default), and `corridor band`, `scenario run`
+and `frame show` share them (2026-10-03).
 
-Not named for a package module (it covers `utils/`); listed in CLAUDE.md's
-test index for that reason. The test that matters most is the ROUND TRIP: a
-frame file written by `frame show --frame us --format json` must reproduce
-`--frame us` in every frame-aware scenario — and must STOP reproducing it when
-one of its values is edited, or the round trip is passing on shared defaults.
+The file covers `utils/`, not a package module, so CLAUDE.md's test index lists it. The
+most important test is the ROUND TRIP. A frame file written by `frame show --frame us
+--format json` must reproduce `--frame us` in every frame-aware scenario. It must STOP
+doing so when one of its values is edited; otherwise the round trip passes on shared
+defaults.
 """
 
 from __future__ import annotations
@@ -256,12 +255,11 @@ class TestScenarioRunOnAFrame:
                                       "indust_baseline", "canonical_arc", "transition",
                                       "thermal_load", "stationarity"])
     def test_the_population_takers_are_frame_invariant(self, name):
-        """Every scenario that takes a population is on the frame since
-        2026-10-03; per head, one economy reads the same at any size. Not here:
-        `arc_stability`, `care_delay`, `verification_band` and
-        `ecological_floor` report ONLY per-head figures or shares, so a
-        population cannot move a total and "reached" is unobservable — their
-        invariance is by construction."""
+        """Every scenario that takes a population runs on the frame, so per head one
+        economy reads the same at any size. Four scenarios report only per-head figures
+        or shares and are left out, because their invariance holds by construction
+        ([record](record/fulfilment.md#nine-on-the-us-frame)).
+        """
         def flat(r: dict) -> dict:
             """The scalars, plus the first row of a period table, where a
             trajectory keeps its totals."""
@@ -311,14 +309,12 @@ class TestScenarioRunOnAFrame:
                                "--population", "1000000"))["population"] == 1e6
 
     def test_collective_on_a_frame_runs_on_the_frames_land_and_labour(self):
-        """Since 2026-10-14 the entry point runs on a frame: its land, not the
-        archetype's parcels; its labour supply as the hours the mint may pay;
-        its age mix to both halves; and — the author's decision the same day —
-        a fee priced as stationarity prices it over the frame's own parcels.
-        Since 2026-10-15 (author: "ship the per-parcel half first") that fee is
-        P(ε) × the private parcels, the area part NOT SUPPLIED — no longer an
-        urban sample's mean. Checked against `collective_snapshot` called
-        directly on the frame's own values."""
+        """On a frame the entry point uses the frame's land, its labour supply as the
+        hours the mint may pay, and its age mix in both halves. The fee is P(ε) × the
+        private parcels, with the area part NOT SUPPLIED. The test compares the run with
+        `collective_snapshot` called directly on the frame's values
+        ([record](record/fulfilment.md#entry-point-one-value-both-halves)).
+        """
         from hours_eoh.core.simulation import make_economy_state
         from hours_eoh.land.collective import PER_PARCEL_BASIS, per_parcel_guf
         from hours_eoh.reference.parcels import contiguous_48_private_parcels
@@ -449,10 +445,11 @@ class TestScenarioRunOnAFrame:
                     != _strip(_scenario(name, "--frame", "us")))
 
     def test_without_a_frame_the_age_mix_resolves_to_the_shipped_branch(self):
-        """Why passing the frame's mix unconditionally left every no-frame run
-        byte-identical (checked by cmp on 19 scenarios, 2026-10-14): unstated,
-        it resolves to None — the shipped-mix branch in every function — not to
-        a dict equal to the shipped mix, which takes a recomputing branch."""
+        """With no frame, the age mix resolves to None, which takes the shipped-mix
+        branch in every function. A dict equal to the shipped mix would take a
+        recomputing branch instead. This is why no-frame runs stayed byte-identical (19
+        scenarios, 2026-10-14).
+        """
         from utils.frame_inputs import resolve_inputs
         v, lab = resolve_inputs(_args("scenario", "run", "arc_stability"), 0.4)
         assert v["age_fractions"] is None and lab["age_fractions"]["kind"] == "default"
@@ -477,9 +474,9 @@ class TestScenarioRunOnAFrame:
 
 
 class TestTheFramesAgesReachTheShock:
-    """Found by breaking it: with the CLI dropping the age mix, every test above
-    still passed — the round trip compares two runs that both dropped it, and
-    the edited file also changed the population. These bind the mix itself."""
+    """These tests bind the age mix itself. With the CLI dropping the mix, every test
+    above still passed: the round trip compared two runs that both dropped it.
+    """
 
     def test_the_applied_pyramid_is_the_frames(self):
         from hours_eoh.data import AGE_GROUP_RANGES
@@ -501,8 +498,9 @@ class TestTheEndUserPath:
 
     @pytest.mark.parametrize("name", FRAME_AWARE)
     def test_each_scenario_reports_its_outcome_across_epsilon(self, name):
-        """The outcome key per scenario was once corrupted by a bad edit and no
-        test noticed: only demographic_shock's was checked."""
+        """Every scenario's outcome key is checked. A bad edit once corrupted them and
+        no test noticed, because only demographic_shock's was checked.
+        """
         from utils.scenario_cmd import _OUTCOME_KEY
         r = _scenario(name, "--frame", "us")
         if _OUTCOME_KEY[name] is None or "epsilon" not in _READS[name]:
@@ -607,9 +605,10 @@ class TestTheFrameDividesIntoItsCollectives:
 
     @pytest.mark.parametrize("eps", ["0", "0.40", "0.90", "0.99"])
     def test_the_split_adds_up_to_the_frame_and_differs_within(self, eps, tmp_path: Path):
-        """Additive on the frame's age mix. With each state's own mix the
-        created and owed totals need not add (the ε 0 labour ration is a min),
-        so the shipped split is run here with its ages taken out."""
+        """The split adds up on the frame's age mix. With each state's own mix the
+        created and owed totals need not add (the ε 0 labour ration is a min), so the
+        test runs the shipped split with its ages taken out.
+        """
         from utils.frame_inputs import load_split
         same = load_split("us_states")
         for u in same["collectives"]:
@@ -632,10 +631,11 @@ class TestTheFrameDividesIntoItsCollectives:
     @pytest.mark.parametrize("retire", [(), ("--retirement-age", "67")])
     @pytest.mark.parametrize("eps", ["0", "0.40", "0.90", "0.99"])
     def test_a_units_own_age_mix_reaches_demand_and_supply(self, eps, retire, tmp_path: Path):
-        """A unit stating the shipped mix on the census-aged US frame runs as
-        the frame does under `--ages shipped`. At ε 0 labour binds, so a unit
-        whose adult share or supply kept the frame's would mint differently;
-        with the retirement register on, so would one keeping its retired share."""
+        """A unit that states the shipped mix on the census-aged US frame runs as the
+        frame does under `--ages shipped`. At ε 0 labour binds, so a unit that kept the
+        frame's adult share, supply or (with the retirement register on) retired share
+        would mint differently.
+        """
         from hours_eoh.data import AGE_GROUPS
         one = tmp_path / "one.json"
         one.write_text(json.dumps({"collectives": [
@@ -650,9 +650,10 @@ class TestTheFrameDividesIntoItsCollectives:
         assert unit["collectives"][0]["teh_created"] != unit["frame_as_one"]["teh_created"]
 
     def test_the_cap_binds_per_collective(self):
-        """At 3M people on US land the land-rich states cannot pay their fee
-        while the whole frame can: a min does not add, so the split collects
-        less. Reported, not reconciled."""
+        """At 3M people on US land the land-rich states cannot pay their fee, while the
+        whole frame can. A min does not add, so the split collects less. The report
+        shows this and does not reconcile it.
+        """
         r = _federation("--frame", "us", "--epsilon", "0.40", "--split", "us_states",
                         "--population", "3000000")
         assert r["frame_as_one"]["guf_unpaid"] == 0.0
@@ -685,8 +686,9 @@ class TestShippedAndConstructedFrames:
     collapse. `indust_overbuilt` ships, generated from the archetype module."""
 
     def test_every_shipped_file_is_its_source(self):
-        """The census pattern: the JSON is regenerated, never hand-typed, so the
-        file cannot drift from the constants it states."""
+        """Each shipped JSON file is regenerated, never typed by hand, so it cannot
+        drift from the constants it states (the census pattern).
+        """
         from utils.frame_inputs import (SHIPPED_FRAMES_DIR, SHIPPED_SPLITS_DIR,
                                         shipped_frame_sources, shipped_split_sources)
         for d, sources in ((SHIPPED_FRAMES_DIR, shipped_frame_sources()),
@@ -726,9 +728,10 @@ class TestShippedAndConstructedFrames:
 
     @pytest.mark.parametrize("name", ["automation_failure", "demographic_shock", "capital_loss"])
     def test_carried_ecology_reaches_the_shock(self, tmp_path: Path, name):
-        """Declared carried by people, the restoration and the recurring flow
-        are labour: the same frame asks more of its people than with the GUF
-        carrying it."""
+        """When people carry the ecology, the restoration and the recurring flow are
+        labour. The same frame then asks more of its people than when the GUF carries
+        it.
+        """
         body = _frame_json("--frame", "us")
         body.update(ecosystem_health=0.2)
         guf, ppl = tmp_path / "guf.json", tmp_path / "ppl.json"
@@ -812,10 +815,12 @@ class TestOneAgePerFrame:
 
 
 class TestTheUsAgeIsMeasured:
-    """2026-10-04: `--frame us` reads its stock's age off BEA
-    (`capital_retrodiction.stock_age_ratio`) instead of the canonical 0.30 —
-    labelled measured, outranked by a stated value, absent elsewhere. Moving it
-    0.30 → 0.594 passed the whole suite, so it is pinned here."""
+    """`--frame us` reads its stock's age from BEA
+    (`capital_retrodiction.stock_age_ratio`), not the canonical 0.30. The label is
+    measured, a stated value outranks it, and other frames do not get it. Moving it off
+    0.30 passed the whole suite (2026-10-04), so this test pins it
+    ([record](record/fulfilment.md#stock-age-measured)).
+    """
 
     def test_the_us_frame_reads_the_function(self):
         from hours_eoh.scenarios.capital_retrodiction import stock_age_ratio
@@ -851,9 +856,10 @@ class TestTheUsAgeIsMeasured:
 
 
 class TestTheUsStockIsBea:
-    """2026-10-04: `--frame us` reads its capital off BEA's inventory at
-    `conversion_band()`'s midpoint instead of the canonical arc (742B TEH
-    against ~2.7T), and re-runs each verdict at both ends of the band."""
+    """`--frame us` reads its capital from BEA's inventory at `conversion_band()`'s
+    midpoint, not from the canonical arc, and re-runs each verdict at both ends of the
+    band ([record](record/fulfilment.md#us-frame-stock-bea)).
+    """
 
     def test_the_stock_is_the_inventory_at_the_band_midpoint(self):
         from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
@@ -914,10 +920,11 @@ def _labels_at_rate(rate: float) -> float:
 
 
 class TestTheUsEnergyIsEia:
-    """2026-10-04: the US frame's thermal utilization reads EIA SEDS energy
-    for the contiguous 48 on the frame's own land, through the existing
-    `collective_utilization` — not the Path C record its dataset flags as
-    unverified (tier C), on whole-US land."""
+    """The US frame's thermal utilization reads EIA SEDS energy for the contiguous 48 on
+    the frame's own land, through `collective_utilization`. It does not read the Path C
+    record, which its dataset flags as unverified (tier C) and which covers the whole
+    US.
+    """
 
     def test_the_contiguous_48_is_a_subtraction_within_one_table(self):
         from hours_eoh.reference import energy_use as E
@@ -959,16 +966,11 @@ def _band_json(*flags: str) -> dict:
 
 
 class TestEveryClaimedInputMovesItsReader:
-    """
-    A SCENARIO MAY NOT LIST AN INPUT IT DOES NOT READ (2026-10-14). The Inputs
-    block is a claim: "this run read these". Edited ALONE in a frame file on the
-    US frame, each input must move every scenario that lists it — or the
-    listing is the reported-not-applied shape (mode 10) and the input may be
-    stranded (mode 5). The first run of this check found 15 pairs that did not
-    move: ecosystem health and land in four shocks (the fee carries that work),
-    the Trust in thermal_load, labour capacity in reserve_plan, land in
-    labor_income_shock, and B0's health in overbuild. Exempt by NAME, each with
-    its reason — never by pattern.
+    """A scenario may not list an input it does not read (2026-10-14). Edited alone in a
+    frame file on the US frame, each input must move every scenario that lists it.
+    Otherwise the listing is reported but not applied (mode 10), and the input may be
+    stranded (mode 5). Exemptions are by NAME, each with its reason, never by pattern
+    ([record](record/fulfilment.md#land-is-fixed-population-moves)).
     """
 
     EDITS = {

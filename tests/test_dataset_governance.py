@@ -1,52 +1,28 @@
-"""
-The dataset-governance gate — where a constant and the data it governs disagree.
+"""The dataset-governance gate: where a constant and the data it governs disagree.
 
-THE CLASS OF DEFECT THIS EXISTS FOR, and it is the one the provenance gate
-structurally cannot reach. On 2026-08-17 `ETA_LAND_MASK_THRESHOLD` was found to
-be:
+The provenance gate proves a constant is DOCUMENTED. It cannot prove that the data
+agrees with it. On 2026-08-17 `ETA_LAND_MASK_THRESHOLD` was correctly tagged, passed
+every provenance check, and was contradicted by the dataset it governed: its `form:`
+said a threshold is required, and the shipped η dataset said "not a binary threshold"
+([record](record/provenance.md#dataset-governance-gate)).
 
-    correctly tagged        (`normative`, with a decided_by)
-    fully provenance-audited (it passed every check in `eoh provenance check`)
-    and contradicted by the dataset it governed
+WHAT THE GATE DOES. It CANNOT read two sentences and decide that they contradict, and it
+does not claim to; that claim would license not looking. It makes the LOOKING a
+required, fingerprinted act:
 
-Its `form:` asserted "the ERA5 mask is a fraction, so a THRESHOLD IS REQUIRED".
-The η dataset that actually shipped records, in its own `_method.weighting`,
-"land FRACTION (lsm), **not a binary threshold**". The generation step answered
-the question the constant was posed to settle and answered it the other way.
-
-**The provenance gate proves a constant is DOCUMENTED. It cannot prove the data
-agrees with it.** Nothing connected the two, so nothing noticed.
-
-WHAT A GATE CAN AND CANNOT DO HERE
-----------------------------------
-It CANNOT read two English sentences and decide they contradict. Claiming
-otherwise would be worse than having no gate, because it would license not
-looking.
-
-What it CAN do is make the LOOKING a required, fingerprinted act:
-
-  1. Find every self-describing method claim that says what the method did NOT
-     do. A dataset stating a negation is precisely where a constant asserting
-     the positive hides — it is how the η case reads once you see it.
-  2. Require each such claim to be in a REVIEW REGISTER naming the constants
+  1. Find every method claim in a dataset that says what the method did NOT do.
+     A constant that asserts the positive hides behind such a negation.
+  2. Require each such claim in a REVIEW REGISTER that names the constants
      checked against it and the outcome.
-  3. FINGERPRINT the claim text. If a dataset is regenerated and its stated
-     method changes, the fingerprint breaks and the review is stale — the build
-     fails until someone re-checks the constants that depend on it.
-  4. Require every dataset that NAMES a constant to have that pair registered:
-     a dataset naming a constant is asserting something about it.
+  3. FINGERPRINT the claim text. If a regenerated dataset states a different
+     method, the review is stale and the build fails until someone re-checks.
+  4. Require a registered pair for every dataset that NAMES a constant.
 
-Point 3 is the mechanism. A review that cannot go stale is not a control, and
-the η claim would have sailed through any one-time audit — it was written
-correctly, once, and then diverged from the constant while both sat still.
+Point 3 is the mechanism: a review that cannot go stale is not a control.
 
-THE HONEST LIMIT, stated so it is not mistaken for coverage: the η contradiction
-would have been caught by this gate only at step 1→2, i.e. by forcing a human to
-read `_method.weighting` against the constants in its domain. `eta_land.json`
-names `ETA_BASIS` and `A_LAND_CLAIMED_M2` but never names
-`ETA_LAND_MASK_THRESHOLD` — the dataset superseded a constant WITHOUT MENTIONING
-IT, which is why the strong link (point 4) misses it and the weak one (point 1)
-is the one that matters.
+THE LIMIT: this gate would have caught the η case only at steps 1→2, by making a person
+read the claim against the constants in its domain. `eta_land.json` never names
+`ETA_LAND_MASK_THRESHOLD`, so point 4 misses it and point 1 is the one that matters.
 """
 
 from __future__ import annotations
@@ -452,20 +428,16 @@ def _constant_names() -> set[str]:
 
 
 def _iter_claims():
-    """
-    (key, text) for every self-describing claim that is REVIEW-WORTHY.
+    """(key, text) for every self-describing claim that is REVIEW-WORTHY.
 
-    Two independent triggers, and they are complementary rather than redundant:
+    Two triggers run, because neither covers the other:
 
-      NEGATION      the claim says what the method did NOT do — where a constant
-                    asserting the positive hides. This is the trigger that
-                    reaches the η case.
-      NAMES A CONSTANT   the claim mentions a `data.py` constant by name, so it
-                    is asserting something about it directly. Unambiguous where
-                    it applies, but it MISSES the η case entirely —
+      NEGATION      the claim says what the method did NOT do, where a
+                    constant asserting the positive hides. Only this
+                    trigger reaches the η case.
+      NAMES A CONSTANT   the claim mentions a `data.py` constant by name.
+                    Clear where it applies, but it misses the η case:
                     `eta_land.json` never named ETA_LAND_MASK_THRESHOLD.
-
-    Neither subsumes the other, which is why both run.
     """
     for path in sorted(DATA_DIR.glob("*.json")):
         if path.name in _GENERATED:
@@ -518,10 +490,8 @@ def _fingerprint(text: str) -> str:
 
 
 class TestEveryNegationClaimIsReviewed:
-    """
-    A dataset that says what its method did NOT do is where a constant asserting
-    the positive hides. Each such claim must have been read against the
-    constants in its domain.
+    """Each dataset claim that says what its method did NOT do must have been read
+    against the constants in its domain.
     """
 
     def test_every_claim_is_in_the_register(self) -> None:
@@ -532,20 +502,16 @@ class TestEveryNegationClaimIsReviewed:
         )
 
     def test_no_register_entry_is_stale(self) -> None:
-        """
-        An entry for a claim that no longer exists is a review nobody exercises
-        — the `unused_innocuous_names` lesson, where two allowlist entries went
-        stale within an hour of shipping.
+        """A register entry for a claim that no longer exists is a review that nobody
+        exercises (the `unused_innocuous_names` lesson).
         """
         live = {k for k, _ in _iter_claims()}
         stale = sorted(set(REVIEWED) - live)
         assert not stale, f"registered reviews for claims that no longer exist: {stale}"
 
     def test_fingerprints_still_match(self) -> None:
-        """
-        THE MECHANISM. A review that cannot go stale is not a control. If a
-        dataset is regenerated and its stated method changes, this breaks and
-        the constants that depend on it must be re-checked.
+        """THE MECHANISM. If a dataset is regenerated and its stated method changes,
+        this test fails, and the constants that depend on it must be re-checked.
         """
         drifted = []
         for key, text in _iter_claims():
@@ -582,11 +548,9 @@ class TestTheRegisterIsHonest:
         assert not missing, f"reviews name constants that do not exist: {missing}"
 
     def test_a_contradiction_must_be_resolved_in_the_constant(self) -> None:
-        """
-        CONTRADICTED is not a place to park a known defect. Every constant a
-        dataset contradicts must carry `superseded_by:` — the resolution the η
-        case received — so the disagreement is recorded where a reader of the
-        constant will meet it.
+        """CONTRADICTED is not a place to park a known defect. Each constant a dataset
+        contradicts must carry `superseded_by:`, so a reader of the constant meets the
+        disagreement.
         """
         from utils.provenance import load
         scan = load()

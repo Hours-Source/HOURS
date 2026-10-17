@@ -1,23 +1,17 @@
-"""
-The anchor comparison page and the figures it rests on.
+"""The anchor comparison page and the figures it rests on.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-TWO HALVES. `utils/anchor_page_figures.py` emits every figure the page rests on
-from the functions that compute it. The page itself —
-`docs/theory/anchor_comparison.md`, published 2026-09-12 — quotes SHAPES where
-a figure is calibration, and states a value only where it is structural.
+TWO HALVES. `utils/anchor_page_figures.py` emits every figure the page rests on, from
+the functions that compute it. The page, `docs/theory/anchor_comparison.md` (published
+2026-09-12), quotes SHAPES where a figure is calibration, and states a value only where
+it is structural. This file gates both halves. The emitter must reach every quantity and
+fail loudly on a renamed key, and the page's STRUCTURAL statements must agree with it.
 
-So this file gates both: that the emitter still reaches every quantity and fails
-loudly on a renamed key, and that the STRUCTURAL statements on the published
-page still agree with the emitter.
-
-WHAT IT CANNOT SEE: a shape claim ("a low single-digit percentage", "roughly two
-in five") that has drifted out of its range without any structural statement
-moving. The shape words are chosen to be robust to calibration; a change large
-enough to break one is a finding, and nothing here detects it automatically.
-Before this page moved to `docs/` it lived in gitignored `notes/` and could not
-be gated at all.
+WHAT IT CANNOT SEE: a shape claim ("a low single-digit percentage", "roughly two in
+five") that drifts out of its range while no structural statement moves. The shape words
+are chosen to be robust to calibration, so a change that breaks one is a finding, and
+nothing here detects it automatically.
 """
 
 from __future__ import annotations
@@ -60,10 +54,9 @@ class TestEveryFigureIsReachable:
         assert len(meaning) > 20, f"{key} has no sentence beside it"
 
     def test_no_figure_is_silently_none(self, live):
-        """
-        `None` is a legitimate VALUE here — it is how "no crossover" is
-        reported — but only for the two crossover entries. Anywhere else it
-        means a key was renamed and `.get()` swallowed it.
+        """`None` is a legitimate VALUE for the two crossover entries, where it reports
+        "no crossover". Anywhere else it means a key was renamed and `.get()` swallowed
+        it.
         """
         allowed_none = {
             "verification_crossover_core",
@@ -74,12 +67,10 @@ class TestEveryFigureIsReachable:
         assert not stray, f"{stray} came back None; a renamed key reads as a result"
 
     def test_no_collection_figure_is_empty(self, live):
-        """
-        THE DEFECT THIS TEST EXISTS FOR. `anchors_holding_all_three` first asked
-        for `registers_obligation`; the field is `registered`. With `.get()` the
-        filter emptied and the emitter reported that NO anchor holds all three
-        properties — **inverting the page's central result, silently, inside the
-        module written to prevent exactly that.**
+        """No collection figure may be empty. `anchors_holding_all_three` once asked for
+        `registers_obligation` where the field is `registered`. The filter emptied, and
+        the emitter reported that NO anchor holds all three properties: the page's
+        central result, inverted silently.
         """
         empty = [k for k, v in live.items()
                  if isinstance(v, (list, tuple, dict)) and not v]
@@ -124,10 +115,8 @@ class TestItAgreesWithTheFunctionsItRePresents:
         assert 0.0 < live["continuous_human_affordable_from_epsilon"] < 0.99
 
     def test_the_shape_words_still_describe_the_values(self, live):
-        """
-        The page quotes shapes, so the shapes are pinned here in the words the
-        page uses. When one of these fails, the SENTENCE is wrong — rewrite it,
-        do not widen the range.
+        """The page quotes shapes, so this test pins them in the page's own words. When
+        one fails, the SENTENCE is wrong: rewrite it, and do not widen the range.
         """
         # "a low single-digit percentage of the obligation"
         assert 0.01 <= live["verification_peak_core"] < 0.05
@@ -148,10 +137,9 @@ class TestItAgreesWithTheFunctionsItRePresents:
 
 
 class TestThePublishedPageSaysWhatTheFunctionsSay:
-    """
-    The page is in `docs/`, so the published sentences can be read here. What is
-    checked is every STRUCTURAL statement: the ones the page states flatly
-    because they do not move with calibration.
+    """The page is in `docs/`, so these tests read the published sentences. They check
+    every STRUCTURAL statement: the ones the page states flatly because calibration does
+    not move them.
     """
 
     def test_the_page_is_published_and_in_the_nav(self):
@@ -185,11 +173,9 @@ class TestThePublishedPageSaysWhatTheFunctionsSay:
         assert "Mutual credit holds the same three properties" in page
 
     def test_the_superseded_ratio_transfer_is_not_quoted_as_live(self, page):
-        """
-        THE DEFECT THAT BLOCKED PUBLICATION. §5.1 and §7 of the draft still gave
-        the 40× registrant ratio transfer as the live answer after it had been
-        superseded, while §6 said the corridor was closed. Those figures must not
-        come back as current statements.
+        """The superseded 40× registrant ratio transfer may not return as a current
+        statement. The draft's §5.1 and §7 still gave it as live while §6 said the
+        corridor was closed, and that blocked publication.
         """
         for stale in ("46.6%", "117.1%", "0.624", "7.7×"):
             assert stale not in page, f"{stale} is the superseded ratio transfer"
