@@ -1,8 +1,7 @@
-"""
-Tests for hours_eoh.land.guf — Ground Use Fee calculation framework.
+"""Tests for hours_eoh.land.guf, the Ground Use Fee framework.
 
-Covers all functions across the automation arc (ε=0, 0.40, 0.90, 0.99).
-The worked example from NLSA §10 is used as a regression anchor.
+They cover every function across the arc (ε=0, 0.40, 0.90, 0.99). The NLSA §10 worked
+example is the regression anchor.
 """
 
 import math
@@ -353,11 +352,9 @@ class TestInfrastructureProximityPremium:
 class TestGroundUseFee:
     def _nlsa_example(self, epsilon=0.40, psi_policy="retired",
                       parcel_rate=None):
-        """NLSA §10 residential example (partial — no previous cycle cap).
-
-        NOTE this is the one fixture in the suite where E and I are BOTH
-        non-zero, so it is also the only place the three Ψ policies can be told
-        apart from one another rather than just from `bell`.
+        """NLSA §10 residential example (partial: no previous-cycle cap). It is the one
+        fixture with both E and I non-zero, so only here can the three Ψ policies be
+        told apart.
         """
         eco_services = [
             {"label": "water",   "volume": 0.4,  "kappa_ref": 1.2,  "beta": 0.8, "retained": 0.30},
@@ -447,13 +444,10 @@ class TestGroundUseFee:
         assert zero < mid * 0.10
 
     def test_guf_is_HIGHER_at_zero_epsilon_under_the_default(self):
-        """
-        THE FLIP, 2026-08-20. Under `retired` the fee's only automation response
-        is α(ε) = labor_content_scaling, which RISES at subsistence (1.4695)
-        because unautomated land administration takes more human hours. The old
-        assertion was pinning Ψ's ε=0 floor, and that floor was a claim about
-        institutional COLLECTION CAPACITY wearing a cost multiplier — see
-        handoffs/guf_redefinition.md §17.
+        """Under the default `retired` Ψ the fee is HIGHER at ε=0 (since 2026-08-20).
+        Its only automation response is α(ε), which is 1.4695 at subsistence, because
+        unautomated land administration takes more human hours
+        ([record](record/guf.md#land-guf-test-history)).
         """
         zero = self._nlsa_example(0.0)["guf_formula"]
         mid  = self._nlsa_example(0.40)["guf_formula"]
@@ -467,11 +461,9 @@ class TestGroundUseFee:
         assert half == pytest.approx(full * 0.5, rel=1e-6)
 
     def test_occupancy_does_NOT_scale_the_per_parcel_term(self):
-        """
-        A DESIGN DECISION, pinned so it is visible rather than incidental. Ω is
-        the fraction of the ASSESSED QUANTITY in use, and for this term the
-        assessed quantity is a parcel — a half-occupied parcel is still one
-        parcel, and its deed, boundary and assessment do not halve.
+        """Occupancy does not scale the per-parcel term, by design. Ω is the share of
+        the ASSESSED QUANTITY in use, and here that quantity is a parcel: a
+        half-occupied parcel still has one deed, one boundary and one assessment.
         """
         full = ground_use_fee(3.5, 0.629, "residential_primary", 0.40,
                               occupancy_fraction=1.0)
@@ -497,12 +489,9 @@ class TestGroundUseFee:
         assert g099 < 0.05 * g040
 
     def test_the_nlsa_4_4_boundaries_DO_NOT_hold_under_the_default(self):
-        """
-        Recorded as a consequence, not smuggled. NLSA §4.4's two boundary
-        conditions were properties of Ψ's bell, and retiring it retires them.
-        At ε=0.99 the fee is ~12% of its ε=0.40 value, not under 5% — which is
-        α(0.99) = 0.1051 doing the work alone, once the duplicate discount is
-        removed.
+        """NLSA §4.4's two boundary conditions belonged to Ψ's bell, and retiring the
+        bell retires them. At ε=0.99 the fee is ~12% of its ε=0.40 value, not under 5%;
+        α(0.99) = 0.1051 does that work alone.
         """
         g040 = self._nlsa_example(0.40)["guf_formula"]
         g099 = self._nlsa_example(0.99)["guf_formula"]
@@ -1016,9 +1005,10 @@ class TestCarbonKappaReconciliation:
         )
 
     def test_units_are_commensurate_on_a_flow(self):
-        """κ is per tonne per YEAR; the CDR figure is per tonne. The bridge is that
-        replacing a displaced sink means removing its annual uptake every year, so
-        the per-tonne labour cost carries straight over to the flow."""
+        """κ is per tonne per YEAR, and the CDR figure is per tonne. Replacing a
+        displaced sink means removing its annual uptake every year, so the per-tonne
+        labour cost carries over to the flow.
+        """
         from hours_eoh.data import GUF_ECO_KAPPA_CARBON
         annual_uptake_tonnes = 12.0
         # One year of replacement labour for a parcel's displaced sequestration.
@@ -1026,13 +1016,10 @@ class TestCarbonKappaReconciliation:
                 == pytest.approx(7.2))
 
     def test_sink_reversal_is_not_applied_and_that_is_recorded(self):
-        """CDR_GROSS_REMOVAL_FACTOR is deliberately NOT in this path.
-
-        Sink reversal applies when drawing atmospheric concentration DOWN; replacing
-        a displaced sink offsets a FLOW, which may not incur it. Applying it would
-        give 1.08. The question is open, and omitting it understates the obligation
-        if it does apply — the wrong direction of error — so the omission is pinned
-        here rather than left as an unexamined default.
+        """`CDR_GROSS_REMOVAL_FACTOR` stays OUT of this path, and the test pins the
+        omission. Replacing a sink offsets a FLOW, which may not incur sink reversal;
+        applying it would give 1.08. The question is open, and the omission errs low if
+        reversal applies.
         """
         from hours_eoh.data import (CDR_GROSS_REMOVAL_FACTOR,
                                     CDR_LABOR_HOURS_PER_TONNE,
@@ -1278,26 +1265,10 @@ class TestRestorationPathwayUsesTheSameTable:
 
 
 class TestTheRemoteEndIsZeroByABSENCE:
-    """
-    OPEN ITEM CLOSED, AND IT WAS MIS-SCOPED (2026-08-29).
-
-    CLAUDE.md carried this as open since 2026-08-20:
-
-        "STILL OPEN: `retired` gives ε=0 the HIGHEST fee (1,692 h/ha·yr) …
-         it collides with the spec's '≈0 at the remote end' until one
-         remembers that zero comes from ASSET ABSENCE, not from a multiplier.
-         … Needs the asset intake to test, which is the critical path."
-
-    THE HYPOTHESIS IN THAT NOTE IS RIGHT AND ITS SCOPING IS WRONG. No asset
-    intake is needed: `location_value` already carries absence, and it zeroes
-    `base_fee` outright. NLSA §4.4's "≈0 at the remote end" is satisfied
-    exactly, at every ε, and the apparent contradiction was never in the
-    formula — it was in holding a SERVICED URBAN inventory fixed while
-    sweeping ε, which asserts a serviced parcel at subsistence.
-
-    The general lesson, and the reason this sat open for nine days: an item
-    recorded as "needs data" is worth re-deriving before it is worked. This one
-    needed a test, and the note said so in its own first clause.
+    """The fee at the remote end is zero by ASSET ABSENCE: `location_value` zeroes
+    `base_fee` at every ε, as NLSA §4.4 requires (closed 2026-08-29). The apparent
+    conflict came from holding a serviced urban inventory fixed while sweeping ε
+    ([record](record/guf.md#term-basis-audit-psi-retired)).
     """
 
     def test_a_parcel_with_no_location_value_pays_nothing_at_any_epsilon(self):
@@ -1308,11 +1279,9 @@ class TestTheRemoteEndIsZeroByABSENCE:
             assert r["guf_applied"] == 0.0, f"remote land owes nothing at ε={eps}"
 
     def test_the_zero_is_ABSENCE_and_not_the_floor(self):
-        """
-        The distinction the whole item turns on. A fee clamped to zero by
-        `guf_floor` would mean the formula wanted to charge and was stopped —
-        which is what happens to the conservation CREDIT. Here `base_fee` is
-        zero on its own, so nothing is being suppressed.
+        """Here `base_fee` is zero on its own, and nothing suppresses it. A zero from
+        the `guf_floor` clamp would mean the formula wanted to charge and was stopped,
+        which is what happens to the conservation CREDIT.
         """
         r = ground_use_fee(area_slu=1.0, location_value=0.0,
                            use_category="residential_primary", epsilon=0.0)
@@ -1332,14 +1301,9 @@ class TestTheRemoteEndIsZeroByABSENCE:
         assert all(b > a for a, b in zip(fees, fees[1:])), fees
 
     def test_the_high_epsilon_zero_reading_needs_a_CONTRADICTORY_inventory(self):
-        """
-        THE CONTRADICTION, DEMONSTRATED. Holding a serviced urban parcel fixed
-        across the arc makes ε=0 the most expensive point — α's honest reading,
-        since unautomated land administration costs the most human hours. That
-        is not a defect; it is a parcel declared `residential_primary` at
-        L=0.75 while ε=0 asserts subsistence, and no such parcel exists.
-
-        Both readings are pinned together so neither can be quoted alone.
+        """A serviced urban parcel held fixed across the arc makes ε=0 the most
+        expensive point. That parcel cannot exist at subsistence. The test pins both
+        readings together, so no one can quote either alone.
         """
         serviced = [
             ground_use_fee(area_slu=1.0, location_value=0.75,
@@ -1363,12 +1327,9 @@ class TestTheRemoteEndIsZeroByABSENCE:
         )
 
     def test_the_conservation_credit_is_still_clipped_and_that_is_separate(self):
-        """
-        NOT the same issue, pinned here so the two are not conflated. A
-        conservation parcel on VALUABLE ground is owed a credit by the formula
-        and receives nothing, because `guf_floor` clamps at zero. That is a
-        charter question — should a credit pay out? — and it is untouched by
-        this item, which is about absence rather than suppression.
+        """A conservation parcel on valuable ground is owed a credit and gets nothing,
+        because `guf_floor` clamps at zero. That is a separate, charter question
+        (whether a credit may pay out), and this test keeps the two apart.
         """
         # 10 SLU = 0.1 ha. At 1 SLU (100 m²) the flat per-parcel term adopted
         # 2026-08-30 exceeds the area-scaled credit and the formula comes out
@@ -1381,16 +1342,10 @@ class TestTheRemoteEndIsZeroByABSENCE:
         assert r["floor_applied"] is True
 
     def test_the_per_parcel_term_creates_a_minimum_viable_conservation_parcel(self):
-        """
-        A CONSEQUENCE OF PRICING FRAGMENTATION, found by this test failing at
-        1 SLU rather than reasoned to in advance.
-
-        The conservation credit scales with AREA; the per-parcel term is FLAT.
-        So below a crossover size the term dominates and a conservation parcel
-        pays a positive fee instead of reaching zero. That is coherent with the
-        decision — a tiny fragment still needs a deed, a boundary and an
-        assessment, and fragmenting land into conservation slivers should not be
-        free — but it is a real change in behaviour and is pinned as one.
+        """The conservation credit scales with AREA and the per-parcel term is FLAT, so
+        below a crossover size a conservation parcel pays a positive fee. A tiny
+        fragment still needs a deed, a boundary and an assessment. This test found the
+        effect by failing at 1 SLU.
         """
         tiny = ground_use_fee(area_slu=1.0, location_value=0.75,
                               use_category="conservation", epsilon=0.0)
@@ -1410,16 +1365,9 @@ class TestTheRemoteEndIsZeroByABSENCE:
 
 
 class TestTheConservationCreditClampIsADecision:
-    """
-    CHARTER DECISION, 2026-08-30 (author sign-off): a credit may reduce a fee to
-    zero; it may NOT pay out.
-
-    The clamp existed before the decision as an accident of `guf_floor`. What
-    changed is that it is now DECIDED, with the four measurements that decided
-    it pinned here so the decision cannot be reversed by someone who only sees
-    the floor and reads it as an oversight. That is the failure this file has
-    hit before: `guf_magnitude` recorded the credit as "notional −90 h/ha·yr,
-    never paid" as though it were a defect awaiting repair.
+    """A credit may reduce a fee to zero and may NOT pay out (charter decision,
+    2026-08-30). The four measurements behind it stay pinned, so no one reads the clamp
+    as an oversight ([record](record/guf.md#conservation-credit-decided)).
     """
 
     HA = 100.0  # 1 ha = 100 SLU
@@ -1437,10 +1385,9 @@ class TestTheConservationCreditClampIsADecision:
             assert r["floor_applied"] is True
 
     def test_the_payout_would_dwarf_the_work_it_rewards(self):
-        """
-        MEASUREMENT (1): ~2,064× the measured stewardship cost. Asserted as an
-        order of magnitude — the levels move with every constant in the chain,
-        and pinning them is what let the stale 3.5 survive its own correction.
+        """Measurement (1): a payout would be ~2,064× the measured stewardship cost. The
+        test asserts the order of magnitude, because the level moves with every constant
+        in the chain ([record](record/guf.md#land-guf-test-history)).
         """
         from hours_eoh.core.eoh_fulfillment import human_eoh_share
         from hours_eoh.data import MEAN_MULTIPLIER_REFERENCE
@@ -1481,12 +1428,9 @@ class TestTheConservationCreditClampIsADecision:
         )
 
     def test_the_coefficient_still_does_work_and_must_not_be_retired(self):
-        """
-        THE NUANCE THE DECISION TURNS ON. The clamp bounds the credit BELOW; it
-        is live above that bound. On a parcel carrying an infrastructure
-        premium the credit reduces a real, positive fee — so setting the
-        coefficient to 0.0 would RAISE fees, and "the credit never pays" is not
-        an argument for deleting it.
+        """The clamp bounds the credit from below and leaves it live above. On a parcel
+        with an infrastructure premium the credit reduces a real fee, so a coefficient
+        of 0.0 would RAISE fees.
         """
         assets = [{"cost_teh": 5.0e5, "design_life": 50.0,
                    "beneficiary_count": 40.0, "distance_km": 0.2}]
@@ -1500,11 +1444,9 @@ class TestTheConservationCreditClampIsADecision:
             assert with_credit["floor_applied"] is False
 
     def test_restoration_labour_is_not_what_the_clamp_blocks(self):
-        """
-        WHAT THE DECISION COSTS: nothing, for the case a reward is actually
-        wanted. Restoration is labour; it registers and mints TEH through the
-        ordinary pipeline. The clamp forbids paying a holder for a DESIGNATION,
-        not paying a restorer for HOURS.
+        """The clamp forbids paying a holder for a DESIGNATION, not a restorer for
+        HOURS. Restoration is labour, and it registers and mints TEH through the
+        ordinary pipeline.
         """
         from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 
@@ -1519,14 +1461,10 @@ class TestTheConservationCreditClampIsADecision:
 
 
 class TestTheShippedArcShapeWordsOnThePage:
-    """
-    `docs/theory/guf_framework.md` §4.1/§4.4 describe the shipped fee in shape
-    words rather than figures (2026-09-12), so the words are what is pinned:
-    "about half again" at ε=0, "under a third" at 0.90, "roughly a tenth" at
-    0.99, each relative to ε=0.40. Checked on BOTH inputs the page speaks for —
-    the urban archetype and the §11 parcel — because their ecosystem terms
-    decay at different rates and one input could drift out of a word the other
-    still fits.
+    """`docs/theory/guf_framework.md` describes the shipped fee in shape words, relative
+    to ε=0.40: "about half again" at ε=0, "under a third" at 0.90, "roughly a tenth" at
+    0.99. The test checks them on the urban archetype and the §11 parcel, whose
+    ecosystem terms decay at different rates.
     """
 
     @staticmethod

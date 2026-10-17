@@ -1,18 +1,13 @@
-"""
-S1 — the stewardship-hours census, the ecological anchor's `resolves_by` run.
+"""S1: the stewardship-hours census, which runs the ecological anchor's `resolves_by`.
 
-Covers `reference/land_stewardship.py` (measured land area + the ASSUMED
-occupation→land-class attribution) and `scenarios/land_stewardship.py` (the
-census, the floor, the falsification).
+Covers `reference/land_stewardship.py` (measured land area and the ASSUMED attribution
+of occupations to land classes) and `scenarios/land_stewardship.py` (the census, the
+floor, the falsification). REPORTING ONLY: `TestChangesNothing` fails if any constant
+moves.
 
-REPORTING ONLY. No constant moves on this — `TestChangesNothing` fails the
-moment that stops being true.
-
-The tests that matter most here are not the arithmetic ones. They are the
-discipline guards: that unpriced land is EXCLUDED rather than costed at zero,
-that the amenity scope stays separable, that the held-out occupations stay held
-out, and that the census carries no ε — each of which is a way the census could
-silently become something other than a measurement.
+The discipline guards matter most. Unpriced land stays EXCLUDED, never costed at zero;
+the amenity scope stays separable; the held-out occupations stay out; and the census
+carries no ε.
 """
 
 import pytest
@@ -109,7 +104,9 @@ class TestLandUseExtract:
             )
 
     def test_every_class_is_either_attributed_or_has_a_stated_reason(self):
-        """No land class may be silently dropped."""
+        """Every land class is attributed or carries a stated reason; none drops
+        silently.
+        """
         attributed = {a["land_use"] for a in STEWARDSHIP_ATTRIBUTIONS}
         # PARKS_CLASS is split into a federal (priced from agency data) and a
         # state-and-other (unpriced) row, so it is covered by the split, not by
@@ -200,19 +197,10 @@ class TestTheScopeQuestion:
     """Amenity groundskeeping decides the answer; both readings stay visible."""
 
     def test_ecosystem_scope_lands_ABOVE_the_anchor(self):
-        """
-        REVERSED BY PHASE 4b (2026-08-17), and this is the largest single finding
-        of that change. Until the frame was declared, the anchor was compared at
-        an intensity inflated 464x by pairing the WHOLE contiguous US with a
-        million people — so forest read 0.49x the anchor and this test asserted
-        `< 1.0`, recorded as "forest falsifies 'the anchor is 2-3 orders low' in
-        the OPPOSITE direction".
-
-        Against a frame-consistent anchor the ecosystem scope reads 222x ABOVE
-        it. The earlier falsification was an artefact of the frame mismatch: the
-        mismatch was INFLATING the anchor and thereby MASKING the domain-balance
-        defect it was being used to test. The hypothesis it appeared to refute
-        is now supported on every class, forest included.
+        """Against a frame-consistent anchor the ecosystem scope lands far ABOVE it
+        (Phase 4b, 2026-08-17). The earlier reading below the anchor was an artefact of
+        the frame mismatch
+        ([record](record/ecological.md#land-stewardship-test-history)).
         """
         rep = census_report("ecosystem")
         assert rep["ratio_to_anchor"] > 100.0
@@ -231,8 +219,9 @@ class TestTheScopeQuestion:
         assert rep["measured_hours_per_hectare"] == pytest.approx(7.31, abs=0.1)
 
     def test_the_two_scopes_disagree_by_more_than_an_order_of_magnitude(self):
-        """THE finding. If this collapses, the scope question has been resolved
-        somewhere without being argued — which is what the test exists to catch."""
+        """The two scopes differ by more than an order of magnitude on the same inputs.
+        If this collapses, someone settled the scope question without arguing it.
+        """
         cmp = scope_comparison()
         assert cmp["spread_factor"] > 10.0
         assert "the definition is" in cmp["verdict"]
@@ -276,28 +265,19 @@ class TestTheFalsification:
         assert forest["hours_per_hectare_year"] == pytest.approx(0.182, abs=0.005)
 
     def test_the_one_percent_coincidence_did_not_survive_pricing_parks(self):
-        """It WAS within 3% (9.154 vs 9.433) and is now 22.5% away (7.306 vs
-        9.433), because federal parks added 71.6 Mha of low-intensity land. It
-        was recorded as a coincidence, not a result, and this is what that
-        caution was for."""
+        """The near-coincidence with the 1%-share intensity did not survive pricing the
+        federal parks, which added 71.6 Mha of low-intensity land. It stood as a
+        coincidence, not a result, for this reason
+        ([record](record/ecological.md#land-stewardship-test-history)).
+        """
         rep = census_report("with_amenity")
         assert rep["measured_hours_per_hectare"] == pytest.approx(7.31, abs=0.1)
         assert rep["measured_hours_per_hectare"] < rep["required_h_per_ha_at_1pc_share"]
 
     def test_the_implied_intensity_is_now_POPULATION_INVARIANT(self):
-        """
-        THE TRAP THIS TEST GUARDED IS GONE — and it was the frame mismatch.
-
-        It used to assert that `ecological_eoh` is population-INVARIANT (an
-        absolute US total) while the implied INTENSITY deflates 335x with
-        population, so only intensity was comparable and only at the reference
-        scale. Both halves were consequences of a single defect: an obligation
-        keyed to the whole contiguous US being divided by whatever population
-        the caller happened to pass.
-
-        After Phase 4b the obligation scales with population and the INTENSITY
-        does not — which is the right way round, and it is what makes the census
-        comparison meaningful at any scale rather than at one privileged one.
+        """After Phase 4b the obligation scales with population and the implied
+        INTENSITY does not. That makes the census comparison meaningful at any scale
+        ([record](record/ecological.md#land-stewardship-test-history)).
         """
         ref = implied_stewardship_intensity(population=1e6)
         us = implied_stewardship_intensity(population=335e6)
@@ -416,23 +396,10 @@ class TestAmenityWeightIsContinuous:
         assert vals == sorted(vals)
 
     def test_the_anchor_is_now_CROSSED_AT_EVERY_POSITIVE_WEIGHT(self):
-        """
-        PHASE 4b REVERSED THE AMENITY-WEIGHT QUESTION, and this is the second
-        large consequence of declaring the frame.
-
-        The weight mattered because the census crossed the anchor at
-        w* = 0.0288, just above zero: at any smaller weight the census read
-        BELOW the anchor and at any larger one above it, so the weight set the
-        SIGN of the comparison and had to be argued and declared
-        (AMENITY_STEWARDSHIP_WEIGHT = 0.0468, band [0.0468, 0.0699]).
-
-        Against a frame-consistent anchor the solved crossing weight is
-        NEGATIVE — the census exceeds the anchor even with the entire amenity
-        class excluded. So the weight no longer sets the sign at all; it sets
-        only the magnitude, and the scope question that needed a charter
-        decision to settle the direction no longer needs one for that purpose.
-        The declared weight stays, because it still governs the magnitude and
-        both corners are still reported.
+        """The solved crossing weight is NEGATIVE: the census exceeds the anchor even
+        with the whole amenity class excluded. The amenity weight therefore sets only
+        the magnitude, not the sign, and both corners stay reported
+        ([record](record/ecological.md#land-stewardship-test-history)).
         """
         w = anchor_crossing_weight()
         assert w < 0.0, "a positive crossing weight would restore the old regime"
@@ -442,9 +409,9 @@ class TestAmenityWeightIsContinuous:
         assert rep_zero["ratio_to_anchor"] > 1.0
 
     def test_the_declared_weight_sits_above_the_crossing(self):
-        """The adopted position is above w*, so the census clears the anchor on
-        the charter weight — the sign does not depend on the weight, only the
-        magnitude does."""
+        """The charter weight sits above the crossing weight, so the census clears the
+        anchor on it. The weight sets the magnitude, not the sign.
+        """
         assert AMENITY_STEWARDSHIP_WEIGHT > anchor_crossing_weight()
         assert census_report("declared")["ratio_to_anchor"] > 1.0
 
@@ -463,28 +430,10 @@ class TestAmenityWeightIsContinuous:
 
 
 class TestTheAnchorIsKeyedToNothing:
-    """
-    The defect stated exactly, AND ITS CLOSURE: ecological used to be the only
-    domain with no extensive quantity behind it.
-
-    THIS CLASS WENT STALE AND ITS TEST BECAME UNFALSIFIABLE (found 2026-08-27).
-    `ecological_eoh` gained `area_hectares` on 2026-08-16, but this test still
-    read:
-
-        # No area or population parameter exists to pass.
-        assert ecological_eoh(0.82, **PRE_PARTITION) == ecological_eoh(0.82, **PRE_PARTITION)
-
-    Three separate faults in four lines. The comment was FALSE — the parameter
-    exists, and another test in this same file passes it. The assertion was a
-    pure TAUTOLOGY: `f(x) == f(x)` cannot fail for any deterministic f, so it
-    pinned nothing while reading as coverage. And the expected value restated
-    `ECOLOGICAL_BASE_RATE` as the bare literal `500_000.0` — the shadow-literal
-    pattern this repo hunts, in the file documenting an anchor defect.
-
-    It now asserts the two things that are actually true and load-bearing: the
-    no-area path resolves to the DECLARED reference frame, and the with-area
-    path is linear in area — the extensive behaviour whose absence was the
-    original defect.
+    """Ecological now has an extensive quantity behind it, like every other domain. The
+    no-area path resolves to the DECLARED reference frame, and the with-area path is
+    linear in area. The previous version of this test was a tautology, `f(x) == f(x)`
+    ([record](record/ecological.md#land-stewardship-test-history)).
     """
 
     def test_without_an_area_it_resolves_to_the_declared_reference_frame(self):
@@ -528,7 +477,8 @@ class TestTheAmenitySignOff:
         assert census_report()["amenity_weight"] == AMENITY_STEWARDSHIP_WEIGHT
 
     def test_the_reported_weight_is_the_weight_actually_applied(self):
-        """These were computed in two places and desynced — one source now."""
+        """The reported weight comes from one source; two copies once fell out of step.
+        """
         for scope, expected in (
             ("ecosystem", 0.0),
             ("declared", AMENITY_STEWARDSHIP_WEIGHT),
@@ -555,7 +505,9 @@ class TestTheAmenitySignOff:
         )
 
     def test_the_corners_survive_the_decision(self):
-        """A decision whose alternatives have been deleted is not reviewable."""
+        """A decision whose alternatives are gone is not reviewable, so the corners
+        stay.
+        """
         assert {"ecosystem", "with_amenity"} <= set(SCOPES)
         assert scope_comparison()["spread_factor"] > 10.0
 
@@ -657,7 +609,9 @@ class TestTheFrameIsUsSized:
         assert f["ratio_to_shipped"] == pytest.approx(1.366, abs=0.01)
 
     def test_the_frame_uses_mainland_not_the_us_total(self):
-        """Alaska's 150 Mha is unmanaged and would dilute every intensity 16%."""
+        """The frame uses the mainland. Alaska's 150 Mha is unmanaged and would dilute
+        every intensity by 16%.
+        """
         from hours_eoh.data import US_MAINLAND_HECTARES
 
         assert US_MAINLAND_HECTARES < total_land_hectares()
@@ -670,7 +624,7 @@ class TestTheFrameIsUsSized:
 
 
 class TestAgencyRoleMixIsMeasured:
-    """OPM Federal Workforce Data closes the role mix, and the class is priced."""
+    """OPM Federal Workforce Data closes the role mix, and the class has a price."""
 
     def test_headcounts_are_exact_not_the_rounded_faq_figure(self):
         mix = agency_role_mix()
@@ -770,9 +724,9 @@ class TestEqipCannotPriceStewardship:
         assert len(flagged) == 9
 
     def test_the_cropland_reason_no_longer_points_at_eqip_as_the_answer(self):
-        """The reason previously promised EQIP 'itemise labour per acre per
-        practice'. It does not. A wrong pointer must be corrected where it was
-        written, not just noted elsewhere."""
+        """The cropland reason no longer promises that EQIP itemises labour per acre per
+        practice; it does not. A wrong pointer gets its correction where it was written.
+        """
         reason = UNPRICED_REASONS["Total cropland"]
         assert "does not work" in reason or "EQIP_HAS_NO_LABOUR_LINE" in reason
         assert "CROPLAND_HOURS_RESOLVES_BY" in reason
@@ -878,9 +832,9 @@ class TestPracticeHoursDoNotPriceCropland:
         assert mech["hours_per_hectare_low"] > chem["hours_per_hectare_low"]
 
     def test_no_till_is_zero_hours_and_that_is_the_point(self):
-        """The case that breaks a naive hours-are-good reading: the practice's
-        benefit is the passes it REMOVES, so a labour census alone cannot rank
-        conservation practices by value."""
+        """No-till is zero hours: its benefit is the passes it REMOVES. A labour census
+        alone cannot rank conservation practices by value.
+        """
         d = practice_hours_per_hectare("329_residue_tillage_no_till")
         assert d["hours_per_hectare_low"] == 0.0
         assert d["hours_per_hectare_high"] == 0.0
@@ -902,10 +856,10 @@ class TestPracticeHoursDoNotPriceCropland:
         assert "LAST missing input" in CROPLAND_ADOPTION_RESOLVES_BY
 
     def test_the_adoption_unknown_is_BOUNDED_above(self):
-        """The strongest form of not-knowing. Even 100% cover-crop adoption on
-        every acre of US cropland adds 0.27-0.74x the current census — so the
-        missing adoption fraction cannot transform the picture, only move it
-        within a known range. At realistic adoption (5-7%) it is 1-5%."""
+        """Even 100% cover-crop adoption on all US cropland adds 0.27–0.74× the current
+        census, so the unknown adoption share moves the result inside a known range. At
+        realistic adoption (5–7%) it adds 1–5%.
+        """
         cover = practice_hours_per_hectare("340_cover_crop")
         cropland_ha = next(
             c["area_hectares"] for c in load_land_use()
@@ -927,9 +881,10 @@ class TestPracticeHoursDoNotPriceCropland:
         assert 0.0 < lo < hi < 1.0
 
 class TestEquipmentWidthsArePinned:
-    """These sit OUTSIDE the shadow-constant ratchet (`OPERATIVE_LAYERS` omits
-    `reference/`) and they scale the output linearly, so they are pinned here
-    instead. This test is standing in for a gate that does not reach them."""
+    """The equipment widths scale the output linearly and sit OUTSIDE the
+    shadow-constant ratchet (`OPERATIVE_LAYERS` omits `reference/`). This test stands in
+    for a gate that does not reach them.
+    """
 
     def test_every_operation_used_has_a_width(self):
         needed = {
@@ -956,12 +911,10 @@ class TestEquipmentWidthsArePinned:
         }
 
     def test_halving_a_width_doubles_the_practice_hours(self):
-        """The blast radius, demonstrated rather than asserted in prose — so
-        anyone changing a width sees what it costs.
-
-        Mutates the dict IN PLACE rather than rebinding, because the scenario
-        layer imported the same object and a rebind would not reach it — which
-        is itself worth knowing about every dict constant in `data.py`."""
+        """Halving a width doubles the practice hours, so anyone who changes a width
+        sees the cost. The test mutates the dict IN PLACE, because the scenario layer
+        imported the same object and a rebind would not reach it.
+        """
         before = practice_hours_per_hectare("340_cover_crop")["hours_per_hectare_low"]
         original = dict(PRACTICE_EQUIPMENT_WIDTHS_FT)
         try:
@@ -983,8 +936,9 @@ class TestTheCliDispatchStaysWiredUp:
     This is the smoke test that would have caught it."""
 
     def _run(self, *cli_args):
-        """Drive the REAL parser, so argument wiring is covered too — a
-        hand-built Namespace would silently supply defaults the CLI does not."""
+        """Drive the REAL parser, so the test covers argument wiring too. A Namespace
+        built by hand would supply defaults the CLI does not.
+        """
         import argparse
 
         from utils.scenario_cmd import _dispatch, build_parser
