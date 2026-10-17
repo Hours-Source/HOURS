@@ -138,9 +138,7 @@ class TestBothHalvesSeeOneValue:
     #: listed here is invisible to the derivation below.
     RENAMES = {"age_fractions": "age_distribution",
                "health_response": "ecological_health_response",
-               "standing_response": "ecological_standing_response",
-               "capital_personal_eoh_fulfilled_per_person":
-                   "capital_personal_eoh_fulfilled"}
+               "standing_response": "ecological_standing_response"}
 
     def test_every_shared_quantity_is_forwarded_or_refused(self):
         """Derived from the two signatures, not from the table under test."""

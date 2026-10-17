@@ -397,7 +397,7 @@ class TestThePrivateParcelsPay:
     holds. Government parcels are the collective's; an unknown owner type is
     not a private owner, so the private count is a band."""
 
-    @pytest.mark.parametrize("scope", ["contiguous_48", "fifty_states", "national"])
+    @pytest.mark.parametrize("scope", ["contiguous_48", "fifty_states"])
     def test_the_band_and_its_definition(self, scope):
         from hours_eoh.reference import parcels as P
         p = getattr(P, f"{scope}_private_parcels")()

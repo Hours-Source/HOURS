@@ -297,17 +297,11 @@ class TestTheRemovalAuditIsHonestAboutWhatItCannotSettle:
         `raw × personal_human_fraction(ε) × M_FLOOR` and ignores the subtraction —
         so the subtraction is gone, but a(K) lowering `raw` and a human share
         reflecting machine fulfilment would still be two terms for one tap.
-        Checked by behaviour, not source text: the supplied subtraction moves
-        nothing, and the human share does.
+        Checked by behaviour, not source text: the human share moves the
+        reimbursement (the subtraction's parameter was removed 2026-10-16).
         """
-        import warnings as _w
         from hours_eoh.core.fiscal import sufficiency_guarantee
         base = sufficiency_guarantee(1_000_000, 0.90)
-        with _w.catch_warnings():
-            _w.simplefilter("ignore", DeprecationWarning)
-            supplied = sufficiency_guarantee(
-                1_000_000, 0.90, capital_personal_eoh_fulfilled_per_person=500.0)
-        assert supplied["eoh_reimbursement_per_person"] == base["eoh_reimbursement_per_person"]
         assert base["eoh_reimbursement_per_person"] < base["raw_eoh_per_person"]
         audit = removal_audit()
         assert audit["fiscal_double_subtracts"] is False

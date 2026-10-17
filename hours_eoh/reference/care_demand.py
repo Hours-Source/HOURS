@@ -294,35 +294,6 @@ def care_by_age(
     return out
 
 
-def elderly_by_age(
-    year: int | None = None, household_only: bool | None = None
-) -> dict[int, float]:
-    """Module route: ``recipient age → eldercare minutes per RECIPIENT-day``.
-
-    Denominator is recipient-days, not population — this is care per person
-    receiving it, conditional on receiving any. Use
-    :func:`elderly_per_capita` for a population-basis figure comparable with
-    :func:`care_by_age`.
-    """
-    target = latest_year() if year is None else year
-    num: dict[int, float] = {}
-    den: dict[int, float] = {}
-    with _ELDER_FILE.open(newline="") as fh:
-        for r in csv.DictReader(fh):
-            if int(r["year"]) != target:
-                continue
-            if household_only is not None:
-                if (r["household_member"] == "1") != household_only:
-                    continue
-            age, days = int(r["recipient_age"]), float(r["recipient_days"])
-            minutes = _f(r["minutes_per_recipient_day"])
-            if minutes is None or days <= 0.0:
-                continue
-            num[age] = num.get(age, 0.0) + minutes * days
-            den[age] = den.get(age, 0.0) + days
-    return {a: num[a] / den[a] for a in sorted(num) if den[a] > 0.0}
-
-
 def elderly_per_capita(
     year: int | tuple[int, ...] | None = None,
     household_only: bool | None = None,

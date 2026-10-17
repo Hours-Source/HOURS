@@ -32,7 +32,7 @@ Personal obligation hours per person that still need human labour at ε: the age
 
 ### `sufficiency_guarantee(population, epsilon, …)` → `dict`
 
-The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays `effective_personal_eoh(ε)` at `M_FLOOR`, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. `capital_personal_eoh_fulfilled_per_person` is deprecated and not applied. See [Design Principle 5](../../theory/design_principles.md#5-the-floor-rises-with-automation-it-never-falls).
+The floor — minimum TEH guaranteed to every collective member. The EOH reimbursement pays `effective_personal_eoh(ε)` at `M_FLOOR`, 1 TEH per human obligation hour, so it buys the same human-carried obligation at every ε; any rise in purchasing power comes from the meaningful-activity term. See [Design Principle 5](../../theory/design_principles.md#5-the-floor-rises-with-automation-it-never-falls).
 
 ---
 
@@ -83,7 +83,6 @@ Total care stipend obligation from population demographics.
 |----------|-------------|
 | `steward_eoh_obligation(structure_value_teh, land_area_units, epsilon, …)` | Private EOH a land steward bears for the structures they use |
 | `collective_land_registration(epsilon, …)` | Fraction of housing/land EOH registered to the collective ledger |
-| `stewardship_dividend_needed(stewardship_teh_required, dep_rate, trust_balance)` | **Deprecated 2026-09-30.** Minimum `div_rate` for the Trust dividend to cover stewardship — a question the wage doctrine retired, since the Trust no longer pays stewardship |
 | `accumulation_ceiling_commitment(teh_in_circulation, population, …)` | D6 — TEH above the accumulation ceiling, routed into capital formation |
 
 ---

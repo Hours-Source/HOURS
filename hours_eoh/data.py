@@ -3103,33 +3103,6 @@ CAPITAL_FAILURE_RATE:               float = 0.005  # fraction of capital failing
 #   assumption with ENV_MONITORING_SATURATION_TEH_PER_CAPITA and neither is
 #   measured.
 CAPITAL_WRITEDOWN_MONITORING_SLOPE: float = 0.30   # max failure-rate reduction at ε=1 from better monitoring
-# tag: convention | units: TEH per period (at the 1M reference population)
-# form: a numerical guard, not an economic claim — it keeps period labour
-#   income from reaching zero and producing division-by-zero at high ε, which
-#   the ε-coherence rule requires every function to survive.
-#
-#   RETAGGED 2026-08-15, was `placeholder` with `resolves_by: n/a`. That was a
-#   contradiction in the scheme's own terms: `placeholder` means measurement is
-#   owed and REQUIRES naming what would settle it, and this constant's own form
-#   says no economic claim is being made. A guard against division by zero is a
-#   stated frame, not a fact about the world — no dataset settles where to put
-#   it, so filing it as measurement debt overstated the framework's ignorance in
-#   exactly the way the `normative` and `instance` splits were made to prevent.
-#
-#   It could still be made CONSISTENT with what it guards — WORKFORCE_FRACTION_MIN
-#   × H_REF × mean multiplier — which is a tidy worth doing, but the chain runs
-#   through WORKFORCE_FRACTION_MIN and COMPETENCY_THRESHOLD, both placeholders,
-#   so deriving it would import unmeasured inputs into a guard that does not need
-#   them. Left as a declared convention rather than dressed as a derivation.
-#
-#   DEPRECATED 2026-09-30 (author): NO OPERATIVE CONSUMER. `simulate_period`
-#   was its only one and applied it as `max(this, income)` — which made a
-#   guard into an income FLOOR that bound on the shipped arc (below ε≈0.17 at
-#   1M: 3.7× the mint at ε=0; 36.6× at 1e5, being unscaled) while nothing on
-#   that path divided by the income. The floor is removed; the simulated income
-#   is the mint. Kept so the name resolves for any external caller — a new site
-#   should not bind to it; guard a division where the division is.
-LABOR_INCOME_MIN_TEH:              float = 100_000_000.0  # DEPRECATED — no consumer since 2026-09-30
 # tag: normative | units: fraction of the Trust balance per period
 # form: the boundary between a DEGRADED and a CRISIS shock outcome. A shock
 #   that leaves the Trust insolvent is DEGRADED while its per-period deficit is

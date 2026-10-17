@@ -1439,24 +1439,6 @@ def knowledge_eoh_breakdown(
 # Total EOH Aggregate
 # ---------------------------------------------------------------------------
 
-def effective_capital_from_stock(capital_stock: float, epsilon: float) -> float:
-    """
-    ε-adjusted effective capital stock.
-
-    **Deprecated**: Use ``trajectory.effective_capital_from_epsilon()`` instead.
-    That function is the canonical reference and is imported by fiscal/stewardship
-    code. This function is retained only for backward compatibility.
-
-    Args:
-        capital_stock: Baseline capital stock in TEH (at ε=0).
-        epsilon: Automation level [0.0, 0.99].
-
-    Returns:
-        Effective capital stock in TEH at this automation level.
-    """
-    from hours_eoh.core.trajectory import effective_capital_from_epsilon
-    return effective_capital_from_epsilon(capital_stock, epsilon)
-
 
 def ecological_scale(
     base_rate: float | None = None,

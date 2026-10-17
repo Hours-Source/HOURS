@@ -281,7 +281,7 @@ def collective_snapshot(
              "ecosystem_health", "trust_balance", "labor_income",
              "ecological_area_hectares", "eco_eoh_override", "guf_revenue",
              "state", "deferred_ecological", "capital_eoh_eliminated",
-             "registration_epsilon", "capital_personal_eoh_fulfilled_per_person",
+             "registration_epsilon",
              "age_fractions", "ecological_hectares_per_capita"}
     clash = owned & set(fiscal_kwargs)
     if clash:

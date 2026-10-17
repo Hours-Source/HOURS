@@ -551,7 +551,6 @@ def sufficiency_guarantee(
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
     floor_fraction: float = SUFF_GUARANTEE_FLOOR_FRACTION,
-    capital_personal_eoh_fulfilled_per_person: float = 0.0,
     automation_response: str = "per_component",
     design: str = "v1",
     need_fraction: float = SUFF_NEED_FRACTION,
@@ -626,11 +625,6 @@ def sufficiency_guarantee(
         floor_fraction: Fraction of population receiving the guarantee under
             `design="shipped"` ONLY; inert under the default `v1`, where the
             register and `need_fraction` set the share.
-        capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15 and
-            NOT APPLIED. The human share in `effective_personal_eoh` already
-            carries machine fulfilment, so subtracting capital-fulfilled hours
-            too was two terms for one mechanism. A nonzero value warns and is
-            echoed as `capital_personal_eoh_fulfilled_supplied_not_applied`.
         automation_response: "per_component" (default) or "uniform" — which
             personal human share the reimbursement is sized on.
 
@@ -658,7 +652,6 @@ def sufficiency_guarantee(
           "personal_human_fraction":                 float,  human-carried share at ε
           "effective_personal_eoh_per_person":       float,  h/yr — raw × human share
           "teh_per_obligation_hour":                 float,  M_FLOOR
-          "capital_personal_eoh_fulfilled_supplied_not_applied": float,  deprecated input, echoed
           "eoh_reimbursement_per_person":            float,  TEH/yr — effective × M_FLOOR
           "meaningful_activity_teh_effective":       float,  TEH/yr — ε-scaled discretionary bonus
           "total_per_person":                        float,  TEH/yr
@@ -676,15 +669,6 @@ def sufficiency_guarantee(
     # produce an effective_fraction below SUFF_GUARANTEE_STRUCTURAL_MIN
     # when a caller passes a floor_fraction smaller than the minimum.
     floor_fraction = max(floor_fraction, SUFF_GUARANTEE_STRUCTURAL_MIN)
-
-    if capital_personal_eoh_fulfilled_per_person:
-        warnings.warn(
-            "capital_personal_eoh_fulfilled_per_person is deprecated and not "
-            "applied: effective_personal_eoh's human share already carries "
-            "machine fulfilment, so subtracting it too counts one mechanism twice.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     if design not in GUARANTEE_DESIGNS:
         raise ValueError(
@@ -772,8 +756,6 @@ def sufficiency_guarantee(
         "personal_human_fraction":                   human_fraction,
         "effective_personal_eoh_per_person":         effective_per_person,
         "teh_per_obligation_hour":                   M_FLOOR,
-        "capital_personal_eoh_fulfilled_supplied_not_applied":
-            capital_personal_eoh_fulfilled_per_person,
         "eoh_reimbursement_per_person":              eoh_reimbursement_per_person,
         "meaningful_activity_teh_effective":         meaningful_activity_teh_effective,
         "total_per_person":                          total_per_person,
@@ -1047,16 +1029,6 @@ PROMOTABLE_CATEGORIES: frozenset[str] = frozenset(
     {"unmodelled_state", "recompute_avoidance"}
 )
 
-#: Parameters still ACCEPTED, for API compatibility, and NOT APPLIED. Neither
-#: injected nor state: none of the four categories fits a value the function
-#: has stopped using, and forcing one would misclassify it. Listed so the
-#: register tests can exclude them visibly rather than by a quiet name filter.
-#: `capital_personal_eoh_fulfilled_per_person` joined 2026-09-15, when the
-#: guarantee moved onto `effective_personal_eoh`.
-DEPRECATED_NOT_APPLIED: frozenset[str] = frozenset(
-    {"capital_personal_eoh_fulfilled_per_person"}
-)
-
 #: The economy-state keys `fiscal_snapshot` can read, mapped to its own
 #: parameter names. `make_economy_state()` in core/simulation.py already carries
 #: every one of them — the container existed before this function accepted it.
@@ -1089,11 +1061,9 @@ _STATE_TO_PARAM: dict[str, str] = {
 #: collective reported a guarantee on one age mix and a mint on another.
 #: Strings only, so this module still imports nothing new.
 #:
-#: Two shared NAMES are deliberately absent, because they are not one quantity:
-#: `capital_personal_eoh_fulfilled_per_person` is per person here and the
-#: pipeline's `capital_personal_eoh_fulfilled` is an aggregate, and
+#: One shared NAME is deliberately absent, because it is not one quantity:
 #: `ecological_hectares_per_capita` is superseded wherever an assembly point
-#: states its land. Assembly points refuse both.
+#: states its land. Assembly points refuse it.
 PIPELINE_SHARED_PARAMS: dict[str, str] = {
     "mean_multiplier":        "mean_multiplier",
     "thermal_obligation":     "thermal_obligation",
@@ -1107,7 +1077,7 @@ PIPELINE_SHARED_PARAMS: dict[str, str] = {
 }
 #: The shared names that are NOT one quantity (see above) — refused, never forwarded.
 PIPELINE_SHARED_NOT_ONE_QUANTITY: frozenset[str] = frozenset({
-    "capital_personal_eoh_fulfilled_per_person", "ecological_hectares_per_capita"})
+    "ecological_hectares_per_capita"})
 
 
 def fiscal_snapshot(
@@ -1126,7 +1096,6 @@ def fiscal_snapshot(
     need_fraction: float = SUFF_NEED_FRACTION,
     meaningful_activity_teh: float = MEANINGFUL_ACTIVITY_TEH_BASE,
     meaningful_activity_scale: float = MEANINGFUL_ACTIVITY_TEH_SCALE,
-    capital_personal_eoh_fulfilled_per_person: float = 0.0,
     capital_eoh_eliminated: float = 0.0,
     infra_eoh_override: float | None = None,
     ecosystem_health: float = ECOSYSTEM_HEALTH_DEFAULT,
@@ -1180,9 +1149,6 @@ def fiscal_snapshot(
             `capital.estate_dissolution`'s `teh_levied_to_trust`. One of the
             three paths TEH returns to the Trust by (2026-09-16); passed in
             because it needs circulating TEH, which this function is not given.
-        capital_personal_eoh_fulfilled_per_person: DEPRECATED 2026-09-15.
-            Forwarded to sufficiency_guarantee(), which warns on a nonzero value
-            and does not apply it.
         capital_eoh_eliminated: Aggregate EOH eliminated by the capital stock
             (sum of annual_eoh_eliminated across all assets). When provided,
             the Trust is automatically sized against the reduced infrastructure
@@ -1262,8 +1228,6 @@ def fiscal_snapshot(
             "ecosystem_health": ecosystem_health if ecosystem_health != 0.70 else None,
             "deferred_ecological": deferred_ecological or None,
             "capital_eoh_eliminated": capital_eoh_eliminated or None,
-            "capital_personal_eoh_fulfilled_per_person":
-                capital_personal_eoh_fulfilled_per_person or None,
             "registration_epsilon": registration_epsilon,
         }
         _clash = sorted(
@@ -1392,7 +1356,6 @@ def fiscal_snapshot(
         meaningful_activity_teh=meaningful_activity_teh,
         meaningful_activity_scale=meaningful_activity_scale,
         floor_fraction=floor_fraction,
-        capital_personal_eoh_fulfilled_per_person=capital_personal_eoh_fulfilled_per_person,
         # FORWARDED 2026-09-16. Without these the snapshot could only ever book
         # the default design, which stranded `floor_fraction`: a caller sweeping
         # it got identical costs at 0.05, 0.15 and 0.30 because V1 does not read
@@ -1779,80 +1742,6 @@ def steward_eoh_obligation(
 # `collective_land_registration` MOVED to `core/registration.py` (2026-10-01)
 # so every reading of the register is in one module; re-exported above.
 
-
-# ---------------------------------------------------------------------------
-# Stewardship dividend adequacy check
-# ---------------------------------------------------------------------------
-
-def stewardship_dividend_needed(
-    stewardship_teh_required: float,
-    dep_rate: float,
-    trust_balance: float,
-) -> dict:
-    """
-    DEPRECATED 2026-09-30 — no production caller. Under the wage doctrine
-    (2026-09-15) stewardship is paid at the mint and the Trust owes only the
-    guarantee, so "what dividend covers stewardship" is no longer a question the
-    Trust faces. Kept callable (the guardrail: deprecate, don't delete) and its
-    tests still run; do not build on it.
-
-    Minimum div_rate needed for the Trust dividend to cover stewardship cost.
-
-    The Trust dividend = trust_balance × dep_rate × div_rate. If the current
-    dividend is less than stewardship_teh_required, the Trust will draw down
-    over time (levy revenue covers the rest, but at the expense of the guarantee
-    or solvency). This function computes the minimum div_rate for self-sufficiency.
-
-    A min_div_rate > 1.0 is infeasible (cannot distribute more than 100% of
-    depreciation) — this signals the Trust balance itself must grow (higher
-    levy inflows or lower stewardship cost).
-
-    Args:
-        stewardship_teh_required: Annual stewardship TEH needed (from stewardship_allocation()).
-        dep_rate: Trust's annual depreciation rate (from trust_management() dep_rate).
-        trust_balance: Current Trust balance in TEH.
-
-    Returns:
-        dict: {
-          "stewardship_teh_required": float,
-          "annual_dep":               float,   (= trust_balance × dep_rate)
-          "min_div_rate":             float | None,   (None if Trust is empty)
-          "trust_balance":            float,
-          "dep_rate":                 float,
-          "feasible":                 bool,    (min_div_rate ≤ 1.0)
-          "shortfall_at_div1":        float,   (gap if div_rate were set to 1.0)
-        }
-
-    Reference: Mission Statement §"Principle 2 — The fiscal architecture must
-    remain solvent under any automation level"; §"Revenue streams pegged to the
-    capital stock's entropy obligations are foundational."
-    """
-    ann_dep = trust_balance * dep_rate
-
-    if ann_dep <= 0.0:
-        return {
-            "stewardship_teh_required": stewardship_teh_required,
-            "annual_dep":               ann_dep,
-            "min_div_rate":             None,
-            "trust_balance":            trust_balance,
-            "dep_rate":                 dep_rate,
-            "feasible":                 False,
-            "shortfall_at_div1":        stewardship_teh_required,
-        }
-
-    min_div_rate   = stewardship_teh_required / ann_dep
-    feasible       = min_div_rate <= 1.0
-    shortfall_div1 = max(0.0, stewardship_teh_required - ann_dep)
-
-    return {
-        "stewardship_teh_required": stewardship_teh_required,
-        "annual_dep":               ann_dep,
-        "min_div_rate":             min_div_rate,
-        "trust_balance":            trust_balance,
-        "dep_rate":                 dep_rate,
-        "feasible":                 feasible,
-        "shortfall_at_div1":        shortfall_div1,
-    }
 
 # ---------------------------------------------------------------------------
 # Multi-period Trust solvency trajectory

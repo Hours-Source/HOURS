@@ -347,17 +347,6 @@ def fifty_states_private_parcels() -> dict[str, float]:
                              if str(r["statefp"]) not in NOT_50_STATES_FIPS])
 
 
-def national_private_parcels() -> dict[str, float]:
-    """
-    The PRIVATE parcels over every state code in the extract — the same band as
-    `contiguous_48_private_parcels`, on `national_parcel_count`'s coverage
-    (2026-10-15, author: the collective-held parcels are excluded from the
-    default count too). Includes Puerto Rico and the territories; the default
-    count reads `fifty_states_private_parcels` since the same day.
-    """
-    return _private_parcels(load_county_parcels())
-
-
 def _private_parcels(rows: list[dict[str, float | str]]) -> dict[str, float]:
     """The private-parcel band over `rows` — ONE rule for every coverage."""
     total = sum(int(r["parcels"]) for r in rows)

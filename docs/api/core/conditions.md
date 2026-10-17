@@ -49,10 +49,6 @@ Whether the people certified in each essential domain can carry its work — Con
 
 `demand="personal"` reads only the registered PERSONAL hours — the survival tier: Condition IV is first about whether the agents' own needs have competent hands, and the rest can be rebuilt as the arc climbs (author, 2026-10-01). Hours no essential domain is certified for are reported as `unattributed_eoh`, never counted short. The bridge's personal column is derived from the obligation's components; the other three columns are the original judgement. At the Condition IV minimum healthcare is short over a band of the upper arc in both registered readings, because care — most of the personal obligation — has no essential domain of its own and is set against healthcare.
 
-### `domain_eoh_coverage(reserve_result, domain_eoh_demands, …)` → `dict` — deprecated
-
-Kept with unchanged output so earlier figures reproduce; warns. It sized a certified worker as `H_MIN × mean_multiplier × (1 − ε)` — hours times the TEH multiplier, shrinking as machines take share — and so reported Condition IV failing at every ε, worse with automation. Use `condition_iv_coverage`.
-
 ---
 
 ## Dashboard (dashboard.py)

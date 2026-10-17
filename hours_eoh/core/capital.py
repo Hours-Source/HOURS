@@ -170,9 +170,8 @@ def aggregate_personal_eoh_fulfilled(
           "population":                         float,
         }
 
-    Usage: a reported coverage figure. Do NOT pass it to sufficiency_guarantee()
-    as capital_personal_eoh_fulfilled_per_person — that parameter is deprecated
-    and not applied (it warns).
+    Usage: a reported coverage figure. The guarantee does not subtract it: the
+    human share in `effective_personal_eoh` already carries machine fulfilment.
 
     Reference: Mission Statement §"Capital stock fulfills personal EOH on behalf
     of the population — water treatment, healthcare infrastructure, energy grids."

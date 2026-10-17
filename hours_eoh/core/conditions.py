@@ -18,7 +18,6 @@ the constitution's test bench"
 
 from __future__ import annotations
 
-import warnings
 
 from hours_eoh.data import (
     M_BAND_LOW, M_BAND_HIGH, M_BAND_TARGET, COMPETENCY_THRESHOLD,
@@ -336,110 +335,6 @@ def dashboard_snapshot(
 # Domain-level EOH coverage check
 # ---------------------------------------------------------------------------
 
-def domain_eoh_coverage(
-    reserve_result: dict,
-    domain_eoh_demands: dict[str, float],
-    epsilon: float = 0.40,
-    mean_multiplier: float = MEAN_MULTIPLIER_REFERENCE,
-    coverage_warning_threshold: float = 0.80,
-) -> dict:
-    """
-    DEPRECATED 2026-10-01 — use `condition_iv_coverage`. Output unchanged, so
-    every earlier figure reproduces; it warns.
-
-    WHY. Capacity per certified worker here is `H_MIN × mean_multiplier ×
-    (1 − ε)`: the multiplier converts hours to TEH, not to EOH, and (1 − ε)
-    shrinks a WORKER's hours as machines take share, where the human share
-    belongs on DEMAND. At threshold certification on the arc it reported
-    Condition IV failing at every ε and worse as automation rose (coverage
-    → 0 at ε = 0.99) — the opposite of the physics.
-
-    Check whether certified workforce capacity can actually cover per-domain EOH.
-
-    Condition IV verifies certified fractions but not whether those workers can
-    fulfill the domain's full EOH demand. If a domain's EOH has grown faster
-    than certified capacity (e.g., infrastructure aged while reserve stayed flat),
-    the Condition IV check passes but the domain is in real shortfall.
-
-    Capacity per certified worker = h_min × mean_multiplier × (1-ε).
-    (At high ε, each worker's human-labor share shrinks — more workers are
-    needed to cover the same human EOH demand.)
-
-    Args:
-        reserve_result: Return dict from competency_reserve().
-        domain_eoh_demands: {domain_name: annual_eoh_hours} for domains to check.
-        epsilon: Automation level. Scales certified capacity by (1-ε).
-        mean_multiplier: Worker EOH throughput per hour (default: 2.10).
-        coverage_warning_threshold: Flag domains below this coverage ratio.
-                                    Default: 0.80 (80% of demand covered).
-
-    Returns:
-        dict: {
-          "per_domain": {domain: {
-            "eoh_demand":     float,
-            "certified_count": float,
-            "capacity_eoh":   float,
-            "coverage_ratio": float,
-            "meets_coverage": bool,
-          }},
-          "domains_at_risk":            list[str],
-          "all_covered":                bool,
-          "status":                     "OK" or "COVERAGE_GAP",
-          "epsilon":                    float,
-          "coverage_warning_threshold": float,
-        }
-
-    Reference: Mission Statement §"Condition IV — Distributed Competency" —
-    reserve size is necessary but not sufficient; coverage requires capacity
-    to match demand, not just a fraction to exceed a threshold.
-    """
-    from hours_eoh.data import H_MIN
-
-    warnings.warn(
-        "domain_eoh_coverage is deprecated (2026-10-01): it sizes a certified "
-        "worker as H_MIN × the TEH multiplier × (1 − ε). Use condition_iv_coverage.",
-        DeprecationWarning, stacklevel=2,
-    )
-    per_domain_reserve = reserve_result.get("per_domain", {})
-    human_fraction     = 1.0 - epsilon
-    domain_coverage: dict[str, dict] = {}
-    domains_at_risk: list[str] = []
-
-    for domain, eoh_demand in domain_eoh_demands.items():
-        certified = float(
-            per_domain_reserve.get(domain, {}).get("certified_count", 0.0)
-        )
-        # Each certified worker contributes H_MIN hours × multiplier × human_fraction
-        capacity_eoh = certified * H_MIN * mean_multiplier * human_fraction
-
-        if eoh_demand <= 0.0:
-            coverage_ratio = 1.0
-        else:
-            coverage_ratio = capacity_eoh / eoh_demand
-
-        meets_coverage = coverage_ratio >= coverage_warning_threshold
-        domain_coverage[domain] = {
-            "eoh_demand":     eoh_demand,
-            "certified_count": certified,
-            "capacity_eoh":   capacity_eoh,
-            "coverage_ratio": coverage_ratio,
-            "meets_coverage": meets_coverage,
-        }
-
-        if not meets_coverage:
-            domains_at_risk.append(domain)
-
-    all_covered = len(domains_at_risk) == 0
-
-    return {
-        "per_domain":                 domain_coverage,
-        "domains_at_risk":            domains_at_risk,
-        "all_covered":                all_covered,
-        "status":                     "OK" if all_covered else "COVERAGE_GAP",
-        "epsilon":                    epsilon,
-        "coverage_warning_threshold": coverage_warning_threshold,
-    }
-
 
 def condition_iv_coverage(
     reserve_result: dict,
@@ -468,7 +363,7 @@ def condition_iv_coverage(
     1. CAPACITY is a certified adult's measured annual capacity
        (`MEASURED_CAPACITY_H_YR`, the one settled account of adult supply),
        independent of ε — a worker's hours do not shrink as machines take
-       share. `H_MIN`, which the deprecated check used, is the MINIMUM a
+       share. `H_MIN`, which the retired `domain_eoh_coverage` used, is the MINIMUM a
        member owes, not what one can give.
     2. DEMAND defaults to the REGISTERED hours: the register is what the
        collective carries (author, 2026-10-01), and certified workers are the

@@ -341,8 +341,10 @@ def build_collective(
     owned = {
         "population", "capital_stock", "ecological_area_hectares",
         "ecological_base", "capital_age_ratio", "ecosystem_health",
-        # Shared names that are not one quantity: an aggregate here, per
-        # person in the fisc; and a land per head the frame's area supersedes.
+        # A land per head the frame's area supersedes; and the capital-
+        # fulfilled personal aggregate, refused since the fisc took a
+        # per-person namesake (removed 2026-10-16) and kept refused, so a
+        # federation's pipeline is not moved by a keyword.
         "capital_personal_eoh_fulfilled", "ecological_hectares_per_capita",
     }
     clash = owned & set(pipeline_kwargs)

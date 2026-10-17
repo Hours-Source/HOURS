@@ -4,7 +4,7 @@ Tests for hours_eoh.core.fiscal
 Covers: levy_collection, stewardship_allocation, sufficiency_guarantee,
 trust_management, fiscal_snapshot, trust_solvency_trajectory,
 care_stipend, steward_eoh_obligation, collective_land_registration,
-stewardship_dividend_needed, min_levy_for_solvency,
+min_levy_for_solvency,
 ecological_allocation, aggregate_care_stipend_from_demographics,
 accumulation_ceiling_commitment.
 
@@ -32,7 +32,6 @@ from hours_eoh.core.fiscal import (
     care_stipend,
     steward_eoh_obligation,
     collective_land_registration,
-    stewardship_dividend_needed,
     min_levy_for_solvency,
     ecological_allocation,
     aggregate_care_stipend_from_demographics,
@@ -277,10 +276,8 @@ class TestSufficiencyGuarantee:
     def test_guarantee_result_keys(self):
         """New EOH-reimbursement model returns expected keys."""
         result = sufficiency_guarantee(1_000_000, 0.40)
-        assert "capital_personal_eoh_fulfilled_per_person" not in result
         for key in ("raw_eoh_per_person", "personal_human_fraction",
                     "effective_personal_eoh_per_person", "teh_per_obligation_hour",
-                    "capital_personal_eoh_fulfilled_supplied_not_applied",
                     "eoh_reimbursement_per_person", "meaningful_activity_teh_effective",
                     "total_per_person", "eoh_reimbursement_total",
                     "meaningful_activity_total", "total_cost_teh"):
@@ -339,26 +336,6 @@ class TestSufficiencyGuarantee:
             else:
                 assert pc["eoh_reimbursement_per_person"] == pytest.approx(
                     un["eoh_reimbursement_per_person"], rel=1e-12)
-
-    def test_capital_fulfillment_default_is_silent(self):
-        import warnings as _w
-        with _w.catch_warnings():
-            _w.simplefilter("error", DeprecationWarning)
-            g = sufficiency_guarantee(1_000_000, 0.40)
-        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 0.0
-
-    def test_capital_fulfillment_is_deprecated_and_not_applied(self):
-        """A supplied subtraction warns, is echoed under a key saying it was not
-        applied, and moves nothing — the human share already carries it."""
-        g_base = sufficiency_guarantee(1_000_000, 0.40)
-        with pytest.warns(DeprecationWarning):
-            g = sufficiency_guarantee(
-                1_000_000, 0.40,
-                capital_personal_eoh_fulfilled_per_person=500.0,
-            )
-        assert g["capital_personal_eoh_fulfilled_supplied_not_applied"] == 500.0
-        assert g["eoh_reimbursement_per_person"] == g_base["eoh_reimbursement_per_person"]
-        assert g["total_cost_teh"] == g_base["total_cost_teh"]
 
 
 class TestEffectivePersonalEoh:
@@ -951,49 +928,6 @@ class TestFiscalSolvencyIntegration:
         before = income + p["trust_base"]
         after  = levies["worker_net"] + levies["total_levied"] + p["trust_base"]
         assert before == pytest.approx(after)
-
-
-# ===========================================================================
-# Stewardship Dividend Needed
-# ===========================================================================
-
-class TestStewardshipDividendNeeded:
-
-    def test_min_div_rate_computed(self):
-        result = stewardship_dividend_needed(
-            stewardship_teh_required=500.0,
-            dep_rate=0.10,
-            trust_balance=10_000.0,
-        )
-        assert result["min_div_rate"] == pytest.approx(0.5)
-
-    def test_feasible_when_min_div_rate_lte_one(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=10_000.0)
-        assert result["feasible"] is True
-
-    def test_infeasible_when_trust_too_small(self):
-        result = stewardship_dividend_needed(5_000.0, dep_rate=0.10, trust_balance=1_000.0)
-        assert result["feasible"] is False
-        assert result["min_div_rate"] > 1.0
-
-    def test_zero_trust_balance_returns_none_div_rate(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=0.0)
-        assert result["min_div_rate"] is None
-        assert result["feasible"] is False
-
-    def test_shortfall_at_div1_positive_when_infeasible(self):
-        result = stewardship_dividend_needed(5_000.0, dep_rate=0.10, trust_balance=1_000.0)
-        assert result["shortfall_at_div1"] > 0.0
-
-    def test_shortfall_zero_when_feasible(self):
-        result = stewardship_dividend_needed(50.0, dep_rate=0.10, trust_balance=10_000.0)
-        assert result["shortfall_at_div1"] == pytest.approx(0.0)
-
-    def test_result_keys(self):
-        result = stewardship_dividend_needed(500.0, dep_rate=0.10, trust_balance=10_000.0)
-        for key in ("stewardship_teh_required", "annual_dep", "min_div_rate",
-                    "trust_balance", "dep_rate", "feasible", "shortfall_at_div1"):
-            assert key in result
 
 
 # ===========================================================================
@@ -1880,7 +1814,6 @@ class TestFiscalSnapshotAcceptsAState:
             ecosystem_health=st["ecosystem_health"],
             deferred_ecological=st["deferred_ecological"],
             capital_eoh_eliminated=st["capital_eoh_eliminated"],
-            capital_personal_eoh_fulfilled_per_person=st["capital_personal_eoh_fulfilled"],
         )
         assert via_state["trust"]["trust_end"] == via_loose["trust"]["trust_end"]
         assert via_state["solvent"] == via_loose["solvent"]
@@ -2100,11 +2033,10 @@ class TestTheInjectionRegisterIsComplete:
         """
         import inspect
         from hours_eoh.core.fiscal import (
-            fiscal_snapshot, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
+            fiscal_snapshot, _STATE_TO_PARAM)
         state_readable = set(_STATE_TO_PARAM.values())
         return {p for p in inspect.signature(fiscal_snapshot).parameters
-                if any(m in p for m in self.MARKERS) and p not in state_readable
-                and p not in DEPRECATED_NOT_APPLIED}
+                if any(m in p for m in self.MARKERS) and p not in state_readable}
 
     def test_promotion_removes_a_parameter_from_the_injection_class(self):
         """
@@ -2112,8 +2044,7 @@ class TestTheInjectionRegisterIsComplete:
         `capital_eoh_eliminated` is still a parameter — a caller may pass it —
         but it is no longer an INJECTION, because `make_economy_state` carries
         it and core can be handed it. The register caught this overlap on its
-        first run. `capital_personal_eoh_fulfilled_per_person` was promoted with
-        it and left state on 2026-09-15, when the guarantee stopped applying it.
+        first run.
         """
         import inspect
         from hours_eoh.core.fiscal import (
@@ -2123,17 +2054,6 @@ class TestTheInjectionRegisterIsComplete:
         assert promoted <= params, "still reachable as parameters"
         assert promoted <= set(_STATE_TO_PARAM.values()), "readable from state"
         assert not (promoted & set(INJECTION_REGISTER)), "no longer injections"
-
-    def test_a_deprecated_parameter_is_accepted_and_in_neither_register(self):
-        """Accepted for compatibility, not applied, and so neither state (a key
-        accepted and ignored) nor an injection (a value core is told and uses)."""
-        import inspect
-        from hours_eoh.core.fiscal import (
-            fiscal_snapshot, INJECTION_REGISTER, _STATE_TO_PARAM, DEPRECATED_NOT_APPLIED)
-        params = set(inspect.signature(fiscal_snapshot).parameters)
-        assert DEPRECATED_NOT_APPLIED <= params
-        assert not (DEPRECATED_NOT_APPLIED & set(_STATE_TO_PARAM.values()))
-        assert not (DEPRECATED_NOT_APPLIED & set(INJECTION_REGISTER))
 
     def test_every_injected_parameter_is_classified(self):
         from hours_eoh.core.fiscal import INJECTION_REGISTER

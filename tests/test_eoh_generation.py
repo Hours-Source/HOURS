@@ -2,7 +2,7 @@
 Tests for hours_eoh.core.eoh_generation
 
 Covers: personal_eoh, infrastructure_eoh, ecological_eoh, knowledge_eoh,
-total_eoh, ecological_eoh_breakdown, effective_capital_from_stock,
+total_eoh, ecological_eoh_breakdown,
 domain_labor_requirements, epsilon_delta_sensitivity, eoh_to_essential_domains.
 """
 
@@ -17,7 +17,6 @@ from hours_eoh.core.eoh_generation import (
     ecological_eoh,
     knowledge_eoh,
     total_eoh,
-    effective_capital_from_stock,
     ecological_eoh_breakdown,
     domain_labor_requirements,
     epsilon_delta_sensitivity,
@@ -357,18 +356,10 @@ class TestTotalEoh:
 
 
 # ===========================================================================
-# effective_capital_from_stock
+# A supplied capital stock is never rescaled
 # ===========================================================================
 
-class TestEffectiveCapitalFromStock:
-
-    def test_at_eps0_returns_base(self):
-        assert effective_capital_from_stock(1_000_000.0, 0.0) == pytest.approx(1_000_000.0)
-
-    def test_grows_with_epsilon(self):
-        base  = effective_capital_from_stock(1_000_000.0, 0.0)
-        high  = effective_capital_from_stock(1_000_000.0, 0.90)
-        assert high > base
+class TestASuppliedStockIsNotRescaled:
 
     def test_matches_infrastructure_eoh_internal_scaling(self):
         capital = 2_000_000_000.0
@@ -378,15 +369,11 @@ class TestEffectiveCapitalFromStock:
         age_factor = 1.0 + (2.0 - 1.0) * age
         # (e) 2026-09-09: a SUPPLIED stock is never rescaled, so the ε argument
         # does not reach the capital at all. This used to assert the opposite —
-        # that infrastructure_eoh applied effective_capital_from_stock
-        # internally — which is exactly the behaviour the decision removed.
+        # that infrastructure_eoh rescaled the stock by ε internally —
+        # which is exactly the behaviour the decision removed.
         expected = capital * rate * age_factor
         actual   = infrastructure_eoh(capital, age, eps, rate, 2.0)
         assert actual == pytest.approx(expected)
-        # effective_capital_from_stock survives as the explicit baseline-scaler
-        # for a caller who genuinely holds an ε=0 baseline, and still scales.
-        assert effective_capital_from_stock(capital, eps) == pytest.approx(
-            capital * (1.0 + 2.0 * eps))
 
 
 # ===========================================================================
