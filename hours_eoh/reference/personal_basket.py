@@ -695,9 +695,9 @@ def entitlement_augmentation(health_min_epsilon: float) -> list[dict]:
     """
     Owed, with no unassisted delivery path — a step-in term above `min_epsilon`.
 
-    `health_min_epsilon` is a CLASSIFICATION GATE rather than a quantity: below it the
-    component is owed and undeliverable, so the floor reports it as `below_min_epsilon`
-    rather than `unmeasured`. Either way the floor EXCLUDES it and does not cost it at
+    `health_min_epsilon` is a CLASSIFICATION GATE rather than a quantity. Below it the
+    collective owes the component and cannot deliver it, so the floor reports it as
+    `below_min_epsilon` rather than `unmeasured`. Either way the floor EXCLUDES it and does not cost it at
     zero.
 
     Args:

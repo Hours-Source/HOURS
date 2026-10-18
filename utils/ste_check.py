@@ -20,7 +20,10 @@ What it CANNOT measure (its gaps):
     list, and it flags an adjective after "is" when the word ends in -ed.
 
 What it skips: code and equation lines, table rows, section headers
-("Args:", "Returns:"), and `name: type` lines in a returns block. Technical
+("Args:", "Returns:"), and `name: type` lines in a returns block. A table row is
+a `|` row, or a line in an aligned table without borders: two or more lines whose
+columns start at the same place (2026-10-18; before, such a table read as one
+run-on sentence). Technical
 names (EOH, TEH, ε, `code`) count as one word each, as STE technical names do.
 
     python3 utils/ste_check.py tests/test_fiscal.py            # one file
@@ -83,15 +86,39 @@ def _is_code_line(line: str) -> bool:
     return letters < 0.5 * len(s)
 
 
+#: A gap of two or more spaces inside a line, not after sentence punctuation.
+_COLUMN_GAP = re.compile(r"(?<=[^\s.!?:;])( {2,})(?=\S)")
+
+
+def _column_rows(lines: list[str]) -> set[int]:
+    """The lines of an aligned table without `|` borders.
+
+    A row has a column gap. It is a table row when the line next to it has a
+    column gap that ends at the same column. A line indented to a row's column
+    continues that row. A single row with no aligned neighbour stays prose.
+    """
+    cols = [{m.end(1) for m in _COLUMN_GAP.finditer(l)} for l in lines]
+    rows = {i for i, c in enumerate(cols)
+            if any(0 <= j < len(lines) and c & cols[j] for j in (i - 1, i + 1))}
+    for i in range(1, len(lines)):
+        ind = len(lines[i]) - len(lines[i].lstrip())
+        if i not in rows and i - 1 in rows and lines[i].strip() and ind in cols[i - 1]:
+            rows.add(i)
+            cols[i] = cols[i - 1]
+    return rows
+
+
 def _prose(doc: str) -> str:
     """The docstring's prose: code, equation and table lines and headers removed."""
     keep: list[str] = []
     in_fence = False
-    for line in doc.splitlines():
+    lines = doc.splitlines()
+    rows = _column_rows(lines)
+    for i, line in enumerate(lines):
         if line.strip().startswith("```"):
             in_fence = not in_fence
             continue
-        if in_fence or _HEADER.match(line) or _is_code_line(line):
+        if in_fence or i in rows or _HEADER.match(line) or _is_code_line(line):
             keep.append("")
             continue
         keep.append(line.strip())

@@ -75,9 +75,9 @@ def walk(path: str) -> Iterator[Message]:
     """
     Yield one Message per GRIB record, reading only headers.
 
-    Stops cleanly at EOF or at the first record whose magic is not "GRIB" — the
-    latter means the length arithmetic lost sync, so a short walk is a signal,
-    not a silent truncation. Handles editions 1 and 2.
+    Stops cleanly at EOF or at the first record whose magic is not "GRIB". The
+    second case means the length arithmetic lost sync, so a short walk is a
+    signal, not a silent truncation. Handles editions 1 and 2.
     """
     with open(path, "rb") as fh:
         while True:

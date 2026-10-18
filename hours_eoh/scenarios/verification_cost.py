@@ -1021,8 +1021,8 @@ def corridor_is_usable(
       2. **BOUNDED BY INDEPENDENT INSTRUMENTS.** The band's edges come from at
          least two instruments that do not share a mechanism. Three do:
          ratio-to-obligation (institutional), clearing (labour supply), and the
-         physical labour ceiling. This one is MET, and it is the reason the corridor
-         exists at all.
+         physical labour ceiling. This condition holds, and it is the reason the
+         corridor exists at all.
       3. **THE DECLARED VALUE SITS INSIDE WITH MARGIN.** The multiple, widened
          by its own error factor, is still below the binding bound at every ε
          reported. A value inside the band, with an error bar wider than its margin, is

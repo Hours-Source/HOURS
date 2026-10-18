@@ -203,8 +203,8 @@ def stability_at(
             infrastructure upkeep in the delivery account and in condition 2.
             None reads `CAPITAL_AGE_RATIO_DEFAULT`, and the result says so.
         adult_share: Share of the population able to supply labour — sets the
-            supply. None derives it from `age_fractions` when those are
-            given, else from the shipped age weights (`labor_supply_per_capita`'s
+            supply. None derives it from `age_fractions` when you
+            supply them, else from the shipped age weights (`labor_supply_per_capita`'s
             default), and the result says which.
         age_fractions: The population's age mix, `{group: fraction}`. Reaches
             the obligation (`obligation_accounts`), condition 2

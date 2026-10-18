@@ -179,7 +179,7 @@ class TestTheRatchet:
         assert len(_annotated()) >= 4
 
     def test_lowering_it_requires_real_work(self) -> None:
-        """This rule is documented, not enforced: the ratchet cannot tell a considered
+        """This docstring states the rule and no test enforces it: the ratchet cannot tell a considered
         figure from a typed one. It makes each new figure a visible act in a diff, as
         `_INNOCUOUS_NAMES` does.
         """
