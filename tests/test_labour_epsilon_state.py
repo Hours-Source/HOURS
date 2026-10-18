@@ -44,14 +44,16 @@ class TestTheDefaultReadingIsUnchanged:
     # fixed 335M (0.8298) — the series trap, closed. Human hours per head fell
     # 0.27%; the obligation moved with the fixed point.
     # Re-pinned 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share): the obligation moved; the hours did not.
+    # Re-pinned 2026-10-18: the automation floors followed their live source and
+    # KNOWLEDGE_EOH_BASE re-anchored +0.170%; the obligation moved, the hours did not.
     def test_the_shipped_epsilons_are_bit_identical(self):
-        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.410909632901581)
-        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.21806050425691648)
+        assert repr(LE.labour_epsilon("core")["epsilon"]) == repr(0.4109906443241671)
+        assert repr(LE.labour_epsilon("broad")["epsilon"]) == repr(0.2181002175572131)
 
     def test_the_shipped_intermediates_are_bit_identical(self):
         core = LE.labour_epsilon("core")
         assert repr(core["human_per_capita"]) == repr(908.9767878732426)
-        assert repr(core["total_obligation_per_capita"]) == repr(1543.0175719057047)
+        assert repr(core["total_obligation_per_capita"]) == repr(1543.2297961214508)
 
     def test_supplying_no_state_equals_supplying_an_empty_one(self):
         assert (LE.labour_epsilon("core", obligation_state={})["epsilon"]

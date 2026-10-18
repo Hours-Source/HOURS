@@ -702,14 +702,16 @@ class TestPipelineScaleOverrides:
         # And 2026-10-04: the default stock age became the measured US one
         # (0.50 → 0.591). ε=0 holds no capital, so its total did not move.
         expected_total = {
-            0.0:  1360584822.633613,
-            0.40: 1535636849.239675,
-            0.99: 2346722289.210301,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected_total.items():
             assert eoh_to_teh_pipeline(epsilon=eps)["total_eoh"] == want
         # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
-        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 343198422.4047774
+        # 2026-10-18: the nutrition and care floors moved 0.2808 -> 0.2799 to follow
+        # `anchored_processing_estimate()`, and KNOWLEDGE_EOH_BASE re-anchored +0.170%.
+        assert eoh_to_teh_pipeline(epsilon=0.40)["teh_created"] == 343120642.8628639
 
     def test_each_domain_base_actually_moves_the_ledger(self):
         """Each domain-base override must reach teh_created. A parameter that is

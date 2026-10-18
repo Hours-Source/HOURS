@@ -17,12 +17,11 @@ verifies at any point on the arc, the anchor is not cheaper to audit than the
 incumbents.* That was unanswerable while the term did not exist. It is
 answerable now, and `verification_crossover()` answers it.
 
-THE FRAME IS DECLARED, BECAUSE THIS IS EXACTLY WHERE THE SEAM OPENS. The census
-is US-scale — BLS employment against `US_REFERENCE_POPULATION`. The package's
-extensive constants are stated at `REFERENCE_FRAME_POPULATION`. A per-capita
-rate is the only quantity that survives the move between them, so the conversion
-runs through one, and every function here that takes a population says which
-frame its answer is in.
+THIS MODULE DECLARES ITS FRAME, BECAUSE THIS IS EXACTLY WHERE THE SEAM OPENS. The census
+is US-scale — BLS employment against `US_REFERENCE_POPULATION`. The package states its
+extensive constants at `REFERENCE_FRAME_POPULATION`. A per-capita rate is the only
+quantity that survives the move between them, so the conversion runs through one. Every
+function here that takes a population says which frame its answer is in.
 
 **AND THE PER-CAPITA BASIS IS A FRAME CONVERSION, NOT A SCALING CLAIM.**
 `reference/verification.SCALING_BASIS` says this cost follows the REGISTER's
@@ -37,8 +36,8 @@ two readings disagree about the one thing the falsifier turns on, the
                  This is what the module says is right and it has no measured
                  anchor, because the US registers nothing comparable.
 
-Both are reported. Neither is adopted, and `which_basis_is_unsettled()` says so
-in its own return value rather than in a comment.
+The module reports both. It adopts neither, and `which_basis_is_unsettled()` says so in
+its own return value, not in a comment.
 
 Layer: scenarios/ — imports from core/ and reference/, never the reverse.
 """
@@ -130,9 +129,8 @@ def verification_hours_per_capita(scope: str = "core") -> float:
     Governing equation: `verification_hours_us(scope) / US_REFERENCE_POPULATION`.
     units: hours per person per year.
 
-    THE ONE QUANTITY THAT SURVIVES THE FRAME MOVE. Everything else in the census
-    is extensive and means nothing away from the US population it was counted
-    over.
+    THE ONE QUANTITY THAT SURVIVES THE FRAME MOVE. Everything else in the census is
+    extensive and means nothing away from the US population that the count covered.
     """
     return verification_hours_us(scope)["total_hours"] / US_REFERENCE_POPULATION
 
@@ -155,9 +153,9 @@ def verification_account(
     units: EOH-equivalent hours per year, at the caller's `population` frame.
 
     The second basis honours `SCALING_BASIS` — the cost follows the register's
-    throughput — by scaling the measured US rate with registered EOH relative to
-    a reference point on the arc. It has no measured anchor of its own; what it
-    has is the right SHAPE, and the reference point is stated rather than fitted.
+    throughput — by scaling the measured US rate with registered EOH relative to a
+    reference point on the arc. It has no measured anchor of its own. It has the right
+    SHAPE, and the docstring states the reference point instead of fitting it.
 
     Args:
         epsilon: machine-capability index ∈ [0, 0.99].
@@ -228,10 +226,9 @@ def verification_arc(
     """
     The account at each arc point. units: as `verification_account`.
 
-    `points` is a parameter and not a module constant so a caller can sweep its
-    own: a ratio read at 0.40 alone is the trap this repo names as measuring
-    where the defect is invisible, and the default is the four points every
-    other arc report here uses.
+    `points` is a parameter, not a module constant, so a caller can sweep its own. A
+    ratio read at 0.40 alone is the trap this repo names as measuring where the defect
+    is invisible. The default is the four points every other arc report here uses.
     """
     return [
         verification_account(e, scope=scope, population=population,
@@ -349,22 +346,20 @@ def net_fraction_falsifier(
 
     units: dimensionless ε; `floor` is a dimensionless fraction in (0, 1).
 
-    **WHY THIS EXISTS AND `verification_crossover` IS NOT ENOUGH.** §7's falsifier
-    is a crossover test at ratio 1.0, and the net-energy literature's result is
-    that a crossover set at 1 fires far too late. What matters is the fraction of
-    gross obligation left for actual entropy reduction, and it degrades
-    non-linearly: EROI's net fraction (EROI−1)/EROI is insensitive above roughly
-    10–15:1 and collapses below it. **A register consuming 20% of the obligation
-    it verifies has not crossed over and has also lost the comparative audit
-    claim outright.** So the crossover answers a question nobody should have
-    asked, and this answers the one they should.
+    **WHY THIS EXISTS AND `verification_crossover` IS NOT ENOUGH.** §7's falsifier is a
+    crossover test at ratio 1.0, and the net-energy literature's result is that a
+    crossover set at 1 fires far too late. What matters is the fraction of gross
+    obligation left for actual entropy reduction, and it degrades non-linearly: EROI's
+    net fraction (EROI−1)/EROI is insensitive above roughly 10–15:1 and collapses below
+    it. **A register that consumes 20% of the obligation it verifies has not crossed
+    over, and it has lost the comparative audit claim outright.** So the crossover
+    answers a question nobody should ask, and this function answers the right one.
 
-    **THE FLOOR IS REQUIRED AND HAS NO DEFAULT, DELIBERATELY.** A threshold
-    shipped with this function would be calibrated against the configuration it
-    is then checked on, which is the `LEVY_SUFFICIENCY_WARN` defect applied to
-    the anchor's audit claim. The bound must be declared in advance by whoever
-    is making the comparative argument, and different declarations are different
-    arguments.
+    **THE FLOOR IS REQUIRED AND HAS NO DEFAULT, DELIBERATELY.** A threshold shipped with
+    this function would be calibrated against the configuration it is then checked on,
+    which is the `LEVY_SUFFICIENCY_WARN` defect applied to the anchor's audit claim.
+    Whoever makes the comparative argument must declare the bound in advance, and
+    different declarations are different arguments.
 
     Returns the ε where the net fraction first drops below `floor` (None if it
     never does), the minimum net fraction on the arc and where it sits.
@@ -413,7 +408,7 @@ def registrant_scope_sensitivity(
     **state: Any,
 ) -> dict:
     """
-    What the measured apparatus cost becomes if the registrant side is added.
+    What the measured apparatus cost becomes when the registrant side joins it.
 
     units: dimensionless ratio of the obligation; `registrant_multiple` is
     dimensionless (registrant-side hours per unit of apparatus-side hours).
@@ -527,9 +522,8 @@ def verification_feasibility_corridor(
                            **A registrant's documenting hour is an hour not
                            spent fulfilling**, so this is an addition to demand
                            and not a separate account.
-      - `physical_bound`   verification alone exceeds total labour supply. The
-                           only bound with NO institution in it, and therefore
-                           the only one that cannot be argued away.
+      - `physical_bound`   verification alone exceeds total labour supply. The only
+      bound with NO institution in it, and so the only one that no argument can remove.
 
     **THE CORRIDOR HAS EDGES AND NO CENTRE.** A reader who wants a single number
     from it is asking for the estimate this function refuses to produce — the
@@ -643,15 +637,14 @@ def which_binds_across_the_arc(
     """
     Which of the three bounds is tightest at each ε. units: as the corridor.
 
-    **THE POINT OF THE FUNCTION IS THAT THE ANSWER CHANGES.** At low ε the
-    population is close to its labour ceiling — the shipped configuration runs
-    demand/supply near 0.9 at ε=0 — so the clearing bound binds hard. At high ε
-    the obligation is met with little human labour, headroom is large, and §7's
-    ratio bound binds instead. **A falsifier that tests only the ratio is
-    therefore testing the non-binding constraint over most of the low arc**, and
-    nothing checked that before this function existed.
+    **THE POINT OF THE FUNCTION IS THAT THE ANSWER CHANGES.** At low ε the population is
+    close to its labour ceiling — the shipped configuration runs demand/supply near 0.9
+    at ε=0 — so the clearing bound binds hard. At high ε little human labour meets the
+    obligation, headroom is large, and §7's ratio bound binds instead. **A falsifier
+    that tests only the ratio is therefore testing the non-binding constraint over most
+    of the low arc**, and nothing checked that before this function existed.
 
-    The multiple is not needed here: thresholds do not depend on it.
+    This function does not need the multiple: thresholds do not depend on it.
     """
     return [
         {
@@ -787,8 +780,8 @@ def registrant_analogues(scope: str = "core") -> dict:
     which analogue transfers — and the re-review frequency that sets it is a
     governance choice, not a physical fact.
 
-    Neither is adopted and neither is combined. A midpoint between 0.38x and
-    43x would be a number with no instrument behind it.
+    The module adopts neither and combines neither. A midpoint between 0.38x and 43x
+    would be a number with no instrument behind it.
     """
     from hours_eoh.reference.atus_time_use import (
         hours_per_person_15plus,
@@ -865,7 +858,7 @@ def cadence_feasibility(
     **state: Any,
 ) -> dict:
     """
-    Can the declared cadence be afforded out of the labour the population has?
+    Can the population afford the declared cadence out of the labour it has?
 
     units: dimensionless shares of the obligation.
 
@@ -1023,17 +1016,17 @@ def corridor_is_usable(
       1. **MEASURED, not transferred.** `registrant_multiple` has a value
          measured for a HOURS-like register — the Standard Cost Model's `time`
          term, hours per fulfilment record — rather than one carried across from
-         an adversarial money-denominated case. Nothing here measures it, so
-         this is supplied or it is unmet.
+         an adversarial money-denominated case. Nothing here measures it, so a caller
+         supplies it, or the declared cadence settles it (below).
       2. **BOUNDED BY INDEPENDENT INSTRUMENTS.** The band's edges come from at
          least two instruments that do not share a mechanism. Three do:
          ratio-to-obligation (institutional), clearing (labour supply), and the
-         physical labour ceiling. This one is MET and is the reason the corridor
+         physical labour ceiling. This one is MET, and it is the reason the corridor
          exists at all.
       3. **THE DECLARED VALUE SITS INSIDE WITH MARGIN.** The multiple, widened
          by its own error factor, is still below the binding bound at every ε
-         reported. A value inside the band but with an error bar wider than its
-         margin has not been shown to be inside it.
+         reported. A value inside the band, with an error bar wider than its margin, is
+         not shown to be inside it.
 
     All three must hold. **On the shipped episodic cadence condition 1 closes
     by declaration — every episodic regime is measured and fits — and the
@@ -1046,8 +1039,9 @@ def corridor_is_usable(
     unmeasured, so anything resting on it is `possible` and no better.
 
     Args:
-        registrant_multiple: a MEASURED multiple, if one exists. None means
-            condition 1 is unmet, which is the shipped state.
+        registrant_multiple: a MEASURED multiple, if one exists. None leaves condition 1
+            to the declared cadence: it closes for the shipped episodic cadence, and
+            stays unmet for a continuous register below its affordability crossover.
         multiple_error_factor: the multiplicative error bar on it (e.g. 7.7 for
             the tax-compliance figure). Required for condition 3.
     """
@@ -1178,9 +1172,9 @@ def verification_report(scope: str = "core", **state: Any) -> dict:
     """
     Everything at once, with the caveats attached rather than alongside.
 
-    REPORTING ONLY. The `verdict` is a sentence about the ratios, computed from
-    them rather than restated beside them — the drift this repo has caught more
-    often than any other.
+    REPORTING ONLY. The `verdict` is a sentence about the ratios, computed from them and
+    not restated beside them. Restated figures are the drift this repo catches most
+    often.
     """
     arcs = {b: verification_arc(scope=scope, basis=b, **state)
             for b in ("per_capita", "per_registered")}

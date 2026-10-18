@@ -2752,10 +2752,15 @@ KNOWLEDGE_ANCHOR_YEAR: int = 2025  # ATUS year of the knowledge anchor's paid la
 #   took the survey year's own Census 15+ share (`atus_time_use.hours_per_capita`,
 #   as the labour route already did): the anchor 923.47 -> 934.85 h/person yr,
 #   epsilon* 0.518082 -> 0.508651, 280,218,381.73 -> 291,930,848.76.
+# note: RE-ANCHORED A THIRTEENTH TIME, +0.170% (2026-10-18), when the
+#   nutrition and care automation floors moved 0.2808 -> 0.2799 to follow
+#   their live source (author: "follow from the live computes"; the shipped
+#   0.2808 had drifted 0.3% above `anchored_processing_estimate()`):
+#   epsilon* 0.508651 -> 0.508262, 291,930,848.76 -> 292,426,958.88.
 # resolves_by: an O*NET/BLS vintage refresh moves it mechanically; the ANCHOR
 #   resolves by whatever settles Finding B. The capital-inventory route is
 #   unusable (Finding A).
-KNOWLEDGE_EOH_BASE: float  = 291930848.760496  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.508651 fixed point)
+KNOWLEDGE_EOH_BASE: float  = 292426958.8775929  # embodied knowledge STOCK at the ε=0 reference. derived-then-FROZEN (O*NET 30.3/BLS, epoch 2026-07-29, ε_ref = 0.508262 fixed point)
 # tag: placeholder | units: dimensionless exponent
 # form: physics — knowledge EOH grows superlinearly with ε, because complexity
 #   compounds. The exponent is asserted.
@@ -3012,7 +3017,7 @@ HOURS_ELAPSED_PER_WEEK: float = 168.0
 WEEKS_PER_YEAR: float = PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK
 
 # tag: measured | units: hours per adult per year | tier: A
-# form: the median of 50 MTUS frames over 1965-2024 across ten countries — paid
+# form: the median of 50 MTUS frames over 1965-2024 across eight countries — paid
 #   work plus unpaid domestic work plus childcare, ages 18-69, weighted by
 #   PROPWT. Computed by `reference.mtus_time_use.capacity_frames()` and bound by
 #   TEST rather than expression, since data.py sits below reference/.
@@ -3030,9 +3035,10 @@ WEEKS_PER_YEAR: float = PHYSICAL_CAPACITY_CEILING_H_YR / HOURS_ELAPSED_PER_WEEK
 # note: IT REPLACES H_REF ON THE FEASIBILITY PATH (2026-09-03, author decision).
 #   H_REF is a paid-work calendar year whose own tag block warns that read as
 #   hours actually worked it "would be wrong in most jurisdictions", and 45 of
-#   the 50 measured frames exceed it. The correction narrows the epsilon=0
-#   deficit from 15.3% to 2.6% and does NOT close it: the over-determination
-#   survives its own fix, which is why the fix is worth making.
+#   the 50 measured frames exceed it. The correction narrowed the epsilon=0
+#   deficit from 15.3% to 2.6% and did NOT close it then; the 2026-09-04 band
+#   alignment and the 2026-09-09 capital-path decision closed it
+#   (`feasibility.over_determination_report` reads CONSISTENT).
 MEASURED_CAPACITY_H_YR: float = 2335.751835
 
 # ---------------------------------------------------------------------------
@@ -3339,7 +3345,8 @@ SUFF_GUARANTEE_FLOOR_FRACTION: float = 0.15
 #   the framework's own ordering: care is the LEAST abatable component (0.25,
 #   and 84.4% of the residual at full abatement) while nutrition is the MOST
 #   (0.85), so care's floor cannot coherently sit below nutrition's measured
-#   0.2808. The 20 is that ordering plus the corroborating series — US
+#   value (0.2808 when adopted; 0.2799 since 2026-10-18, when both floors moved
+#   to follow `anchored_processing_estimate()`). The 20 is that ordering plus the corroborating series — US
 #   childcare moved −0.5% across 59 years and no declining care activity has an
 #   identified machine substitute — and nothing more. It is not a measurement
 #   OF CARE; `automation_floors.care_floor_is_too_low()` computes the bound and
@@ -3370,7 +3377,7 @@ SUFF_GUARANTEE_FLOOR_FRACTION: float = 0.15
 #   (ZA2010 106.9 against US 174.7 h/person-15+·yr), so the denominator runs
 #   backwards. A stated-preference instrument — would this hour be acceptable
 #   from a machine — is the route, and no such survey is in this repo.
-CARE_AUTOMATION_FLOOR:        float = 0.2808
+CARE_AUTOMATION_FLOOR:        float = 0.2799
 
 # tag: measured | units: MTUS harmonised activity codes | tier: A
 # form: the MTUS codes composing ACT_CHCARE, the file's own childcare
@@ -3486,7 +3493,7 @@ MAPPING_TOLERANCE: float = 0.20
 #   obligation handoff says so in as many words). Raw LSMS WASH modules reach
 #   water and fuel — 2 of the 9 activities; a time-use survey at low capital
 #   reaches all of them.
-NUTRITION_AUTOMATION_FLOOR: float = 0.2808
+NUTRITION_AUTOMATION_FLOOR: float = 0.2799
 
 # tag: placeholder | units: dimensionless human-labour fraction
 # form: the floor on the human share of a personal-EOH component — the fraction

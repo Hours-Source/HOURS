@@ -172,9 +172,9 @@ class TestFrameChangesNothing:
             # These stay ABSOLUTE pins: the point is that the scenario module
             # moves nothing, and only the decision may move them.
         expected = {
-            0.0:  1360584822.633613,
-            0.40: 1535636849.239675,   # measured default age, 2026-10-04
-            0.99: 2346722289.210301,
+            0.0:  1360598052.2367358,
+            0.40: 1535785338.3051229,   # 2026-10-18: the floors followed their source
+            0.99: 2348009861.9085293,
         }
         for eps, want in expected.items():
             assert total_eoh(epsilon=eps)["total"] == want

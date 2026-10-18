@@ -1,10 +1,10 @@
 """
 The labor-feasibility ceiling — is PERSONAL_EOH_BASE over-determined?
 
-An EOH demand is a claim about hours that must be worked. At ε = 0 no machine
-carries any of it, so every one of those hours must come out of a living human's
-year. That gives a hard upper bound the demand side cannot exceed, and it is
-computable from constants the repo already ships.
+An EOH demand is a claim about hours that someone must work. At ε = 0 no machine carries
+any of it, so every one of those hours must come out of a living human's year. That
+gives a hard upper bound the demand side cannot exceed, and it is computable from
+constants the repo already ships.
 
     GOVERNING RELATIONS
 
@@ -33,8 +33,8 @@ read at ε = 0, is untouched; above it `uniform` understated human demand
 1.13× / 2.20× / 13.15× at ε = 0.40 / 0.90 / 0.99. Pass
 `automation_response="uniform"` to reproduce an earlier figure.
 
-The last line is the test. It does not ask whether 1,500 h/yr "feels right"; it
-asks what value of B is COMPATIBLE with the labor supply the same model assumes.
+The last line is the test. It does not ask whether 1,500 h/yr "feels right". It asks
+what value of B is COMPATIBLE with the labour supply the same model assumes.
 
 WHY THE AGE WEIGHTING MATTERS AND IS EASY TO MISS. `PERSONAL_EOH_BASE` is *not*
 per capita — it is per working-age-equivalent, and infants (3.0×) and elderly
@@ -45,29 +45,31 @@ hours must still be supplied by adults — the weighting raises demand without
 raising supply. Any feasibility test run against the 1,500 figure understates
 the gap by 1.3528×.
 
-WHAT THE TEST FINDS (see `over_determination_report`). Using nothing but the
-repo's own constants — H_REF = 2,080 h/yr and workforce_fraction = 0.5 (EohParams'
-default until 2026-10-01; the working-age share 0.60 since), giving
-L = 1,000 h/person·yr — demand at ε = 0 exceeds supply by **2.29×**. Under
-subsistence-population parameters (adult share 0.55–0.60, ethnographic adult
-labor budgets below the modern 2,080-hour reference) the ratio runs 1.5–3.5×.
-There is no parameter choice in the plausible range that closes it.
+WHAT THE TEST FOUND, AND WHAT IT FINDS NOW (see `over_determination_report`). On the
+repo's own constants of the time (B = 1,500; H_REF = 2,080 h/yr and workforce_fraction =
+0.5, so L = 1,000 h/person·yr), demand at ε = 0 exceeded supply by **2.29×**. Under
+subsistence-population parameters (adult share 0.55–0.60, ethnographic adult labour
+budgets below the modern 2,080-hour reference) the ratio ran 1.5–3.5×, and no plausible
+parameter closed it. Two one-sided loosenings closed it: the 2026-09-04 band alignment
+raised supply (the ε = 0 ratio went 1.0245 → 0.9422 at the 1,000 h base), and the
+2026-09-09 capital-path decision lowered demand. On 2026-10-18 the report reads
+CONSISTENT on the repo's own constants (ratio 0.89), with the subsistence sweep at
+0.87–2.06× ([record](record/personal.md#band-alignment-adopted)).
 
-WHAT IS AND IS NOT SHOWN. This does not falsify 1,500 in isolation — feasibility
-is a joint property. The finding is that the PAIR
+WHAT THE FINDING SHOWED, AND WHAT IT DID NOT. This did not falsify 1,500 in isolation,
+because feasibility is a joint property. The finding was that the PAIR
 
     (PERSONAL_EOH_BASE = 1500,  H_REF × workforce_fraction = 1000)
 
-cannot both hold. Closing the gap by raising supply instead requires adults to
-work ≈ 3,850 h/yr — 10.5 h/day, every day, with no rest days — which is not a
-labor budget any observed subsistence population sustains. So the resolution has
-to come mostly from the demand side, and `implied_base_ceiling` says where.
+could not both hold. Closing the gap by raising supply instead needed adults to work ≈
+3,850 h/yr (10.5 h/day, every day, with no rest days), a labour budget no observed
+subsistence population sustains. So the resolution had to come mostly from the demand
+side, and `implied_base_ceiling` says where.
 
-RELATION TO THE SURVIVAL FLOOR. `research/corridor.survival_floor_epsilon` has
-been computing this shortfall all along and reporting ε_suff ≈ 0.53 at shipped
-defaults — i.e. the framework's own instrument says "subsistence" needs 53%
-automation to survive. This module makes that reading explicit and inverts it
-onto the constant responsible.
+RELATION TO THE SURVIVAL FLOOR. `research/corridor.survival_floor_epsilon` computed the
+same shortfall and reported ε_suff ≈ 0.53 at the defaults of the time: the framework's
+own instrument said "subsistence" needed 53% automation to survive. This module makes
+that reading explicit and inverts it onto the constant responsible.
 
 Layer: scenarios/ — imports core/ and data.py only. Pure, no I/O.
 ε-coherence: the ceiling is evaluated across the arc; it binds hardest at ε = 0
@@ -77,6 +79,7 @@ the direction that makes ε = 0 the diagnostic point.
 
 from __future__ import annotations
 
+import statistics
 from typing import TypedDict
 
 from hours_eoh.core.eoh_generation import total_eoh
@@ -129,12 +132,12 @@ def capacity_weighted_adult_share(age_fractions: dict[str, float] | None = None)
     it is how a demographic shock moves SUPPLY with demand — an aging shock
     that moved only demand is what the last paragraph below records.
 
-    WHY THIS IS DERIVED AND NOT READ OFF ONE GROUP. `AGE_GROUPS` weights how
-    much obligation each age group GENERATES (infant 3.0, elderly 1.48). Until
-    2026-09-04 supply was the bare `working_age` fraction, which asserted that
-    the elderly supply exactly zero while generating 1.48x the obligation —
-    true of the arithmetic, stated nowhere. It also stood as a literal in THREE
-    functions here, so the assertion was made three times and bound nowhere.
+    WHY THE MODULE DERIVES THIS SHARE AND DOES NOT READ IT OFF ONE GROUP. `AGE_GROUPS`
+    weights how much obligation each age group GENERATES (infant 3.0, elderly 1.48).
+    Until 2026-09-04 supply was the bare `working_age` fraction, which asserted that the
+    elderly supply exactly zero while generating 1.48x the obligation — true of the
+    arithmetic, stated nowhere. It also stood as a literal in THREE functions here, so
+    the module made the assertion three times and bound it nowhere.
 
     It changes one behaviour: a shift in the age distribution moves supply and
     demand TOGETHER. `demographic_shock` moved only demand until 2026-10-01.
@@ -281,14 +284,14 @@ def capacity_band_alignment(
     year: int | None = None,
 ) -> dict[str, float]:
     """
-    REPORTING ONLY — the supply band against the band its capacity was measured on.
+    REPORTING ONLY: the supply band against the band its capacity measurement used.
 
     THE MISMATCH. `MEASURED_CAPACITY_H_YR` is hours per adult per year over ages
-    **18-69** (paid work, unpaid domestic work and childcare). The adult share it
-    is multiplied by selects **18-64**, because `capacity_weight` is 1.0 for
-    `working_age` and 0.0 for `elderly`. So c's denominator includes 65-69 and
-    a's numerator excludes them: L = c·a understates hours per capita, and the
-    arithmetic that would be right is c times the 18-69 share.
+    **18-69** (paid work, unpaid domestic work and childcare). The adult share that
+    multiplies it selects **18-64**, because `capacity_weight` is 1.0 for `working_age`
+    and 0.0 for `elderly`. So c's denominator includes 65-69 and a's numerator excludes
+    them: L = c·a understates hours per capita, and the arithmetic that would be right
+    is c times the 18-69 share.
 
     ADOPTED 2026-09-04 (author decision), and this now reports a SATISFIED
     alignment rather than an outstanding one: `AGE_CAPACITY_WEIGHT_ELDERLY` is
@@ -297,16 +300,15 @@ def capacity_band_alignment(
     convention — and the census age structure, which is a smaller and different
     frame question.
 
-    WHY IT DID NOT SHIP AS A FIX FIRST, because the objection stands.
-    Correcting the supply band alone made ε=0 feasible — the over-determination
-    the repo carried since August closed, frames clearing went 17/50 to 43/50,
-    and the retrodiction (1965 clears, 2024 does not) was lost with it. `tests/test_measured_capacity.py`
-    warns in as many words that "a fix that made the finding vanish would be the
-    more suspicious outcome", and it is right here: `AGE_WEIGHT_ELDERLY` = 1.48
-    is documented in its own tag block as a **lower bound**, because the
-    institutionalised elderly are outside the ATUS frame entirely. So the
-    DEMAND side is understated too, by an unmeasured amount, and closing the
-    deficit by correcting only the supply side is the asymmetric fix that
+    WHY IT DID NOT SHIP AS A FIX FIRST, because the objection stands. Correcting the
+    supply band alone made ε=0 feasible — the over-determination the repo carried since
+    August closed, frames clearing went 17/50 to 43/50, and the retrodiction (1965
+    clears, 2024 does not) was lost with it. `tests/test_measured_capacity.py` warns in
+    as many words that "a fix that made the finding vanish would be the more suspicious
+    outcome", and it is right here: The tag block of `AGE_WEIGHT_ELDERLY` = 1.48 calls
+    it a **lower bound**, because the institutionalised elderly are outside the ATUS
+    frame entirely. So the DEMAND side is understated too, by an unmeasured amount, and
+    closing the deficit by correcting only the supply side is the asymmetric fix that
     flatters. Both sides move; only one of them is measurable today.
 
     Returns the two shares, the census-derived gap, and what the correction
@@ -354,12 +356,12 @@ def measured_capacity_weights(
     REPORTING ONLY — the age groups' capacity weights MEASURED on the instrument
     `MEASURED_CAPACITY_H_YR` is measured on, against the shipped ones.
 
-    `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work plus unpaid
-    domestic work plus childcare, the same three fields `measured_capacity`
-    counts, tabulated for under-18 and over-64 rather than pooled over 18-69".
+    `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work plus unpaid domestic
+    work plus childcare, the same three fields `measured_capacity` counts, tabulated for
+    under-18 and over-64 rather than pooled over 18-69".
     `mtus_time_use.capacity_in_band` is that tabulation (it reproduces
-    `measured_capacity` over 18-69). Per group, each part of its age range is
-    weighted by its census population share:
+    `measured_capacity` over 18-69). Per group, each part of its age range carries its
+    census population share as weight:
 
         inside CAPACITY_MEASUREMENT_BAND   1.0 — supplies at c by construction,
                                            as `AGE_CAPACITY_WEIGHT_ELDERLY` does
@@ -372,13 +374,13 @@ def measured_capacity_weights(
     MTUS top-codes old ages (US2024 at 80), so the oldest surveyed code stands
     for everyone above it.
 
-    THE OBJECTION THIS DOES NOT ANSWER, and why nothing is adopted. Raising the
-    supply side while `AGE_WEIGHT_ELDERLY` (1.48) is a documented LOWER bound
-    on the demand side is the one-sided fix `capacity_band_alignment` declined
-    (the author overrode it there for the 65-69 band). On US2024, 85% of the
-    over-69 hours measured here are unpaid domestic work — the household
-    activity the obligation counts on the demand side — so adopting them moves
-    both sides' reading of one population, and only one side is measured.
+    THE OBJECTION THIS DOES NOT ANSWER, and why the function adopts nothing. Raising the
+    supply side while `AGE_WEIGHT_ELDERLY` (1.48) is a documented LOWER bound on the
+    demand side is the one-sided fix `capacity_band_alignment` declined (the author
+    overrode it there for the 65-69 band). On US2024, 85% of the over-69 hours measured
+    here are unpaid domestic work — the household activity the obligation counts on the
+    demand side — so adopting them moves both sides' reading of one population, and only
+    one side is measured.
 
     Args:
         country: MTUS country prefix; the latest sample is used unless `sample`.
@@ -479,18 +481,18 @@ def feasibility_check(
        rest days, which no observed subsistence population sustains.
     3. **Accept the gap as real** — `deficit_share` is the fraction of the
        obligation left UNMET. This is the resolution that defends the shipped
-       constant, and it is not absurd: EOH is what entropy *demands*, not what
-       got done, and a population that fails to meet it does not violate
-       arithmetic — it experiences the shortfall as morbidity and mortality. On
+       constant, and it is not absurd: EOH is what entropy *demands*, not what got done.
+           A population that fails to meet it does not violate arithmetic; it
+           experiences the shortfall as morbidity and mortality. On
        that reading ε = 0 is genuinely infeasible *as a fully-served state*, and
        the defect is in the documentation ("ε = 0 is subsistence") rather than in
        the constant.
 
-    Resolution 3 is a substantive empirical claim — at shipped constants it
-    asserts that 41–62% of the personal entropy obligation goes permanently
-    unserved even in a capital-rich society. That may be partly true. It should
-    be *stated* and defended, not carried silently inside a constant, which is
-    the only thing this module insists on.
+    Resolution 3 is a substantive empirical claim. At the constants of the time it
+    asserted that 41–62% of the personal entropy obligation goes permanently unserved,
+    even in a capital-rich society. That may be partly true. It should be *stated* and
+    defended, not carried silently inside a constant, which is the only thing this
+    module insists on.
 
     units: all per-capita quantities in h/person·yr; ratios dimensionless.
     ε-behavior: human-carried demand falls with ε while supply does not, so
@@ -700,18 +702,16 @@ def measured_capacity_frames(extra: tuple[str, ...] = ()) -> dict:
     labour a person supplies to every domain, most of which is unpaid. The
     constant warns against exactly this use.
 
-    MTUS supplies the measurement: 50 frames over 1965-2024 and ten countries,
-    each the weighted mean of paid work, unpaid domestic work and childcare for
-    ages 18-69. **45 of the 50 exceed H_REF**, the five that do not being
-    Netherlands 1975-1995.
+    MTUS supplies the measurement: 50 frames over 1965-2024 and eight countries, each
+    the weighted mean of paid work, unpaid domestic work and childcare for ages 18-69.
+    **45 of the 50 exceed H_REF**, the five that do not being Netherlands 1975-1995.
 
-    AND CORRECTING IT DOES NOT DISSOLVE THE OVER-DETERMINATION, which is why
-    this reports rather than repoints. Only 16 of the 50 frames clear at
-    epsilon = 0; the ones that do are the historically high-labour frames —
-    1960s France and the mid-century US. The model's demand at epsilon = 0 is
-    met by societies working roughly 2,400 h/adult-yr and up, and most measured
-    societies do not. The default is wrong AND the finding survives its
-    correction.
+    WHEN THIS WAS WRITTEN, THE CORRECTION DID NOT DISSOLVE THE OVER-DETERMINATION, so
+    this function reports and does not repoint. Only 16 of the 50 frames cleared at
+    epsilon = 0: the historically high-labour frames, 1960s France and the mid-century
+    US. The model's demand then needed roughly 2,400 h/adult-yr. After the 2026-09-04
+    band alignment, 45 of the 50 clear, against a requirement of 2,085 h/adult-yr
+    (2026-10-18).
 
     ADOPTED 2026-09-03 (author decision): the default is now
     `MEASURED_CAPACITY_H_YR`, the all-frame median. This function stays as the
@@ -731,6 +731,20 @@ def measured_capacity_frames(extra: tuple[str, ...] = ()) -> dict:
     clearing = [s for s, r in rows.items() if r["feasible_at_zero"]]
     above = [s for s, r in rows.items() if r["exceeds_h_ref"]]
     required = feasibility_check(epsilon=0.0)["hours_per_adult_required"]
+    # Every clause of the verdict follows from the counts above: "most" means
+    # more frames than not, so the sentence turns when the data does.
+    most_above = len(above) > len(rows) - len(above)
+    most_clear = len(clearing) > len(rows) - len(clearing)
+    verdict = (
+        f"{len(above)} of {len(rows)} measured frames exceed H_REF="
+        f"{float(H_REF):,.0f}, so H_REF "
+        + ("understates" if most_above else "does not understate")
+        + f" capacity in most frames. {len(clearing)} of {len(rows)} clear at "
+        f"epsilon=0 against the model's demand of {required:,.0f} h/adult-yr, "
+        + ("so measured capacity meets that demand in most frames"
+           if most_clear else
+           "so the over-determination survives measured capacity")
+    )
     return {
         "frames": rows,
         "n_frames": len(rows),
@@ -741,15 +755,9 @@ def measured_capacity_frames(extra: tuple[str, ...] = ()) -> dict:
         "below_h_ref": sorted(s for s, r in rows.items() if not r["exceeds_h_ref"]),
         "h_ref": float(H_REF),
         "hours_per_adult_required": required,
-        "default_is_measured_median": True,
-        "verdict": (
-            f"{len(above)} of {len(rows)} measured frames exceed H_REF="
-            f"{float(H_REF):,.0f}, so the default understates capacity almost "
-            f"everywhere; but only {len(clearing)} of {len(rows)} clear at "
-            f"epsilon=0, because the model's demand needs {required:,.0f} "
-            "h/adult-yr. The default is wrong and the over-determination "
-            "survives correcting it"
-        ),
+        "default_is_measured_median": (
+            statistics.median(frames.values()) == MEASURED_CAPACITY_H_YR),
+        "verdict": verdict,
     }
 
 
@@ -769,17 +777,16 @@ def feasible_epsilon(
 
         ε_feas ≈ 1 − L / D(0)              [WRONG — understates it]
 
-    assumes the EOH inventory is fixed and automation merely takes share of it.
-    It is not fixed. Infrastructure EOH RISES with ε because automation is
-    capital, and capital has to be maintained; knowledge EOH rises too; and
-    under the adopted `per_component` response care and nutrition keep human
-    floors, so personal demand falls more slowly than (1 − ε). Automation both
-    relieves demand and creates it, and the true crossover sits above the
-    linear estimate. No level is restated here: on shipped constants ε = 0
-    already clears and this returns 0.0; pass a lower capacity to see a floor
-    (`tests/scenarios/test_feasibility.py` pins one, against the closed form).
-    Bisection is valid because the demand/supply ratio falls monotonically in
-    ε under both responses — pinned on a 100-point grid.
+    assumes the EOH inventory is fixed and automation merely takes share of it. The
+    inventory moves. Infrastructure EOH RISES with ε because automation is capital, and
+    capital has to be maintained; knowledge EOH rises too; and under the adopted
+    `per_component` response care and nutrition keep human floors, so personal demand
+    falls more slowly than (1 − ε). Automation both relieves demand and creates it, and
+    the true crossover sits above the linear estimate. No level is restated here: on
+    shipped constants ε = 0 already clears and this returns 0.0; pass a lower capacity
+    to see a floor (`tests/scenarios/test_feasibility.py` pins one, against the closed
+    form). Bisection is valid because the demand/supply ratio falls monotonically in ε
+    under both responses — pinned on a 100-point grid.
 
     Cross-check: `research/corridor.survival_floor_epsilon` reports the same
     shortfall scoped to the personal domain alone, and lands just below this. A
@@ -849,17 +856,17 @@ def identify_base(
         ⇒ B = (M + H − R) / w
         ⇒ ε = M / (M + H)    falls out as a BY-PRODUCT, not an input
 
-    WHY THIS IS NOT CIRCULAR. The trap is calibrating B from observed hours
-    alone: that sets D := L, which forces demand/supply ≡ 1 and ε_personal ≡ 0 by
-    construction, and makes `feasibility_check` vacuous. The identity avoids it
-    because M comes from a *different* measurement — a capital inventory scored
-    against CAPITAL_MACHINE_PROFILES elimination rates — and M does not depend on
-    B at any point. Two independent instruments, one unknown.
+    WHY THIS IS NOT CIRCULAR. The trap is calibrating B from observed hours alone. That
+    sets D := L, which forces demand/supply ≡ 1 and ε_personal ≡ 0 by construction, and
+    makes `feasibility_check` vacuous. The identity avoids it, because M comes from a
+    *different* measurement: a capital inventory scored against CAPITAL_MACHINE_PROFILES
+    elimination rates. M does not depend on B at any point. Two independent instruments,
+    one unknown.
 
-    THE ONE ASSUMPTION, AND IT IS THE WHOLE RESIDUAL RISK: `D = M + H` says every
-    hour of obligation is served by a machine or a human. If a society leaves
-    part of it unserved, the true D is M + H + deficit, so this returns a LOWER
-    BOUND on B. That has a counter-intuitive consequence for where to calibrate:
+    THE ONE ASSUMPTION, AND IT IS THE WHOLE RESIDUAL RISK: `D = M + H` says a machine or
+    a human serves every hour of obligation. If a society leaves part of it unserved,
+    the true D is M + H + deficit, so this returns a LOWER BOUND on B. That has a
+    counter-intuitive consequence for where to calibrate:
 
       - The ε ≈ 0 anchor society FIXES THE ENDPOINT cleanly (zero machine capital
         ⇒ ε = 0 whatever B is — verified, the endpoint is B-free). But it is the
@@ -994,13 +1001,13 @@ def mint_floor_reach(
 
         reach = registered_eoh / population  ÷  labor_supply_per_capita
 
-    Registered obligation is the only work that mints; every registered hour
-    mints at μ ≥ M_FLOOR, so it is never paid below what an hour of one's own
-    obligation costs at the floor. Every OTHER hour a person can supply is paid,
-    if at all, by the market out of TEH already minted. So the floor protects a
-    market wage only as an OUTSIDE OPTION, and only for the share of supply the
-    register can absorb. `reach` is that share; `1 − reach` is the supply for
-    which "never below cost" would have to be a rule rather than a mechanism.
+    Registered obligation is the only work that mints; every registered hour mints at μ
+    ≥ M_FLOOR, so it is never paid below what an hour of one's own obligation costs at
+    the floor. The market pays for every OTHER hour a person can supply, if at all, out
+    of TEH already minted. So the floor protects a market wage only as an OUTSIDE
+    OPTION, and only for the share of supply the register can absorb. `reach` is that
+    share; `1 − reach` is the supply for which "never below cost" would have to be a
+    rule rather than a mechanism.
 
     Also reported: human obligation hours (registered or not — the off-ledger
     part is self-provision, not market work) and `market_hours_per_capita`,
@@ -1011,14 +1018,13 @@ def mint_floor_reach(
     the top as automation takes the obligation the register would have
     admitted. Read it off the call, not off this docstring.
 
-    Frame: per-capita throughout; `population` is passed to the pipeline so
-    every extensive quantity resolves in one frame. `adult_share` (2026-10-14)
-    is the frame's share of people able to supply the adult capacity; until
-    then the supply always read the shipped age weights, so a frame's measured
-    share could not reach the denominator — the stranded input closed in
-    `arc_stability` and `stationarity` on 2026-10-07, found here by wiring the
-    function to the CLI. `capital_stock` (a pipeline keyword) and the share
-    are reported as supplied or NOT SUPPLIED.
+    Frame: per-capita throughout; The function passes `population` to the pipeline, so
+    every extensive quantity resolves in one frame. `adult_share` (2026-10-14) is the
+    frame's share of people able to supply the adult capacity; until then the supply
+    always read the shipped age weights, so a frame's measured share could not reach the
+    denominator — the stranded input closed in `arc_stability` and `stationarity` on
+    2026-10-07, found here by wiring the function to the CLI. The report marks
+    `capital_stock` (a pipeline keyword) and the share as supplied or NOT SUPPLIED.
     """
     from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 

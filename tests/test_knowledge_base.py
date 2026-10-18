@@ -259,8 +259,9 @@ class TestBand:
         base moves the total that anchored it. Its tag block in data.py lists every
         re-anchor.
         """
+        eps_star = epsilon_ref_fixed_point(paid_labour_anchor())["epsilon_fixed_point"]
         live = knowledge_base_from_registry(
-            0.5086508131027222, route="registry", decay=SKILL_TRANSMISSION_RATE
+            eps_star, route="registry", decay=SKILL_TRANSMISSION_RATE
         )["base_rate"]
         assert KNOWLEDGE_EOH_BASE == pytest.approx(live, rel=1e-6)
 
@@ -453,8 +454,9 @@ class TestKIVAdoption:
         # measurement moved the fixed point a SEVENTH time and it now sits at
         # 0.962× — the largest re-anchor of the seven by an order of magnitude.
         # 2026-10-15: 2.977793081e8 -> 2.919308488e8, net -1.96% (see data.py's
-        # eleventh and twelfth re-anchor notes).
-        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.919308488e8, rel=1e-6)
+        # eleventh and twelfth re-anchor notes). 2026-10-18: -> 2.924269589e8
+        # (+0.170%, the thirteenth, when the automation floors followed their source).
+        assert KNOWLEDGE_EOH_BASE == pytest.approx(2.924269589e8, rel=1e-6)
 
     def test_default_renewal_rate_is_the_lower_credible_doctrine(self):
         """"Use the lower rate" (author, 2026-08-08): transmission alone, the lowest of

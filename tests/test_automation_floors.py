@@ -1070,11 +1070,14 @@ class TestTheCareFloorLooksTooLow:
         assert r["is_a_measurement_of_care"] is False
         assert r["is_an_internal_consistency_result"] is True
 
-    def test_the_care_floor_is_untouched(self) -> None:
-        """REPORTING ONLY — changing a charter commitment is not this module's."""
+    def test_the_floors_follow_their_live_source(self) -> None:
+        """Both floors follow the anchored bound, at the constants' four decimals. The
+        shipped 0.2808 once sat 0.3% above it with every test green (mode 4)."""
         from hours_eoh import data
         assert data.PERSONAL_AUTOMATION_FLOORS["care"] == data.CARE_AUTOMATION_FLOOR
-        assert data.CARE_AUTOMATION_FLOOR == pytest.approx(0.2808)
+        assert data.CARE_AUTOMATION_FLOOR == af.care_floor_is_too_low()["consistency_bound"]
+        assert data.NUTRITION_AUTOMATION_FLOOR == pytest.approx(
+            af.anchored_processing_estimate()["tightest_bound"], abs=5e-5)
 
 
 class TestBothSidesAreOnOneDenominator:

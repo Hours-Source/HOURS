@@ -8,9 +8,9 @@ REPORTING ONLY. Composes the pipeline, the guarantee, the land fee and the
 labour supply; adds no mechanism and moves no shipped number.
 
 THE DOCTRINE (author decision, 2026-09-15): MINTED TEH IS THE WAGE
-------------------------------------------------------------------
-Registered human labour is paid when it mints. Everything below follows from
-that and is computed here rather than asserted:
+------------------------------------------------------------------ The mint pays
+registered human labour when it mints. Everything below follows from that, and this
+module computes it instead of asserting it:
 
   * The Trust owes NONE of the registered stewardship, care or ecological
     labour — the mint already paid it. It owes only what does not mint: the
@@ -26,20 +26,18 @@ that and is computed here rather than asserted:
     in covers what it owes; drawing principal is not standing still.
 
 THE TWO SIDES FAIL AT OPPOSITE ENDS, AND THAT IS WHY BOTH ARE REPORTED
----------------------------------------------------------------------
-LABOUR: can the human hours the obligation needs be worked? Binds at the BOTTOM
-of the arc, where people carry nearly all of it. TEH: can the Trust's inflows
-pay the guarantee? Binds where the mint and the land fee are small against the
-guarantee. Which side fails says what kind of shortfall it is: a labour
-shortfall is physical (the obligation goes unmet — shorter lives, less care);
-a TEH shortfall is fiscal (the Trust draws down).
+--------------------------------------------------------------------- LABOUR: can the
+human hours the obligation needs be worked? Binds at the BOTTOM of the arc, where people
+carry nearly all of it. TEH: can the Trust's inflows pay the guarantee? Binds where the
+mint and the land fee are small against the guarantee. Which side fails says what kind
+of shortfall it is. A labour shortfall is physical: the obligation goes unmet, with
+shorter lives and less care. A TEH shortfall is fiscal: the Trust draws down.
 
-THE LABOUR SIDE READS THE PIPELINE'S SPLIT
------------------------------------------
-Human hours come off `eoh_to_teh_pipeline`, the same split D3 and the guarantee
-use. `arc_stability` read a uniform `1 − ε` until 2026-09-15 and now uses the
-same adopted split; its verdict is carried alongside and the two are tested to
-agree, so a future divergence is visible rather than silent.
+THE LABOUR SIDE READS THE PIPELINE'S SPLIT -----------------------------------------
+Human hours come off `eoh_to_teh_pipeline`, the same split D3 and the guarantee use.
+`arc_stability` read a uniform `1 − ε` until 2026-09-15 and now uses the same adopted
+split. Its verdict rides alongside, and a test requires the two to agree, so a future
+divergence shows.
 
 STATED LIMITS
 -------------
@@ -47,9 +45,9 @@ STATED LIMITS
     on `PERSONAL_EOH_BASE` (author decision 2026-09-15: keep it), and so does
     this report unless `standard` (600 h survival, 1,500 h sufficiency) or
     `personal_base` is given. The sufficiency STANDARD stays 1,500 h; it and
-    the guarantee's base are two quantities by decision. `guarantee_base` is
-    reported so the choice is visible.
-  * THE LAND FEE'S FRAME IS DECLARED. A parcel SAMPLE prices the fee; the
+    the guarantee's base are two quantities by decision. The report gives
+    `guarantee_base`, so the choice shows.
+  * THE LAND FEE DECLARES ITS FRAME. A parcel SAMPLE prices the fee; the
     collective's parcel COUNT scales it, defaulting to population × the measured
     national PRIVATE parcels per person (government parcels excluded,
     2026-10-15). The shipped archetypes are synthetic, and
@@ -135,10 +133,9 @@ def d3_consumption(
     D3 terminal consumption, in TEH: on-ledger personal EOH × its human-carried
     share × `M_FLOOR`.
 
-    The same formula `core.simulation.simulate_period` applies under `use_d3`.
-    Written here from its three inputs rather than by running a period, and
-    BOUND TO THE SIMULATION BY TEST (`test_stationarity.py`), because the two
-    must stay one quantity.
+    The same formula `core.simulation.simulate_period` applies under `use_d3`. Written
+    here from its three inputs, not by running a period. A test BINDS IT TO THE
+    SIMULATION (`test_stationarity.py`), because the two must stay one quantity.
 
     units: TEH per year. ε-behaviour: through its inputs only.
     """
@@ -171,10 +168,10 @@ def _guarantee_owed(
     to 1e-12 at ε ∈ {0, 0.20, 0.40, 0.70, 0.90, 0.99}, which is why the
     parameter could be dropped rather than threaded through.
 
-    `None` resolves to SUFF_NEED_FRACTION — the V1 need fraction the levy was
-    sized against. It used to resolve to the guarantee's own `floor_fraction`
-    (0.15 at ε=0 decaying to 0.1005), roughly three times the adopted value, so
-    the module's default ran V1 at a need fraction nobody had chosen.
+    `None` resolves to SUFF_NEED_FRACTION, the V1 need fraction behind the levy's size.
+    It used to resolve to the guarantee's own `floor_fraction` (0.15 at ε=0 decaying to
+    0.1005), roughly three times the adopted value, so the module's default ran V1 at a
+    need fraction nobody had chosen.
     """
     need = SUFF_NEED_FRACTION if need_fraction is None else need_fraction
     g = sufficiency_guarantee(
@@ -227,8 +224,8 @@ def stationarity_at(
             1,000 h (author decision 2026-09-15), which is neither standard,
             so the `arc_stability_*` fields are None unless one is named.
         personal_base: Overrides the standard's base for both sides, h/yr per
-            working-age-equivalent, so a base between or beyond the two named
-            standards can be tested. `arc_stability` only knows the named
+            working-age-equivalent, so a caller can test a base between or beyond the
+            two named standards. `arc_stability` only knows the named
             standards, so when this differs from the standard's base the
             `arc_stability_*` comparison fields are None rather than computed
             at a different base.
@@ -236,8 +233,8 @@ def stationarity_at(
         adult_capacity_h_yr: Hours an adult can supply in a year.
         guarantee: One of `GUARANTEE_DESIGNS`.
         need_fraction: For `v1`, the share of on-ledger people receiving the
-            guarantee. None uses `SUFF_NEED_FRACTION` (0.05), the adopted value
-            the levy was sized against. Raising it moves the Trust's whole
+            guarantee. None uses `SUFF_NEED_FRACTION` (0.05), the adopted value behind
+            the levy's size. Raising it moves the Trust's whole
             liability — at 10% the required levy roughly doubles.
         levy_rate: Levy as a share of the mint.
         guf_parcels: A parcel SAMPLE that prices the fee. None → no land fee,
@@ -442,12 +439,12 @@ def stationary_bands(step: float = 0.01, **kw: Any) -> dict:
     The ε range where each side stands still, and where both do.
 
     `step` is a scan resolution, not a domain quantity — the same convention as
-    `arc_stability.stationary_band(tol=)`. Bands are threshold crossings, so
-    their edges are reported to this resolution and no finer.
+    `arc_stability.stationary_band(tol=)`. Bands are threshold crossings, so the report
+    gives their edges to this resolution and no finer.
 
-    Scans a grid at `step` and reuses `arc_stability.band_from_flags`, so a band
-    that fails in its middle is reported as non-contiguous rather than spanned.
-    Band edges are accurate to `step`.
+    Scans a grid at `step` and reuses `arc_stability.band_from_flags`, so a band that
+    fails in its middle reads as non-contiguous, not spanned. Band edges are accurate to
+    `step`.
 
     units: dimensionless ε.
     """
@@ -508,11 +505,11 @@ def drawdown(
     parcels `stationarity_report` defaults to.
 
     THE PATH IS A SCENARIO CHOICE. ε moves linearly from `epsilon_start` to
-    `epsilon_end` over `years`; how fast a real economy advances is unknown, so
-    `years` has no default. Setting `epsilon_start == epsilon_end` holds the
-    economy at one point, which is the stand-still question over time.
+    `epsilon_end` over `years`. Nobody knows how fast a real economy advances, so
+    `years` has no default. Setting `epsilon_start == epsilon_end` holds the economy at
+    one point, which is the stand-still question over time.
 
-    Points are evaluated on a 0.01 grid and cached, so a long arc does not
+    The function evaluates points on a 0.01 grid and caches them, so a long arc does not
     re-price the land fee every year.
 
     Returns:
@@ -587,31 +584,31 @@ def reserve_plan(
     ran with no fee at all, so its surplus was the levy's alone while
     stationarity's and the drawdown's carried both.
 
-    THE RULE (author, 2026-09-16): hold the Trust's slack as a DECLARED reserve
-    with a ceiling — "N years of the guarantee, held against an arc that may
-    not advance" — rather than as the residue of a levy sized to the far end of
-    the arc. The levy itself is then assessed on the realized obligation
-    (`fiscal.assessed_levy_rate`), and the reserve is a second, named line.
+    THE RULE (author, 2026-09-16): hold the Trust's slack as a DECLARED reserve with a
+    ceiling, "N years of the guarantee, held against an arc that may not advance". Do
+    not hold it as the residue of a levy sized to the far end of the arc. The levy
+    itself then rests on the realized obligation (`fiscal.assessed_levy_rate`), and the
+    reserve is a second, named line.
 
-    N IS REQUIRED AND HAS NO DEFAULT. A shipped reserve level is a rationing
-    rule about how much the present owes the future, the same reason
-    `scenarios/frailty` ships no care default.
+    N HAS NO DEFAULT; THE CALLER MUST STATE IT. A shipped reserve level is a rationing
+    rule about how much the present owes the future, the same reason `scenarios/frailty`
+    ships no care default.
 
     PEG N TO THE ε YOU ARE INSURING AGAINST, NOT TO TODAY. The guarantee at
     ε=0.99 is ~35× the guarantee at subsistence, so "ten years of cover" sized
     at the bottom buys almost nothing at the top. `insure_at_epsilon` is that
     choice, declared.
 
-    THE FINDING THIS FUNCTION EXISTS TO SHOW: read as a reserve rule, the
-    shipped flat rate banks 17.8 years of guarantee per year at ε=0 and NONE at
-    ε=0.99 — it fills instantly where a reserve is least needed and cannot fill
-    at all where it is, because at the corner the rate IS the requirement.
+    THE FINDING THIS FUNCTION EXISTS TO SHOW. Read as a reserve rule, the shipped flat
+    rate banks 17.8 years of guarantee per year at ε=0 and NONE at ε=0.99. It fills at
+    once where a reserve is least needed and cannot fill at all where it is, because at
+    the corner the rate IS the requirement.
 
     Args:
         epsilon: Where the collective is now — the reserve is paid from here.
         years_of_guarantee: N. Required; must be > 0.
         insure_at_epsilon: The ε whose guarantee N is counted in.
-        build_years: Over how many years the reserve is built.
+        build_years: The number of years over which to build the reserve.
         **kw: Forwarded to `stationarity_at` (population, guarantee design,
             need_fraction, guf_parcels, levy_rate, …).
 
@@ -697,17 +694,17 @@ def reserve_plan(
 def stationarity_report(epsilon: float = 0.40, **kw: Any) -> dict:
     """The report. CLI: `eoh scenario run stationarity`.
 
-    THE FEE IS PART OF THE CONFIGURATION, AND UNTIL 2026-09-16 THIS REPORT RAN
-    WITHOUT ONE. `stationarity_at` takes a parcel SAMPLE and prices the land fee
-    from it; given none, `guf` is 0.0 and the TEH side has only the levy. The CLI
-    passed no parcels, so the published verdict read "TEH stands still nowhere"
-    at every ε — true for a collective that holds no land, and presented as the
-    framework's answer. With the urban sample the record names as the adopted
-    basis, the TEH side stands still on [0.00, 0.99] at the shipped 1,000 h base.
+    THE FEE IS PART OF THE CONFIGURATION, AND UNTIL 2026-09-16 THIS REPORT RAN WITHOUT
+    ONE. `stationarity_at` takes a parcel SAMPLE and prices the land fee from it; given
+    none, `guf` is 0.0 and the TEH side has only the levy. The CLI passed no parcels, so
+    the published verdict read "TEH stands still nowhere" at every ε. That is true for a
+    collective that holds no land, and the CLI presented it as the framework's answer.
+    With the urban sample the record names as the adopted basis, the TEH side stands
+    still on [0.00, 0.99] at the shipped 1,000 h base.
 
-    So the report now supplies that inventory when the caller names none, and
-    RETURNS the configuration it ran under. A caller passing `guf_parcels`
-    explicitly — including an empty list, for the no-land case — is honoured.
+    So the report now supplies that inventory when the caller names none, and RETURNS
+    the configuration it ran under. The function honours a caller who passes
+    `guf_parcels` explicitly, including an empty list for the no-land case.
     """
     if "guf_parcels" not in kw:
         kw = {**kw, "guf_parcels": make_urban_collective()}
@@ -845,15 +842,14 @@ def registered_work_access(
         cover                          mint / need
         cover_structural_minimum       mean multiplier / M_FLOOR
 
-    COVER CANNOT FALL BELOW m / M_FLOOR, BY CONSTRUCTION — and that is the 1:1
-    base, not a finding. Every registered personal hour is both a need of
-    M_FLOOR and a mint of m; non-personal registered work only adds mint. So
-    "does registered work cover its members" is answered YES structurally, IN
-    AGGREGATE. What is NOT structural, and what this reports so it can be
-    watched: ACCESS. The figures are averages over an even spread of the
-    register; the model has no variable for who the register admits
-    (record/theory.md#capture-aggregate-bounded), so an average that covers
-    says nothing about a member the register does not reach.
+    COVER CANNOT FALL BELOW m / M_FLOOR, BY CONSTRUCTION — and that is the 1:1 base, not
+    a finding. Every registered personal hour is both a need of M_FLOOR and a mint of m;
+    non-personal registered work only adds mint. So "does registered work cover its
+    members" is answered YES structurally, IN AGGREGATE. What is NOT structural, and
+    what this reports so someone can watch it: ACCESS. The figures are averages over an
+    even spread of the register; the model has no variable for who the register admits
+    (record/theory.md#capture-aggregate-bounded), so an average that covers says nothing
+    about a member the register does not reach.
 
     ε-behaviour: need is near zero at subsistence (the register admits little),
     rises with registration, and turns down at the top of the arc as machines
@@ -918,10 +914,9 @@ def registered_work_arc(
     **kw: Any,
 ) -> dict:
     """
-    `registered_work_access` along the arc, plus where TEH need per member
-    turns down — the point past which more automation means less TEH needed.
-    The turn is searched on a fine grid, not read off the reporting points
-    (mode 3).
+    `registered_work_access` along the arc, plus where TEH need per member turns down —
+    the point past which more automation means less TEH needed. The function searches
+    for the turn on a fine grid and does not read it off the reporting points (mode 3).
     """
     rows = [registered_work_access(e, **kw) for e in points]
     grid = [ARC_REPORTING_POINTS[-1] * i / 100 for i in range(101)]

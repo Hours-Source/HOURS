@@ -165,6 +165,18 @@ class TestTheFindingDidNotSurviveTheBandCorrection:
         after24 = feasibility_check(adult_capacity_h_yr=c24)
         assert after65["feasible"] is True and after24["feasible"] is True
 
+    def test_the_verdict_follows_the_counts(self, monkeypatch) -> None:
+        """The verdict's conclusion turns with the counts; it is not fixed text.
+        Frames below the demand must read as an over-determination that survives."""
+        import hours_eoh.scenarios.feasibility as fz
+        assert "meets that demand" in measured_capacity_frames()["verdict"]
+        low = {f"XX{i}": 1500.0 for i in range(5)}
+        monkeypatch.setattr(fz.mtus, "capacity_frames", lambda extra=(): low)
+        r = fz.measured_capacity_frames()
+        assert r["n_clearing_at_zero"] == 0
+        assert "survives" in r["verdict"] and "does not understate" in r["verdict"]
+        assert r["default_is_measured_median"] is False
+
 
 class TestTheDefaultIsTheMeasuredMedian:
     """ADOPTED 2026-09-03 (author decision). The default is the median of 50 measured

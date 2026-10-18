@@ -207,17 +207,18 @@ class TestKnowledgePopulationScaling:
             knowledge_eoh(None, epsilon=0.40), rel=1e-6)
 
         # 2026-10-15: KNOWLEDGE_EOH_BASE re-derived twice the same day, net -1.96% (-5.90% with the national population at the 2024 Census, then +4.18% when ATUS took the survey year's own Census share).
-        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.7848226336e6, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.7376849240e7, rel=1e-6)
-        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.5765878921e8, rel=1e-6)
+        # 2026-10-18: +0.170% when the automation floors followed their live source.
+        assert knowledge_eoh(None, epsilon=0.0)  == pytest.approx(7.7980522367e+06, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.40) == pytest.approx(8.7525338305e+07, rel=1e-6)
+        assert knowledge_eoh(None, epsilon=0.99) == pytest.approx(7.5894636191e+08, rel=1e-6)
 
     def test_adoption_moved_every_arc_point_by_the_same_factor(self):
         """The adoptions rescale the knowledge arc and do not reshape it: one factor
-        against the pre-K-IV arc at every point (778.48× today;
+        against the pre-K-IV arc at every point (779.81× on 2026-10-18;
         [record](record/fulfilment.md#eoh-generation-test-history)).
         """
         for eps, pre in ((0.0, 10_000.0), (0.40, 112_240.0), (0.99, 973_251.19)):
-            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(778.48226, rel=1e-3)  # 794.07820 before 2026-10-15
+            assert knowledge_eoh(None, epsilon=eps) / pre == pytest.approx(779.80522, rel=1e-3)  # 794.07820 before 2026-10-15, 778.48226 before 2026-10-18
 
     def test_scales_linearly_with_population(self):
         base = knowledge_eoh(None, epsilon=0.40)
