@@ -183,6 +183,15 @@ class TestTheDefaultIsTheMeasuredMedian:
     frames, not H_REF.
     """
 
+    def test_the_constant_is_the_frames_median(self) -> None:
+        """`MEASURED_CAPACITY_H_YR`'s tag block says a test binds it to the median of
+        `capacity_frames()`, and until 2026-10-18 none did (mode 4)."""
+        import statistics
+        frames = mtus.capacity_frames()
+        assert MEASURED_CAPACITY_H_YR == pytest.approx(statistics.median(frames.values()),
+                                                       rel=1e-12)
+        assert measured_capacity_frames()["default_is_measured_median"] is True
+
     def test_every_capacity_default_is_the_measured_median(self) -> None:
         import inspect
         from hours_eoh.scenarios import feasibility as f

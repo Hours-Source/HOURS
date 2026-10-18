@@ -1,8 +1,8 @@
 """
 The personal obligation: normative floor vs observed hours, and what separates them.
 
-This is the reporting structure for a decomposition the repo cannot yet complete,
-built so that the part it cannot do is visible instead of absorbed.
+This is the reporting structure for a decomposition the repo cannot yet complete. It
+shows the part it cannot do instead of absorbing it.
 
 THE IDENTITY
 ------------
@@ -23,9 +23,9 @@ or paid. That is the same move that closed the infrastructure determinacy gap
 (doctrine spread 10.26× on the monetized path, 1.000× on the physical floor).
 
 WHAT THIS MODULE REPORTS, AND WHAT IT REFUSES TO
---------------------------------------------------
-The shipped basket prices ONE component of seven — 6.9% of the obligation by the
-desk estimate's own weights. So the residual is not `extraction − deferred`; it is
+-------------------------------------------------- The shipped basket prices three
+components of seven: coverage 0.759 by the desk estimate's own weights (2026-10-18; one
+component and 6.9% when written). So the residual is not `extraction − deferred`; it is
 
     observed − floor_priced  =  floor_unpriced  −  deferred  +  extraction
 
@@ -44,10 +44,10 @@ identify it without a residual, and no such panel is ingested here.
 Layer: scenarios/ imports core/ and reference/ — pure, no I/O beyond the shipped
 reference extracts.
 
-ε-coherence: `floor_arc()` exercises the floor at ε ∈ {0, 0.40, 0.99}. The floor
-is ε-invariant in its priced components (a physical requirement does not depend
-on the automation level) and a step function in which components have a delivery
-path at all.
+ε-coherence: `floor_arc()` exercises the floor at ε ∈ {0, 0.40, 0.99}. The floor is
+ε-invariant in its priced components, because a physical requirement does not depend on
+the automation level. It is a step function in which components have a delivery path at
+all.
 
 Reference: the personal-obligation handoff §0.2, §2, §3.3;
 the knowledge-base closure note Finding B.
@@ -157,12 +157,12 @@ def obligation_floor(
     ε-behavior: priced components are ε-invariant; `coverage` and `unreachable`
     are step functions of ε as step-in entitlements become deliverable.
 
-    SHAPE, not levels: the floor is a PARTIAL construction and `coverage` says
-    how partial. **The levels are not restated here** — pricing care and
-    processing moved coverage by an order of magnitude (0.069 → 0.759) within a
-    day, and a docstring figure cannot track that. Run the function. What
-    remains unreachable is reported by name in `unreachable`, with the reason,
-    rather than folded into the number.
+    SHAPE, not levels: the floor is a PARTIAL construction and `coverage` says how
+    partial. **This docstring restates no levels.** Pricing care and processing moved
+    coverage by an order of magnitude (0.069 → 0.759) within a day, and a docstring
+    figure cannot track that. Run the function. The function reports what remains
+    unreachable by name in `unreachable`, with the reason, instead of folding it into
+    the number.
     """
     return personal_statutory_floor(
         basket if basket is not None else shipped_basket(), epsilon
@@ -205,9 +205,10 @@ def observed_hours(
 def paid_labour_anchor() -> float:
     """
     The knowledge fixed point's anchor: US PAID labour per capita, ATUS
-    `KNOWLEDGE_ANCHOR_YEAR`, over the national population (2026-10-15: it was
-    typed as 937.3 in five places, and moved to 923.47 when
-    `US_REFERENCE_POPULATION` closed at the 2024 Census).
+    `KNOWLEDGE_ANCHOR_YEAR`, over the national population (2026-10-15: it was typed as
+    937.3 in five places, moved to 923.47 when `US_REFERENCE_POPULATION` closed at the
+    2024 Census, and to 934.85 when ATUS took the survey year's own Census share). The
+    function is the source; read it, do not copy it.
     """
     return observed_hours(KNOWLEDGE_ANCHOR_YEAR, "paid")
 
@@ -226,19 +227,19 @@ def identity_report(
 
         observed − floor_priced  =  floor_unpriced − deferred + extraction
 
-    `deferred` and `extraction` are returned as None, and `identified` is False,
-    whenever basket coverage is below 1.0 — which is always, at present. The
-    residual is reported under a name that lists what is in it.
+    The function returns `deferred` and `extraction` as None, and `identified` as False,
+    whenever basket coverage is below 1.0, which it always is at present. The report
+    gives the residual under a name that lists what is in it.
 
     units: hours per capita per year.
 
     ε-behavior: `floor_priced` is ε-invariant in the shipped basket; the residual
     inherits that, so the whole report is meaningful at every ε.
 
-    SHAPE: the residual is dominated by the share of the basket nobody has
-    costed, NOT by extraction. **The levels are deliberately not written out** —
-    they moved with the care and processing pricing and the previous
-    restatement here went stale by a factor of eleven on coverage.
+    SHAPE: the share of the basket nobody has costed dominates the residual, NOT
+    extraction. **This docstring deliberately writes out no levels.** They moved with
+    the care and processing pricing, and the previous restatement here went stale by a
+    factor of eleven on coverage.
     """
     # Resolve the year ONCE: the year reported and the year measured must be the
     # same one, and two independent defaults are how they stop being.
@@ -271,16 +272,15 @@ def floor_vs_constants(epsilon: float = 0.0, basket: list[dict] | None = None) -
     """
     The floor against the constants it will eventually discipline — reporting only.
 
-    Nothing here moves a constant. The comparison exists so the direction of
-    travel is on the record: a floor that already exceeds a standard at partial
-    coverage has falsified it, and a floor far below one has said nothing yet.
+    Nothing here moves a constant. The comparison puts the direction of travel on the
+    record. A floor that already exceeds a standard at partial coverage has falsified
+    it, and a floor far below one has said nothing yet.
 
-    `PERSONAL_EOH_SURVIVAL` and `PERSONAL_EOH_SUFFICIENCY` are quoted per
-    working-age-EQUIVALENT; the floor and the ATUS observation are per capita.
-    The `AGE_GROUPS` weight w = 1.475 bridges them, and it comes from
-    `feasibility.age_weight_mean` rather than being recomputed here — forgetting
-    it is the age-weight trap that module exists to catch, and two copies of the
-    bridge is how the trap comes back.
+    `PERSONAL_EOH_SURVIVAL` and `PERSONAL_EOH_SUFFICIENCY` are per
+    working-age-EQUIVALENT; the floor and the ATUS observation are per capita. The
+    `AGE_GROUPS` weight w bridges them, and it comes from `feasibility.age_weight_mean`,
+    not a recomputation here — forgetting it is the age-weight trap that module exists
+    to catch, and two copies of the bridge is how the trap comes back.
 
     units: hours per capita per year throughout, after the w bridge.
     """
@@ -361,7 +361,7 @@ def _remainder_intensity_ratio(
     """
     (hours per unit share the REMAINDER must deliver) / (what the priced part did).
 
-    None when nothing is priced or everything is, where the ratio has no content.
+    None when nothing or everything carries a price, where the ratio has no content.
     """
     if coverage <= 0.0 or coverage >= 1.0 or priced <= 0.0:
         return None
@@ -411,22 +411,22 @@ def climate_conditioning(basket: list[dict] | None = None) -> dict:
     Where latitude enters the floor, per component — the caveat that must travel
     with any figure this module returns.
 
-    The basket's quantity / hours_per_unit split already separates what is OWED
-    from what delivery COSTS, and climate lands almost entirely in the second.
-    This reports which kind each component is, and flags the priced ones —
-    because a costed component carries its measurement's climate with it, and an
-    uncosted one does not yet carry anything.
+    The basket's quantity / hours_per_unit split already separates what the collective
+    OWES from what delivery COSTS, and climate lands almost entirely in the second. This
+    reports which kind each component is, and flags the priced ones. A costed component
+    carries its measurement's climate with it, and an uncosted one carries nothing yet.
 
     units: none — provenance, not a quantity.
 
     ε-behavior: none. Climate conditioning is a property of the measurement and
     of the physical requirement, not of the automation level.
 
-    Worked example: at the shipped basket exactly one component is priced,
-    `nutrition_production`, and it is `delivery`-conditioned — 331 h/person·yr is
-    a rainfed tropical smallholder figure and does not transfer to a boreal
-    collective without restratification. `transfer_bias_sign` is None because the
-    direction is genuinely undetermined, not because it is unknown to the caller.
+    Worked example (2026-10-18): at the shipped basket three components carry a price,
+    and two of them carry their measurement's climate. `nutrition_production` is
+    `delivery`-conditioned: 331 h/person·yr is a rainfed tropical smallholder figure and
+    does not transfer to a boreal collective without restratification.
+    `transfer_bias_sign` is None because nobody can determine the direction yet, not
+    because the caller lacks it.
     """
     components = basket if basket is not None else shipped_basket()
     rows = []

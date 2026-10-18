@@ -25,13 +25,12 @@ after, capped at the labour supply the population can actually give
                          `deferred_personal_eoh > 0` is the survival floor
                          itself unmet. No labour, no collective.
 
-NOTHING IS CHARGED TO THE TRUST. A balance cannot supply an hour of labour, so
-a labour shortfall is deferral, never a TEH cost; the work that IS done
-registers and mints (the wage doctrine). The Trust's real obligation — the
-sufficiency guarantee — is read from `fiscal_snapshot` at the after-state, with
-the register held at its pre-shock level (`registration_epsilon`: the register
-is what the collective carries, the capability how much human labour carries
-it — author, 2026-10-01).
+THE SHOCKS CHARGE NOTHING TO THE TRUST. A balance cannot supply an hour of labour, so a
+labour shortfall is deferral, never a TEH cost. The work that people DO registers and
+mints (the wage doctrine). The Trust's real obligation — the sufficiency guarantee — is
+read from `fiscal_snapshot` at the after-state, with the register held at its pre-shock
+level (`registration_epsilon`: the register is what the collective carries, the
+capability how much human labour carries it — author, 2026-10-01).
 
 THE OUTCOME is the worse of the labour reading (STABLE: all taken up;
 DEGRADED: some deferred; CRISIS: personal deferred) and the fiscal reading
@@ -112,12 +111,12 @@ def _classify(solvent: bool, surplus_deficit: float, trust_balance: float) -> st
 def _fiscal_change(f0: dict, f1: dict, trust_balance: float,
                    s0: "_State", s1: "_State") -> dict:
     """
-    The Trust BEFORE and AFTER, reported (2026-10-03). The fiscal verdict reads
-    the position after the shock, so a shock on an already-insolvent Trust read
-    DEGRADED whether it barely moved the deficit or quadrupled it — the
-    created-not-deepened blind spot option 1 closed for competency, on the
-    fiscal side. Reporting only: the verdict is unchanged. Names the
-    retirement register when it is on, since it is then the main driver.
+    The Trust BEFORE and AFTER, reported (2026-10-03). The fiscal verdict reads the
+    position after the shock, so a shock on an already-insolvent Trust read DEGRADED
+    whether it barely moved the deficit or quadrupled it — the created-not-deepened
+    blind spot option 1 closed for competency, on the fiscal side. Reporting only: the
+    verdict does not change. Names the retirement register when it is on, since it is
+    then the main driver.
     """
     sd0, sd1 = f0["surplus_deficit"], f1["surplus_deficit"]
     note = ""
@@ -208,11 +207,10 @@ def _trust_position(
     `land_hectares` (2026-10-14) is the frame's fixed land; None lets the fisc
     resolve it from `population`, as before.
 
-    Until 2026-09-30 three shocks rebuilt levy → stewardship → guarantee →
-    trust by hand; until 2026-10-01 they then charged their added EOH against
-    the result as TEH. Neither remains: nothing is charged, and the guarantee
-    reads the register at `registration_epsilon` while the capability is
-    `epsilon`.
+    Until 2026-09-30 three shocks rebuilt levy → stewardship → guarantee → trust by
+    hand; until 2026-10-01 they then charged their added EOH against the result as TEH.
+    Neither remains. The shock charges nothing, and the guarantee reads the register at
+    `registration_epsilon` while the capability is `epsilon`.
     """
     snap = fiscal_snapshot(
         trust_balance=trust_balance,
@@ -286,17 +284,17 @@ def _base_state(
     ecological_response: str = "guf",
     land_hectares: float | None = None,
 ) -> _State:
-    """The pre-shock state. `age_fractions` (2026-10-03) is the population's own
-    age mix — e.g. a census grouped to AGE_GROUP_RANGES; None → the shipped
-    AGE_GROUPS fractions. It seeds BOTH the obligation (age-weighted) and, when
-    `labor_supply_per_capita` is None, the supply through the capacity-weighted
-    adult share. Refused, never patched: unknown groups, or shares that do not
-    sum to 1. `land_hectares` (2026-10-14) is the frame's land, resolved once
-    at the PRE-shock population when not stated and carried through the
-    shock: a population shock moves the people, not the land. Until then
-    `_run` passed no area and the pipeline re-derived it from the shocked
-    population — latent at the default partition (the fee carries the work),
-    live on a frame whose people carry it."""
+    """The pre-shock state. `age_fractions` (2026-10-03) is the population's own age mix
+    — e.g. a census grouped to AGE_GROUP_RANGES; None → the shipped AGE_GROUPS
+    fractions. It seeds BOTH the obligation (age-weighted) and, when
+    `labor_supply_per_capita` is None, the supply through the capacity-weighted adult
+    share. Refused, never patched: unknown groups, or shares that do not sum to 1.
+    `land_hectares` (2026-10-14) is the frame's land, resolved once at the PRE-shock
+    population when not stated and carried through the shock: a population shock moves
+    the people, not the land. Until then `_run` passed no area, and the pipeline
+    re-derived it from the shocked population. That was latent at the default partition
+    (the fee carries the work) and live on a frame whose people carry it.
+    """
     fractions = _base_fractions() if age_fractions is None else _checked_fractions(age_fractions)
     supply = (_measured_supply(adult_share=capacity_weighted_adult_share(fractions))
               if labor_supply_per_capita is None else labor_supply_per_capita)
@@ -373,12 +371,12 @@ def _restoration(
     the US frame measures 2.28 ha/head and this priced 1.65 — mode 6); None →
     `population × LAND_HECTARES_PER_CAPITA`, as before.
 
-    DECLARED BINDING: the deficit is the health LOST, `h_before − h_after`,
-    uniformly over `population × LAND_HECTARES_PER_CAPITA`. Health and deficit
-    share one scale (1 = reference condition, per both docstrings); the
-    function refuses an invented deficit, and this one is the scenario's own
-    input. Priced by the repo's measured field-operation sequences, which are
-    machinery: what they do NOT price is biological recovery TIME.
+    DECLARED BINDING: the deficit is the health LOST, `h_before − h_after`, uniformly
+    over `population × LAND_HECTARES_PER_CAPITA`. Health and deficit share one scale (1
+    = reference condition, per both docstrings). The function refuses an invented
+    deficit, and this one is the scenario's own input. Priced by the repo's measured
+    field-operation sequences, which are machinery: what they do NOT price is biological
+    recovery TIME.
     """
     return deficit_obligation(
         population * LAND_HECTARES_PER_CAPITA if land_hectares is None else land_hectares,
@@ -496,17 +494,17 @@ def _competency(s0: _State, before: dict, s1: _State, after: dict) -> dict:
         PERSONAL tier — registered personal hours: a shortfall the shock
                         CREATES here is CRISIS, the survival floor without
                         competent hands;
-        REGISTERED    — all registered hours: a created shortfall elsewhere is
-                        DEGRADED, rebuildable.
+        REGISTERED — all registered hours: a shortfall the shock creates elsewhere is
+        DEGRADED, rebuildable.
 
-    A shock is charged with the shortfalls it CREATES and with those it
-    DEEPENS (author, 2026-10-03, option 1). Until then only created ones
-    counted, so a domain marginally short before the shock masked whatever the
-    shock did to it: a 50% automation loss read CRISIS at ε 0.70 and 0.85 and
-    STABLE at 0.75–0.80, where care sat at 0.99 coverage before the shock and
-    fell to about half. A deepened shortfall is one short before AND after
-    with coverage strictly lower after (beyond float noise); it is charged in
-    its tier exactly as a created one, and reported with both coverages.
+    The verdict charges a shock with the shortfalls it CREATES and with those it DEEPENS
+    (author, 2026-10-03, option 1). Until then only created ones counted, so a domain
+    marginally short before the shock masked whatever the shock did to it: a 50%
+    automation loss read CRISIS at ε 0.70 and 0.85 and STABLE at 0.75–0.80, where care
+    sat at 0.99 coverage before the shock and fell to about half. A deepened shortfall
+    is short before AND after, with coverage strictly lower after (beyond float noise).
+    The verdict charges it in its tier exactly as a created one and reports both
+    coverages.
     """
     def read(reading: str) -> tuple[list[str], list[str], dict[str, tuple[float, float]], dict]:
         c0 = condition_iv_coverage(_threshold_reserve(s0), before, reading)
@@ -936,24 +934,23 @@ def ecological_eoh_spike(
     ecological_response: str = "guf",
 ) -> dict:
     """
-    An ecosystem collapse: what it leaves to be done, and who can do it.
+    An ecosystem collapse: the work it leaves, and who can do it.
 
-    THE SPIKE IS THE RESTORATION (2026-10-01). Under the adopted Phase 4e/4f
-    partition the ecological domain is health-invariant — the recurring
-    degradation response is the land holder's, through the GUF — so this
-    shock, which read the domain, reported a spike of exactly 0 at every
-    population and decided its verdict from the threshold flag alone. What a
-    collapse leaves in the domain is a RESTORATION STOCK: the health lost,
-    over the frame's land, priced by `pristine_gap_obligation` and amortised
-    over `restoration_years`. It enters the pipeline as `restoration_obligation`
-    and runs the cascade. The holder's added GUF flow is reported beside it in
-    hours (`guf_flow_added_eoh`, from `fiscal_snapshot`) and is not cascaded —
-    it is the GUF's to fund.
+    THE SPIKE IS THE RESTORATION (2026-10-01). Under the adopted Phase 4e/4f partition
+    the ecological domain is health-invariant — the recurring degradation response is
+    the land holder's, through the GUF — so this shock, which read the domain, reported
+    a spike of exactly 0 at every population and decided its verdict from the threshold
+    flag alone. What a collapse leaves in the domain is a RESTORATION STOCK: the health
+    lost, over the frame's land, priced by `pristine_gap_obligation` and amortised over
+    `restoration_years`. It enters the pipeline as `restoration_obligation` and runs the
+    cascade. The report gives the holder's added GUF flow beside it in hours
+    (`guf_flow_added_eoh`, from `fiscal_snapshot`), and does not cascade it: the GUF
+    funds it.
 
-    WHAT IT DOES NOT MODEL: biological recovery TIME. The priced sequences are
-    field operations; the record's own 12–69× biological-vs-engineered gap
-    (`restoration_cost.implied_kappa`) bounds how far they understate.
-    `threshold_crossed` is reported; it no longer sets the outcome on its own.
+    WHAT IT DOES NOT MODEL: biological recovery TIME. The priced sequences are field
+    operations; the record's own 12–69× biological-vs-engineered gap
+    (`restoration_cost.implied_kappa`) bounds how far they understate. The report gives
+    `threshold_crossed`; it no longer sets the outcome on its own.
 
     Args:
         epsilon: Machine capability at the time of failure.
@@ -968,7 +965,7 @@ def ecological_eoh_spike(
         population: Population; the land is `land_hectares`, else population ×
             LAND_HECTARES_PER_CAPITA.
         capital_stock_teh, capital_age_ratio: Physical state.
-        restoration_years: Horizon the restoration stock is discharged over.
+        restoration_years: The horizon over which the restoration stock is discharged.
         restoration_corner: "high" (default, conservative) or "low" band corner;
             both are reported.
         labor_supply_per_capita: L. None → the measured default.
@@ -1098,10 +1095,10 @@ def capital_loss_shock(
     land_hectares: float | None = None,
 ) -> dict:
     """
-    A disaster — a wildfire, flood or earthquake — destroys `fraction_lost` of
-    the capital stock, and the loss is WRITTEN DOWN (Guardrail II, D1). Built
-    2026-10-03 at the author's request ("large amounts of capital is lost and
-    goes through a write-down event").
+    A disaster (a wildfire, flood or earthquake) destroys `fraction_lost` of the capital
+    stock, and a WRITE-DOWN books the loss (Guardrail II, D1). The author asked for it
+    on 2026-10-03 ("large amounts of capital is lost and goes through a write-down
+    event").
 
     WHAT MOVES, each through the function that owns it:
 
@@ -1119,11 +1116,11 @@ def capital_loss_shock(
         uniform: pass `capability_fraction_lost`;
       * THE WRITE-DOWN, `capital.execute_writedown` on the lost stock as one
         asset: `teh_destroyed` and `rebuild_eoh_needed` are ITS figures.
-        Destroyed capital-embodied TEH is REPORTED, never charged to the
-        Trust — `fiscal_snapshot` has no input for it, and a balance does not
-        owe for a burned building;
-      * THE REBUILD is a choice, like the retirement register: OFF unless
-        `rebuild_years` is given. On, `rebuild_eoh_needed / rebuild_years` is
+        The report gives destroyed capital-embodied TEH and never charges it to the
+        Trust: `fiscal_snapshot` has no input for it, and a balance does not owe for a
+        burned building;
+      * THE REBUILD is a choice, like the retirement register: OFF unless the caller
+      gives `rebuild_years`. On, `rebuild_eoh_needed / rebuild_years` is
         the period's `reconstruction_obligation` (core's named socket, default
         off) — split at the reduced capability, taken up or deferred, and
         minted where it is done. `rebuild` says "on" or "off" in the result.
@@ -1249,10 +1246,10 @@ def labor_income_shock(
     """
     Simulate a sudden collapse in labor income (TEH creation).
 
-    income_fraction controls how much of baseline labor income remains after
-    the shock (e.g., 0.50 = 50% of normal income). Baseline income is derived
-    from the EOH pipeline at the given ε. Runs fiscal_snapshot() at both
-    baseline and shocked income levels to measure the fiscal impact.
+    income_fraction controls how much of baseline labor income remains after the shock
+    (e.g., 0.50 = 50% of normal income). The EOH pipeline at the given ε supplies the
+    baseline income. Runs fiscal_snapshot() at both baseline and shocked income levels
+    to measure the fiscal impact.
 
     Args:
         epsilon:         Automation level [0.0, 0.99].
@@ -1378,13 +1375,12 @@ def compound_shock(
     """
     Several shocks at once — applied to ONE state and run through ONE cascade.
 
-    Until 2026-10-01 each component was run separately and their EOH deltas
-    summed and charged to the Trust as TEH. The shocks share one labour pool,
-    so the honest composition is to apply every change to the same state —
-    capability lost, the collapse's restoration, the new population and age
-    mix — and read the cascade once. Each component is also run alone and
-    reported in `individual_outcomes`; the combined outcome is never better
-    than the worst of them.
+    Until 2026-10-01 each component ran separately, and the function summed their EOH
+    deltas and charged them to the Trust as TEH. The shocks share one labour pool, so
+    the honest composition is to apply every change to the same state — capability lost,
+    the collapse's restoration, the new population and age mix — and read the cascade
+    once. Each component also runs alone and reports in `individual_outcomes`; the
+    combined outcome is never better than the worst of them.
 
     A CAPITAL LOSS is a component since 2026-10-03 (author: a wildfire takes
     capital AND ecosystem — `capital_fraction_lost` with `ecology_collapse`).

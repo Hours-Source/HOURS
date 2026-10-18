@@ -34,35 +34,30 @@ with area; 44.5% scale with the count of separately-held parcels and 13.6% with
 throughput. A fee with one basis cannot track a cost with three, at any
 multiplier. `two_part_rates()` gives the form that can.
 
-WHAT THIS CORRECTS IN THE RECORD
---------------------------------
-Phase 2's stated mechanism for the urban/rural spread — "the fee is per-SLU, so
-packing a hectare with more parcels multiplies the charge while the roads, pipes
-and inspections serving that hectare do not" — IS FALSE, and
-`subdivision_invariance()` demonstrates it rather than asserting it: splitting
-every parcel in a collective in two leaves the fee per hectare EXACTLY
-unchanged, because each half carries half the SLU. Parcel count does not enter
-the fee at all. That is not a small correction, because it relocates the defect:
-the urban 18× is driven by the L·U·D product — the location-value index and the
-ten ratios — which is precisely the part Phase 2 correctly said its aggregate
-census could not settle. And it sharpens Option 2 from "rescale the density
-term" to "the fee has no per-parcel term to rescale".
+WHAT THIS CORRECTS IN THE RECORD -------------------------------- Phase 2's stated
+mechanism for the urban/rural spread — "the fee is per-SLU, so packing a hectare with
+more parcels multiplies the charge while the roads, pipes and inspections serving that
+hectare do not" — IS FALSE, and `subdivision_invariance()` demonstrates it rather than
+asserting it: splitting every parcel in a collective in two leaves the fee per hectare
+EXACTLY unchanged, because each half carries half the SLU. Parcel count does not enter
+the fee at all. That is not a small correction, because it relocates the defect. The
+L·U·D product drives the urban overshoot (18× when written, 19.2× on 2026-10-18 from
+`target_vs_realised`): the location-value index and the ten ratios. That is precisely
+the part Phase 2 correctly said its aggregate census could not settle. And it sharpens
+Option 2 from "rescale the density term" to "the fee has no per-parcel term to rescale".
 
-WHAT THIS DOES NOT SETTLE
--------------------------
-The ten ratios, still. Both censuses are aggregates over land classes, not over
-use categories, and no occupational data is coded by the land use it serves.
-Option 1 settles the LEVEL for the classes both censuses reach, and Option 2
-settles the FORM. Neither settles the shape of the table.
+WHAT THIS DOES NOT SETTLE ------------------------- The ten ratios, still. Both censuses
+aggregate over land classes, not over use categories, and no occupational data carries
+the land use it serves. Option 1 settles the LEVEL for the classes both censuses reach,
+and Option 2 settles the FORM. Neither settles the shape of the table.
 
 The per-parcel rate is no longer excluded, but it is a BOUND (2026-08-30).
-`reference/parcels` ships the divisor this module used to lack — 160,573,137
-assessor parcels — so `u_parcel` is 4.723 h/parcel·yr. It is a LOWER bound and
-not a point, because the numerator is restricted to SERVICED_LAND_CLASSES while
-the denominator is every parcel in the country; restricting the denominator can
-only raise the rate. Closing that needs the parcel roll keyed to land class,
-which is the `usedesc` normalisation project the extract deliberately declines
-to bundle into a count.
+`reference/parcels` ships the divisor this module used to lack — 160,573,137 assessor
+parcels — so `u_parcel` is 4.723 h/parcel·yr. It is a LOWER bound and not a point. The
+numerator covers SERVICED_LAND_CLASSES only, while the denominator is every parcel in
+the country, and a narrower denominator can only raise the rate. Closing that needs the
+parcel roll keyed to land class, which is the `usedesc` normalisation project the
+extract deliberately declines to bundle into a count.
 
 And the fee still has nowhere to put it. A per-parcel term is a change to what
 the fee is a function of, not a recalibration — see the per-parcel-term decision,
@@ -134,15 +129,14 @@ def recurring_target_by_class(
     units: labour-hours per hectare per year.
 
     ε-behaviour: NONE, deliberately. Both inputs are censuses — snapshots of a
-    present-day economy — so the target carries no automation scaling. The fee it
-    is compared against carries one automation response under the default policy
-    (α(ε) inside U) and carried two before Ψ was retired. The like-for-like
-    comparison is at ONE ε either way, and `target_vs_realised` states which.
+    present-day economy — so the target carries no automation scaling. Under the default
+    policy, the fee it meets carries one automation response (α(ε) inside U) and carried
+    two before Ψ was retired. The like-for-like comparison is at ONE ε either way, and
+    `target_vs_realised` states which.
 
-    EXCLUDED IS NOT ZERO. A class missing either half is marked incomplete and
-    its known half is reported as a LOWER bound on the target, never as the
-    target. Seven of the nine classes are incomplete on the stewardship side
-    alone.
+    EXCLUDED IS NOT ZERO. The function marks a class that misses either half as
+    incomplete, and reports its known half as a LOWER bound on the target, never as the
+    target. Seven of the nine classes are incomplete on the stewardship side alone.
 
     Worked example (Land in urban areas, core/declared): servicing 45.92 +
     stewardship 4.35 = 50.27 h/ha·yr, complete on both halves.
@@ -224,9 +218,9 @@ def frame_land_target(
         total    = Σ_c over classes with a target            (a LOWER bound)
 
     `target(c)` is servicing + stewardship where known; a class missing a half
-    contributes its known half, and a class with neither contributes nothing.
-    Excluded is not zero, so the sum is a LOWER bound, and the land with a
-    complete target is reported beside it.
+    contributes its known half, and a class with neither contributes nothing. Excluded
+    is not zero, so the sum is a LOWER bound, and the report gives the land with a
+    complete target beside it.
 
     units: labour-hours per year; per person per year.
 
@@ -302,12 +296,11 @@ def target_vs_realised(
     which makes the overshoot larger, not smaller.
 
     The RURAL row is NOT, and says so rather than producing a number. The rural
-    archetype is 70% agricultural by parcel, and cropland and pasture are in no
-    serviced land class and are unpriced by the stewardship census — BOTH halves
-    of the target are missing. Phase 2 compared rural against the `core` average,
-    which is taken over urban land and rural highway corridor; that 1.12× is
-    reproduced here as `phase_2_comparison` and flagged, not repeated as a
-    finding.
+    archetype is 70% agricultural by parcel. Cropland and pasture are in no serviced
+    land class, and the stewardship census does not price them, so BOTH halves of the
+    target are missing. Phase 2 compared rural against the `core` average, taken over
+    urban land and rural highway corridor. This function reproduces that 1.12× as
+    `phase_2_comparison` and flags it; it does not repeat it as a finding.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
@@ -468,21 +461,20 @@ def conservation_credit_check(
 
     units: labour-hours per hectare per year.
 
-    THE FLOOR IS THE FINDING. `ground_use_fee` clamps at `guf_floor`, default
-    0.0, so the credit NEVER PAYS OUT — it can only take a fee to zero.
-    Conservation land therefore pays exactly nothing while owing a measured
-    positive flow, and the coefficient's notional value (−90 h/ha·yr on the rural
-    archetype's conservation parcels, ~500× the flow) is realised nowhere. Both
-    numbers are reported because both are wrong in different directions and only
-    one of them is visible in any output the framework currently produces.
+    THE FLOOR IS THE FINDING. `ground_use_fee` clamps at `guf_floor`, default 0.0, so
+    the credit NEVER PAYS OUT — it can only take a fee to zero. Conservation land
+    therefore pays exactly nothing while it owes a measured positive flow. The
+    coefficient's notional value (−90 h/ha·yr on the rural archetype's conservation
+    parcels, ~500× the flow) appears nowhere in a realised fee. The function reports
+    both numbers, because both are wrong in different directions, and only one shows in
+    any output the framework now produces.
 
     THIS IS NOT AUTOMATICALLY A DEFECT. A credit can be the instrument by which a
-    collective PAYS a steward for the flow — that is `soil_health_credit` and
-    §7.2's Trust disbursement, and is coherent. What the check establishes is
-    that the two are not reconciled anywhere: the credit is a fixed coefficient
-    in the fee table, the owed flow is a measured intensity per land class, and
-    nothing sets one against the other. Reported so the reconciliation is a
-    decision rather than an oversight.
+    collective PAYS a steward for the flow — that is `soil_health_credit` and §7.2's
+    Trust disbursement, and is coherent. The check establishes that nothing reconciles
+    the two. The credit is a fixed coefficient in the fee table, the owed flow is a
+    measured intensity per land class, and nothing sets one against the other. Reported
+    so the reconciliation is a decision rather than an oversight.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
@@ -563,9 +555,9 @@ def scaling_basis_shares(scope: str = "core") -> dict:
     (13.6%). Totals reconcile with `servicing_census.census` by construction —
     it is the same worker set, cut a second way.
 
-    The parcel share is reported as a RANGE: throughput is per-occupant and is
-    only proxied by parcel count, so [parcel, parcel + throughput] brackets it
-    rather than picking a corner.
+    The report gives the parcel share as a RANGE. Throughput is per occupant, and parcel
+    count only stands in for it, so [parcel, parcel + throughput] brackets the share
+    instead of picking a corner.
     """
     cut = servicing.workers_by_scaling_basis(scope)
     h_worker = hours_per_worker_year()
@@ -606,37 +598,35 @@ def two_part_rates(scope: str = "core") -> dict:
 
     units: labour-hours per hectare per year, and per parcel per year.
 
-    `u_area` is MEASURED and needs nothing further: 19.24 h/ha·yr under the core
-    scope, and it does not depend on the parcel count. Expressed in the fee's own
-    units that is 0.1924 TEH/SLU·yr, i.e. a scale factor of ×1.18 on the NLSA
-    template's abstract values — where Phase 2's aggregate implied ×2.82. The
-    difference is exactly the parcel- and throughput-scaling hours, which Phase 2
-    divided by area along with everything else because the fee gave them nowhere
-    else to go. So the level question does not close at one number either: ×2.82
-    is the right answer to "what per-SLU rate recovers the whole cost" and ×1.18
-    is the right answer to "what per-SLU rate recovers the part that is actually
-    area-driven", and they differ by the 58.1% of the cost the current form
-    cannot address.
+    `u_area` is a MEASUREMENT and needs nothing further: 19.24 h/ha·yr under the core
+    scope, independent of the parcel count. Expressed in the fee's own units that is
+    0.1924 TEH/SLU·yr, i.e. a scale factor of ×1.18 on the NLSA template's abstract
+    values — where Phase 2's aggregate implied ×2.82. The difference is exactly the
+    parcel- and throughput-scaling hours, which Phase 2 divided by area along with
+    everything else because the fee gave them nowhere else to go. So the level question
+    does not close at one number either: ×2.82 is the right answer to "what per-SLU rate
+    recovers the whole cost" and ×1.18 is the right answer to "what per-SLU rate
+    recovers the part that is actually area-driven", and they differ by the 58.1% of the
+    cost the current form cannot address.
 
-    `u_parcel` IS NOW MEASURED, AS A LOWER BOUND (2026-08-30). It was EXCLUDED
-    for want of a divisor; `reference/parcels` ships one — 160,573,137 assessor
-    parcels over 3,230 counties — and the rate is **4.723 h/parcel·yr**.
+    `u_parcel` NOW HAS A MEASURED LOWER BOUND (2026-08-30). The census EXCLUDED it for
+    want of a divisor; `reference/parcels` ships one — 160,573,137 assessor parcels over
+    3,230 counties — and the rate is **4.723 h/parcel·yr**.
 
-    IT IS A BOUND AND NOT A POINT, because the two halves are on different
-    scopes. The numerator is restricted to `SERVICED_LAND_CLASSES` (37.1 Mha of
-    urban and rural transportation land); the denominator is every parcel in the
-    country, including parcels on land that census never charged. Restricting
-    the denominator can only REMOVE parcels, so it can only RAISE the rate:
+    IT IS A BOUND AND NOT A POINT, because the two halves are on different scopes. The
+    numerator covers `SERVICED_LAND_CLASSES` only (37.1 Mha of urban and rural
+    transportation land). The denominator is every parcel in the country, including
+    parcels on land that census never charged. Restricting the denominator can only
+    REMOVE parcels, so it can only RAISE the rate:
 
         u_parcel ≥ hours(parcel) / all_parcels = 4.723 h/parcel·yr
 
-    errs LOW. The gap is not quantified and is deliberately not guessed at —
-    parcels are concentrated in developed land, so the bound is probably close,
-    but "probably close" is not a measurement. Closing it needs the parcel roll
-    keyed to land class, i.e. the `usedesc` normalisation project that
-    `reference/parcels` declines to bundle into a count (41.2% filled, free text
-    from 3,230 independent county systems). `PARCEL_COUNT_RESOLVES_BY` states
-    that remaining half.
+    errs LOW. Nobody has quantified the gap, and this function deliberately does not
+    guess it. Parcels concentrate in developed land, so the bound is probably close, but
+    "probably close" is not a measurement. Closing it needs the parcel roll keyed to
+    land class, i.e. the `usedesc` normalisation project that `reference/parcels`
+    declines to bundle into a count (41.2% filled, free text from 3,230 independent
+    county systems). `PARCEL_COUNT_RESOLVES_BY` states that remaining half.
 
     THE FORM IS THE FINDING, not the level. A per-parcel term makes the fee
     depend on subdivision, which it currently does not at all
@@ -707,25 +697,25 @@ def subdivision_invariance(epsilon: float = 0.40) -> dict:
 
     THIS FUNCTION HAS INVERTED, AND BOTH READINGS ARE THE POINT.
 
-    Until the per-parcel term was adopted it returned `ratio == 1.0` to
-    floating-point equality, because A(p) is in Standard Land Units and SLUs are
-    an area unit. That was the FALSIFICATION of a recorded claim:
+    Until the author adopted the per-parcel term, it returned `ratio == 1.0` to
+    floating-point equality, because A(p) is in Standard Land Units and SLUs are an area
+    unit. That was the FALSIFICATION of a recorded claim:
     `servicing_census.realized_vs_measured` had attributed the urban overshoot to
-    density — "the fee is per-SLU, so packing a hectare with more parcels
-    multiplies the charge" — and parcel count did not enter the fee at all. The
-    consequence was not cosmetic: it relocated the defect onto the L·U·D product.
+    density — "the fee is per-SLU, so packing a hectare with more parcels multiplies the
+    charge" — and parcel count did not enter the fee at all. The consequence was not
+    cosmetic: it relocated the defect onto the L·U·D product.
 
-    It is now the REGRESSION ANCHOR for the term that fixed it. The ratio must
-    exceed 1.0, because the per-parcel term is flat per parcel and subdivision
-    doubles the count while the area product is unchanged. Pricing fragmentation
-    is the intended consequence (the per-parcel-term decision, author decision):
-    the same hectare costs more when split, because splitting it genuinely
-    creates deeds, assessments, inspections and refuse rounds.
+    It is now the REGRESSION ANCHOR for the term that fixed it. The ratio must exceed
+    1.0, because the per-parcel term is flat per parcel, and subdivision doubles the
+    count while the area product stays the same. Pricing fragmentation is the intended
+    consequence (the per-parcel-term decision, author decision): the same hectare costs
+    more when split, because splitting it genuinely creates deeds, assessments,
+    inspections and refuse rounds.
 
-    Both directions are reported so neither can be quoted alone —
-    `ratio_area_only` recomputes at `parcel_rate=0.0` and must still be exactly
-    1.0, which keeps the original falsification alive as a property of the area
-    product rather than deleting the evidence for it.
+    The function reports both directions, so nobody can quote one alone.
+    `ratio_area_only` recomputes at `parcel_rate=0.0` and must still be exactly 1.0,
+    which keeps the original falsification alive as a property of the area product
+    rather than deleting the evidence for it.
 
     Raises:
         ValueError: if epsilon is outside [0.0, 0.99].
@@ -808,12 +798,11 @@ def basis_table() -> dict:
 
     units: none — a classification.
 
-    THE AUDIT'S OWN FINDING. Scoring the terms is what showed that I is
-    `cost_stock` rather than `benefit`: writing down "what quantity is this"
-    forced the reading of `cost_teh/(design_life × beneficiary_count)` as an
-    annuity. `benefit` is consequently NOT in `FEE_BASES` — a vocabulary entry
-    nothing uses is a permission nobody reviews, and this one was refuted rather
-    than merely unused.
+    THE AUDIT'S OWN FINDING. Scoring the terms is what showed that I is `cost_stock`
+    rather than `benefit`: writing down "what quantity is this" forced the reading of
+    `cost_teh/(design_life × beneficiary_count)` as an annuity. So `benefit` is NOT in
+    `FEE_BASES`. A vocabulary entry nothing uses is a permission nobody reviews, and the
+    scoring refuted this one; it was not merely unused.
     """
     by_basis: dict[str, list[str]] = {}
     by_direction: dict[str, list[str]] = {}
@@ -864,12 +853,11 @@ def psi_double_application(epsilon: float = 0.99) -> dict:
     discounted to 0.0037 of its ε=0.40 reference — 271×, for one mechanism
     counted twice.
 
-    LOW END — CATEGORY ERROR. Ψ's ε=0 floor is justified as "institutional
-    capacity is minimal". That is a claim about whether a fee can be COLLECTED,
-    not about what a holding COSTS. And it points the opposite way from α, which
-    correctly RISES at subsistence (1.4695) because unautomated administration
-    takes more human hours. The product silently nets a cost against a
-    collection capability.
+    LOW END — CATEGORY ERROR. Ψ's ε=0 floor is justified as "institutional capacity is
+    minimal". That is a claim about whether a collective can COLLECT a fee, not about
+    what a holding COSTS. And it points the opposite way from α, which correctly RISES
+    at subsistence (1.4695) because unautomated administration takes more human hours.
+    The product silently nets a cost against a collection capability.
 
     Neither end is a cost statement that survives, which is what makes the bell
     shape an artifact of far-end assumptions rather than a derived curve.

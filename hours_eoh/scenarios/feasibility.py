@@ -79,6 +79,7 @@ the direction that makes ε = 0 the diagnostic point.
 
 from __future__ import annotations
 
+import math
 import statistics
 from typing import TypedDict
 
@@ -517,10 +518,9 @@ def feasibility_check(
     Raises:
         ValueError: if epsilon is outside [0, 1) or population is non-positive.
 
-    Worked example (shipped defaults, adult_capacity = 2,000, share = 0.60,
-    ε = 0): supply 1,200; personal demand 2,213; ratio 1.91; implied base
-    ceiling 762; overshoot 1.97×; closing it on the supply side would need
-    3,814 h/yr per adult.
+    Worked example (shipped defaults, adult_capacity = 2,000, share = 0.60, ε = 0,
+    2026-10-18): supply 1,200; personal demand 1,352.8; ratio 1.13; implied base ceiling
+    881; overshoot 1.13×; closing it on the supply side would need 2,268 h/yr per adult.
     """
     if not 0.0 <= epsilon < 1.0:
         raise ValueError(f"epsilon must be in [0, 1), got {epsilon}")
@@ -755,8 +755,8 @@ def measured_capacity_frames(extra: tuple[str, ...] = ()) -> dict:
         "below_h_ref": sorted(s for s, r in rows.items() if not r["exceeds_h_ref"]),
         "h_ref": float(H_REF),
         "hours_per_adult_required": required,
-        "default_is_measured_median": (
-            statistics.median(frames.values()) == MEASURED_CAPACITY_H_YR),
+        "default_is_measured_median": math.isclose(
+            statistics.median(frames.values()), MEASURED_CAPACITY_H_YR),
         "verdict": verdict,
     }
 

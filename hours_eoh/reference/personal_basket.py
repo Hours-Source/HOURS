@@ -1,63 +1,61 @@
 """
 The personal-obligation basket, pinned to physical quantities.
 
-`PERSONAL_EOH_BASE` is unfalsifiable until the basket is stated in physical
-units. If the basket floats, any observed hours figure can be absorbed by
-redefining what the hours were buying — which is how a desk estimate survives
-contact with data indefinitely. This module states the quantities, and states
-the delivery productivity for the ONE component anybody has measured.
+`PERSONAL_EOH_BASE` is unfalsifiable until the basket states itself in physical units.
+If the basket floats, any observed hours figure can be absorbed by redefining what the
+hours were buying — which is how a desk estimate survives contact with data
+indefinitely. This module states the quantities, and states the delivery productivity
+for the ONE component anybody has measured.
 
 Read with `core.eoh_generation.personal_statutory_floor`, which sums
 quantity × hours_per_unit and returns the rest as unreachable-with-reason.
 
-WHAT IS MEASURED, AND WHAT IS DECLARED
----------------------------------------
-Exactly one component is costed: crop production, from LSMS-ISA harmonised v2.0,
-seven countries, unassisted stratum (no improved seed, no inorganic fertiliser,
-no irrigation, no tractor). Two routes that share only the raw labour variable
-land within 6% of each other — 331 h/person·yr bottom-up from kcal per labour-day,
-306 h/person·yr from observed labour scaled by crop self-sufficiency.
+WHAT HAS A MEASUREMENT, AND WHAT IS A DECLARATION
+--------------------------------------- When this was written, exactly one component had
+a price: crop production, from LSMS-ISA harmonised v2.0, seven countries, unassisted
+stratum (no improved seed, no inorganic fertiliser, no irrigation, no tractor). Two
+routes that share only the raw labour variable land within 8% of each other: 331
+h/person·yr bottom-up from kcal per labour-day, and 306 h/person·yr from observed labour
+scaled by crop self-sufficiency. Since then two more carry a price: nutrition processing
+(2026-09-10, MTUS, Sub-Saharan samples, a lower bound) and care (a bound from the care
+code set).
 
-Every other component carries `hours_per_unit=None`. That is not an oversight and
-must not be filled with a plausible-looking number: an invented productivity
-would enter the floor with the same standing as the measured one and there would
-be no way to tell them apart afterwards. The floor they produce is a strict LOWER
-BOUND on the personal obligation, and `coverage` reports how partial it is.
+Every other component carries `hours_per_unit=None`. That is not an oversight, and
+nobody may fill it with a plausible-looking number. An invented productivity would enter
+the floor with the same standing as the measured one, and afterwards nothing could tell
+them apart. The floor they produce is a strict LOWER BOUND on the personal obligation,
+and `coverage` reports how partial it is.
 
-THE BINDING GAP is food processing — threshing, winnowing, pounding, milling,
-drying, storage, fuel collection, water for cooking, and cooking itself. LSMS
-measures the harvest and not the meal. In hand-powered systems processing
-plausibly exceeds production labour, which is the entire difference between the
-handoff's 700 and 1,400 h/person·yr recommendation for the survival core. It is
-declared here as its own component so the floor cannot be mistaken for a
-complete food cost.
+THE BINDING GAP WAS food processing: threshing, winnowing, pounding, milling, drying,
+storage, fuel collection, water for cooking, and cooking itself. LSMS measures the
+harvest and not the meal. In hand-powered systems processing plausibly exceeds
+production labour, which is the entire difference between the handoff's 700 and 1,400
+h/person·yr recommendation for the survival core. It is its own component, so nobody
+mistakes the floor for a complete food cost. Since 2026-09-10 MTUS prices it from below.
 
-THE SURVIVAL CORE / ENTITLEMENT SPLIT
---------------------------------------
-Health is not a scaled-down version of the other components — it has no ε = 0
-delivery path at all. No quantity of unassisted human labour delivers a
-caesarean or an antibiotic, so Q_health / P_health(0) is undefined, not large.
-It therefore carries `min_epsilon`: below that automation level the obligation is
-owed and undeliverable, and the floor says so rather than costing it.
+THE SURVIVAL CORE / ENTITLEMENT SPLIT -------------------------------------- Health is
+not a scaled-down version of the other components — it has no ε = 0 delivery path at
+all. No quantity of unassisted human labour delivers a caesarean or an antibiotic, so
+Q_health / P_health(0) has no value; it is not large. It therefore carries
+`min_epsilon`. Below that automation level the obligation is owed and undeliverable, and
+the floor says so instead of costing it.
 
 This is a DIFFERENT mechanism from the registration boundary. Registration
 governs what the collective ledger recognises; this governs what the basket
 physically contains.
 
-HEALTH AND CARE ARE ONE OBLIGATION SPLIT BY DELIVERY PATH, not two unrelated
-needs. Care is the part that human attention discharges directly; health is the
-part of the same family that requires apparatus to discharge at all. They appear
-as separate lines at the granularity the delivery question demands — care in the
-survival core, health above a step-in threshold — and not because the underlying
-need divides. A future basket that costs them should expect their quantities to
-be related, and their delivery productivities not to be.
+HEALTH AND CARE ARE ONE OBLIGATION SPLIT BY DELIVERY PATH, not two unrelated needs. Care
+is the part that human attention discharges directly; health is the part of the same
+family that requires apparatus to discharge at all. They appear as separate lines at the
+granularity the delivery question demands — care in the survival core, health above a
+step-in threshold — and not because the underlying need divides. A future basket that
+costs them should expect related quantities and unrelated delivery productivities.
 
 WHY CARE IS IN THE BASKET (author decision, 2026-08-09)
---------------------------------------------------------
-The basket does not track what things cost. It states EOH DEMAND; the framework
-then measures how much of that demand can be met. On that reading care is not a
-service the obligation might or might not extend to — it is a requirement of
-human survival, and therefore a first-class term.
+-------------------------------------------------------- The basket does not track what
+things cost. It states EOH DEMAND; the framework then measures how much of that demand
+anyone can meet. On that reading care is not a service the obligation might or might not
+extend to — it is a requirement of human survival, and therefore a first-class term.
 
 It is also the term the ledger rests on. TEH is denominated in human labour
 hours, so the continuation of humans is the precondition for the accounting
@@ -74,11 +72,10 @@ separately, unreachable kept distinct from zero.
 Care is therefore declared with a quantity and NO delivery productivity, exactly
 like the other uncosted components. Naming it does not price it.
 
-CLIMATE — WHERE LATITUDE ENTERS
---------------------------------
-Climate mostly changes what delivery COSTS, not what is OWED, and the basket's
-quantity / hours_per_unit split already separates the two. `CLIMATE_CONDITIONING`
-records which kind each component is.
+CLIMATE — WHERE LATITUDE ENTERS -------------------------------- Climate mostly changes
+what delivery COSTS, not what the collective OWES, and the basket's quantity /
+hours_per_unit split already separates the two. `CLIMATE_CONDITIONING` records which
+kind each component is.
 
 The consequence for the one number this module actually has: **331 h/person·yr
 is a rainfed tropical smallholder figure**, measured in seven Sub-Saharan
@@ -89,10 +86,10 @@ The two-route convergence (331 vs 306, 7.6% apart) is evidence about the kcal
 chain and NOT about climate generality: both routes come from the same seven
 countries, so the climate uncertainty sits outside that spread, unquantified.
 
-The direction of the transfer bias is deliberately not asserted
-(`NUTRITION_TRANSFER_BIAS_SIGN = None`): shorter seasons and winter storage push
-hours per kcal up, deeper temperate soils and lower pest pressure push them down,
-and nothing here adjudicates.
+This module deliberately asserts no direction for the transfer bias
+(`NUTRITION_TRANSFER_BIAS_SIGN = None`): shorter seasons and winter storage push hours
+per kcal up, deeper temperate soils and lower pest pressure push them down, and nothing
+here adjudicates.
 
 Two components are exceptions worth knowing. **Thermal** is the one place climate
 is the QUANTITY rather than the cost — degree-days are the requirement — which is
@@ -417,11 +414,11 @@ def survival_core(
     """
     The components with an ε = 0 delivery path in principle.
 
-    QUANTITIES ARE SUPPLIED, NOT STORED. They are chosen standards — a dietary
-    reference intake, a WHO service level, a temperate degree-day baseline — and
-    chosen standards belong in `data.py` with the framework's other parameters,
-    not in the layer reserved for measured data. What this module keeps is the
-    measured half: `NUTRITION_HOURS_PER_KCAL` and the stratum it came from.
+    THE CALLER SUPPLIES THE QUANTITIES; THIS MODULE STORES NONE. They are chosen
+    standards — a dietary reference intake, a WHO service level, a temperate degree-day
+    baseline — and chosen standards belong in `data.py` with the framework's other
+    parameters, not in the layer reserved for measured data. What this module keeps is
+    the measured half: `NUTRITION_HOURS_PER_KCAL` and the stratum it came from.
 
     units: quantities per person per year, in each component's own unit.
 
@@ -695,10 +692,10 @@ def entitlement_augmentation(health_min_epsilon: float) -> list[dict]:
     """
     Owed, with no unassisted delivery path — a step-in term above `min_epsilon`.
 
-    `health_min_epsilon` is a CLASSIFICATION GATE rather than a quantity: below
-    it the component is owed and undeliverable, so the floor reports it as
-    `below_min_epsilon` rather than `unmeasured`. Either way it is EXCLUDED, not
-    costed at zero.
+    `health_min_epsilon` is a CLASSIFICATION GATE rather than a quantity: below it the
+    component is owed and undeliverable, so the floor reports it as `below_min_epsilon`
+    rather than `unmeasured`. Either way the floor EXCLUDES it and does not cost it at
+    zero.
 
     Args:
         health_min_epsilon: `data.BASKET_HEALTH_MIN_EPSILON`, ∈ [0, 1].
@@ -733,12 +730,14 @@ def full_basket(
     """
     The whole basket, survival core plus entitlement augmentation.
 
-    `coverage` over this list is dominated by what is unmeasured — one priced
-    component of seven, 6.9% — which is the honest reading of the parameter's
-    current state and not a defect of the list.
+    `coverage` over this list reports how much carries a price: three components of
+    seven, 0.759 at the shipped quantities (2026-10-18,
+    `personal_floor.obligation_floor`; one of seven and 6.9% when written). The rest
+    stays unmeasured, which is the honest reading of the parameter's state, not a defect
+    of the list.
 
-    Every quantity is supplied by the caller from `data.py`; see `survival_core`
-    for why. `scenarios.personal_floor` is the caller in this repo.
+    The caller supplies every quantity from `data.py`; see `survival_core` for why.
+    `scenarios.personal_floor` is the caller in this repo.
     """
     return survival_core(
         diet_kcal_per_day,

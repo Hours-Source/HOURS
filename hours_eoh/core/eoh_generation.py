@@ -1818,8 +1818,8 @@ def total_eoh(
         Personal:        1,352.8M h/yr
         Infrastructure:     95.5M h/yr
         Ecological:          0   h/yr  (empty by default under the partition)
-        Knowledge:          87.4M h/yr
-        Total:           1,535.6M h/yr
+        Knowledge:          87.5M h/yr
+        Total:           1,535.8M h/yr
 
     Compare at ε=0.0 (subsistence): total = 2,288M h/yr
     Compare at ε=0.90 (high automation): total = 2,432M h/yr

@@ -13,21 +13,20 @@ has appreciated acquiring another's whole productive base for a marginal quantit
 of its own.
 
 `research/exchange.parity_rate` is mint-per-capita over mint-per-capita with no
-real-output term. `research/register_federation` measured the consequence: a
-captured register APPRECIATES 1.2724× at ε=0.40. So the rule constrains work that
-already exists, and the open question is not WHETHER to settle on the base but
-**WHICH QUANTITY THE BASE IS**. The rule names the property — obligation-anchored,
-population-bounded — and not the equation. Choosing the equation was a theory
-commitment (§3 author sign-off), so this module did not choose: it evaluates the
-candidates side by side and reports what each does. **DECIDED 2026-09-30
-(author): REGISTERED settles (`exchange.registered_rate`), the FLOOR is reported
-beside it as purchasing power.** This module is the comparison behind that
-decision and stays reporting-only.
+real-output term. `research/register_federation` measured the consequence: a captured
+register APPRECIATES 1.2724× at ε=0.40. So the rule constrains work that already exists.
+The open question is not WHETHER to settle on the base but **WHICH QUANTITY THE BASE
+IS**. The rule names the property — obligation-anchored, population-bounded — and not
+the equation. Choosing the equation was a theory commitment (§3 author sign-off), so
+this module did not choose. It evaluates the candidates side by side and reports what
+each does. **DECIDED 2026-09-30 (author): REGISTERED settles
+(`exchange.registered_rate`), the FLOOR is reported beside it as purchasing power.**
+This module is the comparison behind that decision and stays reporting-only.
 
 THE CANDIDATES — what one TEH of collective c is taken to be worth
-------------------------------------------------------------------
-Each candidate is a per-collective BACKING, b(c), in some physical unit per TEH;
-the settlement rate is b(a)/b(b), in TEH_b per TEH_a.
+------------------------------------------------------------------ Each candidate is a
+per-collective BACKING, b(c), in some physical unit per TEH. The settlement rate is
+b(a)/b(b), in TEH_b per TEH_a.
 
     parity      b = teh_created / population      — the CURRENT form; the
                                                     baseline, not a candidate
@@ -44,39 +43,36 @@ the settlement rate is b(a)/b(b), in TEH_b per TEH_a.
                                                     with the mint replaced by the
                                                     obligation. NOT a per-TEH backing
 
-`parity`'s backing is not per-TEH at all, which is the defect in one line: it
-prices a unit by how MANY units were minted per person.
+`parity`'s backing is not per-TEH at all, which is the defect in one line: it prices a
+unit by how MANY units the mint issued per person.
 
 TWO CANDIDATES PASS THE CAPTURE TEST BY CONSTRUCTION, AND THAT IS REPORTED
---------------------------------------------------------------------------
-`registered` is 1/m: every collective built at the shipped multiplier settles at
-exactly 1.0 whatever else differs, so capture-neutrality there is an identity
-(CLAUDE.md failure mode 2). It becomes informative only when the collectives'
-multipliers DIFFER, and that case is run. `floor` reads ε and nothing else about
-the collective — no mint, no population, no capital — so it cannot respond to
-capture or to capital by construction; its only information is the automation
-level. Both are carried because the author may want exactly that property; they
-are flagged `by_construction` so a pass is not read as evidence.
+-------------------------------------------------------------------------- `registered`
+is 1/m: every collective built at the shipped multiplier settles at exactly 1.0 whatever
+else differs, so capture-neutrality there is an identity (CLAUDE.md failure mode 2). It
+becomes informative only when the collectives' multipliers DIFFER, and that case is run.
+`floor` reads ε and nothing else about the collective: no mint, no population, no
+capital. So by construction it cannot respond to capture or to capital; its only
+information is the automation level. The module carries both, because the author may
+want exactly that property. It flags them `by_construction`, so nobody reads a pass as
+evidence.
 
-THE FORK THE AUTHOR HAS TO SETTLE
----------------------------------
-`obligation` and `human` differ on ONE question: **does machine-fulfilled
-obligation back a TEH?** At high ε, a collective with 4× the capital settles
-above par under `obligation` and below it under `human` (pinned in
-`tests/test_settlement_base.py::TestTheFork`). That is not a calibration difference and it is not reported as one.
+THE FORK THE AUTHOR HAS TO SETTLE --------------------------------- `obligation` and
+`human` differ on ONE question: **does machine-fulfilled obligation back a TEH?** At
+high ε, a collective with 4× the capital settles above par under `obligation` and below
+it under `human` (pinned in `tests/test_settlement_base.py::TestTheFork`). That is not a
+calibration difference, and the module does not report it as one.
 
-WHAT THIS DOES NOT ESTABLISH
-----------------------------
-No actor, incentive or trade is modelled. There is no goods layer, so what a
-settled TEH buys on the far side is not represented (record/theory.md,
-capture-aggregate-bounded). Canonical-arc collectives take capital, age and
-health from `canonical_physical_state`; knowledge and monitoring state are left
-at the pipeline's own defaults.
+WHAT THIS DOES NOT ESTABLISH ---------------------------- The module models no actor,
+incentive or trade. There is no goods layer, so nothing represents what a settled TEH
+buys on the far side (record/theory.md, capture-aggregate-bounded). Canonical-arc
+collectives take capital, age and health from `canonical_physical_state`. Knowledge and
+monitoring state stay at the pipeline's own defaults.
 
-STATUS: experimental, reporting only. Nothing imports this. The base has been
-chosen (2026-09-30); `parity_rate` is kept unchanged as the superseded form, so
+STATUS: experimental, reporting only. Nothing imports this. The author chose the base on
+2026-09-30; `parity_rate` stays unchanged as the superseded form. So
 `tests/test_register_federation.py`'s capture tests remain true statements about
-`parity_rate` and are no longer statements about how the federation settles.
+`parity_rate`, and they no longer describe how the federation settles.
 
 Layer note: imports from `core/`, `data.py` and `research/exchange.py` only.
 """
@@ -90,12 +86,14 @@ from typing import Any, Callable
 from hours_eoh.data import (
     ARC_REPORTING_POINTS,
     COASEAN_IMBALANCE_CEILING,
+    EPSILON_ARC_MAX,
     LAND_HECTARES_PER_CAPITA,
     M_BAND_HIGH,
     M_BAND_LOW,
     REFERENCE_FRAME_POPULATION,
 )
 from hours_eoh.core.conditions import condition_ii_check
+from hours_eoh.core.eoh_fulfillment import eoh_to_teh_pipeline
 from hours_eoh.core.multipliers import population_weighted_mean_multiplier
 from hours_eoh.core.prices import floor_price
 from hours_eoh.core.registration import register_shares
@@ -226,7 +224,7 @@ def backing(c: Collective, base: str) -> float:
 
 def settlement_rate(a: Collective, b: Collective, base: str) -> float:
     """
-    TEH_b per TEH_a when one TEH of each is taken to be worth its backing.
+    TEH_b per TEH_a, when one TEH of each is worth its backing.
 
         r(a, b) = backing(a) / backing(b)
 
@@ -261,9 +259,9 @@ def capture_response(share_delta: float = 0.05, epsilon: float = 0.40) -> dict[s
     """
     Each base's rate for a capturing collective against an identical honest one.
 
-    The two differ ONLY in the personal registration share (asserted: the
-    obligation is identical). Above 1.0 the capture is REWARDED, below 1.0 it
-    is DISCIPLINED, exactly 1.0 it is NEUTRAL.
+    The two differ ONLY in the personal registration share (asserted: the obligation is
+    identical). Above 1.0 the base REWARDS the capture, below 1.0 it DISCIPLINES it, and
+    at exactly 1.0 it is NEUTRAL.
 
     ε-behaviour: parity's reward is largest at subsistence, where the register
     is nearly empty and a 5pp admission multiplies the mint; the per-TEH bases
@@ -325,14 +323,14 @@ def acquisition(a: Collective, b: Collective, base: str) -> dict[str, float]:
         cost_a = K_b / r(a, b)                 [TEH_a]
         years  = cost_a / teh_created(a)       [years of a's own mint]
 
-    and the same for b's whole annual mint. `years` is the quantity the §5
-    failure is stated in — "a MARGINAL quantity of its own" is a small `years`.
+    and the same for b's whole annual mint. `years` is the quantity §5 states the
+    failure in: "a MARGINAL quantity of its own" is a small `years`.
 
-    NOTE, found while building this: the obvious normalisation — `a`'s cost at
-    r = 1 over its cost at r — is IDENTICALLY r, because K_b and teh_created(a)
-    cancel. It was dropped rather than reported, since a "discount" column
-    equal to the rate column reads as a second, independent test and is not
-    one (CLAUDE.md failure mode 2).
+    NOTE, found while building this: the obvious normalisation — `a`'s cost at r = 1
+    over its cost at r — is IDENTICALLY r, because K_b and teh_created(a) cancel. The
+    module dropped it instead of reporting it. A "discount" column equal to the rate
+    column reads as a second, independent test, and it is not one (CLAUDE.md failure
+    mode 2).
     """
     r = settlement_rate(a, b, base)
     k_b = b.frame.capital_stock_teh
@@ -368,18 +366,18 @@ def arc_pairing(
     Every ordered pair of collectives at different ε, per base: the rate
     extrema and the cheapest whole-base acquisition.
 
-    `pairing="arc"` builds each collective on the canonical arc (capital, age
-    and health from `canonical_physical_state`). The arc holds no capital at
-    ε=0, and `_arc_collective` EXCLUDES that point. The original reason — a
-    frame with no capital was refused — stopped being true on 2026-09-30, when
-    zero capital became a valid frame; the exclusion is kept because the arc
-    extrema recorded in `record/contestability.md` were measured without it,
-    and the FIXED pairing below already covers ε=0. So those points are EXCLUDED
-    and listed — the subsistence end is then covered only by `"fixed"`.
+    `pairing="arc"` builds each collective on the canonical arc (capital, age and health
+    from `canonical_physical_state`). The arc holds no capital at ε=0, and
+    `_arc_collective` EXCLUDES that point. The original reason — a frame with no capital
+    was refused — stopped being true on 2026-09-30, when zero capital became a valid
+    frame; the exclusion is kept because the arc extrema recorded in
+    `record/contestability.md` were measured without it, and the FIXED pairing below
+    already covers ε=0. So the function EXCLUDES those points and lists them; only
+    `"fixed"` then covers the subsistence end.
 
-    `pairing="fixed"` holds the frame at the ε=0.40 reference intensity and
-    varies only ε — isolating the automation level from the capital that
-    usually accompanies it, and reaching ε=0.
+    `pairing="fixed"` holds the frame at the ε=0.40 reference intensity and varies only
+    ε. That isolates the automation level from the capital that usually comes with it,
+    and it reaches ε=0.
 
     Reports, per base: min/max rate over all pairs with the ε-pair where each
     sits (min = 1/max, since every base is reciprocal — so `max_rate` alone is
@@ -517,8 +515,27 @@ def frame_check(epsilon: float = 0.40) -> dict[str, Any]:
 # One call
 # ---------------------------------------------------------------------------
 
+def teh_per_eoh_spread(step: float = 0.01) -> dict[str, float]:
+    """How far TEH minted per hour of obligation runs along the arc.
+
+    Read on a grid (`step`), because an extremum sits between the reporting
+    points (CLAUDE.md failure mode 3). The ε=0 end is where the register admits
+    least, so it holds the minimum.
+    """
+    n = round(EPSILON_ARC_MAX / step)
+    rows = []
+    for i in range(n + 1):
+        r = eoh_to_teh_pipeline(epsilon=i * step)
+        rows.append((i * step, r["teh_created"] / r["total_eoh"]))
+    lo = min(rows, key=lambda t: t[1])
+    hi = max(rows, key=lambda t: t[1])
+    return {"min": lo[1], "min_at": lo[0], "max": hi[1], "max_at": hi[0],
+            "spread": hi[1] / lo[1]}
+
+
 def base_report() -> dict[str, Any]:
     """Everything above, and what only the author can decide."""
+    spread = teh_per_eoh_spread()
     return {
         "capture": {e: capture_response(epsilon=e) for e in ARC_REPORTING_POINTS},
         "multiplier": multiplier_response(),
@@ -526,9 +543,11 @@ def base_report() -> dict[str, Any]:
         "fixed": arc_pairing(pairing="fixed"),
         "decomposition": spread_decomposition(),
         "frame": frame_check(),
+        "teh_per_eoh_spread": spread,
         "author_decides": [
             "THE TRADE-OFF THE TABLE SHOWS: every base that disciplines issuance "
-            "reads TEH-per-EOH, which legitimately runs ~20x along the arc, so it "
+            f"reads TEH-per-EOH, which legitimately runs {spread['spread']:.0f}x "
+            "along the arc, so it "
             "inherits that spread; the only bounded base that sees the collective "
             "(obligation_parity) is blind to issuance — including a multiplier "
             "set above the shipped one. A base measured against the published registration "
@@ -581,11 +600,10 @@ def registered_settlement(a: Collective, b: Collective) -> dict[str, Any]:
     here is a base EOH there" read literally.
 
     THE BOUND IS CONDITIONAL. r lies inside `BAND_RATE_BOUNDS` only when both
-    multipliers lie inside the Condition II band — and nothing in
-    `build_collective` enforces the band; a caller can mint at any multiplier.
-    So the check runs on both sides and travels with the rate: a breach is
-    reported, never clamped, because clamping would hide the state Condition II
-    exists to surface.
+    multipliers lie inside the Condition II band — and nothing in `build_collective`
+    enforces the band; a caller can mint at any multiplier. So the check runs on both
+    sides and travels with the rate. The function reports a breach and never clamps it,
+    because clamping would hide the state Condition II exists to surface.
     """
     m_a = float(a.pipeline["mean_multiplier"])
     m_b = float(b.pipeline["mean_multiplier"])
@@ -619,21 +637,21 @@ def composition_pairing(
     `registered` is more than that depends on multipliers actually differing
     between collectives.
 
-    The multipliers here come from `reference/workforce.WORKFORCE_SNAPSHOTS`.
-    READ WHAT THEY ARE (failure mode 8): five ILLUSTRATIVE compositions written
-    to sit at chosen band positions, not measurements of any economy. THREE sit
-    out of band: `below_band` and `above_band` by design, and `high_epsilon` —
-    the composition written to represent the NATURAL high-ε workforce, base
-    tier automated away — at ≈2.22, with nobody gaming anything. If
-    `registered` settles, a federation's high-ε members are flagged by their
-    skill mix, and the band bound fails where the arc is heading.
+    The multipliers here come from `reference/workforce.WORKFORCE_SNAPSHOTS`. READ WHAT
+    THEY ARE (failure mode 8): five ILLUSTRATIVE compositions written to sit at chosen
+    band positions, not measurements of any economy. THREE sit out of band: `below_band`
+    and `above_band` by design, and `high_epsilon` — the composition written to
+    represent the NATURAL high-ε workforce, base tier automated away — at ≈2.22, with
+    nobody gaming anything. If `registered` settles, the check flags a federation's
+    high-ε members for their skill mix, and the band bound fails where the arc is
+    heading.
 
-    In-band pairs staying inside `BAND_RATE_BOUNDS` is ALGEBRA, not a result
-    (both m in [LOW, HIGH] ⇒ m_b/m_a in [LOW/HIGH, HIGH/LOW]); the informative
-    counts are the breach pairs that leave it. They show what the rate does across
-    compositions; they do not show that real collectives differ this much.
-    Every collective is built at the same ε and frame, so the multiplier is the
-    only thing that differs.
+    In-band pairs staying inside `BAND_RATE_BOUNDS` is ALGEBRA, not a result (both m in
+    [LOW, HIGH] ⇒ m_b/m_a in [LOW/HIGH, HIGH/LOW]); the informative counts are the
+    breach pairs that leave it. They show what the rate does across compositions; they
+    do not show that real collectives differ this much. The function builds every
+    collective at the same ε and frame, so the multiplier is the only thing that
+    differs.
     """
     ms = {k: population_weighted_mean_multiplier(WORKFORCE_SNAPSHOTS[k]) for k in snapshots}
     cs = {
@@ -660,18 +678,17 @@ def composition_pairing(
 
 def floor_epsilon_seam(points: tuple[float, ...] = ARC_REPORTING_POINTS) -> dict[str, Any]:
     """
-    WHICH ε THE FLOOR IS A FUNCTION OF — DECIDED 2026-09-30 (author): the
-    OBSERVED ε. This function is the comparison that decision was made on and
-    stays as the record of what the two readings give.
+    WHICH ε THE FLOOR IS A FUNCTION OF — DECIDED 2026-09-30 (author): the OBSERVED ε.
+    This function is the comparison behind that decision, and it stays as the record of
+    what the two readings give.
 
-    `floor_price(ε)` is called with the SUPPLIED capability index at every call
-    site in `core/` and `scenarios/`. The physical machine share is the
-    OBSERVED ε, `machine_eoh / total_eoh`, and under `per_component` it sits
-    strictly below the capability away from zero, because care resists
-    automation (record/fulfilment.md). A settlement leg on the supplied ε settles
-    against a number the collective STATES; on the observed ε, against one it
-    MEASURES. The switch was made repo-wide wherever a caller holds the
-    obligation (record/fulfilment.md#floor-reads-observed-epsilon).
+    Every call site in `core/` and `scenarios/` called `floor_price(ε)` with the
+    SUPPLIED capability index. The physical machine share is the OBSERVED ε,
+    `machine_eoh / total_eoh`, and under `per_component` it sits strictly below the
+    capability away from zero, because care resists automation (record/fulfilment.md). A
+    settlement leg on the supplied ε settles against a number the collective STATES; on
+    the observed ε, against one it MEASURES. The switch applies repo-wide wherever a
+    caller holds the obligation (record/fulfilment.md#floor-reads-observed-epsilon).
 
     Reports, at each point on the fixed reference frame: both ε, both floors,
     and the settlement rate against the ε=0 collective under each.
@@ -707,7 +724,7 @@ def purchasing_gain(a: Collective, b: Collective, floor_base: str = "floor_obser
 
         gain = r_floor(a, b) / r_registered(a, b)
 
-    The floor is read at the OBSERVED ε by default (author, 2026-09-30);
+    By default the function reads the floor at the OBSERVED ε (author, 2026-09-30);
     `floor_base="floor"` gives the supplied-ε comparison.
 
     Settle on `registered` (hours for hours), then spend at b's floor: `gain`
@@ -761,11 +778,11 @@ def book_exercise(
     in resident holdings (the revaluation), whether both books balance, and
     whether either side breached.
 
-    Under parity the honest collective receives MORE than was sent, in a unit
-    the capture made look productive, and federation holdings grow by the
-    revaluation. Under a neutral base it receives exactly what was sent and
-    federation holdings are conserved — which, before `transfer`'s sender leg
-    was corrected on 2026-09-30, no base could show.
+    Under parity the honest collective receives MORE than the sender sent, in a unit the
+    capture made look productive, and federation holdings grow by the revaluation. Under
+    a neutral base it receives exactly what was sent and federation holdings are
+    conserved — which, before `transfer`'s sender leg was corrected on 2026-09-30, no
+    base could show.
     """
     honest = build_collective(_reference_frame(0), epsilon)
     captured = build_collective(

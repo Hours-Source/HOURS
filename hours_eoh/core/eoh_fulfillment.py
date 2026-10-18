@@ -25,24 +25,22 @@ be seen.
 human share, the observed machine share is strictly BELOW the supplied index
 everywhere except zero, and the two separate further as the index rises.
 
-So the input is a **machine-capability index** and ε proper is the **observed
-share**. Both are reported; `observable_epsilon()` derives the second from the
-first, and `observable_epsilon_ceiling()` gives the limit — which is why the arc
-stops short of 1 as a consequence of the declared floors rather than as a
-convention.
+So the input is a **machine-capability index** and ε proper is the **observed share**.
+The module reports both; `observable_epsilon()` derives the second from the first, and
+`observable_epsilon_ceiling()` gives the limit — which is why the arc stops short of 1
+as a consequence of the declared floors rather than as a convention.
 
-THE ARC IS NOT TABULATED HERE, deliberately. A table of the two quantities sat
-in this docstring and was stale from the day `NUTRITION_AUTOMATION_FLOOR` was
-adopted — every figure in it too high, and no test failed, because the suite
-pins shapes and a restated number is not a shape. Both quantities move with the
-floors table and the component shares, neither of which is settled, so call the
-two functions for the levels. `TestNoFigureIsRestatedInProse` in
-`tests/test_capability_vs_observable.py` keeps them out of this file.
+THIS DOCSTRING CARRIES NO TABLE OF THE ARC, deliberately. A table of the two quantities
+sat in this docstring and was stale from the day `NUTRITION_AUTOMATION_FLOOR` was
+adopted — every figure in it too high, and no test failed, because the suite pins shapes
+and a restated number is not a shape. Both quantities move with the floors table and the
+component shares, and neither of those is settled, so call the two functions for the
+levels. `TestNoFigureIsRestatedInProse` in `tests/test_capability_vs_observable.py`
+keeps them out of this file.
 
-`epsilon=` remains accepted everywhere as the historical name for the capability
-index, and nothing that passed it before behaves differently. What changed is
-that the derived quantity is now reported beside it instead of being assumed
-equal to it.
+`epsilon=` remains accepted everywhere as the historical name for the capability index,
+and nothing that passed it before behaves differently. What changed is that the module
+now reports the derived quantity beside it, instead of assuming the two are equal.
 
 Mission Statement: §"EOH as demand signal", §"The dual ledger",
 §"Condition I — Ledger Identity", §"Guardrail II — Capital write-down"
@@ -203,14 +201,14 @@ def capital_writedown(
     """
     TEH destroyed when assets degrade beyond recoverability (capital write-down).
 
-    When capital degrades beyond the recoverability threshold, the associated
-    EOH is formally written off and the TEH embodied in that capital is
-    destroyed. For human capital: death is a write-down — the person's personal
-    EOH vanishes and their entropy-reduction capacity must be redistributed.
+    When capital degrades beyond the recoverability threshold, the write-down formally
+    removes the associated EOH and destroys the TEH embodied in that capital. For human
+    capital, death is a write-down: the person's personal EOH vanishes, and others must
+    take up their entropy-reduction capacity.
 
-    Higher ε enables better monitoring and predictive maintenance, slightly
-    reducing the fraction of capital that fails catastrophically (versus being
-    maintained in time).
+    Higher ε enables better monitoring and predictive maintenance, which slightly
+    reduces the fraction of capital that fails catastrophically instead of receiving
+    maintenance in time.
 
     Args:
         capital_stock_teh: Current capital stock value in TEH.
@@ -246,22 +244,22 @@ def teh_supply(
     This is the operational definition of Condition I (Ledger Identity) for a
     collective that began at zero.
 
-    SCOPE — READ THIS BEFORE USING IT (2026-09-01). **This function has no
-    callers, and it raises on the shipped model's canonical trajectory.** The
-    simulated economy starts with a founding endowment — a Trust balance plus
-    embodied capital that no registered fulfilment created — so `simulate_period`
-    computes `teh_endowment + created - destroyed` instead, and destruction
-    legitimately exceeds creation for a long initial stretch while that founding
-    stock is retired. Handed those cumulative flows, the guard below fires.
+    SCOPE — READ THIS BEFORE USING IT (2026-09-01). **This function has no callers.**
+    The simulated economy starts with a founding endowment: a Trust balance plus
+    embodied capital that no registered fulfilment created. So `simulate_period`
+    computes `teh_endowment + created - destroyed` instead, and this function's result
+    falls short of the shipped supply by exactly that endowment. It once raised on the
+    shipped flows, and that stopped on 2026-09-17
+    ([record](record/verification.md#teh-supply-guard-re-pointed)).
 
-    The doctrine quoted under Reference is NOT amended here: for a collective
-    founded at zero this function is exactly right, and the identity it states is
-    the bound the framework's value-anchor argument wants. What is recorded is
-    that the shipped model is not that collective, and that the two accounts have
-    to be told apart. `tests/test_stock_is_bounded.py` pins both — the endowed
-    identity that holds every period, and this function's refusal of the endowed
-    trajectory — and fails if this acquires a caller, since that would be either
-    a bug or a decision to model an endowment-free economy.
+    This docstring does NOT amend the doctrine quoted under Reference. For a collective
+    founded at zero this function is exactly right, and the identity it states is the
+    bound the framework's value-anchor argument wants. The record says the shipped model
+    is not that collective, and that a reader must tell the two accounts apart.
+    `tests/test_stock_is_bounded.py` pins both: the endowed identity that holds every
+    period, and the endowment as the exact difference between the two accounts. It fails
+    if this function acquires a caller, since that would be either a bug or a decision
+    to model an endowment-free economy.
 
     Spending and levies are circulatory — they move TEH between accounts but
     do not appear here. Only terminal consumption and capital write-down remove
@@ -327,9 +325,9 @@ def personal_human_fraction(
     units: dimensionless fraction in [0, 1].
 
     ε-behaviour: both forms equal 1.0 at ε=0 — with nothing automated a floor ON
-    automation cannot bite, and that coincidence is the control. They diverge as
-    ε rises; at ε=0.99 uniform gives 0.0100 and per_component 0.1022, a factor
-    of 10.2.
+    automation cannot bite, and that coincidence is the control. They diverge as ε
+    rises: at ε=0.99 uniform gives 0.0100 and per_component 0.2202 on 2026-10-18, a
+    factor of 22.0 (10.2 when only care carried a floor, at 0.15).
 
     WHY THIS EXISTS. `CARE_AUTOMATION_FLOOR`'s own tag block says relational care
     "cannot be automated at any ε — a commitment about what care IS", and Block
@@ -343,9 +341,9 @@ def personal_human_fraction(
     `PERSONAL_EOH_COMPONENTS` is the most infrastructure can REMOVE — a(K),
     ε-free by construction. This is who does what REMAINS. They compose.
 
-    Worked example (ε=0.99, per_component): care is 62.1% of personal and floors
-    at 0.15 + 0.85·0.01 = 0.1585; the other 37.9% carry no floor and give 0.0100;
-    the weighted fraction is 0.1022.
+    Worked example (ε=0.99, per_component, 2026-10-18): care (62.1% of personal) and
+    nutrition (13.8%) floor at 0.2799 + 0.7201·0.01 = 0.2871; the other 24.1% carry no
+    floor and give 0.0100; the weighted fraction is 0.2202.
 
     Args:
         epsilon: Automation level [0.0, 1.0].
@@ -379,12 +377,11 @@ def _resolve_capability(epsilon: float | None, machine_capability: float | None,
     """
     Accept either name for the machine-capability index; refuse both.
 
-    `epsilon=` is the historical name and still works. `machine_capability=` is
-    the name the quantity earns after 2026-09-01 (see the CAPABILITY vs OBSERVED
-    block above). Supplying both with different values RAISES rather than
-    silently preferring one — the `total_eoh` base-vs-area precedent. Supplying
-    both with the SAME value is permitted, since a caller migrating names should
-    not be punished for being explicit.
+    `epsilon=` is the historical name and still works. `machine_capability=` is the name
+    the quantity earns after 2026-09-01 (see the CAPABILITY vs OBSERVED block above).
+    Supplying both with different values RAISES rather than silently preferring one —
+    the `total_eoh` base-vs-area precedent. A caller may supply both with the SAME
+    value, since a caller who migrates names should not suffer for being explicit.
     """
     if epsilon is not None and machine_capability is not None:
         if epsilon != machine_capability:
@@ -423,8 +420,8 @@ def observable_epsilon(
     parameter is a statement about machines; this is the statement about the
     ledger, and at a high index the two differ by more than a rounding.
 
-    The gap is not quoted here: it moves with the floors table and the component
-    shares. Call this function on the state you hold.
+    This docstring does not quote the gap: it moves with the floors table and the
+    component shares. Call this function on the state you hold.
 
     RELATION TO `trajectory.compute_epsilon`. That function normalises by the
     fully-recognised collective potential, so it additionally carries the
@@ -519,9 +516,9 @@ def human_eoh_per_domain(
         }
 
     THE TWO ε KEYS ARE NOT THE SAME QUANTITY, and after Phase 2 they differ.
-    `epsilon`/`machine_capability` is what was supplied; `epsilon_observable` is
-    what the resulting split implies. Reporting only the first is how a parameter
-    comes to be quoted as an outcome. See `observable_epsilon`.
+    `epsilon`/`machine_capability` is what was supplied; `epsilon_observable` is what
+    the resulting split implies. A report of the first alone is how a parameter comes to
+    be quoted as an outcome. See `observable_epsilon`.
 
     Reference: Mission Statement §"EOH and automation".
 
@@ -578,14 +575,13 @@ def labor_constrained_fulfillment(
     rationing: str = "survival_first",
 ) -> dict:
     """
-    Split human-carried EOH demand into what labor can SERVE and what is DEFERRED.
+    Split human-carried EOH demand into what labour can SERVE and what it must DEFER.
 
     The pipeline's default assumption is that every hour of human-carried EOH gets
-    worked: human_eoh = (1−ε)·total, full stop. That is a demand figure being
-    reported as a fulfillment figure, and it hides the one thing an obligation
-    ledger exists to show — obligation that goes unmet. Ecological EOH has carried
-    a `deferred` term since the beginning; personal EOH, which is the survival
-    floor, carried none.
+    worked: human_eoh = (1−ε)·total, full stop. That reports a demand figure as a
+    fulfilment figure, and it hides the one thing an obligation ledger exists to show:
+    obligation that goes unmet. Ecological EOH has carried a `deferred` term since the
+    beginning; personal EOH, which is the survival floor, carried none.
 
     Governing relations:
 
@@ -644,11 +640,12 @@ def labor_constrained_fulfillment(
     Raises:
         ValueError: on negative labor, negative demand, or an unknown doctrine.
 
-    Worked example (1M people, ε=0, shipped constants, L = 1e9 h/yr):
-        personal demand    2,213M h/yr      served 1,000M    deferred 1,213M
-        non-personal          76M h/yr      served     0M    deferred    76M
-        coverage 0.437 — the population can cover 44% of its obligation, and
-        under survival_first every hour of labor goes to personal EOH with
+    Worked example (1M people, ε=0, shipped constants, L = 1e9 h/yr; run through
+    `eoh_to_teh_pipeline(epsilon=0.0, available_labor_eoh=1e9)`, 2026-10-18):
+        personal demand    1,352.8M h/yr    served 1,000M    deferred 352.8M
+        non-personal           7.8M h/yr    served     0M    deferred   7.8M
+        coverage 0.735: the population can cover 73% of its obligation, and
+        under survival_first every hour of labour goes to personal EOH, with
         nothing left for infrastructure, ecology or knowledge.
     """
     if available_labor_eoh < 0.0:
@@ -792,7 +789,7 @@ def eoh_to_teh_pipeline(
       3. registered_eoh(human, share_by_domain)   → per-domain registration
       4. teh_created(registered_total, mult)      → TEH generated this period
 
-    Registration is applied per-domain — a critical distinction:
+    Registration applies per domain, a critical distinction:
       - Personal EOH uses personal_eoh_registration_share(ε): demand registration,
         tracking what fraction of biological obligation is collectively recognized.
         Near-zero at ε=0; rises to ~0.95 by ε=0.99. Inflection at ε=0.65.
@@ -800,11 +797,10 @@ def eoh_to_teh_pipeline(
         labor registration, tracking what fraction of fulfillment labor is on
         the collective ledger.
 
-    If registration_share is provided (non-None), it overrides BOTH personal
-    and non-personal registration uniformly — useful for scenario testing.
-    If personal_registration_share is provided separately, it overrides only
-    the personal domain while non-personal uses the dynamic (or registration_share)
-    value.
+    A registration_share (non-None) overrides BOTH personal and non-personal
+    registration uniformly, which is useful for scenario testing. A separate
+    personal_registration_share overrides only the personal domain, while non-personal
+    uses the dynamic (or registration_share) value.
 
     Args:
         epsilon: Automation level [0.0, 0.99]. Applied consistently to all steps.
@@ -878,17 +874,20 @@ def eoh_to_teh_pipeline(
     as registration rates saturate; TEH_created peaks near mid-arc and collapses
     as ε → 1 (machines handle almost everything).
 
-    Worked example at ε=0.40 (canonical defaults, population=1M, m̄=2.10):
-        total_eoh   = 2,353M h/yr
-        human_eoh   = 2,353M × 0.60         = 1,412M h/yr  (1−ε share)
-        personal reg = 313M × 0.141         =    44M h/yr  (demand sigmoid pers_reg(0.40)=0.141)
-        non-pers reg = 1,098M × 0.592       =   191M h/yr  (labor sigmoid np_reg(0.40)=0.592)
-        registered  =   44M + 191M          =   235M h/yr
-        TEH_created = 235M × 2.10           =   494M TEH/yr
+    Worked example at ε=0.40 (canonical defaults, population=1M; read 2026-10-18 from
+    `eoh_to_teh_pipeline(epsilon=0.40)`):
+        total_eoh    = 1,535.8M h/yr
+        human_eoh    = 1,036.4M h/yr  (floors keep personal above the 1−ε share)
+        personal reg =   926.6M × 0.141 = 130.3M h/yr  (pers_reg(0.40) = 0.141)
+        non-pers reg =   109.8M × 0.378 =  41.6M h/yr  (composite 0.378)
+        registered   =   130.3M + 41.6M = 171.9M h/yr
+        TEH_created  =   171.9M × 1.996 = 343.1M TEH/yr
 
-    For comparison:
-        ε=0.00: total=2,288M, human=2,288M, reg=33M, TEH=70M  (near-zero personal reg)
-        ε=0.90: total=2,432M, human=243M,   reg=199M, TEH=419M (high reg, low human supply)
+    For comparison (same call, 2026-10-18):
+        ε=0.00: total=1,360.6M, human=1,360.6M, reg=13.6M,  TEH=27.2M  (near-zero
+        personal reg)
+        ε=0.90: total=2,155.9M, human=474.1M,   reg=373.1M, TEH=745.0M (high reg, low
+        human supply)
 
     Reference: Mission Statement §"EOH as demand signal" — the pipeline from
     physical obligation to currency creation must be transparent and auditable.

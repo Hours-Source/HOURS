@@ -13,8 +13,8 @@ right; accounting asks whether the entries add up whatever the rate is.
 
 THE FEDERATION NOW BUILDS ON THIS (2026-09-30). `coasean.make_federation`,
 `merge_collectives` and `split_collective` construct `CollectiveFrame`s and call
-`build_collective`; `coasean.Collective` is this module's `Collective`. What
-follows is why this module was written frame-first in the first place.
+`build_collective`; `coasean.Collective` is this module's `Collective`. What follows is
+why this module put the frame first from the start.
 
 WHY IT DID NOT BUILD ON `make_federation`. The coasean factory exposed exactly
 one heterogeneity lever — `ecosystem_health_schedule` — and the ecological domain
@@ -31,16 +31,16 @@ differ in capital and the same parity equation gives rates spanning 0.67–1.49.
 So this module takes its collectives from a declared FRAME and drives the core
 pipeline directly.
 
-THE FRAME IS THE PRECONDITION, NOT A CONVENIENCE. Population, land and capital
-are all extensive: pairing one jurisdiction's population with another's land
-silently rescales a domain, and this repo has found that defect six times, most
-recently on the documented institutional intake path (`fiscal_snapshot`,
-2026-08-20, 92.8× inside the implementation guide's own worked example). An
-exchange rate is a RATIO of two collectives' per-capita output, so an undeclared
-frame on either side lands directly in the rate with nothing to flag it. (True of
-the superseded PARITY rate; the adopted settlement rate, `registered_rate`, reads
-no extensive quantity. The frame still governs every other figure here.)
-`CollectiveFrame` therefore has no default land area — the frame must be stated.
+THE FRAME IS THE PRECONDITION, NOT A CONVENIENCE. Population, land and capital are all
+extensive: pairing one jurisdiction's population with another's land silently rescales a
+domain, and this repo has found that defect repeatedly (CLAUDE.md, failure mode 6), at
+the time most recently on the documented institutional intake path (`fiscal_snapshot`,
+2026-08-20, 92.8× inside the implementation guide's own worked example). An exchange
+rate is a RATIO of two collectives' per-capita output. An undeclared frame on either
+side lands directly in the rate, and nothing flags it. (True of the superseded PARITY
+rate; the adopted settlement rate, `registered_rate`, reads no extensive quantity. The
+frame still governs every other figure here.) `CollectiveFrame` therefore has no default
+land area: the caller must state the frame.
 
 STATUS: experimental, per `research/__init__.py`. The API is not stable.
 
@@ -99,17 +99,16 @@ class CollectiveFrame:
 
     Governing rule (not an equation — a well-formedness condition):
 
-        a frame is (population, land_hectares, capital_stock_teh) for ONE
-        jurisdiction; no member may be taken from a different one.
+        a frame is (population, land_hectares, capital_stock_teh) for ONE jurisdiction;
+        no member may come from a different one.
 
-    THE DEFECT THIS EXISTS TO PREVENT. Every one of the six instances this repo
-    has found had the same shape: a caller scaled one quantity with `population`
-    and let another resolve to a default keyed to a different jurisdiction. The
-    ecological domain is the usual casualty because its default anchor is the
-    whole contiguous US (765,495,267 ha) while the package default population is
-    1e6 — a ratio of 335 that nothing connected. Bundling the three into a single
-    frozen value makes the mismatch impossible to express rather than merely
-    detectable after the fact.
+    THE DEFECT THIS EXISTS TO PREVENT. Every instance this repo had found when this was
+    written had the same shape: a caller scaled one quantity with `population` and let
+    another resolve to a default keyed to a different jurisdiction. The ecological
+    domain is the usual casualty because its default anchor is the whole contiguous US
+    (765,495,267 ha) while the package default population is 1e6 — a ratio of 335 that
+    nothing connected. Bundling the three into a single frozen value makes the mismatch
+    impossible to express rather than merely detectable after the fact.
 
     Units
     -----
@@ -272,9 +271,9 @@ class Collective:
         """
         Per-capita output — the quantity an exchange rate is a ratio OF.
 
-        Units: TEH per person per year. This is the intensive quantity, which is
-        why the frame must be right: dividing one jurisdiction's output by
-        another's population produces a per-capita figure belonging to neither.
+        Units: TEH per person per year. This is the intensive quantity, so the frame
+        must be right. One jurisdiction's output over another's population gives a
+        per-capita figure that belongs to neither.
         """
         return self.teh_created / self.frame.population
 
@@ -323,9 +322,9 @@ def build_collective(
         epsilon: Automation level ∈ [0, 0.99].
         reserve: A reserve carried in by a boundary event (merge / split), in
             this collective's unit. None → the earmark on this period's mint.
-        **pipeline_kwargs: Forwarded to `eoh_to_teh_pipeline`. Anything that
-            would restate a frame quantity is refused rather than silently
-            preferred — see Raises. A quantity `fiscal_snapshot` also takes
+        **pipeline_kwargs: Forwarded to `eoh_to_teh_pipeline`. The function refuses
+        anything that would restate a frame quantity, and never silently prefers it (see
+        Raises). A quantity `fiscal_snapshot` also takes
             (`core.fiscal.PIPELINE_SHARED_PARAMS`, by its pipeline name) is
             forwarded to the fisc too, under the fisc's name (2026-10-14):
             until then an age mix reached the pipeline and not the guarantee,
@@ -409,11 +408,11 @@ def parity_rate(a: Collective, b: Collective, premium: float = 0.0) -> float:
 
         r(a, b) = [ teh_created(a)/pop(a) ] / [ teh_created(b)/pop(b) ] · (1 + premium)
 
-    This is the exchange-rate analogue of the floor price (reconciliation §3):
-    a computed reference the ledger can back, with discovered deviation layered
-    on top. The parity leg is what the collectives' own measured output supports;
-    `premium` is everything else — preference, reserves, balance of trade — and
-    is supplied, never derived. The module does not pretend to discover it.
+    This is the exchange-rate analogue of the floor price (reconciliation §3): a
+    computed reference the ledger can back, with discovered deviation layered on top.
+    The parity leg is what the collectives' own measured output supports; `premium` is
+    everything else (preference, reserves, balance of trade); the caller supplies it,
+    and nothing derives it. The module does not pretend to discover it.
 
     Interpretation:
         r > 1 → one unit of a's TEH buys more than one unit of b's
@@ -523,16 +522,16 @@ def settlement_terms(a: Collective, b: Collective) -> dict[str, Any]:
     APPLIED: `rate` (= `registered_rate`). Nothing else here moves money.
 
     REPORTED BESIDE IT:
-      - Condition II status of each side and whether the bound holds. A breach
-        is reported, never clamped — clamping would hide the state Condition II
-        exists to surface, and would itself be a discovered rate.
+      - Condition II status of each side and whether the bound holds. The function
+      reports a breach and never clamps it. Clamping would hide the state Condition II
+      exists to surface, and would itself be a discovered rate.
       - the FLOOR reading: `floor_rate` = floor(ε_b)/floor(ε_a), the TEH_b
         that buy what one TEH_a buys at the floor; and `purchasing_gain` =
         floor_rate / rate, baskets on the far side per basket the same hours
         buy at home. Read at the OBSERVED ε — the machine share the ledger
-        measures (author decision, 2026-09-30). The same figures at the
-        SUPPLIED capability are kept under `*_supplied` as a comparison, and
-        `*_observed` names the primary explicitly. The ratio, not the product:
+        measures (author decision, 2026-09-30). The same figures at the SUPPLIED
+        capability stay under `*_supplied` as a comparison, and `*_observed` names the
+        primary explicitly. The ratio, not the product:
         the product has units (TEH_b/TEH_a)².
     """
     r = registered_rate(a, b)
@@ -591,9 +590,9 @@ class Entry:
     """
     One double-entry posting, in ONE collective's unit of account.
 
-    Units: `amount` is TEH of the ledger's own collective. A cross-collective
-    flow is TWO entries in TWO ledgers, never one entry spanning both — that is
-    what makes the FX difference explicit instead of hidden in a rounding term.
+    Units: `amount` is TEH of the ledger's own collective. A cross-collective flow is
+    TWO entries in TWO ledgers, never one entry that spans both. That makes the FX
+    difference explicit instead of hiding it in a rounding term.
     """
 
     debit:  str
@@ -626,12 +625,12 @@ class Ledger:
     runs negative (it has supplied TEH to the economy) and `destruction` runs
     positive (it has absorbed TEH). Both are correct signs, not errors.
 
-    Condition III (zero interest) is a property this ledger MAKES CHECKABLE but
-    neither enforces nor currently checks: balances change only by posting, so a
-    balance that grew without an entry is impossible. What is NOT implemented is
-    the stronger test — that every credit into a member account is traceable to
-    labour or transfer. `balances_to_zero()` checks double-entry balance, which
-    is a different property; do not read it as a Condition III check.
+    Condition III (zero interest) is a property this ledger MAKES CHECKABLE but neither
+    enforces nor currently checks: balances change only by posting, so a balance that
+    grew without an entry is impossible. The module does NOT implement the stronger
+    test: that every credit into a member account traces to labour or transfer.
+    `balances_to_zero()` checks double-entry balance, which is a different property; do
+    not read it as a Condition III check.
 
     Worked example
     --------------
@@ -701,8 +700,9 @@ class Ledger:
         return total
 
     def accounts(self) -> set[str]:
-        """Every account named by a posting. Malformed legs are skipped here and
-        caught by `balances_to_zero`, which is where they should be reported."""
+        """Every account named by a posting. This skips malformed legs;
+        `balances_to_zero` catches them, which is where they belong.
+        """
         out: set[str] = set()
         for e in self.entries:
             if e.debit:
@@ -720,20 +720,20 @@ class Ledger:
         THE ACCOUNTING INVARIANT: every posting is two-legged and the signed
         balances sum to zero.
 
-        THE WELL-FORMEDNESS CHECK IS THE REAL WORK, and it is here because the
-        sum alone is close to an IDENTITY. `post()` writes both legs from one
-        `Entry`, so the total is zero for any inputs — 200 random postings with
-        arbitrary accounts and amounts still sum to zero. A test asserting only
-        the sum guards the `Entry` type and the float accumulation, not the
-        book. Checking that each entry actually HAS both legs is what would
-        catch a future one-legged posting path, which is the realistic bug.
+        THE WELL-FORMEDNESS CHECK IS THE REAL WORK, and it is here because the sum alone
+        is close to an IDENTITY. `post()` writes both legs from one `Entry`, so the
+        total is zero for any inputs: 200 random postings with arbitrary accounts and
+        amounts still sum to zero. A test asserting only the sum guards the `Entry` type
+        and the float accumulation, not the book. Checking that each entry actually HAS
+        both legs is what would catch a future one-legged posting path, which is the
+        realistic bug.
 
         (Found while reviewing this repo's tests on 2026-08-27 — the same shape
         as `epoch_alpha_weights`' sum-to-ALPHA_SCALE assertion, reproduced here
         in code written during that very review.)
 
-        Scale-relative, because a federation at 1e10 TEH cannot be held to an
-        absolute 1e-9: the tolerance is `tolerance × max(1, total posted)`.
+        Scale-relative, because an absolute 1e-9 cannot hold a federation at 1e10 TEH:
+        the tolerance is `tolerance × max(1, total posted)`.
         """
         for e in self.entries:
             if not getattr(e, "debit", None) or not getattr(e, "credit", None):
@@ -746,9 +746,9 @@ class Ledger:
         TEH held by this collective's residents: circulation + reserve.
 
         The quantity a transfer must MOVE. `money_supply()` is issuance net of
-        destruction, which no transfer touches, so it cannot see whether a
-        transfer conserved anything — a conservation test written against it
-        passes at every rate. This one moves with every settlement leg.
+        destruction, which no transfer touches, so it cannot see whether a transfer
+        conserved anything. A conservation test written against it passes at every rate.
+        This one moves with every settlement leg.
         """
         return self.balance(self.CIRCULATION) + self.balance(self.RESERVE)
 
@@ -772,13 +772,13 @@ class FederationBook:
     jurisdiction's population with another's land. So each book balances
     independently and a transfer posts a leg in each.
 
-    THE HONEST CONSEQUENCE, stated rather than engineered away: at any rate ≠ 1
-    the federation's TEH total is NOT conserved across a transfer. Sender parts
-    with X, receiver gains X·r. This is a REVALUATION, not a leak, and it is
-    booked to a declared `fx_revaluation` account on the receiving side so that
-    both ledgers still balance to zero and the difference is nameable. A
-    framework that quietly forced aggregate conservation here would be asserting
-    a single currency while claiming to model several.
+    THE HONEST CONSEQUENCE, stated and not engineered away: at any rate ≠ 1 a transfer
+    does NOT conserve the federation's TEH total. Sender parts with X, receiver gains
+    X·r. This is a REVALUATION, not a leak, and it is booked to a declared
+    `fx_revaluation` account on the receiving side so that both ledgers still balance to
+    zero and the difference is nameable. A framework that quietly forced aggregate
+    conservation here would be asserting a single currency while claiming to model
+    several.
 
     Worked example
     --------------
@@ -846,11 +846,11 @@ class FederationBook:
         are conserved exactly and at rate ≠ 1 they differ by the revaluation.
 
         WHAT THE `fx_revaluation` ACCOUNT HOLDS: the receiver's whole inflow,
-        −amount·rate — its contra-account for value arriving from another
-        unit. The revaluation proper, amount·(rate − 1), is the returned `fx`
-        and is not separately posted. The account keeps its name because
-        `settlement_report` and its tests read it; the docstring previously
-        said it held the revaluation, which it never did.
+        −amount·rate — its contra-account for value arriving from another unit. The
+        revaluation proper, amount·(rate − 1), is the returned `fx`, with no separate
+        posting. The account keeps its name because `settlement_report` and its tests
+        read it; the docstring previously said it held the revaluation, which it never
+        did.
 
         CORRECTED 2026-09-30. The sender leg posted reserve → the sender's own
         CIRCULATION, so the amount sent abroad remained spendable at home: every
@@ -944,9 +944,9 @@ def n1_accounting_anchor(
     N>1 result is measuring the scaffold rather than the model.
 
     The frame here uses `hectares_per_capita` so the comparison call can be the
-    package's own default path: `eoh_to_teh_pipeline` with no area resolves the
-    area from population at exactly this ratio, so both sides describe one
-    jurisdiction and the equality is meaningful rather than arranged.
+    package's own default path: `eoh_to_teh_pipeline` with no area resolves the area
+    from population at exactly this ratio. So both sides describe one jurisdiction, and
+    the equality is meaningful, not arranged.
 
     Returns:
         dict with `teh_created_delta`, `pipeline_match`, `solvent_match`,
