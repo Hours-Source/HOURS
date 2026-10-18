@@ -11,29 +11,29 @@ Every lap would create TEH and nobody would pay for the damage. This module is
 the author's answer, decided 2026-10-01 (`notes/parcel-condition-bond.md`):
 
     * THE CONDITION INDEX STARTS AT 1. Every parcel enters at 1 = its current
-      function, read by THE REGISTER, never the holder. No history is
-      reconstructed. It falls when the parcel degrades and rises when it improves.
+      function, read by THE REGISTER, never the holder. The module reconstructs no
+      history. It falls when the parcel degrades and rises when it improves.
     * EXCHANGE CARRIES THE PARCEL. A transfer between holders settles nothing:
       the index, the logged improvement hours, the bond and the ongoing GUF
       pass to the new holder.
     * EXIT TO THE COLLECTIVE SETTLES TO 1. Below 1 the holder owes the
       restoration, in HOURS, converted at settlement and destroyed through the
       CAPITAL WRITE-DOWN (`core.capital.execute_writedown`, D1) — "for now, in
-      future work shows a better path". The bond pays first; what neither
-      covers is restored FROM THE TRUST AND NEVER MINTED. Above 1 the
+      future work shows a better path". The bond pays first; THE TRUST restores what
+      neither covers, and NOTHING MINTS for it. Above 1 the
       improvement MINTS TO THE HOLDER — the lesser of the condition gain priced
       in restoration hours and the improvement hours actually logged — and the
       mark rises.
     * A WRITE-DOWN RESETS TO 1. An exogenous event (wildfire, flood), declared
-      by the register, re-bases the parcel at its post-event state. Damage the
-      holder did before it is crystallised and owed at exit.
+      by the register, re-bases the parcel at its post-event state. Damage the holder
+      did before it becomes a fixed debt, owed at exit.
     * A RESERVED FLOOR of collective land, ground over the whole population,
       `COLLECTIVE_LAND_RESERVE_FACTOR` × the basket's shelter area per person.
-      A lease that would take collective land below it is refused.
+      The module refuses a lease that would take collective land below it.
     * A FLAT RESIDENTIAL FEE at low ε, instanced, with the GUF taking over once
       it is affordable (`GUF_AFFORDABILITY_THRESHOLD` of earnings).
-    * BOND AND UNPRICED RESTORATION DEFAULT TO 0, open to change when work
-      shows what is needed. A parcel with no priced restoration sequence owes
+    * BOND AND UNPRICED RESTORATION DEFAULT TO 0, open to change when work shows what
+    they need. A parcel with no priced restoration sequence owes
       and mints nothing.
 
 THE INVARIANT (`tests/test_parcel_condition.py`): over any sequence that
@@ -43,11 +43,11 @@ the Trust bears it (neither destroyed nor minted: a transfer out of the Trust,
 which this ledger does not post). A register-declared write-down is the only
 door that creates net TEH, and it is an honest loss.
 
-THE MINT. Improvement and restoration TEH are computed by `teh_created`, the
-one mint formula, and posted to a `research.exchange.Ledger`. The one-mint gate
-(`tests/test_one_mint_path.py`) scans core/, land/ and scenarios/; this module
-is research and outside it. Promoting it would add a second mint call site,
-which is a monetary-architecture decision, not a refactor — the gate will say so.
+THE MINT. `teh_created`, the one mint formula, computes improvement and restoration TEH,
+and the module posts them to a `research.exchange.Ledger`. The one-mint gate
+(`tests/test_one_mint_path.py`) scans core/, land/ and scenarios/; this module is
+research and outside it. Promoting it would add a second mint call site, which is a
+monetary-architecture decision, not a refactor — the gate will say so.
 
 NOT BUILT HERE (Phase C): the GUF does not yet read the condition index. The
 flow (services lost each year while degraded) and the stock (the exit debt)
@@ -91,8 +91,8 @@ class ParcelLease:
     (`land/collective.py` schema: `area_slu`, `location_value`, `use_category`,
     …), so the same record prices the fee.
 
-    `sequence` names a `reference.restoration` sequence; None is UNPRICED and
-    owes and mints nothing (author, 2026-10-01: unpriced is 0).
+    `sequence` names a `reference.restoration` sequence; None is UNPRICED: it owes
+    nothing and mints nothing (author, 2026-10-01: unpriced is 0).
     """
     parcel: dict[str, Any]
     sequence: str | None = None
@@ -229,11 +229,11 @@ def exit_to_collective(
     """
     Return a held parcel to the collective and settle it to 1.
 
-    Below the mark: debt hours = pending + (1 − c) × reset, valued at settlement
-    as `teh_created(hours, m)` — the TEH restoring them will mint — and destroyed
-    through `execute_writedown`, bond first, then the holder up to
-    `holder_can_pay_teh`. What is paid becomes `restoration_credit_hours`; what
-    is not is `trust_borne_hours`.
+    Below the mark: debt hours = pending + (1 − c) × reset, valued at settlement as
+    `teh_created(hours, m)` — the TEH restoring them will mint — and destroyed through
+    `execute_writedown`, bond first, then the holder up to `holder_can_pay_teh`. The
+    paid part becomes `restoration_credit_hours`, and the unpaid part
+    `trust_borne_hours`.
 
     Above the mark: mints `teh_created(min(gain hours, logged hours), m)` to the
     holder, and the mark rises.

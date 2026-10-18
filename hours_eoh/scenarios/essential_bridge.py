@@ -4,8 +4,8 @@ scenarios/essential_bridge — WHO CAN CARRY THE PERSONAL OBLIGATION, derived.
 The bridge from the four EOH domains to the essential workforce domains
 (`core/eoh_generation._EOH_TO_ESSENTIAL_WEIGHTS`) is what Condition IV in hours
 (`conditions.condition_iv_coverage`) sets certified capacity against. Its
-personal column — healthcare 0.80, logistics 0.20 — was written before the
-personal obligation was decomposed, and never used the decomposition. This
+personal column (healthcare 0.80, logistics 0.20) predates the decomposition of
+the personal obligation, and never used it. This
 module derives that column from what the repo now measures, so the verdict
 rests on a computation rather than a pick (author, 2026-10-01: "fix the domain
 mapping, as that seems to be an oversight on work that was done to update the
@@ -34,15 +34,16 @@ framework").
                 destinations (`component_shares.shelter_decomposition`):
                 structure → construction, thermal → energy, upkeep (cleaning,
                 laundry) → no certified domain. WATER IS NOT SEPARABLE in the
-                measured frame — piped water hides hauling inside upkeep — and
-                no measurement prices it at low capital; it is HELD rather than
-                weighted (author: no new placeholders), and stays in the
-                unattributed share where the frame put it.
+                measured frame, because piped water hides hauling inside
+                upkeep. No measurement prices it at low capital. So the module
+                HOLDS it and gives it no weight (author: no new placeholders);
+                it stays in the unattributed share where the frame put it.
 
-    The UNATTRIBUTED share is the part of the obligation no essential domain is
-    certified for. It is reported, not forced onto a domain — the old column
-    summed to 1 over the seven by construction, which manufactured the claim
-    that every hour had a certified home (failure mode 2).
+    The UNATTRIBUTED share is the part of the obligation that no essential
+    domain has certification for. The module reports it and does not force it
+    onto a domain. The old column summed to 1 over the seven by construction,
+    and that manufactured the claim that every hour had a certified home
+    (failure mode 2).
 
 REPORTING / DERIVATION ONLY. `core/` cannot import this layer, so the column is
 frozen in `data.ESSENTIAL_BRIDGE_PERSONAL` (tag `derived`) and

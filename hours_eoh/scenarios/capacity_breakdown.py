@@ -1,23 +1,24 @@
 """
-WHERE THE WORK GOES — the obligation broken down as a share of the hours people
-can supply, at the survival and the sufficiency standard side by side.
+WHERE THE WORK GOES — the obligation as a share of the hours people can supply.
+
+It shows the survival and the sufficiency standard side by side.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
 REPORTING ONLY. Nothing imports this; it reads the same accounts the compass
 (`arc_stability.stability_at`) reads and splits them by component.
 
-HOURS OF WORK, NOT CASH. Every figure here is TIME — hours of labour, paid or
-unpaid, done by a household or bought — as a share of the labour CAPACITY of
-the frame (adult capacity × the share of people able to supply it). It is not
-a share of income and cannot be read as one: there is no price layer above the
-floor in this repo (`research/desire.py` is a stub), so no currency enters.
+HOURS OF WORK, NOT CASH. Every figure here is TIME: hours of labour, paid or
+unpaid, done by a household or bought. Each is a share of the frame's labour
+CAPACITY (adult capacity × the share of people able to supply it). It is not a
+share of income, and nobody can read it as one. This repo has no price layer
+above the floor (`research/desire.py` is a stub), so no currency enters.
 A household budget divides cash by paid income; this divides hours of work by
 hours available. The two answer different questions, and the second exists
 whether or not anything is bought.
 
-Each row is the HUMAN share of an obligation at the frame's ε — the machine
-share is already removed — on the same split the pipeline uses:
+Each row is the HUMAN share of an obligation at the frame's ε, with the
+machine share already removed. It uses the same split as the pipeline:
 
     personal component c   share_c · personal · [ f_c + (1 − f_c)·(1 − ε) ]
     knowledge (civil.)     (1 − ε) · knowledge_civilisational
@@ -26,15 +27,17 @@ share is already removed — on the same split the pipeline uses:
 
 divided by `labor_supply_per_capita`. The personal rows sum to
 `personal_human_fraction(ε) · personal`, and the whole to the compass's
-obligation + delivery; both identities are tested. The ecological STOCK is the
-third account and is not counted, as in the compass — it is returned.
+obligation + delivery; tests check both identities. The ecological STOCK is the
+third account. As in the compass, the rows do not count it; the function
+returns it.
 
-THE PERSONAL SPLIT IS NOT MEASURED, so it is reported two ways. `desk` is the
-shipped `PERSONAL_EOH_COMPONENTS` (a placeholder: care 936/1508);
-`observed` is ATUS time use (`component_shares.observed_shares`), which that
-module documents as a BOUND, not a replacement — observed unpaid care
-understates the care obligation in a rich country. The two disagree by ~2.4× on
-care, and that disagreement is the error bar on the personal rows. The
+NOBODY HAS MEASURED THE PERSONAL SPLIT, so the module reports it two ways.
+`desk` is the shipped `PERSONAL_EOH_COMPONENTS` (a placeholder: care 62% of
+personal). `observed` is ATUS time use (`component_shares.observed_shares`).
+That module documents it as a BOUND, not a replacement, because observed unpaid
+care understates the care obligation in a rich country. The two disagree by
+~2.4× on care (2026-10-18), and that disagreement is the error bar on the
+personal rows. The
 collective rows and the total barely move between them.
 
 THE STANDARD IS THE ONLY "SHOULD" HERE. Survival (600 h) and sufficiency
@@ -103,8 +106,8 @@ def breakdown_at(
     is the share times one adult's weekly capacity (`adult_capacity_h_yr /
     WEEKS_PER_YEAR`) — hours of work, never currency.
 
-    ε-behaviour: every row's human share falls with ε; the personal rows with a
-    floor (care, nutrition) fall slowest, so their share of the total RISES
+    ε-behaviour: every row's human share falls with ε. The personal rows with
+    a floor (care, nutrition) fall slowest, so their share of the total RISES
     along the arc. Infrastructure upkeep follows the stock, which is the
     caller's (or the canonical arc's at ε when not supplied — and the result
     says which).
@@ -120,8 +123,8 @@ def breakdown_at(
         adult_capacity_h_yr: Hours one adult can supply in a year.
         adult_share: Share of people able to supply it; None derives it from
             `age_fractions` when given, else the shipped age weights.
-        age_fractions: The population's age mix; reaches the obligation and —
-            unless `adult_share` is given — the capacity. None → shipped mix.
+        age_fractions: The population's age mix. It reaches the obligation,
+            and the capacity too unless the caller gives `adult_share`. None → shipped mix.
 
     Raises:
         ValueError: on an ε, standard or share source out of range.
@@ -202,8 +205,8 @@ def capacity_report(epsilon: float = 0.40, **kw: Any) -> dict:
     `eoh scenario run capacity_breakdown`.
 
     units: as `breakdown_at`. `added_by_sufficiency` is the sufficiency row
-    minus the survival row — the work the higher standard adds — on the desk
-    split; the collective rows add nothing, because the standard sets only the
+    minus the survival row, on the desk split: the work the higher standard
+    adds. The collective rows add nothing, because the standard sets only the
     personal obligation.
     """
     runs = {(std, src): breakdown_at(epsilon, standard=std, shares=src, **kw)

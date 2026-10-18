@@ -154,10 +154,12 @@ def collective_snapshot(
     in force and is not is the silently-ignored-parameter failure this repo keeps
     finding.
 
-    ε-behaviour ----------- The function reads ε from the state, so all three calls see
-    the same value. At ε=0 registration is minimal and `teh_created` is small; at ε=0.99
-    human labour approaches zero while GUF revenue does not — which is the substitution
-    the partition is about, and `trust["guf_over_levy"]` reports it.
+    ε-behaviour
+    -----------
+    The function reads ε from the state, so all three calls see the same value. At ε=0
+    registration is minimal and `teh_created` is small; at ε=0.99 human labour
+    approaches zero while GUF revenue does not — which is the substitution the partition
+    is about, and `trust["guf_over_levy"]` reports it.
 
     Args:
         state: An economy state — `core.simulation.make_economy_state()` or any

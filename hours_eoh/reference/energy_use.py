@@ -1,15 +1,15 @@
 """
-US primary energy use — what the US frame's thermal reading is computed from.
+US primary energy use — the input to the US frame's thermal reading.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
 WHY THIS EXISTS (2026-10-04). The US frame's thermal utilization came from the
-Path C national records (`reference/data/path_c_inputs.json`), whose own
+Path C national records (`reference/data/path_c_inputs.json`). Their own
 `_WARNING` says the energy figures "are from model training data and were NOT
-verified" — tier C. The US record also paired whole-US energy with whole-US
-land, where the frame is the contiguous 48. This module holds the figures from
-EIA's State Energy Data System, fetched and read for this, so the frame's
-reading names a source it can be checked against.
+verified": tier C. The US record also paired whole-US energy with whole-US land,
+where the frame is the contiguous 48. This module holds the figures from EIA's
+State Energy Data System, fetched and read for this purpose. So the frame's
+reading names a source that anyone can check.
 
 SOURCE. EIA State Energy Data System (SEDS), consumption in billion Btu,
 `use_all_btu.csv` (eia.gov/state/seds/sep_use/total/csv/use_all_btu.csv),
@@ -17,13 +17,13 @@ data year 2024, status "2024F", fetched 2026-10-04. Series: TETCB total
 energy; CLTCB coal, NNTCB natural gas, PMTCB petroleum (the fossil fuels);
 NUETB nuclear electric power. Cross-check, same day: EIA Monthly Energy Review
 Table 1.3 gives US 2024 total primary energy 94.582 quadrillion Btu against
-SEDS's 94.543, and petroleum "excluding biofuels" 35.590 against SEDS's
-PMTCB 35.594 — so biofuels are not counted as fossil here.
+SEDS's 94.543. It gives petroleum "excluding biofuels" 35.590 against SEDS's
+PMTCB 35.594, so this module does not count biofuels as fossil.
 
 WHAT COUNTS AS DISSIPATING. `thermal_path_c.collective_dissipation_density`
 counts fossil + nuclear as net-additive heat (κ = 1) and the rest as ≈ 0, so
 only the fossil and nuclear figures reach the reading. EIA states nuclear at
-its thermal input, which is the heat that is dissipated; how EIA counts
+its thermal input, which is the heat the plant dissipates. How EIA counts
 non-combustion renewables does not reach the reading at all.
 
 THE FRAME. Contiguous 48 = US − Alaska − Hawaii, by subtraction within one

@@ -45,7 +45,8 @@ forbidden a ``resolves_by``; the forbidding is the point.
 ``bounded`` and ``placeholder``. A ``physics`` claim is structural or wrong, and a
 ``normative`` decision has no source.
 
-Inline format -------------
+Inline format
+-------------
 
 A tag block is a run of comment lines at column 0, immediately above the constant,
 opened by ``# tag:``. For example::

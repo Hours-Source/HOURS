@@ -1,8 +1,9 @@
 """coasean: the Coasean collective federation CLI command (research tier, §§6–7).
 
-Sub-commands: n1-check Verify N=1 regression anchor at ε ∈ {0, 0.40, 0.99} count Print
-emergent collective count across the ε arc federation Show per-collective pipeline +
-fiscal summary at a given ε
+Sub-commands:
+  n1-check     Verify N=1 regression anchor at ε ∈ {0, 0.40, 0.99}
+  count        Print emergent collective count across the ε arc
+  federation   Show per-collective pipeline + fiscal summary at a given ε
 
 All output carries an EXPERIMENTAL mark: research API, not stable.
 """

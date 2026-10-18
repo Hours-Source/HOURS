@@ -13,7 +13,8 @@ occupation, and the repo's own derived work-year. Read with
 `scenarios.land_stewardship`, which builds the census and runs it through
 `core.eoh_generation.ecological_statutory_floor`.
 
-WHAT HAS A MEASUREMENT, AND WHAT IS AN ASSUMPTION --------------------------------------
+WHAT HAS A MEASUREMENT, AND WHAT IS AN ASSUMPTION
+-------------------------------------------------
 Three measured inputs, one assumed mapping. The distinction is the whole point, because
 the assumption is the weak link and it must not be able to hide inside a number that
 looks measured:
@@ -32,12 +33,12 @@ looks measured:
             `basis`, and is the first thing to attack.
 
 THE HELD-OUT OCCUPATIONS, AND WHY THE ERROR RUNS LOW
------------------------------------------------------ Three sizeable occupations that
-plainly do stewardship work belong to NO land class here and contribute nothing:
-Conservation Scientists (29.5k), First-Line Supervisors of Farming/Fishing/Forestry
-(67.0k), and Soil and Plant Scientists (21.8k). Each spans several land classes, or
-spans land and water, and splitting them would mean inventing the split. Holding them
-out understates the floor.
+----------------------------------------------------
+Three sizeable occupations that plainly do stewardship work belong to NO land class here
+and contribute nothing: Conservation Scientists (29.5k), First-Line Supervisors of
+Farming/Fishing/Forestry (67.0k), and Soil and Plant Scientists (21.8k). Each spans
+several land classes, or spans land and water, and splitting them would mean inventing
+the split. Holding them out understates the floor.
 
 That is the safe direction here and it is worth being explicit about why. The open
 question is whether the anchor is low by two to three orders of magnitude. A floor that

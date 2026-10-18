@@ -1,8 +1,8 @@
 """
 Civilization ε derivation from physical capital state.
 
-Provides the endogenous machine-capacity sub-model that compute_epsilon() was
-designed to receive. Given a description of a civilization's capital stock
+This module is the endogenous machine-capacity sub-model that compute_epsilon()
+was designed to receive. Given a description of a civilization's capital stock
 (explicit or shorthand tier), derives machine_eoh_fulfilled and therefore ε
 from first principles rather than as an exogenous scenario assumption.
 
@@ -30,7 +30,7 @@ Usage::
     })
     print(f"ε = {result['epsilon']:.3f}")
 
-Capital can be specified three ways:
+A caller can state capital in three ways:
   - Tier string:  "power_grid": "standard"
   - Explicit dict: "power_grid": {"teh_value": 2e9, "age": 18, "condition": 0.75}
   - Mixed tier with override: "power_grid": {"tier": "standard", "age": 25}
@@ -84,17 +84,18 @@ def age_efficiency(age_ratio: float, beta: float) -> float:
 
 def condition_from_age_ratio(age_ratio: float,
                              structures_share: float = CAPITAL_STRUCTURES_SHARE_DEFAULT) -> float:
-    """A stock's condition from its age as a share of its life, where only the
-    ratio is known (a frame's `capital_age_ratio`): the two BLS curves blended
-    by the stock's structures share — the US share by default. 1.0 new →
-    COND_DECAY_FLOOR at end of life."""
+    """A stock's condition from its age as a share of its life.
+
+    Use it where only the ratio is known (a frame's `capital_age_ratio`). It
+    blends the two BLS curves by the stock's structures share, the US share by
+    default. The result runs from 1.0 new to COND_DECAY_FLOOR at end of life."""
     return (structures_share * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_STRUCTURES)
             + (1.0 - structures_share) * age_efficiency(age_ratio, AGE_EFFICIENCY_BETA_EQUIPMENT))
 
 
 def _condition_from_age(age: float, design_life: float) -> float:
-    """Condition from age and design life when no condition is stated — the
-    BLS curve at age / design life (`condition_from_age_ratio`). Replaced the
+    """Condition from age and design life, for an entry that states no
+    condition: the BLS curve at age / design life (`condition_from_age_ratio`). Replaced the
     linear 1.0 → 0.30 decay on 2026-10-04."""
     return condition_from_age_ratio(age / max(design_life, 1.0))
 
@@ -112,8 +113,8 @@ def _resolve_capital_entry(
       - dict: explicit   e.g. {"teh_value": 2e9, "age": 15, "condition": 0.82}
       - dict: tier+override  e.g. {"tier": "standard", "age": 25}
 
-    When a tier is used, teh_value = tier["teh_per_capita"] × population.
-    When age is provided without condition, condition is derived from design_life.
+    For a tier, teh_value = tier["teh_per_capita"] × population.
+    For an age without a condition, the function derives condition from design_life.
     """
     if type_name not in CAPITAL_MACHINE_PROFILES:
         raise ValueError(
@@ -319,11 +320,12 @@ def civilization_epsilon(civ: dict) -> dict:
             "warnings":        list[str],
         }
 
-    Note on double-counting: capital_eoh_eliminated is NOT passed to the TEH
-    pipeline because ε already encodes all machine fulfillment (including
-    system EOH elimination). Passing both would double-count machine capacity.
-    capital_personal_eoh_fulfilled is passed to the pipeline for reporting; it
-    no longer sizes the guarantee (effective_personal_eoh does, since 2026-09-15).
+    Note on double-counting: this function does NOT pass capital_eoh_eliminated
+    to the TEH pipeline, because ε already encodes all machine fulfillment
+    (including system EOH elimination). Both together would double-count
+    machine capacity. It passes capital_personal_eoh_fulfilled to the pipeline
+    for reporting; that no longer sizes the guarantee (effective_personal_eoh
+    does, since 2026-09-15).
 
     Mission Statement: §"ε is a physical observable — the civilization's
     measured progress toward post-scarcity, expressed as the fraction of EOH

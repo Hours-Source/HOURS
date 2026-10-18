@@ -22,8 +22,8 @@ makes inter-collective exchange a pressure valve rather than a leak.
 Measured, that is true of ONE of the two mechanisms and false of the other, and
 the prose does not distinguish them:
 
-1. **PARITY REWARDS CAPTURE.** `exchange_rates` is built on
-   `productivity(c) = teh_created(c) / population(c)`. Capture raises
+1. **PARITY REWARDS CAPTURE.** `exchange_rates` rests on `productivity(c) =
+teh_created(c) / population(c)`. Capture raises
    `teh_created` and leaves the obligation untouched, so the capturing
    collective's measured productivity RISES and its unit APPRECIATES. **Parity
    has no real-output term to divide by, so within it over-issuance and
@@ -42,11 +42,11 @@ it does not, parity is paying it a premium.
 
 WHAT THIS IS NOT
 ----------------
-Not a claim that any federation has done this: no actor, incentive or defection
-is modelled, here or in `register_capture`. Not a defect in `settlement_check`,
-whose functional form is explicitly proposed rather than calibrated. And not an
-argument against federation — the no-recognition regime is still the one where
-capture is *visible in principle*, which is more than mutual recognition offers.
+Not a claim that any federation has done this: nothing here or in `register_capture` models
+an actor, incentive or defection. Not a defect in `settlement_check`, whose functional form
+is explicitly a proposal, not a calibration. And not an argument against federation — the
+no-recognition regime is still the one where capture is *visible in principle*, which is
+more than mutual recognition offers.
 """
 
 from __future__ import annotations
@@ -83,13 +83,13 @@ def parity_response(
     """
     What the parity baseline does when one collective captures its register.
 
-    Two collectives identical in every respect — same frame, same ε, same
-    physical state — except that one admits `share_delta` more of its personal
-    obligation. The obligation itself is untouched, and that is asserted rather
-    than assumed.
+    Two collectives identical in every respect — same frame, same ε, same physical state
+    — except that one admits `share_delta` more of its personal obligation. The
+    obligation itself stays the same, and the function asserts that instead of assuming
+    it.
 
-    Returns the parity rate of the capturing collective against the honest one.
-    **Above 1.0 means capture was rewarded.**
+    Returns the parity rate of the capturing collective against the honest one. **Above
+    1.0 means the federation rewarded the capture.**
     """
     honest = build_collective(_frame(0), epsilon)
     captured = build_collective(
@@ -124,11 +124,11 @@ def settlement_response(
     """
     The same capture as `parity_response`, on the ADOPTED settlement basis.
 
-    Neutral: the capturing register mints more TEH, each certifying the same
-    hours served at the same multiplier, so r = m_honest/m_captured = 1.0. Not a
-    DISCIPLINE — nothing penalises the capture; the federation simply no longer
-    pays it a premium. What capture still does, it does inside the capturing
-    collective (who is admitted — record/theory.md#capture-aggregate-bounded).
+    Neutral: the capturing register mints more TEH, each certifying the same hours
+    served at the same multiplier, so r = m_honest/m_captured = 1.0. Not a DISCIPLINE —
+    nothing penalises the capture; the federation simply no longer pays it a premium.
+    What capture still does, it does inside the capturing collective: who gets admitted
+    (record/theory.md#capture-aggregate-bounded).
     """
     honest = build_collective(_frame(0), epsilon)
     captured = build_collective(
@@ -208,12 +208,12 @@ def recognition_regimes(
     dilutes every holder, and the instrument that would have shown it does not
     exist in this regime. Capture in one IS issuance in all, exactly.
 
-    **No recognition** — units are separate and parity is computed. Capture is
-    visible in principle, but see `parity_response`: what parity shows is a
-    capturing collective looking MORE productive, not less. Visibility is not
-    the same as discipline, and the discipline lives in the settlement path.
+    **No recognition**: units stay separate, and the function computes parity. Capture
+    is visible in principle, but see `parity_response`: what parity shows is a capturing
+    collective looking MORE productive, not less. Visibility is not the same as
+    discipline, and the discipline lives in the settlement path.
 
-    Neither regime is recommended here. What is reported is what each does.
+    This module recommends neither regime. It reports what each does.
 
     NOTE (2026-09-30): the ADOPTED settlement — registered, hour for hour —
     is mutual recognition at a common multiplier and separate units only where

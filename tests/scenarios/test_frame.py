@@ -134,6 +134,10 @@ class TestDeclaringTheFrameMakesTheShareInVARIANT:
         assert undeclared[0]["ecological_share"] == pytest.approx(
             glob["ecological_share"], rel=1e-12
         )
+        # The row reports the land it applies, not the pre-4b whole-US area.
+        assert undeclared[0]["hectares_per_capita"] == pytest.approx(
+            glob["hectares_per_capita"], rel=1e-12
+        )
         assert r["share_spread"] < 2.0
 
     def test_per_capita_ecological_hours_are_tiny_at_every_declared_frame(self):

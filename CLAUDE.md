@@ -202,7 +202,7 @@ hours_eoh/
     knowledge_base.py  epsilon_ref_fixed_point() — anchor and base solved TOGETHER, and credible_shipped
     care_curve.py      implied_weights() — measured obligation by age vs the shipped AGE_GROUPS weights; REPORTING ONLY
     capital_retrodiction.py  READING ε OFF A REAL ECONOMY — and the three judgements it
-                       rests on (doctrine 1.79x, convention 1.45x, scope ~2.5x).
+                       rests on (doctrine 1.78x, convention 1.45x, scope ~2.5x).
                        `currency_per_teh` is REQUIRED; the band is not a default. And
                        `stock_age_ratio` — the stock's AGE over BEA's service lives,
                        currency-free, what `--frame us` reads. And
@@ -251,7 +251,7 @@ hours_eoh/
                        write-downs re-base; the reserved floor; the low-ε flat fee
     dynamic_stability.py  DOES ANY LOOP OSCILLATE: oscillation() reads a trajectory; run on
                        the period engine (no cycle) and the formation loop (a period-2 cobweb
-                       under dividend priority from year ≈206, bounded and decaying)
+                       under dividend priority from year ≈208, bounded and decaying)
 
 utils/                 Presentation layer — CLI and research helpers (see README)
   verdict_ladder.py    The verdict ladder computed — transitive data.py dependencies per

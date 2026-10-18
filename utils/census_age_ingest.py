@@ -2,24 +2,27 @@
 
     python3 utils/census_age_ingest.py [--raw rawdata/age] [--out hours_eoh/reference/data]
 
-Output (committed): census_age_2020_2025.csv year, age, population
-census_adults_2000_2025.csv year, total, age_15_plus, vintage — the adult share by year,
-from three Census vintages (intercensal 2000s, Vintage 2020, Vintage 2025)
+Output (committed):
+    census_age_2020_2025.csv     year, age, population
+    census_adults_2000_2025.csv  year, total, age_15_plus, vintage — the adult share by
+                                 year, from three Census vintages (intercensal 2000s,
+                                 Vintage 2020, Vintage 2025)
 
 It reads `nc-est2025-agesex-res.csv` (Vintage 2025 national estimates, SEX × single year
 of age × 2020–2025). It keeps only SEX=0 (both sexes). AGE=999 is the published total,
 used as an integrity check, not as a row.
 
 WHY THIS EXISTS: it is a denominator, not a headline
------------------------------------------------------ Two things in this repo need a
-population age structure, and neither can get it from ATUS:
+----------------------------------------------------
+Two things in this repo need a population age structure, and neither can get it from ATUS:
 
 1. **The eldercare module route.** ATUS's eldercare roster gives minutes per RECIPIENT.
-Most recipients are not household members, so they appear on no ATUS roster and have no
-population denominator inside the survey. Without an external denominator the module
-route cannot be compared with the household-roster route at all, and reporting that
-disagreement is why both are carried. 2. **`AGE_GROUPS` fractions.** The shipped
-7/16/60/17 split is an OECD-shaped default. This file measures it.
+   Most recipients are not household members, so they appear on no ATUS roster and have no
+   population denominator inside the survey. Without an external denominator the module
+   route cannot be compared with the household-roster route at all, and reporting that
+   disagreement is why both are carried.
+2. **`AGE_GROUPS` fractions.** The shipped 7/16/60/17 split is an OECD-shaped default. This
+   file measures it.
 
 WHAT THIS IS NOT: a claim that the US age structure is right for any other collective.
 It is one jurisdiction at one time, and a modelled collective's age structure is an

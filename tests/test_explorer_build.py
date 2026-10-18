@@ -4,11 +4,11 @@ A published explorer carries a second implementation of the multiplier math, in
 JavaScript. Two checks keep it honest:
 
 1. The BUILDER refuses to write a page unless the repo's own functions reproduce the
-registry, data.py agrees with the bounds file, and every provenance key and tag the page
-names exists. The tests break each input and require the refusal. 2. The page's MATH
-BLOCK runs under node and is compared with hours_eoh.core.multipliers and
-scenarios.multiplier_sensitivity.reconstruct, including under perturbed weights. That
-catches a page that re-anchors the frozen scale.
+   registry, data.py agrees with the bounds file, and every provenance key and tag the
+   page names exists. The tests break each input and require the refusal.
+2. The page's MATH BLOCK runs under node and is compared with hours_eoh.core.multipliers
+   and scenarios.multiplier_sensitivity.reconstruct, including under perturbed weights.
+   That catches a page that re-anchors the frozen scale.
 
 Stated gap: part 2 needs node on PATH and SKIPS without it. The rendering (labels,
 wording, layout) is not tested; only the math block and the payload are.

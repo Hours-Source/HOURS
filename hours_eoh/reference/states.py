@@ -8,26 +8,26 @@ Measured data, keyed by the state FIPS the parcel extract uses. Ingest:
 Census SCPRC-EST2025 state estimates; `utils/state_age_ingest.py` over the
 Census SC-EST2025-ALLDATA6 single-year ages. All in `rawdata/` (gitignored).
 
-WHAT IT IS FOR. The US frame divided into its states (`us_state_split`): a
+WHAT IT IS FOR. It divides the US frame into its states (`us_state_split`). A
 federation needs each member's people, land and parcels, and the repo held
-parcels by state and nothing else. The same table gives the contiguous 48's
-OWN land-use mix (`contiguous_48_land_hectares_by_class`), where the frame had
-applied the 50-state shares with Alaska's forest and miscellaneous land in them.
+parcels by state and nothing else. The same table gives the contiguous 48's OWN
+land-use mix (`contiguous_48_land_hectares_by_class`). Before it, the frame
+applied the 50-state shares, with Alaska's forest and miscellaneous land in them.
 
-SCOPE IS THE SOURCE'S. `in_48_states` marks the rows ERS's own "48 States"
-line sums — the 48 and DC — which is `US_MAINLAND_HECTARES`' source line, so the
-frame's land and its states' land are one measurement. ERS publishes whole
-thousands of acres and says its distributions "may not add to totals due to
-rounding"; the ingest prints each gap (at most 4 thousand acres a class).
+SCOPE IS THE SOURCE'S. `in_48_states` marks the rows that ERS's own "48 States"
+line sums: the 48 and DC. That line is the source of `US_MAINLAND_HECTARES`, so
+the frame's land and its states' land are one measurement. ERS publishes whole
+thousands of acres. It says its distributions "may not add to totals due to
+rounding", and the ingest prints each gap (at most 4 thousand acres a class).
 
 EACH STATE'S AGE MIX IS ITS OWN (2026-10-15): `state_population_shares` groups
 the state's resident ages, as `care_demand.population_shares` groups the
-nation's. The state file top-codes at 85, the national at 100, so a band
-starting above 85 is refused rather than read as empty.
+nation's. The state file top-codes at 85 and the national at 100. So the
+function refuses a band that starts above 85, and does not read it as empty.
 
-WHAT IT IS NOT. No state labour capacity, capital stock, stock age or ε: none
-ships by state, so a state split carries the frame's (`us_state_split` says
-which in its note). BEA publishes no state capital stock at all.
+WHAT IT IS NOT. It holds no state labour capacity, capital stock, stock age or
+ε, because none ships by state. So a state split carries the frame's values
+(`us_state_split` says which in its note). BEA publishes no state capital stock at all.
 """
 
 from __future__ import annotations
@@ -129,9 +129,9 @@ def us_state_split(age_bands: dict[str, tuple[int, int]]) -> dict[str, Any]:
     The US frame divided into its 49 units — the 48 and DC — as a split file
     (`utils/frame_inputs.load_split`): each unit's measured population, land
     and private parcels, and its own age mix grouped to `age_bands`. A split
-    states how a frame DIVIDES; the frame states how much there is, so each
-    unit runs on its SHARE of the frame's totals — except the age mix, which
-    is a composition, not a quantity, and replaces the frame's.
+    states how a frame DIVIDES; the frame states how much there is. So each
+    unit runs on its SHARE of the frame's totals. The exception is the age mix.
+    It is a composition, not a quantity, so it replaces the frame's.
     """
     parcels = private_parcels_by_state()
     ages = state_population_shares(age_bands)

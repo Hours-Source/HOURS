@@ -34,22 +34,26 @@ with area; 44.5% scale with the count of separately-held parcels and 13.6% with
 throughput. A fee with one basis cannot track a cost with three, at any
 multiplier. `two_part_rates()` gives the form that can.
 
-WHAT THIS CORRECTS IN THE RECORD -------------------------------- Phase 2's stated
-mechanism for the urban/rural spread — "the fee is per-SLU, so packing a hectare with
-more parcels multiplies the charge while the roads, pipes and inspections serving that
-hectare do not" — IS FALSE, and `subdivision_invariance()` demonstrates it rather than
-asserting it: splitting every parcel in a collective in two leaves the fee per hectare
-EXACTLY unchanged, because each half carries half the SLU. Parcel count does not enter
-the fee at all. That is not a small correction, because it relocates the defect. The
-L·U·D product drives the urban overshoot (18× when written, 19.2× on 2026-10-18 from
-`target_vs_realised`): the location-value index and the ten ratios. That is precisely
-the part Phase 2 correctly said its aggregate census could not settle. And it sharpens
-Option 2 from "rescale the density term" to "the fee has no per-parcel term to rescale".
+WHAT THIS CORRECTS IN THE RECORD
+--------------------------------
+Phase 2's stated mechanism for the urban/rural spread — "the fee is per-SLU, so packing
+a hectare with more parcels multiplies the charge while the roads, pipes and inspections
+serving that hectare do not" — IS FALSE, and `subdivision_invariance()` demonstrates it
+rather than asserting it: splitting every parcel in a collective in two leaves the fee
+per hectare EXACTLY unchanged, because each half carries half the SLU. Parcel count does
+not enter the fee at all. That is not a small correction, because it relocates the
+defect. The L·U·D product drives the urban overshoot (18× when written, 19.2× on
+2026-10-18 from `target_vs_realised`): the location-value index and the ten ratios. That
+is precisely the part Phase 2 correctly said its aggregate census could not settle. And
+it sharpens Option 2 from "rescale the density term" to "the fee has no per-parcel term
+to rescale".
 
-WHAT THIS DOES NOT SETTLE ------------------------- The ten ratios, still. Both censuses
-aggregate over land classes, not over use categories, and no occupational data carries
-the land use it serves. Option 1 settles the LEVEL for the classes both censuses reach,
-and Option 2 settles the FORM. Neither settles the shape of the table.
+WHAT THIS DOES NOT SETTLE
+-------------------------
+The ten ratios, still. Both censuses aggregate over land classes, not over use
+categories, and no occupational data carries the land use it serves. Option 1 settles
+the LEVEL for the classes both censuses reach, and Option 2 settles the FORM. Neither
+settles the shape of the table.
 
 The per-parcel rate is no longer excluded, but it is a BOUND (2026-08-30).
 `reference/parcels` ships the divisor this module used to lack — 160,573,137 assessor

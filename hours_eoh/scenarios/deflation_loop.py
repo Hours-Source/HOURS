@@ -4,10 +4,10 @@ The deflationary loop, run — capital ↑ → obligation ↓ → TEH ↓?
 `total_eoh` applies capital elimination to non-personal domains ONLY, and says
 why in as many words: *"personal EOH is unchanged to prevent the deflationary
 feedback loop where capital growth reduces biological obligations and dampens
-TEH creation."* That invariant is what abatement-as-default reverses, and until
+TEH creation."* Abatement-as-default reverses that invariant, and until
 now nobody had run the loop it names. For a currency denominated in obligations
-the hazard is real in principle: if obligation falls as capital rises, the money
-supply contracts exactly when the economy is most productive.
+the hazard is real in principle. If obligation falls as capital rises, the
+money supply contracts exactly when the economy is most productive.
 
 WHAT THE RUN FINDS, and it splits three ways:
 
@@ -16,23 +16,24 @@ WHAT THE RUN FINDS, and it splits three ways:
      ε faster than the obligation falls, and that dominates.
   2. THE TURN-DOWN AT HIGH CAPITAL IS NOT ABATEMENT'S. TEH peaks around ε≈0.66
      and falls after, WITH OR WITHOUT abatement, and at the SAME capital level.
-     That is the ε→1 post-scarcity property — human labour goes to zero, so
-     registered EOH does too — and it is designed, not a defect.
-  3. ABATEMENT DOES DAMPEN, MONOTONICALLY, AND IT CROSSES OVER. Below roughly
-     1.5x the reference capital abatement RAISES TEH (F_a = 1500 exceeds the
-     flat base of 1000, so early abatement has not yet eaten the difference);
-     above it, abatement lowers TEH, reaching about −14% at 10x reference.
+     That is the ε→1 post-scarcity property: human labour goes to zero, so
+     registered EOH does too. It is designed, not a defect.
+  3. ABATEMENT DOES DAMPEN, MONOTONICALLY, AND IT CROSSES OVER. Below a
+     crossover between 1.5x and 2x the reference capital, abatement RAISES TEH.
+     There F_a = 1500 exceeds the flat base of 1000, and early abatement has
+     not yet eaten the difference. Above it, abatement lowers TEH, by about
+     14% at 10x reference (2026-10-18, `deflation_loop()`).
 
 SO THE INVARIANT IS HALF RIGHT, WHICH IS THE USEFUL ANSWER. The dampening it
 names is real and grows with capital. The contraction it fears is not
 attributable to abatement — the arc already has one, further out, for a
-different reason. What the run cannot say is whether a 14% dampening at high
-capital matters to solvency; that is a fiscal question this module does not
-answer and does not pretend to.
+different reason. The run cannot say whether a 14% dampening at high capital
+matters to solvency. That is a fiscal question, and this module does not answer
+it or pretend to.
 
-REPORTING ONLY. Nothing here changes a shipped path; abatement is still not the
-default generation path and remains blocked, for reasons this run does not
-remove — see `record/personal.md` and `scenarios/abatement_split`.
+REPORTING ONLY. Nothing here changes a shipped path. Abatement is still not the
+default generation path and stays blocked, for reasons this run does not
+remove; see `record/personal.md` and `scenarios/abatement_split`.
 """
 
 from __future__ import annotations
@@ -112,9 +113,9 @@ def deflation_loop(
     Sweep capital, derive ε from it, and compare TEH created with and without
     abating the personal base.
 
-    units: TEH/year; capital in TEH per capita. ε is DERIVED from the capital
-    at each point rather than swept independently — that is what makes this a
-    loop rather than two arcs, and it is the only way the feedback the invariant
+    units: TEH/year; capital in TEH per capita. The function DERIVES ε from the
+    capital at each point and does not sweep it independently. That makes this
+    a loop, not two arcs, and it is the only way the feedback the invariant
     names can appear at all.
     """
     points = [_point(s, population) for s in scales]

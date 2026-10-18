@@ -2,8 +2,9 @@
 
     python3 utils/mtus_capacity_age_ingest.py [--esp rawdata/mtus_esp_lite.csv] [--out hours_eoh/reference/data]
 
-Output (committed): mtus_capacity_by_age.csv sample, country, year, age, diaries,
-weight, work / undom / chcare minutes per day
+Output (committed):
+    mtus_capacity_by_age.csv   sample, country, year, age, diaries, weight, work / undom /
+                               chcare minutes per day
 
 WHY THIS EXISTS. `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work plus unpaid
 domestic work plus childcare, the same three fields `measured_capacity` counts,

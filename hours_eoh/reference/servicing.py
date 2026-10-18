@@ -9,17 +9,17 @@ This is the instrument `GUF_USE_*`'s own `resolves_by` has always named:
      fee is DEFINED as, so it settles the levels and the ratios in one
      instrument rather than calibrating one against the other."
 
-It is a DIFFERENT quantity from `reference/land_stewardship.py`, and the two
-must not be merged. Stewardship asks what the LAND demands to hold its
-condition; servicing asks what the BUILT ENVIRONMENT ON it demands to be
-habitable — roads resurfaced, water delivered, sewage carried, buildings
-inspected, boundaries adjudicated. The occupational sets are disjoint by
+It is a DIFFERENT quantity from `reference/land_stewardship.py`, and nobody may
+merge the two. Stewardship asks what the LAND demands to hold its condition.
+Servicing asks what the BUILT ENVIRONMENT ON it demands to be habitable: roads
+resurfaced, water delivered, sewage carried, buildings inspected, boundaries
+adjudicated. The occupational sets are disjoint by
 construction (see `DISJOINT_FROM_STEWARDSHIP`).
 
-WHAT IT IS FOR. The ten `GUF_USE_*` coefficients were scaled ×100 from the NLSA
-template's abstract values so that aggregate GUF over a 1M-population inventory
-would land co-equal with levy revenue at mid-arc. That is a value
-reverse-engineered from a desired outcome, and it is tagged `placeholder` on
+WHAT IT IS FOR. The ten `GUF_USE_*` coefficients are the NLSA template's
+abstract values ×100. The ×100 makes aggregate GUF over a 1M-population
+inventory land co-equal with levy revenue at mid-arc. That is a value
+reverse-engineered from a desired outcome, and its tag is `placeholder` on
 exactly that ground. This module measures the quantity instead.
 
 STRUCTURE, following the stewardship census's discipline:
@@ -30,10 +30,10 @@ STRUCTURE, following the stewardship census's discipline:
              reference/data/mlu_land_use_2022.csv.
   DERIVED    hours per worker-year — scenarios/food_conservation, from ATUS ÷
              registry employment. Not a chosen 2,080.
-  ASSUMED    WHICH OCCUPATIONS SERVICE LAND, and WHICH LAND CLASSES ARE
-             SERVICED. This is the one judgement, it is isolated in
-             `SERVICING_ATTRIBUTIONS` and `SERVICED_LAND_CLASSES`, and it is
-             reported under two scopes that are never silently merged.
+  ASSUMED    WHICH OCCUPATIONS SERVICE LAND, and WHICH LAND CLASSES RECEIVE
+             IT. This is the one judgement. `SERVICING_ATTRIBUTIONS` and
+             `SERVICED_LAND_CLASSES` isolate it, and the census reports it
+             under two scopes that it never merges silently.
   ASSUMED    WHAT EACH OCCUPATION'S COST SCALES WITH — area, parcel count, or
              throughput. A SECOND judgement, added 2026-08-18, isolated in
              `SCALING_BASIS` and never merged with the first. It answers a
@@ -43,11 +43,11 @@ STRUCTURE, following the stewardship census's discipline:
 
 THE ROLE-MIX TRAP, which this census inherits from the parks finding. Raw
 occupational headcount overstated federal stewardship by 4.4× because a park
-ranger is largely a visitor-services role. The same hazard is worse here: a
+ranger is largely a visitor-services role. The same hazard is worse here. A
 keyword search for "inspector" returns `519061 Inspectors, Testers, Sorters,
-Samplers and Weighers` (598.1k), which is manufacturing quality control and has
-nothing to do with land. It is EXCLUDED by name, not filtered by a rule, and the
-exclusions carry their reasons in `EXCLUDED_OCCUPATIONS`.
+Samplers and Weighers` (598.1k). That is manufacturing quality control and has
+nothing to do with land. The census EXCLUDES it by name, not by a rule, and
+`EXCLUDED_OCCUPATIONS` carries the reason for each exclusion.
 
 Layer: reference/ — pure data, imports nothing from the package.
 """
@@ -346,8 +346,8 @@ def load_land_use() -> dict[str, float]:
 
     Delegates to `land_stewardship.land_hectares_by_class`, which is the single
     loader over this CSV. This module briefly carried its own, and the two
-    disagreed on whether the aggregate "Total land" row belongs in a mapping —
-    it does not, because summing such a mapping then doubles the area.
+    disagreed on whether the aggregate "Total land" row belongs in a mapping.
+    It does not, because a sum over such a mapping then doubles the area.
     """
     return land_hectares_by_class()
 
@@ -418,9 +418,9 @@ def workers_by_scaling_basis(
 
         workers(b) = Σ_{occ : SCALING_BASIS[occ] == b} w(occ) · employment[occ]
 
-    where w is 1 for a core attribution and the declared BROAD_SCOPE_WEIGHTS
-    value under the `broad` scope — the same weighting `servicing_workers`
-    applies, so the two cuts of the census total agree by construction.
+    where w is 1 for a core attribution, and the declared BROAD_SCOPE_WEIGHTS
+    value under the `broad` scope. `servicing_workers` applies the same
+    weighting, so the two cuts of the census total agree by construction.
 
     units: workers (headcount).
 

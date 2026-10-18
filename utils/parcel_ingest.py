@@ -9,15 +9,17 @@ CSV it writes. The raw file is ~68 GB and lives in gitignored `rawdata/parcels/`
 
     python3 utils/parcel_ingest.py [--raw rawdata/parcels/...] [--out hours_eoh/reference/data]
 
-Output (committed): parcel_county_counts.csv statefp, countyfp, parcels, area_m2,
-area_parcels, government_parcels, ownertype_known
+Output (committed):
+    parcel_county_counts.csv   statefp, countyfp, parcels, area_m2, area_parcels,
+                               government_parcels, ownertype_known
 
-WHY THIS EXTRACT AND NOT A RICHER ONE -------------------------------------- The fee has
-ONE scaling basis, and the measured servicing cost has three: area 41.9%, parcel 44.5%,
-throughput 13.6% (`scenarios/use_split`). A per-SLU fee cannot express the 44.5% that
+WHY THIS EXTRACT AND NOT A RICHER ONE
+-------------------------------------
+The fee has ONE scaling basis, and the measured servicing cost has three: area 41.9%, parcel
+44.5%, throughput 13.6% (`scenarios/use_split`). A per-SLU fee cannot express the 44.5% that
 follows PARCEL COUNT. `guf_magnitude.subdivision_invariance` proves it: splitting every
-parcel in two returns the same fee to the float. Closing that needs a per-parcel TERM,
-and a term needs a denominator.
+parcel in two returns the same fee to the float. Closing that needs a per-parcel TERM, and a
+term needs a denominator.
 
 **This extract is that denominator and nothing else.** It carries no use-category
 mapping. `usedesc` is 41.2% filled and is free text from 3,230 independent county
@@ -27,9 +29,9 @@ project with a real judgement in it. A judgement bundled into a count would make
 count unciteable, so the extract leaves it out on purpose.
 
 AREA IS SHIPPED AND MUST NOT BE READ AS LAND AREA
--------------------------------------------------- `area_m2` is the sum of parcel
-FOOTPRINT areas. It is **not** the county's land area, and a check against published
-state land areas shows why:
+-------------------------------------------------
+`area_m2` is the sum of parcel FOOTPRINT areas. It is **not** the county's land area, and a
+check against published state land areas shows why:
 
     FL  18.2 Mha summed vs 13.9 actual   1.31x
     TX  78.2            vs 67.7          1.16x
@@ -55,20 +57,23 @@ over-count so nobody forgets the limit. **The deliverable is the parcel COUNT**,
 this does not affect: geography is 100% filled, and the total matches the file's own row
 count exactly.
 
-`calcarea` NOT `taxacres` -------------------------- `taxacres` is assessor-reported and
-contaminated. Its median (0.6 acres) is plausible and its tail is not: p95 = 10,489
-acres, p99 = 37,183, with a sentinel cap near 99,998. Summed, it gives 157,478 Mha
-against 915 Mha of US land, **172× over**. A field with a right median and a garbage
-tail survives a spot check and fails an aggregate, so this script sums the other field.
+`calcarea` NOT `taxacres`
+-------------------------
+`taxacres` is assessor-reported and contaminated. Its median (0.6 acres) is plausible and
+its tail is not: p95 = 10,489 acres, p99 = 37,183, with a sentinel cap near 99,998. Summed,
+it gives 157,478 Mha against 915 Mha of US land, **172× over**. A field with a right median
+and a garbage tail survives a spot check and fails an aggregate, so this script sums the
+other field.
 
 `calcarea` is geometry-derived and in SQUARE METRES, established, not assumed. Over
 717,431 rows where both fields are sane, the median ratio `calcarea/taxacres` is
 **4,046.6 against 4,046.86 m²/acre**. That matches to four significant figures and rules
 out square feet.
 
-WHAT THE COUNTS DO AND DO NOT INCLUDE -------------------------------------- `parcels`
-counts every row for the county: the parcel roll as it stands. `area_parcels` counts
-only rows with a positive `calcarea`, and `area_m2` sums those. A caller who computes
+WHAT THE COUNTS DO AND DO NOT INCLUDE
+-------------------------------------
+`parcels` counts every row for the county: the parcel roll as it stands. `area_parcels`
+counts only rows with a positive `calcarea`, and `area_m2` sums those. A caller who computes
 mean parcel size must divide by `area_parcels`, not by `parcels`. In this vintage the
 difference is nearly immaterial (**99.9% of parcels carry geometry**). Both columns ship
 anyway: in a vintage with poorer geometry coverage the difference would matter, and an

@@ -19,15 +19,16 @@ that audit, as a knockout study on the shared path.
       mixed       anything else (both singletons and larger sets)
 
 The verdict is `stationarity.stationarity_at`'s TEH-side "stands still" (until
-2026-10-16 it read both sides, which no shipped frame told apart), read through its
-own arguments, so a mechanism is a pair of keyword overrides — what it is ON and
-OFF. `inflow_mechanisms()` ships the two TEH inflows: the levy and the GUF.
+2026-10-16 it read both sides, which no shipped frame told apart). The audit reads
+it through its own arguments. So a mechanism is a pair of keyword overrides: what
+it is ON and OFF. `inflow_mechanisms()` ships the two TEH inflows: the levy and the GUF.
 
-WHAT IT FOUND (2026-10-01, at 1M; `tests/scenarios/test_compensation.py`): the
-levy and the GUF are REDUNDANT over ε ≈ 0–0.55 — either alone stands the
-collective still — so a failure of one is covered there; the LEVY IS THE SOLE
-mechanism over ≈ 0.56–0.97; and the top of the arc needs BOTH (JOINT). With
-neither, nothing stands still anywhere.
+WHAT IT FINDS (2026-10-18, at 1M; `tests/scenarios/test_compensation.py`). The
+levy and the GUF are REDUNDANT over ε ≈ 0–0.54 urban and 0–0.52 rural: either
+alone stands the collective still, so each covers a failure of the other there.
+The LEVY IS THE SOLE mechanism from there to ε 0.97. The top of the arc, 0.98–0.99,
+needs BOTH (JOINT). With neither, nothing stands still anywhere. (On 2026-10-01
+the redundant span read 0–0.55.)
 
 REPORTING ONLY — nothing imports it. 2ⁿ subsets per ε: built for a handful of
 mechanisms, not dozens.

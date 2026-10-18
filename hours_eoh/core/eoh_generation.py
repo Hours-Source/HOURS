@@ -642,13 +642,13 @@ def ecological_statutory_floor(land_census: list[dict]) -> dict:
     accounting convention does not, because there is none.
 
     WHY THIS EXISTS — THE DOMAIN-BALANCE DEFECT
-    ------------------------------------------- `ECOLOGICAL_BASE_RATE` is documented as
-    a RELATIVE anchor — it "does not represent an absolute ecosystem-specific count" —
-    but `total_eoh()` sums it with absolute counts and then divides the result into ε.
-    When this floor was written, the ecological domain landed at defaults at **0.6
-    h/person·yr, under 0.1% of total EOH**. So it could not move ε, and the thermal
-    obligation it carries booked at roughly one part in a thousand of the ledger. Under
-    the Phase 4e/4f partition the domain is empty by default.
+    -------------------------------------------
+    `ECOLOGICAL_BASE_RATE` is documented as a RELATIVE anchor — it "does not represent an
+    absolute ecosystem-specific count" — but `total_eoh()` sums it with absolute counts and
+    then divides the result into ε. When this floor was written, the ecological domain
+    landed at defaults at **0.6 h/person·yr, under 0.1% of total EOH**. So it could not move
+    ε, and the thermal obligation it carries booked at roughly one part in a thousand of the
+    ledger. Under the Phase 4e/4f partition the domain is empty by default.
 
     This function is the absolute footing that constant's `resolves_by` names. It does
     NOT set the number. No stewardship-hours census exists in this repo, and an invented
@@ -1038,8 +1038,9 @@ def ecological_eoh(
         total = baseline + spike + visible_deferred + thermal
 
     THE PRISTINE-VS-CURRENT PARTITION (2026-08-17, author sign-off)
-    --------------------------------------------------------------- One obligation mixed
-    two standards, and the split assigns each to the layer that can carry it:
+    ---------------------------------------------------------------
+    One obligation mixed two standards, and the split assigns each to the layer that can
+    carry it:
 
         GUF E(p,ε)      FLOW  · attributable to the holder of exclusive use
                               · standard: MAINTAIN CURRENT CONDITION

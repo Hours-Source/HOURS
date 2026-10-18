@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """eoh: the HOURS EOH research CLI.
 
-Commands: arc Sweep the epsilon arc dashboard System health snapshot at a given ε params
-Inspect and modify EohParams scenario Run named scenario functions simulate Multi-period
-simulation sensitivity Parameter sensitivity analysis guf Ground Use Fee calculations
-multiplier Tier multiplier four-factor breakdown and arc sweep contestability
-Contestability invariant arc table and stress sweep (§8) coasean [EXPERIMENTAL] Coasean
-collective federation (§§6–7) thermal Planetary radiative capacity: overage,
-determinacy, ceilings corridor [EXPERIMENTAL] Stability corridor [ε_suff, ε_max] and
-ceilings frame Resolve a frame's inputs; write a frame file provenance Provenance tags
-for every data.py constant
+Commands:
+  arc             Sweep the epsilon arc
+  dashboard       System health snapshot at a given ε
+  params          Inspect and modify EohParams
+  scenario        Run named scenario functions
+  simulate        Multi-period simulation
+  sensitivity     Parameter sensitivity analysis
+  guf             Ground Use Fee calculations
+  multiplier      Tier multiplier four-factor breakdown and arc sweep
+  contestability  Contestability invariant arc table and stress sweep (§8)
+  coasean         [EXPERIMENTAL] Coasean collective federation (§§6–7)
+  thermal         Planetary radiative capacity: overage, determinacy, ceilings
+  corridor        [EXPERIMENTAL] Stability corridor [ε_suff, ε_max] and ceilings
+  frame           Resolve a frame's inputs; write a frame file
+  provenance      Provenance tags for every data.py constant
 """
 
 from __future__ import annotations

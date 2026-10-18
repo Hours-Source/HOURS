@@ -3,9 +3,10 @@ year against what it holds, 1925–2024, by the inventory's scopes.
 
     python3 utils/bea_depreciation_ingest.py [--raw rawdata/bea/fixed_assets] [--out hours_eoh/reference/data]
 
-Output (committed): bea_depreciation_1925_2024.csv year, then net stock and depreciation
-for each line below, BILLIONS of current dollars (BEA publishes millions; billions match
-`capital_inventory.BEA_UNITS`)
+Output (committed):
+    bea_depreciation_1925_2024.csv   year, then net stock and depreciation for each line
+                                     below, BILLIONS of current dollars (BEA publishes
+                                     millions; billions match `capital_inventory.BEA_UNITS`)
 
 It reads the full-history workbooks BEA publishes (`Section1all_xls.xlsx`,
 `Section7all_xls.xlsx`): current-cost NET STOCK at yearend (Tables 1.1, 7.1) and
@@ -19,12 +20,14 @@ average lives: it depreciates each asset type at its own measured rate and SUMS 
 dollars. So depreciation over stock is the stock-weighted mean of the asset-level rates:
 the aggregation the dispute could not choose, MEASURED, not chosen.
 
-THE LINES, chosen to match `reference/capital_inventory.SCOPES`: private_nonres Table
-1.1/1.3 line 4 — private nonresidential ("productive") private_res line 8 — private
-residential (what "residential" adds) government Table 7.1/7.3 line 1 — all government
-fixed assets defense Table 7.1/7.3 line 22 — federal national defense; the inventory's
-government scope is NONDEFENCE, so the reader subtracts it, not this script fixed Table
-1.1/1.3 line 2 — every fixed asset, defence included
+THE LINES, chosen to match `reference/capital_inventory.SCOPES`:
+    private_nonres   Table 1.1/1.3 line 4 — private nonresidential ("productive")
+    private_res      line 8 — private residential (what "residential" adds)
+    government       Table 7.1/7.3 line 1 — all government fixed assets
+    defense          Table 7.1/7.3 line 22 — federal national defense; the inventory's
+                     government scope is NONDEFENCE, so the reader subtracts it, not this
+                     script
+    fixed            Table 1.1/1.3 line 2 — every fixed asset, defence included
 
 The ingest checks each line's LABEL against the workbook, so a BEA renumbering fails the
 ingest instead of shipping the wrong line.

@@ -23,9 +23,10 @@ or paid. That is the same move that closed the infrastructure determinacy gap
 (doctrine spread 10.26× on the monetized path, 1.000× on the physical floor).
 
 WHAT THIS MODULE REPORTS, AND WHAT IT REFUSES TO
--------------------------------------------------- The shipped basket prices three
-components of seven: coverage 0.759 by the desk estimate's own weights (2026-10-18; one
-component and 6.9% when written). So the residual is not `extraction − deferred`; it is
+------------------------------------------------
+The shipped basket prices three components of seven: coverage 0.759 by the desk
+estimate's own weights (2026-10-18; one component and 6.9% when written). So the
+residual is not `extraction − deferred`; it is
 
     observed − floor_priced  =  floor_unpriced  −  deferred  +  extraction
 

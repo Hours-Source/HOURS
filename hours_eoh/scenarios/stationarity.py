@@ -8,9 +8,9 @@ REPORTING ONLY. Composes the pipeline, the guarantee, the land fee and the
 labour supply; adds no mechanism and moves no shipped number.
 
 THE DOCTRINE (author decision, 2026-09-15): MINTED TEH IS THE WAGE
------------------------------------------------------------------- The mint pays
-registered human labour when it mints. Everything below follows from that, and this
-module computes it instead of asserting it:
+------------------------------------------------------------------
+The mint pays registered human labour when it mints. Everything below follows from that,
+and this module computes it instead of asserting it:
 
   * The Trust owes NONE of the registered stewardship, care or ecological
     labour — the mint already paid it. It owes only what does not mint: the
@@ -26,14 +26,16 @@ module computes it instead of asserting it:
     in covers what it owes; drawing principal is not standing still.
 
 THE TWO SIDES FAIL AT OPPOSITE ENDS, AND THAT IS WHY BOTH ARE REPORTED
---------------------------------------------------------------------- LABOUR: can the
-human hours the obligation needs be worked? Binds at the BOTTOM of the arc, where people
-carry nearly all of it. TEH: can the Trust's inflows pay the guarantee? Binds where the
-mint and the land fee are small against the guarantee. Which side fails says what kind
-of shortfall it is. A labour shortfall is physical: the obligation goes unmet, with
-shorter lives and less care. A TEH shortfall is fiscal: the Trust draws down.
+----------------------------------------------------------------------
+LABOUR: can the human hours the obligation needs be worked? Binds at the BOTTOM of the
+arc, where people carry nearly all of it. TEH: can the Trust's inflows pay the
+guarantee? Binds where the mint and the land fee are small against the guarantee. Which
+side fails says what kind of shortfall it is. A labour shortfall is physical: the
+obligation goes unmet, with shorter lives and less care. A TEH shortfall is fiscal: the
+Trust draws down.
 
-THE LABOUR SIDE READS THE PIPELINE'S SPLIT -----------------------------------------
+THE LABOUR SIDE READS THE PIPELINE'S SPLIT
+------------------------------------------
 Human hours come off `eoh_to_teh_pipeline`, the same split D3 and the guarantee use.
 `arc_stability` read a uniform `1 − ε` until 2026-09-15 and now uses the same adopted
 split. Its verdict rides alongside, and a test requires the two to agree, so a future

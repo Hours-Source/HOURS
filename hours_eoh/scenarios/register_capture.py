@@ -8,13 +8,13 @@ moving which share, benefiting whom* — because until that is stated the six
 candidate governance forms cannot be compared, only listed.
 
 WHY A FAILURE MODEL BEFORE A MECHANISM
----------------------------------------
-The framework's stated criticism of fiat is that issuance rests on discretion the
-holder cannot see. The property that answers the hole-digger objection — that
-only registered obligation mints — is the SAME property that concentrates that
-risk in whoever maintains the register. That is not an incidental weakness; it is
-the anchor's own argument turned around, and the anchor page carries it as a
-live falsifier under "What would change our mind".
+--------------------------------------
+The framework's stated criticism of fiat is that issuance rests on discretion the holder
+cannot see. The property that answers the hole-digger objection — that only registered
+obligation mints — is the SAME property that concentrates that risk in whoever maintains
+the register. That is not an incidental weakness. It is the anchor's own argument turned
+around, and the anchor page carries it as a live falsifier under "What would change our
+mind".
 
 WHAT THIS MODULE DOES NOT DO, and the boundary is the point
 ------------------------------------------------------------
@@ -24,11 +24,10 @@ argues that choosing one is not the framework's job: a governance form is
 retires it. What the framework can ship is the DECLARATION requirement and the
 CHECK, which work whatever form a collective runs.
 
-It also does not model an institution. There is no actor here, no incentive and
-no defection: a simulation of capture would be a simulation of assumptions about
-capture. What is computed is the mechanical consequence of a registration
-decision on issuance, which is a property of this model and not a claim about
-anyone's behaviour.
+It also does not model an institution. There is no actor here, no incentive and no
+defection: a simulation of capture would be a simulation of assumptions about capture.
+The module computes the mechanical consequence of a registration decision on issuance.
+That is a property of this model, not a claim about anyone's behaviour.
 
 THE DETECTION PRINCIPLE
 -----------------------
@@ -41,7 +40,7 @@ monitor can see, and it is why the monitor watches the SHARE rather than the
 mint: the mint moving is not evidence of anything, since it moves whenever the
 obligation does.
 
-WHAT THE MONITOR IS NOT ALLOWED TO DO
+WHAT THE MONITOR MAY NOT DO
 --------------------------------------
 - **It carries no shipped threshold.** `drift_monitor` requires one. A threshold
   calibrated to the shipped configuration is `LEVY_SUFFICIENCY_WARN` again — a
@@ -69,9 +68,9 @@ def mint_decomposition(epsilon: float = 0.40, **kwargs: Any) -> dict[str, Any]:
     """
     Where the minted TEH comes from, by domain.
 
-    `teh_created = mean_multiplier · Σ_domain (human_eoh_d · registration_share_d)`,
-    so each domain's contribution is its registered EOH times the multiplier. The
-    identity is asserted rather than assumed: `reconciles` compares the
+    `teh_created = mean_multiplier · Σ_domain (human_eoh_d · registration_share_d)`, so
+    each domain's contribution is its registered EOH times the multiplier. The function
+    asserts the identity and does not assume it: `reconciles` compares the
     reconstruction against the pipeline's own `teh_created`.
 
     Returns per domain: the registration share, the registered EOH, the implied
@@ -79,9 +78,9 @@ def mint_decomposition(epsilon: float = 0.40, **kwargs: Any) -> dict[str, Any]:
     `1 − share`, the fraction of that domain's human obligation a register could
     still admit without any physical change.
 
-    Headroom is the quantity the failure model turns on. A domain that is already
-    fully registered cannot be captured further; one at a low share with a large
-    human obligation is where issuance can be moved most.
+    Headroom is the quantity the failure model turns on. Nobody can capture a fully
+    registered domain further. A domain at a low share with a large human obligation is
+    where a decision can move issuance most.
     """
     p = eoh_to_teh_pipeline(epsilon=epsilon, **kwargs)
     shares = p["registration_by_domain"]
@@ -120,14 +119,14 @@ def capture_channels(epsilon: float = 0.40, **kwargs: Any) -> dict[str, Any]:
     """
     The registration decisions ranked by how far each can move issuance.
 
-    Ranked on `d_mint_per_unit_share × headroom` — the mint a decision could add
-    if that domain were admitted in full. A domain with a steep sensitivity but
-    no headroom is not a channel; one with headroom and no obligation behind it
-    is not either. The product is what names the channel that matters.
+    The ranking uses `d_mint_per_unit_share × headroom`: the mint a decision could add
+    by admitting that domain in full. A domain with a steep sensitivity but no headroom
+    is not a channel; one with headroom and no obligation behind it is not either. The
+    product is what names the channel that matters.
 
-    The ranking is a property of the SHIPPED configuration and moves with ε: the
-    obligation mix changes across the arc, so which decision is most consequential
-    changes with it. Callers should not quote a single ranking as the framework's.
+    The ranking is a property of the SHIPPED configuration and moves with ε. The
+    obligation mix changes across the arc, so the most consequential decision changes
+    with it. Callers should not quote a single ranking as the framework's.
     """
     d = mint_decomposition(epsilon, **kwargs)
     ranked = sorted(
@@ -181,9 +180,9 @@ def capture_scenario(
 
     Args:
         domain: one of MINT_DOMAINS.
-        share_delta: change in that domain's registration share. Positive admits
-            more; negative is the refusal direction, which has a victim rather
-            than a beneficiary and is modelled the same way.
+        share_delta: change in that domain's registration share. Positive admits more;
+            negative is the refusal direction, which has a victim instead of a
+            beneficiary, and the model treats it the same way.
     """
     if domain not in MINT_DOMAINS:
         raise ValueError(f"domain must be one of {MINT_DOMAINS}, got {domain!r}")
@@ -234,12 +233,11 @@ def drift_monitor(
     THE CHECK. Has the registered share moved further than the collective
     declared it would tolerate, without the obligation moving to justify it?
 
-    `threshold` is REQUIRED and has no default anywhere in this module. It is the
-    collective's declaration, not the framework's recommendation — the same
-    treatment `currency_per_teh` receives, and for the same reason: a shipped
-    value would bury the judgement the framework most needs visible, and a
-    threshold calibrated to the shipped configuration is a warning that cannot
-    fire.
+    The caller must give `threshold`; it has no default anywhere in this module. It is
+    the collective's declaration, not the framework's recommendation — the same
+    treatment `currency_per_teh` receives, and for the same reason: a shipped value
+    would bury the judgement the framework most needs visible, and a threshold
+    calibrated to the shipped configuration is a warning that cannot fire.
 
     Args:
         baseline_share: the registered share the collective declared it was at.
@@ -247,9 +245,9 @@ def drift_monitor(
         threshold: absolute drift the collective declared it would tolerate.
             Must be positive — a threshold of 0 makes every rounding a breach.
         obligation_change: fractional change in `total_eoh` over the same period.
-            Supply it. A share that moved because the obligation moved is not the
-            same event as one that moved on its own, and the monitor cannot tell
-            them apart without this.
+            Supply it. A share that moved because the obligation moved is not the same
+            event as one that moved on its own. Without this, the monitor cannot tell
+            them apart.
 
     Returns `breached` (did the drift exceed the threshold) and `unexplained`
     (did it do so while the obligation held still). **Only the second is the

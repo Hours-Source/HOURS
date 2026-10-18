@@ -27,9 +27,9 @@ Optional — handled by this module:
   guf_previous     float   for review_cycle_cap(); None → no cap
   delta_shi        float   Soil Health Index improvement for soil_health_credit(); None → 0
 
-This schema maps directly to geo-data pipeline outputs: a GeoJSON or CSV loader
-needs only to rename columns to these keys. The field set is a superset of the
-minimum required by ground_use_fee() so downstream tools can be built on it.
+This schema maps directly to geo-data pipeline outputs: a GeoJSON or CSV loader needs
+only to rename columns to these keys. The field set is a superset of the minimum
+ground_use_fee() requires, so downstream tools can build on it.
 
 Mission Statement: §"Land is held by the collective … stewardship leases …
 the fee reflects real costs rather than speculative value."
@@ -228,17 +228,16 @@ def attach_ecosystem_services(
         area_ha  = area_slu x SLU_HECTARES          (1 SLU = 100 m^2)
         V_s(p)   = area_ha x per_hectare_volumes[s]
 
-    WHY THIS EXISTS. E(p,ee) has been ZERO in every scenario the package ships.
-    The archetype factories produce 10,000 and 1,000 parcels and neither sets
+    WHY THIS EXISTS. E(p,ee) has been ZERO in every scenario the package ships. The
+    archetype factories produce 10,000 and 1,000 parcels and neither sets
     `ecosystem_services`; `guf_rate_calibration`, `guf_fiscal_integration`,
-    `guf_revenue_sweep` and `guf_lvi_weight_sensitivity` never supply it either.
-    So the ecological term of the Ground Use Fee has never been exercised, and
-    the x100 use-category calibration was fitted with it switched off.
+    `guf_revenue_sweep` and `guf_lvi_weight_sensitivity` never supply it either. So
+    nothing has exercised the ecological term of the Ground Use Fee, and the x100
+    use-category calibration fitted with it switched off.
 
-    OPT-IN BY CONSTRUCTION. This returns NEW parcel dicts and is never called by
-    the factories themselves, so no shipped number moves until a caller asks.
-    Turning E on for existing scenarios is a calibration change, not a plumbing
-    change.
+    OPT-IN BY CONSTRUCTION. This returns NEW parcel dicts, and the factories never call
+    it, so no shipped number moves until a caller asks. Turning E on for existing
+    scenarios is a calibration change, not a plumbing change.
 
     Args:
         parcels:             Inventory in the standard parcel schema.

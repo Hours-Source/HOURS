@@ -24,9 +24,9 @@ each does. **DECIDED 2026-09-30 (author): REGISTERED settles
 This module is the comparison behind that decision and stays reporting-only.
 
 THE CANDIDATES — what one TEH of collective c is taken to be worth
------------------------------------------------------------------- Each candidate is a
-per-collective BACKING, b(c), in some physical unit per TEH. The settlement rate is
-b(a)/b(b), in TEH_b per TEH_a.
+------------------------------------------------------------------
+Each candidate is a per-collective BACKING, b(c), in some physical unit per TEH. The
+settlement rate is b(a)/b(b), in TEH_b per TEH_a.
 
     parity      b = teh_created / population      — the CURRENT form; the
                                                     baseline, not a candidate
@@ -47,27 +47,31 @@ b(a)/b(b), in TEH_b per TEH_a.
 unit by how MANY units the mint issued per person.
 
 TWO CANDIDATES PASS THE CAPTURE TEST BY CONSTRUCTION, AND THAT IS REPORTED
--------------------------------------------------------------------------- `registered`
-is 1/m: every collective built at the shipped multiplier settles at exactly 1.0 whatever
-else differs, so capture-neutrality there is an identity (CLAUDE.md failure mode 2). It
-becomes informative only when the collectives' multipliers DIFFER, and that case is run.
-`floor` reads ε and nothing else about the collective: no mint, no population, no
-capital. So by construction it cannot respond to capture or to capital; its only
-information is the automation level. The module carries both, because the author may
-want exactly that property. It flags them `by_construction`, so nobody reads a pass as
-evidence.
+--------------------------------------------------------------------------
+`registered` is 1/m: every collective built at the shipped multiplier settles at exactly
+1.0 whatever else differs, so capture-neutrality there is an identity (CLAUDE.md failure
+mode 2). It becomes informative only when the collectives' multipliers DIFFER, and that
+case is run. `floor` reads ε and nothing else about the collective: no mint, no
+population, no capital. So by construction it cannot respond to capture or to capital;
+its only information is the automation level. The module carries both, because the
+author may want exactly that property. It flags them `by_construction`, so nobody reads
+a pass as evidence.
 
-THE FORK THE AUTHOR HAS TO SETTLE --------------------------------- `obligation` and
-`human` differ on ONE question: **does machine-fulfilled obligation back a TEH?** At
-high ε, a collective with 4× the capital settles above par under `obligation` and below
-it under `human` (pinned in `tests/test_settlement_base.py::TestTheFork`). That is not a
-calibration difference, and the module does not report it as one.
+THE FORK THE AUTHOR HAS TO SETTLE
+---------------------------------
+`obligation` and `human` differ on ONE question: **does machine-fulfilled obligation
+back a TEH?** At high ε, a collective with 4× the capital settles above par under
+`obligation` and below it under `human` (pinned in
+`tests/test_settlement_base.py::TestTheFork`). That is not a calibration difference, and
+the module does not report it as one.
 
-WHAT THIS DOES NOT ESTABLISH ---------------------------- The module models no actor,
-incentive or trade. There is no goods layer, so nothing represents what a settled TEH
-buys on the far side (record/theory.md, capture-aggregate-bounded). Canonical-arc
-collectives take capital, age and health from `canonical_physical_state`. Knowledge and
-monitoring state stay at the pipeline's own defaults.
+WHAT THIS DOES NOT ESTABLISH
+----------------------------
+The module models no actor, incentive or trade. There is no goods layer, so nothing
+represents what a settled TEH buys on the far side (record/theory.md,
+capture-aggregate-bounded). Canonical-arc collectives take capital, age and health from
+`canonical_physical_state`. Knowledge and monitoring state stay at the pipeline's own
+defaults.
 
 STATUS: experimental, reporting only. Nothing imports this. The author chose the base on
 2026-09-30; `parity_rate` stays unchanged as the superseded form. So

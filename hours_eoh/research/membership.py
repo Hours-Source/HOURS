@@ -13,12 +13,11 @@ obligations. Terms enter the code as data structures with validators —
     the code is the constitutional court, not the legislature: the
     contract space is free, and the invariant is its boundary.
 
-This is the operational form of §9-item-7's warning that membership rules
-must not be drawn so tight that they themselves destroy χ ≥ 1. The audit
-does not simulate the terms; it checks any proposed MembershipTerms against
-the contestability invariant and reports OK/WARN/CRIT with reasons,
-following the GovernanceInputs + assess_tier() validator pattern from
-core/multipliers.py.
+This is the operational form of §9-item-7's warning: membership rules must not be so
+tight that they themselves destroy χ ≥ 1. The audit does not simulate the terms. It
+checks any proposed MembershipTerms against the contestability invariant and reports
+OK/WARN/CRIT with reasons, following the GovernanceInputs + assess_tier() validator
+pattern from core/multipliers.py.
 
 Public API:
     MembershipTerms — TypedDict of the term families collectives may set
@@ -101,24 +100,22 @@ def contestability_audit(
                          / (MIN_VIABLE_POPULATION · k_eff)      (§8.8 M2)
         exit_financeable ⇔ χ_marginal ≥ CHI_CRIT OR entry_capacity ≥ 1
 
-    Underwriting capacity uses k_eff, not bare K_entry: if every collective
-    charged the proposed admission cost, a commons-financed exit cohort
-    would face it too — terms that inflate admission shrink the number of
-    foundings the commons can finance, and the audit must see that.
-    With underwriting_policy=True the χ_marginal CRIT escalation is waived
-    when the commons can finance the founding instead (exit_financeable via
-    M2) — it downgrades to WARN, because the marginal member's own endowment
-    still cannot fund exit and the guarantee now depends on federation
-    policy, not arithmetic in the member's hands. With the default False,
-    entry_capacity and exit_financeable are reported informationally and
-    the §8.7e escalation rules are unchanged.
+    Underwriting capacity uses k_eff, not bare K_entry: if every collective charged the
+    proposed admission cost, a commons-financed exit cohort would face it too — terms
+    that inflate admission shrink the number of foundings the commons can finance, and
+    the audit must see that. With underwriting_policy=True the audit waives the
+    χ_marginal CRIT escalation when the commons can finance the founding instead
+    (exit_financeable via M2) — it downgrades to WARN, because the marginal member's own
+    endowment still cannot fund exit and the guarantee now depends on federation policy,
+    not arithmetic in the member's hands. With the default False, the audit reports
+    entry_capacity and exit_financeable for information, and the §8.7e escalation rules
+    stay the same.
 
-    Admission cost enters K_entry, not P: the audit asks "if every collective
-    adopted these terms, does exit stay substantive?" — the exiting marginal
-    member must fund the founding cost OR a destination's admission charge,
-    and both are sunk from their side of the boundary. The vesting schedule
-    cannot rescue χ_marginal (tenure-0 has nothing vested); it is checked
-    separately as friction.
+    Admission cost enters K_entry, not P: the audit asks "if every collective adopted
+    these terms, does exit stay substantive?" — the exiting marginal member must fund
+    the founding cost OR a destination's admission charge, and both are sunk from their
+    side of the boundary. The vesting schedule cannot rescue χ_marginal (tenure-0 has
+    nothing vested); the audit checks it separately as friction.
 
     Checks (thresholds are named constants in data.py):
         1. χ_marginal < CHI_CRIT → CRIT; < CHI_WARN → WARN   (the core §9-item-7 check)
@@ -131,19 +128,18 @@ def contestability_audit(
         5. dividend_policy_fraction < MEMBERSHIP_DIVIDEND_POLICY_WARN → WARN
            (retention rebuilds the honeypot the escheat rule exists to defuse)
         6. commons_balance ≤ 0 → WARN (the floor component of P is unbacked).
-           Coverage ADEQUACY is a scenario judgment, not a terms property —
-           commons_floor_coverage is reported without escalation.
+           Coverage ADEQUACY is a scenario judgement, not a terms property, so the audit
+           reports commons_floor_coverage without escalation.
 
-    Worked example (ε=0.40, defaults, admission=500 TEH):
+    Worked example (ε=0.40, defaults, admission=500 TEH, read 2026-10-18):
         K_entry = 1800·(1+1.6·0.40) = 2952 ;  k_eff = 3452
-        S ≈ 1476 → χ_marginal ≈ 0.43 "CRIT" — the terms fail the audit even
-        though the same collective with zero admission is only at the
-        framework's baseline breach (χ_marginal ≈ 0.50).
+        P ≈ 1075 → χ_marginal ≈ 0.31 "CRIT". The same collective with zero admission
+        sits at the framework's baseline breach (χ_marginal ≈ 0.36, also CRIT). So the
+        admission cost deepens a breach that already exists.
 
-    ε-behavior: S falls and K_entry rises (increasing_returns) across the
-    arc, so identical terms audit worse at higher ε — terms acceptable at
-    subsistence can breach the invariant near post-scarcity. Meaningful
-    across ε ∈ [0, 0.99].
+    ε-behavior: S falls and K_entry rises (increasing_returns) across the arc. So
+    identical terms audit worse at higher ε — terms acceptable at subsistence can breach
+    the invariant near post-scarcity. Meaningful across ε ∈ [0, 0.99].
 
     Args:
         terms: Proposed MembershipTerms (absent fields → canonical defaults:
@@ -161,8 +157,8 @@ def contestability_audit(
         commons_dividend: Include the universal commons dividend in P
             (§8.8 M1). Default False — §8.7 behavior unchanged.
         underwriting_policy: Let commons-financed entry (§8.8 M2) waive the
-            χ_marginal CRIT to WARN. Default False — §8.7e escalations
-            unchanged; capacity is still reported.
+            χ_marginal CRIT to WARN. Default False: the §8.7e escalations stay the same,
+            and the audit still reports capacity.
 
     Returns:
         dict with keys: audit_status ("OK"|"WARN"|"CRIT"), warnings,

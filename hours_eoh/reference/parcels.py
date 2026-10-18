@@ -3,12 +3,12 @@ The US parcel census, at county resolution — measured data, no domain imports.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHAT THIS IS FOR. `scenarios/use_split` established that the Ground Use Fee has
-ONE scaling basis while the measured servicing cost has three — area 41.9%,
-parcel 44.5%, throughput 13.6% — and that the 44.5% following PARCEL COUNT is
-inexpressible in a per-SLU fee. `guf_magnitude.subdivision_invariance` proves
-the point by splitting every parcel in two and getting the same fee back to the
-float: parcel count does not enter the fee at all.
+WHAT THIS IS FOR. `scenarios/use_split` established that the Ground Use Fee has ONE
+scaling basis while the measured servicing cost has three — area 41.9%, parcel 44.5%,
+throughput 13.6% — and that the 44.5% following PARCEL COUNT is inexpressible in a
+per-SLU fee. `guf_magnitude.subdivision_invariance` proves the point: it splits every
+parcel in two and gets the same fee back to the float. Parcel count does not enter the
+fee at all.
 
 Closing that needs a per-parcel TERM, and a term needs a denominator. This is
 the denominator: **160,573,137 parcels across 3,230 counties**, which is what
@@ -22,16 +22,16 @@ the census's `usedesc` is 41.2% filled and is free text from 3,230 independent
 county systems — normalising it is a separate project with a real judgement in
 it, and bundling a judgement into a count would make the count unciteable.
 
-THE AREA COLUMN OVER-COUNTS LAND AND THE MODULE SAYS SO IN THREE PLACES. Summed
-parcel footprints exceed the land area of six of twelve checked states — Florida
-by 31%, Texas by 16% — because footprints overlap in developed areas, while
-federal-land-heavy states under-count because that land is thinly parcelised.
-`stackid` is populated on 0.2% of Florida rows and cannot explain it, so the
-residual cause is unidentified. `land_area_validation()` reports the ratio per
-state rather than leaving the limitation in prose only.
+THE AREA COLUMN OVER-COUNTS LAND AND THE MODULE SAYS SO IN THREE PLACES. Summed parcel
+footprints exceed the land area of six of twelve checked states — Florida by 31%, Texas
+by 16% — because footprints overlap in developed areas, while federal-land-heavy states
+under-count because that land is thinly parcelised. `stackid` fills only 0.2% of Florida
+rows and cannot explain it, so nobody has identified the residual cause.
+`land_area_validation()` reports the ratio per state rather than leaving the limitation
+in prose only.
 
-Ingest: `utils/parcel_ingest.py` over the 68 GB raw file in `rawdata/parcels/`,
-which is gitignored exactly as the 2.9 GB ATUS microdata is.
+Ingest: `utils/parcel_ingest.py` over the 68 GB raw file in gitignored
+`rawdata/parcels/`, like the 2.9 GB ATUS microdata.
 
 Layer note: `reference/` imports nothing from the package — pure data.
 """
@@ -268,9 +268,8 @@ def national_parcel_count() -> int:
     """
     Total parcels — the per-parcel term's denominator.
 
-    Summed from the rows rather than shipped as a constant: a stored total is a
-    second copy of a value whose source is elsewhere, which is the pattern this
-    repo has found five times.
+    Summed from the rows, not shipped as a constant: a stored total is a second copy of
+    a value whose source is elsewhere (CLAUDE.md, failure mode 4).
     """
     return sum(int(r["parcels"]) for r in load_county_parcels())
 
@@ -306,17 +305,17 @@ def contiguous_48_private_parcels() -> dict[str, float]:
     (2026-10-14, author: "the collective doesn't pay itself on parcels it
     holds"). Government parcels are the collective's own holding.
 
-    Owner type is known for ~82% of parcels, and an unknown owner type is not
-    a private owner (`TestOwnershipIsAPairNotAFraction`), so the count is a
-    BAND, not a number:
+    The census gives owner type for ~82% of parcels. An unknown owner type is not a
+    private owner (`TestOwnershipIsAPairNotAFraction`), so the count is a BAND, not a
+    number:
 
         low     = known − government            unknowns all non-private
         high    = total − government            unknowns all private
         central = total × (1 − government/known)  unknowns split like the known
 
-    The census gives government parcel COUNTS, not their AREA: federal land is
-    a few percent of parcels and far more of the land, so this corrects the
-    fee's per-parcel count and says nothing about the area the collective holds.
+    The census gives government parcel COUNTS, not their AREA. Federal land is a few
+    percent of parcels and far more of the land, so this corrects the fee's per-parcel
+    count and says nothing about the area the collective holds.
     """
     return _private_parcels([r for r in load_county_parcels()
                              if str(r["statefp"]) not in NOT_CONTIGUOUS_48_FIPS])
@@ -396,11 +395,11 @@ def land_area_validation() -> list[dict[str, float | str]]:
     which is only possible if they overlap. Six of the twelve states carried
     here exceed 1.0.
 
-    THE RESULT IS REPORTED, NOT CORRECTED. The cause is unidentified —
-    `stackid`, which marks condominium units sharing a footprint, is populated
-    on 0.2% of Florida rows and cannot account for a 31% over-count — so
-    "fixing" the number would be fitting rather than measuring. What the module
-    can honestly do is make the limitation checkable, which is what this is.
+    THE FUNCTION REPORTS THE RESULT AND DOES NOT CORRECT IT. Nobody has identified the
+    cause. `stackid`, which marks condominium units sharing a footprint, fills only 0.2%
+    of Florida rows and cannot account for a 31% over-count — so "fixing" the number
+    would be fitting rather than measuring. What the module can honestly do is make the
+    limitation checkable, which is what this is.
     """
     area: dict[str, float] = {}
     for r in load_county_parcels():
@@ -430,12 +429,12 @@ def service_point_denominator_verdict() -> dict[str, float | str | bool]:
 
         ratio(cap) = Σ numunits[numunits ≤ cap] / US_HOUSING_UNITS_2020
 
-    Returns the span of that ratio across the caps in
-    `NUMUNITS_CAP_SENSITIVITY`. A denominator whose value depends on an
-    unprincipled exclusion threshold is not a measurement, and the span is how
-    far it can be moved — by excluding between 0.03% and 0.66% of rows. The
-    span is COMPUTED and returned, not restated in prose: a figure written
-    beside the table that produces it is how a claim goes stale.
+    Returns the span of that ratio across the caps in `NUMUNITS_CAP_SENSITIVITY`. A
+    denominator whose value depends on an unprincipled exclusion threshold is not a
+    measurement, and the span is how far it can be moved — by excluding between 0.03%
+    and 0.66% of rows. The function COMPUTES and returns the span and does not restate
+    it in prose: a figure written beside the table that produces it is how a claim goes
+    stale.
 
     THE PLAUSIBLE ANSWER IS THE TRAP. A cap of 1,000 gives 0.9× the housing
     stock — close enough to look settled. Adopting it on that basis is fitting

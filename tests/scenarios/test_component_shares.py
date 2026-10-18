@@ -1,11 +1,13 @@
 """Tests for scenarios/component_shares.py: the desk shares measured against observed
 time use, and why the result is a BOUND.
 
-Discipline: * the ASSUMED mapping is tested for completeness, and it names only codes
-the extract has (the `unused_innocuous_names` lesson); * findings are asserted as SIGNS
-and ORDERINGS, because the levels move with the ATUS vintage; * every figure the module
-quotes in prose is pinned live; * `TestComponentSharesChangeNothing` pins that this is
-reporting only.
+Discipline:
+  * the ASSUMED mapping is tested for completeness, and it names only codes the extract
+    has (the `unused_innocuous_names` lesson);
+  * findings are asserted as SIGNS and ORDERINGS, because the levels move with the ATUS
+    vintage;
+  * every figure the module quotes in prose is pinned live;
+  * `TestComponentSharesChangeNothing` pins that this is reporting only.
 """
 
 from __future__ import annotations

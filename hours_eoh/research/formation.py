@@ -1,13 +1,12 @@
 """
 Formation feedback — proposed §8.9c (who actually builds K(ε)).
 
-EXPERIMENTAL TIER — not stable API. Closes the circularity the §8.9b static
-model flagged as open: the charter share s(ε) is an implicit tax on private
-capital formation, yet the static model assumed K(ε) = K₀ + ν·Y(ε)
-materializes regardless. Here formation is FINANCED or it does not happen,
-and ε is DERIVED from the capital the simulation actually forms — inverting
-the module's own physics (ε = (K − K₀)/(ν·total_eoh), the aggregate
-analogue of core's compute_epsilon; typed-capital integration via
+EXPERIMENTAL TIER — not stable API. Closes the circularity the §8.9b static model
+flagged as open. The charter share s(ε) is an implicit tax on private capital formation,
+yet the static model assumed K(ε) = K₀ + ν·Y(ε) materializes regardless. Here formation
+is FINANCED or it does not happen, and ε is DERIVED from the capital the simulation
+actually forms — inverting the module's own physics (ε = (K − K₀)/(ν·total_eoh), the
+aggregate analogue of core's compute_epsilon; typed-capital integration via
 core/civilization.py is the core-grade follow-up).
 
 The three coupled loops, closed:
@@ -148,8 +147,8 @@ def investment_supply_fraction(
     compensation remains. r_full = FORMATION_FULL_SUPPLY_RATE is the return
     at which formation demand is fully supplied.
 
-    Worked example (defaults): f = 1 for s ≤ 0.5 (the charter is FREE up to
-    the incentive-compatible share); f = 0.5 at s = 0.7; f = 0 at s ≥ 0.9.
+    Worked example (defaults): f = 1 for s ≤ 0.5, so the charter is FREE up to the
+    incentive-compatible share. The fraction is 0.5 at s = 0.7 and 0 at s ≥ 0.9.
 
     Args:
         s: Charter share of new formation (∈ [0, 1]).
@@ -184,9 +183,9 @@ def incentive_compatible_share(
         s* = 1 − r_full / (1/ν − δ)
 
     Worked example (defaults): s* = 1 − 0.10/0.20 = 0.50. Compare
-    formation_share_required(ε): s_required crosses s* at ε ≈ 0.33 — below
-    that the charter doctrine is genuinely free; above it the commons must
-    co-fund formation from its own income.
+    formation_share_required(ε): s_required crosses s* at ε ≈ 0.20 (2026-10-18; ≈ 0.33
+    when written). Below that the charter doctrine is genuinely free; above it the
+    commons must co-fund formation from its own income.
 
     Args:
         capital_output_ratio: ν (> 0).
@@ -246,18 +245,18 @@ def formation_feedback_simulation(
                    attaches to NET NEW formation only)
         ε_next   = clamp((K − K₀)/(ν·E), 0, 0.99)    (capacity-derived)
 
-    Estate flow: death_rate · share · K_priv (share = estate_escheat_share,
-    or RECAL_ESCALATION_ESTATE_SHARE while escalation is latched). The
-    §8.9b escalation trigger (escalation=True: adversarial regime AND
-    capacity < floor or invariant failing) latches, as in the arc.
+    Estate flow: death_rate · share · K_priv (share = estate_escheat_share, or
+    RECAL_ESCALATION_ESTATE_SHARE while escalation holds). The §8.9b escalation trigger
+    (escalation=True: adversarial regime AND capacity < floor or invariant failing)
+    latches, as in the arc.
 
     charter_share_override pins s (0.0 = the NULL ANCHOR: no charter, full
     private funding — must reproduce the canonical ~50-year arc pace; the
     baseline every feedback effect is measured against).
 
-    Conservation (T_K + K_priv = K) is exact by construction; asserted in
-    tests. Exit channels are evaluated each year at ACTUAL ε and the NET
-    dividend — the feedback-consistent invariant check.
+    Conservation (T_K + K_priv = K) is exact by construction; asserted in tests. The
+    simulation evaluates exit channels each year at ACTUAL ε and the NET dividend: the
+    feedback-consistent invariant check.
 
     Args:
         n_years: Simulation horizon in years.
@@ -526,10 +525,9 @@ def realised_pace(
 
         pace = EPSILON_ARC_MAX / T,   T = first year ε_actual reaches the cap
 
-    T is read between years: the last unclamped step's slope extends the arc
-    to the cap, so the pace does not jump by a whole year when the run crosses
-    a year boundary. A run that never reaches the cap within
-    `_PACE_HORIZON_FACTOR` × the schedule's own length reports
+    T reads between years. The last unclamped step's slope extends the arc to the cap,
+    so the pace does not jump by a whole year at a year boundary. A run that never
+    reaches the cap within `_PACE_HORIZON_FACTOR` × the schedule's own length reports
     `reached=False` and pace = ε_final / n_years.
 
     units: ε per year. ε-behaviour: the run covers the whole arc [0, 0.99].
@@ -592,11 +590,11 @@ def epsilon_rate_fixed_point(
     model has the trivial fixed point at the cap — or the budget runs out. Same damped shape as
     scenarios/knowledge_base.epsilon_ref_fixed_point.
 
-    WHAT A FIXED POINT WOULD MEAN is the caller's to read from `ratio_at_start`
-    and `path`, not this docstring's: a pace that scales with the rate returns
-    the input times the arc's shape and selects no rate, and a crossing that
-    appears only where formation cannot keep up is a ceiling on the rate, not
-    a reading of it. Both are reported; neither is asserted here.
+    WHAT A FIXED POINT WOULD MEAN is for the caller to read from `ratio_at_start` and
+    `path`, not for this docstring: a pace that scales with the rate returns the input
+    times the arc's shape and selects no rate, and a crossing that appears only where
+    formation cannot keep up is a ceiling on the rate, not a reading of it. The function
+    reports both and asserts neither.
 
     units: ε per year. ε-behaviour: each evaluation runs the whole arc.
 

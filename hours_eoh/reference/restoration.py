@@ -1,16 +1,16 @@
 """
 Restoration cost from physics — labour-hours to return a hectare to function.
 
-Phase 3 of the GUF restoration-cost derivation. This is the quantity a
-reset-cost derivation of GUF's ecological term needs, and it is derived the only
-way that has worked in this repo: ASAE field capacity, `width × speed ×
+Phase 3 of the GUF restoration-cost derivation. A reset-cost derivation of
+GUF's ecological term needs this quantity. The module derives it the only way
+that has worked in this repo: ASAE field capacity, `width × speed ×
 efficiency`, with no price anywhere in the chain.
 
 WHY NOT A PROJECT-COST DATABASE. Four instruments have already failed here, and
 each failed differently, which is how the remaining gap became well-posed:
 
-  NRCS EQIP payment schedules   fail on UNITS  — no time unit and no labour line
-                                in 2,691 rows; the dollar column mixes
+  NRCS EQIP payment schedules   fail on UNITS. 2,691 rows have no time unit and
+                                no labour line. The dollar column mixes
                                 implementation cost with foregone income.
   Extension enterprise budgets  fail on SCOPE  — crop PRODUCTION hours.
   Raw agency headcount          fails on ROLE MIX — overstates 4.4×.
@@ -18,32 +18,32 @@ each failed differently, which is how the remaining gap became well-posed:
 
 Restoration-project cost databases share EQIP's defect exactly: they report
 dollars, and the labour share of a restoration dollar is neither published nor
-constant. So they are not used here. The repo's own rule applies — *a
+constant. So this module does not use them. The repo's own rule applies: *a
 `resolves_by` that names a SOURCE without naming the FIELD in it that carries
 the quantity has not been checked.*
 
 WHAT THIS PRICES, AND WHAT IT REFUSES TO
 ----------------------------------------
-A restoration is a SEQUENCE of field operations, and the ASAE table covers the
-ones done with agricultural machinery: site preparation, drilling seed, packing,
+A restoration is a SEQUENCE of field operations. The ASAE table covers the ones
+done with agricultural machinery: site preparation, drilling seed, packing,
 establishment mowing, spot spraying. Grassland and old-field restoration are
 therefore fully derivable.
 
-Three classes are NOT, and they are EXCLUDED rather than costed at zero — the
-discipline `reference/personal_basket.py` holds when it prices one basket
-component of seven, and `land_stewardship` when it covers 38.1% of area:
+Three classes are NOT. The module EXCLUDES them and does not cost them at zero.
+`reference/personal_basket.py` holds the same discipline for the basket
+components it cannot price, and `land_stewardship` when it covers 38.1% of area:
 
   tree planting          hand labour with no implement in the standard
-  wetland hydrology      earthworks; excavator productivity is not an ASAE
-                         field operation and the standard does not cover it
+  wetland hydrology      earthworks; excavator work is not an ASAE field
+                         operation, and the standard does not cover it
   monitoring             recurring observation, not a field pass
 
 `UNPRICED_RESTORATION` carries each with its reason and what would settle it.
 
 THE ONE-OFF / RECURRING SPLIT. Establishment is a one-time cost; the
 establishment-phase mowing and spraying recur for a stated number of years and
-then stop. Both are reported separately, because amortising them together over
-a restoration horizon hides which is which.
+then stop. The module reports the two separately, because one amortisation over a
+restoration horizon hides which is which.
 
 Layer: reference/ — pure data and derivation; imports nothing from the package
 outside this layer.
@@ -167,12 +167,13 @@ def restoration_hours_per_hectare(sequence: str) -> dict:
     units: labour-hours per hectare. `establishment_*` is one-off;
     `aftercare_*_per_year` recurs for `aftercare_years` and then stops.
 
-    Worked example — grassland_seeding: two disking passes at 12 ft, one 15 ft
-    drilled seeding and one packing pass give roughly 1.0–2.6 h/ha of
-    establishment, with about 0.4–1.0 h/ha·yr of aftercare for three years.
-    Total lifetime cost is therefore a few hours per hectare, NOT the hundreds
-    a restoration's DOLLAR cost might suggest — because most of that dollar is
-    seed, plant material and design, none of which is labour.
+    Worked example — grassland_seeding. Two disking passes at 12 ft, one 15 ft
+    drilled seeding and one packing pass give about 1.1–2.5 h/ha of
+    establishment. Aftercare adds about 0.24–0.76 h/ha·yr for three years
+    (2026-10-18; it read 1.0–2.6 and 0.4–1.0 when written). So the total
+    lifetime cost is a few hours per hectare. It is NOT the hundreds that a
+    restoration's DOLLAR cost might suggest, because most of that dollar is
+    seed, plant material and design, and none of that is labour.
 
     Raises:
         KeyError: on an unknown sequence.

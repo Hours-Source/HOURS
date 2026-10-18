@@ -3,33 +3,35 @@ Which paid work discharges an obligation — the attribution the labour-side ε 
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHY THIS EXISTS. ε can be read off a capital inventory (`capital_inventory`) or
-off time use, and until now only the first had been tried. The second needs one
-thing the first does not: a decision about which PAID work fulfils one of the
-four EOH domains. Unpaid household time is measured directly by ATUS, but a
-nurse's shift and an advertising executive's are both paid hours and only one of
-them discharges an obligation.
+WHY THIS EXISTS. Two instruments can read ε: a capital inventory
+(`capital_inventory`) or time use. Until this module, nobody had tried the
+second. It needs one thing the first does not: a decision about which PAID work
+fulfils one of the four EOH domains. ATUS measures unpaid household time
+directly. But a nurse's shift and an advertising executive's are both paid
+hours, and only one of them discharges an obligation.
 
 **THE LABOUR ROUTE HAS ONE FREE PARAMETER WHERE THE CAPITAL ROUTE HAS THREE**,
 and that is the point of building it. Reading ε off assets requires a valuation
-doctrine (1.78×), a currency conversion (1.45×) and a scope of capital (2.54×).
+doctrine (1.78×), a currency conversion (1.45×) and a scope of capital (2.52×;
+`capital_inventory.what_this_cannot_settle`, 2026-10-18).
 Reading it off time use requires only this attribution: no currency appears
 anywhere, so no valuation step happens. That is the census route beating the
 valuation route on determinacy, measured on the framework's own retrodiction.
 
-ATTRIBUTED AT THE SOC MAJOR-GROUP LEVEL, deliberately. The registry carries 747
-detailed occupations and attributing each by hand would produce a false
-precision: the judgement is about whether a KIND of work discharges an
-obligation, and that judgement lives at the group. Two scopes bound it; there is
+ATTRIBUTED AT THE SOC MAJOR-GROUP LEVEL, deliberately. The registry carries 751
+detailed occupations with employment (2026-10-18), and a hand attribution of
+each would produce a false precision. The judgement is about whether a KIND of
+work discharges an obligation, and that judgement lives at the group. Two scopes bound it; there is
 no weighted middle and no coefficient to tune.
 
 DISJOINT FROM NOTHING, AND THAT IS NOT AN OVERSIGHT. `servicing.py` counts
 highway and utility workers for the Ground Use Fee, and several appear here too.
-That is NOT the double-application failure, because the two totals are never
-summed: servicing asks what land costs to hold, this asks how much human labour
+That is NOT the double-application failure, because nothing sums the two
+totals. Servicing asks what land costs to hold; this asks how much human labour
 discharges obligation. The same hour legitimately answers both questions.
-`verification.py` is the exception and IS excluded — the register is DELIVERY
-cost, the apparatus that makes obligation legible, not the obligation itself.
+`verification.py` is the exception, and this module EXCLUDES it. The register is
+DELIVERY cost, the apparatus that makes obligation legible, not the obligation
+itself.
 
 Layer: reference/ — pure data, imports nothing from the package outside reference/.
 """
@@ -110,7 +112,7 @@ EXCLUDED_GROUPS: tuple[dict, ...] = (
         "Discovery above the floor by construction — the framework says so."},
     {"soc": "41", "name": "Sales and Related", "reason": "Moves goods between owners; discharges nothing."},
     {"soc": "43", "name": "Office and Administrative Support", "reason":
-        "The largest single group at 11.5%, and the one whose exclusion moves "
+        "The largest single group by employment, and the one whose exclusion moves "
         "the answer most. It is the paperwork of an economy, and the register's "
         "share of it is counted in `verification.py` as DELIVERY, not here."},
 )
@@ -134,9 +136,9 @@ def employment_by_major_group(
     employment: Mapping[str, float] | None = None,
 ) -> dict[str, float]:
     """
-    Employment in thousands by SOC major group. MEASURED — BLS Employment
-    Projections via the multiplier registry, the same file the multiplier and
-    both censuses read, so none of them can drift from the others.
+    Employment in thousands by SOC major group. MEASURED: BLS Employment
+    Projections via the multiplier registry. The multiplier and both censuses
+    read the same file, so none of them can drift from the others.
 
     units: thousands of workers.
     """
@@ -164,9 +166,9 @@ def obligation_share(
 
     THIS IS AN EMPLOYMENT SHARE USED AS AN HOURS SHARE, and the substitution is
     an assumption: it holds only if obligation-fulfilling occupations work
-    average hours. Part-time is concentrated in food service and personal care,
-    both of which are IN, so the share of HOURS is likely lower than the share of
-    HEADS and this errs toward over-counting obligation labour — which pushes the
+    average hours. Part-time work concentrates in food service and personal care,
+    and both are IN. So the share of HOURS is likely lower than the share of
+    HEADS. This errs toward over-counting obligation labour, which pushes the
     derived ε DOWN. Stated because it is the assumption a reader would otherwise
     have to find.
 
@@ -190,11 +192,13 @@ def obligation_share(
 
 def what_this_cannot_settle() -> tuple[str, ...]:
     """The gaps, stated by the checker rather than found by a reader."""
+    by_group = employment_by_major_group()
+    office = by_group.get("43", 0.0) / sum(by_group.values())
     return (
         "Whether a KIND of work discharges an obligation. Group 21 (Community "
         "and Social Service) is the closest call and is excluded; group 43 "
-        "(Office and Administrative Support) is 11.5% of employment and its "
-        "exclusion moves the answer more than any other single decision.",
+        f"(Office and Administrative Support) is {office:.1%} of employment and "
+        "its exclusion moves the answer more than any other single decision.",
         "Whether obligation-fulfilling occupations work average hours. The share "
         "is measured in HEADS and used as HOURS, and part-time is concentrated "
         "in groups that are IN, so this errs toward over-counting.",

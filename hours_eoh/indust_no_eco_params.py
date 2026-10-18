@@ -15,22 +15,22 @@ neutral with respect to other entropy domains.  The result:
   - Decades of industrial externalities have pushed ecosystem health below
     the spike threshold (0.38 < 0.40) and accumulated a 100 B-hour
     deferred ecological backlog
-  - No investment has been made in ecological monitoring or restoration
+  - The collective has made no investment in ecological monitoring or restoration
 
 This is the archetype of industrial overshoot: large capital stock,
 maximum maintenance burden, zero ecological credit, large deferred backlog.
 
-RESHAPED TO THE PARTITION (2026-10-04, author: "an overbuilt collective
-deferring all eco towards GUF that is then carried by the people"). The 100 B
-hours below predates the ecological partition (Phases 4e/4f): it entered the
-domain as ONE year's demand — 1,538 h/head, more than the labour supply.
-The backlog is now DERIVED: the health deficit (1 − INDUST_ECOSYSTEM_HEALTH)
-over the archetype's land, priced by `restoration_cost.deficit_obligation`,
-and carried by its PEOPLE as labour with the recurring ecological work (the
-GUF's under the partition) — `INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE`. The 100 B
-stays as the BASELINE it is compared with. The archetype is also a FRAME
-FILE (`indust_frame()`, shipped as `indust_overbuilt`), so the corridor band
-and every frame-aware shock run on it as on the US frame.
+RESHAPED TO THE PARTITION (2026-10-04, author: "an overbuilt collective deferring all
+eco towards GUF that is then carried by the people"). The 100 B hours below predates the
+ecological partition (Phases 4e/4f). It entered the domain as ONE year's demand: 1,538
+h/head, more than the labour supply. The backlog is now DERIVED: the health deficit (1 −
+INDUST_ECOSYSTEM_HEALTH) over the archetype's land, priced by
+`restoration_cost.deficit_obligation`, and carried by its PEOPLE as labour with the
+recurring ecological work (the GUF's under the partition) —
+`INDUST_ECOLOGICAL_CARRIED_BY_PEOPLE`. The 100 B stays as the BASELINE the derived
+backlog meets. The archetype is also a FRAME FILE (`indust_frame()`, shipped as
+`indust_overbuilt`), so the corridor band and every frame-aware shock run on it as on
+the US frame.
 
 Compare with the canonical baseline (ε=0.40, ecosystem_health=0.82,
 capital offsets zero EOH) to observe fiscal and domain divergence.
@@ -49,8 +49,8 @@ Usage
         **INDUST_NO_ECO_PIPELINE_KWARGS,
     )
 
-The derived ecological backlog and its carriage by people are applied by
-`scenarios/indust_overshoot`, which owns the scenario.
+`scenarios/indust_overshoot`, which owns the scenario, applies the derived ecological
+backlog and its carriage by people.
 """
 
 from __future__ import annotations
@@ -124,8 +124,9 @@ INDUST_NO_ECO_PIPELINE_KWARGS: dict = {
 # ---------------------------------------------------------------------------
 
 def indust_baseline_backlog(population: float = INDUST_REFERENCE_POPULATION) -> float:
-    """The superseded 100 B-hour backlog at `population` (scaled from its
-    65 M frame) — the baseline the derived backlog is compared against."""
+    """The superseded 100 B-hour backlog at `population` (scaled from its 65 M frame):
+    the baseline for the derived backlog.
+    """
     return INDUST_DEFERRED_ECOLOGICAL * population / INDUST_REFERENCE_POPULATION
 
 
@@ -166,9 +167,9 @@ def make_indust_no_eco_params(
     """
     Construct an EohParams instance calibrated to the industrial/no-ecology scenario.
 
-    Capital stock is scaled proportionally to population at
-    INDUST_CAPITAL_MULTIPLIER × the canonical per-capita baseline. All other
-    scenario constants are fixed above and documented in this module.
+    The capital stock scales with population at INDUST_CAPITAL_MULTIPLIER × the
+    canonical per-capita baseline. This module fixes and documents all other scenario
+    constants above.
 
     Note: INDUST_NO_ECO_PIPELINE_KWARGS must be passed separately when calling
     eoh_to_teh_pipeline() or total_eoh() — those parameters are not stored in
@@ -176,8 +177,8 @@ def make_indust_no_eco_params(
 
     Args:
         population: Civilization population. Default: 65M (medium country).
-        epsilon:    Automation level for context label. Does not alter physical-
-                    state parameters (those are set explicitly above).
+        epsilon:    Automation level for context label. Does not alter physical-state
+            parameters; the module sets those explicitly above.
 
     Returns:
         EohParams with industrial-overshoot calibration applied.

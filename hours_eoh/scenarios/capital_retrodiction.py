@@ -18,22 +18,22 @@ people work. `record/thermal.md` concluded the machine profiles were
 judgements nobody had declared, and the BEA stock tables confirm the input the
 estimate used was already right:
 
-    doctrine     1.79x   current-cost vs historical-cost, ONE physical stock
+    doctrine     1.78x   current-cost vs historical-cost, ONE physical stock
     convention   1.45x   wages/compensation x 2,080/derived hours
     scope        ~2.5x   productive capital vs every fixed asset
 
-Any two compound past 3×. Across the defensible interior the US reads ε ≈ 0.4–0.6.
+Any two compound past 3×. Across the defensible interior the US reads ε ≈ 0.4–0.5
+(2026-10-18, `retrodiction_report()['interior_epsilon']`; ≈ 0.4–0.6 on 2026-09-09).
 
-**THE CONVERSION RATE IS AN INTAKE FIELD WITH NO DEFAULT, AND THAT IS THE
-DESIGN.** `currency_per_teh` is required everywhere in this module. It is
-specific to a currency, a year, a wage series and an hours convention, so a
-shipped value would be a fifth undeclared judgement — and worse, it would bury
-the one this framework most needs visible. Converting a currency-denominated
-stock into TEH IS the valuation step: §2 argues a census needs no convention
-while a valuation transmits doctrine undamped, and requiring the rate at the API
-boundary is that argument enforced rather than restated. `conversion_band()`
-gives a feasibility range for sanity-checking a supplied rate. It is not a
-default and nothing here falls back to it.
+**THE CONVERSION RATE IS AN INTAKE FIELD WITH NO DEFAULT, AND THAT IS THE DESIGN.**
+Every function in this module requires `currency_per_teh`. It is specific to a currency,
+a year, a wage series and an hours convention, so a shipped value would be a fifth
+undeclared judgement — and worse, it would bury the one this framework most needs
+visible. Converting a currency-denominated stock into TEH IS the valuation step: §2
+argues a census needs no convention while a valuation transmits doctrine undamped, and
+requiring the rate at the API boundary is that argument enforced rather than restated.
+`conversion_band()` gives a feasibility range for sanity-checking a supplied rate. It is
+not a default and nothing here falls back to it.
 
 Layer: scenarios/ — imports from core/, reference/ and research/, never the reverse.
 """
@@ -97,16 +97,15 @@ def conversion_band() -> dict:
 
     units: units of the inventory's currency per TEH.
 
-    **THIS IS A SANITY BAND, NOT A DEFAULT.** Nothing in this module falls back
-    to it. The four rows are four CONVENTIONS, not an error bar: wages against
-    total compensation, and the 2,080-hour convention against the derived
-    work-year. A supplied rate outside the band implies something unusual about
-    the collective's wage structure and is worth questioning; a rate inside it
-    is not thereby correct.
+    **THIS IS A SANITY BAND, NOT A DEFAULT.** Nothing in this module falls back to it.
+    The four rows are four CONVENTIONS, not an error bar: wages against total
+    compensation, and the 2,080-hour convention against the derived work-year. A
+    supplied rate outside the band implies something unusual about the collective's wage
+    structure and is worth questioning. A rate inside it is not correct for that reason
+    alone.
 
-    The compensation multiple is NOT in this repo — it is a published BLS ratio —
-    and its absence is the argument: the rate cannot be derived here, only
-    bounded.
+    The compensation multiple is NOT in this repo (it is a published BLS ratio), and its
+    absence is the argument: this module can bound the rate but not derive it.
     """
     with _REGISTRY.open(newline="", encoding="utf-8") as fh:
         rows = [r for r in csv.DictReader(fh)
@@ -171,8 +170,8 @@ def epsilon_from_inventory(
         doctrine: "current_cost" or "historical_cost" — the third.
         population: the frame the inventory is counted over.
         inventory: YOUR OWN inventory, keyed by machine profile, in the same
-            currency the rate converts from. `None` (default) reads the shipped
-            BEA table, so the US path is unchanged. Supplying one is what lets a
+            currency the rate converts from. `None` (default) reads the shipped BEA
+            table, so the US path stays the same. Supplying one is what lets a
             non-US institution run this instrument.
 
             IT ARRIVES UNDECLARED, AND THE RESULT SAYS SO. The shipped table is
@@ -180,8 +179,8 @@ def epsilon_from_inventory(
             `reason`, and `TestTheJudgementsStayDeclared` checks them. A supplied
             mapping has none of that — the mapping from your national accounts
             onto the machine profiles is YOUR judgement, and the framework cannot
-            see it. `inventory_source` in the returned dict reports which table
-            produced the figure so the two can never be confused.
+            see it. `inventory_source` in the returned dict reports which table produced
+            the figure, so nobody can confuse the two.
         age_ratios: YOUR stock's age over its life, by machine profile
             (2026-10-04). Unstated, the shipped table reads its BEA ages and a
             supplied inventory `CAPITAL_AGE_RATIO_DEFAULT`; `age_source` says
@@ -270,12 +269,13 @@ def _row_efficiency(row: Mapping[str, Any]) -> float:
 def _ages(scope: str, supplied: bool,
           stated: Mapping[str, float] | None = None
           ) -> tuple[dict[str, float], dict[str, float] | None, str]:
-    """Each machine profile's age over its life, and its condition: as stated
-    (a profile left out takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA
-    rows on the shipped inventory (a profile with no row carrying a life takes
-    the scope's), `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one. Conditions
-    are None where only a ratio is known: `civilization` then derives them
-    from the age it is passed, on the same curve."""
+    """Each machine profile's age over its life, and its condition: as stated (a profile
+    left out takes `CAPITAL_AGE_RATIO_DEFAULT`); else from its BEA rows on the shipped
+    inventory (a profile with no row carrying a life takes the scope's),
+    `CAPITAL_AGE_RATIO_DEFAULT` for a supplied one. Conditions are None where the data
+    gives only a ratio: `civilization` then derives them from the age it receives, on
+    the same curve.
+    """
     if stated is not None:
         unknown = sorted(set(stated) - set(CAPITAL_MACHINE_PROFILES))
         bad = sorted(k for k, v in stated.items() if not 0.0 <= float(v))
@@ -380,10 +380,10 @@ def unallocated_sensitivity(currency_per_teh: float, scope: str = "government") 
     """
     What the one placed-not-measured line is worth. units: dimensionless ε.
 
-    Government equipment carries no by-type breakdown outside defence in any BEA
-    Fixed Assets table, so it is assigned to a single profile. This moves the
-    whole amount to each profile in turn and reports the span — bounding the gap
-    rather than closing it, because the bound is the result.
+    Outside defence, government equipment has no by-type breakdown in any BEA Fixed
+    Assets table, so the module assigns it to a single profile. This moves the whole
+    amount to each profile in turn and reports the span. It bounds the gap and does not
+    close it, because the bound is the result.
     """
     base = capital_by_profile(scope)
     amount = UNALLOCATED_USD_B
@@ -414,9 +414,9 @@ def retrodiction_report(currency_per_teh: float | None = None) -> dict:
     """
     The whole grid with its caveats attached, and a verdict computed from it.
 
-    `currency_per_teh` is optional HERE and only here: passing None reports
-    across the band rather than at a point, which is the honest default for a
-    report. It is still never defaulted to a value.
+    `currency_per_teh` is optional HERE and only here: passing None reports across the
+    band rather than at a point, which is the honest default for a report. It still
+    never has a default value.
     """
     band = conversion_band()
     grid = retrodiction_grid()
@@ -458,11 +458,11 @@ def stock_age_ratio(scope: str = "government", doctrine: str = "current_cost") -
     uses (TEH-weighted age / design life). A RATIO, so no currency enters: the
     rate that would turn dollars into TEH cancels.
 
-    THE DIRECTION OF ITS ERROR: BEA's ages are weighted by NET (depreciated)
-    stock, so an old asset counts for less than in a physical count — the
-    ratio errs LOW. Current cost is the doctrine that matches a physical age
-    (each vintage at its real quantity, today's prices); historical cost weights
-    by nominal outlay, which inflation tilts younger. Both are returned.
+    THE DIRECTION OF ITS ERROR: NET (depreciated) stock weights BEA's ages, so an old
+    asset counts for less than in a physical count, and the ratio errs LOW. Current cost
+    is the doctrine that matches a physical age (each vintage at its real quantity,
+    today's prices); historical cost weights by nominal outlay, which inflation tilts
+    younger. The function returns both.
 
     Args:
         scope: one of `SCOPES` — what counts as capital.

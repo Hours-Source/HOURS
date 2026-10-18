@@ -168,11 +168,10 @@ class TestCensusIntake:
 
 
 class TestTheVerdictsQuotedFiguresAreStillTrue:
-    """The verdict restates figures computed in OTHER scenarios. The tests pin them
-    against their live sources; computing them live would couple three scenarios and
-    slow every call. The first draft quoted 0.56% for the stock's share of the flow, a
-    US-scale ratio over different areas. The per-hectare figure, 0.21%, is what belongs
-    beside a per-hectare table.
+    """The verdict quotes figures from OTHER scenarios, and computes them since
+    2026-10-18. These tests pin the sources, so a moved figure fails here. The
+    per-hectare 0.21%, not the US-scale 0.56%, belongs beside a per-hectare table
+    ([record](record/ecological.md)).
     """
 
     def test_servicing_flow_figure(self):

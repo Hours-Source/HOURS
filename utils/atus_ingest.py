@@ -7,14 +7,17 @@ as the O*NET build lives in the multiplier handoff while the repo ships
 
     python3 utils/atus_ingest.py [--raw rawdata/atus] [--out hours_eoh/reference/data]
 
-Outputs (both committed): atus_annual_0325.csv year, tier2 activity code, mean
-minutes/day atus_years_0325.csv year, n, population 15+, mean household size, mean age,
-the weight variable used, and a comparability flag
+Outputs (both committed):
+    atus_annual_0325.csv   year, tier2 activity code, mean minutes/day
+    atus_years_0325.csv    year, n, population 15+, mean household size, mean age, the
+                           weight variable used, and a comparability flag
 
-WEIGHTS: the trap this script handles -------------------------------------- `TUFNWGTP`
-is the multi-year final weight, and it is **zero for 2020**. A naive pool over the
-multi-year file drops 2020 silently, or divides by ~0 and emits garbage. BLS supplies
-`TU20FWGT` for the 2019–2020 period instead, and this script uses it for 2020 alone.
+WEIGHTS: the trap this script handles
+-------------------------------------
+`TUFNWGTP` is the multi-year final weight, and it is **zero for 2020**. A naive pool
+over the multi-year file drops 2020 silently, or divides by ~0 and emits garbage. BLS
+supplies `TU20FWGT` for the 2019–2020 period instead, and this script uses it for 2020
+alone.
 
 2020 IS NOT COMPARABLE, and the years file flags it. ATUS stopped collection from
 mid-March to mid-May 2020, so the 2020 estimates cover roughly May–December. A series

@@ -13,8 +13,9 @@ lives in gitignored `rawdata/`, as every raw file does:
 
     python3 utils/state_age_ingest.py [--raw rawdata] [--out hours_eoh/reference/data]
 
-Output (committed): state_age_2025.csv statefp, age, population — July 1, 2025, both
-sexes, every origin and race; age 85 means "85 and over"
+Output (committed):
+    state_age_2025.csv   statefp, age, population — July 1, 2025, both sexes, every
+                         origin and race; age 85 means "85 and over"
 
 WHY: the US frame divided into its states (`reference/states.us_state_split`) ran every
 state on the NATIONAL age mix, so states differed only in head count. The age mix

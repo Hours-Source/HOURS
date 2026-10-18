@@ -42,13 +42,14 @@ tree-care and vegetation workers count as ecological stewardship. See
 `reference.land_stewardship` for the argument both ways. One number would conceal that
 the scope question, not the measurement, is what remains open.
 
-WHAT THIS DOES NOT SETTLE -------------------------- Coverage is 30.3% of US land area
-by the amenity reading and 27.3% without it. The largest unpriced class — 107.6 Mha of
-rural parks and wildlife areas — is precisely the land most likely to carry real
-stewardship labour, and the floor excludes it instead of costing it at zero. So the
-priced mean is NOT an estimate of the US stewardship intensity. It is a lower bound over
-the part that has a costed path, and a reader must check `coverage` before comparing it
-to anything.
+WHAT THIS DOES NOT SETTLE
+-------------------------
+Coverage is 30.3% of US land area by the amenity reading and 27.3% without it. The
+largest unpriced class — 107.6 Mha of rural parks and wildlife areas — is precisely the
+land most likely to carry real stewardship labour, and the floor excludes it instead of
+costing it at zero. So the priced mean is NOT an estimate of the US stewardship
+intensity. It is a lower bound over the part that has a costed path, and a reader must
+check `coverage` before comparing it to anything.
 
 This is the same discipline `personal_floor` applies at partial basket coverage, and for
 the same reason: at low coverage the residual is dominated by the repo's own

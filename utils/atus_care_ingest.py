@@ -7,16 +7,19 @@ derived CSVs it writes.
 
     python3 utils/atus_care_ingest.py [--raw rawdata/atus] [--out hours_eoh/reference/data]
 
-Outputs (all committed): atus_care_by_age_0325.csv roster route — care received per
-person-day by single year of recipient age, active and passive, at three attribution
-settings atus_care_eldercare_1125.csv module route — eldercare minutes by recipient age,
-household and non-household atus_care_rivalry_0325.csv care time by dependant count, and
-the fitted ρ atus_care_coverage_0325.csv care that could NOT be attributed, and why
+Outputs (all committed):
+    atus_care_by_age_0325.csv     roster route — care received per person-day by single
+                                  year of recipient age, active and passive, at three
+                                  attribution settings
+    atus_care_eldercare_1125.csv  module route — eldercare minutes by recipient age,
+                                  household and non-household
+    atus_care_rivalry_0325.csv    care time by dependant count, and the fitted ρ
+    atus_care_coverage_0325.csv   care that could NOT be attributed, and why
 
 CARE IS JOINT PRODUCTION, the problem this script solves
---------------------------------------------------------- An hour spent minding two
-children is not two hours of care, and not half an hour each. Measured over the file,
-care time scales as
+--------------------------------------------------------
+An hour spent minding two children is not two hours of care, and not half an hour each.
+Measured over the file, care time scales as
 
     T(n) = T(1) · n^ρ
 
@@ -39,20 +42,21 @@ activity") and TRTEC_LN (eldercare minutes during an activity) are the passive c
 Passive is roughly 4× active and nearly non-rivalrous, which is what "being on call"
 should look like.
 
-UNREACHABLE IS NOT ZERO ----------------------- A care activity with no recipient that
-joins to the roster is EXCLUDED with its reason, never costed at zero (the discipline of
-`core.eoh_generation.personal_statutory_floor`). Two large reasons dominate:
-`non_household` (tier1 04 care, whose recipients are not on the household roster by
-construction) and `no_lineno` (who-rows that record presence without an identifiable
-person). The magnitudes go to the coverage file, so a reader sees the size of what the
-curve does not cover.
+UNREACHABLE IS NOT ZERO
+-----------------------
+A care activity with no recipient that joins to the roster is EXCLUDED with its reason,
+never costed at zero (the discipline of `core.eoh_generation.personal_statutory_floor`).
+Two large reasons dominate: `non_household` (tier1 04 care, whose recipients are not on the
+household roster by construction) and `no_lineno` (who-rows that record presence without an
+identifiable person). The magnitudes go to the coverage file, so a reader sees the size of
+what the curve does not cover.
 
 WEIGHTS: the same trap `atus_ingest.py` documents
--------------------------------------------------- `TUFNWGTP` is zero for 2020; BLS
-ships `TU20FWGT` for the 2019–20 period. 2020 is flagged not comparable (collection
-stopped from mid-March to mid-May) and is never pooled silently. This script imports
-both behaviours from `atus_ingest` and does not restate them, so the two extracts cannot
-drift apart on the weighting rule.
+-------------------------------------------------
+`TUFNWGTP` is zero for 2020; BLS ships `TU20FWGT` for the 2019–20 period. 2020 is flagged
+not comparable (collection stopped from mid-March to mid-May) and is never pooled silently.
+This script imports both behaviours from `atus_ingest` and does not restate them, so the
+two extracts cannot drift apart on the weighting rule.
 
 UNITS: minutes per person-day. The numerator is weighted care minutes attributed to
 persons of age a; the denominator is weighted person-days of exposure at age a. No

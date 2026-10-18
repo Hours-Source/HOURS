@@ -1,11 +1,13 @@
 """Tests for scenarios/guf_magnitude.py: GUF's derived revenue target (Option 1) and the
 two-part tariff the measured cost implies (Option 2).
 
-Discipline, following the two censuses this module sits on: * the ASSUMED input (what
-each occupation's cost scales with) is tested for completeness, and it names only
-occupations that exist (the `unused_innocuous_names` lesson); * findings are ORDERINGS
-and SIGNS wherever the level is calibration; * the falsification is RUN, not asserted in
-prose; * `TestMagnitudeChangesNothing` pins that this is reporting only.
+Discipline, following the two censuses this module sits on:
+  * the ASSUMED input (what each occupation's cost scales with) is tested for
+    completeness, and it names only occupations that exist (the `unused_innocuous_names`
+    lesson);
+  * findings are ORDERINGS and SIGNS wherever the level is calibration;
+  * the falsification is RUN, not asserted in prose;
+  * `TestMagnitudeChangesNothing` pins that this is reporting only.
 """
 
 from __future__ import annotations

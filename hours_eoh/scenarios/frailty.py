@@ -4,13 +4,13 @@ The frailty care socket — an intake contract, not a model.
 WHY A SOCKET AND NOT A CONSTANT. Care load tracks FRAILTY-YEARS, not
 elder-years: most years after 65 are cheap and the cost concentrates in a short
 terminal window. Counting people over 65 therefore says almost nothing about
-staffing, and whether that window stretches (morbidity expansion) or arrives
-later at the same length (compression) is unresolved, differs by country and by
-condition, and is the pivotal variable. The retired elderly ε-drift asserted an
-answer to it as a placeholder scalar and went on 2026-09-04 (its own tag block
-in `data.py` carries the reason; it is not named here, because a retired
-constant named under `scenarios/` reads as a live consumer to the provenance
-gate). This is the shape that replaces it — somewhere for a measurement to arrive, not a better
+staffing. The pivotal variable is whether that window stretches (morbidity
+expansion) or arrives later at the same length (compression). Nobody has
+resolved it, and it differs by country and by condition. The retired elderly
+ε-drift asserted an answer as a placeholder scalar, and it went on 2026-09-04.
+Its own tag block in `data.py` carries the reason. This file does not name it,
+because the provenance gate reads a retired constant named under `scenarios/`
+as a live consumer. This is the shape that replaces it — somewhere for a measurement to arrive, not a better
 guess.
 
 THE TWO FIELDS, and their product is the only thing the model consumes:
@@ -19,35 +19,37 @@ THE TWO FIELDS, and their product is the only thing the model consumes:
     care_hours_per_frailty_year     intensity while in the state
                             product = frailty care hours per capita
 
-That decomposition is chosen so compression and expansion are EXPRESSIBLE:
-compression holds frailty-years flat or falling as longevity rises, expansion
-raises them, and a single "care hours per elderly person" states neither. Both
+This decomposition makes compression and expansion EXPRESSIBLE. Compression
+holds frailty-years flat or falling as longevity rises; expansion raises them.
+A single "care hours per elderly person" states neither. Both
 fields are what actuarial sources carry — disability/ADL prevalence by age
 (Sullivan-method HLE tables) and continuance plus staffing intensity from
 long-term-care pricing. Those sources also cover the INSTITUTIONAL population,
 which ATUS excludes by construction and which is exactly where the terminal
 window sits.
 
-NO DEFAULT, DELIBERATELY. Every entry point here requires the intake. The repo
-has been bitten by a default that became load-bearing (`GUF_USE_SCALE_FACTOR`
-was a fitted scalar that ended up quoted), and a care number is worse: shipping
-one is writing a rationing rule that the framework has no standing to write and
-no accountability for. `pristine_gap_obligation` set the precedent — no default
+NO DEFAULT, DELIBERATELY. Every entry point here requires the intake. A default
+that became load-bearing has hurt this repo before: `GUF_USE_SCALE_FACTOR` was
+a fitted scalar that people ended up quoting. A care number is worse. To ship
+one is to write a rationing rule, and the framework has no standing to write it
+and no accountability for it. `pristine_gap_obligation` set the precedent — no default
 inventory, and a test pins that.
 
-WHAT THIS DOES NOT DO, and the scope is measured rather than assumed:
+WHAT THIS DOES NOT DO. A measurement sets the scope, not an assumption:
 
-  * IT SETTLES ABOUT AN EIGHTH OF CARE. Weighted by population share, frailty
-    care is 7.5-11.6% of measured care and dependant care is 83-86%. Childcare
-    tracks fertility and household composition; no actuarial table speaks to it.
-  * IT DOES NOT DECIDE HOW TO RATION. Explicit rationing is a rule that can be
-    argued with; implicit rationing stops tracking need and starts tracking
+  * IT SETTLES ABOUT A NINTH OF CARE. Weighted by population share, frailty
+    care is about 11% of measured care and dependant care about 89% (the
+    `AGE_CARE_KEY_*` note in `data.py`, re-read 2026-10-17; it read 7.5-11.6%
+    and 83-86% when this was written). Childcare tracks fertility and household
+    composition; no actuarial table speaks to it.
+  * IT DOES NOT DECIDE HOW TO RATION. People can argue with an explicit
+    rationing rule. Implicit rationing stops tracking need and starts tracking
     advocacy. This computes whether a shortfall EXISTS — the prior question —
     and reports the reserve against it. A reserve is not an answer to who pays.
-  * THE RESERVE IS REPORTED PER CAPITA AND THAT IS ITS WEAKNESS. Unpaid care is
-    concentrated; a per-capita mean says nothing about whether the spare hours
-    sit with the people doing the caring. `concentration` is required for that
-    reason and the report refuses to omit it.
+  * THE REPORT GIVES THE RESERVE PER CAPITA, AND THAT IS ITS WEAKNESS. Unpaid
+    care sits with few people. A per-capita mean says nothing about whether the
+    spare hours sit with the people doing the caring. So the report requires
+    `concentration` and refuses to omit it.
 """
 
 from __future__ import annotations
@@ -85,9 +87,9 @@ def frailty_care_load(intake: FrailtyIntake) -> FrailtyLoad:
 
     Raises:
         ValueError: on a missing field, a non-positive quantity, or a `source`
-            that does not name something. The last is not decoration: an intake
-            whose provenance is unstated is a guess wearing a measurement's
-            clothes, and this is the field that stops it.
+            that does not name something. The last is not decoration. An intake
+            with no stated provenance is a guess wearing a measurement's
+            clothes, and this field stops it.
     """
     required = ("frailty_years_per_capita", "care_hours_per_frailty_year",
                 "source", "covers_institutional")
@@ -133,7 +135,7 @@ def morbidity_direction(early: FrailtyIntake, later: FrailtyIntake) -> dict:
     The question the retired elderly ε-drift asserted an answer to, made
     answerable instead. Compression: frailty-years per capita flat or falling
     while the population ages. Expansion: rising. The verdict is the SIGN of the
-    change, never a rate — two points do not give a rate, and the repo's own
+    change, never a rate. Two points do not give a rate, and the repo's own
     history is full of figures that became rates by restatement.
 
     units: dimensionless ratio plus a label.

@@ -7,25 +7,26 @@ WHY THIS EXISTS. `research/thermal_capital.epsilon_current_from_inventory()` can
 derive ε from a capital inventory, and the only inventory ever run through it was
 an estimate: `K = CFC/δ` on a BEA FLOW table, giving $64–107T and
 **ε = 0.777–1.000, saturated**. That is not a credible reading of an economy
-where 158M people work, and `record/thermal.md` concluded from it that the
-profile scale is "miscalibrated by ~3×".
+where 158M people work. `record/thermal.md` concluded from it that the profile
+scale is "miscalibrated by ~3×".
 
 **THE STOCK TABLES SAY THE ESTIMATE WAS FINE AND THE CONCLUSION WAS WRONG.**
-BEA Table 1.1 puts 2024 fixed assets at $91.5T, inside the estimated range. What
-the detailed tables add is not a better input but a DECOMPOSITION, and it finds
-the 3× in three places, none of them the profiles:
+BEA Table 1.1 puts 2024 fixed assets at $91.5T, inside the estimated range. The
+detailed tables add a DECOMPOSITION, not a better input. It finds the 3× in
+three places, and none of them is the profiles:
 
-    doctrine     1.79x   current-cost vs historical-cost, ONE unchanging stock
+    doctrine     1.78x   current-cost vs historical-cost, ONE unchanging stock
     convention   1.45x   wages/compensation x 2,080/derived hours (USD per TEH)
     scope        ~2.5x   productive capital vs every fixed asset there is
 
 Any two of those compound past 3×. All three are judgements nobody had declared.
 
 **AND THE DOCTRINE FIGURE IS THE FRAMEWORK'S OWN THESIS, MEASURED ON ITSELF.**
-The value-anchor argument is that a census needs no convention while a valuation
-transmits doctrine undamped. BEA publishes two valuations of the identical
-physical inventory — current-cost and historical-cost — and they differ by
-**1.79×** in aggregate and by 1.09× to 2.12× by asset class. Meanwhile the
+The value-anchor argument is that a census needs no convention, while a
+valuation transmits doctrine undamped. BEA publishes two valuations of the
+identical physical inventory, current-cost and historical-cost. They differ by
+**1.78×** in aggregate and by 1.09× to 2.12× by asset class (`DOCTRINE_RATIOS`;
+earlier prose rounded the aggregate, 1.785, up to 1.79×). Meanwhile the
 model's own side is a census: `CAPITAL_MACHINE_PROFILES` counts machines by tier
 at stated TEH/capita. So a retrodiction compares a census against a valuation,
 and the spread it produces is exactly what the framework predicts a valuation
@@ -37,15 +38,15 @@ STRUCTURE, following `reference/servicing.py` and `reference/verification.py`:
   MEASURED   average age at yearend — Tables 2.9 and 7.7. This REPLACES the
              `age: 10.0` placeholder every previous run of this comparison used.
   MEASURED   line by line in `AGE_ROWS` (2026-10-04), with BEA's own SERVICE
-             LIVES beside the ages — what the stock's age ratio is read from.
-  ASSUMED    WHICH BEA LINE SERVES WHICH PROFILE. The one judgement, isolated in
-             `PROFILE_MAP`, every line carrying the basis it was assigned on.
+             LIVES beside the ages. The stock's age ratio comes from these.
+  ASSUMED    WHICH BEA LINE SERVES WHICH PROFILE. `PROFILE_MAP` isolates this
+             one judgement, and every line carries the basis for its place.
   ASSUMED    WHAT COUNTS AS CAPITAL AT ALL. A SECOND judgement, never merged with
              the first, isolated in `SCOPES` and worth ~2.5× on its own.
 
 NO CURRENCY CONVERSION HAPPENS HERE, and that is deliberate — see
 `scenarios/capital_retrodiction`. A currency-per-TEH rate is specific to a
-currency, a year, a wage series and an hours convention; it is an INTAKE field
+currency, a year, a wage series and an hours convention. It is an INTAKE field
 with no default, the way `deferred_ecological` is. Shipping one would bury the
 valuation doctrine this module exists to expose.
 
@@ -267,11 +268,14 @@ UNALLOCATED: dict[str, object] = {
     "share_of_government_scope": 0.0096,
     "epsilon_spread_across_every_profile": 0.009,
     "why_it_does_not_need_closing": (
-        "Reassigning the whole $515.4B to any single profile moves derived ε by "
-        "at most 0.009 — two orders of magnitude below the doctrine spread "
-        "(1.79x) and the conversion spread (1.45x). The gap is BOUNDED, and "
-        "bounding it is the result; acquiring the breakdown would not change a "
-        "conclusion."
+        f"Reassigning the whole ${UNALLOCATED_USD_B:,.1f}B to any single profile "
+        "moved derived ε by at most 0.009 when this was written (2026-09-09; "
+        "`capital_retrodiction.unallocated_sensitivity` computes it at a "
+        "supplied rate). That is two orders of magnitude below the doctrine "
+        f"spread ({DOCTRINE_RATIOS['private_fixed_assets']:.2f}x) and the "
+        "conversion spread (`capital_retrodiction.conversion_band`). The gap is "
+        "BOUNDED, and bounding it is the result; acquiring the breakdown would "
+        "not change a conclusion."
     ),
     "what_would_close_it": (
         "A FUNCTION-coded source rather than an asset-type one — Census of "
@@ -663,9 +667,11 @@ def what_this_cannot_settle() -> tuple[str, ...]:
     return (
         "Which scope is right. Whether a dwelling or a road is MACHINE capital "
         "that displaces human agency is a theory question, not a data one, and "
-        "it is worth ~2.5x on the answer.",
+        f"it is worth {scope_total('residential') / scope_total('productive'):.2f}x "
+        "on the answer.",
         "Which valuation doctrine is right. BEA publishes two and they differ by "
-        "1.79x on one unchanging stock. The framework's own position is that a "
+        f"{DOCTRINE_RATIOS['private_fixed_assets']:.2f}x on one unchanging stock. "
+        "The framework's own position is that a "
         "census needs no such choice — which is why this module reports the "
         "spread rather than picking a side.",
         "The currency-per-TEH rate, which is not here at all. It is specific to "
@@ -693,8 +699,8 @@ def depreciation_series() -> tuple[dict[str, float], ...]:
     `private_nonres`, `private_res`, `government`, `defense` and `fixed`.
 
     BEA depreciates each asset type at its own measured rate and SUMS the
-    dollars, so a line's depreciation over its stock is the stock-weighted mean
-    of the asset-level rates — an aggregation MEASURED, not chosen.
+    dollars. So a line's depreciation over its stock is the stock-weighted mean
+    of the asset-level rates: BEA measured that aggregation; nobody chose it.
     """
     with DEPRECIATION_FILE.open(newline="") as fh:
         return tuple({k: float(v) for k, v in row.items()} for row in csv.DictReader(fh))

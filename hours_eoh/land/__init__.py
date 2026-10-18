@@ -1,11 +1,11 @@
 """
 Land module — Ground Use Fee and stewardship lease mechanics.
 
-Land cannot be priced under the labor-content identity: it was not made
-by human labor. Instead, the GUF measures the annual cost to the collective
-of granting exclusive use: opportunity value (location), ecosystem service
-displacement, and infrastructure draw. All fees are denominated in TEH and
-flow to the Trust as circulatory revenue.
+The labor-content identity cannot price land, because human labor did not
+make it. Instead, the GUF measures the annual cost to the collective of
+granting exclusive use: opportunity value (location), ecosystem service
+displacement, and infrastructure draw. Every fee is in TEH, and what the
+holders pay flows to the Trust as circulatory revenue.
 
 Direct submodule imports are the intended pattern::
 

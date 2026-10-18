@@ -10,11 +10,11 @@ What it reads
 -------------
 `data/atus_annual_0325.csv` and `data/atus_years_0325.csv`, written by
 `utils/atus_ingest.py` from the BLS multi-year microdata (258,954 respondents,
-2003–2025). The raw files are ~2.9 GB and are not shipped; these extracts are,
-on the same pattern as the O*NET multiplier registry.
+2003–2025). The raw files are ~2.9 GB and do not ship; these extracts do, on the
+pattern of the O*NET multiplier registry.
 
 Native unit is mean minutes per day per person aged 15+. Two conversions are the
-CALLER's, and both are exposed rather than baked in:
+CALLER's, and the module exposes both instead of baking them in:
 
     hours per person 15+ per year  =  minutes/day × 365 / 60
     hours per capita (all ages)    =  the above × population_15_plus / total_pop
@@ -25,14 +25,13 @@ HONEST LIMITS — read before citing any figure from here
    work performed by under-15s is absent. In the US that is small; in a
    subsistence collective it is not, which is exactly why this module refuses to
    emit a per-capita figure without being told the population it is dividing by.
-2. **2020 IS NOT COMPARABLE** and is excluded from `series()` by default.
-   Collection was suspended mid-March to mid-May 2020, so the estimates cover
-   roughly May–December and use a different weight (`TU20FWGT`). It is present in
-   the data and reachable with `include_incomparable=True`; it is never pooled
-   silently.
-3. **PRIMARY ACTIVITIES ONLY.** A diary records one activity at a time, so
-   simultaneous work is undercounted — supervising a child while cooking books as
-   cooking. Secondary childcare is a separate ATUS field THIS extract does not
+2. **2020 IS NOT COMPARABLE**, and `series()` excludes it by default.
+   ATUS stopped collection from mid-March to mid-May 2020, so the estimates cover
+   roughly May–December and use a different weight (`TU20FWGT`). It is in the data and
+   reachable with `include_incomparable=True`; the module never pools it silently.
+3. **PRIMARY ACTIVITIES ONLY.** A diary records one activity at a time, so it
+undercounts simultaneous work: supervising a child while cooking books as cooking.
+Secondary childcare is a separate ATUS field THIS extract does not
    carry, and it is large: measured against the same file it runs about 4× the
    primary care time. Every care figure here is therefore a LOWER BOUND.
    `reference/care_demand.py` carries it, cut by recipient age, along with the
@@ -46,7 +45,7 @@ HONEST LIMITS — read before citing any figure from here
 
    where `deferred` is obligation gone unserved (visible physiologically, not in
    a diary) and `extraction` is institutionally-induced hours that resist no
-   entropy. Neither is identified by time use alone. Read
+   entropy. Time use alone identifies neither. Read
    `hours_eoh/scenarios/personal_floor.py` before treating any number here as a
    calibration target.
 5. **US-specific, and the US is one point.** These are the institutions of one
@@ -123,8 +122,8 @@ def survey_years(include_incomparable: bool = False) -> tuple[YearRow, ...]:
     """
     The survey frame for every year in the extract, oldest first.
 
-    2020 is omitted unless `include_incomparable` — see limit 2. Its row carries
-    `comparable=False` and `weight_variable='TU20FWGT'` so the reason travels
+    The function omits 2020 unless `include_incomparable` is set (see limit 2). Its row
+    carries `comparable=False` and `weight_variable='TU20FWGT'` so the reason travels
     with the data rather than living in a comment.
     """
     rows = _years()
@@ -270,13 +269,13 @@ def population_15_plus(year: int) -> float:
 
     units: persons.
 
-    WHY IT IS EXPOSED. A quantity that is a 15+ AGGREGATE — total paid hours,
-    say — should be built as `hours_per_person_15plus × population_15_plus`, not
-    by going out to a per-capita figure and multiplying the total population
-    back in. That round trip cancels exactly, and a caller who supplies a
-    different total population gets the same answer while believing they have
-    reframed it. `scenarios/food_conservation.hours_per_worker_year` did that
-    for months (found 2026-08-31 by `tests/test_parameter_wiring`).
+    WHY THE MODULE EXPOSES IT. A quantity that is a 15+ AGGREGATE — total paid hours,
+    say — should be built as `hours_per_person_15plus × population_15_plus`, not by
+    going out to a per-capita figure and multiplying the total population back in. That
+    round trip cancels exactly, and a caller who supplies a different total population
+    gets the same answer while believing they have reframed it.
+    `scenarios/food_conservation.hours_per_worker_year` did that for months (found
+    2026-08-31 by `tests/test_parameter_wiring`).
 
     Worked example: 2025 → 277,984,658 persons.
 

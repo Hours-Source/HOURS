@@ -8,14 +8,16 @@ The parcel census and the ATUS microdata live there too.
 
     python3 utils/mtus_ingest.py
 
-Output (committed): mtus_self_maintenance_by_age.csv age, minutes_per_day, diaries,
-samples
+Output (committed):
+    mtus_self_maintenance_by_age.csv   age, minutes_per_day, diaries, samples
 
-WHY THIS EXTRACT EXISTS ------------------------ `AGE_WEIGHT_INFANT` and
-`AGE_WEIGHT_CHILD` are one-sided bands because ATUS surveys nobody under 15.
-Self-maintenance for the whole infant band and for ages 6–14 is ABSENT, and `care_curve`
-must record absent as 0.0. The constants' own `resolves_by` names the fix: "a time-use
-survey covering children would close the band from below." MTUS is that survey.
+WHY THIS EXTRACT EXISTS
+-----------------------
+`AGE_WEIGHT_INFANT` and `AGE_WEIGHT_CHILD` are one-sided bands because ATUS surveys
+nobody under 15. Self-maintenance for the whole infant band and for ages 6–14 is ABSENT,
+and `care_curve` must record absent as 0.0. The constants' own `resolves_by` names the
+fix: "a time-use survey covering children would close the band from below." MTUS is that
+survey.
 
 THE SCRIPT DERIVES THE LAYOUT AND ASSUMES NOTHING: no codebook ships with the DATA FILE.
 That is a fact about the file, NOT about the study, and reading it as the latter cost a
@@ -47,13 +49,15 @@ extracts and the counter restarts per sample. A join on SERIAL merged Italian an
 episodes into single diaries and gave a confident, wrong result. It surfaced only when
 someone checked a second country.
 
-WHAT THIS EXTRACT DOES NOT SETTLE ---------------------------------- MTUS puts MEALS
-inside its personal-care block, and the repo's definition (ATUS tier-1 01 less sleep,
-plus 02) excludes them; ATUS counts eating under tier-1 11. Removing meals would need
-the sub-codes of {4, 5, 6}, and those do NOT compare across samples. Code 6 runs 137
-min/day in AM2008 and 59 in KR2004, while code 4 runs 29 and 83. So the extract carries
-the sleep-removed figure with the eating term in. That biases the ratio TOWARD 1, the
-safe direction for a floor, and this docstring states it instead of correcting it.
+WHAT THIS EXTRACT DOES NOT SETTLE
+---------------------------------
+MTUS puts MEALS inside its personal-care block, and the repo's definition (ATUS tier-1
+01 less sleep, plus 02) excludes them; ATUS counts eating under tier-1 11. Removing
+meals would need the sub-codes of {4, 5, 6}, and those do NOT compare across samples.
+Code 6 runs 137 min/day in AM2008 and 59 in KR2004, while code 4 runs 29 and 83. So the
+extract carries the sleep-removed figure with the eating term in. That biases the ratio
+TOWARD 1, the safe direction for a floor, and this docstring states it instead of
+correcting it.
 """
 
 from __future__ import annotations

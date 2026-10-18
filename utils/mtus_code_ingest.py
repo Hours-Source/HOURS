@@ -4,7 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
     python3 utils/mtus_code_ingest.py
 
-Output (committed): mtus_codes_by_sample.csv sample, code, minutes_per_day
+Output (committed):  mtus_codes_by_sample.csv   sample, code, minutes_per_day
 
 WHY. `scenarios/automation_floors` could bound the AGGREGATE floor from `ACT_UNDOM` but
 not any single component, because that aggregate is nutrition and shelter together. The

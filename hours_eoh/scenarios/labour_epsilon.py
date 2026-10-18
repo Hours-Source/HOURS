@@ -26,15 +26,15 @@ paid work discharges an obligation (`reference/obligation_work`). That asymmetry
 is the value-anchor section's census-versus-valuation claim, observed on the
 framework's own retrodiction rather than argued.
 
-WHAT IT FINDS, and the result is close agreement rather than overlap: at the
-narrow attribution the labour route's ε sits just BELOW the capital route's
-floor. The two bracket a narrow gap. `reconciling_rate()` reports the conversion
-rate at which they would meet, which is the diagnostic that says which side to
-doubt.
+WHAT IT FINDS. When this module was written the result was close agreement, not overlap:
+at the narrow attribution the labour route's ε sat just BELOW the capital route's floor.
+Since the US frame took its measured stock and ages (2026-10-04) the two OVERLAP
+(`instrument_comparison`, 2026-10-18). `reconciling_rate()` reports the conversion rate
+at which they would meet, which is the diagnostic that says which side to doubt.
 
-THE FRAME IS DECLARED AT EVERY STEP. ATUS measures per person aged 15+; the
-package's extensives are per capita. `population_15_plus` carries the conversion
-and every function here says which frame its answer is in.
+EVERY STEP DECLARES ITS FRAME. ATUS measures per person aged 15+; the package's
+extensives are per capita. `population_15_plus` carries the conversion and every
+function here says which frame its answer is in.
 
 Layer: scenarios/ — imports from core/ and reference/, never the reverse.
 """
@@ -78,9 +78,9 @@ def obligation_state_keys() -> frozenset[str]:
     """
     The physical-state parameters `obligation_state` may carry.
 
-    Derived from `total_eoh`'s own signature rather than restated here, so a
-    parameter added there becomes supplyable without editing this list — the
-    copy-of-a-value failure this repo has found six times.
+    Derived from `total_eoh`'s own signature, not restated here, so a parameter added
+    there becomes supplyable without editing this list (the copy-of-a-value failure,
+    CLAUDE.md mode 4).
     """
     return frozenset(inspect.signature(total_eoh).parameters) - OBLIGATION_STATE_OWNED
 
@@ -226,10 +226,10 @@ def labour_epsilon(
 
     units: dimensionless ε ∈ [0, 1).
 
-    The obligation is NOT fixed as automation rises — infrastructure and
-    knowledge EOH both grow with the capital that does the automating — so the
-    naive one-shot division understates ε. Iterated to a fixed point instead,
-    the same reason `feasibility.feasible_epsilon` bisects rather than inverting.
+    The obligation does NOT stay fixed as automation rises: infrastructure and knowledge
+    EOH both grow with the capital that does the automating. So the naive one-shot
+    division understates ε. Iterated to a fixed point instead, the same reason
+    `feasibility.feasible_epsilon` bisects rather than inverting.
 
     Args:
         scope: "core" (upper bound on ε) or "broad" (lower bound). See
@@ -242,8 +242,8 @@ def labour_epsilon(
             **`capital_stock` is ABSOLUTE TEH at the reference frame, not per
             capita** — multiply a per-capita figure by REFERENCE_FRAME_POPULATION
             before passing it, or the frame seam closed for the Trust reopens
-            here. Keys are checked against `total_eoh`'s signature; `epsilon`,
-            `population` and `basis` are owned by this fixed point and refused.
+            here. The function checks keys against `total_eoh`'s signature; This fixed
+            point owns `epsilon`, `population` and `basis`, and refuses them.
 
     Returns, beyond ε: `epsilon_raw` and `clamped`. ε is floored at 0.0, and the
     floor is load-bearing — on the 65-sample MTUS panel it binds for 2 samples
@@ -430,24 +430,24 @@ def instrument_comparison(
     labour interval is [broad, core]; the capital interval is the span of the
     supplied rates AT ONE CELL of the capital grid.
 
-    THE VERDICT DEPENDS ON A CHOICE, AND THAT CHOICE IS NOW STATED (2026-09-18).
-    `scope` and `doctrine` were a hard-coded "government" and an inherited
-    `current_cost` default, so this function silently read ONE CORNER of a grid
-    the capital route insists must stay a grid — its three judgements being
-    undeclared is the whole reason it returns 18 cells. Measured at the US
-    frame: the corner gave ADJACENT with a gap of 0.046, while **8 of the 18
-    declared cells fell inside the labour band** then and the full grid OVERLAPPED it.
-    Since 2026-10-04 the capital arm reads its stock at BEA's measured ages
-    (one class age had put the whole stock past end of life, 1.15 lives) and
-    at the condition those imply on BLS's age-efficiency curve (it was a flat
-    0.85): the corner reads OVERLAP. Call the function for the figures.
+    THE VERDICT DEPENDS ON A CHOICE, AND THE FUNCTION NOW STATES THAT CHOICE
+    (2026-09-18). `scope` and `doctrine` were a hard-coded "government" and an inherited
+    `current_cost` default, so this function silently read ONE CORNER of a grid the
+    capital route insists must stay a grid — its three judgements being undeclared is
+    the whole reason it returns 18 cells. Measured at the US frame when this was
+    written: the corner gave ADJACENT with a gap of 0.046, while **8 of the 18 declared
+    cells fell inside the labour band** and the full grid OVERLAPPED it. Since
+    2026-10-04 the capital arm reads its stock at BEA's measured ages (one class age had
+    put the whole stock past end of life, 1.15 lives) and at the condition those imply
+    on BLS's age-efficiency curve (it was a flat 0.85): the corner reads OVERLAP. Call
+    the function for the figures.
 
     The corner remains the headline because government/current_cost is the most
-    defensible single reading — switching the headline to the framing that
-    produces agreement would be calibrating to the answer, which is the failure
-    `reconciling_rate` warns about in its own docstring. The grid verdict is
-    reported BESIDE it under `grid`, so a reader sees that the answer is a
-    function of a declared choice rather than a property of the instruments.
+    defensible single reading — switching the headline to the framing that produces
+    agreement would be calibrating to the answer, which is the failure
+    `reconciling_rate` warns about in its own docstring. The report gives the grid
+    verdict BESIDE it under `grid`, so a reader sees that the answer depends on a
+    declared choice and is not a property of the instruments.
 
     A SUPPLIED inventory has no declared scope/doctrine grid to sweep, so
     `grid["available"]` is False for a ported capital arm. Its stock's ages
@@ -577,11 +577,11 @@ def reconciling_rate(
     units: units of the inventory's currency per TEH.
 
     THE DIAGNOSTIC, not a recommendation. If the reconciling rate falls inside
-    `capital_retrodiction.conversion_band()` the two instruments are consistent
-    under some defensible convention; if it falls outside, at least one of them
-    is wrong and the band says which direction to look. It is emphatically NOT a
-    value to adopt — solving for the input that makes two estimates agree is
-    calibrating to the target, which is the failure this repo names.
+    `capital_retrodiction.conversion_band()` the two instruments are consistent under
+    some defensible convention; if it falls outside, at least one of them is wrong and
+    the band says which direction to look. It is emphatically NOT a value to adopt.
+    Solving for the input that makes two estimates agree is calibrating to the target,
+    which is the failure this repo names.
     """
     from hours_eoh.scenarios.capital_retrodiction import conversion_band, epsilon_from_inventory
 

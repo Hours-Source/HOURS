@@ -63,11 +63,11 @@ and the measurement-spine merge that founded the layer.
 - **~~The capital-profile SCALE is unchecked against any real inventory, and
   looks ~3× out~~ — RETRACTED 2026-09-09.** *(gap)* The stock tables confirm the
   CFC/δ estimate was already right; the 3× was three undeclared judgements —
-  **doctrine 1.79×** (BEA publishes current-cost AND historical-cost for one
+  **doctrine 1.78×** (BEA publishes current-cost AND historical-cost for one
   physical stock), **convention 1.45×** (currency per TEH), **scope ~2.5×**
   (productive capital vs every fixed asset). Any two compound past 3×. Across the
-  declared grid the US reads **ε = 0.200–0.757 with 0 of 18 cells saturating**,
-  interior 0.45–0.60. `reference/capital_inventory` + `scenarios/capital_retrodiction`
+  declared grid the US reads **ε = 0.160–0.680 with 0 of 18 cells saturating**,
+  interior 0.38–0.52 (2026-10-18; 0.200–0.757 and 0.45–0.60 on 2026-09-09). `reference/capital_inventory` + `scenarios/capital_retrodiction`
   *(gated)*. Detail: [capital-scale-retracted](#capital-scale-retracted).
 
 ## Cross-area entries

@@ -44,7 +44,7 @@ def deferred_maintenance_crisis(
     """
     Simulate sustained underinvestment in infrastructure EOH over multiple years.
 
-    Each year, a fraction of required EOH is unfulfilled. Deferred EOH
+    Each year, some of the required EOH goes unfulfilled. Deferred EOH
     accumulates and begins compounding once it crosses the asset threshold.
     Models "the slow crisis": things look maintainable for years, then
     nonlinear compounding makes the backlog unrecoverable.
@@ -74,15 +74,15 @@ def deferred_maintenance_crisis(
     `rebuild_eoh_needed`, over the annual upkeep: the frame's K when it is
     given, else the asset type's upkeep rate at the stock's age). An older,
     more upkeep-intensive stock crosses sooner. Restoration recovers neglect
-    damage only — the maintained path is the ceiling — so the starting
-    condition is reported, not compared.
+    damage only, and the maintained path is the ceiling. So the scenario
+    reports the starting condition and does not compare it.
         degraded_compounding: The compounding ratio read as DEGRADED
             (default COMPOUNDING_WARN, the dashboard's YELLOW — one value since
             2026-10-03). See its data.py note: below the threshold age the
             ratio stays under ~0.10, so any value in [0.10, 0.50] fires only
             with CRISIS.
         population, capital_stock_teh: The frame (2026-10-03). Given both,
-            each year is ALSO read against the overbuild floor
+            the scenario ALSO reads each year against the overbuild floor
             (`core.autarky.overbuild_check`): the year's compounding joins the
             apparatus's upkeep I(K) and abates nothing — the pipeline books it
             the same way (`infrastructure_compounding_eoh`) — so a backlog can
@@ -105,10 +105,10 @@ def deferred_maintenance_crisis(
             disaster's does in `capital_loss_shock`. Upkeep not performed is
             the EFFICIENCY side (`fulfillment_fraction`); sustained, it
             becomes lost capacity, which only maintenance or a rebuild
-            restores. Overbuilt on the obligation test with the labour
-            test still passing (at the stated ε) is DEGRADED;
-            failing both is CRISIS. Omitted → no overbuild reading and the
-            result is unchanged.
+            restores. A year overbuilt on the obligation test, with the
+            labour test still passing (at the stated ε), reads DEGRADED;
+            failing both reads CRISIS. Omit them, and the scenario gives no
+            overbuild reading and an unchanged result.
 
     Returns:
         dict: {

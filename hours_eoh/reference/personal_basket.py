@@ -11,14 +11,14 @@ Read with `core.eoh_generation.personal_statutory_floor`, which sums
 quantity × hours_per_unit and returns the rest as unreachable-with-reason.
 
 WHAT HAS A MEASUREMENT, AND WHAT IS A DECLARATION
---------------------------------------- When this was written, exactly one component had
-a price: crop production, from LSMS-ISA harmonised v2.0, seven countries, unassisted
-stratum (no improved seed, no inorganic fertiliser, no irrigation, no tractor). Two
-routes that share only the raw labour variable land within 8% of each other: 331
-h/person·yr bottom-up from kcal per labour-day, and 306 h/person·yr from observed labour
-scaled by crop self-sufficiency. Since then two more carry a price: nutrition processing
-(2026-09-10, MTUS, Sub-Saharan samples, a lower bound) and care (a bound from the care
-code set).
+-------------------------------------------------
+When this was written, exactly one component had a price: crop production, from LSMS-ISA
+harmonised v2.0, seven countries, unassisted stratum (no improved seed, no inorganic
+fertiliser, no irrigation, no tractor). Two routes that share only the raw labour
+variable land within 8% of each other: 331 h/person·yr bottom-up from kcal per
+labour-day, and 306 h/person·yr from observed labour scaled by crop self-sufficiency.
+Since then two more carry a price: nutrition processing (2026-09-10, MTUS, Sub-Saharan
+samples, a lower bound) and care (a bound from the care code set).
 
 Every other component carries `hours_per_unit=None`. That is not an oversight, and
 nobody may fill it with a plausible-looking number. An invented productivity would enter
@@ -33,12 +33,13 @@ production labour, which is the entire difference between the handoff's 700 and 
 h/person·yr recommendation for the survival core. It is its own component, so nobody
 mistakes the floor for a complete food cost. Since 2026-09-10 MTUS prices it from below.
 
-THE SURVIVAL CORE / ENTITLEMENT SPLIT -------------------------------------- Health is
-not a scaled-down version of the other components — it has no ε = 0 delivery path at
-all. No quantity of unassisted human labour delivers a caesarean or an antibiotic, so
-Q_health / P_health(0) has no value; it is not large. It therefore carries
-`min_epsilon`. Below that automation level the obligation is owed and undeliverable, and
-the floor says so instead of costing it.
+THE SURVIVAL CORE / ENTITLEMENT SPLIT
+-------------------------------------
+Health is not a scaled-down version of the other components — it has no ε = 0 delivery
+path at all. No quantity of unassisted human labour delivers a caesarean or an
+antibiotic, so Q_health / P_health(0) has no value; it is not large. It therefore
+carries `min_epsilon`. Below that automation level the obligation is owed and
+undeliverable, and the floor says so instead of costing it.
 
 This is a DIFFERENT mechanism from the registration boundary. Registration
 governs what the collective ledger recognises; this governs what the basket
@@ -52,10 +53,11 @@ step-in threshold — and not because the underlying need divides. A future bask
 costs them should expect related quantities and unrelated delivery productivities.
 
 WHY CARE IS IN THE BASKET (author decision, 2026-08-09)
--------------------------------------------------------- The basket does not track what
-things cost. It states EOH DEMAND; the framework then measures how much of that demand
-anyone can meet. On that reading care is not a service the obligation might or might not
-extend to — it is a requirement of human survival, and therefore a first-class term.
+-------------------------------------------------------
+The basket does not track what things cost. It states EOH DEMAND; the framework then
+measures how much of that demand anyone can meet. On that reading care is not a service
+the obligation might or might not extend to — it is a requirement of human survival, and
+therefore a first-class term.
 
 It is also the term the ledger rests on. TEH is denominated in human labour
 hours, so the continuation of humans is the precondition for the accounting
@@ -72,10 +74,11 @@ separately, unreachable kept distinct from zero.
 Care is therefore declared with a quantity and NO delivery productivity, exactly
 like the other uncosted components. Naming it does not price it.
 
-CLIMATE — WHERE LATITUDE ENTERS -------------------------------- Climate mostly changes
-what delivery COSTS, not what the collective OWES, and the basket's quantity /
-hours_per_unit split already separates the two. `CLIMATE_CONDITIONING` records which
-kind each component is.
+CLIMATE — WHERE LATITUDE ENTERS
+-------------------------------
+Climate mostly changes what delivery COSTS, not what the collective OWES, and the
+basket's quantity / hours_per_unit split already separates the two.
+`CLIMATE_CONDITIONING` records which kind each component is.
 
 The consequence for the one number this module actually has: **331 h/person·yr
 is a rainfed tropical smallholder figure**, measured in seven Sub-Saharan
