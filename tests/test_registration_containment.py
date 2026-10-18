@@ -1,33 +1,25 @@
-"""
-Registration RELOCATES obligation; it never creates it.
+"""Registration RELOCATES obligation; it never creates it.
 
-WHY THIS EXISTS. TEH is minted against registered EOH, and registered EOH is a
-SHARE of an obligation that already exists. Paid care substitutes for unpaid
-care — if paid care did not cover care that someone would otherwise have done
-unpaid, there would be no reason to pay for it. So the hours are the same hours:
-registration moves them from off-ledger to on-ledger and makes them visible and
-mintable. It does not add to the obligation, and it does not reduce it.
+WHY THIS EXISTS. TEH is minted against registered EOH, a SHARE of an obligation that
+already exists. Paid care substitutes for unpaid care, so the hours are the same hours:
+registration moves them from off-ledger to on-ledger. It neither adds to the obligation
+nor reduces it. If that stopped holding, TEH would be minted against work that is not
+there, and the anchor to physical entropy would go with it.
 
-IF THAT EVER STOPS HOLDING, TEH IS MINTED AGAINST WORK THAT IS NOT THERE, and
-the currency's anchor to physical entropy — the whole claim of the framework —
-goes with it. The primitive `registered_eoh(human, share)` cannot break it
-(`share <= 1.0` is validated there), which is exactly why the check belongs at
-the PIPELINE, one level up: containment at a primitive says nothing about a
-caller that changes the obligation on its way past. That is corpus F-037 —
-wired to the primitive, unreachable from the documented entry point — so this
-drives `eoh_to_teh_pipeline`, the path the implementation guide gives
-institutions.
+The primitive `registered_eoh(human, share)` validates `share <= 1.0`, so the check
+belongs one level up, at the PIPELINE. Containment at a primitive says nothing about a
+caller that changes the obligation on its way past (corpus F-037). So the tests drive
+`eoh_to_teh_pipeline`, the path the implementation guide gives institutions.
 
-THE THREE PROPERTIES, and they are different claims:
+THE THREE PROPERTIES:
+
   containment  registered <= human <= gross, per domain and in total
   invariance   moving the registration share does not move the obligation
   provenance   every minted TEH traces to registered hours and nothing else
 
-STATED GAP: this checks the SHARE cannot create obligation. It does not check
-the MULTIPLIER — `teh_created = registered x mean_multiplier` mints more TEH
-than there are hours by construction, which is Condition II and a separate
-question with its own tests. Containment here is about HOURS, not about TEH
-volume.
+STATED GAP: this checks that the SHARE cannot create obligation. It does not check the
+MULTIPLIER: `teh_created = registered x mean_multiplier` mints more TEH than there are
+hours by construction, which is Condition II, with its own tests.
 """
 
 from __future__ import annotations
@@ -70,12 +62,10 @@ class TestRegistrationIsContained:
 
     @pytest.mark.parametrize("eps", ARC)
     def test_moving_the_share_does_not_move_the_obligation(self, eps) -> None:
-        """
-        THE INVARIANCE, AND IT IS THE LOAD-BEARING ONE. If registering more work
-        raised total EOH, the ledger would be manufacturing its own demand: every
-        increase in registration would create the obligation that justifies the
-        TEH it mints. Registration is a VIEW over an obligation physics already
-        fixed, so the obligation must be bit-identical across shares.
+        """THE LOAD-BEARING INVARIANCE. If registering more work raised total EOH, the
+        ledger would manufacture the demand that justifies the TEH it mints.
+        Registration is a VIEW over an obligation physics already fixed, so the
+        obligation must be bit-identical across shares.
         """
         # HONEST ABOUT ITS OWN STRENGTH: today this CANNOT fail, because
         # `total_eoh` takes no registration parameter — the obligation is
@@ -100,7 +90,7 @@ class TestRegistrationIsContained:
 
     @pytest.mark.parametrize("eps", ARC)
     def test_a_share_of_zero_registers_nothing_and_mints_nothing(self, eps) -> None:
-        """Subsistence: the entropy is resisted, no monetary event occurs."""
+        """Subsistence: people resist the entropy, and no monetary event occurs."""
         r = _run(epsilon=eps, registration_share=0.0, personal_registration_share=0.0)
         assert r["registered_eoh"] == pytest.approx(0.0, abs=1e-9)
         assert r["teh_created"] == pytest.approx(0.0, abs=1e-9)

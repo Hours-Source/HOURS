@@ -1,7 +1,6 @@
-"""
-Output formatting utilities: ANSI color, aligned tables, and numeric display.
+"""Output formatting utilities: ANSI colour, aligned tables, and numeric display.
 
-All commands route through these helpers so color/no-color is controlled centrally.
+Every command routes through these helpers, so one place controls colour.
 """
 
 from __future__ import annotations

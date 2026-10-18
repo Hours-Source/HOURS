@@ -1,38 +1,35 @@
-"""
-MTUS six-digit episode file → per-sample, per-activity-code minutes.
+"""MTUS six-digit episode file → per-sample, per-activity-code minutes.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
     python3 utils/mtus_code_ingest.py
 
-Output (committed):  mtus_codes_by_sample.csv   sample, code, minutes_per_day
+Output (committed): mtus_codes_by_sample.csv sample, code, minutes_per_day
 
-WHY. `scenarios/automation_floors` could bound the AGGREGATE floor from
-`ACT_UNDOM` but not any single component, because that aggregate is nutrition
-and shelter together. The episode file carries a finer coding — 56 to 67
-distinct codes per sample — which separates them. This extract makes that
-coding available without the 3.1 GB raw file.
+WHY. `scenarios/automation_floors` could bound the AGGREGATE floor from `ACT_UNDOM` but
+not any single component, because that aggregate is nutrition and shelter together. The
+episode file carries a finer coding that separates them (45 to 67 distinct codes per
+sample in the shipped extract). This extract makes that coding available without the 3.1
+GB raw file.
 
-THE LAYOUT IS DERIVED, NOT ASSUMED, and it is the one `utils/mtus_ingest.py`
-established (no codebook ships with the file):
+THE LAYOUT IS THE ONE `utils/mtus_ingest.py` DERIVED (no codebook ships with the file):
 
     line[0] == "3"   episode record
     [1:8] serial   [8:14] sample   [93:97] duration   [97:100] activity code
 
-`duration` was located by the only constraint that identifies it — the window
-summing to exactly 1440 in every diary — and confirmed by
-`start + duration == next start`.
+The only constraint that identifies `duration` located it: the window that sums to
+exactly 1440 in every diary. `start + duration == next start` confirmed it.
 
-WHAT THIS EXTRACT DELIBERATELY DOES NOT DO. It ships every code it finds and
-maps nothing. The code→component mapping is a declared judgement and lives in
-`scenarios/automation_floors`, where it can be stated and tested; an extract cut
-to fit one hypothesis is the calibrated-to-target failure in data form. 3,600-odd
-rows is a small price for an extract that outlives the question it was built for.
+WHAT THIS EXTRACT DOES NOT DO, on purpose. It ships every code it finds and maps
+nothing. The code→component mapping is a declared judgement and lives in
+`scenarios/automation_floors`, where it can be stated and tested. An extract cut to fit
+one hypothesis is the calibrated-to-target failure in data form. A few thousand rows is
+a small price for an extract that outlives the question it was built for.
 
-THE JOIN KEY. (SAMPLE, SERIAL). `SERIAL` alone is NOT unique — the file stacks
-extracts and the counter restarts per sample. It is also EMPTY in AT1992, FR1985
-and FR1999, where `HLDID` carries the identifier instead; those three samples
-therefore contribute nothing here, which is recorded rather than hidden.
+THE JOIN KEY is (SAMPLE, SERIAL). `SERIAL` alone is NOT unique: the file stacks extracts
+and the counter restarts per sample. It is also EMPTY in AT1992, FR1985 and FR1999,
+where `HLDID` carries the identifier instead. Those three samples therefore contribute
+nothing here, and this docstring records that.
 """
 
 from __future__ import annotations

@@ -81,13 +81,12 @@ def test_calibrated_coefficient_beats_myhre_by_the_stated_margin():
 
 
 def test_removal_gets_more_forcing_effective_as_it_proceeds():
-    """The forcing law is logarithmic in concentration, so a given ppm removed
-    at lower concentration buys MORE forcing reduction: the second 0.5 W·m⁻²
-    costs fewer ppm than the first (33.0 vs 36.1).
-
-    Note the practical effect runs the opposite way — capture from more dilute
-    air costs more energy per tonne — and this chain holds GJ/t constant, so it
-    flatters deep cuts. The two are not netted; see CDR_ENERGY_GJ_PER_TONNE."""
+    """Forcing is logarithmic in concentration, so a ppm removed at lower concentration
+    buys MORE forcing reduction: the second 0.5 W·m⁻² costs fewer ppm than the first
+    (33.0 against 36.1). In practice, capture from more dilute air costs more energy per
+    tonne. This chain holds GJ/t constant, so it flatters deep cuts; the two are not
+    netted (see CDR_ENERGY_GJ_PER_TONNE).
+    """
     first = forcing_to_ppm_reduction(0.5)
     both = forcing_to_ppm_reduction(1.0)
     second_increment = both - first
@@ -114,8 +113,9 @@ def test_mass_conversion_and_sink_reversal():
 
 
 def test_omitting_sink_reversal_understates_the_obligation():
-    """The link whose omission flatters the result — asserted so it cannot be
-    quietly dropped."""
+    """Omitting sink reversal flatters the result, so this test keeps the link from
+    being dropped quietly.
+    """
     _, honest = ppm_to_gross_mass_gt(69.1)
     _, naive = ppm_to_gross_mass_gt(69.1, gross_factor=1.0)
     assert honest / naive == pytest.approx(CDR_GROSS_REMOVAL_FACTOR)
@@ -185,9 +185,10 @@ def test_provenance_ships_with_every_chain():
 # ---------------------------------------------------------------------------
 
 def test_job_is_nearly_epsilon_invariant():
-    """The drawdown obligation is owed regardless of how far automation has run:
-    across the WHOLE arc the job moves under 10%, because Φ is ~1% of the forcing
-    reduction. Automation did not create this debt and cannot discharge it."""
+    """The drawdown obligation is owed however far automation has run: across the WHOLE
+    arc the job moves under 10%, because Φ is about 1% of the forcing reduction.
+    Automation did not create this debt and cannot discharge it.
+    """
     at_zero = drawdown_job(2.0, phi_w=phi_at_epsilon(0.0))["eoh_global"]
     at_full = drawdown_job(2.0, phi_w=phi_at_epsilon(0.99))["eoh_global"]
     assert at_full > at_zero
@@ -287,8 +288,9 @@ def test_rejects_unknown_unattributed_policy():
 
 
 def test_doctrine_ships_with_the_data():
-    """The reasoning travels with the numbers — a future reader needs to know the
-    line was drawn deliberately, not by accident of what data existed."""
+    """The reasoning travels with the numbers, so a future reader knows the line was
+    drawn on purpose, not by accident of what data existed.
+    """
     d = load_cumulative_emissions()
     assert "STARTING POINT" in d["_doctrine"]
     assert "the argument, recorded" in d["_basis_choice"]

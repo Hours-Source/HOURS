@@ -1,9 +1,7 @@
-"""
-frame_inputs — the inputs a frame-aware command runs on, and WHERE EACH CAME FROM.
+"""frame_inputs: the inputs a frame-aware command runs on, and WHERE EACH CAME FROM.
 
-An institution running a scenario on its own frame needs to know, for every
-input, whether the number knows anything about that frame. Each resolved input
-carries a label:
+An institution that runs a scenario on its own frame needs to know, for every input,
+whether the number knows anything about that frame. Each resolved input carries a label:
 
     supplied   given on the command line or in a --frame-file
     measured   read from a dataset the repo ships for a declared frame
@@ -16,24 +14,22 @@ carries a label:
                when it knows nothing about the frame either
     default    the framework's reference value, not a statement about the frame
 
-Precedence, highest first: a command-line flag, then the --frame-file, then
-the built-in --frame's data, then the default. --frame and --frame-file are
-exclusive: a frame is one statement.
+Precedence, highest first: a command-line flag, the --frame-file, the built-in --frame's
+data, the default. --frame and --frame-file exclude each other: a frame is one
+statement.
 
-ε IS NOT IMPUTED FROM PARTIAL DATA. It comes from a flag, from the frame
-file's own `epsilon` (a number, or {"low", "high"}), or — for a built-in frame
-with readings — from the repo's two instruments
-(`labour_epsilon.instrument_comparison`). A frame file with capital but no
-reading gets the reference ε, labelled a default: the capital route refuses a
-default currency rate, and so does this.
+THIS MODULE DOES NOT IMPUTE ε FROM PARTIAL DATA. It comes from a flag, from the frame
+file's own `epsilon` (a number, or {"low", "high"}), or, for a built-in frame with
+readings, from the repo's two instruments (`labour_epsilon.instrument_comparison`). A
+frame file with capital but no reading gets the reference ε, labelled a default. The
+capital route refuses a default currency rate, and so does this.
 
-THE FRAME FILE is JSON with any of the keys in `FRAME_FILE_KEYS`; anything else
-is refused, as are age shares that do not name every AGE_GROUPS group or do not
-sum to 1. `eoh frame show --frame us --format json` writes one to start from.
+THE FRAME FILE is JSON with any of the keys in `FRAME_FILE_KEYS`. The loader refuses any
+other key, and also age shares that do not name every AGE_GROUPS group or do not sum to
+1. `eoh frame show --frame us --format json` writes one to start from.
 
-Shared by `corridor band` and `scenario run`, so the two cannot resolve the
-same frame two ways. Presentation layer: imports freely, imported by no
-package module.
+`corridor band` and `scenario run` share this module, so they cannot resolve one frame
+two ways. Presentation layer: it imports freely, and no package module imports it.
 """
 
 from __future__ import annotations
@@ -112,9 +108,10 @@ def label(kind: str, source: str, derived_from: tuple[str, ...] = ()) -> dict:
 
 
 def effective_kind(labels: dict[str, dict], key: str) -> str:
-    """A derived input's kind by its ROOTS: plain "derived" only when every root
-    is supplied or measured. `default:NAME` entries are default roots — the
-    framework intensities a derivation leans on."""
+    """A derived input's kind, read from its ROOTS: plain "derived" only when every root
+    is supplied or measured. `default:NAME` entries are default roots, the framework
+    intensities a derivation leans on.
+    """
     lab = labels[key]
     if lab["kind"] != "derived":
         return str(lab["kind"])
@@ -357,22 +354,20 @@ def even_split(n: int) -> dict[str, Any]:
 
 
 def split_frame(v: dict[str, Any], split: dict[str, Any]) -> list[dict[str, Any]]:
-    """
-    Each collective's frame values: the frame's `v` with its population, land
-    and parcels replaced by the collective's share of them, and its capital
-    and Trust by its POPULATION share (capital by population, author
-    2026-10-15: BEA publishes no state stock). Every other input — labour
-    capacity, stock age, health, retirement age, ε — is the frame's.
+    """Each collective's frame values. The frame's `v` keeps its other inputs, with
+    population, land and parcels replaced by the collective's share. Capital and Trust
+    take its POPULATION share (author, 2026-10-15: BEA publishes no state stock). Labour
+    capacity, stock age, health, retirement age and ε stay the frame's.
 
-    A unit that states `age_fractions` runs on its OWN mix (2026-10-15): a
-    composition replaces the frame's, it is not a share of it. Everything the
-    mix sets is re-derived with it, so the unit's demand and supply read one
-    population: the capacity-weighted adult share, the labour supply per head,
-    and — with the retirement register on — the retired share, scaled from the
-    frame's by the unit's elderly share over the frame's.
+    A unit that states `age_fractions` runs on its OWN mix (2026-10-15): a composition
+    replaces the frame's and is not a share of it. Everything the mix sets is re-derived
+    with it, so the unit's demand and supply read one population. That covers the
+    capacity-weighted adult share and the labour supply per head. With the retirement
+    register on, it also covers the retired share, scaled from the frame's by the unit's
+    elderly share over the frame's.
 
-    A derived capital or Trust stays derived: both are per head × population,
-    so each unit re-derives its own at its own population.
+    A derived capital or Trust stays derived. Both are per head × population, so each
+    unit re-derives its own at its own population.
     """
     from hours_eoh.land.collective import default_parcel_count
     from hours_eoh.scenarios.feasibility import capacity_weighted_adult_share
@@ -416,13 +411,12 @@ def _span(r: dict) -> str:
 
 
 def resolve_epsilon(args: argparse.Namespace) -> dict:
-    """
-    The ε to run at, with its range and label.
+    """The ε to run at, with its range and label.
 
-    Returns {"value", "low", "high", "margin", "margin_kind", "source", "kind",
-    and "instruments" when read from them}. `margin_kind` is "span" when the
-    range is a measurement band, "disagreement" when the instruments are
-    DIVERGENT (the midpoint is then a reading neither gives), None for a point.
+    Returns {"value", "low", "high", "margin", "margin_kind", "source", "kind", and
+    "instruments" when read from them}. `margin_kind` is "span" for a measurement band
+    and "disagreement" when the instruments are DIVERGENT (the midpoint is then a
+    reading neither gives). It is None for a point.
     """
     if getattr(args, "epsilon", None) is not None:
         e = float(args.epsilon)
@@ -458,13 +452,12 @@ def resolve_epsilon(args: argparse.Namespace) -> dict:
 
 
 def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, Any], dict[str, dict]]:
-    """
-    Every frame input at `epsilon`: (values, labels). Values are flat so a
-    caller passes them straight on; labels say where each came from.
+    """Every frame input at `epsilon`, as (values, labels). Values are flat, so a caller
+    passes them straight on; labels say where each came from.
 
-    `capital_teh` is the stock AT `epsilon` when derived (the canonical arc at
-    the population), so a caller running at several ε re-resolves per ε; a
-    supplied or measured stock is used as given at every ε.
+    A derived `capital_teh` is the stock AT `epsilon` (the canonical arc at the
+    population), so a caller running at several ε re-resolves per ε. A supplied or
+    measured stock stays as given at every ε.
     """
     from hours_eoh.core.eoh_generation import resolve_capital_stock
     from hours_eoh.core.fiscal import resolve_trust_balance
@@ -719,14 +712,17 @@ def resolve_inputs(args: argparse.Namespace, epsilon: float) -> tuple[dict[str, 
 def _bea_stock_label(rate: float, rate_source: str,
                      derived_from: tuple[str, ...] = (),
                      band: tuple[float, float] | None = None) -> dict:
-    """ONE label for the US stock read off BEA (2026-10-04), whichever path set
-    the rate: the inventory is measured, the rate converting it to TEH is not,
-    so it is DERIVED either way — from a supplied rate, or (partly from
-    defaults) from the conversion band's midpoint. Marked as the frame's own
-    stock, which a frame file carries. A rate outside `band` (the derived
-    conversion band) is FLAGGED, not refused: the rate is the institution's to
-    state, but a reading at a rate nothing derives is a choice, and choosing
-    the rate that makes the instruments agree is calibrating to the answer."""
+    """ONE label for the US stock read from BEA (2026-10-04), whichever path set the
+    rate. The inventory is measured and the rate that converts it to TEH is not. So the
+    stock is DERIVED either way: from a supplied rate, or (partly from defaults) from
+    the conversion band's midpoint. The label marks it as the frame's own stock, which a
+    frame file carries.
+
+    A rate outside `band` (the derived conversion band) is FLAGGED, not refused. The
+    rate is the institution's to state, but a reading at a rate nothing derives is a
+    choice. Choosing the rate that makes the instruments agree is calibrating to the
+    answer.
+    """
     from hours_eoh.reference.capital_inventory import BEA_YEAR
     flag = ""
     if band is not None and not band[0] <= rate <= band[1]:
@@ -742,20 +738,19 @@ def _bea_stock_label(rate: float, rate_source: str,
 def _resolve_ecology(ff: dict[str, Any], src_ff: str,
                      v: dict[str, Any], lab: dict[str, dict],
                      frame: dict[str, str] | None = None) -> None:
-    """
-    The frame's physical state and who carries its ecological work (2026-10-04).
+    """The frame's physical state, and who carries its ecological work (2026-10-04).
 
       ecosystem_health, capital_age_ratio — supplied by the frame file, else
-          measured where the frame has a reading (the US age, off BEA:
+          measured where the frame has a reading (the US age, from BEA:
           `capital_retrodiction.stock_age_ratio`), else the framework's
-          reference state (defaults);
+          reference state (defaults).
       ecological_carried_by_people — off by default: under the adopted
           partition the recurring ecological work is the land holder's, through
-          the GUF. A frame that declares it ON has its PEOPLE carry it as labour:
-          the recurring flow returns to the domain, and the health DEFICIT
+          the GUF. A frame that declares it ON has its PEOPLE carry it as labour.
+          The recurring flow returns to the domain, and the health DEFICIT
           (1 − health, 1 = reference condition) over the frame's land is priced
           as a restoration stock by `restoration_cost.pristine_gap_obligation`
-          (high corner, `DEFAULT_AMORTIZATION_YEARS`) — the reading
+          (high corner, `DEFAULT_AMORTIZATION_YEARS`), the reading
           `ecological_spike` gives a collapse. Off, nothing is derived: a frame
           at the reference health does not grow a stock nobody declared.
     """
@@ -799,10 +794,9 @@ def _resolve_ecology(ff: dict[str, Any], src_ff: str,
 
 def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: str,
                         v: dict[str, Any], lab: dict[str, dict]) -> None:
-    """
-    The retirement register (2026-10-03): OFF unless --retirement-age or the
-    frame file asks for it, because whether retirement is a register event is
-    the collective's governance choice. When on:
+    """The retirement register (2026-10-03). It is OFF unless --retirement-age or the
+    frame file asks for it, because whether retirement is a register event is the
+    collective's governance choice. When on:
 
       retired_share — supplied (frame file), else MEASURED from Census
                       single-year ages when the frame has them, else the
@@ -812,8 +806,8 @@ def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: st
       years         — supplied, else RETIREMENT_YEARS_IN_COLLECTIVE (default),
                       read through core.fiscal.vested_fraction.
 
-    An age below the elderly band is refused: retirees here are elderly, and
-    the shocks have no way to take people out of working age by age alone.
+    The function refuses an age below the elderly band. Retirees here are elderly, and
+    the shocks cannot take people out of working age by age alone.
     """
     from hours_eoh.core.fiscal import vested_fraction
     flag_age = getattr(args, "retirement_age", None)
@@ -873,8 +867,9 @@ def _resolve_retirement(args: argparse.Namespace, ff: dict[str, Any], src_ff: st
 
 def labelled_inputs(values: dict[str, Any], labels: dict[str, dict],
                     epsilon: dict) -> dict[str, dict]:
-    """{key: {value, kind, source, derived_from}} — the JSON form, and the
-    template a frame file is written from. ε is included with its range."""
+    """{key: {value, kind, source, derived_from}}: the JSON form, and the template a
+    frame file is written from. It includes ε with its range.
+    """
     allk = {**labels, "epsilon": {"kind": epsilon["kind"], "source": epsilon["source"],
                                   "derived_from": []}}
     out: dict[str, dict] = {}
@@ -952,9 +947,10 @@ def print_inputs(rows: dict[str, dict], epsilon: dict | None, ends: str | None =
 
 
 def frame_file_from(rows: dict[str, dict]) -> dict[str, Any]:
-    """A frame file that reproduces these inputs — what `frame show --format
-    json` writes for an institution to edit. Derived values are left out, so
-    the file states only what the frame KNOWS and the rest re-derives."""
+    """A frame file that reproduces these inputs, which `frame show --format json`
+    writes for an institution to edit. The file leaves out derived values, so it states
+    only what the frame KNOWS, and the rest re-derives.
+    """
     out: dict[str, Any] = {}
     keep = {"population": "population", "age_fractions": "age_fractions",
             "adult_capacity_h_yr": "adult_capacity_h_yr", "capital_teh": "capital_teh",

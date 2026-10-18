@@ -184,10 +184,9 @@ def test_explicit_epsilon_overrides_the_derivation():
 
 
 def test_same_dissipation_different_inventory_gives_different_ceiling():
-    """The point of deriving ε: the ceiling is a property of the economy.
-
-    Two inventories can sit at the same utilization while differing in ε, so a
-    ceiling quoted at a single CHOSEN ε_current reports one number for both.
+    """The ceiling is a property of the economy, which is why ε is derived. Two
+    inventories can sit at the same utilization and differ in ε, so a ceiling quoted at
+    one CHOSEN ε would report one number for both.
     """
     lean = {k: "basic" for k in ALL_STANDARD}
     a = capital_thermal_ceiling(ALL_STANDARD, POP, land_m2=7.3e8, **BUDGETED)
@@ -313,17 +312,19 @@ def test_thermal_floor_rejects_bad_inputs():
 
 
 def test_thermal_floor_is_epsilon_invariant():
-    """Like its hours twin, the floor is a property of what is built — ε enters
-    when Φ meets an allocation, not here."""
+    """Like its hours twin, the floor is a property of what is built. ε enters when Φ
+    meets an allocation, not here.
+    """
     census = _dual_census()
     assert infrastructure_thermal_floor(census)["phi_total_w"] == pytest.approx(
         infrastructure_thermal_floor(census)["phi_total_w"])
 
 
 def test_the_density_cases_need_the_budgeted_threshold():
-    """Why BUDGETED exists: at the adopted threshold there is no budget, so the
-    land area stops mattering — dense and sparse read the same UNBUDGETED
-    warning, and neither binds (author, 2026-10-03: no budget is a warning)."""
+    """At the adopted threshold no budget exists, so land area stops mattering: dense
+    and sparse read the same UNBUDGETED warning, and neither binds (author, 2026-10-03).
+    The BUDGETED threshold exists so these cases can differ.
+    """
     from hours_eoh.data import THERMAL_DT_LO
     from hours_eoh.research.thermal_path_c import budget_opens_at
     assert THERMAL_DT_LO < budget_opens_at("net_erf") < BUDGETED["delta_t_lo"]

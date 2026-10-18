@@ -132,16 +132,12 @@ def _sweep(n_points: int, population: float, trust_balance: float | None,
 def _domain_share_rows(rows_data: list[dict], population: float) -> None:
     """Each domain as a share of total EOH, plus per-capita hours.
 
-    The denominator check. ε = machine_EOH / total_EOH, so whichever domain
-    dominates total_EOH effectively sets ε.
-
-    Block K-IV (2026-08-08) moved this materially: personal ran 87–96% across
-    the whole arc before knowledge was put on its measured O*NET footing. After
-    K-IV, the ε_ref fixed-point re-anchor and the 2026-08-10 AGE_GROUPS elderly
-    revalue, it runs 98.9% → 46.1% (re-measured 2026-08-10). The defect is
-    PARTLY closed — personal still dominates the low arc, where there is no
-    apparatus for knowledge to attach to, and the ecological domain is
-    untouched at <0.1%.
+    The denominator check: ε = machine_EOH / total_EOH, so whichever domain dominates
+    total EOH effectively sets ε. Before Block K-IV (2026-08-08) personal ran 87–96%
+    across the whole arc. Since K-IV it falls across the arc (99.4% at ε 0 to 57.7% at
+    0.99 on 2026-10-17), so the defect is PARTLY closed. Personal still dominates the
+    low arc, where knowledge has no apparatus to attach to, and the ecological domain is
+    empty under the Phase 4e/4f partition.
     """
     headers = ["ε", "personal%", "infra%", "eco%", "know%",
                "eco h/p·yr", "know h/p·yr", "personal h/p·yr"]

@@ -1,66 +1,59 @@
-"""
-MTUS episode file → the shipped per-age self-maintenance extract.
+"""MTUS episode file → the shipped per-age self-maintenance extract.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Run this ONCE when the raw MTUS files change; the repo ships only the small
-derived CSV. The raw files (`mtus.dat` 3.3 GB, `mtus_esp.csv` 150 MB) live in
-`rawdata/`, which is gitignored — exactly as the 68 GB parcel census and the
-2.9 GB ATUS microdata are.
+Run this ONCE when the raw MTUS files change; the repo ships only the small derived CSV.
+The raw files (`mtus.dat` 3.3 GB, `mtus_esp.csv` 150 MB) live in gitignored `rawdata/`.
+The parcel census and the ATUS microdata live there too.
 
     python3 utils/mtus_ingest.py
 
-Output (committed):
-    mtus_self_maintenance_by_age.csv   age, minutes_per_day, diaries, samples
+Output (committed): mtus_self_maintenance_by_age.csv age, minutes_per_day, diaries,
+samples
 
-WHY THIS EXTRACT EXISTS
-------------------------
-`AGE_WEIGHT_INFANT` and `AGE_WEIGHT_CHILD` are one-sided bands because ATUS
-surveys nobody under 15, so self-maintenance for the whole infant band and for
-ages 6–14 is ABSENT — and `care_curve` necessarily records absent as 0.0. The
-constants' own `resolves_by` names the fix: "a time-use survey covering
-children would close the band from below." MTUS is that survey.
+WHY THIS EXTRACT EXISTS ------------------------ `AGE_WEIGHT_INFANT` and
+`AGE_WEIGHT_CHILD` are one-sided bands because ATUS surveys nobody under 15.
+Self-maintenance for the whole infant band and for ages 6–14 is ABSENT, and `care_curve`
+must record absent as 0.0. The constants' own `resolves_by` names the fix: "a time-use
+survey covering children would close the band from below." MTUS is that survey.
 
-THE LAYOUT IS DERIVED, NOT ASSUMED — no codebook ships with the DATA FILE. That
-is a fact about the file and NOT about the study, and reading it as the latter
-cost a session: the per-code labels are published, in the MTUS User Guide,
-October 2020 (Release 7.0), Table 2 "Harmonised activity codes (69-category)",
-https://www.timeuse.org/sites/default/files/2021-02/User%20Guide_2021.pdf. They
-confirm the sets solved for below (18 food preparation / 19 dishes; 28-31 the
-four childcare rows) and they name the individual codes, which solving cannot.
-See `hours_eoh/scenarios/component_shares.MTUS_CODE_LABELS`. The derivation:
+THE SCRIPT DERIVES THE LAYOUT AND ASSUMES NOTHING: no codebook ships with the DATA FILE.
+That is a fact about the file, NOT about the study, and reading it as the latter cost a
+session. The MTUS User Guide publishes the per-code labels: October 2020 (Release 7.0),
+Table 2 "Harmonised activity codes (69-category)",
+https://www.timeuse.org/sites/default/files/2021-02/User%20Guide_2021.pdf. They confirm
+the sets solved for below (18 food preparation / 19 dishes; 28–31 the four childcare
+rows). They also name the individual codes, which solving cannot. See
+`hours_eoh/scenarios/component_shares.MTUS_CODE_LABELS`. The derivation:
 
     [85:89] start   [89:93] end   [93:97] duration   [97:100] activity code
 
-`duration` was located by the only constraint that identifies it — the window
-whose values sum to exactly 1440 in every diary — and confirmed by
-`start + duration == next start`.
+The only constraint that identifies `duration` located it: the window whose values sum
+to exactly 1440 in every diary. `start + duration == next start` confirmed it.
 
-THE ACTIVITY AGGREGATION IS DERIVED THE SAME WAY, by joining episodes to the
+THE SCRIPT DERIVES THE ACTIVITY AGGREGATION THE SAME WAY, by joining episodes to the
 `mtus_esp.csv` aggregates and solving for the code set:
 
     ACT_PCARE  = {2, 4, 5, 6}          exact on AM2008 and KR2004
     ACT_CHCARE = {28, 29, 30, 31}      exact on both
     ACT_UNDOM  = {18..25, 27}          exact on AM2008, 93% on KR2004
 
-Sleep is code 2 — stable at 453–568 min/day and ~2.1 episodes/day in every
-sample checked, and always the largest single code.
+Sleep is code 2: stable at 453–568 min/day and ~2.1 episodes/day in every sample
+checked, and always the largest single code.
 
-THE JOIN KEY IS (SAMPLE, SERIAL) AND THAT COST A WRONG ANSWER. `SERIAL` alone is
-NOT unique: SERIAL 46950 exists as both `IT2002` and `KR1999`, because the file
-stacks extracts and the counter restarts per sample. Joining on SERIAL merged
-Italian and Korean episodes into single diaries and produced a confident, wrong
-result. It surfaced only on checking a second country.
+THE JOIN KEY IS (SAMPLE, SERIAL), AND THAT COST A WRONG ANSWER. `SERIAL` alone is NOT
+unique: SERIAL 46950 exists as both `IT2002` and `KR1999`, because the file stacks
+extracts and the counter restarts per sample. A join on SERIAL merged Italian and Korean
+episodes into single diaries and gave a confident, wrong result. It surfaced only when
+someone checked a second country.
 
-WHAT THIS EXTRACT DOES NOT SETTLE
-----------------------------------
-MTUS puts MEALS inside its personal-care block and the repo's definition
-(ATUS tier-1 01 less sleep, plus 02) excludes them — ATUS counts eating under
-tier-1 11. Removing meals would need the sub-codes of {4, 5, 6}, and those are
-NOT comparable across samples: code 6 runs 137 min/day in AM2008 and 59 in
-KR2004, while code 4 runs 29 and 83. So the extract carries the sleep-removed
-figure and the eating term stays in, which biases the ratio TOWARD 1 — the safe
-direction for a floor, and stated rather than corrected.
+WHAT THIS EXTRACT DOES NOT SETTLE ---------------------------------- MTUS puts MEALS
+inside its personal-care block, and the repo's definition (ATUS tier-1 01 less sleep,
+plus 02) excludes them; ATUS counts eating under tier-1 11. Removing meals would need
+the sub-codes of {4, 5, 6}, and those do NOT compare across samples. Code 6 runs 137
+min/day in AM2008 and 59 in KR2004, while code 4 runs 29 and 83. So the extract carries
+the sleep-removed figure with the eating term in. That biases the ratio TOWARD 1, the
+safe direction for a floor, and this docstring states it instead of correcting it.
 """
 
 from __future__ import annotations

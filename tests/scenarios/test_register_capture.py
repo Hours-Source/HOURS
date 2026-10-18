@@ -1,11 +1,8 @@
-"""
-The register's failure model and the drift monitor.
+"""The register's failure model and the drift monitor.
 
-The monitor is the framework's answer to its own worst comparative exposure, so
-these tests are written against the ways a check like this usually fails rather
-than against the ways it usually passes: a threshold that cannot fire, a
-signature that cannot distinguish capture from growth, and an identity that
-double-counts an aggregate key.
+The monitor answers the framework's worst comparative exposure. So these tests target
+the ways such a check usually fails: a threshold that cannot fire, a signature that
+cannot tell capture from growth, and an identity that double-counts an aggregate key.
 """
 
 from __future__ import annotations
@@ -39,11 +36,9 @@ class TestTheDecompositionIsAnIdentity:
         )
 
     def test_the_aggregate_key_is_excluded_and_including_it_would_break_this(self) -> None:
-        """
-        `registration_by_domain` carries a `non_personal` key ALONGSIDE the
-        domains it aggregates. Summing the dict naively double-counts, and the
-        identity above is what catches it — so this pins that the trap is real
-        rather than a remembered caution.
+        """`registration_by_domain` carries a `non_personal` key BESIDE the domains it
+        aggregates. A naive sum double-counts, and the identity above catches it; this
+        test shows the trap is real.
         """
         p = eoh_to_teh_pipeline(epsilon=0.40)
         assert "non_personal" in p["registered_eoh_by_domain"]
@@ -71,9 +66,10 @@ class TestTheCaptureSignature:
         assert s["mint_change"] > 0.0
 
     def test_total_eoh_still_takes_no_registration_argument(self) -> None:
-        """If this ever fails, the signature stops being diagnostic: the
-        obligation could then move in response to a registration decision and
-        `obligation_change == 0` would no longer mean anything."""
+        """If this fails, the signature stops being diagnostic: the obligation could
+        move with a registration decision, and `obligation_change == 0` would mean
+        nothing.
+        """
         params = set(inspect.signature(total_eoh).parameters)
         assert not {p for p in params if "registration" in p or "registered" in p}, params
 
@@ -96,9 +92,10 @@ class TestTheCaptureSignature:
 class TestTheChannelRanking:
 
     def test_personal_is_the_widest_channel_at_the_reference(self) -> None:
-        """Not a shipped constant — a measured consequence of the obligation mix:
-        personal is the largest domain AND the least registered, so it carries
-        both the most mint and the most headroom."""
+        """A measured consequence of the obligation mix, not a shipped constant.
+        Personal is the largest domain AND the least registered, so it carries the most
+        mint and the most headroom.
+        """
         ch = capture_channels(0.40)
         assert ch["widest"] == "personal"
         personal = next(c for c in ch["channels"] if c["domain"] == "personal")
@@ -144,11 +141,10 @@ class TestTheMonitorCanFireAndCanNotFire:
         assert r["unexplained"] is True
 
     def test_it_fires_downward_too(self) -> None:
-        """A register that stops admitting is also drifting. Monitoring only the
-        inflationary direction is the asymmetry outline item 5 warns about —
-        nobody is visibly harmed by a wrongly-ADMITTED obligation, so that is the
-        direction usually watched, and the refusal direction is the one with a
-        person on the other end."""
+        """A register that stops admitting is also drifting. A wrongly ADMITTED
+        obligation visibly harms nobody, so that direction is the one usually watched.
+        The refusal direction has a person on the other end (outline item 5).
+        """
         r = drift_monitor(baseline_share=0.30, observed_share=0.16, threshold=0.05)
         assert r["breached"] is True
         assert r["drift"] < 0.0

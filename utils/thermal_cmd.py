@@ -1,5 +1,4 @@
-"""
-thermal — planetary radiative capacity: overage, determinacy, ceilings.
+"""thermal — planetary radiative capacity: overage, determinacy, ceilings.
 
   eoh thermal overage     [--points "1.5,2.0,2.5,3.0"] [--lambda F] [--forcing F]
                           [--epsilon ε] [--format table|csv|json]
@@ -21,62 +20,61 @@ thermal — planetary radiative capacity: overage, determinacy, ceilings.
 
   eoh thermal lambda      [--delta-t K] [--format table|json]
 
-'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth,
-the power by which civilization exceeds its radiative allowance, decomposed into
-its forcing and waste-heat terms, paired with the forcing reduction that would
-zero it. At defensible thresholds the heat term is a few percent — eliminating
-every net-additive watt on Earth closes only that much, so zeroing is reachable
-only through forcing.
+'overage' is the headline table: O(ΔT_max) = Φ + (F_total − λ·ΔT_max)·A_earth. It is the
+power by which civilization exceeds its radiative allowance, split into its forcing and
+waste-heat terms, beside the forcing reduction that would zero it. At defensible
+thresholds the heat term is a few percent. Eliminating every net-additive watt on Earth
+closes only that much, so only forcing can reach zero.
 
-'arc' sweeps the same overage across ε at one threshold, showing when (if ever)
-waste heat stops being a rounding error.
+'arc' sweeps the same overage across ε at one threshold, to show when (if ever) waste
+heat stops being a rounding error.
 
-'determinacy' is the HEADLINE, and it leads: it reports what the framework can
-determinately say at a threshold before it reports any number. Both the forcing
-band AND λ are carried, because determinacy requires the whole parameter box to
-agree and holding λ fixed at an unassessed value overstates the determinate zone
-roughly threefold. Where the answer is indeterminate the budget is WITHHELD, not
-estimated — a number there would be a point estimate from inside a band that
-contains both 'no budget' and 'ample budget'. --single-axis reproduces the older
-forcing-only map for comparison. Pass --txx if your threshold is stated in land
-extremes rather than GMST (C6, ÷1.48).
+'determinacy' is the HEADLINE, and it leads. It reports what the framework can
+determinately say at a threshold before it reports any number. It carries both the
+forcing band AND λ, because determinacy needs the whole parameter box to agree. Holding
+λ fixed at an unassessed value overstates the determinate zone roughly threefold. Where
+the answer is indeterminate, the budget is WITHHELD, not estimated. A number there would
+be a point estimate from inside a band that contains both 'no budget' and 'ample
+budget'.
 
-'ceiling' contrasts the automation ceiling before and after drawdown to the
-natural forcing floor. Where no pre-drawdown ceiling exists the budget is zero,
-and the ε ceiling is carbon-determined.
+--single-axis reproduces the older forcing-only map for comparison. Pass --txx if your
+threshold is in land extremes, not GMST (C6, ÷1.48).
 
-'drawdown' shows the conversion chain from the required forcing reduction to the
-labour that would deliver it, with each link's provenance tier. Note the energy
-term cancels out of the EOH — the obligation is gross tonnage × labour-hours per
-tonne — so energy per tonne affects only the programme's own dissipation.
+'ceiling' compares the automation ceiling before and after drawdown to the natural
+forcing floor. Where no pre-drawdown ceiling exists, the budget is zero and carbon sets
+the ε ceiling.
 
-'gate' runs the fiscal solvency gate under the FLOW convention: the drawdown
-obligation annualized over the programme horizon, injected through the
-framework's own deferred-ecological hook so it flows through the whole pipeline
-and partly funds itself. All five pass conditions at every ε, plus the backward
-query — what labour intensity would break the Trust, and how far the shipped
-estimate sits from it. The null-load baseline is re-run every time, so a failure
-can never be misattributed to the thermal load.
+'drawdown' shows the conversion chain from the required forcing reduction to the labour
+that would deliver it, with each link's provenance tier. The energy term cancels out of
+the EOH: the obligation is gross tonnage × labour-hours per tonne. So energy per tonne
+affects only the programme's own dissipation.
 
-'lambda' reports the derived feedback parameter with its frame and the budget
-sensitivity across the plausible range. λ is the second-largest lever after
-ΔT_max and the budget spans ZERO to ~11x across AR6's own likely ECS range, so
-the band is printed as a first-class output rather than a footnote.
+'gate' runs the fiscal solvency gate under the FLOW convention. The drawdown obligation,
+annualized over the programme horizon, enters through the framework's own
+deferred-ecological hook, so it flows through the whole pipeline and partly funds
+itself. It checks all five pass conditions at every ε. It also answers the backward
+query: what labour intensity would break the gate, and how far the shipped estimate sits
+from it. The null-load baseline re-runs every time, so nobody can blame a failure on the
+thermal load by mistake.
 
-ΔT_max (default 2.0 K) and the programme horizon (default 40 yr — one lifetime
-of responsibility) are both CHOSEN. ΔT_max dominates every result and may be
-judged too high later; every downward revision enlarges the obligation. The
-horizon is an ethical choice about who does the work, and the obligation scales
-as 1/horizon. Allocation across collectives defaults to RESPONSIBILITY
-(cumulative emissions), falling back to population — with the fallback declared —
-when emissions history is not supplied.
+'lambda' reports the derived feedback parameter with its frame and the budget's
+sensitivity across the plausible range. λ is the second-largest lever after ΔT_max. At
+3.0 K the budget runs from zero to several times the shipped value across AR6's own
+likely ECS range. At the 2.0 K default, every value in that range gives no budget. So
+the command prints the band as a first-class output, not a footnote.
 
-The thermal obligation is now WIRED into ecological EOH as a fourth term
-(core.eoh_generation.ecological_eoh, `thermal_obligation`, default 0.0). The
-bounds below remain advisory; ΔT_max is the framework's own judgment and dominates
-every result — that is why these are sweeps, not point values. λ is Tier C and
-the budget spans ~6.5× across its plausible range; it is printed with the table
-for that reason.
+ΔT_max (default 2.0 K) and the programme horizon (default 40 yr, one lifetime of
+responsibility) are both CHOSEN. ΔT_max dominates every result, and a later review may
+find it too high. Every downward revision enlarges the obligation. The horizon is an
+ethical choice about who does the work, and the obligation scales as 1/horizon.
+Allocation across collectives defaults to RESPONSIBILITY (cumulative emissions). Without
+an emissions history it falls back to population and declares the fallback.
+
+Ecological EOH carries the thermal obligation as a fourth term
+(core.eoh_generation.ecological_eoh, `thermal_obligation`, default 0.0). The bounds here
+stay advisory. ΔT_max is the framework's own judgement and dominates every result, so
+these are sweeps, not point values. λ is Tier C, so the command prints its band with the
+table.
 """
 
 from __future__ import annotations

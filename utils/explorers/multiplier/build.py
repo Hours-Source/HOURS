@@ -1,34 +1,31 @@
 #!/usr/bin/env python3
 """Build the self-contained multiplier registry explorer page.
 
-The page lets a reader find an occupation and see every step from the measured
-O*NET/BLS inputs to its reference multiplier, compare two occupations, and move
-the CHOSEN factor weights. It runs entirely in the browser: data, constants and
-math are embedded in one HTML file.
+The page lets a reader find an occupation and see every step from the measured O*NET/BLS
+inputs to its reference multiplier, compare two occupations, and move the CHOSEN factor
+weights. It runs entirely in the browser: data, constants and math are embedded in one
+HTML file.
 
-Where each thing comes from — nothing here is a copy:
-    rows, provenance, bounds   hours_eoh/reference/data/ (registry, provenance, bounds)
-    slider range               the default `delta` of scenarios.multiplier_sensitivity.sweep_factor_weights
-    weights, map constants     hours_eoh.data (M_FACTOR_WEIGHTS, M_IMPACT_SUBDOMAIN_WEIGHTS,
-                               M_COMPOSITE_Z_*, M_IMPACT_COMPOSITE_*, M_FLOOR, M_GEOMETRIC_R,
-                               M_BAND_*, M_MAX, MEAN_MULTIPLIER_REFERENCE)
+Where each thing comes from (nothing here is a copy): rows, provenance, bounds
+hours_eoh/reference/data/ (registry, provenance, bounds) slider range the default
+`delta` of scenarios.multiplier_sensitivity.sweep_factor_weights weights, map constants
+hours_eoh.data (M_FACTOR_WEIGHTS, M_IMPACT_SUBDOMAIN_WEIGHTS, M_COMPOSITE_Z_*,
+M_IMPACT_COMPOSITE_*, M_FLOOR, M_GEOMETRIC_R, M_BAND_*, M_MAX,
+MEAN_MULTIPLIER_REFERENCE)
 
-The build REFUSES to write a page when:
-    - the bounds file and data.py disagree on any constant the page uses;
-    - the repo's own functions (impact_composite_from_subdomains,
-      composite_from_factors, reference_multiplier) do not reproduce the registry;
-    - the page names a provenance key the provenance CSV does not carry, or the
-      CSV carries a tag the page has no class for.
+The build REFUSES to write a page when: - the bounds file and data.py disagree on any
+constant the page uses; - the repo's own functions (impact_composite_from_subdomains,
+composite_from_factors, reference_multiplier) do not reproduce the registry; - the page
+names a provenance key the provenance CSV does not carry, or the CSV carries a tag the
+page has no class for.
 
-What it CANNOT check (stated, per the checker-gaps rule): the page's JavaScript
-math. That is a second implementation; `tests/test_explorer_build.py` runs it
-under node against the repo's functions, and each occupation card shows a
-✓/✗ against the registry in the browser.
+What it CANNOT check (the checker-gaps rule): the page's JavaScript math, a second
+implementation. `tests/test_explorer_build.py` runs it under node against the repo's
+functions, and each occupation card shows a ✓/✗ against the registry in the browser.
 
-Usage:
-    python3 utils/explorers/multiplier/build.py [--out FILE]
+Usage: python3 utils/explorers/multiplier/build.py [--out FILE]
 
-Normally run by hooks/docs_explorers.py during `mkdocs build`.
+hooks/docs_explorers.py normally runs it during `mkdocs build`.
 """
 
 from __future__ import annotations
@@ -97,7 +94,7 @@ TOL_ROUNDED = 5e-4
 
 
 class BuildError(Exception):
-    """The page would not reproduce the repo; nothing is written."""
+    """The page would not reproduce the repo, so the build writes nothing."""
 
 
 def _num(v: str) -> float | None:

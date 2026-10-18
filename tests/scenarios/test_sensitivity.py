@@ -26,13 +26,10 @@ class TestFiscalParameterSweep:
         assert any(solvency), "At least one levy rate should be solvent"
 
     def test_floor_fraction_sweep(self):
-        """SWEPT AGAINST THE DESIGN THAT READS IT (2026-09-16).
-
-        When V1 became the default guarantee design this sweep went INERT —
-        0.05, 0.15 and 0.30 all returned a guarantee cost of 7,564,933, because
-        V1 derives the recipient share from the register and never looks at
-        `floor_fraction`. A swept parameter that moves no output is failure
-        mode 5, and this test is what caught it.
+        """The sweep runs against the design that reads `floor_fraction` (2026-09-16).
+        Under V1 it went INERT: V1 derives the recipient share from the register, so
+        every fraction gave the same guarantee cost. A swept parameter that moves no
+        output is mode 5, and this test caught it.
         """
         result = fiscal_parameter_sweep("floor_fraction", [0.05, 0.15, 0.30])
         assert len(result["results"]) == 3
@@ -56,13 +53,9 @@ class TestFiscalParameterSweep:
         assert costs[2] == pytest.approx(2.0 * costs[1], rel=1e-9)
 
     def test_trust_per_capita_sweep_bites(self):
-        """
-        PRIOR WORK BROUGHT, swept per person (2026-09-17).
-
-        The neighbouring floor_fraction test exists because a swept parameter
-        that moves no output is failure mode 5 in a sweep's clothes. This is the
-        same check for the new parameter: the surplus must move, and it must
-        move for a reason that is stated below rather than merely observed.
+        """Prior work brought, swept per person (2026-09-17). As in the floor_fraction
+        test, the surplus must move, and for a reason the test states, not one it merely
+        observes.
         """
         pop = 1_000_000.0
         result = fiscal_parameter_sweep(
@@ -94,11 +87,9 @@ class TestFiscalParameterSweep:
 
     @pytest.mark.parametrize("epsilon", [0.0, 0.40, 0.90, 0.99])
     def test_the_guarantee_is_independent_of_prior_work_across_the_arc(self, epsilon):
-        """
-        THE DOCTRINAL CLAIM, PINNED. Under V1 the liability is sized from the
-        REGISTER, not from the Trust, so repricing what a collective brings
-        changes what it HOLDS and nothing about what it OWES. Measured flat at
-        every ε, not merely at the 0.40 reference (failure mode 3).
+        """THE DOCTRINAL CLAIM. Under V1 the REGISTER sizes the liability, not the
+        Trust, so repricing what a collective brings changes what it HOLDS, not what it
+        OWES. The test measures it at every ε, not only at 0.40 (mode 3).
         """
         result = fiscal_parameter_sweep(
             "trust_per_capita", [0.0, 8760.0, 35000.0], epsilon=epsilon)
@@ -110,15 +101,12 @@ class TestFiscalParameterSweep:
 
     @pytest.mark.parametrize("epsilon", [0.0, 0.40, 0.90])
     def test_a_collective_that_brings_nothing_is_solvent(self, epsilon):
-        """
-        "The founding stock is an artifact of a collective that could not remain
-        stable without one" (author, 2026-09-17) — measured ON THE MINT.
-
-        CORRECTED 2026-09-30. This was parametrised to 0.99 and passed there
-        because the sweep's labour income defaulted to a 2.2e9 proxy, ~4.4× the
-        mint at 0.40. On the mint (the wage doctrine) a collective that brings
-        nothing is solvent across nearly the whole arc and NOT at the top, where
-        the mint falls and the guarantee does not — see the next test.
+        """"The founding stock is an artifact of a collective that could not remain
+        stable without one" (author, 2026-09-17), measured ON THE MINT. A collective
+        that brings nothing is solvent across nearly the whole arc and NOT at the top,
+        where the mint falls and the guarantee does not. Until 2026-09-30 it passed at
+        0.99 on a 2.2e9 labour-income proxy
+        ([record](record/fulfilment.md#proxy-income-retired)).
         """
         result = fiscal_parameter_sweep("trust_per_capita", [0.0], epsilon=epsilon)
         assert result["results"][0]["solvent"] is True

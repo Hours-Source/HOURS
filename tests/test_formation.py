@@ -1,8 +1,7 @@
-"""
-Tests for research/formation.py — §8.9c formation feedback: the investment
+"""Tests for research/formation.py, §8.9c formation feedback. They cover the investment
 supply curve, the incentive-compatible share, the funding waterfall, the
-capacity-derived ε, the null anchor, both priority policies, the escalation
-latch, and the Condition III (zero-interest advantage) finding.
+capacity-derived ε, the null anchor, both priority policies, the escalation latch, and
+the Condition III (zero-interest advantage) finding.
 """
 
 import math
@@ -136,11 +135,12 @@ class TestNullAnchor:
 
 
 class TestTheRateSolvedAgainstItsPace:
-    """RECAL_EPSILON_RATE_PER_YEAR's pointer, run (2026-10-16): under the null
-    anchor the realised pace is the rate times a fixed shape factor, so the
-    damped solve finds no interior rate and leaves the range; under the
-    endogenous charter it crosses where formation stops keeping up, and that
-    crossing is a true fixed point. record/provenance.md#rate-fixed-point."""
+    """RECAL_EPSILON_RATE_PER_YEAR's pointer, run (2026-10-16). Under the null anchor
+    the realised pace is the rate times a fixed shape factor, so the damped solve finds
+    no interior rate. Under the endogenous charter it crosses where formation stops
+    keeping up, and that crossing is a true fixed point
+    ([record](record/provenance.md#rate-fixed-point)).
+    """
 
     def test_null_anchor_selects_no_rate_and_the_charter_crossing_is_a_fixed_point(self):
         null = epsilon_rate_fixed_point(charter_share_override=0.0)
@@ -256,25 +256,11 @@ class TestSharePriority:
             assert r["commons_funded"] > 0.0
 
     def test_underwriting_carries_all_but_the_very_top_of_the_arc(self):
-        """
-        FINDING PARTLY REVERSED BY BLOCK K-IV — read the history before quoting.
-
-        The commons carries exit for effectively the whole transition, but the
-        self-financing channel is no longer permanently shut.
-
-          §8.9b static model      self-financing from ε ≈ 0.30
-          §8.9c feedback model    ε ≈ 0.86
-          PERSONAL_EOH_BASE 1000  NEVER opens inside the horizon (2026-08-06)
-          KNOWLEDGE_EOH_BASE      opens at ε ≈ 0.99 (K-IV, 2026-08-08)
-
-        K-IV grew machine output (+70% at ε = 0.99, knowledge becoming the
-        largest non-personal domain), and the dividend rides that base — so it
-        finally clears the self-financing threshold, but only at the very top.
-
-        The substantive claim is UNCHANGED and should be stated the same way:
-        across the whole transition contestability is commons-financed, and a
-        member's own dividend does not fund exit until the arc is essentially
-        complete. Do not quote 0.30 or 0.86; 0.99 is not a transition figure.
+        """The commons carries exit through the whole transition: a member's own
+        dividend does not fund exit until the arc is essentially complete. Block K-IV
+        opened the self-financing channel, but only above ε 0.95. Do not quote the
+        earlier thresholds (0.30, 0.86); the top-of-arc opening is not a transition
+        figure ([record](record/verification.md#ste-docstrings)).
         """
         rows = formation_feedback_simulation(n_years=60, priority="share")
         mid = [r for r in rows if 0.1 <= r["eps_actual"] <= 0.85]

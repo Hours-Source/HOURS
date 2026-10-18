@@ -71,16 +71,15 @@ def _build_kwargs(eps: float, population: float, trust_balance: float | None,
                   capital_stock: float, ecosystem_health: float,
                   thermal_obligation: float = 0.0,
                   certified_fraction: float = DECLARED_CERTIFIED_FRACTION) -> dict:
-    """
-    The dashboard's accounts, computed rather than invented (2026-09-12).
+    """The dashboard's accounts, computed, not invented (2026-09-12).
 
-    Until then the ledger, the Trust and the EOH totals were stand-ins built from
-    literals (destroyed = 0.85 × created, expenditure = 0.90 × earnings, total
-    EOH = population × base × 1.5), so Conditions I and III passed by
-    construction and the EOH indicators read a total up to 1.6× off the model's.
-    Now: the EOH side comes from the pipeline on the stated frame, and the ledger
-    and Trust from ONE simulated period on the same frame — the only engine in
-    the package that tracks both. Only certified competency is declared.
+    Before, the ledger, the Trust and the EOH totals were stand-ins built from literals
+    (destroyed = 0.85 × created, expenditure = 0.90 × earnings, total EOH = population ×
+    base × 1.5). So Conditions I and III passed by construction, and the EOH indicators
+    read a total up to 1.6× off the model's. Now the EOH side comes from the pipeline on
+    the stated frame. The ledger and Trust come from ONE simulated period on the same
+    frame, the only engine in the package that tracks both. Only certified competency is
+    declared.
     """
     trust_balance = resolve_trust_balance(trust_balance, population)
     p = EohParams()

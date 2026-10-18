@@ -1,17 +1,14 @@
-"""
-The work-year reference: one convention, policy-free, with the band reported.
+"""The work-year reference: one convention, policy-free, with the band reported.
 
-WHY THIS EXISTS (author sign-off, 2026-09-02). `H_REF` described itself as "a
-stated normalizer … not a claim about how long anyone works" and was 50 weeks ×
-40 h — a two-week leave policy baked into the base. A normalizer carrying a
-policy is not one: every deviation measured against it silently nets that policy
-out. It is now the calendar, 40 × 52, and leave, part-time, actual hours and
-surge are all REPORTED deviations against it.
+WHY THIS EXISTS (author sign-off, 2026-09-02). `H_REF` called itself "a stated
+normalizer … not a claim about how long anyone works", yet it was 50 weeks × 40 h, a
+two-week leave policy inside the base. A normalizer that carries a policy nets that
+policy out of every deviation. It is now the calendar, 40 × 52, and leave, part-time,
+actual hours and surge are REPORTED deviations against it.
 
-The move also closed a defect the repo had documented and never fixed:
-`BASE_LIFETIME_EARNINGS_TEH` used the literal 2080 while `H_REF` was 2000, and
-said so in its own form field. **The value was identical either way** — 2080 × 42
-= 87,360 — which is precisely what let two conventions coexist unnoticed.
+The move also closed a documented defect: `BASE_LIFETIME_EARNINGS_TEH` used 2080 while
+`H_REF` was 2000. The value was identical either way (2080 × 42 = 87,360), which is what
+let two conventions coexist unnoticed.
 """
 
 from __future__ import annotations
@@ -38,24 +35,16 @@ class TestTheBaseCarriesNoLeavePolicy:
         assert H_REF == 40 * 52 == 2080
 
     def test_it_is_not_the_old_fifty_week_value(self):
-        """
-        The retired 2000 = 50 wk × 40 h. If it ever returns, a leave policy has
-        been put back inside a value whose own form calls it a normalizer.
+        """The retired 2000 is 50 wk × 40 h. If it returns, a leave policy is back
+        inside a value whose own form calls it a normalizer.
         """
         assert H_REF != 2000
 
     def test_the_decision_is_recorded_where_the_value_is(self):
-        """
-        Checked against the WHOLE contiguous comment run above the value, not a
-        fixed window of characters. The first version looked back 2,000 chars,
-        which is a proxy for "in the block" that breaks the moment the block
-        legitimately grows — as it did on 2026-09-03, when H_REF gained a note
-        about being misread as a capacity default. A threshold that fails on
-        honest growth gets widened until it means nothing.
-
-        The parsed record is not the right instrument either: the scanner keeps
-        only the LAST `note:`, so an assertion against `record.note` silently
-        stops seeing every earlier one.
+        """The test reads the WHOLE contiguous comment run above the value. A fixed
+        window of characters breaks when the block grows honestly, as it did on
+        2026-09-03, and then gets widened until it means nothing. The parsed record is
+        wrong too: the scanner keeps only the LAST `note:`.
         """
         lines = DATA_PY.read_text(encoding="utf-8").splitlines()
         i = next(n for n, l in enumerate(lines) if l.startswith("H_REF: int ="))
@@ -96,11 +85,9 @@ class TestTheTwoConventionsCannotDivergeAgain:
         )
 
     def test_career_years_is_deliberately_not_the_measured_working_life(self):
-        """
-        DELIBERATE. `SKILL_WORKING_LIFE_YEARS` is measured cohort exit (37.5);
-        this is the span a lifetime-earnings reference is quoted over. Binding
-        them would move the value 10.7% on a claim nobody has made, and the tag
-        block has to say so rather than leaving it looking like an oversight.
+        """DELIBERATE. `SKILL_WORKING_LIFE_YEARS` is measured cohort exit (37.5); this
+        value is the span a lifetime-earnings reference is quoted over. Binding them
+        would move the value 10.7% on a claim nobody has made, so the tag block says so.
         """
         from hours_eoh.data import SKILL_WORKING_LIFE_YEARS
         assert BASE_CAREER_YEARS != SKILL_WORKING_LIFE_YEARS
@@ -141,21 +128,19 @@ class TestTheBandIsReportedRatherThanOneNumber:
         assert WORK_YEAR_REFERENCE_POINTS["reduced_20pct"] == pytest.approx(0.80)
 
     def test_eu_nominal_and_us_measured_actual_nearly_coincide(self):
-        """
-        The coincidence worth remembering: a European FULL-TIME year and an
-        American ACTUAL year are within 0.3%. It is why the retired 2000 looked
-        reasonable — it sat between the two nominals — and why quoting a single
-        hours figure without saying which question it answers is unsafe.
+        """A European FULL-TIME year and an American ACTUAL year are within 0.3% of
+        `H_REF`. That is why the retired 2000, between the two nominals, looked
+        reasonable. A single hours figure is unsafe unless it says which question it
+        answers.
         """
         p = WORK_YEAR_REFERENCE_POINTS
         assert abs(p["eu_nominal"] - p["measured_actual"]) < 0.005
 
 
 class TestTheCompetencyFloorNeverBinds:
-    """
-    MEASURED 2026-09-02, and it is a positive result rather than a dead
-    constant: the model never reaches an automation level at which ordinary work
-    falls below the point where practitioners keep their skills.
+    """A positive result, measured 2026-09-02, not a dead constant. The model never
+    reaches an automation level at which ordinary work falls below the point where
+    practitioners keep their skills.
     """
 
     def test_required_hours_stay_above_the_floor_across_the_arc(self):

@@ -1,13 +1,11 @@
-"""
-Tests for hours_eoh.scenarios.use_split — the ten ratios decomposed.
+"""Tests for hours_eoh.scenarios.use_split: the ten ratios decomposed.
 
-REPORTING ONLY. `TestUSplitChangesNothing` fails the moment that stops being
-true, following the `guf_magnitude` and `servicing_census` precedent.
+REPORTING ONLY. `TestUSplitChangesNothing` fails if that stops being true (the
+`guf_magnitude` and `servicing_census` precedent).
 
-What these pin is not arithmetic but the ARGUMENT: that ρ is indexed the way
-the fee table is (which is what dissolves the wrong-instrument objection), that
-the residual is legible policy rather than noise, and that the scaling-basis gap
-is not closable by any re-cut of the ratios.
+These tests pin the ARGUMENT, not the arithmetic. ρ is indexed as the fee table is,
+which answers the wrong-instrument objection. The residual is legible policy, not noise.
+No re-cut of the ratios closes the scaling-basis gap.
 """
 
 import pytest
@@ -50,10 +48,9 @@ class TestUSplitChangesNothing:
 
 
 class TestRhoBridgesTheIndexGap:
-    """
-    THE REASON THE SPLIT IS POSSIBLE AT ALL. Both censuses aggregate over LAND
-    CLASSES while the fee table is indexed by USE CATEGORY — which is exactly
-    why neither could settle the ratios. ρ is indexed by use category.
+    """Both censuses aggregate over LAND CLASSES, while the fee table is indexed by USE
+    CATEGORY, which is why neither could settle the ratios. ρ is indexed by use
+    category, and that makes the split possible.
     """
 
     def test_rho_covers_every_fee_category(self):
@@ -96,10 +93,8 @@ class TestTheResidualIsPolicyNotNoise:
         )
 
     def test_luxury_and_land_banking_are_charged_ABOVE_their_disturbance(self):
-        """
-        The two normative judgements the fee table encodes without saying so.
-        A second home and fallow land are charged more than their physical
-        footprint warrants — defensible, but a charter decision, not a
+        """The fee table charges a second home and fallow land more than their physical
+        footprint warrants. That is defensible, but it is a charter decision, not a
         measurement.
         """
         rows = {r["use_category"]: r for r in rank_disagreement()["rows"]}
@@ -115,11 +110,9 @@ class TestTheResidualIsPolicyNotNoise:
         assert rows["institutional"]["rank_gap"] > 0
 
     def test_the_extremes_agree_and_that_is_the_control(self):
-        """
-        Heavy industry, retail and conservation rank identically on both
-        orderings. If the disagreements were noise they would be scattered;
-        that they sit in the middle while the extremes agree is what makes the
-        residual readable as policy.
+        """Heavy industry, retail and conservation rank identically on both orderings.
+        Noise would scatter the disagreements; they sit in the middle while the extremes
+        agree, so the residual reads as policy.
         """
         rows = {r["use_category"]: r for r in rank_disagreement()["rows"]}
         for c in ("industrial_heavy", "commercial_retail", "conservation"):

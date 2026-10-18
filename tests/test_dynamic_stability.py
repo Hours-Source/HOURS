@@ -1,10 +1,9 @@
-"""
-research/dynamic_stability — the first instrument for limit cycles
+"""research/dynamic_stability: the first instrument for limit cycles
 (`record/verification.md § Open`: "nothing tests for limit cycles").
 
-Pins the detector on constructed series where the answer is known, then what
-it reads off the repo's own forward models — including that the formation
-loop's cobweb is INVISIBLE inside 200 years (failure mode 3, in time).
+The tests pin the detector on constructed series with known answers, then what it reads
+off the repo's own forward models. That includes the formation loop's cobweb, INVISIBLE
+inside 200 years (mode 3, in time).
 """
 
 from __future__ import annotations

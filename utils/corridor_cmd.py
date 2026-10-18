@@ -1,17 +1,16 @@
-"""
-corridor — the stability corridor [ε_suff, ε_max] and its binding invariants.
+"""corridor: the stability corridor [ε_suff, ε_max] and its binding invariants.
 
-Success in this framework is a stable feasible band, not ε → 1 (author sign-off
-2026-08-01). This command composes the survival floor with the invariant ceilings
-and reports the band, which ceiling binds it, and whether it is open at all.
+Success in this framework is a stable feasible band, not ε → 1 (author sign-off,
+2026-08-01). This command composes the survival floor with the invariant ceilings. It
+reports the band, which ceiling binds it, and whether it is open at all.
 
 Two subcommands:
 
   band   the corridor at a given physical state, with every ceiling listed
   axes   both contestability axes side by side — the adopted §8.9 three-channel
          financeability test and the SUPERSEDED bare-χ test — and whether they
-         agree. This exists because they disagree at defaults, and the corridor
-         previously ran on the retired one.
+         agree. They disagree at defaults, and the corridor once ran on the
+         retired one.
 """
 
 from __future__ import annotations
@@ -351,7 +350,7 @@ def _show(args: argparse.Namespace, rep: dict) -> None:
 
 
 def _headroom(name: str, h: dict) -> str:
-    """One line of distance-to-binding for a bound, or "—" where none is defined."""
+    """One line of distance-to-binding for a bound, or "—" where the bound has none."""
     if name == "survival" and h["survival"]["labour_cover"] is not None:
         return f"labour {h['survival']['labour_cover']:.2f}× survival need"
     if name == "overbuild":

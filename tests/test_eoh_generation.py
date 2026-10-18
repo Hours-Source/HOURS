@@ -797,7 +797,8 @@ def test_domain_balance_ecological_is_sub_hour_per_person():
     assert d["ecological"] / pop < 1.0
     # > 1,400 until the 2026-08-10 elderly revalue took w to 1.3016; the point
     # of the assertion is the ORDER-OF-MAGNITUDE gap against ecological's
-    # sub-hour figure, which 1,301.6 makes exactly as starkly.
+    # sub-hour figure, which 1,301.6 made exactly as starkly (1,352.8 live,
+    # 2026-10-17).
     assert d["personal"] / pop > 1_250.0
 
 

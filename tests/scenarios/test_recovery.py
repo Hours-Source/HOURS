@@ -78,9 +78,10 @@ class TestMaintenanceRecoverySchedule:
 
 
 class TestAnExactTieIsRecovered:
-    """A backlog equal to one year's demand is recovered, whatever float
-    rounding does to the subtraction (2026-10-15: the US frame flipped year
-    2 -> 1 -> 2 across two recalibrations that moved neither ratio)."""
+    """A backlog equal to one year's demand counts as recovered, whatever float rounding
+    does to the subtraction. On 2026-10-15 the US frame flipped year 2 → 1 → 2 across
+    two recalibrations that moved neither ratio.
+    """
 
     @pytest.mark.parametrize("eps", [0.0, 0.40, 0.90, 0.99])
     def test_the_tie_is_year_one_at_every_scale_and_a_real_miss_is_not(self, eps):

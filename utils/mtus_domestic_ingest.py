@@ -1,39 +1,37 @@
-"""
-Unpaid domestic work by MTUS sample — the long series ATUS cannot reach.
+"""Unpaid domestic work by MTUS sample: the long series ATUS cannot reach.
 
-WHY THIS EXISTS. `scenarios/automation_floors` measured the ATUS window
-(2003-2025) against the personal automation floors and found it saturated: the
-household automation that mattered predates the sample, so the series cannot
-see what is left for machines to take. MTUS spans 1965-2024 across ten
-countries, which is the capital variation that window lacks.
+WHY THIS EXISTS. `scenarios/automation_floors` measured the ATUS window (2003–2025)
+against the personal automation floors and found it saturated. The household automation
+that mattered predates the sample, so the series cannot see what remains for machines to
+take. MTUS spans 1965–2024 across several countries, the capital variation that window
+lacks.
 
-WHAT IS EXTRACTED. One row per sample: the weighted mean minutes per day of
-`ACT_UNDOM` (unpaid domestic work), `ACT_CHCARE` (childcare), `ACT_WORK` (paid
-work), plus `ACT_TRAVEL` and `ACT_EDUCA` — the two whose membership in
-"entropy-resistance labour" is arguable — and the respondent count. The three
-core columns are shipped as SEPARATE columns rather than pre-summed, so a
-caller varies the definition instead of inheriting one. That is an AGGREGATE — nutrition and shelter together — so it
-cannot give per-component floors. It answers the prior question: does household
-labour respond to capital at all, and where did the response happen.
+WHAT THE EXTRACT HOLDS. One row per sample: the weighted mean minutes per day of
+`ACT_UNDOM` (unpaid domestic work), `ACT_CHCARE` (childcare) and `ACT_WORK` (paid work),
+plus `ACT_TRAVEL` and `ACT_EDUCA` (whose place in "entropy-resistance labour" is
+arguable), and the respondent count. The three core columns ship SEPARATELY, not
+pre-summed, so a caller varies the definition instead of inheriting one. `ACT_UNDOM` is
+an AGGREGATE (nutrition and shelter together), so it cannot give per-component floors.
+It answers the prior question: does household labour respond to capital at all, and
+where did the response happen?
 
-THREE DECISIONS THE EXTRACT MAKES, EACH FORCED BY THE DATA.
+THREE DECISIONS, EACH FORCED BY THE DATA:
 
-1. AGES 18-69 ONLY. Age coverage differs by sample — BG1965 starts at 18,
-   US1965 stops at 69, AT1992 includes 9-year-olds. Comparing raw means across
-   samples with different age floors measures the floor, not the behaviour.
-   18-69 is the band every one of the 50 samples covers.
+1. AGES 18–69 ONLY. Age coverage differs by sample: BG1965 starts at 18, US1965 stops at
+69, AT1992 includes 9-year-olds. Raw means across samples with different age floors
+measure the floor, not the behaviour. 18–69 is the band every one of the 50 samples
+covers.
 
-2. WEIGHTED BY `PROPWT`, and rows with a non-positive weight are dropped.
+2. WEIGHTS FROM `PROPWT`; the script drops rows with a non-positive weight.
 
-3. NO DEDUPLICATION, and the reason is a trap worth recording. `SERIAL` is
-   EMPTY in AT1992, FR1985 and FR1999 while `HLDID` is populated, so a key
-   built on SERIAL collapses ~100% of those three samples into apparent
-   duplicates. They are not duplicates; the identifier is simply absent. No US
-   sample is affected. Each row is one diary day and the weighted mean is taken
-   over rows, so no key is needed — but anyone adding one must use HLDID.
+3. NO DEDUPLICATION, because of a trap. `SERIAL` is EMPTY in AT1992, FR1985 and FR1999
+while `HLDID` is filled. So a key built on SERIAL collapses about 100% of those three
+samples into apparent duplicates. They are not duplicates; the identifier is absent. The
+trap affects no US sample. Each row is one diary day and the weighted mean runs over
+rows, so the script needs no key. Anyone who adds one must use HLDID.
 
-The arithmetic check: the twelve ACT_* columns sum to exactly 1440 minutes per
-diary, which is what makes the units trustworthy without a codebook.
+The arithmetic check: the twelve ACT_* columns sum to exactly 1440 minutes per diary,
+which makes the units trustworthy without a codebook.
 """
 
 from __future__ import annotations

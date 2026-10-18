@@ -1,71 +1,63 @@
-"""
-ATUS care-by-recipient-age ingest — raw microdata → the shipped care extracts.
+"""ATUS care-by-recipient-age ingest: raw microdata → the shipped care extracts.
 
-Companion to `utils/atus_ingest.py`, which cuts ATUS by ACTIVITY. This one cuts
-it by RECIPIENT, which is the cut `AGE_GROUPS`' epistemic pointer asks for and
-the one nothing in the repo had made. Run it ONCE when the raw BLS files change;
-the repo ships only the small derived CSVs it writes.
+Companion to `utils/atus_ingest.py`, which cuts ATUS by ACTIVITY. This one cuts it by
+RECIPIENT, the cut that `AGE_GROUPS`' epistemic pointer asks for and nothing else in the
+repo had made. Run it ONCE when the raw BLS files change; the repo ships only the small
+derived CSVs it writes.
 
     python3 utils/atus_care_ingest.py [--raw rawdata/atus] [--out hours_eoh/reference/data]
 
-Outputs (all committed):
-    atus_care_by_age_0325.csv     roster route — care received per person-day by
-                                  single year of recipient age, active and
-                                  passive, at three attribution settings
-    atus_care_eldercare_1125.csv  module route — eldercare minutes by recipient
-                                  age, household and non-household
-    atus_care_rivalry_0325.csv    care time by dependant count, and the fitted ρ
-    atus_care_coverage_0325.csv   care that could NOT be attributed, and why
+Outputs (all committed): atus_care_by_age_0325.csv roster route — care received per
+person-day by single year of recipient age, active and passive, at three attribution
+settings atus_care_eldercare_1125.csv module route — eldercare minutes by recipient age,
+household and non-household atus_care_rivalry_0325.csv care time by dependant count, and
+the fitted ρ atus_care_coverage_0325.csv care that could NOT be attributed, and why
 
-CARE IS JOINT PRODUCTION — the problem this script exists to solve
-------------------------------------------------------------------
-An hour spent minding two children is not two hours of care, and it is not half
-an hour each. Measured over the file, care time scales as
+CARE IS JOINT PRODUCTION, the problem this script solves
+--------------------------------------------------------- An hour spent minding two
+children is not two hours of care, and not half an hour each. Measured over the file,
+care time scales as
 
     T(n) = T(1) · n^ρ
 
-in the number of dependants, with ρ ≈ 0.25 for ACTIVE care (primary diary
-activities) and ρ ≈ 0.10 for PASSIVE care (secondary childcare, eldercare
-minutes). ρ=1 would be fully rivalrous, ρ=0 fully shared. Attribution therefore
-gives each of n recipients
+in the number of dependants, with ρ ≈ 0.27 for ACTIVE care (primary diary activities)
+and ρ ≈ 0.10 for PASSIVE care (secondary childcare, eldercare minutes). ρ=1 would be
+fully rivalrous, and ρ=0 fully shared. Attribution therefore gives each of n recipients
 
     duration × n^(ρ−1)
 
-which reproduces equal-split at ρ=1 and per-recipient duplication at ρ=0. All
-three are written as separate columns so the corner readings stay checkable and
-nobody has to trust this script's ρ to use its output.
+which gives an equal split at ρ=1 and per-recipient duplication at ρ=0. The script
+writes all three as separate columns, so the corner readings stay checkable and nobody
+has to trust this script's ρ to use its output.
 
-ρ is estimated from CASE-LEVEL totals against dependant counts, which does not
-depend on attribution — so there is no circularity between the exponent and the
-allocation that uses it.
+The script estimates ρ from CASE-LEVEL totals against dependant counts, which do not
+depend on attribution. So the exponent and the allocation that uses it are not circular.
 
-ACTIVE vs PASSIVE is ATUS's own distinction, not one imposed here: primary care
-activities (TRTIER1P 03/04) are the active column; TRTCCTOT_LN (secondary
-childcare, "child in your care during this activity") and TRTEC_LN (eldercare
-minutes during an activity) are the passive column. Passive is roughly 4× active
-and nearly non-rivalrous, which is what "being on call" should look like.
+ACTIVE vs PASSIVE is ATUS's own distinction. Primary care activities (TRTIER1P 03/04)
+are the active column. TRTCCTOT_LN (secondary childcare, "child in your care during this
+activity") and TRTEC_LN (eldercare minutes during an activity) are the passive column.
+Passive is roughly 4× active and nearly non-rivalrous, which is what "being on call"
+should look like.
 
-UNREACHABLE IS NOT ZERO
------------------------
-A care activity with no roster-joinable recipient is EXCLUDED carrying its
-reason, never costed at zero — the discipline of
-`core.eoh_generation.personal_statutory_floor`. Two reasons dominate and both
-are large: `non_household` (tier1 04 care, whose recipients are not on the
-household roster by construction) and `no_lineno` (who-rows recording presence
-without an identifiable person). Magnitudes go to the coverage file so a reader
-sees the size of what the curve does not cover.
+UNREACHABLE IS NOT ZERO ----------------------- A care activity with no recipient that
+joins to the roster is EXCLUDED with its reason, never costed at zero (the discipline of
+`core.eoh_generation.personal_statutory_floor`). Two large reasons dominate:
+`non_household` (tier1 04 care, whose recipients are not on the household roster by
+construction) and `no_lineno` (who-rows that record presence without an identifiable
+person). The magnitudes go to the coverage file, so a reader sees the size of what the
+curve does not cover.
 
-WEIGHTS — the same trap `atus_ingest.py` documents
----------------------------------------------------
-`TUFNWGTP` is zero for 2020; BLS ships `TU20FWGT` for the 2019–20 period. 2020
-is flagged not-comparable (collection suspended mid-March to mid-May) and is
-never silently pooled. Both behaviours are imported from `atus_ingest` rather
-than restated, so the two extracts cannot drift apart on the weighting rule.
+WEIGHTS: the same trap `atus_ingest.py` documents
+-------------------------------------------------- `TUFNWGTP` is zero for 2020; BLS
+ships `TU20FWGT` for the 2019–20 period. 2020 is flagged not comparable (collection
+stopped from mid-March to mid-May) and is never pooled silently. This script imports
+both behaviours from `atus_ingest` and does not restate them, so the two extracts cannot
+drift apart on the weighting rule.
 
-UNITS: minutes per person-day. Numerator is weighted care minutes attributed to
-persons of age a; denominator is weighted person-days of exposure at age a. No
-annualizing convention and no 15+ bridge is applied here — those are the
-caller's, exactly as in `reference/atus_time_use.py`.
+UNITS: minutes per person-day. The numerator is weighted care minutes attributed to
+persons of age a; the denominator is weighted person-days of exposure at age a. No
+annualizing convention and no 15+ bridge applies here; those are the caller's, as in
+`reference/atus_time_use.py`.
 """
 
 from __future__ import annotations
@@ -180,11 +172,11 @@ def _read_activities(act_path: Path) -> tuple[
 ]:
     """Care activities, plus per-case passive childcare and eldercare minutes.
 
-    Returns ``((caseid, activity_n) → (tier1, minutes), caseid → own-household
-    secondary childcare minutes, caseid → secondary childcare for children NOT
-    on the roster, caseid → eldercare minutes)``. Passive care is recorded
-    against the ACTIVITY the respondent was doing at the time — cooking, driving —
-    so it is summed to the case rather than joined to a care activity.
+    Returns ``((caseid, activity_n) → (tier1, minutes), caseid → own-household secondary
+    childcare minutes, caseid → secondary childcare for children NOT on the roster,
+    caseid → eldercare minutes)``. ATUS records passive care against the ACTIVITY the
+    respondent was doing (cooking, driving). So the script sums it to the case and does
+    not join it to a care activity.
     """
     care: dict[tuple[str, str], tuple[str, int]] = {}
     secondary: dict[str, float] = collections.defaultdict(float)
@@ -226,7 +218,9 @@ def _read_who(
     care: dict[tuple[str, str], tuple[str, int]],
     roster: dict[tuple[str, str], int],
 ) -> tuple[dict[tuple[str, str], list[int]], collections.Counter[str]]:
-    """Recipient ages present at each care activity, and why rows were dropped."""
+    """The recipient ages present at each care activity, and why the reader dropped
+    rows.
+    """
     ages: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
     dropped: collections.Counter[str] = collections.Counter()
     with who_path.open(newline="") as fh:
@@ -252,18 +246,17 @@ def _read_who(
 def _share(n: int, rho: float) -> float:
     """Each of ``n`` joint recipients' share of one unit of care time.
 
-    ``share = n^(−ρ)``, so ρ=1 (fully rivalrous — attention divides) gives each
-    recipient 1/n, and ρ=0 (fully shared — a bedtime story read to two children
-    is a whole story each) gives each the full duration.
+    ``share = n^(−ρ)``. So ρ=1 (fully rivalrous: attention divides) gives each recipient
+    1/n. ρ=0 (fully shared: a bedtime story read to two children is a whole story each)
+    gives each the full duration.
 
-    NOT IDENTIFIED, and this is the honest limit of the ρ column. The measured
-    exponent conflates two things this data cannot separate: the care TECHNOLOGY
-    (how rival attention actually is) and the behavioural RESPONSE (whether
-    parents add time to compensate for a second child). Under full compensation
-    the two exactly cancel and care received per child is invariant to family
-    size; under none, it falls as 1/n. The truth is between, and nothing here
-    adjudicates it — which is why the split and duplicate corners are written as
-    their own columns rather than being interpolated away.
+    NOT IDENTIFIED, the limit of the ρ column. The measured exponent mixes two things
+    this data cannot separate: the care TECHNOLOGY (how rival attention is) and the
+    behavioural RESPONSE (whether parents add time for a second child). Under full
+    compensation the two cancel, and care per child does not change with family size;
+    under none, it falls as 1/n. The truth is between, and nothing here settles it, so
+    the script writes the split and duplicate corners as their own columns and does not
+    interpolate them away.
     """
     if n <= 0:
         return 0.0
@@ -271,10 +264,10 @@ def _share(n: int, rho: float) -> float:
 
 
 def _fit_rho(means: dict[int, float]) -> float:
-    """Least-squares ρ through the origin on log T(n)/T(1) against log n.
+    """Least-squares ρ through the origin, on log T(n)/T(1) against log n.
 
-    Through the origin because T(1)/T(1) = 1 is an identity, not an observation —
-    fitting an intercept would let the curve miss the one point it cannot miss.
+    Through the origin, because T(1)/T(1) = 1 is an identity, not an observation. An
+    intercept would let the curve miss the one point it cannot miss.
     """
     base = means.get(1)
     if not base:
@@ -292,17 +285,16 @@ def _fit_rho(means: dict[int, float]) -> float:
 def _self_maintenance(sum_path: Path) -> dict[tuple[int, int], dict[str, float]]:
     """``(year, respondent age) → weighted self-maintenance minutes and days``.
 
-    The other half of a person's obligation. `AGE_GROUPS`' `eoh_weight` is the
-    personal EOH a person GENERATES, and care received from others is only part
-    of it — an adult serves most of their own obligation themselves, which
-    appears in the diary as their own activity rather than as anyone's care.
-    Reading the age profile off care alone would say an infant generates 25× a
-    working-age adult, because it counts everything done FOR the infant and
-    nothing an adult does for themselves.
+    The other half of a person's obligation. `AGE_GROUPS`' `eoh_weight` is the personal
+    EOH a person GENERATES, and care received from others is only part of it. An adult
+    serves most of their own obligation, which the diary records as their own activity,
+    not as anyone's care. A profile read from care alone would say an infant generates
+    25× a working-age adult. It counts everything done FOR the infant and nothing an
+    adult does for themselves.
 
-    15+ ONLY. ATUS does not survey children, so self-maintenance below 15 is
-    unmeasured — not zero. It is plausibly near zero for an infant and clearly
-    not for a twelve-year-old, and nothing here can say where between.
+    15+ ONLY. ATUS does not survey children, so self-maintenance below 15 is unmeasured,
+    not zero. It is plausibly near zero for an infant and clearly not for a
+    twelve-year-old, and nothing here can say where between.
     """
     out: dict[tuple[int, int], dict[str, float]] = collections.defaultdict(
         lambda: {"minutes": 0.0, "days": 0.0}

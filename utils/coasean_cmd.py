@@ -1,12 +1,10 @@
-"""
-coasean — Coasean collective federation CLI command (research-tier, §§6–7).
+"""coasean: the Coasean collective federation CLI command (research tier, §§6–7).
 
-Sub-commands:
-  n1-check     Verify N=1 regression anchor at ε ∈ {0, 0.40, 0.99}
-  count        Print emergent collective count across the ε arc
-  federation   Show per-collective pipeline + fiscal summary at a given ε
+Sub-commands: n1-check Verify N=1 regression anchor at ε ∈ {0, 0.40, 0.99} count Print
+emergent collective count across the ε arc federation Show per-collective pipeline +
+fiscal summary at a given ε
 
-All output is clearly marked EXPERIMENTAL — research API, not stable.
+All output carries an EXPERIMENTAL mark: research API, not stable.
 """
 
 from __future__ import annotations
@@ -343,19 +341,18 @@ def run_federation(args: argparse.Namespace) -> None:
 
 
 def _run_federation_on_frame(args: argparse.Namespace) -> None:
-    """
-    THE FRAME, DIVIDED (2026-10-15). Each collective is the frame's values at
-    its share (`frame_inputs.split_frame`) run through `collective_on_frame` —
-    the path `scenario run collective` takes for the whole frame, so the land
-    fee, its payable cap and the labour supply are the same mechanisms. The
-    whole frame is run once more beside them: on the frame's age mix, what is
-    created, owed and assessed adds up across the split; what is COLLECTED
-    need not, because the cap binds per collective (a min does not add), and
-    the difference is reported, not reconciled. A split that states each
-    unit's own age mix (`us_states` does) adds up in people, land, parcels and
-    the fee assessed; what is created and owed need not, because the units'
-    mixes pool to the national one rather than the frame's, and where labour
-    binds (ε 0 on the US frame) the ration is a min too.
+    """THE FRAME, DIVIDED (2026-10-15). Each collective is the frame's values at its
+    share (`frame_inputs.split_frame`), run through `collective_on_frame`. That is the
+    path `scenario run collective` takes for the whole frame, so the land fee, its
+    payable cap and the labour supply use the same mechanisms. The whole frame runs once
+    more beside them.
+
+    On the frame's age mix, creation, debt and assessment add up across the split.
+    Collection need not, because the cap binds per collective (a min does not add). The
+    report shows the difference and does not reconcile it. A split that states each
+    unit's own age mix (`us_states` does) adds up in people, land, parcels and the fee
+    assessed. Creation and debt need not. The units' mixes pool to the national mix, not
+    the frame's, and where labour binds (ε 0 on the US frame) the ration is a min too.
     """
     from hours_eoh.data import M2_PER_HECTARE
     from hours_eoh.research.coasean import coasean_collective_count

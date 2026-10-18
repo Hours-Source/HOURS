@@ -1,5 +1,4 @@
-"""
-contestability — contestability invariant arc table and stress sweep.
+"""contestability — contestability invariant arc table and stress sweep.
 
   eoh contestability arc    [--regime increasing_returns|replicable] [--points N]
                             [--population F] [--trust-balance F] [--capital-stock F]
@@ -32,47 +31,45 @@ contestability — contestability invariant arc table and stress sweep.
                             [--commons-balance F]
                             [--regime increasing_returns|replicable]
                             [--format table|json]
+'arc' prints the full contestability sweep across ε: P (portable endowment), K_entry
+(founding cost), χ = P/K_entry, φ (commonized fraction), τ = T/K, levy_fraction (levy
+required against automated output), and PASS/FAIL status.
 
-'arc' prints the full contestability sweep across ε: P (portable endowment),
-K_entry (founding cost), χ = P/K_entry, φ (commonized fraction), τ = T/K,
-levy_fraction (levy required vs automated output), and PASS/FAIL status.
+'stress' forces the increasing_returns regime and reports the first ε where χ < 1.
 
-'stress' forces increasing_returns regime and reports the first ε where χ < 1.
+'levy' prints the derived common-fund levy schedule (§8.2). It gives the Trust balance
+required at each ε to hold χ ≥ target, the per-step levy that funds it, and whether
+automated output can pay that levy.
 
-'levy' prints the derived common-fund levy schedule (§8.2): the Trust balance
-required at each ε to hold χ ≥ target, the per-step levy needed to fund it,
-and whether the levy is feasible from automated output.
+'recal' prints the §8.9/§8.9b recalibrated arc. The commons owns share φ(ε) of an
+ε-consistent capital stock K(ε) = K₀ + ν·Y(ε), so τ = φ ≤ 1 with dτ/dε ≥ 0 structural.
+Labour (low ε), commons underwriting (mid ε) or dividend savings (high ε) finance exit:
+t_exit ≤ horizon replaces the flow/stock χ (§8.8 RC4). --phi-policy selects the
+doctrine:
 
-'recal' prints the §8.9/§8.9b recalibrated arc: the commons owns share φ(ε)
-of an ε-consistent capital stock K(ε) = K₀ + ν·Y(ε), so τ = φ ≤ 1 with
-dτ/dε ≥ 0 structural; exit is financed by labor (low ε), commons
-underwriting (mid ε), or dividend savings (high ε) — t_exit ≤ horizon
-replaces the flow/stock χ (§8.8 RC4). --phi-policy selects the doctrine:
-'dilution' (default, §8.9b charter formation — the commons' share attaches
-to NEW capital at commissioning; private capital is never sold down, so φ
-caps at ≈0.66 by ε=0.99), 'target' (§8.9a purchase model, regression
-anchor), or 'escalated' (dilution + the charter escalation clause: full
-generational conversion if observed concentration threatens exit; never
-fires at canonical defaults).
+  * 'dilution' (default, §8.9b charter formation): the commons' share attaches to NEW capital at commissioning. Private capital is never sold down, so φ caps below target at ε=0.99 (read the cap from the output).
+  * 'target' (§8.9a purchase model, the regression anchor).
+  * 'escalated': dilution plus the charter escalation clause, full generational
+    conversion if observed concentration threatens exit. It never fires at
+    canonical defaults.
 
-'formation' runs the §8.9c formation-feedback simulation: capital formation
-is FINANCED or it does not happen (private supply falls as the charter share
-rises; the commons co-funds from net income per --priority), and ε is
-DERIVED from the capital actually formed. Reports the year-by-year path and
-the verdict: pace vs the canonical 50-yr arc, stall/crawl, the
-feedback-consistent dividend, and whether exit stays financeable.
---charter-share 0 is the null anchor (no charter — must reproduce canonical
-pace). Raising --hurdle/--full-supply toward fiat-like returns quantifies
-the Condition III finding: zero interest is what makes the charter share
+'formation' runs the §8.9c formation-feedback simulation. Capital formation is FINANCED
+or it does not happen. Private supply falls as the charter share rises, and the commons
+co-funds from net income per --priority. ε is DERIVED from the capital actually formed.
+The command reports the year-by-year path and the verdict. The verdict covers pace
+against the canonical 50-yr arc, stall or crawl, the feedback-consistent dividend, and
+whether exit stays financeable. --charter-share 0 is the null anchor (no charter; it
+must reproduce the canonical pace). Raising --hurdle/--full-supply toward fiat-like
+returns quantifies the Condition III finding: zero interest makes the charter share
 affordable.
 
-'audit' checks proposed membership terms (§8.7e) against the invariant:
-admission cost adds to K_entry; exit notice, minimum hours, vesting length,
-and dividend retention are checked against the MEMBERSHIP_* thresholds.
-The code audits the contract; it does not legislate it.
+'audit' checks proposed membership terms (§8.7e) against the invariant. Admission cost
+adds to K_entry. The audit checks exit notice, minimum hours, vesting length and
+dividend retention against the MEMBERSHIP_* thresholds. The code audits the contract; it
+does not legislate it.
 
-NOTE: levy_fraction > 1 means the required levy exceeds the entire automated
-output — an adversarial finding, not a bug (reconciliation §8.3).
+NOTE: levy_fraction > 1 means the required levy exceeds the entire automated output.
+That is an adversarial finding, not a bug (reconciliation §8.3).
 """
 
 from __future__ import annotations

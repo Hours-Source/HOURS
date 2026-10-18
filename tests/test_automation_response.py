@@ -1,17 +1,15 @@
-"""
-Phase 2 — per-component automation, the care contradiction's fix.
+"""Phase 2: per-component automation, the care contradiction's fix.
 
 ADOPTED 2026-09-01 (author sign-off, notes/phase-2-per-component-automation.md).
-`per_component` is the DEFAULT; `uniform` stays reachable and reproduces every
-pre-flip number exactly — the Phase 4d/4e/4f pattern, where the superseded
-policy survives under its own name so a published figure can be REPRODUCED
-rather than merely disbelieved.
+`per_component` is the DEFAULT. `uniform` stays reachable and reproduces every pre-flip
+number exactly, so a published figure can be REPRODUCED, not only disbelieved.
 
 Discipline:
-  * ε=0 is the control — with nothing automated a floor ON automation cannot
-    bite, so the two responses MUST coincide there;
-  * the floor is read from `data.py`, never restated;
-  * an automation floor is NOT an abatability, and the two are pinned apart.
+
+  * ε=0 is the control. With nothing automated a floor ON automation cannot
+    bite, so the two responses MUST agree there.
+  * The tests read the floor from `data.py` and never restate it.
+  * An automation floor is NOT an abatability, and the tests keep the two apart.
 """
 
 from __future__ import annotations
@@ -40,14 +38,9 @@ def _eoh() -> dict:
 
 
 class TestTheAdoptedDefault:
-    """
-    ADOPTED 2026-09-01 (author sign-off). `per_component` is the default and
-    `uniform` stays reachable — the Phase 4d/4e/4f pattern, where the superseded
-    policy survives under its own name so a figure published before the flip can
-    be REPRODUCED rather than merely disbelieved.
-
-    This class asserted the opposite until the flip, and both halves are kept:
-    the adopted default, and that the old one still reconstructs exactly.
+    """`per_component` is the default and `uniform` stays reachable (the Phase 4d/4e/4f
+    pattern). Until the flip this class asserted the opposite; it keeps both halves: the
+    adopted default, and an exact reconstruction of the old one.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)
@@ -68,9 +61,8 @@ class TestTheAdoptedDefault:
 
     @pytest.mark.parametrize("epsilon", ARC)
     def test_only_the_personal_domain_differs_from_the_old_policy(self, epsilon):
-        """
-        The flip touches personal EOH and nothing else — no floor is measured
-        for the other three domains and none was invented.
+        """The flip touches personal EOH only. No floor is measured for the other three
+        domains, and none was invented.
         """
         new = human_eoh_per_domain(_eoh(), epsilon)
         old = human_eoh_per_domain(_eoh(), epsilon, automation_response="uniform")
@@ -190,12 +182,9 @@ class TestAnAutomationFloorIsNotAnAbatability:
         )
 
     def test_an_unlisted_component_reduces_to_uniform(self):
-        """
-        A component with no floor must behave exactly as the uniform split does.
-
-        Written over EVERY floored component rather than over `care` alone: the
-        first version hardcoded the one entry the table then had, and broke the
-        moment nutrition was adopted. Summing the table cannot go stale.
+        """A component with no floor must behave exactly as the uniform split does. The
+        test runs over EVERY floored component; the first version hard-coded `care` and
+        broke when nutrition was adopted.
         """
         eps = 0.99
         expected = 0.0
@@ -218,12 +207,9 @@ class TestAnAutomationFloorIsNotAnAbatability:
 
 
 class TestItIsReachableFromTheDocumentedEntryPoint:
-    """
-    The stranded-parameter failure, which this repo has found FOUR times —
-    `personal_standard`, `ecological_health_response`, `knowledge_base_size`,
-    `restoration_obligation` — each reaching `total_eoh` and stopping at
-    `eoh_to_teh_pipeline`, the path the implementation guide tells institutions
-    to run.
+    """The parameter must reach `eoh_to_teh_pipeline`, the path the implementation guide
+    tells institutions to run (mode 5, the stranded parameter). Four earlier parameters
+    reached `total_eoh` and stopped there.
     """
 
     @pytest.mark.parametrize("epsilon", ARC)

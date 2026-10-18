@@ -1,22 +1,19 @@
-"""
-Insensitivity tests for the three numerics-only tolerances (2026-08-28).
+"""Insensitivity tests for the three numerics-only tolerances (2026-08-28).
 
-THESE ARE A DIFFERENT CLASS FROM A PIN, and conflating them would be an error.
-A 2026-08-28 mutation sweep reported `_STALL_TOL_TEH`, `_RATCHET_STEP` and
-`_CONVERGENCE_TOLERANCE` as "unpinned" — no test failed when they moved 7%. For
-the first two that is the CORRECT state and pinning them would be wrong: they
-are numerical hygiene, and their own comments say "Numerics only". The
-meaningful question is the opposite one.
+THESE ARE NOT PINS. A mutation sweep reported `_STALL_TOL_TEH`, `_RATCHET_STEP` and
+`_CONVERGENCE_TOLERANCE` as "unpinned": no test failed when they moved 7%. For the first
+two that is CORRECT. They are numerical hygiene ("Numerics only"), and the right
+question is the opposite one:
 
     A pin asks:            does the result change when this changes?  (it must)
     An insensitivity test: does the result change when this changes?  (it must NOT)
 
-If a "numerics only" constant does move a reported result, it is not numerics —
-it is an undeclared parameter, and that is what these tests detect.
+A "numerics only" constant that moves a reported result is an undeclared parameter, and
+these tests detect it.
 
-`_CONVERGENCE_TOLERANCE` is deliberately NOT in that class: it is a REPORTING
-threshold that decides when a trajectory is declared converged, so it is
-supposed to change the verdict. It gets a reachability test instead.
+`_CONVERGENCE_TOLERANCE` is NOT in that class: it is a REPORTING threshold that decides
+when a trajectory has converged, so it should change the verdict. It gets a reachability
+test instead.
 """
 
 import pytest
@@ -65,10 +62,9 @@ class TestNumericsOnlyToleranceAreInert:
 
 
 class TestTheConvergenceThresholdIsAJudgement:
-    """
-    NOT an insensitivity test. `_CONVERGENCE_TOLERANCE` decides when a fiscal
-    trajectory is DECLARED converged, so it is supposed to move the verdict —
-    what matters is that it can fire and can fail to fire.
+    """NOT an insensitivity test. `_CONVERGENCE_TOLERANCE` decides when a fiscal
+    trajectory counts as converged, so it should move the verdict. It must be able to
+    fire and to not fire.
     """
 
     def test_the_threshold_is_reachable_in_both_directions(self):

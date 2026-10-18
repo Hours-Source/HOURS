@@ -1,16 +1,15 @@
-"""
-provenance — where every constant in ``data.py`` comes from, and what would move it.
+"""provenance: where every constant in ``data.py`` comes from, and what would move it.
 
 The provenance scheme (docs/parameter_provenance.md §"The tag scheme") asks every
-constant to declare a tag, its units, and — when the tag is ``CHOSEN`` — the
-specific evidence that would take it off ``CHOSEN``. This command reads those
+constant to declare a tag and its units. A ``bounded`` or ``placeholder`` constant must
+also name the evidence that would settle it (``resolves_by``). This command reads those
 declarations straight from the source and reports them.
 
 Four subcommands:
 
-  check   coverage and every scheme violation, non-zero exit if any. This is the
-          same check the test suite runs, so the CLI and pytest cannot disagree
-          about what "clean" means.
+  check   coverage and every scheme violation, non-zero exit if any. The test
+          suite runs the same check, so the CLI and pytest cannot disagree about
+          what "clean" means.
   csv     the shipped public-audit CSV (stdout, or --write to regenerate the
           file in reference/data/)
   table   the generated markdown table for one reporting block
@@ -429,7 +428,7 @@ def _census(args: argparse.Namespace) -> None:
 
 
 def _regen(args: argparse.Namespace) -> None:
-    """Every generated artefact data.py feeds, so one cannot be left stale."""
+    """Every generated artefact that data.py feeds, so none can stay stale."""
     write = argparse.Namespace(write=True)
     _csv(write)
     _doc(write)

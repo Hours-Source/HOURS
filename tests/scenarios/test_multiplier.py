@@ -226,11 +226,10 @@ class TestMBandSweep:
 # ---------------------------------------------------------------------------
 
 class TestBandCorrectionRespectsTheFloor:
-    """
-    Two constitutional constraints: every tier μ ≥ M_FLOOR (an hour mints at
-    least what an hour of one's own obligation costs at the floor) and the mean
-    ≤ M_BAND_HIGH. The drift scenarios above move aggregate M only, so they
-    cannot see which tier a correction lands on.
+    """Two constitutional constraints: every tier μ ≥ M_FLOOR, and the mean ≤
+    M_BAND_HIGH. An hour mints at least what an hour of one's own obligation costs at
+    the floor. The drift scenarios above move aggregate M only, so they cannot see which
+    tier a correction hits.
     """
 
     @staticmethod
@@ -293,11 +292,12 @@ class TestBandCorrectionRespectsTheFloor:
             M_BAND_HIGH * lowest / M_FLOOR, rel=1e-15)
 
     def test_on_the_measured_map_no_proportional_correction_can_keep_the_floor(self):
-        """The measured registry's lowest occupation sits EXACTLY on M_FLOOR —
-        a construction of the frozen geometric map (its lower bound is the
-        reference epoch's minimum), not an empirical fact. The consequence is
-        real either way: the proportional limit equals the ceiling, so any
-        above-band drift on this map must be corrected off the top."""
+        """The measured registry's lowest occupation sits EXACTLY on M_FLOOR. That
+        follows from the frozen geometric map, whose lower bound is the reference
+        epoch's minimum; it is not an empirical fact. Either way, the proportional limit
+        equals the ceiling, so above-band drift on this map must be corrected off the
+        top.
+        """
         from hours_eoh.core.multipliers import registry_segments
         from hours_eoh.data import M_BAND_HIGH, M_FLOOR
         from hours_eoh.scenarios.multiplier import band_correction
@@ -312,8 +312,9 @@ class TestBandCorrectionRespectsTheFloor:
 
 
 class TestTheAdoptedCorrection:
-    """Author decision 2026-09-30: an above-band composition is corrected OFF
-    THE TOP. These pin the guarantees `corrected_segments` states."""
+    """An above-band composition is corrected OFF THE TOP (author decision, 2026-09-30).
+    These tests pin the guarantees `corrected_segments` states.
+    """
 
     @staticmethod
     def _snap(name):
@@ -348,9 +349,10 @@ class TestTheAdoptedCorrection:
         assert before == snapshot
 
     def test_the_measured_registry_above_band_is_correctable_off_the_top(self):
-        """The case proportional correction cannot handle: the measured map's
-        floor occupation stays at M_FLOOR when the registry is pushed above
-        band by inflating its upper half."""
+        """This is the case proportional correction cannot handle. When the registry is
+        pushed above band by inflating its upper half, the floor occupation stays at
+        M_FLOOR.
+        """
         from hours_eoh.core.multipliers import (
             population_weighted_mean_multiplier, registry_segments)
         from hours_eoh.data import M_BAND_HIGH, M_FLOOR

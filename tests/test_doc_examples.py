@@ -1,45 +1,34 @@
-"""
-The published examples gate — every code block in README and `docs/` runs.
+"""The published examples gate: every code block in README and `docs/` runs.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-WHAT PROMPTED IT (2026-09-12). A review executed every Python block in
-`README.md` and `docs/`: **34 of 54 failed.** The first quick-start on the site's
-front page raised on its second line, every example on the scenarios how-to page
-used keyword names the functions had not accepted for months, and the CLI
-reference listed scenario names the CLI rejects. Nothing checked any of it,
-because `docs/` is prose to the test suite — and a page a reader copies from is
-the one surface where a stale example costs someone else the afternoon.
+WHAT PROMPTED IT (2026-09-12). A review ran every Python block in `README.md` and
+`docs/`, and 34 of 54 failed. Nothing checked them, because `docs/` is prose to the test
+suite, and a page a reader copies from is where a stale example costs someone else the
+afternoon ([record](record/verification.md#doc-examples-gate)).
 
-This is the same move the repo made for provenance, claims and CLI dispatch:
-make the published surface executable, then keep it green.
+WHAT IT CHECKS:
 
-WHAT IT CHECKS
-  * **Python blocks** — every ```python block on a page runs, in order, in ONE
-    namespace per page, in a subprocess from the repo root. One namespace per
-    page because pages are written as a walkthrough: a later block uses the
-    `state` an earlier one built, and that is how a reader runs them.
-  * **CLI lines** — every `python3 utils/eoh_cli.py …` line in a ```bash block
-    PARSES against the real argparse tree. Parsed, not executed: parsing is what
-    catches a renamed flag or scenario, and executing `params set` would mutate
-    persisted state.
+  * **Python blocks.** Every ```python block on a page runs, in order, in ONE
+    namespace per page, in a subprocess from the repo root. Pages are
+    walkthroughs: a later block uses the `state` an earlier one built.
+  * **CLI lines.** Every `python3 utils/eoh_cli.py …` line in a ```bash block
+    PARSES against the real argparse tree. Parsing catches a renamed flag or
+    scenario; executing `params set` would mutate persisted state.
 
-THE TEMPLATE CONVENTION, and why it is ratcheted. A block that is a signature
-sketch rather than a runnable example opts out by starting with the line
-`# template`. That is an escape hatch, so the count of templates is pinned: a
-new one is a visible act in a diff, never a quiet way to turn a failure green.
-CLI lines carrying placeholders (`[--opt]`, `<command>`, `NAME`, `KEY`, `PARAM`,
-`ε`) are syntax, not examples, and are skipped by pattern — also counted.
+THE TEMPLATE CONVENTION, ratcheted. A signature sketch opts out with the first line `#
+template`. That is an escape hatch, so the template count is pinned. CLI lines with
+placeholders (`[--opt]`, `<command>`, `NAME`, `KEY`, `PARAM`, `ε`) are syntax, skipped
+by pattern, and also counted.
 
-WHAT IT CANNOT SEE, stated because a gate that hides its gaps reads as stronger
-than it is:
-  * **Output.** A block that runs and prints a stale number passes. Sample
-    output pasted beside an example is not checked — which is why the pages now
-    describe shape rather than quote figures wherever the figure is not the point.
-  * **Prose.** A sentence naming a function that no longer exists is not a code
-    block. `tests/test_claims_register.py` does not read `docs/` either.
-  * **Doc blocks in `docs/parameter_provenance.md`**, which is generated and
-    gated by `tests/test_provenance.py` instead.
+WHAT IT CANNOT SEE:
+
+  * **Output.** A block that runs and prints a stale number passes. So the pages
+    describe shape, not figures, where the figure is not the point.
+  * **Prose.** A sentence that names a retired function is not a code block, and
+    `tests/test_claims_register.py` does not read `docs/`.
+  * **Doc blocks in `docs/parameter_provenance.md`**, which is generated and gated
+    by `tests/test_provenance.py`.
   * **Runtime of CLI examples**, only their parse.
 """
 
@@ -239,7 +228,8 @@ class TestTheEscapeHatchesAreRatcheted:
 
 
 class TestTheGateBites:
-    """A gate that has never fired is untested (failure mode 12)."""
+    """A gate that has never fired is untested (mode 12), so these tests make it fire.
+    """
 
     def test_a_broken_python_block_fails_the_runner(self) -> None:
         r = subprocess.run(

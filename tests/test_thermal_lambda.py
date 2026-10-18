@@ -1,9 +1,8 @@
-"""
-Tests for the λ derivation (research/thermal_lambda.py).
+"""Tests for the λ derivation (research/thermal_lambda.py).
 
-λ was the thermal layer's largest unquantified lever. These pin the derivation,
-the frame discipline that keeps historical and equilibrium λ from being mixed,
-and the sensitivity band that must travel with every ψ*-derived figure.
+λ was the thermal layer's largest unquantified lever. These tests pin the derivation,
+the frame discipline that keeps historical and equilibrium λ apart, and the sensitivity
+band that must travel with every ψ*-derived figure.
 """
 
 from __future__ import annotations
@@ -39,8 +38,9 @@ def test_derivation_is_not_window_sensitive():
 
 
 def test_pattern_effect_has_the_expected_sign_and_scale():
-    """Historical runs high because warming has been concentrated where feedbacks
-    stabilise. A negative or huge value would mean the derivation is wrong."""
+    """Historical λ runs high, because warming has concentrated where feedbacks
+    stabilise. A negative or huge value would mean the derivation is wrong.
+    """
     d = load_climate_feedback()
     pe = d["pattern_effect"]["value"]
     assert 0.0 < pe < 0.5
@@ -49,9 +49,10 @@ def test_pattern_effect_has_the_expected_sign_and_scale():
 
 
 def test_shipped_default_is_conservative():
-    """The pre-existing 1.2 turns out to sit BELOW both the AR6-implied and the
-    derived historical value — a lower λ means a smaller budget and a larger
-    obligation, so the constant was not flattering the framework."""
+    """The shipped 1.2 sits BELOW both the AR6-implied and the derived historical value.
+    A lower λ means a smaller budget and a larger obligation, so the constant does not
+    flatter the framework.
+    """
     d = load_climate_feedback()
     assert THERMAL_LAMBDA_FEEDBACK == d["equilibrium"]["shipped_default"]
     assert THERMAL_LAMBDA_FEEDBACK < d["equilibrium"]["ar6_implied"]["lambda"]
@@ -108,8 +109,9 @@ def test_sensitivity_spans_zero_to_an_order_of_magnitude():
 
 
 def test_high_sensitivity_end_is_unbudgeted():
-    """At ECS 5 K there is no thermal allowance at all at ΔT_max = 3.0 K — a
-    finding about λ, entirely separate from the forcing-band determinacy map."""
+    """At ECS 5 K no thermal allowance remains at ΔT_max = 3.0 K. This is a finding
+    about λ, separate from the forcing-band determinacy map.
+    """
     hi = next(r for r in lambda_sensitivity(3.0) if "likely-high" in r["label"])
     assert hi["unbudgeted"] is True
     assert hi["budget_tw"] == 0.0
@@ -168,9 +170,10 @@ def test_very_likely_is_the_conservative_bound():
 
 
 def test_the_ranges_are_labelled_correctly():
-    """An earlier revision shipped ECS [2, 5] — AR6's VERY LIKELY range — labelled
-    'likely'. That overstated the uncertainty and understated the framework's
-    determinate claim, so the labelling is pinned."""
+    """An earlier revision labelled ECS [2, 5], AR6's VERY LIKELY range, as 'likely'.
+    That overstated the uncertainty and understated the determinate claim, so the labels
+    are pinned.
+    """
     r = load_climate_feedback()["equilibrium"]["ar6_ranges"]
     assert r["likely_66pct"]["ecs_k"] == [2.5, 4.0]
     assert r["very_likely_90pct"]["ecs_k"] == [2.0, 5.0]
@@ -178,10 +181,10 @@ def test_the_ranges_are_labelled_correctly():
 
 
 def test_the_unbudgeted_threshold_falls_near_present_land_extremes():
-    """The uncomfortable consequence: with full AR6 λ uncertainty carried, the
-    determinately-unbudgeted zone sits at ~1.96 K of land TXx, and observed land
-    TXx is already ~1.8 K. The single-axis 3.21 K claim rested on a λ held fixed
-    at a value nobody had assessed."""
+    """With AR6's very-likely λ range, the determinately unbudgeted zone sits at about
+    1.96 K of land TXx, and observed land TXx is already about 1.8 K. The single-axis
+    3.21 K claim rested on a λ held fixed at a value nobody had assessed.
+    """
     m = determinacy_map(3.0)
     assert 2.2 < m["unbudgeted_below_txx_k"] < 2.7           # likely range
     assert 1.8 < determinacy_map(3.0, confidence="very_likely")["unbudgeted_below_txx_k"] < 2.2
@@ -263,8 +266,9 @@ def test_determinate_budgeted_reports_the_worst_corner():
 
 
 def test_single_axis_is_marked_superseded():
-    """It must remain callable — §4.2 was published against it — but must not be
-    mistaken for the honest map."""
+    """The single-axis map stays callable, because §4.2 was published against it, but it
+    must not be mistaken for the honest map.
+    """
     from hours_eoh.research.thermal_path_c import determinacy_zone
     assert "SUPERSEDED" in determinacy_zone.__doc__
     assert "thermal_lambda" in determinacy_zone.__doc__

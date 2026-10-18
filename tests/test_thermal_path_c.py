@@ -1,9 +1,9 @@
-"""
-Tests for Path C — the measured top-down thermal residual (research/thermal_path_c.py).
+"""Tests for Path C, the measured top-down thermal residual
+(research/thermal_path_c.py).
 
-Reproduces the handoff's key figures (Φ, ψ*, collective U, decarbonization, ε_max),
-asserts the provenance tiers ship intact, and checks the measured thermal ceiling
-flows into the corridor (F11 → a real collective-level bound).
+The tests reproduce the handoff's key figures (Φ, ψ*, collective U, decarbonization,
+ε_max), check that the provenance tiers ship intact, and check that the measured thermal
+ceiling reaches the corridor (F11: a real collective-level bound).
 """
 
 from __future__ import annotations
@@ -184,11 +184,11 @@ def test_decarbonization_gain_is_linear_in_removable_forcing():
 
 
 def test_decarbonization_gain_saturates_above_the_opening_threshold():
-    """gain = (1−r)·min(F, λ·ΔT_lo)·A_earth. ABOVE the opening threshold the ΔT
-    term drops out and the gain is the full removable forcing; BELOW it the gain
-    is capped by the whole temperature allowance and still rises with ΔT. F3
-    survives either way — there is headroom to recover even where there is no
-    budget today (`binds_now` False, `gain_w` large)."""
+    """gain = (1−r)·min(F, λ·ΔT_lo)·A_earth. ABOVE the opening threshold the ΔT term
+    drops out and the gain is the full removable forcing. BELOW it the whole temperature
+    allowance caps the gain, which still rises with ΔT. F3 survives either way: headroom
+    to recover exists even where no budget does (`binds_now` False, `gain_w` large).
+    """
     at_2k = decarbonization_headroom(2.0, "net_erf")   # below threshold: capped
     at_3k = decarbonization_headroom(3.0, "net_erf")   # above: saturated
     at_4k = decarbonization_headroom(4.0, "net_erf")
@@ -359,10 +359,10 @@ def test_f3_defaults_to_the_adopted_threshold():
 # ---------------------------------------------------------------------------
 
 class TestTheThresholdIsTheAdoptedOne:
-    """F3 was bound to THERMAL_DT_LO on 2026-09-30 ("point at a constant"); five
-    siblings — collective_utilization, all_collectives_utilization,
-    global_ceiling and thermal_capital's two — and two CLI flags still
-    defaulted to a bare 3.0. Moving all seven to 2.0 K failed NO test (mode 1)."""
+    """Every default threshold reads THERMAL_DT_LO. F3 was bound to it on 2026-09-30,
+    while five sibling functions and two CLI flags still defaulted to a bare 3.0; moving
+    all seven to 2.0 K failed NO test (mode 1).
+    """
 
     def test_no_thermal_default_is_a_literal(self):
         import ast
@@ -396,10 +396,11 @@ class TestTheThresholdIsTheAdoptedOne:
             assert inspect.signature(f).parameters["delta_t_lo"].default == THERMAL_DT_LO, f
 
     def test_what_the_adopted_threshold_means_for_the_measured_records(self):
-        """The consequence, pinned: wherever the adopted threshold sits in the
-        unbudgeted zone, every national record reads unbudgeted, and the
-        measured ceiling WARNS for each rather than binding (author,
-        2026-10-03: no budget is a warning of the state, with a direction)."""
+        """Wherever the adopted threshold sits in the unbudgeted zone, every national
+        record reads unbudgeted, and the measured ceiling WARNS for each instead of
+        binding (author, 2026-10-03: no budget is a warning of the state, with a
+        direction).
+        """
         from hours_eoh.data import THERMAL_DT_LO
         from hours_eoh.research.corridor import measured_thermal_ceiling
         zone = determinacy_zone(THERMAL_DT_LO)["zone"]
@@ -423,8 +424,9 @@ class TestTheThresholdIsTheAdoptedOne:
 
     @pytest.mark.parametrize("basis", ["net_erf", "wmghg", "anthro"])
     def test_the_direction_is_the_forcing_excess(self, basis):
-        """The warning's direction is computed, not asserted: the forcing
-        reduction that would open a budget, which vanishes where it opens."""
+        """The function computes the warning's direction: the forcing reduction that
+        would open a budget, which vanishes where a budget opens.
+        """
         from hours_eoh.data import THERMAL_DT_LO, THERMAL_LAMBDA_FEEDBACK
         from hours_eoh.research.corridor import measured_thermal_ceiling
         from hours_eoh.research.thermal_path_c import _forcing_value

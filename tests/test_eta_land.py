@@ -1,9 +1,8 @@
-"""
-Tests for the shipped η table and its loader (reference/data/eta_land.json).
+"""Tests for the shipped η table and its loader (reference/data/eta_land.json).
 
-η is an allocation weight, so the properties that matter are conservation (it
-redistributes a fixed budget rather than changing it), correct normalisation
-footing, and that estimates and failures stay distinguishable from measurements.
+η is an allocation weight. Three properties matter. It redistributes a fixed budget
+without changing it. It has the correct normalisation footing. Estimates and failures
+stay distinct from measurements.
 """
 
 from __future__ import annotations
@@ -23,10 +22,10 @@ def _resolved(d):
 # ---------------------------------------------------------------------------
 
 def test_eta_is_normalised_to_claimed_land():
-    """Mean 1 on the SAME footing as A_LAND_CLAIMED_M2 — the psi* denominator.
-    Normalising over all land instead would inflate every collective by ~3%,
-    because Antarctica is 8.35% of cos-weighted land at eta ~0.67, and would
-    silently change the total allocated."""
+    """η has mean 1 on the SAME footing as A_LAND_CLAIMED_M2, the psi* denominator. A
+    mean over all land would inflate every collective by about 3% and change the total
+    allocated. Antarctica is 8.35% of cos-weighted land, at η ~0.67.
+    """
     d = load_eta_land()
     res = _resolved(d)
     total_w = sum(v["land_weight"] for v in res.values())
@@ -44,8 +43,9 @@ def test_eta_redistributes_rather_than_creating_budget():
 
 
 def test_eta_spread_is_physically_ordered():
-    """Warm arid columns shed more; cold ones less. If this inverts, the sign
-    convention on ECMWF net radiation has been dropped somewhere."""
+    """Warm arid columns shed more and cold ones less. If this inverts, the ECMWF
+    net-radiation sign convention was dropped somewhere.
+    """
     assert eta_for("United Arab Emirates") > eta_for("Germany") > eta_for("Russia")
     assert 0.5 < eta_for("Russia") < eta_for("United Arab Emirates") < 1.5
 
@@ -82,8 +82,9 @@ def test_inherited_values_carry_their_radius():
 
 
 def test_singapore_is_inherited_not_measured():
-    """The framework's headline Contact collective is sub-grid at 0.25 deg — its
-    eta is a neighbourhood estimate and must be labelled as one."""
+    """The headline Contact collective is sub-grid at 0.25°, so its η is a neighbourhood
+    estimate and carries that label.
+    """
     v = load_eta_land()["collectives"]["Singapore"]
     assert v["method"] == "neighbourhood"
     assert v["eta_clear_sky"] is not None
@@ -163,8 +164,9 @@ def test_dissipation_density_rejects_nonpositive_eta():
 
 
 def test_marginal_capacity_negative_result_is_recorded():
-    """The conceptual objection is unresolved, and the next attempt should start
-    from the negative result rather than repeating it."""
+    """The conceptual objection is unresolved. The next attempt should start from the
+    negative result, not repeat it.
+    """
     d = load_eta_land()["_marginal_capacity_investigated"]
     assert d["result"].startswith("NEGATIVE")
     assert set(d["estimators"]) and "resolves_by" in d

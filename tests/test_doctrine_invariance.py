@@ -1,34 +1,25 @@
-"""
-Doctrine invariance — a COUNT does not need a convention; a VALUATION does.
+"""Doctrine invariance: a COUNT needs no convention; a VALUATION does.
 
-WHY THIS EXISTS. The value-anchor argument's strongest claim is that this
-framework can state a maintenance requirement that does not depend on which
-accounting doctrine you hold. The evidence offered was
-`doctrine_floor_invariance()` returning `floor_spread == 1.000`.
+WHY THIS EXISTS. The value-anchor argument's strongest claim is that this framework
+states a maintenance requirement that does not depend on the accounting doctrine you
+hold. The evidence offered was `doctrine_floor_invariance()` returning `floor_spread ==
+1.000`. That test cannot fail: the doctrine enters only through a term ABOVE the floor,
+and the floor is `Σ count × hours_per_unit_year`. An assertion the implementation
+enforces unconditionally is not evidence.
 
-**That test cannot fail.** The doctrine parameter enters only through a
-discretionary term added ABOVE the floor, and the floor is `Σ count ×
-hours_per_unit_year` — there is nowhere for a convention to go. Its own docstring
-says "1.000 by construction of the design". An assertion the implementation
-enforces unconditionally is not evidence, and the claim deserved better.
+The framing was wrong too. "No currency in the chain" does not distinguish the routes,
+because no constant in `data.py` is denominated in currency at all.
 
-AND THE FRAMING WAS WRONG. The draft said the floor is computed "without a price
-anywhere in the chain". True — but MEASURED, no constant in `data.py` is
-denominated in currency at all, so the monetised route has no price in its chain
-either. "No currency" does not distinguish them.
-
-THE ACTUAL DISTINCTION, which is sharper and is what these tests pin:
+THE ACTUAL DISTINCTION, which these tests pin:
 
     the floor takes a CENSUS  — counts of things, and hours per thing
     the other route takes a VALUATION — one aggregate number for a stock
 
-Counting bridges requires no convention. Valuing them requires choosing between
-replacement, depreciated and historical, and that choice passes through the
-monetised route UNDAMPED — the output spread equals the input ratio exactly.
-
-So both behaviours are structural, and saying so is the point: this is a property
-of what each route ACCEPTS, not a calibration result. What these tests make
-falsifiable is that it stays that way.
+Counting bridges needs no convention. Valuing them needs a choice between replacement,
+depreciated and historical, and that choice passes through the valuation route UNDAMPED.
+Both behaviours are structural: a property of what each route ACCEPTS, not a calibration
+result. These tests make it falsifiable that it stays so
+([record](record/verification.md#doctrine-invariance-was-circular)).
 """
 
 from __future__ import annotations
@@ -80,10 +71,9 @@ class TestTheFloorCannotSeeAValuation:
             infrastructure_statutory_floor([{"replacement_cost": 1.0e9}])
 
     def test_a_bucket_carrying_only_a_valuation_is_refused_not_guessed(self):
-        """
-        UNPRICED IS NOT ZERO. A bucket with a value and no physical census is an
-        error, not a free asset — silently contributing 0.0 would let a
-        valuation-only inventory read as a fully-measured floor.
+        """UNPRICED IS NOT ZERO. A bucket with a value and no physical census is an
+        error, not a free asset. A silent 0.0 would let a valuation-only inventory read
+        as a fully measured floor.
         """
         with pytest.raises(ValueError):
             infrastructure_statutory_floor(
@@ -101,13 +91,10 @@ class TestTheFloorIsACountNotAValuation:
         )
 
     def test_it_is_invariant_to_how_the_census_is_AGGREGATED(self):
-        """
-        Splitting every bucket in two must not move the total. A quantity whose
-        answer depends on how you grouped the survey is carrying a convention.
-
-        Tolerance, not equality: this is a restructured floating-point sum, which
-        is the `subdivision_invariance` lesson — `==` on two accumulations of the
-        same terms is unsound and passed here while failing elsewhere.
+        """Splitting every bucket in two must not move the total: an answer that depends
+        on the grouping carries a convention. The test uses a tolerance, because `==` on
+        two floating-point sums of the same terms is unsound (the
+        `subdivision_invariance` lesson).
         """
         before = infrastructure_statutory_floor(_census())
         split = []
@@ -147,10 +134,8 @@ class TestTheValuationRouteTransmitsTheDoctrineUndamped:
         assert out[0] < out[1] < out[2]
 
     def test_the_census_route_is_untouched_by_the_same_choice(self):
-        """
-        The asymmetry in one assertion: the doctrine that moves the valuation
-        route by its full ratio cannot move the census route at all, because the
-        census route never receives it.
+        """The doctrine that moves the valuation route by its full ratio cannot move the
+        census route at all, because the census route never receives it.
         """
         floor = infrastructure_statutory_floor(_census())
         for _ in DOCTRINE_RATIOS.values():
@@ -174,10 +159,9 @@ class TestTheContrastIsAboutCountsNotCurrency:
         )
 
     def test_the_valuation_route_has_no_price_in_it_either(self):
-        """
-        `capital_stock` is denominated in TEH, not money — so the monetised route
-        is ALSO currency-free, and still doctrine-dependent. That is the whole
-        correction: the problem is aggregation into a value, not the unit.
+        """`capital_stock` is in TEH, not money, so the valuation route is ALSO
+        currency-free and still doctrine-dependent. The problem is aggregation into a
+        value, not the unit.
         """
         scan = pv.scan(pv.DATA_PY.read_text(encoding="utf-8"))
         rec = next(r for r in scan.records if r.name == "CAPITAL_STOCK_DEFAULT")

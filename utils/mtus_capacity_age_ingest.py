@@ -1,28 +1,25 @@
-"""
-MTUS → measured entropy-resistance labour BY SINGLE YEAR OF AGE, every sample.
+"""MTUS → measured entropy-resistance labour BY SINGLE YEAR OF AGE, every sample.
 
     python3 utils/mtus_capacity_age_ingest.py [--esp rawdata/mtus_esp_lite.csv] [--out hours_eoh/reference/data]
 
-Output (committed):
-    mtus_capacity_by_age.csv   sample, country, year, age, diaries, weight,
-                               work / undom / chcare minutes per day
+Output (committed): mtus_capacity_by_age.csv sample, country, year, age, diaries,
+weight, work / undom / chcare minutes per day
 
-WHY THIS EXISTS. `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work
-plus unpaid domestic work plus childcare, the same three fields
-`measured_capacity` counts, tabulated for under-18 and over-64 rather than
-pooled over 18-69". `mtus_domestic_ingest.py` pools exactly those three columns
-over 18-69 per sample; this is the SAME file, the SAME three columns and the
-SAME weight, cut by age instead of pooled — so a band built from it reproduces
-`measured_capacity` (US2024, 18-69: 381.2 min/day) and is the same instrument,
-not a neighbouring one.
+WHY THIS EXISTS. `AGE_CAPACITY_WEIGHT_*`'s `resolves_by` asks for "paid work plus unpaid
+domestic work plus childcare, the same three fields `measured_capacity` counts,
+tabulated for under-18 and over-64 rather than pooled over 18-69".
+`mtus_domestic_ingest.py` pools exactly those three columns over 18–69 per sample. This
+is the SAME file, columns and weight, cut by age instead of pooled. So a band built from
+it reproduces `measured_capacity` (US2024, 18–69: 381.2 min/day), and it is the same
+instrument, not a neighbouring one.
 
-Every age a sample covers is kept; coverage differs by sample (BG1965 starts at
-18, US1965 stops at 69, AT1992 includes 9-year-olds), which is why `diaries`
-and `weight` ship per row: a band mean is the weight-weighted mean of its ages,
-and an age a sample did not survey is ABSENT, never zero.
+The extract keeps every age a sample covers. Coverage differs by sample (BG1965 starts
+at 18, US1965 stops at 69, AT1992 includes 9-year-olds), so `diaries` and `weight` ship
+per row. A band mean is the weight-weighted mean of its ages, and an age a sample did
+not survey is ABSENT, never zero.
 
-Decisions shared with `mtus_domestic_ingest.py`: weighted by `PROPWT`, rows
-with a non-positive weight dropped, no deduplication (SERIAL is empty in three
+Decisions shared with `mtus_domestic_ingest.py`: weights from `PROPWT`, and rows with a
+non-positive weight dropped. There is no deduplication (SERIAL is empty in three
 samples; each row is one diary day).
 """
 

@@ -1,19 +1,17 @@
-"""
-THE REGISTER IS READ IN ONE PLACE — `core/registration.register_shares`.
+"""THE REGISTER IS READ IN ONE PLACE: `core/registration.register_shares`.
 
-Author, 2026-10-01: "registration is separate from machine capability — one is
-what the collective carries, the other how much human labour carries it." Until
-that date 21 calls in 9 modules across core/, scenarios/, research/ and utils/ called
-the registration curves with the CAPABILITY ε, so nothing could hold the
-register while machines changed. Every reading now goes through
-`register_shares(epsilon, registration_epsilon=None)`.
+Author, 2026-10-01: "registration is separate from machine capability — one is what the
+collective carries, the other how much human labour carries it." Until then, calls
+across core/, scenarios/, research/ and utils/ read the curves at the CAPABILITY ε. So
+nothing could hold the register while machines changed. Every reading now goes through
+`register_shares(epsilon, registration_epsilon=None)`
+([record](record/fulfilment.md#one-register)).
 
-This gate refuses an import of any individual curve outside
-`core/registration.py`, by AST (aliases and multi-line imports included — a
-text search sees neither), the shape of `test_one_mint_path.py`.
+This gate refuses an import of any single curve outside `core/registration.py`, by AST,
+which also sees aliases and multi-line imports (the shape of `test_one_mint_path.py`).
 
-STATES ITS OWN GAP: it sees imports, not a re-implemented sigmoid. A module that
-copied a curve's formula inline would pass.
+STATES ITS OWN GAP: it sees imports, not a re-implemented sigmoid. A module that copied
+a curve's formula inline would pass.
 """
 
 from __future__ import annotations
@@ -118,10 +116,11 @@ def test_the_simulation_carries_a_held_register(eps):
 
 
 def test_a_lagging_register_trips_the_care_indicator():
-    """The dashboard's care status could only read its own curve back; a
-    register held behind the capability is the lag its comment describes. The
-    GREEN line is 20% of saturation, so a register lagging only to ε=0.30 still
-    reads GREEN — it trips near the bottom of the arc."""
+    """A register held behind the capability trips the dashboard's care indicator;
+    before, the indicator could only read its own curve back. The GREEN line is 20% of
+    saturation. A register lagging only to ε=0.30 still reads GREEN; it trips near the
+    bottom of the arc.
+    """
     from hours_eoh.core.dashboard import eoh_health_indicators
     status = {r: eoh_health_indicators(1e9, 8e8, epsilon=0.90, registration_epsilon=r)[
         "care_admission_status"] for r in (None, 0.30, 0.20, 0.0)}

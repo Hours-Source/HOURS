@@ -1,41 +1,35 @@
-"""
-BEA Fixed Assets → the shipped depreciation extract: what the US stock LOSES each
+"""BEA Fixed Assets → the shipped depreciation extract: what the US stock LOSES each
 year against what it holds, 1925–2024, by the inventory's scopes.
 
     python3 utils/bea_depreciation_ingest.py [--raw rawdata/bea/fixed_assets] [--out hours_eoh/reference/data]
 
-Output (committed):
-    bea_depreciation_1925_2024.csv   year, then net stock and depreciation for
-                                     each line below, BILLIONS of current dollars
-                                     (BEA publishes millions; billions match
-                                     `capital_inventory.BEA_UNITS`)
+Output (committed): bea_depreciation_1925_2024.csv year, then net stock and depreciation
+for each line below, BILLIONS of current dollars (BEA publishes millions; billions match
+`capital_inventory.BEA_UNITS`)
 
-Reads the full-history workbooks BEA publishes (`Section1all_xls.xlsx`,
-`Section7all_xls.xlsx`) — current-cost NET STOCK at yearend (Tables 1.1, 7.1)
-and current-cost DEPRECIATION over the year (Tables 1.3, 7.3).
+It reads the full-history workbooks BEA publishes (`Section1all_xls.xlsx`,
+`Section7all_xls.xlsx`): current-cost NET STOCK at yearend (Tables 1.1, 7.1) and
+current-cost DEPRECIATION over the year (Tables 1.3, 7.3).
 
-WHY THIS EXISTS. `DEP_RATE` (0.045) and `FORMATION_DEPRECIATION_RATE` (0.05)
-are one physical quantity held twice, and running the profiles' design lives
-gave 0.0428, 0.0286 or 0.0602 depending on how the lives are averaged
-(`record/provenance.md#depreciation-derivation-does-not-reproduce`). BEA does
-not average lives: it depreciates each asset type at its own measured rate and
-SUMS the dollars. Depreciation over stock is therefore the stock-weighted mean
-of the asset-level rates — the aggregation the dispute could not choose,
-MEASURED rather than chosen.
+WHY THIS EXISTS. `DEP_RATE` (0.045) and `FORMATION_DEPRECIATION_RATE` (0.05) hold one
+physical quantity twice. The profiles' design lives gave 0.0428, 0.0286 or 0.0602,
+depending on how one averages the lives
+(`record/provenance.md#depreciation-derivation-does-not-reproduce`). BEA does not
+average lives: it depreciates each asset type at its own measured rate and SUMS the
+dollars. So depreciation over stock is the stock-weighted mean of the asset-level rates:
+the aggregation the dispute could not choose, MEASURED, not chosen.
 
-THE LINES, chosen to match `reference/capital_inventory.SCOPES`:
-    private_nonres   Table 1.1/1.3 line 4 — private nonresidential ("productive")
-    private_res      line 8 — private residential (what "residential" adds)
-    government       Table 7.1/7.3 line 1 — all government fixed assets
-    defense          Table 7.1/7.3 line 22 — federal national defense; the
-                     inventory's government scope is NONDEFENCE, so it is
-                     subtracted by the reader, not here
-    fixed            Table 1.1/1.3 line 2 — every fixed asset, defence included
+THE LINES, chosen to match `reference/capital_inventory.SCOPES`: private_nonres Table
+1.1/1.3 line 4 — private nonresidential ("productive") private_res line 8 — private
+residential (what "residential" adds) government Table 7.1/7.3 line 1 — all government
+fixed assets defense Table 7.1/7.3 line 22 — federal national defense; the inventory's
+government scope is NONDEFENCE, so the reader subtracts it, not this script fixed Table
+1.1/1.3 line 2 — every fixed asset, defence included
 
-Each line's LABEL is checked against the workbook, so a BEA renumbering fails
-the ingest instead of silently shipping the wrong line.
+The ingest checks each line's LABEL against the workbook, so a BEA renumbering fails the
+ingest instead of shipping the wrong line.
 
-The workbooks are read with the standard library (zipfile + XML); no Excel
+It reads the workbooks with the standard library (zipfile + XML), with no Excel
 dependency.
 """
 

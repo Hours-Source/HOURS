@@ -1,11 +1,9 @@
-"""
-scenarios/compensation — the compensating-mechanism audit (review §15): which
-mechanisms can cover for each other, and where on the arc.
+"""scenarios/compensation: the compensating-mechanism audit (review §15). Which
+mechanisms can cover for each other, and where on the arc?
 
-Pinned on the two TEH inflows: the levy and the GUF are REDUNDANT up to
-ε ≈ 0.55, the levy is the SOLE mechanism to ≈ 0.97, and the top needs BOTH.
-The causes are pinned beside the map, so the sentence about it is checked too
-(failure mode 13).
+Pinned on the two TEH inflows. The levy and the GUF are REDUNDANT on the low arc, the
+levy is the SOLE mechanism through the middle, and the top needs BOTH. The causes are
+pinned beside the map, so the sentence about it is checked too (mode 13).
 """
 
 from __future__ import annotations
@@ -53,8 +51,9 @@ class TestTheInflowMap:
         assert edges["joint"][1] == 0.99
 
     def test_rural_holds_at_the_top_at_the_adopted_levy(self):
-        """It FAILED at 0.99 under 4.5%; the levy raised to 4.6% to keep the
-        urban arc (2026-10-15) carries the rural one too, jointly with the fee."""
+        """Rural failed at 0.99 under a 4.5% levy. The 4.6% levy, raised to keep the
+        urban arc (2026-10-15), carries the rural one too, jointly with the fee.
+        """
         runs = compensation_map(inflow_mechanisms(make_rural_collective(1000)))["runs"]
         assert runs[-1][0] == "joint" and runs[-1][2] == 0.99
 

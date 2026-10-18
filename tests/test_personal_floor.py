@@ -661,9 +661,9 @@ class TestPIChangesNothing:
         """`personal_eoh` must still run off the constants, not off the basket."""
         from hours_eoh.core.eoh_generation import personal_eoh
 
-        # 1,301.6 h/person·yr × 1e6 people — the constants path, untouched by
-        # P-I. It moved from 1,475 with the 2026-08-10 AGE_GROUPS elderly
-        # revalue, which is a CONSTANTS change; the basket still feeds nothing,
+        # 1,352.8 h/person·yr × 1e6 people — the constants path, untouched by
+        # P-I. It moved from 1,475 to 1,301.6 with the 2026-08-10 AGE_GROUPS
+        # elderly revalue, and has moved since by constants changes; the basket still feeds nothing,
         # which is what this test is for.
         assert personal_eoh(population=1e6, epsilon=0.0) == pytest.approx(
             1.3528e9, rel=1e-6

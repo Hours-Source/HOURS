@@ -91,27 +91,13 @@ class TestCareRegistrationDelay:
 
 
 class TestTheIrreversibilityThreshold:
-    """
-    `_IRREVERSIBILITY_MULTIPLE`, pinned — AND TWO DEFECTS IT UNCOVERED
-    (2026-08-28).
-
-    It is a shadow constant in `scenarios/maintenance.py` that a +7% move left
-    undetected. Asking WHY it was undetectable found that its output never
-    reached the caller at all:
-
-      1. `failure_boundary`, documented as "year of irreversibility", RETURNED
-         `crisis_year` — a value already returned under its own key. The
-         quantity the field names was computed and discarded.
-      2. `outcome` came from the compounding ratio alone, so at 20 years of zero
-         maintenance the function returned **outcome=STABLE** beside a
-         recommendation reading "Deferred maintenance exceeds 5× annual EOH at
-         year 5. Rebuilding required." The machine-readable field contradicted
-         the human-readable one.
-
-    Both are the reported-value-is-not-the-computed-value failure this repo has
-    hit before (`psi` vs `psi_applied`). Neither failed a test, because nothing
-    asserted either field against a neglected asset — which is exactly what an
-    unpinned constant lets happen downstream of itself.
+    """The year of irreversibility, pinned. The search for why
+    `_IRREVERSIBILITY_MULTIPLE` (retired 2026-10-04) moved undetected found two defects
+    (2026-08-28). `failure_boundary` returned `crisis_year`, so the year it names was
+    computed and discarded. And `outcome` read STABLE after 20 years of zero
+    maintenance, beside a recommendation to rebuild. Both are the reported-value failure
+    (`psi` against `psi_applied`)
+    ([record](record/fulfilment.md#irreversibility-derived)).
     """
 
     def test_the_failure_year_is_actually_returned(self):
@@ -151,9 +137,10 @@ class TestTheIrreversibilityThreshold:
         assert years == sorted(years), f"worse neglect must fail sooner: {years}"
 
     def test_failure_is_declared_at_the_derived_crossover(self):
-        """REPLACED 2026-10-04: the 5× backlog multiple is gone; the year of
-        irreversibility is the first the condition ratio falls below
-        `rebuild_crossover_ratio` — bound to the functions, not restated."""
+        """The year of irreversibility is the first year the condition ratio falls below
+        `rebuild_crossover_ratio`, read from the functions (2026-10-04). The 5× backlog
+        multiple is gone.
+        """
         from hours_eoh.core.capital import asset_condition_trajectory
         r = deferred_maintenance_crisis(epsilon=0.40, annual_eoh=1_000_000.0,
                                         fulfillment_fraction=0.0, years=30)
@@ -174,9 +161,10 @@ class TestTheIrreversibilityThreshold:
 
 
 class TestDeferralAgainstTheOverbuildFloor:
-    """On a frame (2026-10-03) each year is read against the overbuild floor:
-    compounding joins upkeep, and the neglected stock abates at its condition
-    ratio. Unframed, the result carries none of it."""
+    """On a frame (2026-10-03), each year is read against the overbuild floor:
+    compounding joins upkeep, and the neglected stock abates at its condition ratio. An
+    unframed result carries none of this.
+    """
 
     @staticmethod
     def _run(fraction, years, population=1e6, eps=0.40):
@@ -207,9 +195,10 @@ class TestDeferralAgainstTheOverbuildFloor:
         assert max(per) == pytest.approx(min(per), rel=1e-9)
 
     def test_a_worn_stock_does_less_of_the_work(self):
-        """Capacity reaches the labour test: under full neglect the worn
-        machines carry less, so the overbuild reading is CRISIS, not the
-        DEGRADED an unworn ε gave."""
+        """Capacity reaches the labour test. Under full neglect the worn machines carry
+        less, so the overbuild reading is CRISIS, not the DEGRADED that an unworn ε
+        gave.
+        """
         r = self._run(0.0, 30)
         assert r["capacity_after"] == r["trajectory"][-1]["capacity"] < 0.01
         assert r["overbuild_outcome"] == "CRISIS"
@@ -231,10 +220,11 @@ class TestTheDegradedRatio:
 
     @pytest.mark.parametrize("asset_type", sorted(__import__("hours_eoh.data", fromlist=["ASSET_TYPES"]).ASSET_TYPES))
     def test_the_dead_band_the_data_note_states(self, asset_type):
-        """data.py's COMPOUNDING_WARN note: below the threshold age the ratio
-        stays under 0.10, and it reaches COMPOUNDING_CRIT in one step — so the
-        DEGRADED ratio cannot fire on its own anywhere in [0.10, 0.50]. If an
-        asset profile changes so it can, the note is stale."""
+        """data.py's COMPOUNDING_WARN note says the ratio stays under 0.10 below the
+        threshold age and reaches COMPOUNDING_CRIT in one step. So the DEGRADED ratio
+        cannot fire alone in [0.10, 0.50]. If an asset profile changes so it can, the
+        note is stale.
+        """
         from hours_eoh.data import COMPOUNDING_CRIT
         tr = deferred_maintenance_crisis(0.40, 1e9, 0.5, 300, asset_type=asset_type)["trajectory"]
         crit = next(x["year"] for x in tr if x["compounding_ratio"] >= COMPOUNDING_CRIT)

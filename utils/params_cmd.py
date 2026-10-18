@@ -1,5 +1,4 @@
-"""
-params — EohParams inspection and persistent modification.
+"""params: EohParams inspection and persistent change.
 
   eoh params show [--filter KEY]        Print all current values.
   eoh params set KEY VALUE [--reason R] Persist the change; show before/after delta.
@@ -7,7 +6,7 @@ params — EohParams inspection and persistent modification.
   eoh params diff                       Print overrides relative to defaults.
   eoh params reset                      Reset all params to defaults.
 
-State is persisted to utils/_params_state.json between invocations.
+The state persists in utils/_params_state.json between invocations.
 """
 
 from __future__ import annotations

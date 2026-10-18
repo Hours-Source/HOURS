@@ -1,12 +1,10 @@
-"""
-Tests for the ecological domain-balance inversion and the currency-free floor.
+"""Tests for the ecological domain-balance inversion and the currency-free floor.
 
-The defect under test is the one `data.py` calls THE DOMAIN-BALANCE DEFECT:
-`ECOLOGICAL_BASE_RATE` is a RELATIVE anchor summed with absolute counts and then
-divided into ε. These tests do not assert that the anchor is right — nothing in
-this repo measures stewardship hours. They assert that the machinery which would
-SETTLE it behaves correctly, and they pin the size of the gap so it cannot drift
-unnoticed the way the domain-share table did.
+The defect under test is what `data.py` calls THE DOMAIN-BALANCE DEFECT:
+`ECOLOGICAL_BASE_RATE` is a RELATIVE anchor, summed with absolute counts and then
+divided into ε. These tests do not assert that the anchor is right; nothing in this repo
+measures stewardship hours. They assert that the machinery which would SETTLE it works,
+and they pin the size of the gap so it cannot drift unnoticed.
 """
 
 from __future__ import annotations
@@ -37,11 +35,10 @@ class TestEcologicalStatutoryFloor:
         assert out["mean_hours_per_hectare"] == pytest.approx(12750.0 / 1500.0)
 
     def test_unpriced_is_EXCLUDED_not_costed_at_zero(self):
-        """The load-bearing behaviour, shared with the personal floor.
-
-        A parcel nobody has costed is owed and unquantified. Counting it at zero
-        would silently assert that wilderness needs no stewardship, and the floor
-        would then be a claim about the world rather than about what is measured.
+        """An unpriced parcel is EXCLUDED, not costed at zero, as in the personal floor.
+        A parcel nobody has costed is owed and unquantified. A zero would assert that
+        wilderness needs no stewardship, which is a claim about the world, not about
+        what is measured.
         """
         census = [
             {"biome": "cropland", "area_hectares": 100.0, "hours_per_hectare_year": 10.0},
@@ -117,19 +114,13 @@ class TestInversion:
 
 
 class TestTheGapItself:
-    def test_the_shortfall_is_two_orders_of_magnitude(self):
-        """Pins the FINDING, which is the point of the module.
-
-        `data.py` says the ecological base is "either low by 2–3 orders, or
-        CDR_LABOR_HOURS_PER_TONNE is, or both; nothing in current data settles
-        it." This test converts that from an assertion into a measured bound: at
-        the shipped anchor and a planetary-average 1.65 ha/person, reaching a 5%
-        share of total EOH requires ~132× the implied stewardship intensity.
-
-        Asserted as a BAND, not a point — the factor moves with every constant
-        that changes total EOH, and the claim being made is the order of
-        magnitude, not the digits. If this fails, the domain-balance narrative in
-        docs/parameter_provenance.md needs re-reading, which is the intent.
+    def test_the_shortfall_exceeds_four_orders_of_magnitude(self):
+        """Pins the FINDING as a measured bound. At the shipped anchor and 1.65
+        ha/person, a 5% share of total EOH needs a stewardship intensity many orders
+        above the implied one. The test asserts a BAND, because the factor moves with
+        every constant in total EOH. The old "low by 2–3 orders" framing it was built to
+        quantify has since been reversed
+        ([record](record/ecological.md#phase-4f-ecological-level-closed)).
         """
         rep = domain_balance_report()
         five = next(r for r in rep["requirements"] if r["target_share"] == 0.05)
@@ -140,12 +131,9 @@ class TestTheGapItself:
         assert 10_000.0 < five["shortfall_factor"] < 500_000.0
 
     def test_the_anchor_implies_under_an_hour_per_hectare_per_year(self):
-        """The reading that makes the defect legible without any arithmetic.
-
-        Under one labour-hour per hectare per year, across every biome and
-        condition class including cropland. Stated this way the anchor does not
-        need refuting — it plainly is not an absolute stewardship figure, which
-        is exactly what its own provenance tag says.
+        """The anchor implies under one labour-hour per hectare per year, across every
+        biome and condition class, cropland included. So it plainly is not an absolute
+        stewardship figure, which is what its own provenance tag says.
         """
         cur = implied_stewardship_intensity()
         assert 0.0 < cur["hours_per_hectare_year"] < 1.0
@@ -157,11 +145,9 @@ class TestTheGapItself:
 
 class TestCensusIntake:
     def test_a_census_can_exceed_the_anchor_and_the_ratio_says_by_how_much(self):
-        """The falsification path, exercised end to end.
-
-        A census at intensities that would not be surprising for managed land
-        should read far above the anchor — and `ratio_to_anchor` is the number a
-        future measurement would report.
+        """The falsification path, end to end. A census at intensities usual for managed
+        land reads far above the anchor, and `ratio_to_anchor` is the number a future
+        measurement would report.
         """
         census = [
             {"biome": "cropland", "area_hectares": 5.0e5, "hours_per_hectare_year": 12.0},
@@ -182,16 +168,11 @@ class TestCensusIntake:
 
 
 class TestTheVerdictsQuotedFiguresAreStillTrue:
-    """
-    The verdict restates figures computed in OTHER scenarios. Prose drifts —
-    this repo has four recorded doc-drift findings — so the restatements are
-    pinned against their live sources rather than made live, which would couple
-    three scenarios and slow every call.
-
-    It earned its keep immediately: the first draft quoted 0.56% for the stock's
-    share of the flow, which is a US-SCALE ratio over different areas (100 Mha
-    restorable against 37.1 Mha serviced). The per-hectare figure, which is what
-    belongs beside a per-hectare table, is 0.21%.
+    """The verdict restates figures computed in OTHER scenarios. The tests pin them
+    against their live sources; computing them live would couple three scenarios and
+    slow every call. The first draft quoted 0.56% for the stock's share of the flow, a
+    US-scale ratio over different areas. The per-hectare figure, 0.21%, is what belongs
+    beside a per-hectare table.
     """
 
     def test_servicing_flow_figure(self):

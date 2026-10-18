@@ -1,57 +1,49 @@
-"""
-The verdict ladder, computed — what may be asserted about any result.
+"""The verdict ladder, computed: what a report may assert about any result.
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-THE RULE (author decision, 2026-09-11, `record/theory.md#the-verdict-ladder`):
-*a verdict may not outrank the weakest input it rests on.*
+THE RULE (author decision, 2026-09-11, `record/theory.md#the-verdict-ladder`): *a
+verdict may not outrank the weakest input it rests on.*
 
     CERTAIN    physics, derived, derived-then-FROZEN — and arithmetic that closes
     INSTANCE   measured, instance, convention — only as good as its census,
                checkable for FEASIBILITY within a stable bound
     POSSIBLE   placeholder, bounded, normative, baseline — and that is the ceiling
 
-This module computes, for any function in the package, the transitive set of
-`data.py` constants it could rest on, and therefore the strongest verdict it is
-entitled to.
+For any function in the package, this module computes the transitive set of `data.py`
+constants it could rest on. That gives the strongest verdict it may claim.
 
-WHY STATIC AND NOT RUNTIME — the spike result, kept because it is the reason
-this file has the shape it has.
-
-A runtime route was tried first: perturb each constant, call the function, see
-whether the output moves. It fails, and it fails in the dangerous direction.
+WHY STATIC AND NOT RUNTIME. The first attempt used a runtime route: perturb each
+constant, call the function, and see whether the output moves. It fails in the dangerous
+direction.
 
   * **Most constants reach their consumers as DEFAULT ARGUMENTS**
-    (`base_rate: float = PERSONAL_EOH_BASE`), which Python binds at function
-    DEFINITION time. Patching the module attribute afterwards cannot reach them.
-    Measured: `total_eoh` reported **4** dependencies by perturbation and **18**
-    by this module.
+    (`base_rate: float = PERSONAL_EOH_BASE`), which Python binds when it DEFINES the
+    function. Patching the module attribute afterwards cannot reach them. Measured
+    when this was built: perturbation found **4** dependencies for `total_eoh`, and
+    this module found **18** (21 on 2026-10-17).
   * **So runtime UNDER-approximates, and an under-approximation makes a verdict
-    look STRONGER than it is** — it finds fewer placeholder inputs than exist.
-    That is precisely the error the ladder exists to prevent.
-  * It is also 1,700x slower: 352s for one function against 0.20s to build this
-    whole graph.
+    look STRONGER than it is**: it finds fewer placeholder inputs than exist. The
+    ladder exists to prevent that error.
+  * It was also about 1,700× slower: 352 s for one function, against 0.20 s to
+    build this whole graph.
 
-Static OVER-approximates instead: it unions the constants reachable through a
-function's entire call closure, including branches never taken. **That makes a
-verdict weaker than it might be, which is the safe direction**, and it is the
-repo's own stated doctrine — static is TOTAL but SHALLOW, runtime DEEP but
-NARROW.
+Static OVER-approximates instead: it unions the constants reachable through a function's
+whole call closure, including branches never taken. **That makes a verdict weaker than
+it might be, which is the safe direction.** That is the repo's stated doctrine: static
+is TOTAL but SHALLOW, runtime DEEP but NARROW.
 
-WHAT IT CANNOT SEE, stated because a checker that hides its gaps reads as
-stronger than it is:
+WHAT IT CANNOT SEE:
 
-  * **Functions are keyed by bare name**, so two same-named functions in
-    different modules merge. That unions their dependencies — over-approximating
-    again, so it is safe, but a name collision makes one function's verdict
-    weaker than its own code warrants.
-  * **Dynamic dispatch, `getattr`, and values loaded from `reference/data/`**
-    are invisible. Reference data is measured-by-construction, so its absence
-    biases toward CERTAIN on that axis — the one place this module's error is
-    NOT in the safe direction. Declared rather than fixed.
+  * **The graph keys functions by bare name**, so two same-named functions in different modules merge. That unions their dependencies, which is safe, but a name
+    collision makes one function's verdict weaker than its own code warrants.
+  * **Dynamic dispatch, `getattr`, and values loaded from `reference/data/`** are
+    invisible. Reference data is measured by construction, so its absence biases
+    toward CERTAIN on that axis: the one place this module errs in the UNSAFE
+    direction. Declared, not fixed.
   * It sees which constants a result COULD rest on, never which it does.
 
-Layer: utils/ — imports freely, imported by nothing.
+Layer: utils/. It imports freely, and nothing imports it.
 """
 
 from __future__ import annotations
@@ -111,12 +103,10 @@ def _records() -> dict[str, pv.Record]:
 
 
 def build_graph(root: pathlib.Path | None = None) -> dict[str, tuple[str, set, set]]:
-    """
-    function name -> (module, data constants it names, functions it calls).
+    """function name -> (module, data constants it names, functions it calls).
 
-    Includes default-argument expressions, which is the whole point: that is
-    where most constants in this codebase are consumed, and it is exactly what
-    the runtime route could not see.
+    It includes default-argument expressions, which is the point. Most constants in this
+    codebase are consumed there, and the runtime route could not see them.
     """
     base = root or PACKAGE_ROOT
     graph: dict[str, tuple[str, set, set]] = {}
@@ -180,10 +170,9 @@ def verdict_for(
     graph: dict[str, tuple[str, set, set]] | None = None,
     records: dict | None = None,
 ) -> dict:
-    """
-    The strongest verdict `function` is entitled to, and what holds it there.
+    """The strongest verdict `function` may claim, and what holds it there.
 
-    units: none — a tier name, plus the constants that set it.
+    units: none (a tier name, plus the constants that set it).
     """
     g = graph if graph is not None else build_graph()
     recs = records if records is not None else _records()

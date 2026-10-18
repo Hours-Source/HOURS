@@ -1,36 +1,31 @@
-"""
-ATUS 2003–2025 ingest — raw microdata → the shipped annual extract.
+"""ATUS 2003–2025 ingest: raw microdata → the shipped annual extract.
 
-Run this ONCE when the raw BLS files change; the repo ships only the small
-derived CSVs it writes. The raw multi-year files are ~2.9 GB and live in
-`rawdata/atus/` which is gitignored, exactly as the O*NET build lives in
-the multiplier handoff while the repo ships `multiplier_registry_v5.csv`.
+Run this ONCE when the raw BLS files change; the repo ships only the small derived CSVs
+it writes. The raw multi-year files are ~2.9 GB and live in gitignored `rawdata/atus/`,
+as the O*NET build lives in the multiplier handoff while the repo ships
+`multiplier_registry_v5.csv`.
 
     python3 utils/atus_ingest.py [--raw rawdata/atus] [--out hours_eoh/reference/data]
 
-Outputs (both committed):
-    atus_annual_0325.csv   year, tier2 activity code, mean minutes/day
-    atus_years_0325.csv    year, n, population 15+, mean household size, mean age,
-                           the weight variable used, and a comparability flag
+Outputs (both committed): atus_annual_0325.csv year, tier2 activity code, mean
+minutes/day atus_years_0325.csv year, n, population 15+, mean household size, mean age,
+the weight variable used, and a comparability flag
 
-WEIGHTS — the trap this script exists to handle
-------------------------------------------------
-`TUFNWGTP` is the multi-year final weight and it is **zero for 2020**. A naive
-pool over the multi-year file silently drops 2020, or divides by ~0 and emits
-garbage. BLS supplies `TU20FWGT` for the 2019–2020 period instead, and this
-script uses it for 2020 alone.
+WEIGHTS: the trap this script handles -------------------------------------- `TUFNWGTP`
+is the multi-year final weight, and it is **zero for 2020**. A naive pool over the
+multi-year file drops 2020 silently, or divides by ~0 and emits garbage. BLS supplies
+`TU20FWGT` for the 2019–2020 period instead, and this script uses it for 2020 alone.
 
-2020 IS NOT COMPARABLE and is flagged as such in the years file. ATUS collection
-was suspended mid-March to mid-May 2020, so the 2020 estimates cover roughly
-May–December. Any series that pools it with full-year estimates is comparing
-eight months against twelve. Downstream code must read `comparable` and decide;
-this script neither drops the year nor hides it.
+2020 IS NOT COMPARABLE, and the years file flags it. ATUS stopped collection from
+mid-March to mid-May 2020, so the 2020 estimates cover roughly May–December. A series
+that pools it with full-year estimates compares eight months against twelve. Downstream
+code must read `comparable` and decide; this script neither drops the year nor hides it.
 
-Units: minutes per day per person aged 15+, the ATUS native unit. The ACTIVITY
-extract carries no annualizing convention and no 15+→all-ages bridge — those are
-the caller's decisions, documented in `hours_eoh/reference/atus_time_use.py`. The
-years extract does divide the weight sum by `ATUS_DAYS_PER_YEAR` to state the
-frame's population, because a sum of person-DAYS is not a population.
+Units: minutes per day per person aged 15+, the ATUS native unit. The ACTIVITY extract
+carries no annualizing convention and no 15+→all-ages bridge; those are the caller's
+decisions, documented in `hours_eoh/reference/atus_time_use.py`. The years extract does
+divide the weight sum by `ATUS_DAYS_PER_YEAR` to state the frame's population, because a
+sum of person-DAYS is not a population.
 """
 
 from __future__ import annotations
@@ -57,11 +52,10 @@ DEFAULT_WEIGHT = "TUFNWGTP"
 
 
 def _activity_labels(raw_dir: Path) -> dict[str, str]:
-    """
-    Official tier-3 activity names, read from the Stata do-file BLS ships beside
-    the microdata. They are carried into the extract so the committed CSV is
-    self-describing: nothing downstream should have to open the gitignored raw
-    directory to find out what a six-digit code means.
+    """Official tier-3 activity names, read from the Stata do-file BLS ships beside the
+    microdata. The extract carries them, so the committed CSV describes itself: nothing
+    downstream should have to open the gitignored raw directory to learn what a
+    six-digit code means.
     """
     do_path = raw_dir / "sum" / "atussum_0325.do"
     if not do_path.exists():

@@ -1,72 +1,69 @@
-"""
-Provenance scanner for ``hours_eoh/data.py``.
+"""Provenance scanner for ``hours_eoh/data.py``.
 
-Every module-level constant in ``data.py`` carries an inline provenance tag block
-stating where its value comes from and what would change it. This module reads
-those blocks, checks them against the scheme's own rules, and renders them as the
-shipped audit CSV and as the generated tables in
-``docs/parameter_provenance.md``.
+Every module-level constant in ``data.py`` carries an inline provenance tag block. The
+block states where the value comes from and what would change it. This module reads the
+blocks and checks them against the scheme's own rules. It renders them as the shipped
+audit CSV and as the generated tables in ``docs/parameter_provenance.md``.
 
-The tag scheme is defined in ``docs/parameter_provenance.md`` §"The tag scheme":
+``docs/parameter_provenance.md`` §"The tag scheme" defines the tags:
 
     physics      a structural claim about how entropy works
     measured     read from an external empirical source
     derived      computed from measured inputs by a stated formula
     bounded      picked inside a MEASURED band — the band is evidence, the point
                  is not. Must state its ``band`` and which way it ``errs``.
-
-``confidence:`` (0–100) says how much of a value is MEASURED rather than chosen.
-0 is a number picked to let the arithmetic run; 100 is fully data-backed. It is
-NOT a claim of correctness and it never licenses a stronger tag — a constant at
-70 is still a placeholder, just a better-picked one. The point is that anything
-fitted against a constant is fitted against something closer to the truth as the
-figure rises, so the number is worth stating even when it is low: 3 beats 0, and
-0 is what an undocumented guess actually is. Every value must say WHAT is
-measured and what is not, so the figure is auditable rather than a second guess
-layered on the first.
     placeholder  no measurement stands behind it at all. The real debt.
     normative    a decision, not measurable even in principle. Must state
                  ``decided_by``, and may NOT claim a ``resolves_by``.
+    instance     describes the jurisdiction being modelled; the deploying
+                 institution supplies it. Must state ``supplied_by`` and
+                 ``default``, and may NOT claim a ``resolves_by``.
+    baseline     a REFUTED value kept runnable as a comparison. Must name
+                 ``superseded_by``, ``compares`` and ``expected``.
 
-plus two working sub-labels, ``derived-then-FROZEN`` (a derived value pinned at a
-reference epoch so it stays comparable across data vintages) and ``convention``
-(a stated denominator, not a claim about the world).
+Two working sub-labels sit beside them: ``derived-then-FROZEN`` (a derived value pinned
+at a reference epoch, so it stays comparable across data vintages) and ``convention`` (a
+stated denominator, not a claim about the world).
 
-The ``bounded`` / ``placeholder`` / ``normative`` split replaced a single
-``CHOSEN`` tag (author decision 2026-08-09). One tag was covering three different
-epistemic states, and lumping them distorted the picture in both directions: it
-made the calibration set look like 83% guesswork while *hiding* which constants
-are the actual debts. Worse, it filed charter decisions under "awaiting
-measurement" — a category error, since no dataset will ever settle what fraction
-of an estate should pass to heirs. ``normative`` therefore takes ``decided_by``
-and is forbidden a ``resolves_by``: the forbidding is the point.
+``confidence:`` (0–100) says how much of a value is MEASURED rather than chosen. 0 is a
+number picked to let the arithmetic run; 100 is fully data-backed. It is NOT a claim of
+correctness, and it never licenses a stronger tag: a constant at 70 is still a
+placeholder, only a better-picked one. Anything fitted against a constant is fitted
+against something closer to the truth as the figure rises, so a low figure is still
+worth stating: 3 beats 0, and 0 is what an undocumented guess is. Every value must say
+WHAT is measured and what is not, so the figure can be audited.
 
-``tier`` (A–D) is a *confidence sub-qualifier*, not a rival scheme: the thermal
-block already writes "measured (Tier A)". It is valid only where there is a source
-to grade — ``measured``, ``bounded`` and ``placeholder``. A ``physics`` claim is
-not more or less well-sourced, it is structural or it is wrong; and a ``normative``
-decision has no source at all.
+The ``bounded`` / ``placeholder`` / ``normative`` split replaced a single ``CHOSEN`` tag
+(author decision, 2026-08-09). One tag covered three epistemic states. It made the
+calibration set look like 83% guesswork while it HID which constants are the real debts,
+and it filed charter decisions under "awaiting measurement". No dataset will ever settle
+what fraction of an estate passes to heirs. So ``normative`` takes ``decided_by`` and is
+forbidden a ``resolves_by``; the forbidding is the point.
 
-Inline format
--------------
+``tier`` (A–D) qualifies confidence; it is not a rival scheme (the thermal block writes
+"measured (Tier A)"). It is valid only where a source exists to grade: ``measured``,
+``bounded`` and ``placeholder``. A ``physics`` claim is structural or wrong, and a
+``normative`` decision has no source.
 
-A tag block is a run of comment lines at column 0, immediately above the
-constant, opened by ``# tag:``::
+Inline format -------------
 
-    # tag: CHOSEN | units: h/yr per working-age-equivalent
+A tag block is a run of comment lines at column 0, immediately above the constant,
+opened by ``# tag:``. For example::
+
+    # tag: placeholder | units: h/yr per working-age-equivalent
     # resolves_by: BLS American Time Use Survey, annual averages by activity
     #   code — household activities, caring for household members, health
     #   self-care.
-    PERSONAL_EOH_BASE: float = 1000.0
+    EXAMPLE_PERSONAL_BASE: float = 1000.0
 
-The opening line carries ``|``-separated ``key: value`` pairs. Subsequent lines
-open a new field (``resolves_by:``, ``units:``, ``form:``, ``tier:``,
-``note:``) or continue the previous one when indented.
+The opening line carries ``|``-separated ``key: value`` pairs. A later line opens a new
+field (``resolves_by:``, ``units:``, ``form:``, ``tier:``, ``note:``) or, when indented,
+continues the previous one.
 
-``family:`` takes a glob and covers the following *run* of constants matching
-it, so a table of siblings shares one block::
+``family:`` takes a glob and covers the following *run* of constants that match it, so a
+table of siblings shares one block::
 
-    # tag: CHOSEN | units: fraction | family: GUF_LVI_W_*
+    # tag: placeholder | units: fraction | family: GUF_LVI_W_*
     # form: derived — the four weights are constrained to sum to 1.0
     #   (NLSA Eq. 3); the split between them is not.
     # resolves_by: hedonic regression of parcel transaction values on the four
@@ -76,13 +73,12 @@ it, so a table of siblings shares one block::
 
 The run ends at the first constant that does not match the glob.
 
-``# provenance-block: <name>`` sets the reporting section for the constants that
-follow, until the next directive. It is what the doc's table markers select on.
+``# provenance-block: <name>`` sets the reporting section for the constants that follow,
+until the next directive. The doc's table markers select on it.
 
-Tags are read from the *source text* — they are comments, so they do not survive
-import. Values are read from the *imported module*, so computed constants
-(``ALPHA_SCALE = M_MAX - 1.0``) report what they actually evaluate to rather than
-their expression.
+Tags come from the *source text*: they are comments and do not survive import. Values
+come from the *imported module*, so a computed constant (``ALPHA_SCALE = M_MAX - 1.0``)
+reports what it evaluates to, not its expression.
 """
 
 from __future__ import annotations
@@ -240,7 +236,7 @@ _VALUE_REPR_LIMIT = 80
 
 @dataclass(frozen=True)
 class TagBlock:
-    """One parsed tag block, before it is attached to any constant."""
+    """One parsed tag block, before the scan attaches it to a constant."""
 
     line: int
     tag: str = ""
@@ -322,10 +318,10 @@ class Record:
     def retired(self) -> bool:
         """True when a live replacement exists, so this value governs nothing.
 
-        A retired constant is kept, not deleted (the additive-not-destructive
-        rule): it is the value every earlier result in this repo was produced
-        at, so reproducing an old figure means passing it explicitly. It is not
-        debt, because no measurement of it would change any current output.
+        The repo keeps a retired constant and does not delete it (additive, not
+        destructive). Every earlier result in this repo used it, so reproducing an old
+        figure means passing it explicitly. It is not debt: no measurement of it would
+        change a current output.
         """
         return bool(self.superseded_by)
 
@@ -444,14 +440,12 @@ def format_value(value: Any) -> str:
     """Render a constant's value for the audit CSV and the generated tables.
 
     Floats render to 12 significant figures. That is far more precision than any
-    provenance claim carries, and it keeps binary-representation noise out of a
-    document meant to be read — a *derived* constant like `PP_INDEX_WARN_SLOPE`
-    evaluates to 0.1250000000000001, and printing that tells a reader nothing
-    except that floats are binary. `data.py` remains the source of truth for the
-    exact bits.
+    provenance claim carries, and it keeps binary noise out of a document meant to be
+    read: a *derived* constant like `PP_INDEX_WARN_SLOPE` evaluates to
+    0.1250000000000001. `data.py` stays the source of truth for the exact bits.
 
-    Big nested tables get a shape summary: the CSV exists so an outside reader
-    can check a *tag*, and a 4 kB dict in one cell defeats that.
+    Big nested tables get a shape summary. The CSV exists so an outside reader can check
+    a *tag*, and a 4 kB dict in one cell defeats that.
     """
     if isinstance(value, float):
         text = f"{value:.12g}"
@@ -472,9 +466,8 @@ def format_value(value: Any) -> str:
 def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
     """Scan ``data.py`` source text for tag blocks and the constants they cover.
 
-    ``values`` supplies evaluated values (normally ``vars(hours_eoh.data)``); when
-    omitted the value column reads ``"?"``, which is what the parser unit tests
-    exercise.
+    ``values`` supplies evaluated values (normally ``vars(hours_eoh.data)``). Without it
+    the value column reads ``"?"``, which the parser unit tests use.
     """
     lines = source.splitlines()
     out = Scan()
@@ -561,15 +554,15 @@ def scan(source: str, values: Mapping[str, Any] | None = None) -> Scan:
 
 
 def expression_parents(source: str, names: Iterable[str]) -> dict[str, frozenset[str]]:
-    """{constant: the other constants in ``names`` its module-level assignment
-    reads} — the dependency the right-hand side STATES, whether or not a
+    """{constant: the other constants in ``names`` that its module-level assignment
+    reads}. This is the dependency the right-hand side STATES, whether or not a
     ``band_from:`` declares it (2026-10-16; record/provenance.md#expression-edges).
 
-    Annotated assignments only, which is the scan's own definition of a
-    constant (``_ASSIGN``); a bare alias (``X: float = Y``) is an edge.
-    Constants with no such parent are left out. A source that does not
-    parse yields no edges rather than an error: the tag scan reads lines, and a
-    fragment that only the line scanner understands still scans.
+    Only annotated assignments count, as in the scan's own definition of a constant
+    (``_ASSIGN``); a bare alias (``X: float = Y``) is an edge. The result leaves out
+    constants with no such parent. A source that does not parse yields no edges, not an
+    error. The tag scan reads lines, and a fragment only the line scanner understands
+    still scans.
     """
     known = set(names)
     try:
@@ -592,11 +585,10 @@ def expression_parents(source: str, names: Iterable[str]) -> dict[str, frozenset
 
 
 def _retire_family(block: TagBlock | None, out: Scan) -> None:
-    """Close out a family block, recording it as an orphan if it covered nothing.
+    """Close out a family block, and record it as an orphan if it covered nothing.
 
-    A ``family:`` glob that matched nothing is the signature of a renamed or
-    deleted constant, and it must surface — otherwise the block sits in the file
-    looking like coverage it does not provide.
+    A ``family:`` glob that matched nothing signals a renamed or deleted constant. It
+    must surface; otherwise the block looks like coverage it does not provide.
     """
     if block is not None and not any(r.family == block.family for r in out.records):
         out.orphans.append(block)
@@ -627,13 +619,13 @@ def live_constants(source: str | None = None) -> list[str]:
 
 
 def _replacement_exists(target: str, scanned: Scan) -> bool:
-    """Does ``superseded_by``'s target actually exist?
+    """Does ``superseded_by``'s target exist?
 
-    A retired constant is usually replaced by another constant, but sometimes by
-    a whole measured pathway (``DEFAULT_SEGMENTS`` → the O*NET/BLS registry), so
-    a dotted module path is accepted too. Checked on the filesystem rather than
-    by importing: this runs inside the gate, and a provenance check must not be
-    able to execute package code as a side effect.
+    A retired constant is usually replaced by another constant, but sometimes by a whole
+    measured pathway (``DEFAULT_SEGMENTS`` → the O*NET/BLS registry), so a dotted module
+    path is accepted too. The check reads the filesystem and does not import: it runs
+    inside the gate, and a provenance check must not execute package code as a side
+    effect.
     """
     if "." not in target:
         return target in scanned.by_name
@@ -655,15 +647,14 @@ UNANCHORED_TAGS: frozenset[str] = frozenset({"placeholder"})
 def unanchored_ancestors(
     name: str, scanned: "Scan", _seen: frozenset[str] | None = None
 ) -> list[str]:
-    """Placeholder ancestors of ``name``, following ``band_from`` TRANSITIVELY —
-    and, since 2026-10-16, the assignment's own expression (``Scan.expr_parents``),
-    so an edge nobody declared is walked too.
+    """Placeholder ancestors of ``name``, following ``band_from`` TRANSITIVELY. Since
+    2026-10-16 it also follows the assignment's own expression (``Scan.expr_parents``),
+    so it walks an edge nobody declared.
 
-    THE ONE-LEVEL CHECK IS NOT ENOUGH, and this is not hypothetical. ``derived``
-    is defined as inheriting "its authority from the measurements beneath it",
-    so an input tagged ``derived`` can still bottom out on a placeholder two or
-    three steps down. Both anchored-inversion candidates examined on 2026-08-15
-    had exactly that shape:
+    A ONE-LEVEL CHECK IS NOT ENOUGH. ``derived`` means "inherits its authority from the
+    measurements beneath it", so a ``derived`` input can still bottom out on a
+    placeholder two or three steps down. Both anchored-inversion candidates examined on
+    2026-08-15 had that shape:
 
         CONTESTABILITY_CAPITAL_YIELD_RATE
           <- FORMATION_DEPRECIATION_RATE  (derived)
@@ -672,12 +663,11 @@ def unanchored_ancestors(
         ECOLOGICAL_BASE_RATE  <- the thermal drawdown chain
             <- CDR_GROSS_REMOVAL_FACTOR   (PLACEHOLDER)
 
-    A one-level check passes both. Only walking the chain catches them, and
-    hand-tracing is what caught them the first time — which is the argument for
-    doing it in code.
+    A one-level check passes both. Hand-tracing caught them the first time, which is the
+    argument for doing it in code.
 
-    Returns the offending chains as "A -> B -> C" strings, empty if anchored.
-    Cycles terminate rather than recurse.
+    Returns the offending chains as "A -> B -> C" strings, empty if anchored. Cycles
+    terminate instead of recursing.
     """
     seen = _seen or frozenset()
     if name in seen:
@@ -717,15 +707,14 @@ def declares_inheritance(rec: "Record", placeholders: Iterable[str]) -> bool:
 
 
 def derived_on_placeholder(scanned: "Scan") -> dict[str, list[str]]:
-    """{constant: its placeholder chains} for every ``derived`` constant that
-    bottoms out on a placeholder through its expression or its ``band_from``.
+    """{constant: its placeholder chains} for every ``derived`` constant that bottoms
+    out on a placeholder through its expression or its ``band_from``.
 
-    NOT A PLACEHOLDER BY THAT FACT (determined 2026-10-16,
-    record/provenance.md#derived-is-not-placeholder): each holds no unmeasured
-    content of its own — the debt is in a parent already tagged and counted,
-    and tagging the child too would count it twice. What the scheme requires is
-    that it SAYS so; `problems()` refuses one that does not
-    (`declares_inheritance`).
+    Such a constant is NOT a placeholder by that fact (2026-10-16,
+    record/provenance.md#derived-is-not-placeholder). It holds no unmeasured content of
+    its own: the debt is in a parent already tagged and counted, and tagging the child
+    too would count it twice. The scheme requires that it SAYS so; `problems()` refuses
+    one that does not (`declares_inheritance`).
     """
     out = {}
     for rec in scanned.records:
@@ -782,7 +771,7 @@ def _parents(tree: ast.AST) -> dict[int, ast.AST]:
 def _classify_read(
     node: ast.AST, parents: dict[int, ast.AST]
 ) -> tuple[str, tuple[str, ...]]:
-    """Walk up from a read, collecting every literal label on the way out.
+    """Walk up from a read, and collect every literal label on the way out.
 
     Returns ``(kind, labels)``. Three shapes count as reporting:
 
@@ -790,15 +779,14 @@ def _classify_read(
         f"shipped d={OLD} implies ..."   interpolated into prose
         ("shipped", OLD)                 element of a tuple carrying a label
 
-    THE WALK DOES NOT STOP AT THE FIRST CONTAINER. A nested structure reports
-    under all of its enclosing keys, so ``{"shipped": {"renewal_rate": OLD}}``
-    yields ``("renewal_rate", "shipped")`` and either may be the declared one.
-    Stopping at the innermost key would have forced the declared vocabulary
-    toward field names like ``renewal_rate``, which say nothing about the value
-    being superseded — the opposite of what the label is for.
+    THE WALK DOES NOT STOP AT THE FIRST CONTAINER. A nested structure reports under all
+    of its enclosing keys, so ``{"shipped": {"renewal_rate": OLD}}`` yields
+    ``("renewal_rate", "shipped")``, and either may be the declared one. Stopping at the
+    innermost key would push the declared vocabulary toward field names like
+    ``renewal_rate``, which say nothing about the superseded value.
 
-    Everything else is a computation: the value is going somewhere this check
-    cannot see, and the whole point of the exemption is that it goes nowhere.
+    Everything else is a computation: the value goes somewhere this check cannot see,
+    and the exemption exists because it goes nowhere.
     """
     current: ast.AST = node
     labels: list[str] = []
@@ -859,40 +847,31 @@ def _classify_read(
 def baseline_reads(name: str, root: Path | None = None) -> list[BaselineRead]:
     """Every operative read of ``name``, classified by reporting position.
 
-    THE TIGHTENING FROM "NO PARAMETER DEFAULTS" TO "REPORTING POSITIONS ONLY".
+    ``baseline_in:`` lets code still read a RETIRED constant. The claim is that the code
+    prints the refuted value beside its replacement, so the disagreement stays visible.
+    The first version of the gate checked only that the constant was never a parameter
+    default. That caught the most common failure (a caller who passes nothing gets the
+    superseded value), but it left the positive claim declared, not checked. A retired
+    constant could still sit inside an expression that feeds a live return.
 
-    ``baseline_in:`` lets a RETIRED constant keep being read, on the claim that
-    what remains is the refuted value printed beside its replacement so the
-    disagreement stays visible. The first version of the gate verified only that
-    the constant was never a parameter default. That named the most common
-    failure precisely — a caller who passes nothing gets the superseded value —
-    but it left the positive claim *declared rather than checked*: a retired
-    constant could still sit in the middle of an expression feeding a live
-    return, and nothing would notice.
+    ``problems()`` applies two conditions together. SHAPE, here: the value must land in
+    a construct that labels it, which is a dict entry under a literal key, an f-string,
+    or a tuple with a string beside it. Arithmetic on the way is fine, because a ratio
+    against the refuted value is still a comparison. A function call is not, because
+    this analysis cannot follow the handoff.
 
-    This checks the claim, in two conditions that ``problems()`` applies
-    together. SHAPE, here: the value must land in a construct that labels it —
-    a dict entry under a literal key, an f-string, or a tuple carrying a string
-    alongside it. Arithmetic on the way is fine, since a ratio against the
-    refuted value is still a comparison, but a function call is not, because
-    that is a handoff this analysis cannot follow.
+    LABEL, in ``problems()``: the literal that the shape produces must appear in the
+    constant's ``baseline_labels:``. Shape alone failed its own bite test. Nearly every
+    function here returns a dict, so a retired constant under the key ``"total"`` passed
+    "lands under a literal key" while it contaminated a live figure. A declared label
+    makes each addition a visible act in a diff.
 
-    LABEL, in ``problems()``: the literal that shape produces must appear in the
-    constant's ``baseline_labels:``. Shape alone is not enough and the first
-    version of this check proved it by failing its own bite test — nearly every
-    function in this package returns a dict, so a retired constant sitting under
-    the key ``"total"`` satisfied "lands under a literal key" while
-    contaminating a live figure. Requiring the label to be declared makes adding
-    one a visible act in a diff rather than an emergent property of Python
-    syntax.
-
-    KNOWN LIMIT, stated rather than papered over. The tuple form is accepted on
-    the strength of its literal label, and the check does not follow a loop
-    variable bound from it. In ``doctrine_arc`` the row ``("shipped", OLD)``
-    feeds a computed series — legitimately, since that series IS the refuted
-    doctrine and is reported under that name. Following the taint through the
-    loop target would need dataflow analysis; the label is what keeps the result
-    attributable in the meantime, and it is checked to exist.
+    KNOWN LIMIT. The tuple form passes on the strength of its literal label, and the
+    check does not follow a loop variable bound from it. In ``doctrine_arc`` the row
+    ``("shipped", OLD)`` feeds a computed series, legitimately, because that series IS
+    the refuted doctrine and is reported under that name. Following the taint through
+    the loop would need dataflow analysis; until then the label keeps the result
+    attributable, and the check confirms it exists.
     """
     base = root or PACKAGE_ROOT.parent
     out: list[BaselineRead] = []
@@ -949,9 +928,8 @@ class Refuted(float):
 def _install_taint_ops() -> None:
     """Give ``Refuted`` propagating arithmetic.
 
-    ``float`` subclasses return plain floats from arithmetic, so without this
-    the taint dies at the first multiplication — which is exactly where the
-    static check already gives up.
+    ``float`` subclasses return plain floats from arithmetic. Without this the taint
+    dies at the first multiplication, which is where the static check already stops.
     """
     def _make(op: str) -> Any:
         parent = getattr(float, f"__{op}__")
@@ -980,18 +958,16 @@ _install_taint_ops()
 
 
 def _module_for(rel: str, path: Path) -> Any:
-    """Import ``rel``, insisting it is the file that was scanned.
+    """Import ``rel``, and insist that it is the file that was scanned.
 
-    Normally this returns the already-imported module out of ``sys.modules``,
-    which is what the patch has to hit — the operative modules did
-    ``from hours_eoh.data import X`` at import time, so patching ``data`` itself
-    would change nothing.
+    Normally this returns the module already in ``sys.modules``, which the patch must
+    hit. The operative modules did ``from hours_eoh.data import X`` at import time, so
+    patching ``data`` alone would change nothing.
 
-    The identity check is not ceremony. A dotted name resolves against whatever
-    package is already loaded, so a scan rooted somewhere else (a test fixture,
-    a worktree) would silently patch the REAL module and report on code it never
-    read. When the resolved file is not the scanned file, load the scanned file
-    directly instead.
+    The identity check matters. A dotted name resolves against whatever package is
+    loaded, so a scan rooted elsewhere (a test fixture, a worktree) would patch the REAL
+    module and report on code it never read. When the resolved file is not the scanned
+    file, this loads the scanned file directly.
     """
     import importlib
     import importlib.util
@@ -1060,36 +1036,31 @@ def trace_baseline_flow(
 ) -> FlowTrace:
     """Follow a retired constant's value at RUNTIME, through loops and calls.
 
-    WHY THIS EXISTS ALONGSIDE THE STATIC CHECK. ``baseline_reads`` verifies the
-    POSITION of each read and cannot follow the value afterwards, so its one
-    documented gap is the labelled tuple: the label proves attribution at the
-    read, not containment downstream. A loop target bound from
-    ``("shipped", OLD)`` can carry the value into a live figure, and does so
-    undetected — demonstrated deliberately before this was written.
+    WHY THIS EXISTS BESIDE THE STATIC CHECK. ``baseline_reads`` checks the POSITION of
+    each read and cannot follow the value afterwards. Its one documented gap is the
+    labelled tuple: the label proves attribution at the read, not containment
+    downstream. A loop target bound from ``("shipped", OLD)`` can carry the value into a
+    live figure undetected, as a deliberate demonstration showed before this was
+    written.
 
-    Closing that statically means intra-procedural taint plus a model of the
-    comparison-table idiom, and still leaves function calls opaque, which is
-    where the interesting arithmetic actually happens
-    (``_unit_response(eps, rate)``).
-
-    So the two checks are complementary rather than redundant, and the division
-    is worth stating plainly:
+    A static fix needs intra-procedural taint plus a model of the comparison-table
+    idiom, and it still leaves function calls opaque, where the interesting arithmetic
+    happens (``_unit_response(eps, rate)``). So the two checks complement each other:
 
         static   TOTAL but SHALLOW — all code, position only
         runtime  DEEP but NARROW  — exact flow, only paths a caller drives
 
-    The constant is swapped for a ``Refuted`` float in every module
-    ``baseline_in:`` names, each reading function that can be called without
-    arguments is called, and the returned structure is walked for survivors. A
-    survivor is a leak unless some key on its path is a declared label.
+    The constant becomes a ``Refuted`` float in every module that ``baseline_in:``
+    names. The trace calls each reading function that takes no arguments and walks the
+    returned structure for survivors. A survivor is a leak unless a key on its path is a
+    declared label.
 
-    Honest limits, both structural:
-      * only reachable functions are exercised; ones needing arguments are
-        REPORTED as skipped rather than silently ignored, because "the trace was
-        clean" must not quietly mean "the trace ran nothing".
-      * bools and strings do not carry taint by design — ``credible_shipped:
-        False`` is a verdict ABOUT the refuted value, which is the whole reason
-        it is still here.
+    Limits, both structural:
+
+      * Only reachable functions run. Ones that need arguments are REPORTED as skipped,
+        so "the trace was clean" cannot quietly mean "the trace ran nothing".
+      * Bools and strings carry no taint by design. ``credible_shipped: False`` is a
+        verdict ABOUT the refuted value, which is why it is still here.
     """
     rec = scanned.by_name.get(name)
     if rec is None:
@@ -1160,23 +1131,20 @@ def parameter_default_consumers(
 ) -> list[str]:
     """Operative-layer functions that take ``name`` as a PARAMETER DEFAULT.
 
-    This is the precise form of the thing the retirement gate is actually
-    worried about. ``operative_consumers`` answers "is it mentioned?", which
-    conflates two very different reads:
+    This is the precise form of the retirement gate's concern. ``operative_consumers``
+    answers "is it mentioned?", which merges two different reads:
 
         decay: float = SKILL_DECAY_RATE      <- a second parameter, running in
                                                 parallel with its replacement
         "shipped": SKILL_DECAY_RATE          <- the refuted baseline, reported
                                                 so the disagreement stays visible
 
-    The first is the failure mode ``superseded_by`` exists to prevent: a caller
-    who passes nothing silently gets the old value. The second is a documented
-    negative result, and the repo keeps several on purpose
-    (``contestability_ceiling_bare_chi`` is the standing precedent).
+    The first is the failure ``superseded_by`` exists to prevent: a caller who passes
+    nothing gets the old value. The second is a documented negative result, and the repo
+    keeps several on purpose (``contestability_ceiling_bare_chi`` is the precedent).
 
-    Parsed with ``ast`` rather than matched with a regex, because this is the
-    check a ``baseline_in:`` claim is allowed to bypass — so it has to be one
-    that cannot be dodged by reformatting the line.
+    It uses ``ast``, not a regex. A ``baseline_in:`` claim may bypass this check, so
+    reformatting a line must not dodge it.
     """
     base = root or PACKAGE_ROOT.parent
     hits: list[str] = []
@@ -1295,27 +1263,26 @@ def _fully_masked_names(root: Path | None = None) -> set[str]:
 def unused_innocuous_names(root: Path | None = None) -> list[str]:
     """Declared exemptions that no longer exempt anything.
 
-    A name stays in ``_INNOCUOUS_NAMES`` after the constant it covered is
-    migrated, renamed or bound — and a permission nobody exercises is a
-    permission nobody reviews. Two entries went stale within an hour of the
-    allowlist shipping, when `_PERS_REG_START` and `_KNOW_REG_BASE` were bound
-    to ``data.py``, which is how fast this needs checking.
+    A name stays in ``_INNOCUOUS_NAMES`` after its constant is migrated, renamed or
+    bound, and a permission nobody exercises is a permission nobody reviews. Two entries
+    went stale within an hour of the allowlist shipping, when `_PERS_REG_START` and
+    `_KNOW_REG_BASE` were bound to ``data.py``.
     """
     return sorted(_INNOCUOUS_NAMES - _fully_masked_names(root))
 
 
 def masked_constants(root: Path | None = None) -> list[tuple[str, str]]:
-    """Named constants the ``_INNOCUOUS`` value filter hides, minus the declared.
+    """Named constants that the ``_INNOCUOUS`` value filter hides, minus the declared
+    ones.
 
-    Returns ``(module, name)`` for every module-level constant in the operative
-    layers whose numeric literals are ALL in ``_INNOCUOUS`` and whose name is not
-    in ``_INNOCUOUS_NAMES``. These are invisible to `shadow_constants` purely
-    because of which literal they happen to hold, which is not a property that
-    should decide whether a value is governed.
+    Returns ``(module, name)`` for every module-level constant in the operative layers
+    whose numeric literals are ALL in ``_INNOCUOUS`` and whose name is not in
+    ``_INNOCUOUS_NAMES``. `shadow_constants` cannot see them only because of the literal
+    they hold, which should not decide whether a value is governed.
 
-    Scoped to ``OPERATIVE_LAYERS`` plus ``reference``, deliberately wider than
-    `shadow_constants`: the point is to find what the filter hides ANYWHERE, and
-    two of the four found on introduction were in ``reference/``.
+    The scope is ``OPERATIVE_LAYERS`` plus ``reference``, wider than `shadow_constants`
+    on purpose. The point is to find what the filter hides ANYWHERE, and two of the four
+    found on introduction were in ``reference/``.
     """
     base = root or PACKAGE_ROOT.parent
     out: list[tuple[str, str]] = []
@@ -1375,14 +1342,13 @@ class Shadow:
 def shadow_constants(root: Path | None = None) -> list[Shadow]:
     """Module-level numeric constants in operative layers, outside ``data.py``.
 
-    THE COVERAGE FIGURE HAS THE WRONG DENOMINATOR, AND THIS IS WHY.
-    ``eoh provenance check`` reports "236/236 constants tagged (100.0%)", which
-    is true and narrower than it reads: it means 236 constants *in data.py*. A
-    named numeric constant declared anywhere else is in no count this repo
-    publishes, carries no tag, has no ``resolves_by``, and cannot appear in the
-    debt summary — while being read by exactly the same domain logic.
+    THE COVERAGE FIGURE HAS A NARROW DENOMINATOR. ``eoh provenance check`` reports every
+    constant tagged, and that is true of constants *in data.py* only. A named numeric
+    constant declared anywhere else is in no published count and carries no tag or
+    ``resolves_by``. It cannot appear in the debt summary, yet the same domain logic
+    reads it.
 
-    This is not hypothetical. Every one of these has already cost something:
+    Each of these has already cost something:
 
         TRANSMISSION_WORKING_LIFE_YEARS = 40.0   scenarios/knowledge_base.py
             A duplicate of SKILL_WORKING_LIFE_YEARS carrying its own copy of the
@@ -1393,12 +1359,10 @@ def shadow_constants(root: Path | None = None) -> list[Shadow]:
             Covered by the 2026-08-09 retag log, which the gate could not reach.
 
     A constant whose expression references a ``data.py`` import is reported with
-    ``bound=True``: that is an alias, the intended shape, and the remedy for the
-    rest.
+    ``bound=True``. That is an alias, the intended shape, and the remedy for the rest.
 
-    Scoped to ``OPERATIVE_LAYERS``. ``reference/`` is excluded because it holds
-    measured data rather than calibration, and ``research/`` because it is
-    explicitly not stable API.
+    The scope is ``OPERATIVE_LAYERS``. ``reference/`` holds measured data, not
+    calibration, and ``research/`` is not stable API, so both are left out.
     """
     base = root or PACKAGE_ROOT.parent
     out: list[Shadow] = []
@@ -1476,20 +1440,19 @@ def repeated_default_literals(
 ) -> list[tuple[str, float, list[str]]]:
     """Bare numeric defaults repeated under the same parameter name.
 
-    THE SECOND SHADOW CLASS, and the one with no name at all. A literal written
-    into the same parameter of many independent functions is a constant by
-    behaviour — every caller who omits the argument gets it — while being
-    invisible to every tool that looks for constants, because nobody declared
-    one. It is how ``= 1500.0`` survived the ``PERSONAL_EOH_BASE`` reprice in
-    five generators at once, and how ``skill_decay_rate = 0.10`` kept the
-    pipeline running knowledge EOH 4× the direct path.
+    THE SECOND SHADOW CLASS, and one with no name at all. A literal written into the
+    same parameter of many functions is a constant by behaviour, because every caller
+    who omits the argument gets it. Yet no tool that looks for constants sees it,
+    because nobody declared one. That is how ``= 1500.0`` survived the
+    ``PERSONAL_EOH_BASE`` reprice in five generators, and how ``skill_decay_rate =
+    0.10`` ran knowledge EOH at 4× the direct path.
 
-    Repetition is the filter that makes this usable. Value equality alone
-    returns 230 candidates against ``data.py`` and almost all are coincidence
-    (a 50-year amortization is not a 50-draw Monte Carlo). The same NAME at the
-    same VALUE across separate modules is not coincidence.
+    Repetition makes the search usable. Value equality alone returns hundreds of
+    candidates against ``data.py``, nearly all coincidence (a 50-year amortization is
+    not a 50-draw Monte Carlo). The same NAME at the same VALUE across separate modules
+    is not coincidence.
 
-    Returns ``(parameter, value, sites)`` sorted by site count, descending.
+    Returns ``(parameter, value, sites)``, sorted by site count, descending.
     """
     base = root or PACKAGE_ROOT.parent
     seen: dict[tuple[str, float], list[str]] = {}
@@ -1539,11 +1502,10 @@ def repeated_default_literals(
 
 
 def problems(scanned: Scan) -> list[str]:
-    """Every way the scan violates the tag scheme, as readable one-liners.
+    """Every way the scan breaks the tag scheme, as readable one-liners.
 
-    This is the single definition the CLI and the test suite share, so
-    ``eoh provenance check`` and ``pytest`` cannot disagree about what "clean"
-    means.
+    The CLI and the test suite share this one definition, so ``eoh provenance check``
+    and ``pytest`` cannot disagree about what "clean" means.
     """
     found: list[str] = []
 
@@ -1848,16 +1810,16 @@ def problems(scanned: Scan) -> list[str]:
 class DebtSummary:
     """What is grounded, what is owed, what is a decision, and what is an input.
 
-    The point of the bounded/placeholder/normative split. ``normative`` constants
-    are deliberately NOT counted as debt — they are commitments, and no measurement
-    retires them, so counting them as unmeasured overstates the model's ignorance
-    while understating which constants actually need work.
+    This is the point of the bounded/placeholder/normative split. The summary does NOT
+    count ``normative`` constants as debt: they are commitments, and no measurement
+    retires them. Counting them as unmeasured would overstate the model's ignorance and
+    hide which constants need work.
 
-    ``instance`` and ``retired`` are excluded on the same reasoning, and the same
-    reasoning bounds the claim: an instance default is not the framework's debt,
-    but it is not evidence either, which is why ``instance_defaults_unmeasured``
-    is reported rather than quietly folded into ``grounded``. A retired constant
-    governs nothing, so measuring it would change no output.
+    ``instance`` and ``retired`` are left out on the same reasoning, which also bounds
+    the claim. An instance default is not the framework's debt, but it is not evidence
+    either, so ``instance_defaults_unmeasured`` is reported, not folded into
+    ``grounded``. A retired constant governs nothing, so measuring it would change no
+    output.
     """
 
     total: int
@@ -1947,10 +1909,9 @@ CSV_COLUMNS = (
 def audit_csv(scanned: Scan) -> str:
     """The shipped public-audit CSV.
 
-    Column order mirrors ``reference/data/multiplier_provenance_v5.csv`` so the
-    two provenance files read the same way. Rows follow ``data.py`` order rather
-    than being sorted, so a diff of this file localises to the block that
-    changed.
+    The column order follows ``reference/data/multiplier_provenance_v5.csv``, so the two
+    provenance files read the same way. Rows follow ``data.py`` order, not a sort, so a
+    diff of this file points at the block that changed.
     """
     buf = io.StringIO(newline="")
     writer = csv.writer(buf, lineterminator="\n")
@@ -2082,12 +2043,11 @@ def doc_constant_claims(text: str) -> list[tuple[str, float, str]]:
 def stale_doc_claims(
     text: str, scanned: Scan, *, rel_tol: float = 1e-9
 ) -> list[str]:
-    """Claims in ``text`` that contradict the value ``data.py`` actually holds.
+    """Claims in ``text`` that contradict the value ``data.py`` holds.
 
-    This is the check the generated-table machinery cannot make. Tables are
-    rendered from the source and so are current by construction; hand-written
-    prose that names a constant and quotes a number is where drift hides — it
-    is exactly how the implementation guide came to advertise
+    The generated tables cannot make this check: they are rendered from the source and
+    are current by construction. Drift hides in hand-written prose that names a constant
+    and quotes a number. That is how the implementation guide advertised
     ``PERSONAL_EOH_BASE = 1500`` for three days after the reprice to 1000.
     """
     values = scanned.by_name
@@ -2117,14 +2077,13 @@ OPERATIVE_LAYERS: tuple[str, ...] = ("core", "land", "scenarios")
 def operative_consumers(name: str, root: Path | None = None) -> list[str]:
     """Operative-layer lines that read ``name``, as ``path:line``.
 
-    Holds ``superseded_by`` to its word. A retired constant that ``core/`` still
-    reads is not retired — it is a second, older parameter running in parallel
-    with its replacement, which is strictly worse than never having split it.
+    This holds ``superseded_by`` to its word. A retired constant that ``core/`` still
+    reads is not retired: it is a second, older parameter running beside its
+    replacement, which is worse than never having split it.
 
-    Scoped to ``OPERATIVE_LAYERS`` rather than the whole package because the
-    honest claim is layer-shaped: nothing on the stable path may depend on a
-    value the framework has moved off, while ``research/`` may keep the old arm
-    to report the disagreement.
+    The scope is ``OPERATIVE_LAYERS``, not the whole package, because the honest claim
+    is layer-shaped. Nothing on the stable path may depend on a value the framework has
+    moved off, while ``research/`` may keep the old arm to report the disagreement.
     """
     base = root or PACKAGE_ROOT.parent
     pattern = re.compile(rf"\b{re.escape(name)}\b")
@@ -2159,10 +2118,9 @@ _MARKER = re.compile(
 def render_doc(scanned: Scan, doc_text: str) -> str:
     """Replace every ``provenance:table`` marked region with a fresh table.
 
-    Prose outside the markers is left exactly as written — that is where the
-    epistemic argument lives, and it is not generated. Output is normalized, so
-    re-rendering an already-rendered doc is a no-op, which is what lets the test
-    suite compare regeneration against the committed file.
+    Prose outside the markers stays exactly as written; the epistemic argument lives
+    there, and it is not generated. Normalized output makes re-rendering a rendered doc
+    a no-op, which lets the test suite compare regeneration with the committed file.
     """
 
     def replace(m: re.Match[str]) -> str:

@@ -1,15 +1,12 @@
-"""
-research/parcel_condition — the holder's debt, the bond, the index at 1, the
-reserved floor and the low-ε flat fee (author, 2026-10-01;
-`notes/parcel-condition-bond.md`).
+"""research/parcel_condition: the holder's debt, the bond, the index at 1, the reserved
+floor and the low-ε flat fee (author, 2026-10-01; `notes/parcel-condition-bond.md`).
 
-THE POINT OF THE FILE is `TestTheLoopCreatesNoMoney`: over any sequence that
-returns a parcel to the same physical condition, net TEH created is zero —
-whether the holder settles or the Trust bears the restoration. A
-register-declared write-down is the only door to net creation. Seven
-mutations, each caught: skip the settlement, mint paper improvement, accept a
-holder's reading, mint below the mark without settled debt, book the bond as
-issuance, let a fire erase the holder's damage, ignore the reserve.
+THE POINT OF THE FILE is `TestTheLoopCreatesNoMoney`. Any sequence that returns a parcel
+to the same physical condition creates zero net TEH. That holds whether the holder
+settles or the Trust bears the restoration. A write-down the register declares is the
+only door to net creation. The tests catch seven mutations: skip the settlement, mint
+paper improvement, accept a holder's reading, mint below the mark without settled debt,
+book the bond as issuance, let a fire erase the holder's damage, ignore the reserve.
 """
 
 from __future__ import annotations

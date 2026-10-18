@@ -3,8 +3,8 @@ State resident population by single year of age → the shipped state age extrac
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 
-Run this ONCE when the source changes; the repo ships only the CSV it writes.
-The source lives in `rawdata/` (gitignored), as every raw file does:
+Run this ONCE when the source changes; the repo ships only the CSV it writes. The source
+lives in gitignored `rawdata/`, as every raw file does:
 
     rawdata/age/sc-est2025-alldata6.csv   Census Bureau, Population Division,
         Vintage 2025 state characteristics: resident population by state ×
@@ -13,27 +13,26 @@ The source lives in `rawdata/` (gitignored), as every raw file does:
 
     python3 utils/state_age_ingest.py [--raw rawdata] [--out hours_eoh/reference/data]
 
-Output (committed):
-    state_age_2025.csv   statefp, age, population — July 1, 2025, both sexes,
-                         every origin and race; age 85 means "85 and over"
+Output (committed): state_age_2025.csv statefp, age, population — July 1, 2025, both
+sexes, every origin and race; age 85 means "85 and over"
 
-WHY: the US frame divided into its states (`reference/states.us_state_split`)
-ran every state on the NATIONAL age mix, so a state's people differed from
-another's only in number. The age mix reaches the obligation (personal EOH,
-the guarantee, the care stipend) and the labour supply (the adult share).
+WHY: the US frame divided into its states (`reference/states.us_state_split`) ran every
+state on the NATIONAL age mix, so states differed only in head count. The age mix
+reaches the obligation (personal EOH, the guarantee, the care stipend) and the labour
+supply (the adult share).
 
-THE UNIVERSE IS RESIDENT, as the national extract's (`nc-est2025-agesex-res`)
-and as `state_land_population.csv`'s population. The sibling file
-`sc-est2025-agesex-civ` is CIVILIAN — the armed forces are out — and is not
-used. alldata6 has no race total: SEX=0 and ORIGIN=0 are totals, RACE 1–6
-partition the population, so the six are summed.
+THE UNIVERSE IS RESIDENT, as in the national extract (`nc-est2025-agesex-res`) and in
+`state_land_population.csv`'s population. The sibling file `sc-est2025-agesex-civ` is
+CIVILIAN (the armed forces are out), and this script does not use it. alldata6 has no
+race total: SEX=0 and ORIGIN=0 are totals, and RACE 1–6 partition the population, so the
+script sums the six.
 
-INTEGRITY, NOT TOLERANCE: each state's ages must sum to the population
-`state_land_population.csv` ships for it, which is the same Census vintage
-from a different table. A mismatch stops the ingest.
+INTEGRITY, NOT TOLERANCE: each state's ages must sum to the population that
+`state_land_population.csv` ships for it, the same Census vintage from a different
+table. A mismatch stops the ingest.
 
-THE TOP-CODE IS 85, where the national extract's is 100. A reader grouping
-these ages must refuse a band that starts above 85.
+THE TOP-CODE IS 85, where the national extract's is 100. A reader that groups these ages
+must refuse a band that starts above 85.
 """
 
 from __future__ import annotations

@@ -1,12 +1,9 @@
-"""
-Tests for utils/grib_scan.py — the header-only GRIB locator.
+"""Tests for utils/grib_scan.py: the header-only GRIB locator.
 
-Messages are synthesised byte-by-byte rather than read from a file, so the suite
-needs no GRIB fixture and no eccodes install. That also makes these tests a
-readable specification of the two header layouts the scanner parses.
-
-The parser itself was validated against eccodes on real ERA5 data: 120 messages
-of rawdata/data00utc.grib, zero mismatches on reference date/time (edition 1).
+The tests build messages byte by byte, so the suite needs no GRIB fixture and no eccodes
+install. That also makes them a readable specification of the two header layouts the
+scanner parses. The parser was validated against eccodes on real ERA5 data: 120 messages
+of rawdata/data00utc.grib, zero mismatches on reference date and time (edition 1).
 """
 
 from __future__ import annotations
@@ -146,9 +143,9 @@ def test_find_returns_target_day(tmp_path):
 
 
 def test_find_includes_the_accumulation_base(tmp_path):
-    """Fields valid 00-06Z on the 1st carry the PREVIOUS month's 18Z reference.
-    Dropping that block is how six hours of radiation data go missing without
-    any error being raised."""
+    """Fields valid 00–06Z on the 1st carry the PREVIOUS month's 18Z reference. Dropping
+    that block loses six hours of radiation data, and no error is raised.
+    """
     path = _write(tmp_path, _grib1(1940, 4, 30, 18), _grib1(1940, 5, 1, 0))
     assert len(find(path, 1940, 5, 1)) == 2
     assert len(find(path, 1940, 5, 1, include_accumulation_base=False)) == 1

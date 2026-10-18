@@ -1,40 +1,33 @@
-"""
-US Census population by single year of age → the shipped age-structure extract.
+"""US Census population by single year of age → the shipped age-structure extract.
 
     python3 utils/census_age_ingest.py [--raw rawdata/age] [--out hours_eoh/reference/data]
 
-Output (committed):
-    census_age_2020_2025.csv     year, age, population
-    census_adults_2000_2025.csv  year, total, age_15_plus, vintage — the adult
-                                 share by year, from three Census vintages
-                                 (intercensal 2000s, Vintage 2020, Vintage 2025)
+Output (committed): census_age_2020_2025.csv year, age, population
+census_adults_2000_2025.csv year, total, age_15_plus, vintage — the adult share by year,
+from three Census vintages (intercensal 2000s, Vintage 2020, Vintage 2025)
 
-Reads `nc-est2025-agesex-res.csv` (Vintage 2025 national estimates, SEX × single
-year of age × 2020–2025). Only SEX=0 (both sexes) is kept; AGE=999 is the
-published total and is used as an integrity check rather than a row.
+It reads `nc-est2025-agesex-res.csv` (Vintage 2025 national estimates, SEX × single year
+of age × 2020–2025). It keeps only SEX=0 (both sexes). AGE=999 is the published total,
+used as an integrity check, not as a row.
 
-WHY THIS EXISTS — it is a denominator, not a headline
-------------------------------------------------------
-Two things in this repo need a population age structure and neither can get it
-from ATUS:
+WHY THIS EXISTS: it is a denominator, not a headline
+----------------------------------------------------- Two things in this repo need a
+population age structure, and neither can get it from ATUS:
 
-1. **The eldercare module route.** ATUS's eldercare roster gives minutes per
-   RECIPIENT, and most recipients are not household members, so they appear on
-   no ATUS roster and have no population denominator inside the survey. Without
-   an external denominator the module route cannot be compared with the
-   household-roster route at all — and reporting that disagreement is the whole
-   point of carrying both.
-2. **`AGE_GROUPS` fractions.** The shipped 7/16/60/17 split is an OECD-shaped
-   default. This file measures it.
+1. **The eldercare module route.** ATUS's eldercare roster gives minutes per RECIPIENT.
+Most recipients are not household members, so they appear on no ATUS roster and have no
+population denominator inside the survey. Without an external denominator the module
+route cannot be compared with the household-roster route at all, and reporting that
+disagreement is why both are carried. 2. **`AGE_GROUPS` fractions.** The shipped
+7/16/60/17 split is an OECD-shaped default. This file measures it.
 
-WHAT THIS IS NOT: a claim that US age structure is the right structure for any
-other collective. It is one jurisdiction at one time, and the age structure of a
-modelled collective is an `instance` input its institution supplies. This extract
-is the US reference point, used here because the ATUS care measurements it pairs
-with are US measurements.
+WHAT THIS IS NOT: a claim that the US age structure is right for any other collective.
+It is one jurisdiction at one time, and a modelled collective's age structure is an
+`instance` input its institution supplies. This extract is the US reference point, used
+here because the ATUS care measurements it pairs with are US measurements.
 
-Vintage note: these are post-censal ESTIMATES, revised annually by the Census
-Bureau. Re-running against a later vintage will move the numbers slightly.
+Vintage note: these are post-censal ESTIMATES, which the Census Bureau revises each
+year. A run against a later vintage will move the numbers slightly.
 """
 
 from __future__ import annotations

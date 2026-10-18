@@ -126,24 +126,13 @@ class TestTrustDepletionStress:
         assert result["outcome"] in VALID_OUTCOMES
 
     def test_ecological_stressors_no_longer_move_this_outcome(self):
-        """
-        RENAMED AND RESTATED 2026-09-08. This was
-        `test_high_degradation_worsens_outcome`, asserting `stressed >= base` on
-        a severity scale — which held by EQUALITY and could not fail.
-
-        Both stressors are structurally inert HERE, and the reason is adopted
-        policy rather than a defect. Phase 4e/4f moved every recurring
-        ecological term to the Ground Use Fee, so the domain is 0.0 and
-        degrading the ecosystem no longer moves a fiscal outcome. And
-        `trust_depletion_stress` builds its state without `deferred_ecological`,
-        so `deferred_eco_growth_rate` could not bite at ANY value — the stock it
-        multiplies is always zero. See
-        `test_simulation.TestTheDeferredEcologicalRate` for where that parameter
-        IS live.
-
-        Pinned as equality so it fails in BOTH directions: if a future change
-        makes ecological condition reach the fiscal path again, this fires and
-        someone re-reads the partition before accepting it.
+        """Both ecological stressors are inert HERE, by adopted policy (2026-09-08).
+        Phases 4e/4f moved every recurring ecological term to GUF, so the domain is 0.0.
+        And `trust_depletion_stress` builds no `deferred_ecological`, so
+        `deferred_eco_growth_rate` multiplies zero;
+        `test_simulation.TestTheDeferredEcologicalRate` covers where it is live. The
+        test asserts equality, so it fails in BOTH directions
+        ([record](record/fulfilment.md#test-docstring-history)).
         """
         base = trust_depletion_stress(epsilon=0.40, n_periods=20)
         stressed = trust_depletion_stress(
@@ -161,16 +150,11 @@ class TestTrustDepletionStress:
         )
 
     def test_the_trust_no_longer_depletes_under_the_default_design(self):
-        """RESTATED 2026-09-16: this asserted the floor stays BELOW the opening
-        balance, which was true while the Trust booked the shipped guarantee.
-
-        Under V1 — core's default since 2026-09-16 — the Trust owes only what is
-        on the ledger, and at these inputs the levy more than covers it: the
-        floor is 8,767,388,914 against an opening 8,760,000,000 (35,007,388,914
-        against 35,000,000,000 before the 2026-09-17 reprice), outcome
-        STABLE with no insolvency. A depletion stress that cannot deplete is
-        worth stating plainly rather than leaving as an inverted assertion, and
-        the shipped design is still reachable for the old behaviour.
+        """Under V1, core's default since 2026-09-16, the Trust owes only what is on the
+        ledger, and at these inputs the levy covers it. The floor stays above the
+        opening balance and the outcome is STABLE. A depletion stress that cannot
+        deplete is stated plainly; the shipped design still reproduces the old
+        behaviour.
         """
         from hours_eoh.data import TRUST_BASE_TEH
         result = trust_depletion_stress(n_periods=10)
