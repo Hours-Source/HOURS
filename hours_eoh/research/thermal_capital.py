@@ -180,20 +180,20 @@ def epsilon_current_from_inventory(
     population: float,
 ) -> float:
     """
-    ε_current DERIVED from the same capital inventory that produces Φ — the
-    sanctioned way to obtain the ε a thermal ceiling is quoted at.
+    ε_current DERIVED from the same capital inventory that produces Φ: the sanctioned
+    way to obtain the ε a thermal ceiling carries.
 
         capital inventory ──► machine_eoh_from_capital ──► ε   (core.civilization)
                          └──► machine_dissipation_from_capital ──► Φ
 
-    Why this function exists. The thermal ceiling is ε_max = ε_current · H, so it
-    is LINEAR in ε_current — and ε_current shipped as `THERMAL_EPS_CURRENT`, a
-    CHOSEN Tier D constant (0.40, "the arc midpoint"). That contradicts the
-    framework's own invariant that ε is a score the economy produces, not an
-    input, and per handoff 2.0 §10.2 the sensitivity to it exceeds the ΔT_lo
-    sensitivity the document foregrounds. Wherever an inventory exists, ε should
-    come from `core.civilization.civilization_epsilon` — which remains the only
-    thing in the repo permitted to say what ε is — and not from a constant.
+    Why this function exists. The thermal ceiling is ε_max = ε_current · H, so it is
+    LINEAR in ε_current — and ε_current shipped as `THERMAL_EPS_CURRENT`, a CHOSEN Tier
+    D constant (0.40, "the arc midpoint"). That contradicts the framework's own
+    invariant that ε is a score the economy produces, not an input. Per handoff 2.0
+    §10.2, the sensitivity to it exceeds the ΔT_lo sensitivity the document foregrounds.
+    Wherever an inventory exists, ε should come from
+    `core.civilization.civilization_epsilon` — which remains the only thing in the repo
+    permitted to say what ε is — and not from a constant.
 
     Scope limit, stated plainly: this closes the loop for a COLLECTIVE, which is
     where the binding thermal signal lives anyway (F11). It does NOT close it for
@@ -239,11 +239,10 @@ def capital_thermal_ceiling(
     capital (vs the Path C top-down version). Binds at ε_current when the capital
     stock puts the collective in Contact (U ≥ 1). Thin bridge to the corridor.
 
-    ε_current now DEFAULTS TO DERIVED (2026-08-05): pass None — the default — and
-    ε is computed from the same `capital_desc` via
-    `epsilon_current_from_inventory()`, so one inventory sets both the ceiling's
-    dissipation and the ε it is quoted at. Passing an explicit float overrides
-    the derivation and is retained for backward compatibility and for asking
+    ε_current now DEFAULTS TO DERIVED (2026-08-05): pass None — the default — and ε is
+    computed from the same `capital_desc` via `epsilon_current_from_inventory()`, so one
+    inventory sets both the ceiling's dissipation and the ε it is quoted at. An explicit
+    float overrides the derivation. It stays for backward compatibility and for
     counterfactual questions ("what if this collective were at ε = 0.6?").
 
     Args:
@@ -308,11 +307,11 @@ def infrastructure_thermal_floor(
     the census — not national energy statistics — that makes F11's per-collective
     utilization defensible from a collective's own inventory.
 
-    COVERAGE, NOT SILENT ZEROS. A bucket without usable thermal fields
-    contributes nothing and is listed in `unpriced_buckets`; `coverage` is the
-    share of counted assets that were actually priced. A thermal floor at 40%
-    coverage is a different claim from one at 100%, and the caller is told which
-    it holds. Reading a low-coverage total as a real floor understates Φ.
+    COVERAGE, NOT SILENT ZEROS. A bucket without usable thermal fields contributes
+    nothing, and the result lists it in `unpriced_buckets`; `coverage` is the share of
+    counted assets that carry a price. A thermal floor at 40% coverage is a different
+    claim from one at 100%, and the result tells the caller which it holds. Reading a
+    low-coverage total as a real floor understates Φ.
 
     Defaults are conservative where the census is silent: missing `condition`
     reads as 1.0 (full utilization → maximum operational draw), and missing
@@ -469,12 +468,12 @@ def maintain_vs_replace(
     """
     B3 — the first decision the thermal layer can actually inform.
 
-    Infrastructure EOH rises with age (`age_factor` climbs toward
-    `age_factor_max`), so replacing an asset cuts the maintenance obligation. But
-    embodied energy is spent AT CONSTRUCTION, so every replacement is a
-    dissipation PULSE. Replace early and you buy fewer labour-hours at the price
-    of more pulses per century — F9 ("crash transition programmes are thermally
-    worse") at asset scale rather than civilizational scale.
+    Infrastructure EOH rises with age (`age_factor` climbs toward `age_factor_max`), so
+    replacing an asset cuts the maintenance obligation. But construction spends the
+    embodied energy, so every replacement is a dissipation PULSE. Replace early and you
+    buy fewer labour-hours at the price of more pulses per century — F9 ("crash
+    transition programmes are thermally worse") at asset scale rather than
+    civilizational scale.
 
     Two strategies over one horizon:
 
@@ -490,12 +489,12 @@ def maintain_vs_replace(
     domain's obligation against another's, and it is what a stewardship decision
     actually turns on.
 
-    CAVEAT, stated rather than buried: the shipped thermal model treats condition
-    as a UTILISATION proxy, so an aged asset draws less power because it does less
-    work. Real equipment usually draws the same or more for less output — an
-    efficiency decay this model does not carry. That biases the comparison AGAINST
-    replacement (it under-credits the efficiency a new asset would bring), so the
-    replace case here is a conservative floor.
+    CAVEAT, stated and not buried: the shipped thermal model treats condition as a
+    UTILISATION proxy. So an aged asset draws less power because it does less work. Real
+    equipment usually draws the same or more for less output — an efficiency decay this
+    model does not carry. That biases the comparison AGAINST replacement (it
+    under-credits the efficiency a new asset would bring), so the replace case here is a
+    conservative floor.
 
     units: hours, joules, years. ε-behavior: human EOH scales with (1−ε);
     dissipation does not, so the exchange rate steepens as automation rises —
@@ -569,14 +568,14 @@ def replacement_exchange_curve(
     The exchange rate as a function of replacement age — the decision rule.
 
     Sweeps `maintain_vs_replace` across ages and reports labour-hours saved per
-    terajoule of extra dissipation at each. The rate rises monotonically with
-    age: replacing a nearly-worn asset buys the same relief for a far smaller
-    thermal pulse, because the embodied energy already bought most of its service
-    life.
+    terajoule of extra dissipation at each. The rate rises monotonically with age.
+    Replacing a nearly-worn asset buys the same relief for a far smaller thermal pulse,
+    because the embodied energy already bought most of its service life.
 
-    For a 30-year transportation asset over a 40-year horizon the rate runs from
-    ~70 EOH/TJ at age 2 to ~170 at age 29 — **deferring replacement to end of
-    life buys about 2.4x more labour relief per joule dissipated.**
+    For a 30-year transportation asset over a 40-year horizon the rate runs from 58.7
+    EOH/TJ at age 1.5 to 170.4 at 24–28.5 (2026-10-18). **Deferring replacement toward
+    end of life buys about 2.9x more labour relief per joule dissipated**
+    (`best_over_worst`).
 
     That is F9 at asset scale, and it is a rule a steward can act on: replacing
     early is not merely more expensive in capital, it is thermally worse, and the

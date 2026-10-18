@@ -13,11 +13,10 @@ occupation, and the repo's own derived work-year. Read with
 `scenarios.land_stewardship`, which builds the census and runs it through
 `core.eoh_generation.ecological_statutory_floor`.
 
-WHAT IS MEASURED, AND WHAT IS ASSUMED
---------------------------------------
-Three measured inputs, one assumed mapping. The distinction is the whole point,
-because the assumption is the weak link and it must not be able to hide inside a
-number that looks measured:
+WHAT HAS A MEASUREMENT, AND WHAT IS AN ASSUMPTION --------------------------------------
+Three measured inputs, one assumed mapping. The distinction is the whole point, because
+the assumption is the weak link and it must not be able to hide inside a number that
+looks measured:
 
   MEASURED  land area by use class — USDA ERS Major Land Uses, U.S. total, 2022
             (released 2026-08-14). Nine classes that partition total land exactly.
@@ -26,25 +25,24 @@ number that looks measured:
   DERIVED   hours per worker-year — `scenarios.food_conservation
             .hours_per_worker_year()`, ≈1,874 h, itself ATUS ÷ registry
             employment. Not a chosen 2,080.
-  ASSUMED   which occupations steward which land class. THIS IS NOT MEASURED.
+  ASSUMED   which occupations steward which land class. NOTHING MEASURES THIS.
             OEWS/EP classify by what a worker does, not by the land they stand
             on, and no public crosswalk assigns an occupation to a land-use
             class. Every attribution below is a stated judgement, carries a
             `basis`, and is the first thing to attack.
 
 THE HELD-OUT OCCUPATIONS, AND WHY THE ERROR RUNS LOW
------------------------------------------------------
-Three sizeable occupations that plainly do stewardship work are attributed to NO
-land class and contribute nothing: Conservation Scientists (29.5k), First-Line
-Supervisors of Farming/Fishing/Forestry (67.0k), and Soil and Plant Scientists
-(21.8k). Each spans several land classes, or spans land and water, and splitting
-them would mean inventing the split. Holding them out understates the floor.
+----------------------------------------------------- Three sizeable occupations that
+plainly do stewardship work belong to NO land class here and contribute nothing:
+Conservation Scientists (29.5k), First-Line Supervisors of Farming/Fishing/Forestry
+(67.0k), and Soil and Plant Scientists (21.8k). Each spans several land classes, or
+spans land and water, and splitting them would mean inventing the split. Holding them
+out understates the floor.
 
-That is the safe direction here and it is worth being explicit about why. The
-open question is whether the anchor is low by two to three orders of magnitude.
-A floor that errs LOW makes the gap look SMALLER than it is, so it cannot
-manufacture the finding it is being used to test. An attribution that erred high
-could.
+That is the safe direction here and it is worth being explicit about why. The open
+question is whether the anchor is low by two to three orders of magnitude. A floor that
+errs LOW makes the gap look SMALLER than it is, so it cannot manufacture the finding it
+tests. An attribution that erred high could.
 
 THE SCOPE QUESTION THAT DECIDES THE ANSWER
 -------------------------------------------
@@ -55,7 +53,7 @@ forest and conservation workforce — on 2.9% of the land. Whether that labour i
   FOR    the framework defines ecological EOH as the labour land demands to hold
          condition, and urban vegetation demands exactly that; it is also the
          land class where the demand is least deferrable.
-  AGAINST the condition being held is amenity, not ecosystem function. Mowing a
+  AGAINST: the condition it holds is amenity, not ecosystem function. Mowing a
          corporate lawn on a fortnightly cycle maintains an appearance standard.
          Counting it makes the ecological domain largely a grounds-maintenance
          account.
@@ -138,11 +136,10 @@ def land_hectares_by_class() -> dict[str, float]:
     {land-use class: hectares} — the dict projection of `load_land_use`.
 
     THE ONE LOADER, and it excludes the aggregate row for the same reason
-    `load_land_use` does: MLU publishes a "Total land" line alongside the nine
-    classes that partition it, so a mapping carrying both double-counts the
-    moment anyone sums its values. Use `total_land_hectares()` for the
-    denominator — the aggregate is a DIFFERENT quantity and is fetched by a
-    different function on purpose.
+    `load_land_use` does: MLU publishes a "Total land" line alongside the nine classes
+    that partition it, so a mapping carrying both double-counts the moment anyone sums
+    its values. Use `total_land_hectares()` for the denominator. The aggregate is a
+    DIFFERENT quantity, and a different function fetches it on purpose.
 
     Added 2026-08-17, collapsing a duplicate: `reference/servicing` had grown
     its own dict loader over the same CSV, and that one INCLUDED the aggregate.
@@ -203,7 +200,7 @@ STEWARDSHIP_ATTRIBUTIONS: tuple[dict, ...] = (
 #: THE COVERAGE-INFLATION TRAP. `ecological_statutory_floor`'s priced/unpriced
 #: split is BINARY: a class priced with a fraction of its true labour reads as
 #: fully priced and inflates `coverage`. Allocating advisory hours onto cropland
-#: would mark 152.7 Mha priced at 0.083 h/ha·yr — coverage 0.303 → 0.470 while
+#: would mark 152.7 Mha priced at 0.083 h/ha·yr (when written: coverage 0.303 → 0.470) while
 #: the mean FALLS, because the real quantity there is the EQIP practice hours
 #: nobody has measured. Partial contributions to an incomplete class are
 #: therefore reported and EXCLUDED, never merged into the floor.
@@ -372,15 +369,15 @@ def derive_allocations(
 
         advisory(class)       = E(191031) · area(class) / Σ area(advisory classes)
 
-    The first is DERIVED — every term is registry employment. The second is a
-    neutral area split and is the upper corner, not a measurement.
+    The first is DERIVED: every term is registry employment. The second is a neutral
+    area split and is the upper corner, not a measurement.
 
     units: workers (headcount, not thousands).
 
     Worked example (`derived`): 67,000 supervisors × 5.6% forestry × 20.4%
-    stewardship-within-forestry = **764 workers**, against the 67,000 that
-    including them naively would have added. Holding them out was very nearly
-    right, and now that is shown rather than assumed.
+    stewardship-within-forestry = **764 workers**, against the 67,000 that including
+    them naively would have added. Holding them out was very nearly right, and this now
+    shows it instead of assuming it.
 
     Returns:
         {land_use: {occ6: workers}}. Empty under the `held_out` policy.
@@ -846,12 +843,12 @@ def effective_field_capacity(
 
     units: acres per hour.
 
-    THIS IS THE WHOLE POINT OF THE ROUTE. Every term is a physical property of
-    the machine and the pass — width, speed, and the fraction of theoretical
-    capacity actually achieved once turns, overlap and refills are counted.
-    There is no price anywhere in the chain, so the resulting labour figure
-    cannot import price formation the way a payment schedule or a wage-divided
-    cost would. Same determinacy property as the infrastructure floor.
+    THIS IS THE WHOLE POINT OF THE ROUTE. Every term is a physical property of the
+    machine and the pass — width, speed, and the fraction of theoretical capacity
+    actually achieved once turns, overlap and refills are counted. No price appears
+    anywhere in the chain, so the labour figure cannot import price formation as a
+    payment schedule or a wage-divided cost would. Same determinacy property as the
+    infrastructure floor.
 
     Worked example, checked against the publication's own: a 12 ft rotary
     mower-conditioner at 6 mph and 0.75 efficiency gives
@@ -886,14 +883,13 @@ def hours_per_acre(implement: str, width_ft: float) -> dict:
 
     units: labour-hours per acre per pass.
 
-    WIDTH IS SUPPLIED, NOT MEASURED, and that is the honest shape of this
-    quantity. Hours per acre falls as the machine gets wider, so this is a
-    DELIVERY PRODUCTIVITY at a stated equipment scale — exactly what
-    `reference.personal_basket` does when it prices nutrition at the LSMS
-    *unassisted* stratum rather than pretending one number covers every
-    technology. Doubling the drill halves the hours, and that is not noise in
-    the estimate, it is capital substituting for labour: the same substitution ε
-    measures elsewhere in the framework.
+    THE CALLER SUPPLIES WIDTH; NOTHING MEASURES IT, and that is the honest shape of this
+    quantity. Hours per acre falls as the machine gets wider, so this is a DELIVERY
+    PRODUCTIVITY at a stated equipment scale — exactly what `reference.personal_basket`
+    does when it prices nutrition at the LSMS *unassisted* stratum rather than
+    pretending one number covers every technology. Doubling the drill halves the hours.
+    That is not noise in the estimate; it is capital substituting for labour, the same
+    substitution ε measures elsewhere in the framework.
 
     Worked example: a 15 ft grain drill runs 0.55–0.80 efficiency at 4–7 mph, so
     EFC spans 4.00–10.18 ac/h and one seeding pass costs **0.098–0.250 h/acre**.

@@ -58,13 +58,12 @@ def canonical_age_distribution(epsilon: float) -> dict[str, float]:
     """
     Age distribution on the canonical arc — INDEPENDENT of ε since 2026-09-04.
 
-    THE ε-DRIFT IS RETIRED, and `epsilon` is retained only so callers do not
-    break. It moved population from `child` to `elderly` at a fixed fraction
-    per ε unit, on the argument that "automation improves medicine, so lives
-    lengthen and the elderly fraction grows". The retired constant's own tag
-    block in `data.py` carries the full reason; it is not named here, because a
-    retired constant named in `core/` reads as a live consumer to the
-    provenance gate — which is the gate working.
+    THE ε-DRIFT IS RETIRED, and `epsilon` stays only so callers do not break. It moved
+    population from `child` to `elderly` at a fixed fraction per ε unit. The argument
+    was that "automation improves medicine, so lives lengthen and the elderly fraction
+    grows". The retired constant's own tag block in `data.py` carries the full reason;
+    it is not named here, because a retired constant named in `core/` reads as a live
+    consumer to the provenance gate — which is the gate working.
 
     Three reasons it went, none of them its size:
 
@@ -116,9 +115,9 @@ def canonical_physical_state(epsilon: float, population: float | None = None) ->
       - Baseline comparison: measure how far a simulated trajectory has diverged
 
     These are NOT constraints on what the model can represent. A real simulation
-    diverges freely — fast automation with low capital investment, or slow
-    automation with rich ecological infrastructure are valid trajectories. The
-    canonical arc is the reference against which those trajectories are measured.
+    diverges freely — fast automation with low capital investment, or slow automation
+    with rich ecological infrastructure are valid trajectories. The canonical arc is the
+    reference that those trajectories are measured against.
 
     Governing equations (CANONICAL_* constants from data.py):
 
@@ -137,46 +136,42 @@ def canonical_physical_state(epsilon: float, population: float | None = None) ->
     the autarky comparison report the canonical arc as OVERBUILT at the origin
     for a reason that was an artifact of this line.
 
-    The ε=1 ENDPOINT IS PRESERVED: the path is now 2.0B × (1 + slope) × ε, so
-    capital at ε=1 is still 3× the base and only the intercept moved. At ε=0.99
-    the stock reads 5,940 TEH/capita against the previous 5,960 — the upper arc
-    is materially unchanged, which is why this cost 4 tests rather than the whole
-    suite.
+    The ε=1 ENDPOINT STAYS: the path is now 2.0B × (1 + slope) × ε, so capital at ε=1 is
+    still 3× the base, and only the intercept moved. At ε=0.99 the stock reads 5,940
+    TEH/capita against the previous 5,960. The upper arc barely changed, which is why
+    this cost 4 tests and not the whole suite.
 
     As ε rises from 0 to 1, capital stock grows (automation requires investment),
     ecosystem health degrades slightly (productivity pressure on natural systems),
     monitoring improves (better sensing technology), and knowledge complexity
     grows dramatically (maintaining a larger knowledge base costs more per unit).
 
-    THE WORKED TABLE THAT USED TO SIT HERE IS DELETED, not corrected
-    (2026-09-09). It printed capital 2.00 / 3.60 / 5.60 at ε = 0 / 0.40 / 0.90
-    against the 0.0 / 2.4 / 5.4 this function returns — and those stale values
-    were the LEGACY path's, so the arc function's own docstring was documenting
-    the entry point's numbers and hid the divergence in the one place a reader
-    would look it up. Block III corrected the equation and the note above and
-    left the table. Its other four columns were right throughout, which is why
-    nothing caught it.
+    THE WORKED TABLE THAT USED TO SIT HERE IS GONE, not corrected (2026-09-09). It
+    printed capital 2.00 / 3.60 / 5.60 at ε = 0 / 0.40 / 0.90 against the 0.0 / 2.4 /
+    5.4 this function returns — and those stale values were the LEGACY path's, so the
+    arc function's own docstring was documenting the entry point's numbers and hid the
+    divergence in the one place a reader would look it up. Block III corrected the
+    equation and the note above and left the table. Its other four columns were right
+    throughout, which is why nothing caught it.
 
-    Restating derived figures in prose is the drift this repo has caught ten
-    times; the shape is stated instead and the numbers come from the call.
-    THE SHAPE: capital is zero at the origin and 3× the base at ε=1; ecosystem
-    health falls, monitoring rises, knowledge size rises linearly and
-    complexity per unit quadratically, so knowledge is the term that dominates
-    the top of the arc.
+    Derived figures restated in prose are the drift this repo catches most often, so
+    this states the shape, and the numbers come from the call. THE SHAPE: capital is
+    zero at the origin and 3× the base at ε=1; ecosystem health falls, monitoring rises,
+    knowledge size rises linearly and complexity per unit quadratically, so knowledge is
+    the term that dominates the top of the arc.
 
     The constants defining this arc are in data.py under the CANONICAL_* prefix.
     To recalibrate the arc, change those constants — not this function.
 
-    THE FRAME (2026-09-30). `capital_stock_teh` is the one EXTENSIVE quantity
-    here, and it is stated at the 1M reference frame. `population` scales it,
-    holding capital INTENSITY fixed — the same rule as `resolve_capital_stock`,
-    which returns the identical value. Omitted, the reference frame is kept, so
-    every existing caller reads what it read before. Every other key is
-    intensive and does not move. Four callers with a caller-supplied population
-    took the reference-frame stock into `total_eoh` — at the US frame
-    `ecological_floor` reported infrastructure EOH at 0.25 per person against
-    82.8 — and the capital gate could not see them because it credits any
-    supplied `capital_stock` as a statement of frame. Gated since by
+    THE FRAME (2026-09-30). `capital_stock_teh` is the one EXTENSIVE quantity here,
+    stated at the 1M reference frame. `population` scales it, holding capital INTENSITY
+    fixed — the same rule as `resolve_capital_stock`, which returns the identical value.
+    Omitted, it keeps the reference frame, so every existing caller reads what it read
+    before. Every other key is intensive and does not move. Four callers with a
+    caller-supplied population took the reference-frame stock into `total_eoh` — at the
+    US frame `ecological_floor` reported infrastructure EOH at 0.25 per person against
+    82.8 — and the capital gate could not see them because it credits any supplied
+    `capital_stock` as a statement of frame. Gated since by
     `tests/test_capital_scale_resolution.py::TestCanonicalStateCapitalCarriesTheFrame`.
 
     Args:
@@ -236,17 +231,18 @@ def compute_epsilon(
     the transition.
 
     In the current simulation, ε is an exogenous scenario parameter (epsilon_delta
-    advances it each period) and machine_eoh_fulfilled is derived from it:
+    advances it each period), and the simulation derives machine_eoh_fulfilled from it:
     machine_eoh = total_eoh × ε. So compute_epsilon() returns the input ε — it is
-    currently circular. Its value is as the explicit formula and architecture hook
-    for when machine capacity is modeled endogenously: once a machine_capacity
-    sub-model tracks actual automated fulfillment, this function produces a
-    non-trivial ε that emerges from the physical state rather than being assumed.
+    currently circular. Its value is as the explicit formula and architecture hook for
+    when machine capacity is modeled endogenously: once a machine_capacity sub-model
+    tracks actual automated fulfillment, this function produces a non-trivial ε that
+    emerges from the physical state rather than being assumed.
 
-    Worked example: machine_eoh_fulfilled = 940M h/yr, total_potential = 2,353M h/yr
-        → ε = 940M / 2,353M = 0.40 (mid-arc, canonical defaults at ε=0.40 imply this)
-    ε=0.40 in concrete EOH terms: machines handle 940M h/yr of the civilization's
-    2,353M h/yr obligation; the remaining 1,413M h/yr falls to human labor.
+    Worked example (canonical defaults at capability ε=0.40, 1M people, read 2026-10-18
+    from `eoh_to_teh_pipeline`): total_potential = 1,535.8M h/yr, of which machines
+    carry 499.4M and people the remaining 1,036.4M, so this returns 0.325, the OBSERVED
+    ε. It sits below the capability because care and nutrition keep floors
+    (`eoh_fulfillment.observable_epsilon`).
 
     Args:
         machine_eoh_fulfilled: EOH handled by machines this period (hours/year).

@@ -1,42 +1,40 @@
 """
 What KIND of thing a(K) claims, per component — and how much of it is removal.
 
-`abatement_fraction` reduces the personal obligation by a(K), and
-`eoh_fulfillment` defines the field it is built from precisely: *"abatability is
-the most infrastructure can REMOVE — a(K), ε-free by construction. This is who
-does what REMAINS. They compose."* So the two fields are distinct and there is
-no double-count with ε. What was never checked is whether the shipped
-abatabilities MEASURE removal, and only removal justifies reducing the
-obligation. Anything else shrinks the ledger for work still being done, which is
-what the non-personal-only elimination invariant was written to prevent.
+`abatement_fraction` reduces the personal obligation by a(K), and `eoh_fulfillment`
+defines the field it is built from precisely: *"abatability is the most infrastructure
+can REMOVE — a(K), ε-free by construction. This is who does what REMAINS. They
+compose."* So the two fields are distinct and there is no double-count with ε. Nobody
+had checked whether the shipped abatabilities MEASURE removal, and only removal
+justifies reducing the obligation. Anything else shrinks the ledger for work people
+still do, which is what the non-personal-only elimination invariant exists to prevent.
 
 THREE KINDS, NOT TWO, and the third is the one that was missing from the
 question as first posed:
 
   RELOCATION   the obligation moves domain. A pipe means nobody hauls, and the
                pipe must be maintained: personal EOH falls, infrastructure EOH
-               rises, TOTAL is unchanged. No deflation. The entropy still has to
-               be resisted; a different domain resists it.
+               rises, TOTAL is unchanged. No deflation. Someone still resists the
+               entropy; a different domain does it.
   SUBSTITUTION a machine resists the same entropy. Total unchanged, human share
-               falls. This is ε's channel, and counting it here would shrink an
-               obligation that is still owed and still being met.
-  REMOVAL      the entropy is not generated. Sanitation means the illness does
-               not happen, so the care hours are never owed. Total EOH falls,
+               falls. This is ε's channel. Counting it here would shrink an obligation
+               the collective still owes and still meets.
+  REMOVAL nothing generates the entropy. Sanitation means the illness does not happen,
+  so nobody ever owes the care hours. Total EOH falls,
                and this is the ONLY kind that justifies a(K).
 
 WHY THIS IS A JUDGEMENT AND SAYS SO. Nothing measures which kind a component's
-abatability belongs to; the classification below is read off what the capital
-physically does, stated per component so it can be argued with. It is therefore
-reported as a BAND — the removal-justified a_max under the most and least
-generous readings — and never as a point. A point here would be a fitted
-constant wearing a measurement's clothes, which is the failure this module
-exists to flag in someone else's constant.
+abatability belongs to. The classification below reads what the capital physically does,
+per component, so anyone can argue with it. It is therefore reported as a BAND — the
+removal-justified a_max under the most and least generous readings — and never as a
+point. A point here would be a fitted constant wearing a measurement's clothes, which is
+the failure this module exists to flag in someone else's constant.
 
-A CROSS-COMPONENT EFFECT THE ADDITIVE BASKET CANNOT EXPRESS. Sanitation's
-removal does not land on sanitation — it lands on health and care, whose hours
-are never owed. The basket sums independent line items, so a component that
-reduces ANOTHER component's quantity has nowhere to put it. Same shape as the
-shelter/thermal substitution the 2026-09-04 merge fixed, and not fixed here.
+A CROSS-COMPONENT EFFECT THE ADDITIVE BASKET CANNOT EXPRESS. Sanitation's removal does
+not land on sanitation: it lands on health and care, whose hours nobody then owes. The
+basket sums independent line items, so a component that reduces ANOTHER component's
+quantity has nowhere to put it. Same shape as the shelter/thermal substitution the
+2026-09-04 merge fixed, and not fixed here.
 """
 
 from __future__ import annotations
@@ -263,12 +261,12 @@ def capital_weighting(tier: str = "standard", population: float = REFERENCE_FRAM
     """
     What weighting K by `personal_fulfillment_rate` does to a(K).
 
-    AND WHY IT CANNOT BE DONE ALONE. `K_half` is the capital at which half the
-    abatable obligation is abated, and it was CHOSEN against TOTAL capital — its
-    own tag block calls it "the least-grounded constant in this block". Redefine
-    K and the choice is void: `k_half_preserving` is what would hold the current
-    curve fixed, and adopting THAT would be fitting the pace constant to the
-    answer the wrong K produced. So this reports both and adopts neither.
+    AND WHY NOBODY CAN DO IT ALONE. `K_half` is the capital at which half the abatable
+    obligation is abated, and it was CHOSEN against TOTAL capital — its own tag block
+    calls it "the least-grounded constant in this block". Redefine K and the choice is
+    void: `k_half_preserving` is what would hold the current curve fixed, and adopting
+    THAT would be fitting the pace constant to the answer the wrong K produced. So this
+    reports both and adopts neither.
 
     units: TEH per capita; shares and a(K) dimensionless.
     """
@@ -349,14 +347,13 @@ def pace_sensitivity(
     abatement figure until it is measured."* Until now nothing did, so every
     abatement number in this repo has been quoted without it.
 
-    WHY A SENSITIVITY AND NOT A BETTER VALUE. The constant resolves by the
-    identity route run at two or more capital levels, which pins it and `a_max`
-    TOGETHER — so an interim re-choice is overwritten by the same run and saves
-    that run no work. And it cannot be improved by accumulation: the tag records
-    that MTUS/ATUS give 22 years and 21 countries, but rich-country panels sit
-    at ONE saturated capital level, so more time-use data does not raise it.
-    A sensitivity survives the measurement — it becomes the error bar rather
-    than being replaced by it.
+    WHY A SENSITIVITY AND NOT A BETTER VALUE. The constant resolves by the identity
+    route run at two or more capital levels, which pins it and `a_max` TOGETHER — so an
+    interim re-choice is overwritten by the same run and saves that run no work. And it
+    cannot be improved by accumulation: the tag records that MTUS/ATUS give 22 years and
+    21 countries, but rich-country panels sit at ONE saturated capital level, so more
+    time-use data does not raise it. A sensitivity survives the measurement: it becomes
+    the error bar, and the measurement does not replace it.
 
     `decades` sweeps K_half by multiples of the shipped value; the default spans
     two orders of magnitude, which is what confidence 5 ("very nearly a bare
@@ -437,27 +434,25 @@ def removal_audit(population: float = REFERENCE_FRAME_POPULATION) -> RemovalAudi
     `total_eoh` says so — *"Does NOT alter total personal EOH demand — the
     biological obligation still exists, but capital handles it."*
 
-    WHAT THE AUDIT CAN AND CANNOT CONCLUDE. It cannot validate the
-    abatabilities: no data here distinguishes an obligation that vanished from
-    one a machine met, and the abatabilities are desk terms at confidence 25.
-    What it CAN establish is that the two channels are not shown to be disjoint,
-    and that they are driven by the same assets — `personal_fulfillment_rate` is
-    highest exactly where a(K)'s worked examples live (medical 0.22, water
-    0.18, agricultural 0.18) and near zero where they do not (computing 0.01,
-    environmental monitoring 0.00).
+    WHAT THE AUDIT CAN AND CANNOT CONCLUDE. It cannot validate the abatabilities. No
+    data here distinguishes an obligation that vanished from one a machine met, and the
+    abatabilities are desk terms at confidence 25. What it CAN establish is that the two
+    channels are not shown to be disjoint, and that they are driven by the same assets —
+    `personal_fulfillment_rate` is highest exactly where a(K)'s worked examples live
+    (medical 0.22, water 0.18, agricultural 0.18) and near zero where they do not
+    (computing 0.01, environmental monitoring 0.00).
 
-    AND THE CONSEQUENCE IS FISCAL, WHICH IS WHERE IT BITES A PERSON.
-    Until 2026-09-15 `fiscal.sufficiency_guarantee` reimbursed
-    `max(0, raw_eoh_per_person − capital_personal_eoh_fulfilled_per_person)` —
-    if abatement became the generation default, the same tap would reduce what a
-    person is owed twice, as a SUBTRACTION. The `effective_personal_eoh` build
-    retired that subtraction: the reimbursement is now
-    `ā · base · personal_human_fraction(ε) · M_FLOOR`. That moves the latent
-    double count into a PRODUCT rather than closing it — `base` lowered by a(K)
-    and a human share reflecting machines meeting the obligation are still two
-    terms not shown to be disjoint. So `fiscal_double_subtracts` is now False
-    and `fiscal_double_counts` stays True. Nothing forbids it today because
-    abatement is not wired; this records it before it is.
+    AND THE CONSEQUENCE IS FISCAL, WHICH IS WHERE IT BITES A PERSON. Until 2026-09-15
+    `fiscal.sufficiency_guarantee` reimbursed `max(0, raw_eoh_per_person −
+    capital_personal_eoh_fulfilled_per_person)` — if abatement became the generation
+    default, the same tap would reduce what a person is owed twice, as a SUBTRACTION.
+    The `effective_personal_eoh` build retired that subtraction: the reimbursement is
+    now `ā · base · personal_human_fraction(ε) · M_FLOOR`. That moves the latent double
+    count into a PRODUCT rather than closing it — `base` lowered by a(K) and a human
+    share reflecting machines meeting the obligation are still two terms not shown to be
+    disjoint. So `fiscal_double_subtracts` is now False and `fiscal_double_counts` stays
+    True. Nothing forbids it today, because abatement is not wired; this records it
+    before anyone wires it.
 
     units: hours per capita per year. ε-behaviour: none — both channels are
     capital-driven and ε-free.

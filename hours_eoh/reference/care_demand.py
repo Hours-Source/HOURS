@@ -14,9 +14,8 @@ What it reads (all written by `utils/atus_care_ingest.py` and
     data/atus_care_coverage_0325.csv   care that could not be attributed, and why
     data/census_age_2020_2025.csv      population by single year of age
 
-Native unit is minutes per person-day. No annualizing convention and no
-per-capita bridge is applied here; those are the caller's, as in
-`atus_time_use.py`.
+Native unit is minutes per person-day. This module applies no annualizing convention and
+no per-capita bridge; those are the caller's, as in `atus_time_use.py`.
 
 TWO THINGS THIS MODULE REPORTS SEPARATELY, AND WHY
 ---------------------------------------------------
@@ -24,10 +23,10 @@ TWO THINGS THIS MODULE REPORTS SEPARATELY, AND WHY
 attribution: a care activity credits its full duration to each recipient
 present. A bedtime story read to two children is a whole story each.
 
-**The joint saving** — what a collective saves by serving n such people together
-— is the rivalry exponent ρ, carried as its own number. Care time scales as
-T(n) = T(1)·n^ρ in the dependant count, measured at ρ ≈ 0.27 active and ≈ 0.10
-passive against ρ=1 fully rivalrous and ρ=0 fully shared.
+**The joint saving** — what a collective saves by serving n such people together — is
+the rivalry exponent ρ, carried as its own number. Care time scales as T(n) = T(1)·n^ρ
+in the dependant count. The measured ρ is ≈ 0.27 active and ≈ 0.10 passive, against ρ=1
+fully rivalrous and ρ=0 fully shared.
 
 Keeping them apart is the point. Folding ρ into the curve would hide the
 sub-additivity inside a per-person number, where no caller could see it or vary
@@ -39,9 +38,9 @@ HONEST LIMITS — read before citing any figure from here
 1. **ONE DIARY PER HOUSEHOLD.** ATUS samples one adult per household, so care
    delivered by a non-diarised co-resident is invisible. Every figure here is
    care from ONE provider, and becoming care RECEIVED needs scaling by the
-   number of adult caregivers in the household. That correction is large and is
-   deliberately NOT applied — `providers_per_household()` exposes the input so a
-   caller applies it knowingly or not at all.
+   number of adult caregivers in the household. That correction is large, and this
+       module deliberately does NOT apply it: `providers_per_household()` exposes the
+       input, so a caller applies it knowingly or not at all.
 2. **ρ IS NOT IDENTIFIED.** The measured exponent conflates the care technology
    (how rival attention really is) with the behavioural response (whether
    parents add time for a second child). Under full compensation the two cancel
@@ -53,14 +52,14 @@ HONEST LIMITS — read before citing any figure from here
 3. **THE TWO ELDERLY ROUTES DISAGREE BY AN ORDER OF MAGNITUDE, and the roster
    one is an artefact.** 81.6% of eldercare recipients are not household
    members, so the roster join structurally cannot see them and reads 65+ care
-   as barely above working-age. The module route sees them. Both are reported;
+   as barely above working-age. The module route sees them. The module reports both;
    `elderly_route_disagreement()` states the ratio. Do not average them.
 4. **ELDERCARE IS DEFINED BY NEED, NOT AGE.** ATUS eldercare recipients appear
    from age 45, and the 45–64 band receives MORE care than 65+. A curve indexed
    on age is therefore indexing a proxy. This is a limit of the framing, not of
    the data.
-5. **PASSIVE CARE STOPS AT 12.** Secondary childcare is collected for under-13s
-   only, so ages 13–17 have no passive measure. Those cells are EMPTY, never
+5. **PASSIVE CARE STOPS AT 12.** ATUS collects secondary childcare for under-13s only,
+so ages 13–17 have no passive measure. Those cells are EMPTY, never
    zero — a zero would assert that nobody supervises a fifteen-year-old.
    `passive_measured_ages()` gives the range that exists.
 6. **US-SPECIFIC, one jurisdiction at one time.** Care arrangements are
@@ -121,8 +120,9 @@ ATUS_BINNED_FROM_AGE: int = 80
 
 
 def atus_age(age: int) -> int:
-    """The ATUS code a single year of age is recorded under: 80 for 80–84,
-    85 for 85 and over, the age itself below."""
+    """The ATUS code for a single year of age: 80 for 80–84, 85 for 85 and over, and the
+    age itself below.
+    """
     if age >= ATUS_TOP_CODED_AGE:
         return ATUS_TOP_CODED_AGE
     if age >= ATUS_BINNED_FROM_AGE:
@@ -225,10 +225,10 @@ def rivalry_table(kind: str) -> dict[int, float]:
 def joint_cost(n: int, kind: str = "active") -> float:
     """Cost of serving ``n`` equivalent recipients, relative to serving one.
 
-    ``n^ρ``. This is the joint-production saving stated as a multiplier: at
-    ρ=0.27, four dependants cost 1.44× one, not 4×. The saving is real and is
-    what makes a collective cheaper than n households — but see limit 2 before
-    treating ρ as measured rather than bounded.
+    ``n^ρ``. This is the joint-production saving stated as a multiplier: at ρ=0.27, four
+    dependants cost 1.44× one, not 4×. The saving is real and makes a collective cheaper
+    than n households. But see limit 2 before treating ρ as measured rather than
+    bounded.
     """
     if n <= 0:
         return 0.0
@@ -389,10 +389,9 @@ def population_shares(bands: dict[str, tuple[int, int]],
 def providers_per_household(year: int | None = None) -> float:
     """Adults per household — the scaling limit 1 describes, exposed not applied.
 
-    ATUS diarises one adult, so multiplying by this is what turns care from one
-    provider into care received. It is NOT applied anywhere in this module,
-    because doing it silently would inflate every figure by a factor a reader
-    could not see.
+    ATUS diarises one adult, so multiplying by this is what turns care from one provider
+    into care received. Nothing in this module applies it, because a silent application
+    would inflate every figure by a factor a reader could not see.
     """
     raise NotImplementedError(
         "adults-per-household is not yet extracted — see limit 1. Until it is, "
@@ -479,11 +478,11 @@ def band_relative_demand(
 ) -> dict[str, dict[str, float | None]]:
     """Population-weighted personal obligation per band, relative to ``numeraire``.
 
-    The implied `eoh_weight`, and the reason it is reported rather than adopted:
-    every band containing an age below :data:`SELF_MAINTENANCE_MIN_AGE` has an
-    unmeasured component, so its ``total`` is a LOWER bound and is flagged
-    ``complete=False``. Bands are weighted by census population within the band,
-    so a band is not the unweighted mean of its single-year cells.
+    The implied `eoh_weight`, and the reason it is reported rather than adopted: every
+    band containing an age below :data:`SELF_MAINTENANCE_MIN_AGE` has an unmeasured
+    component, so its ``total`` is a LOWER bound and is flagged ``complete=False``.
+    Census population within the band weights each band, so a band is not the unweighted
+    mean of its single-year cells.
     """
     profile = personal_profile(year)
     census = _census()
@@ -530,7 +529,7 @@ def passive_measured_ages() -> tuple[int, int]:
 
 
 def coverage() -> tuple[dict[str, str], ...]:
-    """Care that could not be attributed, with the reason — never costed as zero."""
+    """Care the module could not attribute, with the reason, never costed as zero."""
     with _COVERAGE_FILE.open(newline="") as fh:
         return tuple(dict(r) for r in csv.DictReader(fh))
 
@@ -550,17 +549,17 @@ def curve_knots(
     derivation would use — but an unexercised accessor asserting a mirror that
     does not exist is worse than an unexercised accessor.
 
-    Three series, kept SEPARATE because they are
-    measured on different bases and one of them stops at 12:
+    Three series, kept SEPARATE because each has its own measurement basis and one of
+    them stops at 12:
 
         active        primary care from a co-resident, all ages
         passive       secondary childcare from a co-resident, ages 0–12 only
         elder_nonhh   eldercare delivered to NON-household recipients
 
-    ``elder_nonhh`` excludes household recipients ON PURPOSE. Care for a
-    co-resident elderly person is already in ``active`` as a primary care
-    activity, so adding the unfiltered module route would count it twice. The
-    two streams as shipped are disjoint and additive.
+    ``elder_nonhh`` excludes household recipients ON PURPOSE. Care for a co-resident
+    elderly person is already in ``active`` as a primary care activity. Adding the
+    unfiltered module route would count it twice. The two streams as shipped are
+    disjoint and additive.
 
     Absolute minutes rather than a normalised index: the numbers stay directly
     checkable against the extract, and the choice of numeraire is then made once

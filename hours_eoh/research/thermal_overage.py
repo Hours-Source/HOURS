@@ -27,34 +27,32 @@ framework calls honest (handoff 2.0 §4.2) — the gain saturates at (1−r)·λ
 and the forcing drops out of it entirely, so it reports the chosen threshold
 rather than the carbon. The overage stays a function of F everywhere.
 
-WHY EQUILIBRIUM (handoff 2.0 §10.3). λ·ΔT is the forcing that yields ΔT *at
-steady state*, and present forcing has already committed 2.805 K against 1.23 K
-delivered. Keeping the equilibrium frame is what makes the overage a STOCK to be
-drawn down rather than a FLOW to be slowed: it counts warming already bought and
-not yet delivered. A transient framing would hide ~964 TW of it. This is the same
-logic that makes carbon budgets cumulative, and it is a deliberate choice, not
-an artifact — see `pipeline_delta_t` on every report.
+WHY EQUILIBRIUM (handoff 2.0 §10.3). λ·ΔT is the forcing that yields ΔT *at steady
+state*, and present forcing has already committed 2.805 K against 1.23 K delivered. The
+equilibrium frame makes the overage a STOCK to draw down, not a FLOW to slow: it counts
+warming already bought and not yet delivered. A transient framing would hide ~964 TW of
+it. This is the same logic that makes carbon budgets cumulative, and it is a deliberate
+choice, not an artifact — see `pipeline_delta_t` on every report.
 
-BASIS (handoff 2.0 §10.1). The overage uses TOTAL ERF per C4 — natural forcing
-consumes habitability regardless of cause. The REACHABLE target is bounded by
-anthropogenic ERF, because 0.262 W·m⁻² of natural forcing is a floor labor
-cannot go below. The two bases do different jobs here rather than competing,
-which is the argument for splitting them.
+BASIS (handoff 2.0 §10.1). The overage uses TOTAL ERF per C4 — natural forcing consumes
+habitability regardless of cause. Anthropogenic ERF bounds the REACHABLE target, because
+0.262 W·m⁻² of natural forcing is a floor labour cannot go below. The two bases do
+different jobs here rather than competing, which is the argument for splitting them.
 
-ADVISORY ONLY. Nothing here generates EOH or mints TEH. Converting O to
-obligation needs ι_drawdown (J per EOH of removal labor) and must clear the
-fiscal solvency gate first — the overage could swamp the ecological domain,
-whose baseline is ~610K h/yr at population 1M, and ecological allocation is a
-co-equal Trust obligation. Gate before wiring.
+ADVISORY ONLY. Nothing here generates EOH or mints TEH. Converting O to obligation needs
+ι_drawdown (J per EOH of removal labor) and must clear the fiscal solvency gate first —
+the overage could swamp the ecological domain, whose baseline was then ~610K h/yr at
+population 1M (empty by default under the Phase 4e/4f partition since), and ecological
+allocation is a co-equal Trust obligation. Gate before wiring.
 
-OPEN — the κ feedback, and it is F8. Drawdown powered at κ > 0 adds to Φ while
-the forcing falls. Rough arithmetic puts the removal energy for the 2 K case at
-the same order as the overage it closes, so a fossil- or nuclear-powered
-drawdown may not converge. Because the energy is transient and the forcing
-reduction permanent this is not a fixed point but a PATH question: does the
-program's own thermal load breach the threshold during the program? That is F8
-("steerable by τ yet unable to steer — the maneuver breaches the wall"), made
-concrete. Needs the multi-period engine (P5); not modelled here.
+OPEN — the κ feedback, and it is F8. Drawdown powered at κ > 0 adds to Φ while the
+forcing falls. Rough arithmetic puts the removal energy for the 2 K case at the same
+order as the overage it closes. So a fossil- or nuclear-powered drawdown may not
+converge. Because the energy is transient and the forcing reduction permanent this is
+not a fixed point but a PATH question: does the program's own thermal load breach the
+threshold during the program? That is F8 ("steerable by τ yet unable to steer — the
+maneuver breaches the wall"), made concrete. Needs the multi-period engine (P5); not
+modelled here.
 
 Layer: research/ — experimental, unstable API, not imported by core/ or
 scenarios/. Reuses the measured Φ from research/thermal_path_c.py.
@@ -114,9 +112,9 @@ def phi_at_epsilon(
     it an under-estimate. It is not a prediction; it is the ε-axis the overage
     needs in order to be arc-testable.
 
-    Inherits the §10.2 problem: `eps_reference` is a CHOSEN Tier D constant
-    (0.40 = arc midpoint), so Φ(ε) is proportional to a number nobody measured.
-    Where a result can be stated as a ratio, prefer the ratio.
+    Inherits the §10.2 problem: `eps_reference` is a CHOSEN Tier D constant (0.40 = arc
+    midpoint), so Φ(ε) is proportional to a number nobody measured. Where a ratio can
+    state a result, prefer the ratio.
 
     units: watts. ε-behavior: Φ(0) = 0 (no automation, no machine dissipation);
     rises linearly; finite and well-defined at ε → 1.
@@ -179,8 +177,10 @@ def thermal_overage(
         delta_t_max: assessed habitability threshold (K, GMST basis — convert
             from land TXx by dividing by THERMAL_TXX_PER_GMST, per C6).
         phi_w: net-additive dissipation (W); defaults to the measured world Φ.
-        lam: climate feedback parameter (W·m⁻²·K⁻¹). Tier C — the budget spans
-            6.5× across its plausible range (§10.4); pair it with the frame.
+        lam: climate feedback parameter (W·m⁻²·K⁻¹). Tier C, with a budget that spans
+            several-fold across its plausible range (§10.4;
+            `thermal_lambda.lambda_sensitivity` gives the ratio at a threshold); pair it
+            with the frame.
         f_total: total ERF (W·m⁻²) — total, not anthropogenic, per C4.
         a_earth: Earth surface area (m²).
         observed_delta_t: measured GMST anomaly (K), for the pipeline term.
@@ -277,8 +277,8 @@ def post_decarbonization_ceiling(
     eps_reference: float = THERMAL_EPS_CURRENT,
 ) -> dict:
     """
-    The automation ceiling once forcing has been drawn down to its natural floor
-    — the sharpest available statement that the ε ceiling is carbon-determined.
+    The automation ceiling once drawdown has brought forcing to its natural floor: the
+    sharpest available statement that carbon determines the ε ceiling.
 
         ε_max^post = (1 − r) · ( λ·ΔT_max − F_natural ) · A_earth / Φ(ε=1)
 
@@ -291,9 +291,9 @@ def post_decarbonization_ceiling(
     This is F4 ("fusion relieves carbon not heat") with a number on "later", and
     the sequencing claim it licenses: carbon now, heat at ~20×.
 
-    Both the allocated (reserve applied) and gross (r = 0) figures are returned,
-    because the commons reserve is a governance holdback rather than physics and
-    the two answer different questions.
+    The function returns both the allocated (reserve applied) and gross (r = 0) figures.
+    The commons reserve is a governance holdback, not physics, and the two answer
+    different questions.
 
     units: dimensionless ε. ε-behavior: Φ(ε=1) is the denominator, so the result
     is a multiple of full automation at present intensity — the C1 caveat

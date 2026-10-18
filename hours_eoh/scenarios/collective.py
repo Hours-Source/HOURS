@@ -15,19 +15,18 @@ between them:
     eco_eoh_override  <- pipeline["eoh_by_domain"]["ecological"]
     guf_revenue       <- compute_collective_guf(parcels)["guf_net_inflow"]
 
-Every one is a place the frame can come apart. It has come apart six times, most
-recently at **92.8× inside the guide's own worked example** — the pipeline
-resolving the ecological area from population while the fiscal layer took the
-whole contiguous US. This function makes that arithmetic unavailable to get
-wrong: state the frame once, and the three calls cannot disagree.
+Every one is a place the frame can come apart. When this was written it had come apart
+six times, most recently at **92.8× inside the guide's own worked example** — the
+pipeline resolving the ecological area from population while the fiscal layer took the
+whole contiguous US. This function makes that arithmetic unavailable to get wrong: state
+the frame once, and the three calls cannot disagree.
 
-WHY IT LIVES IN `scenarios/` AND NOT IN `core/`. `core/fiscal` needs a ground-use
-fee it is owed, and `land/` imports `core/`, so core cannot ask for it. The
-inversion is not worth having: moving GUF into core would assert that land
-tenure is physics, and `land/` is a separate layer precisely because it is not.
-`scenarios/` may import `core/` AND `land/`, so the assembly belongs here — one
-layer up, owning both sides. That is the layer rule working as designed rather
-than being worked around.
+WHY IT LIVES IN `scenarios/` AND NOT IN `core/`. `core/fiscal` needs the ground-use fee
+that collectives owe it, and `land/` imports `core/`, so core cannot ask for it. The
+inversion is not worth having. Moving GUF into core would assert that land tenure is
+physics, and `land/` is a separate layer precisely because it is not. `scenarios/` may
+import `core/` AND `land/`, so the assembly belongs here — one layer up, owning both
+sides. That is the layer rule working as designed, not a workaround.
 
 WHY IT DOES NOT USE `research/exchange.CollectiveFrame`. `research/` is not
 importable by `scenarios/` (it is experimental and explicitly not depended on).
@@ -40,12 +39,12 @@ written; land is therefore an extra argument — and so, since 2026-10-14, is
 the age mix (`age_fractions`) — which a state may also carry since the same
 day, in which case it need not be repeated.
 
-THE PRECEDENT THIS FOLLOWS, and the reason it is a single owned entry rather
-than another scenario: `scenarios/guf_stress.guf_fiscal_integration` was already
-doing this assembly, and had drifted — folding the fee into the levy so it was
-invisible in the very block meant to show it, and carrying its own copy of the
-fee/levy ratio. An assembly point nobody owns drifts from the primitives it
-assembles. This one is pinned against those primitives directly.
+THE PRECEDENT THIS FOLLOWS, and the reason it is a single owned entry rather than
+another scenario: `scenarios/guf_stress.guf_fiscal_integration` was already doing this
+assembly, and had drifted — folding the fee into the levy so it was invisible in the
+very block meant to show it, and carrying its own copy of the fee/levy ratio. An
+assembly point nobody owns drifts from the primitives it assembles. Tests pin this one
+against those primitives directly.
 """
 
 from __future__ import annotations
@@ -135,32 +134,30 @@ def collective_snapshot(
         guf      = compute_collective_guf(parcels, ε)       → fee revenue
         fiscal   = fiscal_snapshot(state, land, guf)        → levies, Trust
 
-    THE THREE HAND-PASSED VALUES ARE PASSED HERE, BY VALUE, so no caller can
-    forget one:
+    THIS FUNCTION PASSES THE THREE HAND-PASSED VALUES, BY VALUE, so no caller can forget
+    one:
 
       * `labor_income` is the pipeline's `teh_created` — what registered human
         labour actually earned this period, not an assumed income.
-      * `eco_eoh_override` is the pipeline's ecological obligation, so the
-        fiscal layer sizes its allocation against the SAME number the pipeline
-        computed rather than resolving the frame a second time. This is the
+      * `eco_eoh_override` is the pipeline's ecological obligation. So the fiscal layer
+      sizes its allocation against the SAME number the pipeline computed, and does not
+      resolve the frame a second time. This is the
         92.8× defect made structurally impossible.
-      * `guf_revenue` is the fee the parcel inventory actually raises, so the
-        obligation the Phase 4 partition moved to GUF arrives where it was sent.
+      * `guf_revenue` is the fee the parcel inventory actually raises, so the obligation
+      the Phase 4 partition moved to GUF arrives where the partition sent it.
 
-    THE LAND FRAME COMES FROM THE PARCELS WHEN THEY ARE GIVEN. One inventory
-    both pays the fee and sizes the ecological obligation, so the two cannot
-    describe different jurisdictions. Supplying `land_hectares` alongside
-    `parcels` is REFUSED rather than silently resolved — the same discipline
-    `total_eoh` applies to base-vs-area and `fiscal_snapshot` to state-vs-loose:
-    an area the caller believes is in force and is not is the
-    silently-ignored-parameter failure this repo keeps finding.
+    THE LAND FRAME COMES FROM THE PARCELS WHEN THE CALLER GIVES THEM. One inventory both
+    pays the fee and sizes the ecological obligation, so the two cannot describe
+    different jurisdictions. Supplying `land_hectares` alongside `parcels` is REFUSED
+    rather than silently resolved — the same discipline `total_eoh` applies to
+    base-vs-area and `fiscal_snapshot` to state-vs-loose: an area the caller believes is
+    in force and is not is the silently-ignored-parameter failure this repo keeps
+    finding.
 
-    ε-behaviour
-    -----------
-    ε is read from the state, so it is the same value in all three calls. At
-    ε=0 registration is minimal and `teh_created` is small; at ε=0.99 human
-    labour approaches zero while GUF revenue does not — which is the
-    substitution the partition is about, and `trust["guf_over_levy"]` reports it.
+    ε-behaviour ----------- The function reads ε from the state, so all three calls see
+    the same value. At ε=0 registration is minimal and `teh_created` is small; at ε=0.99
+    human labour approaches zero while GUF revenue does not — which is the substitution
+    the partition is about, and `trust["guf_over_levy"]` reports it.
 
     Args:
         state: An economy state — `core.simulation.make_economy_state()` or any
@@ -168,7 +165,7 @@ def collective_snapshot(
             `capital_age_ratio`, `trust_balance`, `ecosystem_health`. Must also
             carry `labor_income_teh`, which this function overwrites with the
             pipeline's own figure (see above).
-        land_hectares: Stewarded area. Omit when `parcels` is given.
+        land_hectares: Stewarded area. Omit it when you give `parcels`.
         parcels: GUF parcel inventory. When given, it supplies BOTH the fee and
             the land area. Omit for a collective with no assessed land — GUF
             revenue is then 0.0 and the snapshot says so.
@@ -186,12 +183,12 @@ def collective_snapshot(
             `make_economy_state` documents for per-period inputs.
         rationing: Forwarded to the pipeline — which obligation a labour
             shortfall defers first. `"survival_first"` (default) or
-            `"pro_rata"`. Inert unless `available_labor_eoh` is supplied.
+            `"pro_rata"`. Inert unless the caller supplies `available_labor_eoh`.
         age_fractions: The population's age mix, `{group: fraction}` over
             `AGE_GROUPS`. Reaches BOTH halves — the pipeline's personal
             obligation (`age_distribution`) and the fiscal layer's guarantee.
-            A state built with `make_economy_state(age_fractions=…)` carries
-            it and need not repeat it; a DIFFERENT value beside it is refused.
+            A state built with `make_economy_state(age_fractions=…)` carries it and need
+            not repeat it; the function refuses a DIFFERENT value beside it.
             Omitted from both, both halves read the shipped mix.
         guf_sample: A parcel SAMPLE that prices the fee when the frame has no
             parcel inventory, only a count (2026-10-14, author: the entry
@@ -199,25 +196,25 @@ def collective_snapshot(
             `guf_parcel_count` (`land.collective.sample_scaled_guf`); the LAND
             still comes from `land_hectares`, never from the sample. Refused
             beside `parcels`, which already carry both.
-        guf_parcel_count: The parcels the sample's mean is scaled to. None →
+        guf_parcel_count: The parcels that scale the sample's mean. None →
             `land.collective.default_parcel_count(population)`, stationarity's
             default. WITHOUT a sample (2026-10-15, author) it prices the fee's
             measured per-parcel half, `per_parcel_guf` — the area part NOT
             SUPPLIED, so the fee is a lower bound. Refused beside `parcels`.
-        guf_cap: What of the ASSESSED fee is COLLECTED (2026-10-15, author:
+        guf_cap: How much of the ASSESSED fee the Trust COLLECTS (2026-10-15, author:
             "you can't pay what isn't minted"). `"payable"` (default) collects
             at most the mint less the levy and D3 consumption —
             `scenarios.stationarity`'s rule, so both read one ceiling; a float
             caps at that share of the mint; None collects the whole assessed
-            fee, the pre-2026-10-15 arithmetic. The rest is REPORTED as
-            `land_fee["unpaid"]`, never booked: a fee no one can pay is a
-            shortfall on the land a collective claims, not Trust revenue.
+            fee, the pre-2026-10-15 arithmetic. The report gives the rest as
+            `land_fee["unpaid"]` and never books it: a fee no one can pay is a shortfall
+            on the land a collective claims, not Trust revenue.
             The ceiling is an UPPER bound on collection — it is the whole
             collective's disposable mint, and only private holders pay.
         **fiscal_kwargs: Forwarded to `fiscal_snapshot` — policy only (levy
-            rates, dividend split). Frame and state quantities are refused; a
-            quantity the pipeline also takes (`SHARED_WITH_PIPELINE`) is
-            forwarded to BOTH, never to one.
+            rates, dividend split). The function refuses frame and state quantities, and
+            forwards a quantity the pipeline also takes (`SHARED_WITH_PIPELINE`) to
+            BOTH, never to one.
 
     Returns:
         dict with `pipeline`, `fiscal`, `guf`, `land_fee` (assessed /

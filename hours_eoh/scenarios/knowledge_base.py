@@ -1,9 +1,9 @@
 """
 KNOWLEDGE_EOH_BASE from the measured O*NET/BLS training stock — Block K-II.
 
-REPORTING ONLY. Nothing here changes a default, and `KNOWLEDGE_EOH_BASE` is
-untouched. This module produces the number and its band so the adoption decision
-(Block K-IV) can be made against evidence rather than against a docstring.
+REPORTING ONLY. Nothing here changes a default or touches `KNOWLEDGE_EOH_BASE`. This
+module produces the number and its band so the adoption decision (Block K-IV) can be
+made against evidence rather than against a docstring.
 
 What this bridges
 -----------------
@@ -55,12 +55,13 @@ Three routes to ε_ref (the knowledge-base closure note §4):
   1. capital inventory  → ε ≈ 0.78–1.00, SATURATED and unusable; see Finding A
   2. labour residual    → ε = 0.391, corroborates the standing 0.40, no new data
   3. the chosen 0.40
-Routes 2 and 3 agree; route 1 disagrees violently and that disagreement is a
-finding about the capital profiles, not about knowledge.
+Routes 2 and 3 agreed when the closure note was written; route 1 disagrees violently,
+and that disagreement is a finding about the capital profiles, not about knowledge. The
+figures are the note's. Since Finding E the shipped anchor is route 2's fixed point
+(`epsilon_ref_fixed_point`, ε* 0.508 on 2026-10-18), not the chosen 0.40.
 
-The kbs·cpu·d response is never reimplemented here — it is obtained by calling
-`knowledge_eoh` itself at unit base, so this module cannot drift from the
-function it is calibrating.
+This module never reimplements the kbs·cpu·d response. It calls `knowledge_eoh` itself
+at unit base, so it cannot drift from the function it calibrates.
 
 Reference: the knowledge-base closure note; Block K-II.
 """
@@ -124,7 +125,8 @@ REFERENCE_POPULATION_US: float = US_REFERENCE_POPULATION
 TRANSMISSION_WORKING_LIFE_YEARS: float = SKILL_WORKING_LIFE_YEARS
 
 # The two documented employment-to-population routes (§1 of the closure note).
-# Their 1.20× spread is the measurement uncertainty; compare ε_ref's 8.5×.
+# Their spread (1.22× on 2026-10-18) is the measurement uncertainty; compare ε_ref's
+# 7.1× (`knowledge_base_band`).
 _EP_REGISTRY = "registry"   # registry employment ÷ coverage ÷ reference population
 _EP_REPO = "repo"           # the repo's own working-age fraction, at full employment
 
@@ -272,7 +274,7 @@ def knowledge_base_from_registry(
 
         base_rate = flow_measured · P_ref / [ kbs(ε_ref) · cpu(ε_ref) · d ]
 
-    NOT ADOPTED. This reports what the constant would be; nothing is changed.
+    NOT ADOPTED. This reports what the constant would be and changes nothing.
 
     units: base_rate in hours (a STOCK at `KNOWLEDGE_REFERENCE_POPULATION`).
     ε-behavior: defined for ε_ref ∈ [0, 0.99]. The result FALLS steeply as ε_ref
@@ -280,8 +282,9 @@ def knowledge_base_from_registry(
     smaller underlying corpus, because kbs and cpu have already multiplied it up.
 
     Args:
-        epsilon_ref: The automation level the measured workforce is taken to sit
-            at. THE DOMINANT UNCERTAINTY — 8.5× across [0.2, 0.6].
+        epsilon_ref: The automation level at which the measured workforce sits, by
+            assumption. THE DOMINANT UNCERTAINTY: 7.1× across [0.2, 0.6]
+            (`knowledge_base_band`, 2026-10-18).
         route: employment-to-population route.
         working_life_years: transmission horizon.
         decay: renewal rate used consistently on both sides of the derivation, so
@@ -353,10 +356,10 @@ def knowledge_base_band(
     The band over ε_ref and per-capita route — the honest shipped form.
 
     THE HEADLINE FINDING lives in the two spread numbers this returns:
-    `epsilon_ref_spread` ≈ 7.13 against `route_spread` ≈ 1.20. The measurement is
-    well determined; the epoch it is anchored to is not. Any single-value quote
-    of `KNOWLEDGE_EOH_BASE` from this route is quoting the anchoring assumption,
-    not the data. Both spreads are decay-invariant.
+    `epsilon_ref_spread` ≈ 7.13 against `route_spread` ≈ 1.20. The measurement is well
+    determined; the epoch it anchors to is not. Any single-value quote of
+    `KNOWLEDGE_EOH_BASE` from this route is quoting the anchoring assumption, not the
+    data. Both spreads are decay-invariant.
 
     units: base_rate in hours; spreads dimensionless.
     ε-behavior: covers ε_ref ∈ [0.2, 0.6] by default — the same band
@@ -432,16 +435,16 @@ def renewal_doctrine_comparison(
 
     Three doctrines:
         "shipped"       d = SKILL_DECAY_RATE (0.10) — the unexamined placeholder
-        "split"         d = transmission + CPD (0.0277) — Block K-III
+        "split"         d = transmission + CPD (0.0294) — Block K-III
         "transmission"  d = transmission alone (0.025) — the measurable floor
 
-    THE CREDIBILITY TEST, and it is the reason the split was worth doing: each
-    doctrine implies a number of hours per worker per year spent renewing
-    knowledge, and that number is checkable against a work-year. The shipped
-    0.10 implies **52.9% of the H_REF 2,080 h work-year, every year, forever**.
-    The split implies 15.2%. Nothing in any time-use or training series supports
-    the former. This is reported, not silently corrected — `SKILL_DECAY_RATE` is
-    still the default everywhere.
+    THE CREDIBILITY TEST, and it is the reason the split was worth doing: each doctrine
+    implies a number of hours per worker per year spent renewing knowledge, and that
+    number is checkable against a work-year. The shipped 0.10 implies **52.9% of the
+    H_REF 2,080 h work-year, every year, forever**. The split implies 15.5%
+    (2026-10-18). Nothing in any time-use or training series supports the former. Since
+    Block K-IV `knowledge_eoh` defaults to the transmission rate, and `SKILL_DECAY_RATE`
+    is the retired baseline this compares against.
 
     units: hours/person·yr, hours/worker·yr, and dimensionless shares.
     ε-behavior: evaluated across KEY_EPSILONS; full arc safe.
@@ -455,11 +458,11 @@ def renewal_doctrine_comparison(
         work-year share, credible flag), "base_rate", "embodied_stock_per_capita",
         and "verdict".
 
-    Worked example (ε_ref = 0.40, registry): base_rate 4.901e8 — the embodied
-    stock, 4× the pre-K-III figure. Knowledge at ε=0.40 reads 550.1 h/person·yr
-    under the shipped rate, 152.4 under the split, 137.5 under transmission
-    alone — the last reproducing K-II's arc exactly, which is the continuity
-    check that the decay-free fix did not move the measurement.
+    Worked example (ε_ref = 0.40, registry, 2026-10-18): base_rate 4.829e8, the embodied
+    stock (4× the pre-K-III figure when written). Knowledge at ε=0.40 reads 542.0
+    h/person·yr under the retired 0.10, 159.2 under the split and 144.5 under
+    transmission alone. When written, the last reproduced K-II's arc exactly: the
+    continuity check that the decay-free fix did not move the measurement.
     """
     derived = knowledge_base_from_registry(epsilon_ref, route)
     base_rate = derived["base_rate"]
@@ -523,10 +526,11 @@ def domain_share_projection(
     derived knowledge figure into the shipped `total_eoh` breakdown and recomputes
     shares, leaving every other domain exactly as calibrated.
 
-    This is the payoff test. `knowledge_eoh`'s own reference text says human labor
-    at ε→1 is "almost entirely care, judgment, and knowledge maintenance"; at
-    shipped calibration the domain is 0.005% of total EOH. The projection shows
-    whether the derived base delivers the behaviour the model already asserts.
+    This is the payoff test. `knowledge_eoh`'s own reference text says human labor at
+    ε→1 is "almost entirely care, judgment, and knowledge maintenance"; when this was
+    written the domain was 0.005% of total EOH (5.7% at ε 0.40 since the K-IV adoption).
+    The projection shows whether the derived base delivers the behaviour the model
+    already asserts.
 
     units: hours/year and dimensionless shares.
     ε-behavior: evaluated at each ε in `epsilons`, full arc safe.
@@ -725,10 +729,10 @@ def epsilon_ref_fixed_point(
 
         base(ε_ref)  ──►  total_eoh  ──►  ε_residual(observed)  ──►  ε_ref …
 
-    Iterated to a fixed point ε* where the anchor the base is derived AT equals
-    the anchor the labour residual IMPLIES given that base. Damped fixed-point
-    iteration; the map is a contraction over the arc's interior because the base
-    falls in ε_ref while the residual rises in the base.
+    The loop iterates to a fixed point ε*, where the anchor the base is derived AT
+    equals the anchor the labour residual IMPLIES for that base. Damped fixed-point
+    iteration; the map is a contraction over the arc's interior because the base falls
+    in ε_ref while the residual rises in the base.
 
     units: ε dimensionless; base_rate in hours at KNOWLEDGE_REFERENCE_POPULATION.
 
@@ -741,17 +745,17 @@ def epsilon_ref_fixed_point(
             paid-labour reading is the one self-consistent with
             `personal_eoh_registration_share(0)` being near-zero.
         route: per-capita conversion route for the measured stock.
-        epsilon_start: initial anchor. The fixed point does not depend on it;
-            the field is kept so the path can be inspected.
+        epsilon_start: initial anchor. The fixed point does not depend on it; the field
+            stays so a reader can inspect the path.
 
     Returns:
         dict with `epsilon_fixed_point`, `base_rate`, `shipped_base_rate`,
         `epsilon_shipped_anchor`, `ratio_to_shipped`, `converged`, `iterations`,
         `path`, and a `note`.
 
-    Worked example: at `personal_floor.paid_labour_anchor()` (US paid labour, 2025) the loop settles
-    away from the shipped 0.40 anchor — the distance IS Finding E, and the base
-    that comes with it is what a self-consistent derivation gives.
+    Worked example: at `personal_floor.paid_labour_anchor()` (US paid labour, 2025) the
+    loop settles at ε* 0.508 (2026-10-18), away from the 0.40 the base was once anchored
+    at. That distance was Finding E, and the shipped base is now this fixed point's.
     """
     epsilon = float(epsilon_start)
     path: list[dict] = []

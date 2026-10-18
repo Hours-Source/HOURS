@@ -15,11 +15,11 @@ The repo has three neighbouring questions and none of them is this one.
 against ceilings. `core/autarky.overbuild_check` asks whether one collective at
 one capital stock is worth being in.
 
-The compass is different and simpler: **at this ε, with no further automation
-ever arriving, can the system stay here indefinitely?** A currency that must
-keep growing to avoid collapse has a ceiling that eventually fails it. One that
-is stationary at every point on its arc does not — and whether post-scarcity is
-reachable becomes a question about ambition rather than about survival.
+The compass is different and simpler: **at this ε, with no further automation ever
+arriving, can the system stay here indefinitely?** A currency that must keep growing to
+avoid collapse has a ceiling that eventually fails it. One that is stationary at every
+point on its arc does not, and whether post-scarcity is reachable becomes a question
+about ambition, not survival.
 
 THE THREE CONDITIONS, and they are not the same question asked three ways:
 
@@ -36,8 +36,8 @@ THE THREE CONDITIONS, and they are not the same question asked three ways:
                           obligation while your bridges rot**, which is why this
                           is separate from (1).
 
-Conditions 1 and 3 are ordered by construction: 3 implies 1. They are reported
-separately anyway, because WHICH one fails says what to do about it.
+Construction orders conditions 1 and 3: 3 implies 1. The module reports them separately
+anyway, because WHICH one fails says what to do about it.
 
 EVERY VERDICT STATES ITS STANDARD, and that is not decoration. This module
 shipped for one commit evaluating conditions 1 and 3 at `collapsed` and
@@ -48,14 +48,13 @@ outright: it is F_a·(1 − a), already abated, and `core/autarky` will not acce
 an abated value as the autarky reference because a standard with the apparatus
 baked into it cannot be the counterfactual FOR the apparatus.
 
-HOW THIS RELATES TO `corridor`, stated so the two do not read as contradicting.
-Corridor asks which ε are SURVIVABLE; this asks where the system could STAND
-STILL, which additionally requires the delivery cost to be covered. Stability is
-therefore strictly stronger at the same standard. The levels are NOT written
-here: the sufficiency floor has moved six times (the last, 2026-09-15, when this
-module moved to the adopted per-component split), and a table in a docstring
-outlived the first five. Run `band_by_standard()` beside `eoh corridor band`;
-the levels are pinned in `tests/test_measured_capacity.py`.
+HOW THIS RELATES TO `corridor`, stated so the two do not read as contradicting. Corridor
+asks which ε are SURVIVABLE; this asks where the system could STAND STILL, which also
+requires that something covers the delivery cost. Stability is therefore strictly
+stronger at the same standard. This docstring writes NO levels. The sufficiency floor
+moved six times by 2026-09-15, when this module moved to the adopted per-component
+split, and a table in a docstring outlived the first five. Run `band_by_standard()`
+beside `eoh corridor band`; the levels are pinned in `tests/test_measured_capacity.py`.
 
 THE HUMAN SHARE IS THE ADOPTED SPLIT (2026-09-15). Until then `stability_at`
 multiplied both accounts by a uniform `1 − ε`, while the adopted default keeps
@@ -65,10 +64,10 @@ put the sufficiency floor at 0.29; under the adopted split the personal part of
 the obligation carries `personal_human_fraction(ε)` and everything else keeps
 `1 − ε`, exactly as `eoh_fulfillment.human_eoh_per_domain` splits the domains.
 
-WHAT THIS DOES NOT DO. It takes no charter decision and moves no number. It does
-not assert that the stationary band is where the system SHOULD sit — a society
-may rationally accept a non-stationary point while it builds through one. It
-reports where standing still is possible.
+WHAT THIS DOES NOT DO. It takes no charter decision and moves no number. It does not
+assert that the stationary band is where the system SHOULD sit. A society may rationally
+accept a non-stationary point while it builds through one. It reports where standing
+still is possible.
 
 Layer: scenarios/ — imports core/ and scenarios/; imported by neither.
 """
@@ -184,10 +183,10 @@ def stability_at(
     so the two conditions bind at opposite ends. That is the point of reporting
     them separately.
 
-    Worked example (canonical, ε=0.40, sufficiency, 2e9 TEH over 1e6 people):
-    supply 1,200.0 h/person·yr against an obligation and a delivery cost that
-    the arc table reports; the three flags are returned separately so which one
-    fails is legible.
+    Worked example (canonical, ε=0.40, sufficiency, 2e9 TEH over 1e6 people): supply
+    1,523.9 h/person·yr (2026-10-18) against an obligation and a delivery cost that the
+    arc table reports; the three flags are returned separately so which one fails is
+    legible.
 
     Args:
         epsilon: Automation level [0.0, 0.99].
@@ -376,10 +375,10 @@ def stationary_band(
 
     units: dimensionless ε.
 
-    A CONTIGUOUS BAND IS NOT ASSUMED. If the conditions fail in the middle and
-    hold at both ends the band is reported as non-contiguous rather than
-    silently spanned — the same discipline `guf_over_levy` needed when a ratio
-    assumed monotone turned out to be U-shaped.
+    THE FUNCTION DOES NOT ASSUME A CONTIGUOUS BAND. If the conditions fail in the middle
+    and hold at both ends the band is reported as non-contiguous rather than silently
+    spanned — the same discipline `guf_over_levy` needed when a ratio assumed monotone
+    turned out to be U-shaped.
 
     THE BAND IS NOT A TARGET. A society may rationally sit outside it while
     building through; this reports where standing still is possible, not where

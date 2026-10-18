@@ -29,16 +29,16 @@ computed on the superseded constant and is withdrawn: post-correction the global
 ceiling binds at 2.2× present dissipation at ΔT_lo = 3.0 K, rising to 13.4× at
 4.0 K. The correction tightened every ceiling and enlarged F3.
 
-Everything here is **advisory**: it computes bounds and reports them; it generates
-NO obligation and mints NO TEH (the ledger identity is untouched). Obligation
-generation (E13–E18) is a later phase, gated on the §10.2 robustness test.
+Everything here is **advisory**: it computes bounds and reports them. It generates NO
+obligation and mints NO TEH, so the ledger identity stands. Obligation generation
+(E13–E18) is a later phase, gated on the §10.2 robustness test.
 
-The floor bound is retained (conditional). Its epistemics (handoff §13.1 path D):
-it uses thermodynamic FLOORS ι_floor ≤ real ι, and larger ι gives a smaller ε_max,
-so the floor-based value OVERSTATES ε_max. Therefore a floor bound < 1 would be
-conclusive; at current dissipation it comes back ≥ 1 (INCONCLUSIVE), which the
-measured Path C run confirms globally. The measured, binding thermal instrument is
-collective utilization U (research/thermal_path_c.py, F11), not this global bound.
+The floor bound stays (conditional). Its epistemics (handoff §13.1 path D): it uses
+thermodynamic FLOORS ι_floor ≤ real ι, and larger ι gives a smaller ε_max, so the
+floor-based value OVERSTATES ε_max. Therefore a floor bound < 1 would be conclusive; at
+current dissipation it comes back ≥ 1 (INCONCLUSIVE), which the measured Path C run
+confirms globally. The measured, binding thermal instrument is collective utilization U
+(research/thermal_path_c.py, F11), not this global bound.
 
 Layer: research/ — experimental, unstable API, not imported by core/ (the same
 discipline as research/contestability.py). Graduates to core/thermal.py when the
@@ -94,10 +94,10 @@ def residual_thermal_forcing(
 
         F*_th = λ · ΔT_lo − F_GHG − F_alb
 
-    The temperature allowance λ·ΔT_lo is shared by greenhouse, albedo, and direct
-    thermal forcing (one budget, not two — handoff §2). What greenhouse and albedo
-    already claim is subtracted; the residual is the direct-thermal headroom. May
-    be negative (budget already exhausted by other forcing) — the caller floors it.
+    Greenhouse, albedo and direct thermal forcing share the temperature allowance
+    λ·ΔT_lo (one budget, not two; handoff §2). The function subtracts what greenhouse
+    and albedo already claim; the residual is the direct-thermal headroom. May be
+    negative (budget already exhausted by other forcing) — the caller floors it.
 
     This is the coupling behind F3: cutting F_GHG raises F*_th, so decarbonization
     RAISES the automation ceiling — restoration and liberation are one project.
@@ -125,8 +125,8 @@ def planetary_budget(
 
         Φ*_planet = max(0, F*_th) · A_earth
 
-    Zero means the temperature allowance is fully consumed by greenhouse/albedo
-    forcing before any direct waste heat — the unbudgeted regime.
+    Zero means greenhouse and albedo forcing consume the whole temperature allowance
+    before any direct waste heat: the unbudgeted regime.
     """
     return max(0.0, residual_thermal_forcing(delta_t_lo, lam, f_ghg, f_alb)) * a_earth
 
@@ -145,8 +145,8 @@ def allocated_density(
 
         ψ* = (1 − r) · Φ*_planet / A_eff,total
 
-    r is the commons reserve held back from allocation. Zero when the budget is
-    exhausted (Φ*_planet = 0). a_eff_total must be positive.
+    r is the commons reserve held back from allocation. Zero when no budget remains
+    (Φ*_planet = 0). a_eff_total must be positive.
     """
     if a_eff_total <= 0.0:
         raise ValueError(f"a_eff_total must be positive, got {a_eff_total}")
@@ -254,7 +254,7 @@ def eoh_weighted_iota_floor(eoh_by_domain: dict[str, float]) -> float:
         ῑ_floor = Σ_d ι_floor,d · EOH_d / Σ_d EOH_d
 
     Uses only the four generating domains (personal, infrastructure, ecological,
-    knowledge); the 'total' and bookkeeping keys in a total_eoh() dict are ignored.
+    knowledge) and ignores the 'total' and bookkeeping keys in a total_eoh() dict.
     """
     num = 0.0
     den = 0.0
@@ -439,12 +439,12 @@ def ceiling_bound_sensitivity(
     is what §10.2 gates obligation on: if the sign is not robust, the extension is
     advisory-only.
 
-    The floor-based bound (path D) can only prove ε_max < 1; a bound ≥ 1 is
-    inconclusive (needs measured ι). So `all_inconclusive_when_budgeted = True`
-    is the expected honest result — it says the thermodynamic floor is too low to
-    bind automation, and the binding question needs the measured-ι ladder. The
-    measured Path C run confirmed exactly this globally, which is why F1/F2 are
-    demoted to conditional and F3 (`decarbonization_headroom`) is the P0 headline.
+    The floor-based bound (path D) can only prove ε_max < 1; a bound ≥ 1 is inconclusive
+    (needs measured ι). So `all_inconclusive_when_budgeted = True` is the expected
+    honest result — it says the thermodynamic floor is too low to bind automation, and
+    the binding question needs the measured-ι ladder. The measured Path C run confirmed
+    exactly this globally. That is why F1/F2 are now conditional and F3
+    (`decarbonization_headroom`) is the P0 headline.
     """
     cells: list[SensitivityCell] = []
     any_below = False
