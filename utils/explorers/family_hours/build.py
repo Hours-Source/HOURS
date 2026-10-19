@@ -11,11 +11,16 @@ Where each thing comes from (nothing on the page is a copy):
     every cost, rate, standard and tax rule   hours_eoh/reference/data/family_costs.json
     the yearly-pay-to-hourly divisor          hours_eoh.data.H_REF (40 h x 52 wk)
     the sources list and wage presets         generated from the same file
+    the site address printed on the image     site_url in mkdocs.yml + PAGE_PATH
+    the logo drawn on the image               docs/images/hourglass.svg (its path data)
+    the preview card a shared link shows      docs/images/family-hours-card.png, the page's
+                                              own image at the defaults (render_card.js)
 
 The build REFUSES to write a page when:
     - a value has no source, no read date, or no update cadence;
     - a link does not use https, or a value that must be a number is not one;
-    - the template does not hold the data placeholder exactly once.
+    - the template does not hold the data placeholder exactly once;
+    - the logo holds anything but plain paths (a script or a link, say).
 
 It REPORTS a value past its next update (`stale()`), and does not refuse it.
 The page then shows an older figure with its date, which is honest.
@@ -34,6 +39,8 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
+import xml.etree.ElementTree as ET
 import sys
 from pathlib import Path
 from typing import Any
@@ -47,6 +54,13 @@ from hours_eoh import data as D  # noqa: E402
 DATA = REPO_ROOT / "hours_eoh" / "reference" / "data" / "family_costs.json"
 TEMPLATE = Path(__file__).resolve().parent / "template.html"
 PLACEHOLDER = "/*DATA*/"
+MKDOCS = REPO_ROOT / "mkdocs.yml"
+# Where the docs publish the page. hooks/docs_explorers.py reads this path too.
+PAGE_PATH = "tools/family-hours/"
+LOGO = REPO_ROOT / "docs" / "images" / "hourglass.svg"
+CARD_PATH = "images/family-hours-card.png"
+# The template's head holds these once each; the build puts in the addresses.
+URL_TOKENS = ("__PAGE_URL__", "__CARD_URL__")
 
 # Days until a source with this cadence publishes again. A cadence not listed
 # here (chosen, rarely, by statute) never goes stale.
@@ -106,6 +120,42 @@ def stale(d: dict[str, Any], today: dt.date | None = None) -> list[str]:
     return out
 
 
+def site_url(mkdocs: Path = MKDOCS) -> str:
+    """The docs' site_url, with one closing slash."""
+    m = re.search(r"^site_url:\s*(\S+)\s*$", mkdocs.read_text(encoding="utf-8"), re.M)
+    if not m:
+        raise BuildError(f"{mkdocs.name} has no site_url")
+    return m.group(1).rstrip("/") + "/"
+
+
+def logo(path: Path = LOGO) -> dict[str, Any]:
+    """The logo's viewBox and path data, for the page to draw on its canvas.
+
+    The page draws the paths itself, so it loads no image file. An SVG can hold a
+    script or a link to another site, so the build accepts paths only.
+    """
+    root = ET.fromstring(path.read_text(encoding="utf-8"))
+    ns = "{http://www.w3.org/2000/svg}"
+    if root.tag != ns + "svg":
+        raise BuildError(f"{path.name} is not an SVG")
+    paths = []
+    for el in root.iter():
+        if el is root:
+            continue
+        if el.tag != ns + "path" or set(el.attrib) != {"d"}:
+            raise BuildError(f"{path.name}: only <path d=...> is allowed, found {el.tag}")
+        paths.append(el.attrib["d"])
+    box = [float(v) for v in root.attrib.get("viewBox", "").split()]
+    if len(box) != 4 or not paths:
+        raise BuildError(f"{path.name} needs a viewBox and at least one path")
+    return {"viewBox": box, "paths": paths}
+
+
+def page_url(mkdocs: Path = MKDOCS) -> str:
+    """The page's public address: the docs' site_url plus PAGE_PATH."""
+    return site_url(mkdocs) + PAGE_PATH
+
+
 def load_payload(path: Path = DATA) -> dict[str, Any]:
     """The page's data: the file's values, the derived ones computed, H_REF bound."""
     d = json.loads(path.read_text(encoding="utf-8"))
@@ -129,6 +179,8 @@ def load_payload(path: Path = DATA) -> dict[str, Any]:
     return {
         "defaults": defaults,
         "presets": presets,
+        "page_url": page_url(),
+        "logo": logo(),
         "hours_per_year": hours_per_year,
         "weeks_per_year": d["weeks_per_year"],
         "tax": d["tax"], "eitc": d["eitc"], "fha": d["fha"],
@@ -144,6 +196,12 @@ def build_html(template: Path = TEMPLATE, data: Path = DATA) -> str:
     html = template.read_text(encoding="utf-8")
     if html.count(PLACEHOLDER) != 1:
         raise BuildError(f"template must contain {PLACEHOLDER} exactly once")
+    if not (REPO_ROOT / "docs" / CARD_PATH).is_file():
+        raise BuildError(f"the preview card docs/{CARD_PATH} is missing")
+    for token, url in zip(URL_TOKENS, (page_url(), site_url() + CARD_PATH)):
+        if html.count(token) != 1:
+            raise BuildError(f"template must contain {token} exactly once")
+        html = html.replace(token, url)
     blob = json.dumps(load_payload(data), separators=(",", ":"),
                       ensure_ascii=False).replace("</", "<\\/")
     return html.replace(PLACEHOLDER, blob)

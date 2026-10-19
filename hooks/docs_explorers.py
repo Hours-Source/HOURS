@@ -38,7 +38,7 @@ log = logging.getLogger("mkdocs.hooks.docs_explorers")
 # Published path → builder. Add one line per explorer.
 EXPLORERS: dict[str, Callable[[], str]] = {
     "tools/multiplier/index.html": build_multiplier,
-    "tools/family-hours/index.html": family_hours.build_html,
+    family_hours.PAGE_PATH + "index.html": family_hours.build_html,
 }
 
 

@@ -107,6 +107,7 @@ for the two gates filed there.
 - **Not built (author, 2026-10-19):** a comparison with the repo's personal obligation hours. It is held because the market layer may change.
 - **Gates:** `tests/test_explorer_build.py`, family section. Seven mutations were caught: retirement taxed, no phase-out, no clamp, a balancing wage that is not the minimum, the wage divisor not `H_REF`, the link check skipped, and an unsourced value. Bisection-only passes, as above.
 - **Gap:** no figure is checked against its primary source. Two came from secondary reports and say so.
+- **Sharing (2026-10-19, author: settings off by default).** Both explorers link back to the tools page. The image draws the hourglass logo from `docs/images/hourglass.svg` and the address from `site_url`. The share bar uses plain platform links, so nothing loads or leaves until a click. A shared link is the bare page unless the user ticks "Include my numbers". The preview card is the page's own image at the defaults; a test holds its recorded figures to the defaults now. The build refuses a logo holding anything but paths, and a missing preview card. Four mutations caught: the link always carrying settings, the box ticked by default, the logo check and the card check skipped.
 <a id="docs-run-their-commands"></a>
 
 **THE DOCS RUN THE COMMANDS THEY DISPLAY** (2026-10-19). Before the first push since 2026-09-22, the docs were read against the code. Seven items were stale:

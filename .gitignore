@@ -38,6 +38,8 @@ results/
 !hours_eoh/reference/data/splits/*.json
 # ...and the acknowledged census the provenance gate compares against (utils/census.py)
 !tests/census_snapshot.json
+# ...and the figures on the family explorer's preview card (tests/test_explorer_build.py)
+!docs/images/family-hours-card.json
 
 # OS
 .DS_Store

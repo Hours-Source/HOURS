@@ -416,7 +416,11 @@ const out = {
   tax_ret0: tax({...D, ret: 0}), tax_ret15: tax({...D, ret: 15}),
   ctc_low: M.fedTax(150000, 150000, 2, true) - M.fedTax(150000, 150000, 0, true),
   ctc_high: M.fedTax(450000, 450000, 2, true) - M.fedTax(450000, 450000, 0, true),
-  balance: [], 
+  balance: [],
+  card: (() => { const R = M.compute(null, D);
+    return {total: R.total.toFixed(1), w: D.w, cap: R.cap, status: M.status(R.total, R.cap, D.h)}; })(),
+  share_off: M.shareLink("https://x.test/p/", "w=30&k6=1", false),
+  share_on: M.shareLink("https://x.test/p/", "w=30&k6=1", true),
 };
 for (const st of [D, {...D, eitc: 1}, {...D, eitc: 1, w: 10, n: 2, a: 2}, {...D, k6: 0, ks: 3, eitc: 1}]) {
   const w = M.balanceWage(st);
@@ -453,6 +457,39 @@ def test_family_retirement_is_pre_tax_and_the_ctc_phases_out(family_node: dict) 
     assert family_node["tax_ret15"] < family_node["tax_ret0"]
     assert family_node["ctc_high"] < 0 and family_node["ctc_low"] < 0
     assert family_node["ctc_high"] > family_node["ctc_low"]
+
+
+def test_family_share_carries_no_settings_unless_chosen(family_html: str, family_node: dict) -> None:
+    """A shared link is the bare page by default. It holds the settings only when
+    the user ticks "Include my numbers", which starts unticked."""
+    box = re.search(r'<input[^>]*id="shareMine"[^>]*>', family_html)
+    assert box and "checked" not in box.group(0)
+    assert family_node["share_off"] == "https://x.test/p/"
+    assert family_node["share_on"] == "https://x.test/p/#w=30&k6=1"
+
+
+def test_family_preview_card_shows_the_current_defaults(family_node: dict) -> None:
+    """The preview card is an image of the default family. Its recorded figures must
+    match the page's defaults now; if a cost moved, re-run render_card.js."""
+    card = json.loads((FH.REPO_ROOT / "docs" / "images" / "family-hours-card.json").read_text())
+    assert card == family_node["card"], "re-render: utils/explorers/family_hours/render_card.js"
+
+
+@pytest.mark.parametrize("breakage", ["script in logo", "no card"])
+def test_family_build_refuses_an_unsafe_logo_or_a_missing_card(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, breakage: str) -> None:
+    """The logo is drawn from its paths, so anything else in it is refused; a shared
+    link must not point at a preview card that does not exist."""
+    if breakage == "script in logo":
+        bad = tmp_path / "logo.svg"
+        bad.write_text(FH.LOGO.read_text(encoding="utf-8").replace(
+            "</svg>", "<script>alert(1)</script></svg>"), encoding="utf-8")
+        monkeypatch.setattr(FH, "LOGO", bad)
+        monkeypatch.setattr(FH.logo, "__defaults__", (bad,))
+    else:
+        monkeypatch.setattr(FH, "CARD_PATH", "images/no-such-card.png")
+    with pytest.raises(FH.BuildError):
+        FH.build_html()
 
 
 def test_family_balance_wage_is_the_lowest_cent_that_fits(family_node: dict) -> None:

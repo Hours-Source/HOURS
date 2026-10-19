@@ -61,4 +61,10 @@ What it shows, and what it does not:
   Retirement saving and the health premium are taken out before tax.
 - **The yearly-to-hourly divisor is the framework's `H_REF`**, 40 hours × 52
   weeks, a declared convention rather than a measurement of hours worked.
+- **Sharing sends nothing until you choose.** The share buttons are plain links
+  to each platform, so no platform code loads with the page. By default a shared
+  link opens the explorer at the national averages and carries none of your
+  settings. Tick "Include my numbers" to share your result and settings in the
+  link. The downloaded image always shows your result. A posted link shows the
+  explorer's image for its starting family of four.
 

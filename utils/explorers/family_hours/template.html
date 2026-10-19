@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>How Many Hours Does a Family Cost?</title>
+<meta name="description" content="Turn a family’s living costs into hours of paid work a week, and see whether they fit inside the work week. US national data, every figure with its source.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="How many hours of work does a family cost?">
+<meta property="og:description" content="Turn a family’s living costs into hours of paid work a week. US national data, every figure with its source.">
+<meta property="og:url" content="__PAGE_URL__">
+<meta property="og:image" content="__CARD_URL__">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The explorer’s result for its starting family of four: hours of paid work a week needed against the hours one earner has.">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 :root{
   --bg:#EDF1F5; --panel:#FFFFFF; --ink:#18212C; --muted:#5A6676; --line:#CDD5DF;
@@ -132,6 +142,12 @@ button:disabled{opacity:.45;cursor:default}
 .track.sm{height:22px}
 .key{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font-size:.85rem}
 .heroact .key{margin:0 0 0 auto;justify-content:flex-end}
+.shareact{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.shareact .flabel{margin:0 4px 0 0}
+.shareact .hint{flex-basis:100%;margin:0}
+.sharelink{display:inline-block;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;text-decoration:none}
+.sharelink:hover,.sharelink:focus-visible{border-color:var(--accent)}
+.mine{display:inline-flex;gap:6px;align-items:center;font-size:.92rem;margin-left:auto}
 #fed{min-width:660px}
 #fed th{white-space:normal;vertical-align:bottom;line-height:1.25}
 #fed th,#fed td{padding:8px 6px}
@@ -150,10 +166,13 @@ button:disabled{opacity:.45;cursor:default}
 :root[data-theme="dark"]{--markOk:#5FD08D;--markWarn:#F5D46A;--markBad:#FF7A6B}
 @media (max-width:560px){.hero .verdict{padding-right:76px}.statusmark{width:64px;top:16px;right:12px}.statusmark svg{width:44px;height:44px}.statusmark span{display:none}}
 @media (prefers-reduced-motion:no-preference){.seg{transition:left .25s,width .25s}}
+.back{display:inline-block;font-size:.9rem;font-weight:600;color:var(--muted);text-decoration:none;margin:0 0 14px}
+.back:hover,.back:focus-visible{color:var(--ink);text-decoration:underline}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <a class="back" href="../">&larr; All tools</a>
   <section id="start" class="start" hidden>
     <h1>How many hours of work does a family cost?</h1>
     <p class="lede">Wages are paid by the hour, so every bill can be measured in hours of paid work. Find out whether a family’s costs fit inside the work week.</p>
@@ -194,12 +213,24 @@ button:disabled{opacity:.45;cursor:default}
       <div class="marks" id="marks"></div>
       <div class="legend" id="legend"></div>
     </div>
-    <div class="heroact"><button id="img" class="primary">Download image</button><button id="copy2">Copy share link</button><span class="hint" id="imgMsg" role="status"></span>
+    <div class="heroact"><button id="img" class="primary">Download image</button><button id="copyImg" hidden>Copy image</button><span class="hint" id="imgMsg" role="status"></span>
       <div class="key">
         <span class="badge s-ok"><span class="mini" data-k="ok"></span>Fits</span>
         <span class="badge s-warn"><span class="mini" data-k="warn"></span>Needs 1 more worker</span>
         <span class="badge s-bad"><span class="mini" data-k="bad"></span>Needs 2+ more workers</span>
       </div>
+    </div>
+    <div class="shareact" aria-label="Share">
+      <span class="flabel">Share</span>
+      <button id="shareNative" hidden>Share…</button>
+      <a class="sharelink" id="shX" target="_blank" rel="noopener noreferrer">X</a>
+      <a class="sharelink" id="shBsky" target="_blank" rel="noopener noreferrer">Bluesky</a>
+      <a class="sharelink" id="shFb" target="_blank" rel="noopener noreferrer">Facebook</a>
+      <a class="sharelink" id="shLi" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a class="sharelink" id="shRd" target="_blank" rel="noopener noreferrer">Reddit</a>
+      <button id="copy2">Copy link</button>
+      <label class="mine"><input type="checkbox" id="shareMine"> Include my numbers</label>
+      <p class="hint" id="shareMsg" role="status"></p>
     </div>
   </section>
 
@@ -288,7 +319,7 @@ button:disabled{opacity:.45;cursor:default}
       </details>
 
       <div class="actions">
-        <button id="copy">Copy share link</button>
+        <button id="copy">Copy link with my settings</button>
         <button id="reset">Reset to defaults</button>
       </div>
       <div class="hint" id="copyMsg" role="status"></div>
@@ -440,7 +471,9 @@ function familyMath(P){
     while(!fits(c)&&c<top) c=Math.round(c*100+1)/100;
     return c;
   }
-  return {DEF,BOOL,LIMITS,clamp,encode,decode,housing,fedTax,eitc,eitcEnd,foodCost,status,compute,balanceWage};
+  // The shared link: the bare page unless the user chose to include their numbers.
+  const shareLink=(page,hash,mine)=>mine&&hash?page+"#"+hash:page;
+  return {DEF,BOOL,LIMITS,clamp,encode,decode,housing,fedTax,eitc,eitcEnd,foodCost,status,compute,balanceWage,shareLink};
 }
 </script>
 <script>
@@ -549,6 +582,7 @@ function barHTML(R,st,withMarks){
 /* ---------- render ---------- */
 function render(){
   const R=compute(), cap=R.cap, st=status(R.total,cap,S.h);
+  renderShare();
   const people=R.total/S.h, fam=S.a+S.k6+S.ks;
   const who=S.n===1?"One earner":`${S.n} earners`;
   $("verdict").innerHTML=`At $${S.w.toFixed(2)} an hour, this family of ${fam} needs <b>${hrs(R.total)} hours</b> of paid work a week. ${who} at ${S.h} hours ${S.n===1?"provides":"provide"} ${cap}.`;
@@ -652,11 +686,13 @@ async function makeImage(){
   const R=compute(), st=status(R.total,R.cap,S.h);
   const W=1200,H=630,c=document.createElement("canvas"); c.width=W; c.height=H;
   const x=c.getContext("2d"), F='system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif';
-  const pal={bg:"#EDF1F5",ink:"#18212C",muted:"#5A6676",panel:"#FFFFFF",bar:"#C7D2E0",
+  const pal={bg:"#EDF1F5",ink:"#18212C",muted:"#5A6676",site:"#1F4FB8",logo:"#C9A227",panel:"#FFFFFF",bar:"#C7D2E0",
     ok:["#DDF1E4","#1D6B3E"],warn:["#FBE7A1","#7A5A00"],bad:["#F6CFCB","#9B2116"],
     seg:["#1F4FB8","#7B4FC4","#2E8B6E","#C2762B","#B5487A","#6E7F96","#3A9BB5","#8A6D3B"]};
   x.fillStyle=pal.bg; x.fillRect(0,0,W,H);
   x.fillStyle=pal.muted; x.font=`600 26px ${F}`; x.fillText("How many hours of work does a family cost?",60,78);
+  drawLogo(x,60,18,28,pal.logo);
+  x.fillStyle=pal.site; x.font=`700 20px ${F}`; x.fillText(siteText(),96,40);
   // big number
   x.fillStyle=pal.ink; x.font=`800 150px ${F}`; const big=hrs(R.total);
   x.fillText(big,56,236); const bw=x.measureText(big).width;
@@ -684,6 +720,12 @@ async function makeImage(){
   const own=encode(S)!==""&&Object.keys(DEF).some(k=>!["w","n","h","a","k6","ks","cc","com","eitc","fs","fcap","own","xinc","xw"].includes(k)&&S[k]!==DEF[k]);
   x.fillStyle=pal.muted; x.font=`500 18px ${F}`; x.fillText(own?"Costs entered by the user, with national defaults for the rest. Hours of paid work at the wage shown.":"National cost data: Census, BLS, USDA, KFF, Child Care Aware, Freddie Mac. Hours of paid work at the wage shown.",60,H-24);
   return c;
+}
+function siteText(){ return P.page_url.replace(/^https?:\/\//,"").replace(/\/$/,""); }
+function drawLogo(x,left,top,size,color){
+  const [vx,vy,vw,vh]=P.logo.viewBox, k=size/Math.max(vw,vh);
+  x.save(); x.translate(left,top); x.scale(k,k); x.translate(-vx,-vy); x.fillStyle=color;
+  P.logo.paths.forEach(d=>x.fill(new Path2D(d))); x.restore();
 }
 function roundRect(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r); x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
 async function saveImage(){
@@ -734,7 +776,57 @@ async function copyLink(msgId){
   catch(e){ $(msgId).textContent="Copy this link: "+url; }
 }
 $("copy").addEventListener("click",()=>copyLink("copyMsg"));
-$("copy2").addEventListener("click",()=>copyLink("imgMsg"));
+
+/* ---------- sharing ----------
+   Off by default: the link is the bare page and the message names no figure,
+   so nothing about the household leaves the page. "Include my numbers" adds the
+   settings to the link, the result to the message, and the image to a phone
+   share. Each platform link is a plain link: no platform code loads, and
+   nothing is sent until the user clicks it. */
+function shareParts(){
+  const mine=$("shareMine").checked, R=compute(), fam=S.a+S.k6+S.ks;
+  const url=M.shareLink(P.page_url,stateString(),mine);
+  const text=mine
+    ?`At $${S.w.toFixed(2)} an hour, a family of ${fam} needs ${hrs(R.total)} hours of paid work a week. ${S.n===1?"One earner provides":S.n+" earners provide"} ${R.cap}.`
+    :"How many hours of paid work does a family cost? Work it out with your own numbers.";
+  return {mine,url,text};
+}
+function renderShare(){
+  const {mine,url,text}=shareParts(), u=encodeURIComponent(url), t=encodeURIComponent(text);
+  $("shX").href=`https://x.com/intent/post?text=${t}&url=${u}`;
+  $("shBsky").href=`https://bsky.app/intent/compose?text=${encodeURIComponent(text+" "+url)}`;
+  $("shFb").href=`https://www.facebook.com/sharer/sharer.php?u=${u}`;
+  $("shLi").href=`https://www.linkedin.com/sharing/share-offsite/?url=${u}`;
+  $("shRd").href=`https://www.reddit.com/submit?url=${u}&title=${t}`;
+  $("shareMsg").textContent=mine
+    ?"The link and message carry your wage, household and costs. Anyone with the link can see them."
+    :"The link opens the explorer at the national averages. It carries none of your settings. The downloaded image always shows your result.";
+}
+async function imageFile(){
+  const c=await makeImage(), blob=await new Promise(r=>c.toBlob(r,"image/png"));
+  return {blob,file:new File([blob],`family-hours-${Math.round(compute().total)}h.png`,{type:"image/png"})};
+}
+if(navigator.share) $("shareNative").hidden=false;
+$("shareNative").addEventListener("click",async()=>{
+  const {mine,url,text}=shareParts(), data={title:document.title,text,url};
+  try{
+    if(mine){ const {file}=await imageFile();
+      if(navigator.canShare&&navigator.canShare({files:[file]})){ data.files=[file]; data.text=text+" "+url; delete data.url; } }
+    await navigator.share(data);
+  }catch(e){ if(e&&e.name!=="AbortError") $("shareMsg").textContent="This browser could not share. Use a link below."; }
+});
+$("copy2").addEventListener("click",async()=>{
+  const {url}=shareParts();
+  try{ await navigator.clipboard.writeText(url); $("shareMsg").textContent="Link copied."; }
+  catch(e){ $("shareMsg").textContent="Copy this link: "+url; }
+});
+$("shareMine").addEventListener("change",renderShare);
+if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write) $("copyImg").hidden=false;
+$("copyImg").addEventListener("click",async()=>{
+  try{ const {blob}=await imageFile(); await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
+    $("imgMsg").textContent="Image copied. Paste it into a post."; }
+  catch(e){ $("imgMsg").textContent="This browser could not copy the image. Download it instead."; }
+});
 $("img").addEventListener("click",saveImage);
 window.addEventListener("hashchange",()=>{ loadString(location.hash.slice(1)); syncInputs(); render(); });
 

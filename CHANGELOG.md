@@ -51,6 +51,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   build refuses a value without one. Adapted from the handoff page, with
   retirement and health premiums taken before tax, the child tax credit's
   phase-out, link values clamped, and no outside requests.
+- A link back to the Browser Tools page at the top of both explorers.
+- The family explorer's image carries the site's hourglass logo and the page
+  address. A share bar posts to X, Bluesky, Facebook, LinkedIn and Reddit
+  through plain links, plus the browser's own share and copy-image where they
+  exist. A shared link carries none of the user's settings unless they tick
+  "Include my numbers". A posted link's preview card is the page's own image
+  of the default family.
 
 ### Changed
 
